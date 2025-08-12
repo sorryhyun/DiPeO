@@ -48,6 +48,7 @@ class SinglePersonJobExecutor:
         conversation_manager = request.services.resolve(CONVERSATION_MANAGER)
         prompt_builder = request.services.resolve(PROMPT_BUILDER)
         execution_count = context.get_node_execution_count(node.id)
+        logger.info(f"[EXECUTE_REQUEST] PersonJobNode {node.id} - execution_count: {execution_count}")
 
         # Get or create person
         person = self._get_or_create_person(person_id, conversation_manager)

@@ -18,6 +18,7 @@ from dipeo.domain.conversation import Person
 from dipeo.diagram_generated.generated_nodes import PersonJobNode, NodeType
 from dipeo.core.execution.node_output import NodeOutputProtocol, ErrorOutput
 from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData
+from dipeo.diagram_generated.enums import Status
 
 from .single_executor import SinglePersonJobExecutor
 from .batch_executor import BatchPersonJobExecutor
@@ -78,15 +79,39 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         if not node.person:
             return "No person specified"
         
-        # Don't validate max iteration here - handle it in execute_request
-        # to allow setting MAXITER_REACHED status
-        
         # Validate batch configuration
         if getattr(node, 'batch', False):
             batch_input_key = getattr(node, 'batch_input_key', 'items')
             if not batch_input_key:
                 return "Batch mode enabled but batch_input_key not specified"
         
+        return None
+    
+    async def pre_execute(self, request: ExecutionRequest[PersonJobNode]) -> Optional[NodeOutputProtocol]:
+        """Pre-execution hook to check max_iteration limit."""
+        node = request.node
+        context = request.context
+        
+        # Check if we've reached max_iteration BEFORE executing
+        execution_count = context.get_node_execution_count(node.id)
+        logger.info(f"[PRE_EXECUTE] PersonJobNode {node.id} - execution_count: {execution_count}, max_iteration: {node.max_iteration}")
+
+        if execution_count > node.max_iteration:
+            logger.info(f"PersonJobNode {node.id} has reached max_iteration ({node.max_iteration}), transitioning to MAXITER_REACHED")
+            
+            # Transition to MAXITER_REACHED state
+            context.transition_node_to_maxiter(node.id)
+            
+            # Return a special output with MAXITER_REACHED status
+            from dipeo.core.execution.node_output import TextOutput
+            return TextOutput(
+                value="",
+                node_id=node.id,
+                status=Status.MAXITER_REACHED,
+                metadata="{}"  # Empty metadata - status field indicates max iteration reached
+            )
+        
+        # Return None to proceed with normal execution
         return None
     
     async def execute_request(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutputProtocol:
@@ -101,7 +126,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 return await self.batch_executor.execute(request)
             else:
                 # Use single executor for normal execution
-                # The engine will handle max iteration checking after execution
                 return await self.single_executor.execute(request)
         except Exception as e:
             # Let on_error handle it

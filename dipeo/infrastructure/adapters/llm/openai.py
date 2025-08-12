@@ -47,24 +47,19 @@ class ChatGPTAdapter(BaseLLMAdapter):
     def _prepare_api_request(self, messages: list[dict[str, str]], **kwargs) -> tuple[list[dict], list[dict], dict]:
         """Prepare common API request parameters for both sync and async calls."""
         tools = kwargs.pop('tools', [])
-        system_prompt_kwarg = kwargs.pop('system_prompt', None)
         text_format = kwargs.pop('text_format', None)
 
         if not messages:
             logger.warning("No messages provided to OpenAI API call")
             return [], [], {}
 
-        system_prompt, processed_messages = self._extract_system_and_messages(messages)
-        
-        if system_prompt_kwarg:
-            system_prompt = system_prompt_kwarg
-        
         input_messages = []
-        if system_prompt:
-            input_messages.append({"role": "developer", "content": system_prompt})
-        
-        for msg in processed_messages:
-            input_messages.append({"role": msg["role"], "content": msg["content"]})
+
+        # Add all messages as-is, without extracting system messages
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            input_messages.append({"role": role, "content": content})
 
         api_tools = []
         if tools:

@@ -43,6 +43,17 @@ class TypedNodeHandler(ABC, Generic[T]):
     def validate(self, request: "ExecutionRequest[T]") -> Optional[str]:
         return None
     
+    async def pre_execute(self, request: "ExecutionRequest[T]") -> Optional[NodeOutputProtocol]:
+        """Pre-execution hook for checks and early returns.
+        
+        Called before execute_request. If this returns a NodeOutputProtocol,
+        that output is used and execute_request is skipped.
+        
+        Returns:
+            NodeOutputProtocol if execution should be skipped, None otherwise
+        """
+        return None
+    
     @abstractmethod
     async def execute_request(self, request: "ExecutionRequest[T]") -> NodeOutputProtocol:
         ...

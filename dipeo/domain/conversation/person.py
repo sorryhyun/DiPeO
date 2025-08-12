@@ -132,10 +132,10 @@ class Person:
         )
         self.add_message(incoming)
         
-        # Prepare messages for LLM
+        # Prepare messages for LLM (includes system prompt)
         messages = self._prepare_messages_for_llm()
         
-        # Call LLM service - pass service type explicitly
+        # Call LLM service - pass service type
         result = await llm_service.complete(
             messages=messages,
             model=self.llm_config.model,
@@ -209,8 +209,15 @@ class Person:
         
         # Add system prompt if we have content
         if system_prompt_content:
+            # Use 'developer' role for OpenAI, 'system' for others
+            from dipeo.diagram_generated import LLMService
+            if self.llm_config.service == LLMService.OPENAI:
+                system_role = "developer"
+            else:
+                system_role = "system"
+            
             llm_messages.append({
-                "role": "system",
+                "role": system_role,
                 "content": system_prompt_content
             })
         

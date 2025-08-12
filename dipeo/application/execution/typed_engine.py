@@ -178,6 +178,33 @@ class TypedExecutionEngine:
     
     def _get_ready_nodes_from_context(self, context: TypedExecutionContext) -> list[ExecutableNode]:
         """Get ready nodes using the order calculator."""
+        from dipeo.diagram_generated.generated_nodes import PersonJobNode
+        from dipeo.diagram_generated import Status
+        
+        # First, check for PersonJob nodes that need to be reset to PENDING
+        # (completed but dependencies are satisfied again - reached through a cycle)
+        for node in context.diagram.nodes:
+            if isinstance(node, PersonJobNode):
+                node_state = context.get_node_state(node.id)
+                if node_state and node_state.status == Status.COMPLETED:
+                    # Check if this node's dependencies are satisfied
+                    incoming_edges = context.diagram.get_incoming_edges(node.id)
+                    if incoming_edges:
+                        all_deps_satisfied = True
+                        for edge in incoming_edges:
+                            source_state = context.get_node_state(edge.source_node_id)
+                            if not source_state or source_state.status not in (Status.COMPLETED, Status.MAXITER_REACHED):
+                                all_deps_satisfied = False
+                                break
+                        
+                        if all_deps_satisfied:
+                            # Check if we haven't reached max_iteration
+                            exec_count = context.get_node_execution_count(node.id)
+                            if exec_count < node.max_iteration:
+                                # Reset to PENDING so it can run again
+                                logger.debug(f"Resetting PersonJobNode {node.id} to PENDING (execution {exec_count}/{node.max_iteration})")
+                                context.reset_node(node.id)
+        
         # Build execution context for order calculator
         node_outputs = {}
         node_exec_counts = {}
@@ -321,8 +348,12 @@ class TypedExecutionEngine:
                     parent_registry=self.service_registry
                 )
                 
-                # Execute handler
-                output = await handler.execute_request(request)
+                # Call pre_execute hook first
+                output = await handler.pre_execute(request)
+                
+                # If pre_execute returned output, use it; otherwise execute normally
+                if output is None:
+                    output = await handler.execute_request(request)
             
             # Calculate execution metrics
             end_time = time.time()
@@ -410,33 +441,8 @@ class TypedExecutionEngine:
         context: TypedExecutionContext
     ) -> None:
         """Handle node completion and state transitions."""
-        from dipeo.diagram_generated.generated_nodes import ConditionNode, PersonJobNode
-        
-        node_id = node.id
-        
-        if isinstance(node, PersonJobNode):
-            exec_count = context.get_node_execution_count(node_id)
-            
-            if exec_count >= node.max_iteration:
-                # Max iterations reached
-                context.transition_node_to_maxiter(node_id, output)
-                
-                # Reset downstream condition nodes
-                outgoing_edges = context.diagram.get_outgoing_edges(node_id)
-                for edge in outgoing_edges:
-                    target_node = context.diagram.get_node(edge.target_node_id)
-                    if target_node and isinstance(target_node, ConditionNode):
-                        node_state = context.get_node_state(target_node.id)
-                        if node_state and node_state.status.value == "COMPLETED":
-                            context.reset_node(target_node.id)
-            else:
-                # Normal completion, reset for next iteration
-                context.transition_node_to_completed(node_id, output)
-                context.reset_node(node_id)
-        
-        else:
-            # All other nodes complete normally
-            context.transition_node_to_completed(node_id, output)
+        # All nodes complete normally - PersonJob max_iteration is handled in the handler
+        context.transition_node_to_completed(node.id, output)
     
     def _serialize_output(self, output: Any) -> dict[str, Any]:
         """Serialize node output for event data."""
