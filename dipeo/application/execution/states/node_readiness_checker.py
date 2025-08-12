@@ -39,6 +39,16 @@ class NodeReadinessChecker:
         if isinstance(node, StartNode):
             return True
         
+        # Special handling for PersonJobNodes with max_iteration > 1
+        if isinstance(node, PersonJobNode) and node.max_iteration > 1:
+            exec_count = self.tracker.get_execution_count(node.id)
+            
+            # Check if we've reached max_iteration
+            if exec_count >= node.max_iteration:
+                logger.debug(f"Node {node.id} execution count: {exec_count} >= max_iteration: {node.max_iteration}")
+                # Should transition to MAXITER_REACHED instead of executing
+                return False
+        
         # Check dependencies
         incoming_edges = self._get_relevant_edges(node)
         

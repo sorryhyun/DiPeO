@@ -19,6 +19,7 @@ from dipeo.core.execution.node_output import ErrorOutput, NodeOutputProtocol
 from dipeo.diagram_generated.generated_nodes import NodeType, SubDiagramNode
 from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
 
+from .base_executor import BaseSubDiagramExecutor
 from .batch_executor import BatchSubDiagramExecutor
 from .lightweight_executor import LightweightSubDiagramExecutor
 from .single_executor import SingleSubDiagramExecutor

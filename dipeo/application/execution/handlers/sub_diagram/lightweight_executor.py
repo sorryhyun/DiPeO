@@ -16,25 +16,27 @@ from dipeo.diagram_generated import ExecutionID, ExecutionState, NodeState, Stat
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 from dipeo.infrastructure.events import NullEventBus
 
+from .base_executor import BaseSubDiagramExecutor
+
 if TYPE_CHECKING:
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 
 logger = logging.getLogger(__name__)
 
 
-class LightweightSubDiagramExecutor:
+class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
     """Executes sub-diagrams without state persistence, treating them as internal node operations."""
     
     def __init__(self):
         """Initialize executor."""
-        # Services will be set by the handler
-        self._prepare_use_case = None
-        self._diagram_service = None
+        super().__init__()
     
     def set_services(self, prepare_use_case, diagram_service):
         """Set services for the executor to use."""
-        self._prepare_use_case = prepare_use_case
-        self._diagram_service = diagram_service
+        super().set_services(
+            prepare_use_case=prepare_use_case,
+            diagram_service=diagram_service
+        )
     
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
         """Execute a sub-diagram in lightweight mode without state persistence."""
@@ -69,8 +71,6 @@ class LightweightSubDiagramExecutor:
                 value={"error": str(e)},
                 node_id=node.id,
                 metadata=json.dumps({
-                    "execution_mode": "lightweight",
-                    "status": "error",
                     "error": str(e)
                 })
             )
@@ -144,27 +144,6 @@ class LightweightSubDiagramExecutor:
             logger.error(f"Error loading diagram from '{file_path}': {e!s}")
             raise ValueError(f"Failed to load diagram '{node.diagram_name}': {e!s}")
     
-    def _construct_diagram_path(self, node: SubDiagramNode) -> str:
-        """Construct the file path for a diagram."""
-        diagram_name = node.diagram_name
-        
-        # Determine format suffix
-        format_suffix = ".light.yaml"  # Default format
-        if node.diagram_format:
-            format_map = {
-                'light': '.light.yaml',
-                'native': '.native.json',
-                'readable': '.readable.yaml'
-            }
-            format_suffix = format_map.get(node.diagram_format, '.light.yaml')
-        
-        # Construct full file path
-        if diagram_name.startswith('projects/'):
-            return f"{diagram_name}{format_suffix}"
-        elif diagram_name.startswith('codegen/'):
-            return f"files/{diagram_name}{format_suffix}"
-        else:
-            return f"files/diagrams/{diagram_name}{format_suffix}"
     
     async def _compile_diagram_fallback(self, diagram_data: Any) -> "ExecutableDiagram":
         """Fallback diagram compilation (old implementation)."""
@@ -302,36 +281,6 @@ class LightweightSubDiagramExecutor:
         return DataOutput(
             value=output_value,
             node_id=node.id,
-            metadata=json.dumps({
-                "execution_mode": "lightweight",
-                "status": "completed"
-            })
+            metadata=json.dumps({})
         )
     
-    def _process_output_mapping(self, node: SubDiagramNode, execution_results: dict[str, Any]) -> Any:
-        """Process output mapping from sub-diagram results.
-        
-        Returns the appropriate output based on endpoint nodes or the last output.
-        """
-        if not execution_results:
-            return {}
-        
-        # Find endpoint outputs
-        endpoint_outputs = self._find_endpoint_outputs(execution_results)
-        
-        if endpoint_outputs:
-            # If there's one endpoint, return its value directly
-            if len(endpoint_outputs) == 1:
-                return list(endpoint_outputs.values())[0]
-            # Multiple endpoints, return all
-            return endpoint_outputs
-        
-        # No endpoints, return the last output
-        return list(execution_results.values())[-1] if execution_results else {}
-    
-    def _find_endpoint_outputs(self, execution_results: dict[str, Any]) -> dict[str, Any]:
-        """Find endpoint node outputs in execution results."""
-        return {
-            k: v for k, v in execution_results.items() 
-            if k.startswith("endpoint") or k.startswith("end")
-        }

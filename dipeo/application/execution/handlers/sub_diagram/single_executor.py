@@ -2,7 +2,6 @@
 
 import json
 import logging
-import uuid
 from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
@@ -10,27 +9,28 @@ from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagram
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 
+from dipeo.application.execution.handlers.sub_diagram.base_executor import BaseSubDiagramExecutor
+
 if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
 
 
-class SingleSubDiagramExecutor:
+class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
     """Executor for single sub-diagram execution with state tracking."""
     
     def __init__(self):
         """Initialize executor."""
-        # Services will be set by the handler
-        self._state_store = None
-        self._message_router = None
-        self._diagram_service = None
+        super().__init__()
     
     def set_services(self, state_store, message_router, diagram_service):
         """Set services for the executor to use."""
-        self._state_store = state_store
-        self._message_router = message_router
-        self._diagram_service = diagram_service
+        super().set_services(
+            state_store=state_store,
+            message_router=message_router,
+            diagram_service=diagram_service
+        )
     
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
         """Execute a single sub-diagram."""
@@ -99,7 +99,6 @@ class SingleSubDiagramExecutor:
                 value={"error": str(e)},
                 node_id=node.id,
                 metadata=json.dumps({
-                    "status": "error",
                     "error": str(e)
                 })
             )
@@ -169,7 +168,6 @@ class SingleSubDiagramExecutor:
                 node_id=node.id,
                 metadata=json.dumps({
                     "sub_execution_id": sub_execution_id,
-                    "status": "failed",
                     "error": execution_error
                 })
             )
@@ -182,9 +180,7 @@ class SingleSubDiagramExecutor:
             value=output_value,
             node_id=node.id,
             metadata=json.dumps({
-                "sub_execution_id": sub_execution_id,
-                "status": "completed",
-                "execution_results": execution_results
+                "sub_execution_id": sub_execution_id
             })
         )
     
@@ -202,96 +198,10 @@ class SingleSubDiagramExecutor:
         
         return False
     
-    async def _load_diagram(self, node: SubDiagramNode) -> Any:
-        """Load the diagram to execute as DomainDiagram."""
-        # If diagram_data is provided directly, convert it to DomainDiagram
-        if node.diagram_data:
-            return await self._load_diagram_from_data(node.diagram_data)
-        
-        # Otherwise, load by name from storage
-        if not node.diagram_name:
-            raise ValueError("No diagram specified for execution")
-        
-        return await self._load_diagram_from_file(node)
-    
-    async def _load_diagram_from_data(self, diagram_data: dict[str, Any]) -> Any:
-        """Load diagram from inline data."""
-        if not self._diagram_service:
-            raise ValueError("Diagram service not available for conversion")
-        
-        import yaml
-        yaml_content = yaml.dump(diagram_data, default_flow_style=False, sort_keys=False)
-        return self._diagram_service.load_diagram(yaml_content)
-    
-    async def _load_diagram_from_file(self, node: SubDiagramNode) -> Any:
-        """Load diagram from file."""
-        if not self._diagram_service:
-            raise ValueError("Diagram service not available")
-        
-        # Construct file path based on diagram name and format
-        file_path = self._construct_diagram_path(node)
-        
-        try:
-            # Use diagram service to load the diagram - returns DomainDiagram
-            diagram = await self._diagram_service.load_from_file(file_path)
-            return diagram
-        except Exception as e:
-            logger.error(f"Error loading diagram from '{file_path}': {e!s}")
-            raise ValueError(f"Failed to load diagram '{node.diagram_name}': {e!s}")
-    
-    def _construct_diagram_path(self, node: SubDiagramNode) -> str:
-        """Construct the file path for a diagram."""
-        diagram_name = node.diagram_name
-        
-        # Determine format suffix
-        format_suffix = ".light.yaml"  # Default format
-        if node.diagram_format:
-            format_map = {
-                'light': '.light.yaml',
-                'native': '.native.json',
-                'readable': '.readable.yaml'
-            }
-            format_suffix = format_map.get(node.diagram_format, '.light.yaml')
-        
-        # Construct full file path
-        if diagram_name.startswith('projects/'):
-            return f"{diagram_name}{format_suffix}"
-        elif diagram_name.startswith('codegen/'):
-            return f"files/{diagram_name}{format_suffix}"
-        else:
-            return f"files/diagrams/{diagram_name}{format_suffix}"
-    
-    def _process_output_mapping(self, node: SubDiagramNode, execution_results: dict[str, Any]) -> Any:
-        """Process output mapping from sub-diagram results.
-        
-        Returns the appropriate output based on endpoint nodes or the last output.
-        """
-        if not execution_results:
-            return {}
-        
-        # Find endpoint outputs
-        endpoint_outputs = self._find_endpoint_outputs(execution_results)
-        
-        if endpoint_outputs:
-            # If there's one endpoint, return its value directly
-            if len(endpoint_outputs) == 1:
-                return list(endpoint_outputs.values())[0]
-            # Multiple endpoints, return all
-            return endpoint_outputs
-        
-        # No endpoints, return the last output
-        return list(execution_results.values())[-1] if execution_results else {}
-    
-    def _find_endpoint_outputs(self, execution_results: dict[str, Any]) -> dict[str, Any]:
-        """Find endpoint node outputs in execution results."""
-        return {
-            k: v for k, v in execution_results.items() 
-            if k.startswith("endpoint") or k.startswith("end")
-        }
     
     def _create_sub_execution_id(self, parent_execution_id: str) -> str:
         """Create a unique execution ID for sub-diagram."""
-        return f"{parent_execution_id}_sub_{uuid.uuid4().hex[:8]}"
+        return self._create_execution_id(parent_execution_id, "sub")
     
     async def _execute_sub_diagram(
         self,

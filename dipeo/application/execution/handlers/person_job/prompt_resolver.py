@@ -23,9 +23,8 @@ class PromptFileResolver:
         
         # Try to get from diagram metadata
         if self.diagram and hasattr(self.diagram, 'metadata') and self.diagram.metadata:
-            source_path = self.diagram.metadata.get('source_path')
-            if not source_path:
-                source_path = self.diagram.metadata.get('file_path')
+            # Use diagram_id which contains the file path
+            source_path = self.diagram.metadata.get('diagram_id')
         
         if source_path:
             # Convert to absolute path if relative
@@ -34,7 +33,6 @@ class PromptFileResolver:
             
             if os.path.exists(source_path):
                 return Path(source_path).parent
-        
         return None
     
     def load_prompt_file(self, prompt_filename: str, node_label: str = None) -> Optional[str]:

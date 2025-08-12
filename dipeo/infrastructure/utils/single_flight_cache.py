@@ -55,7 +55,6 @@ class SingleFlightCache:
         """
         # Check permanent cache first
         if cache_result and key in self._permanent_cache:
-            logger.debug(f"SingleFlightCache: Returning permanently cached result for {key}")
             return self._permanent_cache[key]
         
         # Acquire lock to check/modify futures dict
@@ -65,16 +64,13 @@ class SingleFlightCache:
                 # First coroutine becomes the leader
                 fut = self._futures[key] = asyncio.get_event_loop().create_future()
                 is_leader = True
-                logger.debug(f"SingleFlightCache: Became leader for {key}")
             else:
                 # Subsequent coroutines become followers
                 is_leader = False
-                logger.debug(f"SingleFlightCache: Became follower for {key}")
-        
+
         if is_leader:
             try:
                 # Leader executes the factory function
-                logger.info(f"SingleFlightCache: Leader executing factory for {key}")
                 result = await factory()
                 
                 # Cache the result if requested
@@ -83,7 +79,6 @@ class SingleFlightCache:
                 
                 # Set result for all followers
                 fut.set_result(result)
-                logger.info(f"SingleFlightCache: Leader completed successfully for {key}")
             except Exception as exc:
                 # Set exception for all followers
                 fut.set_exception(exc)
@@ -96,20 +91,16 @@ class SingleFlightCache:
                     async with self._lock:
                         if key in self._futures and self._futures[key] is fut:
                             del self._futures[key]
-                            logger.debug(f"SingleFlightCache: Cleaned up future for {key}")
-                
+
                 asyncio.create_task(cleanup())
             
             return result
         else:
             # Followers wait for the leader's result
-            logger.debug(f"SingleFlightCache: Follower waiting for {key}")
             try:
                 result = await fut
-                logger.debug(f"SingleFlightCache: Follower got result for {key}")
                 return result
             except Exception as exc:
-                logger.debug(f"SingleFlightCache: Follower got exception for {key}: {exc}")
                 raise
     
     def clear(self, key: Optional[str] = None):
@@ -120,7 +111,5 @@ class SingleFlightCache:
         """
         if key:
             self._permanent_cache.pop(key, None)
-            logger.debug(f"SingleFlightCache: Cleared cache for {key}")
         else:
             self._permanent_cache.clear()
-            logger.debug("SingleFlightCache: Cleared all cache")

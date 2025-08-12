@@ -65,6 +65,10 @@ class SinglePersonJobExecutor:
         execution_count = context.get_node_execution_count(node.id)
         logger.info(f"[EXECUTE_REQUEST] PersonJobNode {node.id} - execution_count: {execution_count}")
 
+        # Create a fresh PromptFileResolver with the current diagram
+        # This ensures we have the correct diagram_source_path metadata
+        prompt_resolver_for_execution = PromptFileResolver(self._filesystem_adapter, self._diagram)
+
         # Get or create person
         person = self._get_or_create_person(person_id, self._conversation_manager)
         
@@ -121,8 +125,8 @@ class SinglePersonJobExecutor:
         first_only_content = node.first_only_prompt
         
         # Load first_prompt_file if specified (takes precedence over inline first_only_prompt)
-        if hasattr(node, 'first_prompt_file') and node.first_prompt_file and self._prompt_resolver:
-            loaded_content = self._prompt_resolver.load_prompt_file(
+        if hasattr(node, 'first_prompt_file') and node.first_prompt_file:
+            loaded_content = prompt_resolver_for_execution.load_prompt_file(
                 node.first_prompt_file,
                 node.label or node.id
             )
@@ -130,8 +134,8 @@ class SinglePersonJobExecutor:
                 first_only_content = loaded_content
         
         # Load prompt_file if specified (for default prompt)
-        if hasattr(node, 'prompt_file') and node.prompt_file and self._prompt_resolver:
-            loaded_content = self._prompt_resolver.load_prompt_file(
+        if hasattr(node, 'prompt_file') and node.prompt_file:
+            loaded_content = prompt_resolver_for_execution.load_prompt_file(
                 node.prompt_file,
                 node.label or node.id
             )

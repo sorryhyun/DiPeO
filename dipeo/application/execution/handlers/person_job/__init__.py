@@ -18,7 +18,6 @@ from dipeo.domain.conversation import Person
 from dipeo.diagram_generated.generated_nodes import PersonJobNode, NodeType
 from dipeo.core.execution.node_output import NodeOutputProtocol, ErrorOutput
 from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData
-from dipeo.diagram_generated.enums import Status
 
 from .single_executor import SinglePersonJobExecutor
 from .batch_executor import BatchPersonJobExecutor
@@ -129,24 +128,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             # BatchExecutor uses SingleExecutor internally, so it inherits the services
             self._services_configured = True
         
-        # Check if we've reached max_iteration BEFORE executing
+        # Max iteration check is now handled in the engine before transition_node_to_running
+        # Just log for debugging
         execution_count = context.get_node_execution_count(node.id)
         logger.info(f"[PRE_EXECUTE] PersonJobNode {node.id} - execution_count: {execution_count}, max_iteration: {node.max_iteration}")
-
-        if execution_count > node.max_iteration:
-            logger.info(f"PersonJobNode {node.id} has reached max_iteration ({node.max_iteration}), transitioning to MAXITER_REACHED")
-            
-            # Transition to MAXITER_REACHED state
-            context.transition_node_to_maxiter(node.id)
-            
-            # Return a special output with MAXITER_REACHED status
-            from dipeo.core.execution.node_output import TextOutput
-            return TextOutput(
-                value="",
-                node_id=node.id,
-                status=Status.MAXITER_REACHED,
-                metadata="{}"  # Empty metadata - status field indicates max iteration reached
-            )
         
         # Return None to proceed with normal execution
         return None

@@ -114,15 +114,14 @@ nodes:
         score_match = re.search(r'Score:\s*(\d+)', code_evaluation, re.IGNORECASE)
         if score_match:
             score = int(score_match.group(1))
-        else:
-            score = 70  # Default score
         
         # Check if ready for production
-        ready = "production ready" in code_evaluation.lower() or score >= 70
+        ready = "production ready" in code_evaluation.lower() or score >= 80
         
         result = {
             "score": score,
             "ready_for_production": ready,
+            "code_evaluation": code_evaluation
         }
 
   - label: Check Quality Target
@@ -130,7 +129,7 @@ nodes:
     position: {x: 1400, y: 400}
     props:
       condition_type: custom
-      expression: checked["ready_for_production"] is True
+      expression: checked.ready_for_production == True
 
   - label: Detect Max Iterations
     type: condition
@@ -158,80 +157,22 @@ nodes:
         output_path = Path("./generated")
         output_path.mkdir(parents=True, exist_ok=True)
         
-        # Save the enhanced prompt for frontend generation
-        prompt_type = checked["config"]["prompt_type"]
-        framework = checked["config"]["target_framework"]
         
         # Save main prompt file
-        prompt_file = output_path / f"frontend_{framework}_generator.txt"
+        prompt_file = output_path / f"frontend_generator.txt"
         with open(prompt_file, 'w', encoding='utf-8') as f:
-            f.write(checked["prompt"])
+            f.write(inputs["prompt"])
         
         # Save evaluation report
-        report_file = output_path / f"code_quality_report_{framework}.txt"
+        report_file = output_path / f"code_quality_report.txt"
         with open(report_file, 'w', encoding='utf-8') as f:
-            f.write(checked["evaluation"])
+            f.write(inputs["evaluation"])
         
         # Save generated code sample
-        code_file = output_path / f"sample_generated_{framework}.tsx"
+        code_file = output_path / f"sample_generated.tsx"
         with open(code_file, 'w', encoding='utf-8') as f:
-            f.write(checked["generated_code"])
-        
-        # Save metadata
-        metadata_file = output_path / f"prompt_metadata_{framework}.json"
-        with open(metadata_file, 'w', encoding='utf-8') as f:
-            json.dump({
-                "score": checked["score"],
-                "ready_for_production": checked["ready_for_production"],
-                "prompt_type": prompt_type,
-                "target_framework": framework,
-                "sections": checked["config"]["prompt_sections"]
-            }, f, indent=2)
-        
-        result = {
-            "prompt_file": str(prompt_file),
-            "output_dir": str(output_path),
-            "final_score": checked["score"],
-            "prompt_type": prompt_type,
-            "target_framework": framework,
-            "ready_for_production": checked["ready_for_production"],
-            "config": checked["config"]
-        }
+            f.write(inputs["generated_code"])
 
-  - label: Generate Summary
-    type: code_job
-    position: {x: 1800, y: 400}
-    props:
-      language: python
-      code: |
-        config = saved_prompt['config']
-        target_score = config['target_score']
-        prompt_sections = config['prompt_sections']
-        
-        summary_lines = [
-            "# Prompt Enhancement Complete!",
-            "",
-            "## Results",
-            f"- Final Score: {saved_prompt['final_score']}/100",
-            f"- Production Ready: {'Yes' if saved_prompt['ready_for_production'] else 'Needs Review'}",
-            f"- Prompt Type: {saved_prompt['prompt_type']}",
-            f"- Target Framework: {saved_prompt['target_framework']}",
-            "",
-            "## Generated Files",
-            f"- Enhanced Prompt: {saved_prompt['prompt_file']}",
-            f"- Code Quality Report: {saved_prompt['output_dir']}/code_quality_report_{saved_prompt['target_framework']}.txt",
-            f"- Sample Generated Code: {saved_prompt['output_dir']}/sample_generated_{saved_prompt['target_framework']}.tsx",
-            f"- Metadata: {saved_prompt['output_dir']}/prompt_metadata_{saved_prompt['target_framework']}.json",
-            "",
-            "## Prompt Sections Included:",
-        ]
-        
-        for section in prompt_sections:
-            summary_lines.append(f"- {section}")
-        
-        summary = '\n'.join(summary_lines)
-        print(summary)
-        result = summary
 
   - label: Save Summary
     type: endpoint
@@ -239,7 +180,7 @@ nodes:
     props:
       file_format: md
       save_to_file: true
-      file_path: files/prompts/enhanced/README.md
+      file_path: projects/frontend_enhance/generated/README.md
 
 connections:
   # Initial flow
@@ -254,12 +195,11 @@ connections:
   - {from: Check Score, to: Check Quality Target, label: checked, content_type: object}
   
   # Success path (quality target met)
-  - {from: Check Quality Target_condtrue, to: Save Enhanced Prompt, label: checked, content_type: object}
-  - {from: Save Enhanced Prompt, to: Generate Summary, label: saved_prompt}
-  - {from: Generate Summary, to: Save Summary}
+  - {from: Check Quality Target_condtrue, to: Save Enhanced Prompt, content_type: object}
+  - {from: Save Enhanced Prompt, to: Save Summary, label: saved_prompt}
   
   # Check if max iterations reached
   - {from: Check Quality Target_condfalse, to: Detect Max Iterations}
   - {from: Detect Max Iterations_condtrue, to: Stop if Max Iterations}
-  - {from: Detect Max Iterations_condfalse, to: Generate Prompt, label: feedback}
+  - {from: Detect Max Iterations_condfalse, to: Generate Prompt, label: feedback, content_type: object}
 

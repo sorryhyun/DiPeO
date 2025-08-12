@@ -55,9 +55,7 @@ class BatchPersonJobExecutor:
             },
             node_id=node.id,
             metadata=json.dumps({
-                'batch_mode': True,
-                'batch_parallel': batch_config['parallel'],
-                'status': 'completed'
+                'batch_parallel': batch_config['parallel']
             })
         )
     
@@ -98,9 +96,7 @@ class BatchPersonJobExecutor:
             value=batch_output,
             node_id=node.id,
             metadata=json.dumps({
-                'batch_mode': True,
                 'batch_parallel': batch_config['parallel'],
-                'status': 'completed' if not errors else 'partial_failure',
                 'person': node.person
             })
         )

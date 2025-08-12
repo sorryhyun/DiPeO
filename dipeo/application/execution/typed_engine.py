@@ -122,6 +122,9 @@ class TypedExecutionEngine:
                 # Execute ready nodes
                 results = await self._execute_nodes(ready_nodes, context)
                 
+                # After executing nodes, check if any PersonJob nodes should be reset for cycles
+                self._check_and_reset_person_jobs_for_cycles(context)
+                
                 # Calculate progress
                 progress = context.calculate_progress()
                 
@@ -176,35 +179,25 @@ class TypedExecutionEngine:
             if self._managed_event_bus:
                 await self.event_bus.stop()
     
+    def _check_and_reset_person_jobs_for_cycles(self, context: TypedExecutionContext) -> None:
+        """Check if any PersonJob nodes should be reset for another cycle iteration.
+        
+        This method is called after nodes execute. It should NOT reset PersonJob nodes
+        immediately after they complete. Instead, PersonJob nodes should only be considered
+        for reset when their dependencies change (i.e., when upstream nodes complete again
+        in a subsequent execution loop iteration).
+        
+        The key insight: We don't reset PersonJob nodes in the same execution loop
+        iteration where they just completed. This prevents them from running multiple
+        times in a row.
+        """
+        # Currently, we don't do any resets here. PersonJob cycle handling is done
+        # in the readiness checker when evaluating which nodes are ready to run.
+        # This prevents immediate re-execution within the same loop iteration.
+        pass
+    
     def _get_ready_nodes_from_context(self, context: TypedExecutionContext) -> list[ExecutableNode]:
         """Get ready nodes using the order calculator."""
-        from dipeo.diagram_generated.generated_nodes import PersonJobNode
-        from dipeo.diagram_generated import Status
-        
-        # First, check for PersonJob nodes that need to be reset to PENDING
-        # (completed but dependencies are satisfied again - reached through a cycle)
-        for node in context.diagram.nodes:
-            if isinstance(node, PersonJobNode):
-                node_state = context.get_node_state(node.id)
-                if node_state and node_state.status == Status.COMPLETED:
-                    # Check if this node's dependencies are satisfied
-                    incoming_edges = context.diagram.get_incoming_edges(node.id)
-                    if incoming_edges:
-                        all_deps_satisfied = True
-                        for edge in incoming_edges:
-                            source_state = context.get_node_state(edge.source_node_id)
-                            if not source_state or source_state.status not in (Status.COMPLETED, Status.MAXITER_REACHED):
-                                all_deps_satisfied = False
-                                break
-                        
-                        if all_deps_satisfied:
-                            # Check if we haven't reached max_iteration
-                            exec_count = context.get_node_execution_count(node.id)
-                            if exec_count < node.max_iteration:
-                                # Reset to PENDING so it can run again
-                                logger.debug(f"Resetting PersonJobNode {node.id} to PENDING (execution {exec_count}/{node.max_iteration})")
-                                context.reset_node(node.id)
-        
         # Build execution context for order calculator
         node_outputs = {}
         node_exec_counts = {}
@@ -318,6 +311,42 @@ class TypedExecutionEngine:
         )
         
         try:
+            # For PersonJobNode, check max_iteration BEFORE incrementing count
+            from dipeo.diagram_generated.generated_nodes import PersonJobNode
+            if isinstance(node, PersonJobNode):
+                current_count = context.get_node_execution_count(node_id)
+                if current_count >= node.max_iteration:
+                    logger.info(f"PersonJobNode {node_id} has reached max_iteration ({node.max_iteration}), transitioning to MAXITER_REACHED")
+                    
+                    # Transition directly to MAXITER_REACHED without running
+                    from dipeo.core.execution.node_output import TextOutput
+                    from dipeo.diagram_generated.enums import Status
+                    output = TextOutput(
+                        value="",
+                        node_id=node_id,
+                        status=Status.MAXITER_REACHED,
+                        metadata="{}"
+                    )
+                    context.transition_node_to_maxiter(node_id, output)
+                    
+                    # Emit completion event with MAXITER_REACHED status
+                    await context.emit_event(
+                        EventType.NODE_COMPLETED,
+                        {
+                            "node_id": str(node_id),
+                            "node_type": node.type,
+                            "node_name": getattr(node, 'name', str(node_id)),
+                            "status": "MAXITER_REACHED",
+                            "output": {"value": "", "status": "MAXITER_REACHED"},
+                            "metrics": {
+                                "execution_time_ms": 0,
+                                "execution_count": current_count
+                            }
+                        }
+                    )
+                    
+                    return {"value": "", "status": "MAXITER_REACHED"}
+            
             # Transition to running state
             with context.executing_node(node_id):
                 exec_count = context.transition_node_to_running(node_id)

@@ -31,12 +31,7 @@ class ConditionEvaluator:
     ) -> bool:
         if not expression:
             return False
-        
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.debug(f"evaluate_custom_expression: expression='{expression}'")
-        logger.debug(f"evaluate_custom_expression: context_values={context_values}")
-        
+
         return self.safe_evaluate_expression_with_context(expression, context_values)
     
     def safe_evaluate_expression(self, expression: str) -> Any:
