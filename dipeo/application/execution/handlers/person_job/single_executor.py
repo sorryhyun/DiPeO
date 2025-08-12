@@ -220,36 +220,32 @@ class SinglePersonJobExecutor:
         if person_id in self._person_cache:
             return self._person_cache[person_id]
         
-        # Get person config from conversation manager
-        person_config = None
-        person_name = person_id  # Default to person_id as name
-        
-        if hasattr(conversation_manager, 'get_person_config'):
-            person_config = conversation_manager.get_person_config(person_id)
-        
-        
-        if not person_config:
-            # Fallback: create minimal config with default LLM
-            from dipeo.diagram_generated import ApiKeyID, LLMService, PersonLLMConfig
+        # Use the orchestrator's get_or_create_person method
+        # which properly handles repository access and wiring
+        if hasattr(conversation_manager, 'get_or_create_person'):
+            from dipeo.diagram_generated import PersonID
+            person = conversation_manager.get_or_create_person(
+                person_id=PersonID(person_id),
+                name=person_id  # Use person_id as default name
+            )
+        else:
+            # Fallback for backward compatibility (should not happen with new architecture)
+            from dipeo.diagram_generated import ApiKeyID, LLMService, PersonLLMConfig, PersonID
             person_config = PersonLLMConfig(
                 service=LLMService.OPENAI,
-                model="gpt-4.1-nano",
-                api_key_id=ApiKeyID("")  # Wrap empty string with ApiKeyID
+                model="gpt-5-nano-2025-08-07",
+                api_key_id=ApiKeyID("default")
+            )
+            
+            person = Person(
+                id=PersonID(person_id),
+                name=person_id,
+                llm_config=person_config,
+                conversation_manager=conversation_manager
             )
         
-        # Create Person object without conversation_manager to avoid circular reference
-        person = Person(
-            id=PersonID(person_id),
-            name=person_name,
-            llm_config=person_config,
-            conversation_manager=None  # Initially None to avoid recursion
-        )
-        
-        # Cache the person BEFORE setting conversation_manager
+        # Cache the person for this execution
         self._person_cache[person_id] = person
-        
-        # Now safely set the conversation_manager after caching
-        person._conversation_manager = conversation_manager
         
         return person
     

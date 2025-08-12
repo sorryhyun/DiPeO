@@ -7,7 +7,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.core.execution.execution_tracker import CompletionStatus
-from dipeo.core.execution.node_output import BaseNodeOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import BaseNodeOutput, ErrorOutput, NodeOutputProtocol, ConditionOutput
 from dipeo.diagram_generated import Status, NodeID, NodeState
 
 if TYPE_CHECKING:
@@ -213,7 +213,38 @@ class StateTransitionMixin:
             StartNode,
         )
         
-        outgoing_edges = [e for e in self.diagram.edges if e.source_node_id == node_id]
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[RESET CHECK] Checking downstream nodes for {node_id}")
+        
+        # Get the node that just completed
+        completed_node = self.diagram.get_node(node_id)
+        
+        # Special handling for ConditionNode - only reset nodes on the active branch
+        if isinstance(completed_node, ConditionNode):
+            # Get the ConditionOutput to determine which branch was taken
+            output = self._tracker.get_last_output(node_id)
+            if isinstance(output, ConditionOutput):
+                active_branch, _ = output.get_branch_output()  # Returns ("condtrue", data) or ("condfalse", data)
+                
+                # Debug logging
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.debug(f"ConditionNode {node_id} completed with branch: {active_branch}")
+                
+                # Only process edges on the active branch
+                outgoing_edges = [
+                    e for e in self.diagram.edges 
+                    if e.source_node_id == node_id and e.source_output == active_branch
+                ]
+                logger.debug(f"Found {len(outgoing_edges)} edges on active branch {active_branch}")
+            else:
+                # No valid output, can't determine branch
+                return
+        else:
+            # For non-condition nodes, process all outgoing edges as before
+            outgoing_edges = [e for e in self.diagram.edges if e.source_node_id == node_id]
+        
         nodes_to_reset = []
         
         for edge in outgoing_edges:
@@ -241,11 +272,17 @@ class StateTransitionMixin:
             # For PersonJobNodes, check max_iteration
             if isinstance(target_node, PersonJobNode):
                 exec_count = self._tracker.get_execution_count(target_node.id)
-                if exec_count > target_node.max_iteration:
+                if exec_count >= target_node.max_iteration:
                     can_reset = False
             
             if can_reset:
                 nodes_to_reset.append(target_node.id)
+        
+        # Debug logging for nodes to reset
+        if nodes_to_reset:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Resetting {len(nodes_to_reset)} nodes: {nodes_to_reset}")
         
         # Reset nodes and cascade
         for node_id_to_reset in nodes_to_reset:

@@ -75,17 +75,32 @@ class ApplicationContainer:
         )
 
 
-        from dipeo.application.services.person_manager_impl import PersonManagerImpl
-        self.registry.register(
-            PERSON_MANAGER,
-            PersonManagerImpl()
+        # Setup repositories
+        from dipeo.application.repositories import (
+            InMemoryPersonRepository,
+            InMemoryConversationRepository
         )
-
-        from dipeo.application.services.conversation_manager_impl import ConversationManagerImpl
-        conversation_manager = ConversationManagerImpl()
-        self.registry.register(CONVERSATION_MANAGER, conversation_manager)
+        from dipeo.application.services.execution_orchestrator import ExecutionOrchestrator
+        
+        # Create repository instances
+        person_repository = InMemoryPersonRepository()
+        conversation_repository = InMemoryConversationRepository()
+        
+        # Create orchestrator that coordinates between repositories
+        orchestrator = ExecutionOrchestrator(
+            person_repository=person_repository,
+            conversation_repository=conversation_repository
+        )
+        
+        # Register the orchestrator as both conversation manager and person manager
+        # for backward compatibility during migration
+        self.registry.register(CONVERSATION_MANAGER, orchestrator)
         from dipeo.application.registry.keys import CONVERSATION_SERVICE
-        self.registry.register(CONVERSATION_SERVICE, conversation_manager)
+        self.registry.register(CONVERSATION_SERVICE, orchestrator)
+        
+        # For now, we'll keep PERSON_MANAGER pointing to the orchestrator
+        # This maintains compatibility while we migrate
+        self.registry.register(PERSON_MANAGER, orchestrator)
         
         from dipeo.application.services.cli_session_service import CliSessionService
         self.registry.register(CLI_SESSION_SERVICE, CliSessionService())

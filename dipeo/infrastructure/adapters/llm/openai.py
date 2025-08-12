@@ -55,11 +55,20 @@ class ChatGPTAdapter(BaseLLMAdapter):
 
         input_messages = []
 
-        # Add all messages as-is, without extracting system messages
+        # Process messages and handle special roles
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
-            input_messages.append({"role": role, "content": content})
+            
+            # OpenAI's responses API accepts "developer" role for system messages
+            # The "developer" role provides stronger instruction adherence than "system"
+            # This is already handled by the infrastructure layer, but we validate it here
+            if role in ["user", "assistant", "system", "developer"]:
+                input_messages.append({"role": role, "content": content})
+            else:
+                # Fallback to "user" for unknown roles
+                logger.warning(f"Unknown role '{role}' in message, using 'user'")
+                input_messages.append({"role": "user", "content": content})
 
         api_tools = []
         if tools:

@@ -18,7 +18,7 @@ from dipeo.application.execution.states.node_readiness_checker import NodeReadin
 from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
 from dipeo.core.execution import ExecutionContext as ExecutionContextProtocol
 from dipeo.core.execution.execution_tracker import CompletionStatus, ExecutionTracker
-from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
 from dipeo.core.execution.runtime_resolver import RuntimeResolver
 from dipeo.diagram_generated import (
     ExecutionState,
@@ -160,6 +160,9 @@ class TypedExecutionContext(ExecutionContextProtocol):
                 output=output,
                 token_usage=token_usage
             )
+        
+        # Handle downstream resets for loops (only for successful completion)
+        self._reset_downstream_nodes_if_needed(node_id)
     
     def transition_node_to_failed(self, node_id: NodeID, error: str) -> None:
         """Transition a node to failed state with error message."""
@@ -176,6 +179,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
         """Transition a node to max iterations state."""
+        logger.info(f"[MAXITER] Transitioning {node_id} to MAXITER_REACHED")
         with self._state_lock:
             self._node_states[node_id] = NodeState(status=Status.MAXITER_REACHED)
             self._tracker.complete_execution(
@@ -197,6 +201,92 @@ class TypedExecutionContext(ExecutionContextProtocol):
         """Reset a node to initial state."""
         with self._state_lock:
             self._node_states[node_id] = NodeState(status=Status.PENDING)
+    
+    def _reset_downstream_nodes_if_needed(self, node_id: NodeID) -> None:
+        """Reset downstream nodes if they're part of a loop."""
+        from dipeo.diagram_generated.generated_nodes import (
+            ConditionNode,
+            EndpointNode,
+            PersonJobNode,
+            StartNode,
+        )
+        
+        logger.info(f"[RESET CHECK] Checking downstream nodes for {node_id}")
+        
+        # Get the node that just completed
+        completed_node = self.diagram.get_node(node_id)
+        
+        # Special handling for ConditionNode - only reset nodes on the active branch
+        if isinstance(completed_node, ConditionNode):
+            # Get the ConditionOutput to determine which branch was taken
+            output = self._tracker.get_last_output(node_id)
+            if isinstance(output, ConditionOutput):
+                active_branch, _ = output.get_branch_output()  # Returns ("condtrue", data) or ("condfalse", data)
+                
+                logger.debug(f"ConditionNode {node_id} completed with branch: {active_branch}")
+                
+                # Only process edges on the active branch
+                outgoing_edges = [
+                    e for e in self.diagram.edges 
+                    if e.source_node_id == node_id and e.source_output == active_branch
+                ]
+                logger.debug(f"Found {len(outgoing_edges)} edges on active branch {active_branch}")
+            else:
+                # No valid output, can't determine branch
+                return
+        else:
+            # For non-condition nodes, process all outgoing edges as before
+            outgoing_edges = [e for e in self.diagram.edges if e.source_node_id == node_id]
+        
+        nodes_to_reset = []
+        
+        for edge in outgoing_edges:
+            target_node = self.diagram.get_node(edge.target_node_id)
+            if not target_node:
+                continue
+            
+            # Check if target was already executed
+            target_state = self._node_states.get(target_node.id)
+            if not target_state or target_state.status != Status.COMPLETED:
+                continue
+            
+            # Check if we can reset this node
+            can_reset = True
+            
+            # Don't reset one-time nodes
+            if isinstance(target_node, (StartNode, EndpointNode)):
+                can_reset = False
+            
+            # For condition nodes, allow reset if they're part of a loop
+            # Check if any of its outgoing edges point back to an already-executed node
+            if isinstance(target_node, ConditionNode):
+                cond_outgoing = [e for e in self.diagram.edges if e.source_node_id == target_node.id]
+                # Check if this condition has a loop back (at least one edge points to an executed node)
+                has_loop_back = False
+                for edge in cond_outgoing:
+                    loop_target = self.diagram.get_node(edge.target_node_id)
+                    if loop_target and self._tracker.get_execution_count(edge.target_node_id) > 0:
+                        has_loop_back = True
+                        break
+                can_reset = has_loop_back
+            
+            # For PersonJobNodes, check max_iteration
+            if isinstance(target_node, PersonJobNode):
+                exec_count = self._tracker.get_execution_count(target_node.id)
+                if exec_count >= target_node.max_iteration:
+                    can_reset = False
+            
+            if can_reset:
+                nodes_to_reset.append(target_node.id)
+        
+        # Debug logging for nodes to reset
+        if nodes_to_reset:
+            logger.debug(f"Resetting {len(nodes_to_reset)} nodes: {nodes_to_reset}")
+        
+        # Reset nodes and cascade
+        for node_id_to_reset in nodes_to_reset:
+            self.reset_node(node_id_to_reset)
+            self._reset_downstream_nodes_if_needed(node_id_to_reset)
     
     # ========== Runtime Context ==========
     

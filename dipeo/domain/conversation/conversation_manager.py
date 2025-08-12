@@ -12,8 +12,8 @@ from .conversation import Conversation
 class ConversationManager(Protocol):
     
     @abstractmethod
-    def get_conversation(self, person_id: str = "") -> Conversation:
-        """Get global conversation. person_id parameter ignored for backward compatibility."""
+    def get_conversation(self) -> Conversation:
+        """Get the global conversation shared by all persons."""
         ...
     
     

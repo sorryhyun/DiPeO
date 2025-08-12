@@ -4,20 +4,26 @@ This module contains protocol definitions that establish boundaries
 between the domain layer and infrastructure implementations.
 """
 
+from .conversation_repository import ConversationRepository
+from .person_repository import PersonRepository
 from .storage import (
-    BlobStorePort,
-    FileSystemPort,
-    ArtifactStorePort,
-    FileInfo,
     Artifact,
     ArtifactRef,
+    ArtifactStorePort,
+    BlobStorePort,
+    FileInfo,
+    FileSystemPort,
 )
 
 __all__ = [
+    # Storage ports
     "BlobStorePort",
     "FileSystemPort", 
     "ArtifactStorePort",
     "FileInfo",
     "Artifact",
     "ArtifactRef",
+    # Repository ports
+    "PersonRepository",
+    "ConversationRepository",
 ]
