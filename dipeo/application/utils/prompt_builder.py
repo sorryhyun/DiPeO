@@ -4,25 +4,28 @@ import logging
 import warnings
 from typing import Any
 
-from dipeo.application.utils.template import TemplateProcessor
+from dipeo.domain.ports.template import TemplateProcessorPort
 
 logger = logging.getLogger(__name__)
 
 
 class PromptBuilder:
     
-    def __init__(self, template_processor: TemplateProcessor | None = None):
-        self._processor = template_processor or TemplateProcessor()
+    def __init__(self, template_processor: TemplateProcessorPort | None = None):
+        self._processor = template_processor
     
     def build(
         self,
         prompt: str,
+        template_values: dict[str, Any],
         first_only_prompt: str | None = None,
         execution_count: int = 0,
-        template_values: dict[str, Any] | None = None,
-        raw_inputs: dict[str, Any] | None = None,
-        auto_prepend_conversation: bool = True,
     ) -> str:
+        """Build a prompt with template substitution.
+        
+        This is now a pure template processor - conversation context
+        should be provided in template_values from the domain layer.
+        """
         selected_prompt = self._select_prompt(prompt, first_only_prompt, execution_count)
         
         # Handle None prompt - return empty string
@@ -30,81 +33,29 @@ class PromptBuilder:
             logger.warning("No prompt provided to PromptBuilder - returning empty string")
             return ""
         
-        if template_values is None:
-            if raw_inputs is None:
-                template_values = {}
-            else:
-                template_values = self.prepare_template_values(raw_inputs)
-        
-        # Check if auto-prepend is enabled via parameter or settings
-        should_prepend = auto_prepend_conversation
-        # If explicitly False, respect that. Otherwise check settings.
-        if auto_prepend_conversation is not False:
-            try:
-                from dipeo.infrastructure.config import get_settings
-                should_prepend = get_settings().auto_prepend_conversation
-            except:
-                pass  # Keep default True if settings not available
-        
-        # Auto-prepend conversation if enabled and available
-        if should_prepend and template_values:
-            selected_prompt = self._prepend_conversation_context(selected_prompt, template_values)
-        
         # Use template processing to support variable substitution
-        result = self._processor.process(selected_prompt, template_values)
-        if result.errors:
-            logger.warning(f"Template processing errors: {result.errors}")
-        return result.content
+        if self._processor:
+            result = self._processor.process(selected_prompt, template_values)
+            if result.errors:
+                logger.warning(f"Template processing errors: {result.errors}")
+            return result.content
+        else:
+            # Return raw prompt if no processor available
+            return selected_prompt
     
-    def prepare_template_values(self, inputs: dict[str, Any], conversation_manager=None, person_id=None) -> dict[str, Any]:
-
-        # Use inputs directly - no unwrapping needed
-        unwrapped_inputs = inputs
-        template_values = {}
+    def prepare_template_values(self, inputs: dict[str, Any]) -> dict[str, Any]:
+        """Prepare template values from inputs.
         
-        # Add global conversation if manager is available
-        if conversation_manager:
-            global_conversation = conversation_manager.get_conversation()
-            if global_conversation:
-                messages = global_conversation.messages
-                template_values['global_conversation'] = [
-                    {
-                        'from': str(msg.from_person_id) if msg.from_person_id else '',
-                        'to': str(msg.to_person_id) if msg.to_person_id else '',
-                        'content': msg.content,
-                        'type': msg.message_type
-                    } for msg in messages
-                ]
-                template_values['global_message_count'] = len(messages)
-                
-                # Also add person-specific conversations
-                person_conversations = {}
-                for msg in messages:
-                    # Add to sender's view
-                    if msg.from_person_id != "system":
-                        if msg.from_person_id not in person_conversations:
-                            person_conversations[msg.from_person_id] = []
-                        person_conversations[msg.from_person_id].append({
-                            'role': 'assistant',
-                            'content': msg.content
-                        })
-                    
-                    # Add to recipient's view
-                    if msg.to_person_id != "system":
-                        if msg.to_person_id not in person_conversations:
-                            person_conversations[msg.to_person_id] = []
-                        person_conversations[msg.to_person_id].append({
-                            'role': 'user',
-                            'content': msg.content
-                        })
-                
-                template_values['person_conversations'] = person_conversations
+        This now only handles input transformation, not conversation context.
+        Conversation context should be obtained from Person.get_conversation_context().
+        """
+        template_values = {}
         
         # Special handling for 'default' and 'first' inputs - flatten their properties to root context
         # This allows templates to access {{property}} instead of {{default.property}} or {{first.property}}
         for special_key in ['default', 'first']:
-            if special_key in unwrapped_inputs and isinstance(unwrapped_inputs[special_key], dict):
-                special_value = unwrapped_inputs[special_key]
+            if special_key in inputs and isinstance(inputs[special_key], dict):
+                special_value = inputs[special_key]
                 # First, add all properties from the special input to the root context
                 for prop_key, prop_value in special_value.items():
                     if prop_key not in template_values:  # Don't overwrite existing values
@@ -112,7 +63,7 @@ class PromptBuilder:
                 # Also keep the special object itself for backward compatibility
                 template_values[special_key] = special_value
         
-        for key, value in unwrapped_inputs.items():
+        for key, value in inputs.items():
             if isinstance(value, (str, int, float, bool, type(None))):
                 template_values[key] = value
             
@@ -201,13 +152,18 @@ class PromptBuilder:
         
         return result.content
     
-    def _prepend_conversation_context(self, prompt: str, template_values: dict[str, Any]) -> str:
+    def prepend_conversation_if_needed(self, prompt: str, conversation_context: dict[str, Any]) -> str:
+        """Prepend conversation context to prompt if appropriate.
+        
+        This is now a simple utility that checks if the prompt already references
+        conversation variables and prepends a summary if not.
+        """
         # Check if prompt is None
         if prompt is None:
             return prompt
-            
+        
         # Check if conversation data is available
-        if 'global_conversation' not in template_values:
+        if 'global_conversation' not in conversation_context:
             return prompt
         
         # Check if prompt already references conversation variables
@@ -216,27 +172,8 @@ class PromptBuilder:
             # Prompt already uses conversation variables, don't prepend
             return prompt
         
-        # Check if conversation input is already provided (e.g., from conversation_state edges)
-        # This avoids double-prepending when conversation is passed as input
-        has_conversation_input = any(
-            key.endswith('_messages') and isinstance(value, list) 
-            for key, value in template_values.items()
-        )
-        if has_conversation_input:
-            # Log which keys triggered this
-            conv_keys = [k for k, v in template_values.items() if k.endswith('_messages') and isinstance(v, list)]
-            return prompt
-        
-        # Check if the prompt or any conversation messages already contain "[Previous conversation"
-        # This prevents nested repetition when conversations are passed through loops
-        global_conversation = template_values.get('global_conversation', [])
-        for msg in global_conversation:
-            content = msg.get('content', '')
-            if '[Previous conversation' in content:
-                return prompt
-        
         # Check if there are any messages to prepend
-        global_conversation = template_values.get('global_conversation', [])
+        global_conversation = conversation_context.get('global_conversation', [])
         if not global_conversation:
             return prompt
         
@@ -247,24 +184,24 @@ class PromptBuilder:
         except:
             context_limit = 10  # Default fallback
         
-        # Build conversation context
-        conversation_context = []
-        conversation_context.append(f"[Previous conversation with {len(global_conversation)} messages]")
+        # Build conversation summary
+        conversation_summary = []
+        conversation_summary.append(f"[Previous conversation with {len(global_conversation)} messages]")
         
-        # Include recent messages (limit to configured amount for context)
+        # Include recent messages
         recent_messages = global_conversation[-context_limit:] if len(global_conversation) > context_limit else global_conversation
         
         for msg in recent_messages:
             from_person = msg.get('from', 'unknown')
             content = msg.get('content', '')
             if content:  # Only include non-empty messages
-                conversation_context.append(f"{from_person}: {content}")
+                conversation_summary.append(f"{from_person}: {content}")
         
         if len(global_conversation) > context_limit:
-            conversation_context.append(f"... ({len(global_conversation) - context_limit} earlier messages omitted)")
+            conversation_summary.append(f"... ({len(global_conversation) - context_limit} earlier messages omitted)")
         
-        conversation_context.append("")  # Empty line separator
+        conversation_summary.append("")  # Empty line separator
         
         # Prepend to prompt
-        conversation_text = "\n".join(conversation_context)
+        conversation_text = "\n".join(conversation_summary)
         return f"{conversation_text}\n{prompt}"

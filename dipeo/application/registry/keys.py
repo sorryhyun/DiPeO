@@ -19,6 +19,8 @@ if TYPE_CHECKING:
         ASTParserPort,
         IntegratedApiServicePort,
     )
+    from dipeo.domain.ports.storage import FileSystemPort
+    from dipeo.domain.ports.template import TemplateProcessorPort
     from dipeo.core.events import EventEmitter
     from dipeo.application.services import (
         ConversationManagerImpl,
@@ -56,6 +58,7 @@ CONVERSATION_MANAGER = ServiceKey["ConversationManagerImpl"]("conversation_manag
 CONVERSATION_SERVICE = ServiceKey["ConversationManagerImpl"]("conversation_service")  # Alias
 PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder")
 PERSON_MANAGER = ServiceKey["PersonManagerImpl"]("person_manager")
+TEMPLATE_PROCESSOR = ServiceKey["TemplateProcessorPort"]("template_processor")
 
 # Domain Services
 DB_OPERATIONS_SERVICE = ServiceKey["DBOperationsDomainService"]("db_operations_service")
@@ -125,6 +128,7 @@ __all__ = [
     "CONVERSATION_SERVICE",
     "PROMPT_BUILDER",
     "PERSON_MANAGER",
+    "TEMPLATE_PROCESSOR",
     
     # Domain
     "DB_OPERATIONS_SERVICE",

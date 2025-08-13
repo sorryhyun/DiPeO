@@ -237,8 +237,11 @@ class ExecuteDiagramUseCase(BaseService):
         # If we have the prepare service, use it for clean deserialization -> compilation
         if self._prepare_diagram_service:
             # Prepare diagram handles all format conversion and compilation
+            # Pass diagram_source_path from options if available
+            diagram_id = options.get("diagram_source_path")
             executable_diagram = await self._prepare_diagram_service.prepare_for_execution(
                 diagram=diagram,
+                diagram_id=diagram_id,  # Pass the original source path
                 validate=False  # Skip validation for now as mentioned in TODO
             )
         else:
@@ -265,6 +268,14 @@ class ExecuteDiagramUseCase(BaseService):
             # Add metadata
             if domain_diagram.metadata:
                 executable_diagram.metadata.update(domain_diagram.metadata.__dict__)
+            
+            # Add diagram source path if available
+            diagram_source_path = options.get("diagram_source_path")
+            if diagram_source_path:
+                executable_diagram.metadata["diagram_source_path"] = diagram_source_path
+                # Also set as diagram_id if not already set
+                if "diagram_id" not in executable_diagram.metadata:
+                    executable_diagram.metadata["diagram_id"] = diagram_source_path
             
             # Add persons metadata
             if hasattr(domain_diagram, 'persons') and domain_diagram.persons:

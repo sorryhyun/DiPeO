@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Generic, Optional, Protocol, TypeVar, runtime_checkable
 
 if TYPE_CHECKING:
-    from dipeo.diagram_generated import Message, NodeID, TokenUsage
+    from dipeo.diagram_generated import Message, NodeID, TokenUsage, Status
 
 T = TypeVar('T')
 
@@ -33,6 +33,7 @@ class NodeOutputProtocol(Protocol[T]):
     token_usage: 'TokenUsage | None'
     execution_time: float | None
     retry_count: int
+    status: 'Status | None'  # Node execution status
     
     def get_output(self, key: str, default: Any = None) -> Any:
         ...
@@ -63,6 +64,7 @@ class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
     token_usage: 'TokenUsage | None' = None
     execution_time: float | None = None
     retry_count: int = 0
+    status: 'Status | None' = None  # Node execution status
     
     def get_metadata_dict(self) -> dict[str, Any]:
         """Get metadata as a dictionary (creates friction for discovery)."""
@@ -94,7 +96,8 @@ class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
             "timestamp": self.timestamp.isoformat(),
             "error": self.error,
             "execution_time": self.execution_time,
-            "retry_count": self.retry_count
+            "retry_count": self.retry_count,
+            "status": self.status.value if self.status else None
         }
         
         # Include token_usage if present

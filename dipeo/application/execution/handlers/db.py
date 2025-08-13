@@ -4,7 +4,7 @@ import glob
 import json
 import logging
 import os
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import yaml
 from pydantic import BaseModel
@@ -16,7 +16,7 @@ from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, DataOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
-from dipeo.application.utils.template import TemplateProcessor
+from dipeo.domain.ports.template import TemplateProcessorPort
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_context import ExecutionContext
@@ -26,9 +26,20 @@ logger = logging.getLogger(__name__)
 
 @register_handler
 class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
+    """
+    Clean separation of concerns:
+    1. validate() - Static/structural validation (compile-time checks)
+    2. pre_execute() - Runtime validation and setup
+    3. execute_request() - Core execution logic
+    """
 
-    def __init__(self, db_operations_service: Any | None = None) -> None:
+    def __init__(self, db_operations_service: Any | None = None, template_processor: TemplateProcessorPort | None = None) -> None:
         self.db_operations_service = db_operations_service
+        self._template_processor = template_processor
+        # Instance variables for passing data between methods
+        self._current_db_service = None
+        self._current_base_dir = None
+        self._current_template_processor = None
 
     @property
     def node_class(self) -> type[DBNode]:
@@ -49,6 +60,61 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     @property
     def description(self) -> str:
         return "File-based DB node supporting read, write and append operations"
+    
+    async def pre_execute(self, request: ExecutionRequest[DBNode]) -> Optional[NodeOutputProtocol]:
+        """Pre-execution setup: validate database service availability.
+        
+        Moves service resolution and validation out of execute_request
+        for cleaner separation of concerns.
+        """
+        node = request.node
+        
+        # Resolve database operations service
+        db_service = request.services.resolve(DB_OPERATIONS_SERVICE)
+        
+        if db_service is None:
+            return ErrorOutput(
+                value="Database operations service not available",
+                node_id=node.id,
+                error_type="ServiceNotAvailableError"
+            )
+        
+        # Validate operation type
+        valid_operations = ["read", "write", "append"]
+        if node.operation not in valid_operations:
+            return ErrorOutput(
+                value=f"Invalid operation: {node.operation}. Valid operations: {', '.join(valid_operations)}",
+                node_id=node.id,
+                error_type="InvalidOperationError"
+            )
+        
+        # Validate file paths are provided
+        file_paths = node.file
+        if not file_paths:
+            return ErrorOutput(
+                value="No file paths specified for database operation",
+                node_id=node.id,
+                error_type="MissingFilePathError"
+            )
+        
+        # Store service and configuration in instance variables for execute_request
+        self._current_db_service = db_service
+        self._current_base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
+        
+        # Initialize template processor for path interpolation
+        # Use injected processor or try to get from services
+        from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
+        template_processor = self._template_processor
+        if not template_processor:
+            try:
+                template_processor = request.services.resolve(TEMPLATE_PROCESSOR)
+            except:
+                # If not available in services, template processing will be skipped
+                pass
+        self._current_template_processor = template_processor
+        
+        # No early return - proceed to execute_request
+        return None
 
     @staticmethod
     def _first_non_empty(inputs: dict[str, Any] | None) -> Any | None:
@@ -118,14 +184,15 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
             return content
 
     async def execute_request(self, request: ExecutionRequest[DBNode]) -> NodeOutputProtocol:
+        """Pure execution using instance variables set in pre_execute."""
         node = request.node
         context = request.context
         inputs = request.inputs
         
-        db_service = request.services.resolve(DB_OPERATIONS_SERVICE)
-        
-        if db_service is None:
-            raise RuntimeError("db_operations_service not available")
+        # Use pre-validated service and configuration from instance variables (set in pre_execute)
+        db_service = self._current_db_service
+        base_dir = self._current_base_dir
+        template_processor = self._current_template_processor
         
         file_paths = node.file
 
@@ -142,8 +209,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     variables = context.get_variables()
                 
                 merged_variables = {**variables, **inputs}
-                template_processor = TemplateProcessor()
-                file_path = template_processor.process_single_brace(file_path, merged_variables)
+                if template_processor:
+                    file_path = template_processor.process_single_brace(file_path, merged_variables)
 
             processed_paths.append(file_path)
         
@@ -160,8 +227,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                         path = f"{path}.json"
                 adjusted_paths.append(path)
             processed_paths = adjusted_paths
-        
-        base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
         
         if getattr(node, 'glob', False):
             processed_paths = self._expand_glob_patterns(processed_paths, base_dir)

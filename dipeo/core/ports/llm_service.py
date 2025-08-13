@@ -3,7 +3,8 @@
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from dipeo.diagram_generated import ChatResult, TokenUsage
+    from dipeo.diagram_generated import ChatResult, Message, PersonLLMConfig, TokenUsage
+    from dipeo.diagram_generated.domain_models import PersonID
 
 
 @runtime_checkable
@@ -17,6 +18,16 @@ class LLMServicePort(Protocol):
         api_key_id: str,
         **kwargs,
     ) -> "ChatResult":
+        ...
+
+    async def complete_with_person(
+        self,
+        person_messages: list["Message"],
+        person_id: "PersonID",
+        llm_config: "PersonLLMConfig",
+        **kwargs,
+    ) -> "ChatResult":
+        """Complete a prompt with person-specific context and system prompt handling."""
         ...
 
     async def get_available_models(self, api_key_id: str) -> list[str]:

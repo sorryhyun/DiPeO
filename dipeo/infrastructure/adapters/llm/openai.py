@@ -47,27 +47,29 @@ class ChatGPTAdapter(BaseLLMAdapter):
     def _prepare_api_request(self, messages: list[dict[str, str]], **kwargs) -> tuple[list[dict], list[dict], dict]:
         """Prepare common API request parameters for both sync and async calls."""
         tools = kwargs.pop('tools', [])
-        system_prompt_kwarg = kwargs.pop('system_prompt', None)
         text_format = kwargs.pop('text_format', None)
 
         if not messages:
             logger.warning("No messages provided to OpenAI API call")
             return [], [], {}
 
-        system_prompt, processed_messages = self._extract_system_and_messages(messages)
-        
-        if system_prompt_kwarg:
-            system_prompt = system_prompt_kwarg
-        
         input_messages = []
-        if system_prompt:
-            input_messages.append({"role": "developer", "content": system_prompt})
-        
-        for msg in processed_messages:
-            input_messages.append({"role": msg["role"], "content": msg["content"]})
 
-        logger.debug(f"Input messages: {input_messages}")
-        
+        # Process messages and handle special roles
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            
+            # OpenAI's responses API accepts "developer" role for system messages
+            # The "developer" role provides stronger instruction adherence than "system"
+            # This is already handled by the infrastructure layer, but we validate it here
+            if role in ["user", "assistant", "system", "developer"]:
+                input_messages.append({"role": role, "content": content})
+            else:
+                # Fallback to "user" for unknown roles
+                logger.warning(f"Unknown role '{role}' in message, using 'user'")
+                input_messages.append({"role": "user", "content": content})
+
         api_tools = []
         if tools:
             for tool in tools:
@@ -89,7 +91,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
             
             if isinstance(text_format, type) and issubclass(text_format, BaseModel):
                 api_params["_pydantic_model"] = text_format
-                logger.debug(f"Using Pydantic model for structured output: {text_format.__name__}")
             else:
                 logger.warning(f"text_format must be a Pydantic BaseModel class, got {type(text_format)}")
         
@@ -109,7 +110,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
                     text = json.dumps(parsed_output)
             else:
                 text = ''
-            logger.debug(f"Parsed structured output: {text}")
         elif hasattr(response, 'parsed'):
             import json
             from pydantic import BaseModel
@@ -122,11 +122,9 @@ class ChatGPTAdapter(BaseLLMAdapter):
                     text = json.dumps(parsed_output)
             else:
                 text = ''
-            logger.debug(f"Parsed structured output: {text}")
         else:
             text = getattr(response, 'output_text', '')
-            logger.debug(f"Output text: {text}")
-        
+
         tool_outputs = []
         if hasattr(response, 'output') and response.output:
             for output in response.output:
@@ -171,7 +169,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
         
         if not input_messages:
             return ChatResult(text='', raw_response=None)
-        
         # Make response API call with retry logic
         response = self._make_api_call_with_retry(
             input_messages=input_messages,
@@ -281,7 +278,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
             # Use cached async client or create one
             async with self._client_lock:
                 if self._async_client is None:
-                    logger.debug(f"Creating new AsyncOpenAI client for {self.model_name}")
                     self._async_client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
                 client = self._async_client
         

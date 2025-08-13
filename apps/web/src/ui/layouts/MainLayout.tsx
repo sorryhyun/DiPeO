@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { TopBar, Sidebar } from '../components/common/layout';
 import { useCanvasState, useCanvasOperations } from '../../domain/diagram/contexts';
+import { useUIState } from '../../infrastructure/store/hooks';
 
 const LazyDiagramCanvas = React.lazy(() => import('../components/diagram/DiagramCanvas'));
 const LazyExecutionView = React.lazy(() => import('../components/execution/ExecutionView'));
@@ -13,15 +14,18 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   const { activeCanvas } = useCanvasState();
   const { executionOps } = useCanvasOperations();
+  const { isMonitorMode } = useUIState();
 
   return (
     <div className="h-screen flex flex-col">
       <TopBar />
 
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-80 border-r border-border flex-shrink-0 bg-background-secondary">
-          <Sidebar position="left" />
-        </div>
+        {!isMonitorMode && (
+          <div className="w-80 border-r border-border flex-shrink-0 bg-background-secondary">
+            <Sidebar position="left" />
+          </div>
+        )}
 
         <div className="flex-1 flex flex-col">
           {children || (

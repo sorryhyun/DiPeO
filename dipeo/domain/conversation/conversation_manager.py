@@ -12,8 +12,8 @@ from .conversation import Conversation
 class ConversationManager(Protocol):
     
     @abstractmethod
-    def get_conversation(self, person_id: str = "") -> Conversation:
-        """Get global conversation. person_id parameter ignored for backward compatibility."""
+    def get_conversation(self) -> Conversation:
+        """Get the global conversation shared by all persons."""
         ...
     
     
@@ -33,6 +33,11 @@ class ConversationManager(Protocol):
     
     @abstractmethod
     def clear_all_conversations(self) -> None:
+        ...
+    
+    @abstractmethod
+    def clear_person_messages(self, person_id: Any) -> None:
+        """Clear all messages involving a specific person."""
         ...
     
 

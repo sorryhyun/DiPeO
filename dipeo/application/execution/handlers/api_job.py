@@ -18,9 +18,22 @@ if TYPE_CHECKING:
 
 @register_handler
 class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
+    """
+    Clean separation of concerns:
+    1. validate() - Static/structural validation (compile-time checks)
+    2. pre_execute() - Runtime validation and setup
+    3. execute_request() - Core execution logic
+    """
     
     def __init__(self, api_service=None):
         self.api_service = api_service
+        # Instance variables for passing data between methods
+        self._current_api_service = None
+        self._current_method = None
+        self._current_headers = None
+        self._current_params = None
+        self._current_body = None
+        self._current_auth_config = None
 
     @property
     def node_class(self) -> type[ApiJobNode]:
@@ -43,13 +56,12 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     def description(self) -> str:
         return "Makes HTTP requests to external APIs with authentication support"
 
-    async def execute_request(self, request: ExecutionRequest[ApiJobNode]) -> NodeOutputProtocol:
+    async def pre_execute(self, request: ExecutionRequest[ApiJobNode]) -> Optional[NodeOutputProtocol]:
+        """Pre-execution validation and setup."""
         node = request.node
-        context = request.context
-        inputs = request.inputs
-        services = request.services
+        
+        # Check service availability
         api_service = self.api_service or request.get_service(API_SERVICE.name)
-            
         if not api_service:
             return ErrorOutput(
                 value="API service not available",
@@ -57,20 +69,16 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 error_type="ServiceNotAvailableError"
             )
         
-        url = node.url
+        # Validate URL
+        if not node.url:
+            return ErrorOutput(
+                value="No URL provided",
+                node_id=node.id,
+                error_type="ValidationError"
+            )
+        
+        # Convert and validate HTTP method
         method = node.method
-        headers = node.headers or {}
-        params = node.params or {}
-        body = node.body
-        timeout = node.timeout or 30
-        auth_type = node.auth_type or "none"
-        auth_config = node.auth_config or {}
-        
-        print(f"[ApiJobNode] URL: {url}")
-        print(f"[ApiJobNode] Method type: {type(method)}, value: {method}")
-        print(f"[ApiJobNode] Headers: {headers}")
-        
-        # Convert method to HttpMethod if it's a string
         if isinstance(method, str):
             try:
                 method = HttpMethod(method.upper())
@@ -80,27 +88,54 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                     node_id=node.id,
                     error_type="ValidationError"
                 )
-
-        if not url:
+        
+        # Parse and validate JSON inputs
+        headers = node.headers or {}
+        params = node.params or {}
+        body = node.body
+        auth_config = node.auth_config or {}
+        
+        parsed_data = self._parse_json_inputs(headers, params, body, auth_config)
+        if "error" in parsed_data:
             return ErrorOutput(
-                value="No URL provided",
+                value=parsed_data["error"],
                 node_id=node.id,
                 error_type="ValidationError"
             )
+        
+        # Store validated data in instance variables for execute_request to use
+        self._current_api_service = api_service
+        self._current_method = method
+        self._current_headers = parsed_data["headers"]
+        self._current_params = parsed_data["params"]
+        self._current_body = parsed_data["body"]
+        self._current_auth_config = parsed_data["auth_config"]
+        
+        # Return None to proceed with normal execution
+        return None
+
+    async def execute_request(self, request: ExecutionRequest[ApiJobNode]) -> NodeOutputProtocol:
+        """Pure execution using instance variables set in pre_execute."""
+        node = request.node
+        
+        # Use pre-validated data from instance variables (set in pre_execute)
+        api_service = self._current_api_service
+        method = self._current_method
+        headers = self._current_headers
+        params = self._current_params
+        body = self._current_body
+        auth_config = self._current_auth_config
+        
+        # Get additional node configuration
+        url = node.url
+        timeout = node.timeout or 30
+        auth_type = node.auth_type or "none"
+        
+        print(f"[ApiJobNode] URL: {url}")
+        print(f"[ApiJobNode] Method: {method}")
+        print(f"[ApiJobNode] Headers: {headers}")
 
         try:
-            parsed_data = self._parse_json_inputs(headers, params, body, auth_config)
-            if "error" in parsed_data:
-                return ErrorOutput(
-                    value=parsed_data["error"],
-                    node_id=node.id,
-                    error_type="ValidationError"
-                )
-            
-            headers = parsed_data["headers"]
-            params = parsed_data["params"]
-            body = parsed_data["body"]
-            auth_config = parsed_data["auth_config"]
 
             auth = self._prepare_auth(auth_type, auth_config)
             headers = self._apply_auth_headers(headers, auth_type, auth_config)
@@ -226,14 +261,8 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         request: ExecutionRequest[ApiJobNode],
         output: NodeOutputProtocol
     ) -> NodeOutputProtocol:
-        if request.metadata.get("debug"):
-            method = request.metadata.get("method", "unknown")
-            url = request.metadata.get("url", "unknown")
-            success = output.metadata.get("success", False)
-            print(f"[ApiJobNode] {method} {url} - Success: {success}")
-            if not success and output.metadata.get("error"):
-                print(f"[ApiJobNode] Error: {output.metadata['error']}")
-        
+        # Post-execution logging can use node properties or output fields
+        # No need for metadata access
         return output
     
     async def on_error(
@@ -241,8 +270,9 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         request: ExecutionRequest[ApiJobNode],
         error: Exception
     ) -> Optional[NodeOutputProtocol]:
-        url = request.metadata.get("url", "unknown")
-        method = request.metadata.get("method", "unknown")
+        # Use node properties for error context
+        url = request.node.url or "unknown"
+        method = str(self._current_method) if self._current_method else request.node.method or "unknown"
         
         output = ErrorOutput(
             value=f"API request failed: {str(error)}",

@@ -5,6 +5,12 @@
     "TypescriptAstNodeData": {
       "additionalProperties": false,
       "properties": {
+        "batch": {
+          "type": "boolean"
+        },
+        "batchInputKey": {
+          "type": "string"
+        },
         "extractPatterns": {
           "items": {
             "type": "string"
@@ -29,11 +35,18 @@
         },
         "source": {
           "type": "string"
+        },
+        "sources": {
+          "$ref": "#/definitions/Record<string,string>"
         }
       },
       "required": [
         "label"
       ],
+      "type": "object"
+    },
+    "Record<string,string>": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

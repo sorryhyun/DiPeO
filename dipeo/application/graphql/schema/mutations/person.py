@@ -8,7 +8,7 @@ import strawberry
 from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.domain.conversation import PersonManager
 from dipeo.diagram_generated import DomainPerson
-from dipeo.diagram_generated.domain_models import PersonLLMConfig, PersonID
+from dipeo.diagram_generated.domain_models import PersonLLMConfig, PersonID, LLMService, ApiKeyID
 
 from ...types.inputs import CreatePersonInput, UpdatePersonInput
 from ...types.results import PersonResult, DeleteResult
@@ -38,18 +38,22 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                 )
                 
                 # Create person
-                person_id = f"person_{uuid4().hex[:8]}"
+                person_id = PersonID(f"person_{uuid4().hex[:8]}")
+                
+                # Use get_or_create_person to create the person
+                person_manager.get_or_create_person(
+                    person_id=person_id,
+                    name=input.label,
+                    llm_config=llm_config
+                )
+                
+                # Create DomainPerson for GraphQL response
                 person = DomainPerson(
                     id=person_id,
                     label=input.label,
                     llm_config=llm_config,
-                    type=input.type,
+                    type="person"  # This is a literal type
                 )
-                
-                # Add to manager
-                person_manager.create_person(person_id=person_id,
-                                           name=input.label,
-                                           llm_config=llm_config)
                 
                 return PersonResult(
                     success=True,
@@ -72,58 +76,52 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                 person_id = PersonID(str(id))
                 person_manager = registry.resolve(PERSON_MANAGER)
                 
-                # Check if person exists in manager
-                person_exists = person_manager.person_exists(person_id)
-                existing_person = None
-                
-                if person_exists:
+                # Try to get existing person
+                try:
                     existing_person = person_manager.get_person(person_id)
-                else:
-                    logger.debug(f"Person {person_id} not found in manager, will create new entry")
+                    existing_label = existing_person.name
+                    existing_llm_config = existing_person.llm_config
+                except (KeyError, Exception):
+                    # Person doesn't exist, we'll create it
+                    existing_person = None
+                    existing_label = "Unknown Person"
+                    existing_llm_config = PersonLLMConfig(
+                        service=LLMService("openai"),
+                        model="gpt-5-nano-2025-08-07",
+                        api_key_id=ApiKeyID("default"),
+                        system_prompt="",
+                    )
                 
-                # Create updated person based on input
-                if existing_person:
-                    # Update existing person
-                    updated_label = input.label if input.label else existing_person.name
-                    updated_llm_config = existing_person.llm_config
-                    
-                    if input.llm_config:
-                        # Update LLM config fields
-                        updated_llm_config = PersonLLMConfig(
-                            service=input.llm_config.service if input.llm_config.service else updated_llm_config.service,
-                            model=input.llm_config.model if input.llm_config.model else updated_llm_config.model,
-                            api_key_id=input.llm_config.api_key_id if input.llm_config.api_key_id else updated_llm_config.api_key_id,
-                            system_prompt=input.llm_config.system_prompt if input.llm_config.system_prompt is not None else updated_llm_config.system_prompt,
-                        )
-                else:
-                    # Create new person with provided data
-                    updated_label = input.label or "Unknown Person"
+                # Prepare updated values
+                updated_label = input.label if input.label else existing_label
+                
+                if input.llm_config:
+                    # Update LLM config fields
                     updated_llm_config = PersonLLMConfig(
-                        service=input.llm_config.service if input.llm_config else "openai",
-                        model=input.llm_config.model if input.llm_config else "gpt-4.1-nano",
-                        api_key_id=input.llm_config.api_key_id if input.llm_config else "",
-                        system_prompt=input.llm_config.system_prompt if input.llm_config and input.llm_config.system_prompt is not None else "",
+                        service=input.llm_config.service if input.llm_config.service else existing_llm_config.service,
+                        model=input.llm_config.model if input.llm_config.model else existing_llm_config.model,
+                        api_key_id=input.llm_config.api_key_id if input.llm_config.api_key_id else existing_llm_config.api_key_id,
+                        system_prompt=input.llm_config.system_prompt if input.llm_config.system_prompt is not None else existing_llm_config.system_prompt,
                     )
+                else:
+                    updated_llm_config = existing_llm_config
                 
-                # Update or create in person manager
-                if person_exists:
-                    # Update existing person using update_person_config
-                    person_manager.update_person_config(
-                        person_id=person_id,
-                        llm_config=updated_llm_config
+                # Use get_or_create_person which will either get or create
+                # For updates, we'll use register_person for backward compatibility
+                if existing_person:
+                    # Update using register_person (backward compatibility method)
+                    person_manager.register_person(
+                        person_id=str(person_id),
+                        config={
+                            'name': updated_label,
+                            'service': updated_llm_config.service,
+                            'model': updated_llm_config.model,
+                            'api_key_id': updated_llm_config.api_key_id,
+                        }
                     )
-                    # Also update the name by recreating if needed
-                    if input.label and existing_person and existing_person.name != updated_label:
-                        # Remove and recreate to update name (since update_person_config doesn't update name)
-                        person_manager.remove_person(person_id)
-                        person_manager.create_person(
-                            person_id=person_id,
-                            name=updated_label,
-                            llm_config=updated_llm_config
-                        )
                 else:
                     # Create new person
-                    person_manager.create_person(
+                    person_manager.get_or_create_person(
                         person_id=person_id,
                         name=updated_label,
                         llm_config=updated_llm_config
@@ -134,11 +132,8 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                     id=person_id,
                     label=updated_label,
                     llm_config=updated_llm_config,
-                    type="person"
+                    type="person"  # This is a literal type
                 )
-                
-                # Note: We're not updating diagrams here - persons exist independently
-                # Diagrams will reference persons by ID when needed
                 
                 return PersonResult(
                     success=True,
@@ -157,19 +152,18 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
         async def delete_person(self, id: strawberry.ID) -> DeleteResult:
             try:
                 person_id = PersonID(str(id))
-                person_manager = registry.resolve(PERSON_MANAGER)
-                
-                # Remove from manager
-                person_manager.remove_person(person_id)
+                # Since ExecutionOrchestrator doesn't have delete, 
+                # we'll need to access the repository directly
+                # For now, return an error indicating this operation is not supported
+                logger.warning(f"Delete person operation not supported in current architecture for person {person_id}")
                 
                 return DeleteResult(
-                    success=True,
-                    deleted_id=str(person_id),
-                    message=f"Deleted person: {person_id}",
+                    success=False,
+                    error="Delete operation not currently supported. Persons are managed through execution context.",
                 )
                 
             except Exception as e:
-                logger.error(f"Failed to delete person {person_id}: {e}")
+                logger.error(f"Failed to delete person {id}: {e}")
                 return DeleteResult(
                     success=False,
                     error=f"Failed to delete person: {str(e)}",

@@ -566,6 +566,25 @@
           "type": "select",
           "label": "Parsemode",
           "required": false
+        },
+        {
+          "name": "batch",
+          "type": "checkbox",
+          "label": "Batch",
+          "required": false,
+          "defaultValue": false
+        },
+        {
+          "name": "sources",
+          "type": "code",
+          "label": "Sources",
+          "required": false
+        },
+        {
+          "name": "batchInputKey",
+          "type": "text",
+          "label": "Batchinputkey",
+          "required": false
         }
       ]
     },

@@ -169,38 +169,47 @@ class TransformationType(Enum):
 
 ### 3. Dynamic Order Calculator (`dynamic_order_calculator.py`)
 
-Calculates execution order at runtime based on dependencies:
+Calculates execution order at runtime with advanced dependency resolution:
 
 ```python
-class DynamicOrderCalculator:
-    """Calculates node execution order dynamically"""
-    
-    def __init__(self, diagram: ExecutableDiagram):
-        self.diagram = diagram
-        self.dependency_graph = self._build_dependency_graph()
+class DomainDynamicOrderCalculator:
+    """Calculates node execution order with condition branch validation"""
     
     def get_ready_nodes(self,
-                       completed: set[NodeID],
-                       failed: set[NodeID],
-                       running: set[NodeID]) -> list[NodeID]:
+                       diagram: ExecutableDiagram,
+                       node_states: dict[NodeID, NodeState],
+                       context: ExecutionContext) -> list[ExecutableNode]:
         """Get nodes ready for execution"""
-        ready = []
+        ready_nodes = []
         
-        for node_id in self.diagram.node_ids:
-            if node_id in completed or node_id in failed or node_id in running:
-                continue
-            
-            dependencies = self.get_dependencies(node_id)
-            
-            # Check if all dependencies completed
-            if dependencies.issubset(completed):
-                ready.append(node_id)
-            
-            # Handle conditional dependencies
-            elif self._has_conditional_path(node_id, completed):
-                ready.append(node_id)
+        for node in diagram.nodes:
+            if self._is_node_ready(node, diagram, node_states, context):
+                ready_nodes.append(node)
         
-        return self._prioritize_nodes(ready)
+        # Prioritize and batch for optimal execution
+        prioritized = self._prioritize_nodes(ready_nodes, context)
+        batches = self._group_by_constraints(prioritized, context)
+        
+        return batches[0] if batches else []
+    
+    def _is_dependency_satisfied(self,
+                                edge: Any,
+                                node_states: dict[NodeID, NodeState],
+                                context: ExecutionContext) -> bool:
+        """Check dependency with condition branch validation"""
+        source_state = node_states.get(edge.source_node_id)
+        if not source_state or source_state.status not in [Status.COMPLETED, Status.MAXITER_REACHED]:
+            return False
+        
+        # Critical: Validate condition branches
+        if edge.source_output in ["condtrue", "condfalse"]:
+            output = context.get_node_output(edge.source_node_id)
+            if isinstance(output, ConditionOutput):
+                active_branch, _ = output.get_branch_output()
+                return edge.source_output == active_branch  # Only satisfied if on active branch
+            return False
+        
+        return True
 ```
 
 **Dependency Analysis:**

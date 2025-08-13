@@ -55,30 +55,36 @@ handlers/
 Abstract base for all node handlers:
 
 ```python
-from abc import ABC, abstractmethod
-
 class TypedNodeHandler(ABC, Generic[T]):
     """Base class for typed node handlers"""
     
+    @property
     @abstractmethod
-    async def execute_request(self, 
-                            request: ExecutionRequest[T]) -> NodeOutputProtocol:
-        """Execute the node with given request"""
+    def node_class(self) -> type[T]:
+        """Node class this handler processes"""
         pass
     
     @property
     @abstractmethod
-    def node_type(self) -> type[T]:
-        """Return the node type this handler processes"""
+    def node_type(self) -> str:
+        """Node type identifier"""
         pass
     
-    async def validate_inputs(self, inputs: dict[str, Any]) -> ValidationResult:
-        """Validate node inputs before execution"""
-        return ValidationResult(is_valid=True)
+    @property
+    @abstractmethod
+    def schema(self) -> type[BaseModel]:
+        """Pydantic schema for node data"""
+        pass
     
-    async def prepare_context(self, request: ExecutionRequest) -> dict[str, Any]:
-        """Prepare execution context"""
-        return {}
+    async def pre_execute(self, request: ExecutionRequest[T]) -> Optional[NodeOutputProtocol]:
+        """Pre-execution validation and setup.
+        Returns NodeOutputProtocol to skip execution, None to proceed."""
+        return None
+    
+    @abstractmethod
+    async def execute_request(self, request: ExecutionRequest[T]) -> NodeOutputProtocol:
+        """Main execution logic"""
+        pass
 ```
 
 ### 2. Auto Registration (`auto_register.py`)
@@ -130,525 +136,171 @@ class HandlerFactory:
             self._handlers[node_type] = handler_class(self.registry)
 ```
 
-## Node Handler Implementations
+## Pre-Execute Pattern
 
-### 1. PersonJob Handler (`person_job/`)
-
-Handles LLM interaction nodes:
+The `pre_execute()` method provides clean separation between validation/setup and execution:
 
 ```python
-@register_handler
-class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
-    """Handler for PersonJob nodes - LLM interactions"""
+class TypedNodeHandler(ABC, Generic[T]):
+    async def pre_execute(self, request: ExecutionRequest[T]) -> Optional[NodeOutputProtocol]:
+        """Pre-execution hook for checks and early returns.
+        Returns NodeOutputProtocol to skip execution, None to proceed."""
+        return None
     
-    def __init__(self, registry: ServiceRegistry):
-        self.llm_service = registry.resolve(LLM_SERVICE)
-        self.person_manager = registry.resolve(PERSON_MANAGER)
-        self.conversation_manager = registry.resolve(CONVERSATION_MANAGER)
-    
-    async def execute_request(self, request: ExecutionRequest[PersonJobNode]) -> ConversationOutput:
-        """Execute LLM query with person context"""
-        node = request.node
-        
-        # Get or create person
-        person = await self.person_manager.get_or_create(node.person_id)
-        
-        # Build prompt with context
-        prompt = self._build_prompt(node.prompt, request.inputs, person)
-        
-        # Get LLM response
-        response = await self.llm_service.generate_with_conversation(
-            conversation=person.conversation.messages,
-            prompt=prompt,
-            model=node.model or person.default_model
-        )
-        
-        # Update conversation
-        person.conversation.add_message(response)
-        
-        return ConversationOutput(
-            value=response.content,
-            messages=person.conversation.messages,
-            node_id=node.id,
-            person_id=person.id
-        )
+    async def execute_request(self, request: ExecutionRequest[T]) -> NodeOutputProtocol:
+        """Main execution logic."""
+        pass
 ```
 
-**Batch Executor** (`person_job/batch_executor.py`):
-```python
-class PersonJobBatchExecutor:
-    """Executes PersonJob for multiple inputs"""
-    
-    async def execute_batch(self, 
-                          node: PersonJobNode,
-                          batch_inputs: list[dict]) -> list[ConversationOutput]:
-        """Process batch of inputs in parallel"""
-        tasks = [
-            self._execute_single(node, inputs)
-            for inputs in batch_inputs
-        ]
-        return await asyncio.gather(*tasks)
-```
+### Using Instance Variables
 
-### 2. CodeJob Handler (`code_job/`)
-
-Executes code in various languages:
-
-```python
-@register_handler
-class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
-    """Handler for code execution nodes"""
-    
-    def __init__(self, registry: ServiceRegistry):
-        self.executors = {
-            "python": PythonExecutor(),
-            "typescript": TypeScriptExecutor(),
-            "bash": BashExecutor()
-        }
-    
-    async def execute_request(self, request: ExecutionRequest[CodeJobNode]) -> DataOutput:
-        """Execute code in specified language"""
-        node = request.node
-        executor = self.executors.get(node.language)
-        
-        if not executor:
-            raise UnsupportedLanguageError(node.language)
-        
-        # Prepare execution environment
-        context = self._prepare_context(request.inputs)
-        
-        # Execute code
-        result = await executor.execute(
-            code=node.code,
-            context=context,
-            timeout=node.timeout
-        )
-        
-        return DataOutput(
-            value=result.output,
-            node_id=node.id,
-            metadata={"language": node.language, "execution_time": result.execution_time}
-        )
-```
-
-**Language Executors** (`code_job/executors/`):
-```python
-class PythonExecutor(BaseExecutor):
-    """Python code executor"""
-    
-    async def execute(self, code: str, context: dict, timeout: int) -> ExecutionResult:
-        """Execute Python code in sandboxed environment"""
-        # Create isolated namespace
-        namespace = {"__builtins__": safe_builtins, **context}
-        
-        # Execute with timeout
-        try:
-            exec(compile(code, "<string>", "exec"), namespace)
-            return ExecutionResult(
-                output=namespace.get("result"),
-                success=True
-            )
-        except TimeoutError:
-            return ExecutionResult(success=False, error="Timeout")
-```
-
-### 3. Condition Handler (`condition/`)
-
-Evaluates conditions and handles branching:
-
-```python
-@register_handler
-class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
-    """Handler for conditional branching"""
-    
-    def __init__(self, registry: ServiceRegistry):
-        self.evaluators = {
-            "expression": ExpressionEvaluator(),
-            "max_iterations": MaxIterationsEvaluator(),
-            "nodes_executed": NodesExecutedEvaluator(),
-            "custom": CustomExpressionEvaluator()
-        }
-    
-    async def execute_request(self, request: ExecutionRequest[ConditionNode]) -> ConditionOutput:
-        """Evaluate condition and determine branch"""
-        node = request.node
-        evaluator = self.evaluators.get(node.condition_type, "expression")
-        
-        # Evaluate condition
-        result = await evaluator.evaluate(
-            expression=node.expression,
-            context=request.inputs,
-            execution_context=request.execution_context
-        )
-        
-        return ConditionOutput(
-            value=result,
-            branch="true" if result else "false",
-            node_id=node.id,
-            metadata={"condition_type": node.condition_type}
-        )
-```
-
-**Condition Evaluators** (`condition/evaluators/`):
-```python
-class MaxIterationsEvaluator(BaseEvaluator):
-    """Evaluates max iteration conditions"""
-    
-    async def evaluate(self, expression: str, context: dict, execution_context: ExecutionContext) -> bool:
-        """Check if max iterations reached"""
-        node_id = context.get("node_id")
-        max_iterations = int(expression)
-        current_iterations = execution_context.get_iteration_count(node_id)
-        
-        return current_iterations >= max_iterations
-```
-
-### 4. API Job Handler (`api_job.py`)
-
-Handles external API calls:
+Store validated data as instance variables in `pre_execute()`:
 
 ```python
 @register_handler
 class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
-    """Handler for API call nodes"""
+    def __init__(self, api_service=None):
+        self.api_service = api_service
+        # Instance vars for current execution
+        self._current_method = None
+        self._current_headers = None
     
-    def __init__(self, registry: ServiceRegistry):
-        self.http_client = registry.resolve(HTTP_CLIENT)
-        self.api_key_service = registry.resolve(API_KEY_SERVICE)
+    async def pre_execute(self, request):
+        # Validate and store in instance vars
+        self._current_method = self._validate_method(request.node.method)
+        self._current_headers = self._parse_headers(request.node.headers)
+        
+        if not self._current_method:
+            return ErrorOutput(value="Invalid method", node_id=request.node.id)
+        return None
     
-    async def execute_request(self, request: ExecutionRequest[ApiJobNode]) -> DataOutput:
-        """Execute API call"""
-        node = request.node
-        
-        # Prepare request
-        headers = self._prepare_headers(node)
-        body = self._prepare_body(node, request.inputs)
-        
-        # Execute with retry logic
-        response = await self._execute_with_retry(
-            method=node.method,
-            url=node.endpoint,
-            headers=headers,
-            json=body,
-            max_retries=node.max_retries
+    async def execute_request(self, request):
+        # Use instance vars directly
+        response = await self.api_service.call(
+            method=self._current_method,
+            headers=self._current_headers
         )
-        
-        return DataOutput(
-            value=response.json(),
-            node_id=node.id,
-            metadata={"status_code": response.status_code}
-        )
+        return APIJobOutput(value=response.data, node_id=request.node.id)
 ```
 
-### 5. Template Job Handler (`template_job.py`)
+## Available Node Handlers
 
-Processes templates with data:
+### Core Handlers
 
-```python
-@register_handler
-class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
-    """Handler for template processing"""
-    
-    def __init__(self, registry: ServiceRegistry):
-        self.template_service = registry.resolve(TEMPLATE_SERVICE)
-    
-    async def execute_request(self, request: ExecutionRequest[TemplateJobNode]) -> TextOutput:
-        """Process template with data"""
-        node = request.node
-        
-        # Merge node data with inputs
-        template_data = {**node.default_data, **request.inputs}
-        
-        # Process template
-        result = await self.template_service.process(
-            template=node.template,
-            data=template_data,
-            engine=node.template_engine
-        )
-        
-        return TextOutput(
-            value=result,
-            node_id=node.id
-        )
+| Handler | Location | Purpose | Key Features |
+|---------|----------|---------|--------------|
+| **PersonJobHandler** | `person_job.py` | LLM interactions with person context | - Manages conversation history<br>- Supports multiple LLM models<br>- Batch execution capability<br>- Max iteration checks via pre_execute() |
+| **CodeJobHandler** | `code_job/` | Execute code in multiple languages | - Python, TypeScript, Bash support<br>- Sandboxed execution<br>- File or inline code<br>- Timeout management |
+| **ConditionHandler** | `condition/` | Conditional branching logic | - Multiple evaluator types<br>- Expression evaluation<br>- Iteration counting<br>- Custom conditions |
+| **ApiJobHandler** | `api_job.py` | External API calls | - HTTP methods support<br>- Authentication handling<br>- Retry logic<br>- JSON parsing in pre_execute() |
+| **EndpointHandler** | `endpoint.py` | Data pass-through and storage | - Optional file saving<br>- Data transformation<br>- Path resolution in pre_execute() |
+
+### Advanced Handlers
+
+| Handler | Location | Purpose | Key Features |
+|---------|----------|---------|--------------|
+| **SubDiagramHandler** | `sub_diagram.py` | Execute nested diagrams | - Batch mode support<br>- Context inheritance<br>- Parallel execution |
+| **TemplateJobHandler** | `template_job.py` | Template processing | - Handlebars templates<br>- Data merging<br>- Multiple template engines |
+| **HookHandler** | `hook.py` | Lifecycle hooks | - Pre/post execution hooks<br>- Custom scripts<br>- Event triggering |
+| **IntegratedApiHandler** | `integrated_api.py` | Specialized API integrations | - Service-specific adapters<br>- Built-in authentication |
+| **DBTypedHandler** | `db_typed.py` | Database operations | - Query execution<br>- Transaction support<br>- Multiple DB types |
+
+### Handler Organization
+
+Handlers follow two organizational patterns:
+
+**Simple Handler** (single file):
+```
+handlers/
+└── person_job.py    # Complete implementation in one file
 ```
 
-### 6. SubDiagram Handler (`sub_diagram/`)
-
-Executes nested diagrams:
-
-```python
-@register_handler
-class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
-    """Handler for nested diagram execution"""
-    
-    def __init__(self, registry: ServiceRegistry):
-        self.diagram_service = registry.resolve(DIAGRAM_SERVICE)
-        self.execution_engine = registry.resolve(EXECUTION_ENGINE)
-    
-    async def execute_request(self, request: ExecutionRequest[SubDiagramNode]) -> DataOutput:
-        """Execute nested diagram"""
-        node = request.node
-        
-        # Load sub-diagram
-        sub_diagram = await self.diagram_service.load(node.diagram_id)
-        
-        # Execute with parent context
-        result = await self.execution_engine.execute(
-            diagram=sub_diagram,
-            inputs=request.inputs,
-            parent_context=request.execution_context
-        )
-        
-        return DataOutput(
-            value=result.outputs,
-            node_id=node.id,
-            metadata={"sub_execution_id": result.execution_id}
-        )
+**Complex Handler** (package):
+```
+handlers/
+└── code_job/
+    ├── __init__.py   # Main handler with pre_execute()
+    └── executors/    # Supporting modules
+        ├── python_executor.py
+        └── typescript_executor.py
 ```
 
 ## Creating Custom Handlers
 
-### Step 1: Define Handler Class
+### Basic Handler Template
 
 ```python
-from dipeo.application.execution.handlers import TypedNodeHandler, register_handler
+from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.handler_factory import register_handler
 
 @register_handler
 class CustomNodeHandler(TypedNodeHandler[CustomNode]):
     """Handler for custom node type"""
     
-    def __init__(self, registry: ServiceRegistry):
-        super().__init__(registry)
-        # Initialize dependencies
-        self.custom_service = registry.resolve(CUSTOM_SERVICE)
+    def __init__(self, custom_service=None):
+        self.custom_service = custom_service
+        # Instance vars for pre_execute pattern
+        self._validated_data = None
     
     @property
-    def node_type(self) -> type[CustomNode]:
+    def node_class(self) -> type[CustomNode]:
         return CustomNode
     
+    @property
+    def node_type(self) -> str:
+        return NodeType.CUSTOM.value
+    
+    @property
+    def schema(self) -> type[BaseModel]:
+        return CustomNodeData
+    
+    async def pre_execute(self, request: ExecutionRequest[CustomNode]) -> Optional[NodeOutputProtocol]:
+        """Validate and prepare execution"""
+        # Early validation and setup
+        # Store in instance variables
+        # Return ErrorOutput for failures, None to proceed
+        return None
+    
     async def execute_request(self, request: ExecutionRequest[CustomNode]) -> NodeOutputProtocol:
-        """Execute custom node logic"""
-        node = request.node
-        
-        # Custom execution logic
-        result = await self.custom_service.process(
-            data=request.inputs,
-            config=node.config
-        )
-        
-        return DataOutput(
-            value=result,
-            node_id=node.id
-        )
-```
-
-### Step 2: Complex Handler with Executors
-
-```python
-# handlers/custom_handler/__init__.py
-@register_handler
-class ComplexHandler(TypedNodeHandler[ComplexNode]):
-    """Complex handler with multiple executors"""
-    
-    def __init__(self, registry: ServiceRegistry):
-        from .executors import ExecutorA, ExecutorB
-        
-        self.executors = {
-            "type_a": ExecutorA(),
-            "type_b": ExecutorB()
-        }
-    
-    async def execute_request(self, request: ExecutionRequest[ComplexNode]) -> NodeOutputProtocol:
-        executor = self.executors[request.node.executor_type]
-        return await executor.execute(request)
-
-# handlers/custom_handler/executors/executor_a.py
-class ExecutorA:
-    """Specific executor implementation"""
-    
-    async def execute(self, request: ExecutionRequest) -> NodeOutputProtocol:
-        # Implementation
-        pass
+        """Execute using validated data from pre_execute"""
+        # Use instance variables set in pre_execute
+        return DataOutput(value=result, node_id=request.node.id)
 ```
 
 ## Handler Lifecycle
 
-### 1. Registration Phase
-```python
-# Automatic registration on import
-@register_handler
-class MyHandler(TypedNodeHandler[MyNode]):
-    pass
-
-# Handler is now in HANDLER_REGISTRY
-```
-
-### 2. Initialization Phase
-```python
-# Factory initializes with dependencies
-factory = HandlerFactory(service_registry)
-handler = factory.get_handler(MyNode)
-```
-
-### 3. Execution Phase
-```python
-# Engine calls handler
-request = ExecutionRequest(
-    node=my_node,
-    inputs=resolved_inputs,
-    execution_context=context
-)
-output = await handler.execute_request(request)
-```
+1. **Registration**: Handlers are decorated with `@register_handler` and auto-registered on import
+2. **Initialization**: Factory creates handler instances with dependencies  
+3. **Pre-execution**: `pre_execute()` validates inputs and prepares data
+4. **Execution**: `execute_request()` performs the main logic
+5. **Post-execution**: Optional `post_execute()` for cleanup
 
 ## Error Handling
 
-### Handler Exceptions
+Handlers should return `ErrorOutput` for recoverable errors in `pre_execute()` or `execute_request()`:
 
 ```python
-class HandlerError(Exception):
-    """Base handler exception"""
-    pass
-
-class HandlerNotFoundError(HandlerError):
-    """Handler not found for node type"""
-    pass
-
-class HandlerExecutionError(HandlerError):
-    """Error during handler execution"""
-    
-    def __init__(self, handler: str, original_error: Exception):
-        self.handler = handler
-        self.original_error = original_error
-        super().__init__(f"Handler {handler} failed: {original_error}")
+async def pre_execute(self, request):
+    if not request.node.url:
+        return ErrorOutput(
+            value="URL is required",
+            node_id=request.node.id,
+            error_type="ValidationError"
+        )
+    return None
 ```
 
-### Error Recovery
-
-```python
-class ResilientHandler(TypedNodeHandler[T]):
-    """Handler with error recovery"""
-    
-    async def execute_request(self, request: ExecutionRequest[T]) -> NodeOutputProtocol:
-        try:
-            return await self._execute_internal(request)
-        except TemporaryError as e:
-            # Retry with backoff
-            await asyncio.sleep(self._get_backoff_time())
-            return await self._execute_internal(request)
-        except PermanentError as e:
-            # Return error output
-            return ErrorOutput(
-                error=str(e),
-                node_id=request.node.id
-            )
-```
-
-## Testing Handlers
-
-### Unit Testing
-
-```python
-async def test_person_job_handler():
-    """Test PersonJob handler"""
-    # Mock dependencies
-    mock_llm = Mock(spec=LLMServicePort)
-    mock_llm.generate.return_value = "test response"
-    
-    registry = ServiceRegistry()
-    registry.register(LLM_SERVICE, mock_llm)
-    
-    # Create handler
-    handler = PersonJobNodeHandler(registry)
-    
-    # Create request
-    node = PersonJobNode(id="test", prompt="test prompt")
-    request = ExecutionRequest(node=node, inputs={})
-    
-    # Execute
-    output = await handler.execute_request(request)
-    
-    assert output.value == "test response"
-    mock_llm.generate.assert_called_once()
-```
-
-### Integration Testing
-
-```python
-async def test_handler_integration():
-    """Test handler with real dependencies"""
-    # Setup test environment
-    registry = create_test_registry()
-    factory = HandlerFactory(registry)
-    
-    # Test multiple handlers
-    for node_type in [PersonJobNode, CodeJobNode, ConditionNode]:
-        handler = factory.get_handler(node_type)
-        assert handler is not None
-        
-        # Test execution
-        test_node = create_test_node(node_type)
-        request = ExecutionRequest(node=test_node, inputs={})
-        output = await handler.execute_request(request)
-        assert not output.has_error()
-```
-
-## Performance Optimization
-
-### Caching
-
-```python
-class CachedHandler(TypedNodeHandler[T]):
-    """Handler with result caching"""
-    
-    def __init__(self, registry: ServiceRegistry):
-        super().__init__(registry)
-        self._cache = {}
-    
-    async def execute_request(self, request: ExecutionRequest[T]) -> NodeOutputProtocol:
-        cache_key = self._get_cache_key(request)
-        
-        if cache_key in self._cache:
-            return self._cache[cache_key]
-        
-        result = await self._execute_internal(request)
-        self._cache[cache_key] = result
-        return result
-```
-
-### Parallel Execution
-
-```python
-class ParallelHandler(TypedNodeHandler[T]):
-    """Handler with parallel processing"""
-    
-    async def execute_batch(self, requests: list[ExecutionRequest[T]]) -> list[NodeOutputProtocol]:
-        """Execute multiple requests in parallel"""
-        tasks = [self.execute_request(req) for req in requests]
-        return await asyncio.gather(*tasks)
-```
-
-## Dependencies
-
-**Internal:**
-- `dipeo.core.execution` - Execution contracts
-- `dipeo.diagram_generated` - Node types
-- `dipeo.application.registry` - Service registry
-
-**External:**
-- Python 3.13+ asyncio
-- `typing` - Type hints
-- `dataclasses` - Data structures
+For unrecoverable errors, raise exceptions that will be caught by the execution engine.
 
 ## Best Practices
 
-1. **Single Responsibility**: Each handler handles one node type
-2. **Dependency Injection**: Use registry for all dependencies
-3. **Error Handling**: Gracefully handle and report errors
-4. **Async First**: All I/O operations should be async
-5. **Type Safety**: Use typed handlers and outputs
-6. **Testing**: Unit test handlers in isolation
-7. **Documentation**: Document handler behavior and requirements
+1. **Use pre_execute()** for validation and setup
+2. **Store state in instance variables** between pre_execute and execute_request
+3. **Return early with ErrorOutput** for validation failures
+4. **Keep handlers focused** on a single node type
+5. **Make I/O operations async** for better performance
+6. **Test handlers in isolation** with mocked dependencies
+
 
 ## Future Enhancements
 

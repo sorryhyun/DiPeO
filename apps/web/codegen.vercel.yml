@@ -30,7 +30,7 @@ generates:
         DataType: "@dipeo/models#DataType"
         LLMService: "@dipeo/models#LLMService"
         DiagramFormat: "@dipeo/models#DiagramFormat"
-        ExecutionStatus: "@dipeo/models#ExecutionStatus"
+        Status: "@dipeo/models#Status"
       # Skip generating TypeScript types for enums
       skipTypename: false
       # Use proper imports

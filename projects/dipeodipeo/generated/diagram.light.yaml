@@ -1,0 +1,137 @@
+version: light
+name: csv_data_pipeline
+description: 'Data processing pipeline: load CSVs from directory, validate format, parallel per-file processing, aggregate
+  results, and save final output to JSON with error logging.'
+nodes:
+- label: start
+  type: start
+  position:
+    x: 100
+    y: 200
+  props:
+    trigger_mode: none
+- label: load_files
+  type: db
+  position:
+    x: 350
+    y: 200
+  props:
+    file:
+    - files/data/*.csv
+    sub_type: file
+    operation: read
+    serialize_json: true
+    glob: true
+- label: validate_data
+  type: code_job
+  position:
+    x: 600
+    y: 200
+  props:
+    language: python
+    code: |
+      errors = []
+      valid_items = []
+      for item in input_data:
+          if isinstance(item, dict) and 'id' in item and 'value' in item:
+              valid_items.append(item)
+          else:
+              errors.append(item)
+      result = {"items": valid_items, "validation_passed": len(errors) == 0, "errors": errors}
+    timeout: 60
+- label: check_validation
+  type: condition
+  position:
+    x: 900
+    y: 200
+  props:
+    condition_type: custom
+    expression: validation_result.get('validation_passed', False) == True
+    node_indices:
+    - process_batch
+    - endpoint_errors
+- label: process_batch
+  type: sub_diagram
+  position:
+    x: 1200
+    y: 200
+  props:
+    diagram_name: processors/single_item
+    batch: true
+    batch_input_key: items
+    batch_parallel: true
+    ignoreIfSub: false
+- label: aggregate_results
+  type: code_job
+  position:
+    x: 1500
+    y: 200
+  props:
+    language: python
+    code: |
+      aggregated = {"results": input_data}
+      result = aggregated
+    timeout: 60
+- label: endpoint_final
+  type: endpoint
+  position:
+    x: 1800
+    y: 200
+  props:
+    save_to_file: true
+    file_name: files/output/final_results.json
+- label: log_errors
+  type: code_job
+  position:
+    x: 1100
+    y: 400
+  props:
+    language: python
+    code: |
+      import logging
+      logging.basicConfig(level=logging.INFO)
+      errors = input_data.get('errors', []) if isinstance(input_data, dict) else []
+      logging.info('Validation errors: %s', errors)
+      result = {"errors": errors}
+    timeout: 60
+- label: endpoint_errors
+  type: endpoint
+  position:
+    x: 1700
+    y: 400
+  props:
+    save_to_file: true
+    file_name: files/output/validation_errors.json
+connections:
+- from: start
+  to: load_files
+  label: start_input
+  content_type: object
+- from: load_files
+  to: validate_data
+  label: input_data
+  content_type: object
+- from: validate_data
+  to: check_validation
+  label: validation_result
+  content_type: object
+- from: check_validation
+  to: process_batch
+  label: validation_passed
+  content_type: object
+- from: check_validation
+  to: endpoint_errors
+  label: validation_failed
+  content_type: object
+- from: process_batch
+  to: aggregate_results
+  label: item_results
+  content_type: object
+- from: aggregate_results
+  to: endpoint_final
+  label: final_results
+  content_type: object
+- from: log_errors
+  to: endpoint_errors
+  label: error_report
+  content_type: object

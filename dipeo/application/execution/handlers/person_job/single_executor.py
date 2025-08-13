@@ -5,17 +5,15 @@ import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.registry import (
-    LLM_SERVICE,
-    DIAGRAM,
-    CONVERSATION_MANAGER,
-    PROMPT_BUILDER
-)
 from dipeo.domain.conversation import Person
 from dipeo.domain.conversation.memory_profiles import MemoryProfile, MemoryProfileFactory
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
 from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, PersonJobOutput
 from dipeo.diagram_generated.domain_models import Message, PersonID
+
+from .prompt_resolver import PromptFileResolver
+from .text_format_handler import TextFormatHandler
+from .conversation_handler import ConversationHandler
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_context import ExecutionContext
@@ -29,6 +27,26 @@ class SinglePersonJobExecutor:
     def __init__(self, person_cache: dict[str, Person]):
         """Initialize with shared person cache."""
         self._person_cache = person_cache
+        # Services will be set by the handler
+        self._llm_service = None
+        self._diagram = None
+        self._conversation_manager = None
+        self._prompt_builder = None
+        self._filesystem_adapter = None
+        # Utility handlers
+        self._prompt_resolver = None
+        self._text_format_handler = TextFormatHandler()
+        self._conversation_handler = ConversationHandler()
+    
+    def set_services(self, llm_service, diagram, conversation_manager, prompt_builder, filesystem_adapter=None):
+        """Set services for the executor to use."""
+        self._llm_service = llm_service
+        self._diagram = diagram
+        self._conversation_manager = conversation_manager
+        self._prompt_builder = prompt_builder
+        self._filesystem_adapter = filesystem_adapter
+        # Initialize prompt resolver with filesystem and diagram
+        self._prompt_resolver = PromptFileResolver(filesystem_adapter, diagram)
     
     async def execute(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutputProtocol:
         """Execute the person job for a single person."""
@@ -42,20 +60,17 @@ class SinglePersonJobExecutor:
         # Direct typed access to person_id
         person_id = node.person
 
-        # Get services using request helper methods
-        llm_service = request.get_service(LLM_SERVICE.name)
-        diagram = request.get_service(DIAGRAM.name)
-        conversation_manager = request.get_service(CONVERSATION_MANAGER.name)
-        prompt_builder = request.get_service(PROMPT_BUILDER.name)
-        
-        if not all([llm_service, diagram, conversation_manager, prompt_builder]):
-            raise ValueError("Required services not available")
-        
-
+        # Use pre-configured services (set by handler)
+        llm_service = self._llm_service
         execution_count = context.get_node_execution_count(node.id)
+        logger.info(f"[EXECUTE_REQUEST] PersonJobNode {node.id} - execution_count: {execution_count}")
+
+        # Create a fresh PromptFileResolver with the current diagram
+        # This ensures we have the correct diagram_source_path metadata
+        prompt_resolver_for_execution = PromptFileResolver(self._filesystem_adapter, self._diagram)
 
         # Get or create person
-        person = self._get_or_create_person(person_id, conversation_manager)
+        person = self._get_or_create_person(person_id, self._conversation_manager)
         
         # Apply memory settings if configured
         # Note: We apply memory settings even on first execution because some nodes
@@ -63,11 +78,16 @@ class SinglePersonJobExecutor:
         memory_settings = None
         
         # Check if memory_profile is set (new way)
+        is_goldfish = False
         if hasattr(node, 'memory_profile') and node.memory_profile:
             try:
                 # Convert string to MemoryProfile enum
                 profile_enum = MemoryProfile[node.memory_profile]
-                if profile_enum != MemoryProfile.CUSTOM:
+                if profile_enum == MemoryProfile.GOLDFISH:
+                    is_goldfish = True
+                    # For GOLDFISH, we'll handle memory specially
+                    memory_settings = MemoryProfileFactory.get_settings(profile_enum)
+                elif profile_enum != MemoryProfile.CUSTOM:
                     # Get settings from profile
                     memory_settings = MemoryProfileFactory.get_settings(profile_enum)
                 else:
@@ -90,86 +110,69 @@ class SinglePersonJobExecutor:
             else:
                 person.apply_memory_settings(memory_settings)
         
+        # Special handling for GOLDFISH - ensure no memory at all
+        if is_goldfish:
+            # Clear conversation history for this person
+            person.clear_conversation_history()
+        
         # Use inputs directly
         transformed_inputs = inputs
         
         # Handle conversation inputs
-        has_conversation_input = self._has_conversation_input(transformed_inputs)
+        has_conversation_input = self._conversation_handler.has_conversation_input(transformed_inputs)
         if has_conversation_input:
-            self._rebuild_conversation(person, transformed_inputs)
+            self._conversation_handler.load_conversation_from_inputs(person, transformed_inputs)
 
-        # Build prompt BEFORE applying memory management
-        template_values = prompt_builder.prepare_template_values(
-            transformed_inputs, 
-            conversation_manager=conversation_manager,
-            person_id=person_id
-        )
-        # Check if prompt_file is specified and load the prompt from file
+        # Get conversation context from person (respects memory profile)
+        conversation_context = person.get_conversation_context()
+        
+        # Prepare template values from inputs
+        input_values = self._prompt_builder.prepare_template_values(transformed_inputs)
+        
+        # Combine input values with conversation context
+        template_values = {
+            **input_values,
+            **conversation_context
+        }
+        
+        # Load prompts using the prompt resolver
         prompt_content = node.default_prompt
         first_only_content = node.first_only_prompt
         
         # Load first_prompt_file if specified (takes precedence over inline first_only_prompt)
         if hasattr(node, 'first_prompt_file') and node.first_prompt_file:
-            filesystem = request.get_service("filesystem_adapter")
-            if filesystem:
-                try:
-                    # Construct path to first prompt file
-                    import os
-                    from pathlib import Path
-                    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-                    first_prompt_path = Path(base_dir) / 'files' / 'prompts' / node.first_prompt_file
-                    
-                    # Read the first prompt file content
-                    if filesystem.exists(first_prompt_path):
-                        with filesystem.open(first_prompt_path, 'rb') as f:
-                            file_content = f.read().decode('utf-8')
-                            # Use file content as first only prompt
-                            first_only_content = file_content
-                            logger.info(f"[PersonJob {node.label or node.id}] Loaded first prompt from file: {node.first_prompt_file} ({len(file_content)} chars)")
-                            logger.debug(f"[PersonJob {node.label or node.id}] First prompt content preview: {file_content[:200]}...")
-                    else:
-                        logger.warning(f"[PersonJob {node.label or node.id}] First prompt file not found: {node.first_prompt_file}")
-                except Exception as e:
-                    logger.error(f"Error loading first prompt file {node.first_prompt_file}: {e}")
+            loaded_content = prompt_resolver_for_execution.load_prompt_file(
+                node.first_prompt_file,
+                node.label or node.id
+            )
+            if loaded_content:
+                first_only_content = loaded_content
         
         # Load prompt_file if specified (for default prompt)
         if hasattr(node, 'prompt_file') and node.prompt_file:
-            filesystem = request.get_service("filesystem_adapter")
-            if filesystem:
-                try:
-                    # Construct path to prompt file
-                    import os
-                    from pathlib import Path
-                    base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
-                    prompt_path = Path(base_dir) / 'files' / 'prompts' / node.prompt_file
-                    
-                    # Read the prompt file content
-                    if filesystem.exists(prompt_path):
-                        with filesystem.open(prompt_path, 'rb') as f:
-                            file_content = f.read().decode('utf-8')
-                            # Use file content as default prompt
-                            prompt_content = file_content
-                            logger.info(f"[PersonJob {node.label or node.id}] Loaded prompt from file: {node.prompt_file} ({len(file_content)} chars)")
-                            logger.debug(f"[PersonJob {node.label or node.id}] Prompt content preview: {file_content[:200]}...")
-                    else:
-                        logger.warning(f"[PersonJob {node.label or node.id}] Prompt file not found: {node.prompt_file}")
-                except Exception as e:
-                    logger.error(f"Error loading prompt file {node.prompt_file}: {e}")
+            loaded_content = prompt_resolver_for_execution.load_prompt_file(
+                node.prompt_file,
+                node.label or node.id
+            )
+            if loaded_content:
+                prompt_content = loaded_content
 
-        # Log the prompt before building
-        logger.debug(f"[PersonJob {node.label or node.id}] Prompt before building: {prompt_content[:200] if prompt_content else 'None'}...")
-        
-        # Disable auto-prepend if we have conversation input (to avoid duplication)
-        built_prompt = prompt_builder.build(
+        # Build prompt with template substitution
+        built_prompt = self._prompt_builder.build(
             prompt=prompt_content,
-            first_only_prompt=first_only_content,
-            execution_count=execution_count,
             template_values=template_values,
-            auto_prepend_conversation=not has_conversation_input
+            first_only_prompt=first_only_content,
+            execution_count=execution_count
         )
         
+        # Prepend conversation if appropriate (not for GOLDFISH or when conversation is already provided)
+        # if not has_conversation_input and not is_goldfish:
+        #     built_prompt = self._prompt_builder.prepend_conversation_if_needed(
+        #         built_prompt,
+        #         conversation_context
+        #     )
+        
         # Log the built prompt
-        logger.debug(f"[PersonJob {node.label or node.id}] Built prompt preview: {built_prompt[:200] if built_prompt else 'None'}...")
         if '{{' in (built_prompt or ''):
             logger.warning(f"[PersonJob {node.label or node.id}] Template variables may not be substituted! Found '{{{{' in built prompt")
 
@@ -188,8 +191,8 @@ class SinglePersonJobExecutor:
             "prompt": built_prompt,
             "llm_service": llm_service,
             "from_person_id": "system",
-            "temperature": 0.7,
-            "max_tokens": 4096,
+            "temperature": 0.2,
+            "max_tokens": 128000,
         }
         
         # Handle tools configuration
@@ -213,48 +216,9 @@ class SinglePersonJobExecutor:
                 complete_kwargs["tools"] = tools_config
         
         # Handle text_format configuration for structured outputs
-        # First check for text_format_file (external file takes precedence)
-        text_format_content = None
-        
-        if hasattr(node, 'text_format_file') and node.text_format_file:
-            # Load Pydantic models from external file
-            import os
-            file_path = node.text_format_file
-            
-            # Handle relative paths from project root
-            if not os.path.isabs(file_path):
-                project_root = os.environ.get('DIPEO_BASE_DIR', os.getcwd())
-                file_path = os.path.join(project_root, file_path)
-            
-            if os.path.exists(file_path):
-                try:
-                    with open(file_path, 'r') as f:
-                        text_format_content = f.read()
-                    logger.debug(f"Loaded text_format from file: {node.text_format_file}")
-                except Exception as e:
-                    logger.error(f"Failed to read text_format_file {node.text_format_file}: {e}")
-            else:
-                logger.warning(f"text_format_file not found: {node.text_format_file}")
-        
-        # Fall back to inline text_format if no file or file failed
-        if not text_format_content and hasattr(node, 'text_format') and node.text_format:
-            text_format_content = node.text_format
-        
-        # Process the text_format content if we have any
-        if text_format_content:
-            from dipeo.application.utils.pydantic_compiler import compile_pydantic_model, is_pydantic_code
-            
-            # Check if it's Python code string that defines Pydantic models
-            if isinstance(text_format_content, str) and is_pydantic_code(text_format_content):
-                # Compile the Python code into a Pydantic BaseModel class
-                pydantic_model = compile_pydantic_model(text_format_content)
-                if pydantic_model:
-                    complete_kwargs["text_format"] = pydantic_model
-                else:
-                    logger.warning(f"Failed to compile Pydantic model from text_format")
-            else:
-                # If it's not Python code, log a warning (we no longer support JSON schema)
-                logger.warning(f"text_format must be Python code defining Pydantic models")
+        pydantic_model = self._text_format_handler.get_pydantic_model(node)
+        if pydantic_model:
+            complete_kwargs["text_format"] = pydantic_model
             
         result = await person.complete(**complete_kwargs)
 
@@ -264,7 +228,7 @@ class SinglePersonJobExecutor:
             result=result,
             person=person,
             node=node,
-            diagram=diagram,
+            diagram=self._diagram,
             model=person.llm_config.model
         )
     
@@ -277,104 +241,40 @@ class SinglePersonJobExecutor:
         if person_id in self._person_cache:
             return self._person_cache[person_id]
         
-        # Get person config from conversation manager
-        person_config = None
-        person_name = person_id  # Default to person_id as name
-        
-        if hasattr(conversation_manager, 'get_person_config'):
-            person_config = conversation_manager.get_person_config(person_id)
-        
-        
-        if not person_config:
-            # Fallback: create minimal config with default LLM
-            from dipeo.diagram_generated import ApiKeyID, LLMService, PersonLLMConfig
+        # Use the orchestrator's get_or_create_person method
+        # which properly handles repository access and wiring
+        if hasattr(conversation_manager, 'get_or_create_person'):
+            from dipeo.diagram_generated import PersonID
+            person = conversation_manager.get_or_create_person(
+                person_id=PersonID(person_id),
+                name=person_id  # Use person_id as default name
+            )
+        else:
+            # Fallback for backward compatibility (should not happen with new architecture)
+            from dipeo.diagram_generated import ApiKeyID, LLMService, PersonLLMConfig, PersonID
             person_config = PersonLLMConfig(
                 service=LLMService.OPENAI,
-                model="gpt-4.1-nano",
-                api_key_id=ApiKeyID("")  # Wrap empty string with ApiKeyID
+                model="gpt-5-nano-2025-08-07",
+                api_key_id=ApiKeyID("default")
+            )
+            
+            person = Person(
+                id=PersonID(person_id),
+                name=person_id,
+                llm_config=person_config,
+                conversation_manager=conversation_manager
             )
         
-        # Create Person object without conversation_manager to avoid circular reference
-        person = Person(
-            id=PersonID(person_id),
-            name=person_name,
-            llm_config=person_config,
-            conversation_manager=None  # Initially None to avoid recursion
-        )
-        
-        # Cache the person BEFORE setting conversation_manager
+        # Cache the person for this execution
         self._person_cache[person_id] = person
-        
-        # Now safely set the conversation_manager after caching
-        person._conversation_manager = conversation_manager
         
         return person
     
-    def _has_conversation_input(self, inputs: dict[str, Any]) -> bool:
-        # Check for conversation inputs in the same way the prompt builder does
-        for key, value in inputs.items():
-            # Check if key ends with _messages (like the prompt builder)
-            if key.endswith('_messages') and isinstance(value, list):
-                return True
-            # Also check the original structure for backwards compatibility
-            if isinstance(value, dict) and "messages" in value:
-                return True
-        return False
     
-    def _rebuild_conversation(self, person: Person, inputs: dict[str, Any]) -> None:
-        all_messages = []
-        for key, value in inputs.items():
-            if isinstance(value, dict) and "messages" in value:
-                messages = value["messages"]
-                if isinstance(messages, list):
-                    all_messages.extend(messages)
-        
-        if not all_messages:
-            logger.debug("_rebuild_conversation: No messages found in inputs")
-            return
-        
-        logger.debug(f"_rebuild_conversation: Processing {len(all_messages)} total messages")
-        
-        for i, msg in enumerate(all_messages):
-            # Handle both Message objects and dict formats
-            if isinstance(msg, Message):
-                # Already a Message object - check content and add directly
-                if "[Previous conversation" not in msg.content:
-                    person.add_message(msg)
-            elif isinstance(msg, dict):
-                # Dictionary format - convert to Message
-                content = msg.get("content", "")
-                # Skip messages that contain the "[Previous conversation" marker to avoid duplication
-                if "[Previous conversation" in content:
-                    continue
-                    
-                message = Message(
-                    from_person_id=msg.get("from_person_id", person.id),
-                    to_person_id=msg.get("to_person_id", person.id),
-                    content=content,
-                    message_type="person_to_person",
-                    timestamp=msg.get("timestamp"),
-                )
-                person.add_message(message)
-                logger.debug(f"  Added dict message {i}: from={message.from_person_id}, to={message.to_person_id}, content_length={len(content)}")
-    
-    def _needs_conversation_output(self, node_id: str, diagram: Any) -> bool:
-        # Check if any edge from this node expects conversation output
-        for edge in diagram.edges:
-            if str(edge.source_node_id) == node_id:
-                # Check for explicit conversation output
-                if edge.source_output == "conversation":
-                    return True
-                # Check data_transform for content_type = conversation_state
-                if hasattr(edge, 'data_transform') and edge.data_transform:
-                    if edge.data_transform.get('content_type') == 'conversation_state':
-                        return True
-        return False
     
     def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutputProtocol:
         from dipeo.diagram_generated import TokenUsage
         from dipeo.core.execution.node_output import TextOutput, DataOutput
-        import json
         
         # Extract token usage as typed field
         token_usage = None
@@ -391,7 +291,7 @@ class SinglePersonJobExecutor:
         conversation_id = None  # Person doesn't directly store conversation_id
         
         # Check if conversation output is needed
-        if self._needs_conversation_output(str(node.id), diagram):
+        if self._conversation_handler.needs_conversation_output(str(node.id), diagram):
             # Return PersonJobOutput with messages
             messages = []
             for msg in person.get_messages():
@@ -411,34 +311,16 @@ class SinglePersonJobExecutor:
             has_text_format = (hasattr(node, 'text_format') and node.text_format) or \
                               (hasattr(node, 'text_format_file') and node.text_format_file)
             
-            if has_text_format and hasattr(result, 'raw_response') and result.raw_response:
-                # Return structured data as DataOutput
-                # The raw_response should contain the Pydantic model instance or dict
-                raw_data = result.raw_response
-                
-                # Convert Pydantic model to dict if needed
-                if hasattr(raw_data, 'model_dump'):
-                    raw_data = raw_data.model_dump()
-                elif hasattr(raw_data, 'dict'):
-                    raw_data = raw_data.dict()
-                
-                # If it's still not a dict, try to parse the text as JSON
-                if not isinstance(raw_data, dict) and result.text:
-                    try:
-                        raw_data = json.loads(result.text)
-                    except (json.JSONDecodeError, TypeError):
-                        # Fall back to returning as text
-                        raw_data = {"response": result.text}
-                
-                if isinstance(raw_data, dict):
-                    return DataOutput(
-                        value=raw_data,
-                        node_id=node.id,
-                        metadata="{}",
-                        token_usage=token_usage,
-                        execution_time=None,
-                        retry_count=0
-                    )
+            structured_data = self._text_format_handler.process_structured_output(result, has_text_format)
+            if structured_data:
+                return DataOutput(
+                    value=structured_data,
+                    node_id=node.id,
+                    metadata="{}",
+                    token_usage=token_usage,
+                    execution_time=None,
+                    retry_count=0
+                )
             
             # Default: return text output
             return TextOutput(

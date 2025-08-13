@@ -1,7 +1,7 @@
 """Handler for Integrated API node."""
 
 import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
@@ -20,11 +20,23 @@ if TYPE_CHECKING:
 
 @register_handler
 class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
-    """Handler for executing integrated API operations across multiple providers."""
+    """Handler for executing integrated API operations across multiple providers.
+    
+    Clean separation of concerns:
+    1. validate() - Static/structural validation (compile-time checks)
+    2. pre_execute() - Runtime validation and setup
+    3. execute_request() - Core execution logic
+    """
     
     def __init__(self, integrated_api_service=None, api_key_service=None):
         self.integrated_api_service = integrated_api_service
         self.api_key_service = api_key_service
+        # Instance variables for passing data between methods
+        self._current_integrated_api_service = None
+        self._current_api_key_service = None
+        self._current_api_key = None
+        self._current_provider = None
+        self._current_operation = None
 
     @property
     def node_class(self) -> type[IntegratedApiNode]:
@@ -45,17 +57,14 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     @property
     def description(self) -> str:
         return "Executes operations on various API providers (Notion, Slack, GitHub, etc.)"
-
-    async def execute_request(self, request: ExecutionRequest[IntegratedApiNode]) -> NodeOutputProtocol:
-        return await self._execute_api_operation(request)
     
-    async def _execute_api_operation(self, request: ExecutionRequest[IntegratedApiNode]) -> NodeOutputProtocol:
-        """Execute the API operation through the integrated service."""
+    async def pre_execute(self, request: ExecutionRequest[IntegratedApiNode]) -> Optional[NodeOutputProtocol]:
+        """Pre-execution setup: validate services and API key availability.
         
-        # Extract properties from request
+        Moves service checks, API key validation, and provider resolution
+        out of execute_request for cleaner separation of concerns.
+        """
         node = request.node
-        context = request.context
-        inputs = request.inputs
         
         # Get services from ServiceRegistry
         integrated_api_service = self.integrated_api_service or request.services.resolve(INTEGRATED_API_SERVICE)
@@ -101,6 +110,33 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         # Now get the full key details including the actual key
         provider_key = api_key_service.get_api_key(provider_summary["id"])
         api_key = provider_key["key"]
+        
+        # Store services and API key in instance variables for execute_request
+        self._current_integrated_api_service = integrated_api_service
+        self._current_api_key_service = api_key_service
+        self._current_api_key = api_key
+        self._current_provider = provider
+        self._current_operation = operation
+        
+        # No early return - proceed to execute_request
+        return None
+
+    async def execute_request(self, request: ExecutionRequest[IntegratedApiNode]) -> NodeOutputProtocol:
+        """Pure execution using instance variables set in pre_execute."""
+        return await self._execute_api_operation(request)
+    
+    async def _execute_api_operation(self, request: ExecutionRequest[IntegratedApiNode]) -> NodeOutputProtocol:
+        """Execute the API operation through the integrated service."""
+        
+        # Extract properties from request
+        node = request.node
+        inputs = request.inputs
+        
+        # Use pre-validated services and API key from instance variables (set in pre_execute)
+        integrated_api_service = self._current_integrated_api_service
+        api_key = self._current_api_key
+        provider = self._current_provider
+        operation = self._current_operation
         
         # Prepare configuration
         config = node.config or {}

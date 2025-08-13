@@ -59,7 +59,10 @@ class PrepareDiagramForExecutionUseCase(BaseService):
             ExecutableDiagram ready for the engine
         """
         # Step 1: Get the domain diagram
+        diagram_source_path = None
         if isinstance(diagram, str):
+            # Store the source path for later use
+            diagram_source_path = diagram
             # Load from diagram service
             # Ensure diagram service is initialized
             if hasattr(self.diagram_service, 'initialize'):
@@ -119,6 +122,13 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         # Store the diagram ID in metadata for tracking
         if diagram_id:
             executable_diagram.metadata["diagram_id"] = diagram_id
+        
+        # Store the diagram source path for prompt resolution
+        if diagram_source_path:
+            executable_diagram.metadata["diagram_source_path"] = diagram_source_path
+            # Also store as diagram_id if not already set
+            if not diagram_id:
+                executable_diagram.metadata["diagram_id"] = diagram_source_path
         
         return executable_diagram
 

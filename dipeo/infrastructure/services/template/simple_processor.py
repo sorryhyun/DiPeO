@@ -1,15 +1,20 @@
-# Unified template processor combining all template features
+# Simple template processor implementing the domain port
 
 import json
 import re
 from datetime import datetime
 from typing import Any
 
-from .types import TemplateResult
+from dipeo.domain.ports.template import TemplateResult, TemplateProcessorPort
 
 
-class TemplateProcessor:
-    # Template processor supporting legacy double-brace syntax for backward compatibility
+class SimpleTemplateProcessor(TemplateProcessorPort):
+    """Simple template processor supporting legacy double-brace syntax.
+    
+    This is the infrastructure implementation of the TemplateProcessorPort.
+    It provides basic template features like variable substitution, conditionals, and loops
+    without requiring a full template engine like Jinja2.
+    """
     
     # Regex patterns for different template syntaxes
     VARIABLE_PATTERN = re.compile(r'\{\{(\s*[\w\.]+\s*)\}\}')
@@ -48,6 +53,36 @@ class TemplateProcessor:
         # Convenience method that returns just the processed content
         return self.process(template, context).content
     
+    def process_single_brace(self, template: str, context: dict[str, Any]) -> str:
+        # Process single brace variables (for arrow transformations)
+        def replace_var(match):
+            var_path = match.group(1)
+            # Support nested values with dot notation
+            value = self._get_nested_value(context, var_path)
+            return self._format_value(value) if value is not None else match.group(0)
+        
+        return self.SINGLE_BRACE_PATTERN.sub(replace_var, template)
+    
+    def extract_variables(self, template: str) -> list[str]:
+        # Extract all variable names from a template
+        variables = []
+        
+        # Find all {{variable}} patterns
+        variables.extend(match.strip() for match in self.VARIABLE_PATTERN.findall(template))
+        
+        # Find variables in conditionals
+        for match in self.CONDITIONAL_PATTERN.finditer(template):
+            variables.append(match.group(2).strip())
+        
+        # Find variables in loops  
+        for match in self.LOOP_PATTERN.finditer(template):
+            variables.append(match.group(1).strip())
+        
+        # Find single brace variables
+        variables.extend(self.SINGLE_BRACE_PATTERN.findall(template))
+        
+        return sorted(list(set(variables)))
+    
     def _process_variables(
         self,
         template: str,
@@ -69,16 +104,6 @@ class TemplateProcessor:
             return self._format_value(value)
         
         return self.VARIABLE_PATTERN.sub(replace_var, template)
-    
-    def process_single_brace(self, template: str, context: dict[str, Any]) -> str:
-        # Process single brace variables (for arrow transformations)
-        def replace_var(match):
-            var_path = match.group(1)
-            # Support nested values with dot notation
-            value = self._get_nested_value(context, var_path)
-            return self._format_value(value) if value is not None else match.group(0)
-        
-        return self.SINGLE_BRACE_PATTERN.sub(replace_var, template)
     
     def _format_value(self, value: Any) -> str:
         # Format value based on type
@@ -186,23 +211,3 @@ class TemplateProcessor:
             return ''.join(results)
         
         return self.LOOP_PATTERN.sub(replace_loop, template)
-    
-    def extract_variables(self, template: str) -> list[str]:
-        # Extract all variable names from a template
-        variables = []
-        
-        # Find all {{variable}} patterns
-        variables.extend(match.strip() for match in self.VARIABLE_PATTERN.findall(template))
-        
-        # Find variables in conditionals
-        for match in self.CONDITIONAL_PATTERN.finditer(template):
-            variables.append(match.group(2).strip())
-        
-        # Find variables in loops  
-        for match in self.LOOP_PATTERN.finditer(template):
-            variables.append(match.group(1).strip())
-        
-        # Find single brace variables
-        variables.extend(self.SINGLE_BRACE_PATTERN.findall(template))
-        
-        return sorted(list(set(variables)))

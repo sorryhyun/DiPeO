@@ -40,18 +40,22 @@ def extract_conversions_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
                                 enum_value = enum_ref
                             node_type_map[key] = enum_value
                 elif isinstance(value, str):
-                    # Fallback: If parser returns string representation
-                    # This should not happen with modern parser
-                    import json
-                    try:
-                        # Try to parse as JSON
-                        parsed = json.loads(value.replace("'", '"'))
-                        if isinstance(parsed, dict):
-                            node_type_map = parsed
-                    except:
-                        # Last resort: regex extraction
-                        pattern = r"'([^']+)':\s*(?:NodeType\.)?([A-Z_]+)"
-                        matches = re.findall(pattern, str(value))
+                    # Parse JavaScript object string representation
+                    # The value contains something like:
+                    # {'code_job': NodeType.CODE_JOB, 'api_job': NodeType.API_JOB, ...}
+                    
+                    # Use regex to extract all key-value pairs
+                    # Matches patterns like: 'key': NodeType.VALUE
+                    pattern = r"'([^']+)':\s*NodeType\.([A-Z_]+)"
+                    matches = re.findall(pattern, value)
+                    
+                    if matches:
+                        for key, enum_value in matches:
+                            node_type_map[key] = enum_value
+                    else:
+                        # Try without NodeType prefix (shouldn't happen but just in case)
+                        pattern = r"'([^']+)':\s*([A-Z_]+)"
+                        matches = re.findall(pattern, value)
                         for key, enum_value in matches:
                             node_type_map[key] = enum_value
                 break

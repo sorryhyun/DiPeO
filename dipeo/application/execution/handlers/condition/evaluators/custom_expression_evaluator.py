@@ -47,12 +47,7 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
             output_data = {"condtrue": inputs if inputs else {}}
         else:
             output_data = {"condfalse": inputs if inputs else {}}
-        
-        logger.debug(
-            f"CustomExpressionEvaluator: expression='{expression}', "
-            f"context={eval_context}, result={result}"
-        )
-        
+
         return EvaluationResult(
             result=result,
             metadata={

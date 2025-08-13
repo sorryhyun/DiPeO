@@ -101,8 +101,10 @@ class InfrastructureContainer:
         from dipeo.infrastructure.services.integrated_api import IntegratedApiService
         from dipeo.infrastructure.adapters.http.api_service import APIService
         from dipeo.domain.api.services import APIBusinessLogic
+        from dipeo.infrastructure.services.template.simple_processor import SimpleTemplateProcessor
         
-        api_business_logic = APIBusinessLogic()
+        template_processor = SimpleTemplateProcessor()
+        api_business_logic = APIBusinessLogic(template_processor=template_processor)
         api_service = APIService(api_business_logic)
         integrated_api_service = IntegratedApiService(api_service=api_service)
         self.registry.register(

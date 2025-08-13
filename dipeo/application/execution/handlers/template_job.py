@@ -10,11 +10,12 @@ from dipeo.domain.ports.storage import FileSystemPort
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol, TemplateJobOutput
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.infrastructure.services.jinja_template.template_integration import get_enhanced_template_service
-from dipeo.application.utils.template import TemplateProcessor
+from dipeo.domain.ports.template import TemplateProcessorPort
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_context import ExecutionContext
@@ -24,10 +25,22 @@ logger = logging.getLogger(__name__)
 
 @register_handler
 class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
+    """
+    Clean separation of concerns:
+    1. validate() - Static/structural validation (compile-time checks)
+    2. pre_execute() - Runtime validation and setup
+    3. execute_request() - Core execution logic
+    """
     
-    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
+    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None, template_processor: Optional[TemplateProcessorPort] = None):
         self.filesystem_adapter = filesystem_adapter
         self._template_service = None  # Lazy initialization
+        self._template_processor = template_processor
+        # Instance variables for passing data between methods
+        self._current_filesystem_adapter = None
+        self._current_engine = None
+        self._current_template_service = None
+        self._current_template_processor = None
     
     @property
     def node_class(self) -> type[TemplateJobNode]:
@@ -59,6 +72,63 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         
         return None
     
+    async def pre_execute(self, request: ExecutionRequest[TemplateJobNode]) -> Optional[NodeOutputProtocol]:
+        """Pre-execution setup: validate template file and processor availability.
+        
+        Moves template file existence check, processor setup, and service validation
+        out of execute_request for cleaner separation of concerns.
+        """
+        node = request.node
+        services = request.services
+        
+        # Get filesystem adapter from services or use injected one
+        filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
+        if not filesystem_adapter:
+            return ErrorOutput(
+                value="Filesystem adapter is required for template job execution",
+                node_id=node.id,
+                error_type="ServiceError"
+            )
+        
+        # Store filesystem adapter in instance variable for execute_request
+        self._current_filesystem_adapter = filesystem_adapter
+        
+        # Validate template engine
+        engine = node.engine or "internal"
+        if engine not in ["internal", "jinja2"]:
+            return ErrorOutput(
+                value=f"Unsupported template engine: {engine}",
+                node_id=node.id,
+                error_type="UnsupportedEngineError"
+            )
+        self._current_engine = engine
+        
+        # Initialize template service
+        try:
+            template_service = self._get_template_service()
+            self._current_template_service = template_service
+        except Exception as e:
+            return ErrorOutput(
+                value=f"Failed to initialize template service: {str(e)}",
+                node_id=node.id,
+                error_type="ServiceInitError"
+            )
+        
+        # Initialize template processor for path interpolation
+        # Use injected processor or try to get from services
+        from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
+        template_processor = self._template_processor
+        if not template_processor:
+            try:
+                template_processor = services.resolve(TEMPLATE_PROCESSOR)
+            except:
+                # If not available in services, template processing will be skipped
+                pass
+        self._current_template_processor = template_processor
+        
+        # No early return - proceed to execute_request
+        return None
+    
     def _get_template_service(self):
         """Get or create the template service."""
         if self._template_service is None:
@@ -68,23 +138,16 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         return self._template_service
     
     async def execute_request(self, request: ExecutionRequest[TemplateJobNode]) -> NodeOutputProtocol:
-        """Execute the template rendering."""
+        """Pure execution using instance variables set in pre_execute."""
         # print(f"[DEBUG] TemplateJobNode.execute_request started for node {request.node.id}")
         node = request.node
         inputs = request.inputs
-        services = request.services
-
-        # Get filesystem adapter from services or use injected one
-        filesystem_adapter = self.filesystem_adapter or services.get("filesystem_adapter")
-        if not filesystem_adapter:
-            return ErrorOutput(
-                value="Filesystem adapter is required for template job execution",
-                node_id=node.id,
-                error_type="ServiceError"
-            )
-
-        # Get engine for later use
-        engine = node.engine or "internal"
+        
+        # Use services from instance variables (set in pre_execute)
+        filesystem_adapter = self._current_filesystem_adapter
+        engine = self._current_engine
+        template_service = self._current_template_service
+        template_processor = self._current_template_processor
         
         try:
             # Prepare template variables first
@@ -110,12 +173,12 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             if node.template_content:
                 template_content = node.template_content
             else:
-                # First process single bracket {} interpolation for diagram variables
-                template_processor = TemplateProcessor()
-                processed_path = template_processor.process_single_brace(node.template_path, template_vars)
+                # First process single bracket {} interpolation for diagram variables (if processor available)
+                processed_path = node.template_path
+                if template_processor:
+                    processed_path = template_processor.process_single_brace(node.template_path, template_vars)
                 
                 # Then process Jinja2 {{ }} syntax if present
-                template_service = self._get_template_service()
                 processed_template_path = template_service.render_string(processed_path, **template_vars).strip()
                 # print(f"[DEBUG] Processed template_path: {processed_template_path}")
                 
@@ -135,12 +198,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             try:
                 if engine == "internal":
                     # Use built-in template service
-                    template_service = self._get_template_service()
                     rendered = template_service.render_string(template_content, **template_vars)
                 elif engine == "jinja2":
                     # Use enhanced template service for jinja2
                     try:
-                        template_service = self._get_template_service()
                         rendered = template_service.render_string(template_content, **template_vars)
                         # print(f"[DEBUG] Jinja2 rendering complete")
                     except Exception as e:
@@ -148,12 +209,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                         rendered = await self._render_jinja2(template_content, template_vars)
                         # Log the fallback but don't store in metadata
                         logger.debug(f"Enhancement fallback: {e}")
-                else:
-                    return ErrorOutput(
-                        value=f"Unsupported template engine: {engine}",
-                        node_id=node.id,
-                        error_type="UnsupportedEngineError"
-                    )
             except Exception as render_error:
                 return ErrorOutput(
                     value=f"Template rendering failed: {str(render_error)}",
@@ -164,12 +219,12 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             # Write to file if output_path is specified
             if node.output_path:
-                # First process single bracket {} interpolation for diagram variables
-                template_processor = TemplateProcessor()
-                processed_path = template_processor.process_single_brace(node.output_path, template_vars)
+                # First process single bracket {} interpolation for diagram variables (if processor available)
+                processed_path = node.output_path
+                if template_processor:
+                    processed_path = template_processor.process_single_brace(node.output_path, template_vars)
                 
                 # Then process Jinja2 {{ }} syntax if present
-                template_service = self._get_template_service()
                 processed_output_path = template_service.render_string(processed_path, **template_vars).strip()
                 
                 output_path = Path(processed_output_path)
@@ -218,12 +273,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         output: NodeOutputProtocol
     ) -> NodeOutputProtocol:
         """Post-execution hook to log template execution details."""
-        # Log execution details if in debug mode
-        if request.metadata.get("debug"):
-            engine = request.metadata.get("engine", "internal")
-            success = output.metadata.get("success", False)
-            print(f"[TemplateJobNode] Rendered template with {engine} - Success: {success}")
-            if request.metadata.get("output_written"):
-                print(f"[TemplateJobNode] Output written to: {request.metadata['output_written']}")
-        
+        # Post-execution logging can use instance variables if needed
+        # No need for metadata access
         return output

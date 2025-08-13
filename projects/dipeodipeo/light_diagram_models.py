@@ -5,13 +5,56 @@ Leverages existing generated models with their descriptions for better LLM under
 
 from enum import Enum
 from typing import List, Dict, Optional, Literal, Union, Any
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+from pydantic import BaseModel, Field, model_validator, ConfigDict, create_model
 
 from dipeo.diagram_generated.domain_models import (
-    StartNodeData, DBNodeData, CodeJobNodeData, PersonJobNodeData,
-    ConditionNodeData, SubDiagramNodeData, EndpointNodeData,
-    TemplateJobNodeData, ApiJobNodeData, UserResponseNodeData
+    StartNodeData as _StartNodeData, 
+    DBNodeData as _DBNodeData, 
+    CodeJobNodeData as _CodeJobNodeData, 
+    PersonJobNodeData as _PersonJobNodeData,
+    ConditionNodeData as _ConditionNodeData, 
+    SubDiagramNodeData as _SubDiagramNodeData, 
+    EndpointNodeData as _EndpointNodeData,
+    TemplateJobNodeData as _TemplateJobNodeData, 
+    ApiJobNodeData as _ApiJobNodeData, 
+    UserResponseNodeData as _UserResponseNodeData
 )
+
+
+# ============================================================================
+# Helper function to exclude label field from node data models
+# ============================================================================
+# The original domain models from dipeo.diagram_generated.domain_models inherit
+# from BaseNodeData which includes a 'label' field. In light diagrams, the label
+# is at the node level (not in props), so we exclude it to avoid duplication.
+
+def exclude_label_field(model_class):
+    """Create a version of the model class without the 'label' field."""
+    # Get all fields except 'label'
+    fields = {}
+    for field_name, field_info in model_class.model_fields.items():
+        if field_name != 'label':
+            fields[field_name] = (field_info.annotation, field_info)
+    
+    # Create new model with same name but without label field
+    return create_model(
+        model_class.__name__,
+        __base__=BaseModel,
+        __module__=__name__,
+        **fields
+    )
+
+# Create versions without label field
+StartNodeData = exclude_label_field(_StartNodeData)
+DBNodeData = exclude_label_field(_DBNodeData)
+CodeJobNodeData = exclude_label_field(_CodeJobNodeData)
+PersonJobNodeData = exclude_label_field(_PersonJobNodeData)
+ConditionNodeData = exclude_label_field(_ConditionNodeData)
+SubDiagramNodeData = exclude_label_field(_SubDiagramNodeData)
+EndpointNodeData = exclude_label_field(_EndpointNodeData)
+TemplateJobNodeData = exclude_label_field(_TemplateJobNodeData)
+ApiJobNodeData = exclude_label_field(_ApiJobNodeData)
+UserResponseNodeData = exclude_label_field(_UserResponseNodeData)
 
 
 
@@ -40,8 +83,8 @@ class Position(BaseModel):
     """Node position on the diagram canvas."""
     model_config = ConfigDict(extra='forbid')
     
-    x: int = Field(default=100, ge=0, le=2000, description="X coordinate (increment by 200-300 for readability)")
-    y: int = Field(default=200, ge=0, le=2000, description="Y coordinate (keep consistent for linear flow)")
+    x: int = Field(default=100, ge=0, le=3500, description="X coordinate (increment by 200-300 for readability)")
+    y: int = Field(default=200, ge=0, le=3500, description="Y coordinate (keep consistent for linear flow)")
 
 
 # ============================================================================
@@ -152,6 +195,7 @@ LightNode = Union[
     UserResponseNode,
 ]
 
+from dipeo.diagram_generated.enums import ContentType
 
 class LightConnection(BaseModel):
     """Data flow connection between nodes."""
@@ -163,9 +207,9 @@ class LightConnection(BaseModel):
         default=None,
         description="Variable name for accessing this data in target node (e.g., 'raw_data', 'config')"
     )
-    content_type: Optional[str] = Field(
+    content_type: ContentType = Field(
         default=None,
-        description="Data transformation: 'raw_text' (default), 'json', 'conversation_state', 'object'"
+        description="Data transformation: 'raw_text' (default), 'conversation_state', 'object' (dictionary object)"
     )
 
 
@@ -255,6 +299,8 @@ if __name__ == "__main__":
 
 def create_minimal_diagram(name: str, description: str) -> LightDiagram:
     """Create a minimal valid diagram structure."""
+    from dipeo.diagram_generated.enums import HookTriggerMode
+    
     return LightDiagram(
         name=name,
         description=description,
@@ -262,7 +308,10 @@ def create_minimal_diagram(name: str, description: str) -> LightDiagram:
             StartNode(
                 label="start",
                 type=LightNodeType.START,
-                position=Position(x=100, y=200)
+                position=Position(x=100, y=200),
+                props=StartNodeData(
+                    trigger_mode=HookTriggerMode.MANUAL
+                )
             ),
             EndpointNode(
                 label="endpoint",

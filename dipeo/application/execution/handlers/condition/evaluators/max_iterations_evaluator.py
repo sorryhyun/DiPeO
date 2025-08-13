@@ -52,14 +52,17 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
             if exec_count > 0:
                 found_executed = True
                 
-                # Check node status for MAXITER_REACHED
+                # Check if execution count has reached max_iteration
                 node_state = context.get_node_state(node.id)
-                if node_state and hasattr(node_state, 'status'):
-                    if node_state.status != Status.MAXITER_REACHED:
-                        all_reached_max = False
-                        break
-                else:
-                    # No state found, can't be at max
+                logger.debug(
+                    f"PersonJobNode {node.id}: exec_count={exec_count}, "
+                    f"max_iteration={node.max_iteration}, "
+                    f"status={node_state.status if node_state else 'None'}"
+                )
+                
+                # Check if this node has reached its max iterations
+                # Use >= because if exec_count equals max_iteration, we've done all iterations
+                if exec_count < node.max_iteration:
                     all_reached_max = False
                     break
         

@@ -4,6 +4,7 @@ import warnings
 from contextlib import asynccontextmanager
 
 from dipeo.application.bootstrap import init_resources, shutdown_resources
+from dipeo.infrastructure.logging_config import setup_logging
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
@@ -20,30 +21,15 @@ warnings.filterwarnings("ignore", message="The config `workers` has no affect wh
 warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
 warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
 
-logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL", "INFO"),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+# Setup logging with file output to .logs/
+log_level = os.environ.get("LOG_LEVEL", "INFO")
+logger = setup_logging(
+    component="server",
+    log_level=log_level,
+    log_to_file=True,
+    log_dir=".logs",
+    console_output=True
 )
-
-logging.getLogger("asyncio").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("openai").setLevel(logging.WARNING)
-logging.getLogger("openai._base_client").setLevel(logging.WARNING)
-logging.getLogger("hypercorn.access").setLevel(logging.WARNING)
-logging.getLogger("multipart").setLevel(logging.WARNING)
-logging.getLogger("python_multipart").setLevel(logging.WARNING)
-
-# Reduce verbose debug logging from execution components
-logging.getLogger("dipeo.application.execution.observers.unified_event_observer").setLevel(logging.INFO)
-logging.getLogger("dipeo.infrastructure.events.observer_adapter").setLevel(logging.INFO)
-logging.getLogger("dipeo.infrastructure.utils.single_flight_cache").setLevel(logging.WARNING)
-logging.getLogger("dipeo.infrastructure.adapters.llm.openai").setLevel(logging.INFO)
-logging.getLogger("dipeo.application.execution.states.node_readiness_checker").setLevel(logging.INFO)
-logging.getLogger("dipeo.application.execution.handlers.person_job.single_executor").setLevel(logging.INFO)
-logging.getLogger("dipeo.application.execution.handlers.condition.evaluators").setLevel(logging.INFO)
-
-logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager

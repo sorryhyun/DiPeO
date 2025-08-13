@@ -1,18 +1,18 @@
 """Person dynamic object representing an LLM agent with evolving conversation state."""
 
-import os
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.diagram_generated import (
     ChatResult,
     MemorySettings,
-    MemoryView as MemoryViewEnum,
     Message,
     PersonLLMConfig,
 )
+from dipeo.diagram_generated import (
+    MemoryView as MemoryViewEnum,
+)
 from dipeo.diagram_generated.domain_models import PersonID
-from .conversation import Conversation, ConversationContext
+
 from .memory_filters import MemoryFilterFactory, MemoryLimiter, MemoryView
 
 if TYPE_CHECKING:
@@ -46,12 +46,6 @@ class Person:
             node_id=None
         )
     
-    def get_context(self) -> ConversationContext:
-        if not self._conversation_manager:
-            return ConversationContext(messages=[], metadata=None, context={})
-        
-        conversation = self._conversation_manager.get_conversation()
-        return conversation.get_context()
     
     def get_messages(self, memory_view: MemoryView | None = None) -> list[Message]:
         if not self._conversation_manager:
@@ -77,6 +71,22 @@ class Person:
         """Set memory limit to 0 - person can't see messages but they still exist."""
         self._memory_limiter = MemoryLimiter(0, preserve_system=False)
     
+    def clear_conversation_history(self) -> None:
+        """Clear all messages involving this person from the conversation.
+        
+        This is used for GOLDFISH memory profile to ensure complete memory reset
+        between diagram executions.
+        """
+        if not self._conversation_manager:
+            return
+        
+        # Request the conversation manager to clear messages for this person
+        if hasattr(self._conversation_manager, 'clear_person_messages'):
+            self._conversation_manager.clear_person_messages(self.id)
+        else:
+            # Fallback: reset memory filter to show nothing
+            self._memory_limiter = MemoryLimiter(0, preserve_system=False)
+    
     def get_message_count(self) -> int:
         return len(self.get_messages())
     
@@ -98,22 +108,6 @@ class Person:
             "preserve_system": self._memory_limiter.preserve_system if self._memory_limiter else None
         }
     
-    def update_context(self, context_updates: dict[str, Any]) -> None:
-        if self._conversation_manager:
-            conversation = self._conversation_manager.get_conversation()
-            conversation.update_context(context_updates)
-    
-    def _get_conversation(self) -> Conversation | None:
-        if not self._conversation_manager:
-            return None
-        return self._conversation_manager.get_conversation()
-    
-    @property
-    def conversation(self) -> Conversation:
-        conv = self._get_conversation()
-        if not conv:
-            raise RuntimeError("No conversation available")
-        return conv
     
     async def complete(
         self,
@@ -122,7 +116,11 @@ class Person:
         from_person_id: PersonID | str = "system",
         **llm_options: Any
     ) -> ChatResult:
-        """Complete prompt with this person's LLM. Apply memory settings before calling."""
+        """Complete prompt with this person's LLM.
+        
+        This method now delegates all LLM-specific logic to the infrastructure layer.
+        The Person class only manages conversation state and memory.
+        """
         # Create the incoming message
         incoming = Message(
             from_person_id=from_person_id,  # type: ignore[arg-type]
@@ -130,20 +128,25 @@ class Person:
             content=prompt,
             message_type="person_to_person" if from_person_id != "system" else "system_to_person"
         )
+        
+        # Get messages from this person's filtered view BEFORE adding the new message
+        # This prevents double-appending when using filters like SENT_BY_ME
+        person_messages = self.get_messages()
+        person_messages = person_messages + [incoming]
+        
+        # Now add the incoming message to the conversation history
         self.add_message(incoming)
         
-        # Prepare messages for LLM
-        messages = self._prepare_messages_for_llm()
-        
-        # Call LLM service - pass service type explicitly
-        result = await llm_service.complete(
-            messages=messages,
-            model=self.llm_config.model,
-            api_key_id=self.llm_config.api_key_id,
-            service=self.llm_config.service,  # Pass service type explicitly
+        # Delegate to LLM service with person context
+        # The infrastructure layer handles system prompts and message formatting
+        result = await llm_service.complete_with_person(
+            person_messages=person_messages,
+            person_id=self.id,
+            llm_config=self.llm_config,
             **llm_options
         )
         
+        # Record the response message
         response_message = Message(
             from_person_id=self.id,
             to_person_id=from_person_id,  # type: ignore[arg-type]
@@ -154,6 +157,57 @@ class Person:
         self.add_message(response_message)
         
         return result
+    
+    def get_conversation_context(self) -> dict[str, Any]:
+        """Get this person's view of the conversation, formatted for templates.
+        
+        This method respects the person's memory filters and limits,
+        providing a consistent view of the conversation that can be used
+        in prompts and templates.
+        """
+        messages = self.get_messages()  # Uses memory filters
+        
+        # Format messages for template use
+        formatted_messages = [
+            {
+                'from': str(msg.from_person_id) if msg.from_person_id else '',
+                'to': str(msg.to_person_id) if msg.to_person_id else '',
+                'content': msg.content,
+                'type': msg.message_type
+            } for msg in messages
+        ]
+        
+        # Build person-specific conversation views
+        person_conversations = {}
+        for msg in messages:
+            # Add to sender's view
+            if msg.from_person_id != "system":
+                person_id = str(msg.from_person_id)
+                if person_id not in person_conversations:
+                    person_conversations[person_id] = []
+                person_conversations[person_id].append({
+                    'role': 'assistant',
+                    'content': msg.content
+                })
+            
+            # Add to recipient's view
+            if msg.to_person_id != "system":
+                person_id = str(msg.to_person_id)
+                if person_id not in person_conversations:
+                    person_conversations[person_id] = []
+                person_conversations[person_id].append({
+                    'role': 'user',
+                    'content': msg.content
+                })
+        
+        return {
+            'global_conversation': formatted_messages,
+            'global_message_count': len(messages),
+            'person_conversations': person_conversations,
+            'last_message': messages[-1].content if messages else None,
+            'last_message_from': str(messages[-1].from_person_id) if messages else None,
+            'last_message_to': str(messages[-1].to_person_id) if messages else None
+        }
     
     def apply_memory_settings(self, settings: MemorySettings) -> None:
         """Apply memory settings - main method for person memory configuration."""
@@ -168,66 +222,13 @@ class Person:
         memory_view = view_mapping.get(settings.view, MemoryView.ALL_INVOLVED)
         self.set_memory_view(memory_view)
         
-        if settings.max_messages and settings.max_messages > 0:
+        if settings.max_messages is not None and settings.max_messages > 0:
             self.set_memory_limit(
                 int(settings.max_messages), 
                 preserve_system=settings.preserve_system if settings.preserve_system is not None else True
             )
         else:
             self._memory_limiter = None
-    
-    
-    def _prepare_messages_for_llm(self) -> list[dict[str, str]]:
-        llm_messages = []
-        
-        # Determine system prompt content
-        system_prompt_content = None
-        
-        # First check if prompt_file is specified
-        if self.llm_config.prompt_file:
-            # Resolve path relative to DIPEO_BASE_DIR if not absolute
-            prompt_path = Path(self.llm_config.prompt_file)
-            if not prompt_path.is_absolute():
-                base_dir = os.environ.get('DIPEO_BASE_DIR', os.getcwd())
-                prompt_path = Path(base_dir) / prompt_path
-            
-            # Read prompt from file if it exists
-            if prompt_path.exists():
-                try:
-                    system_prompt_content = prompt_path.read_text(encoding='utf-8')
-                except Exception as e:
-                    # Log error but continue with fallback
-                    print(f"Warning: Could not read prompt file {prompt_path}: {e}")
-                    # Fall back to system_prompt if file reading fails
-                    system_prompt_content = self.llm_config.system_prompt
-            else:
-                print(f"Warning: Prompt file {prompt_path} not found, falling back to system_prompt")
-                system_prompt_content = self.llm_config.system_prompt
-        else:
-            # Use system_prompt if no prompt_file specified
-            system_prompt_content = self.llm_config.system_prompt
-        
-        # Add system prompt if we have content
-        if system_prompt_content:
-            llm_messages.append({
-                "role": "system",
-                "content": system_prompt_content
-            })
-        
-        for msg in self.get_messages():
-            if msg.from_person_id == self.id:
-                role = "assistant"
-            elif msg.to_person_id == self.id:
-                role = "user"
-            else:
-                role = "user"
-            
-            llm_messages.append({
-                "role": role,
-                "content": msg.content
-            })
-        
-        return llm_messages
     
     
     def __repr__(self) -> str:

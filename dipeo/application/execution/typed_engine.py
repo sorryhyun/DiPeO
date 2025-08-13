@@ -210,6 +210,9 @@ class TypedExecutionEngine:
             def is_first_execution(self, node_id: str | NodeID) -> bool:
                 return self.get_node_execution_count(node_id) <= 1
             
+            def get_node_state(self, node_id: str | NodeID) -> Any:
+                return self._context.get_node_state(node_id)
+            
             @property
             def current_node_id(self) -> NodeID | None:
                 return self._context.current_node_id
@@ -224,16 +227,11 @@ class TypedExecutionEngine:
         
         calc_context = OrderCalculatorContext(context, node_outputs, node_exec_counts)
         
-        # Get node states dict for order calculator
-        node_states = {
-            node.id: context.get_node_state(node.id)
-            for node in context.diagram.nodes
-        }
-        
+        # Pass the actual context or calc_context depending on the calculator implementation
+        # DomainDynamicOrderCalculator can handle extracting states from either
         return self.order_calculator.get_ready_nodes(
             diagram=context.diagram,
-            node_states=node_states,
-            context=calc_context
+            context=calc_context  # type: ignore
         )
     
     async def _execute_nodes(
@@ -291,6 +289,42 @@ class TypedExecutionEngine:
         )
         
         try:
+            # For PersonJobNode, check max_iteration BEFORE incrementing count
+            from dipeo.diagram_generated.generated_nodes import PersonJobNode
+            if isinstance(node, PersonJobNode):
+                current_count = context.get_node_execution_count(node_id)
+                if current_count >= node.max_iteration:
+                    logger.info(f"PersonJobNode {node_id} has reached max_iteration ({node.max_iteration}), transitioning to MAXITER_REACHED")
+                    
+                    # Transition directly to MAXITER_REACHED without running
+                    from dipeo.core.execution.node_output import TextOutput
+                    from dipeo.diagram_generated.enums import Status
+                    output = TextOutput(
+                        value="",
+                        node_id=node_id,
+                        status=Status.MAXITER_REACHED,
+                        metadata="{}"
+                    )
+                    context.transition_node_to_maxiter(node_id, output)
+                    
+                    # Emit completion event with MAXITER_REACHED status
+                    await context.emit_event(
+                        EventType.NODE_COMPLETED,
+                        {
+                            "node_id": str(node_id),
+                            "node_type": node.type,
+                            "node_name": getattr(node, 'name', str(node_id)),
+                            "status": "MAXITER_REACHED",
+                            "output": {"value": "", "status": "MAXITER_REACHED"},
+                            "metrics": {
+                                "execution_time_ms": 0,
+                                "execution_count": current_count
+                            }
+                        }
+                    )
+                    
+                    return {"value": "", "status": "MAXITER_REACHED"}
+            
             # Transition to running state
             with context.executing_node(node_id):
                 exec_count = context.transition_node_to_running(node_id)
@@ -301,21 +335,32 @@ class TypedExecutionEngine:
                 # Resolve inputs
                 inputs = context.resolve_node_inputs(node)
                 
-                # Create ExecutionRequest
+                # Create ExecutionRequest with diagram metadata
                 from dipeo.application.execution.execution_request import ExecutionRequest
+                
+                # Include diagram metadata in request metadata
+                request_metadata = {}
+                if hasattr(context.diagram, 'metadata') and context.diagram.metadata:
+                    request_metadata['diagram_source_path'] = context.diagram.metadata.get('diagram_source_path')
+                    request_metadata['diagram_id'] = context.diagram.metadata.get('diagram_id')
+                
                 request = ExecutionRequest(
                     node=node,
                     context=context,  # Pass the context directly
                     inputs=inputs,
                     services=self.service_registry,
-                    metadata={},
+                    metadata=request_metadata,
                     execution_id=context.execution_id,
                     parent_container=context.container,
                     parent_registry=self.service_registry
                 )
                 
-                # Execute handler
-                output = await handler.execute_request(request)
+                # Call pre_execute hook first
+                output = await handler.pre_execute(request)
+                
+                # If pre_execute returned output, use it; otherwise execute normally
+                if output is None:
+                    output = await handler.execute_request(request)
             
             # Calculate execution metrics
             end_time = time.time()
@@ -403,33 +448,8 @@ class TypedExecutionEngine:
         context: TypedExecutionContext
     ) -> None:
         """Handle node completion and state transitions."""
-        from dipeo.diagram_generated.generated_nodes import ConditionNode, PersonJobNode
-        
-        node_id = node.id
-        
-        if isinstance(node, PersonJobNode):
-            exec_count = context.get_node_execution_count(node_id)
-            
-            if exec_count >= node.max_iteration:
-                # Max iterations reached
-                context.transition_node_to_maxiter(node_id, output)
-                
-                # Reset downstream condition nodes
-                outgoing_edges = context.diagram.get_outgoing_edges(node_id)
-                for edge in outgoing_edges:
-                    target_node = context.diagram.get_node(edge.target_node_id)
-                    if target_node and isinstance(target_node, ConditionNode):
-                        node_state = context.get_node_state(target_node.id)
-                        if node_state and node_state.status.value == "COMPLETED":
-                            context.reset_node(target_node.id)
-            else:
-                # Normal completion, reset for next iteration
-                context.transition_node_to_completed(node_id, output)
-                context.reset_node(node_id)
-        
-        else:
-            # All other nodes complete normally
-            context.transition_node_to_completed(node_id, output)
+        # All nodes complete normally - PersonJob max_iteration is handled in the handler
+        context.transition_node_to_completed(node.id, output)
     
     def _serialize_output(self, output: Any) -> dict[str, Any]:
         """Serialize node output for event data."""

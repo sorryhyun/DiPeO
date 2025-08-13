@@ -10,7 +10,9 @@ from collections import defaultdict
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.core.execution.dynamic_order_calculator import DynamicOrderCalculator as DynamicOrderCalculatorProtocol
 from dipeo.core.execution.execution_context import ExecutionContext
+from dipeo.core.execution.node_output import ConditionOutput
 from dipeo.diagram_generated import NodeID, NodeState, Status, NodeType
+from dipeo.diagram_generated.generated_nodes import ConditionNode
 
 
 class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
@@ -24,13 +26,35 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
     - Context-specific rules
     """
     
+    def _get_node_states_from_context(
+        self,
+        diagram: ExecutableDiagram,
+        context: ExecutionContext
+    ) -> dict[NodeID, NodeState]:
+        """Extract node states from execution context."""
+        node_states = {}
+        for node in diagram.nodes:
+            # Try different ways to get node state from context
+            if hasattr(context, 'get_node_state'):
+                state = context.get_node_state(node.id)
+                if state:
+                    node_states[node.id] = state
+                else:
+                    node_states[node.id] = NodeState(status=Status.PENDING)
+            elif hasattr(context, '_node_states'):
+                node_states[node.id] = context._node_states.get(node.id, NodeState(status=Status.PENDING))
+            else:
+                # Fallback to pending if context doesn't provide state
+                node_states[node.id] = NodeState(status=Status.PENDING)
+        return node_states
+    
     def get_ready_nodes(
         self,
         diagram: ExecutableDiagram,
-        node_states: dict[NodeID, NodeState],
         context: ExecutionContext
     ) -> list[ExecutableNode]:
         """Get nodes ready for execution based on current context."""
+        node_states = self._get_node_states_from_context(diagram, context)
         ready_nodes = []
         
         for node in diagram.nodes:
@@ -43,10 +67,10 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
     def get_blocked_nodes(
         self,
         diagram: ExecutableDiagram,
-        node_states: dict[NodeID, NodeState],
         context: ExecutionContext
-    ) -> list[ExecutableNode]:
+    ) -> list[tuple[NodeID, str]]:
         """Get nodes that are blocked from execution."""
+        node_states = self._get_node_states_from_context(diagram, context)
         blocked = []
         
         for node in diagram.nodes:
@@ -57,19 +81,20 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
             # Node is blocked if it's pending but not ready
             if node_state.status == Status.PENDING:
                 if not self._is_node_ready(node, diagram, node_states, context):
-                    blocked.append(node)
+                    blocked.append((node.id, "Failed dependencies"))
         
         return blocked
     
     def should_terminate(
         self,
         diagram: ExecutableDiagram,
-        node_states: dict[NodeID, NodeState],
         context: ExecutionContext
     ) -> bool:
         """Check if execution should terminate early."""
+        node_states = self._get_node_states_from_context(diagram, context)
+        
         # Check for global termination conditions
-        if context.get_metadata("terminate_execution"):
+        if hasattr(context, 'get_metadata') and context.get_metadata("terminate_execution"):
             return True
         
         # Check if all endpoints are reached
@@ -88,12 +113,11 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
     def get_next_batch(
         self,
         diagram: ExecutableDiagram,
-        node_states: dict[NodeID, NodeState],
         context: ExecutionContext,
         max_parallel: int = 10
     ) -> list[ExecutableNode]:
         """Get next batch of nodes to execute in parallel."""
-        ready_nodes = self.get_ready_nodes(diagram, node_states, context)
+        ready_nodes = self.get_ready_nodes(diagram, context)
         
         # Group by parallelization constraints
         batches = self._group_by_constraints(ready_nodes, context)
@@ -107,7 +131,7 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
     def handle_loop_node(
         self,
         node: ExecutableNode,
-        node_states: dict[NodeID, NodeState],
+        diagram: ExecutableDiagram,
         context: ExecutionContext
     ) -> bool:
         """Handle special logic for loop nodes."""
@@ -123,11 +147,32 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
     
     def resolve_conditional_dependencies(
         self,
+        node: ExecutableNode,
+        diagram: ExecutableDiagram,
+        context: ExecutionContext
+    ) -> bool:
+        """Check if conditional dependencies for a node are satisfied."""
+        node_states = self._get_node_states_from_context(diagram, context)
+        
+        # Get incoming edges for this node
+        incoming_edges = [e for e in diagram.edges if e.target_node_id == node.id]
+        
+        # Check if all conditional dependencies are satisfied
+        for edge in incoming_edges:
+            # If edge is from a condition node, check if branch is active
+            if edge.source_output in ["condtrue", "condfalse"]:
+                if not self._is_dependency_satisfied(edge, node_states, context):
+                    return False
+        
+        return True
+    
+    def _resolve_all_conditional_dependencies(
+        self,
         diagram: ExecutableDiagram,
         node_states: dict[NodeID, NodeState],
         context: ExecutionContext
     ) -> None:
-        """Resolve dependencies based on conditional logic."""
+        """Internal: Resolve dependencies based on conditional logic."""
         # Find all condition nodes that have completed
         for node in diagram.nodes:
             if node.type != NodeType.CONDITION:
@@ -147,9 +192,11 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
     
     def get_execution_stats(
         self,
-        node_states: dict[NodeID, NodeState]
+        diagram: ExecutableDiagram,
+        context: ExecutionContext
     ) -> dict[str, Any]:
         """Get execution statistics."""
+        node_states = self._get_node_states_from_context(diagram, context)
         stats = defaultdict(int)
         
         for state in node_states.values():
@@ -186,7 +233,7 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
             return False
         
         # Check loop constraints
-        if not self.handle_loop_node(node, node_states, context):
+        if not self.handle_loop_node(node, diagram, context):
             return False
         
         # Get incoming edges
@@ -209,22 +256,39 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
         """Check if node dependencies are satisfied."""
         # For nodes with multiple inputs (potential loops)
         if len(incoming_edges) > 1:
-            # Check if this is a loop scenario
-            has_loop_edge = any(
-                self._is_loop_edge(edge, node, node_states)
+            # Check if any edge is from a condition node (potential loop edge)
+            has_conditional_edge = any(
+                edge.source_output in ["condtrue", "condfalse"]
                 for edge in incoming_edges
             )
             
-            if has_loop_edge:
-                # For loops, require at least one dependency satisfied
-                return any(
-                    self._is_dependency_satisfied(edge, node_states)
-                    for edge in incoming_edges
-                )
+            if has_conditional_edge:
+                # Get the node's execution count
+                target_exec_count = context.get_node_execution_count(node.id) if context else 0
+                
+                if target_exec_count == 0:
+                    # First execution: only require non-conditional edges to be satisfied
+                    # This allows nodes to start when their initial inputs are ready,
+                    # without waiting for loop conditions that haven't been evaluated yet
+                    non_conditional_edges = [
+                        edge for edge in incoming_edges 
+                        if edge.source_output not in ["condtrue", "condfalse"]
+                    ]
+                    if non_conditional_edges:
+                        return all(
+                            self._is_dependency_satisfied(edge, node_states, context)
+                            for edge in non_conditional_edges
+                        )
+                else:
+                    # Subsequent executions: require at least one dependency (loop logic)
+                    return any(
+                        self._is_dependency_satisfied(edge, node_states, context)
+                        for edge in incoming_edges
+                    )
         
         # For single input or non-loop cases, require all dependencies
         return all(
-            self._is_dependency_satisfied(edge, node_states)
+            self._is_dependency_satisfied(edge, node_states, context)
             for edge in incoming_edges
         )
     
@@ -232,34 +296,54 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
         self,
         edge: Any,
         target_node: ExecutableNode,
-        node_states: dict[NodeID, NodeState]
+        node_states: dict[NodeID, NodeState],
+        context: ExecutionContext
     ) -> bool:
         """Check if an edge is part of a loop."""
         # An edge is a loop edge if:
         # 1. It comes from a condition node
         # 2. The target has already executed
         source_state = node_states.get(edge.source_node_id)
-        target_exec_count = 0  # We'd need context here for exec count
+        target_exec_count = context.get_node_execution_count(target_node.id) if context else 0
         
-        # Simple heuristic: if source is a condition node
-        # In a full implementation, we'd track loop metadata
-        return edge.source_output == "condtrue" or edge.source_output == "condfalse"
+        # Edge is a loop edge if it's from a condition node and target has executed
+        if edge.source_output in ["condtrue", "condfalse"]:
+            return target_exec_count > 0
+        
+        return False
     
     def _is_dependency_satisfied(
         self,
         edge: Any,
-        node_states: dict[NodeID, NodeState]
+        node_states: dict[NodeID, NodeState],
+        context: ExecutionContext = None
     ) -> bool:
         """Check if a dependency edge is satisfied."""
         source_state = node_states.get(edge.source_node_id)
         if not source_state:
             return False
         
-        # Dependency is satisfied if source is completed or reached max iterations
-        return source_state.status in [
-            Status.COMPLETED,
-            Status.MAXITER_REACHED
-        ]
+        # Check if source is completed or reached max iterations
+        if source_state.status not in [Status.COMPLETED, Status.MAXITER_REACHED]:
+            return False
+        
+        # For edges from condition nodes, check if the branch is active
+        if edge.source_output in ["condtrue", "condfalse"]:
+            if context:
+                output = context.get_node_output(edge.source_node_id)
+                if isinstance(output, ConditionOutput):
+                    active_branch, _ = output.get_branch_output()
+                    # Only satisfied if this edge is on the active branch
+                    return edge.source_output == active_branch
+                elif hasattr(output, 'value') and isinstance(output.value, bool):
+                    # Handle boolean outputs
+                    active_branch = "condtrue" if output.value else "condfalse"
+                    return edge.source_output == active_branch
+            # If no context or output, can't verify branch - consider not satisfied
+            return False
+        
+        # For non-condition edges, source completion is enough
+        return True
     
     def _prioritize_nodes(
         self,

@@ -8,9 +8,8 @@ from dipeo.application.registry.keys import (
     PERSON_MANAGER,
     PROMPT_BUILDER,
     STATE_STORE,
+    TEMPLATE_PROCESSOR,
 )
-
-TEMPLATE_PROCESSOR = ServiceKey("template_processor")
 NODE_REGISTRY = ServiceKey("node_registry")
 DOMAIN_SERVICE_REGISTRY = ServiceKey("domain_service_registry")
 FILESYSTEM_ADAPTER = ServiceKey("filesystem_adapter")
@@ -38,16 +37,17 @@ class CoreContainer:
             )
         )
 
-        from dipeo.application.utils.template import TemplateProcessor
+        from dipeo.infrastructure.services.template.simple_processor import SimpleTemplateProcessor
         self.registry.register(
             TEMPLATE_PROCESSOR,
-            TemplateProcessor()
+            SimpleTemplateProcessor()
         )
 
         from dipeo.application.utils import PromptBuilder
+        template_processor = SimpleTemplateProcessor()
         self.registry.register(
             PROMPT_BUILDER,
-            PromptBuilder()
+            PromptBuilder(template_processor=template_processor)
         )
 
         from dipeo.application import get_global_registry

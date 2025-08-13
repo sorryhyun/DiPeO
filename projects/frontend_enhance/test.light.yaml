@@ -1,29 +1,36 @@
 version: light
 
 persons:
+  Prompt Designer:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are an expert in prompt engineering for code generation.
+      Create clear, comprehensive, and effective prompts for frontend code generators.
+      Focus on specificity, completeness, and actionable instructions.
+      Do not add any suggestions which are not requested, like 'If you want' or something.
+      
   Frontend Generator:
     service: openai
     model: gpt-5-nano-2025-08-07
     api_key_id: APIKEY_52609F
     system_prompt: |
-      You are an expert frontend developer specializing in modern web applications.
-      Generate clean, performant, and accessible code following industry best practices.
+      You are an expert frontend developer specializing in React and modern web development.
+      Generate production-ready frontend code based on the provided prompts.
+      Follow best practices for component structure, state management, and code organization.
+      Do not add any suggestions which are not requested, like 'If you want' or something.
+
       
-  Code Judge:
+  Code Evaluator:
     service: openai
     model: gpt-5-nano-2025-08-07
     api_key_id: APIKEY_52609F
     system_prompt: |
-      You are a senior frontend architect and code quality assessor.
-      Evaluate code with precision and provide actionable feedback.
-      
-  Code Improver:
-    service: openai
-    model: gpt-5-nano-2025-08-07
-    api_key_id: APIKEY_52609F
-    system_prompt: |
-      You are a frontend optimization specialist.
-      Enhance code based on feedback to achieve production-ready quality.
+      You are a frontend code quality expert.
+      Evaluate generated frontend code for correctness, best practices, performance, and maintainability.
+      Provide feedback on how the prompt should be improved to generate better code.
+      Do not add any suggestions which are not requested, like 'If you want' or something.
 
 nodes:
   - label: Start
@@ -39,7 +46,7 @@ nodes:
       operation: read
       sub_type: file
       format: json
-      source_details: files/frontend_enhance/frontend_enhance_config.json
+      source_details: projects/frontend_enhance/frontend_enhance_config.json
 
   - label: Initialize State
     type: code_job
@@ -60,38 +67,50 @@ nodes:
         improvements_history = []
         
         result = {
-            "iteration": iteration_count,
-            "score": current_score,
             "history": improvements_history,
-            "config": config_data,
-            "app_type": config_data["app_type"],
-            "framework": config_data["framework"],
-            "styling_approach": config_data["styling_approach"],
-            "features": config_data["features"],
-            "target_audience": config_data["target_audience"],
-            "target_score": config_data["target_score"],
-            "max_iterations": config_data["max_iterations"],
-            "code": ""  # Initialize empty code
+            "prompt_type": config_data["prompt_type"],
+            "target_framework": config_data["framework"],
+            "prompt_requirements": config_data["prompt_requirements"],
+            "evaluation_criteria": config_data["evaluation_criteria"],
+            "prompt_sections": config_data["prompt_sections"],
         }
 
-  - label: Generate Frontend
+  - label: Generate Prompt
     type: person_job
     position: {x: 600, y: 400}
     props:
-      person: Frontend Generator
-      first_prompt_file: frontend_enhance/frontend_generator.txt
-      prompt_file: frontend_enhance/frontend_generator.txt
+      person: Prompt Designer
+      first_prompt_file: prompt_generator_first.txt
+      prompt_file: prompt_generator.txt
       max_iteration: 3
-      memory_profile: FOCUSED
+      memory_profile: ONLY_I_SENT
 
-  - label: Judge Code Quality
+  - label: Generate Frontend Code
+    type: person_job
+    position: {x: 800, y: 400}
+    props:
+      person: Frontend Generator
+      default_prompt: "{{generated_prompt}}"
+      max_iteration: 3
+      memory_profile: GOLDFISH
+
+  - label: Save Frontend Code
+    type: db
+    position: {x: 900, y: 300}
+    props:
+      operation: write
+      sub_type: file
+      format: json
+      source_details: projects/frontend_enhance/generated/frontend_generator.json
+
+  - label: Evaluate Generated Code
     type: person_job
     position: {x: 1000, y: 400}
     props:
-      person: Code Judge
-      prompt_file: frontend_enhance/frontend_judge.txt
-      max_iteration: 1
-      memory_profile: MINIMAL
+      person: Code Evaluator
+      prompt_file: code_evaluator.txt
+      max_iteration: 3
+      memory_profile: GOLDFISH
 
   - label: Check Score
     type: code_job
@@ -100,22 +119,18 @@ nodes:
       language: python
       code: |
         import re
-        # Extract score from assessment text
-        score_match = re.search(r'Score:\s*(\d+)', assessment, re.IGNORECASE)
+        # Extract score from code evaluation
+        score_match = re.search(r'Score:\s*(\d+)', code_evaluation, re.IGNORECASE)
         if score_match:
             score = int(score_match.group(1))
-        else:
-            score = 70  # Default score
         
         # Check if ready for production
-        ready = "production ready" in assessment.lower() or score >= config["target_score"]
+        ready = "production ready" in code_evaluation.lower() or score >= 80
         
         result = {
             "score": score,
             "ready_for_production": ready,
-            "code": generated_code,
-            "config": config,
-            "assessment": assessment
+            "code_evaluation": code_evaluation
         }
 
   - label: Check Quality Target
@@ -123,9 +138,7 @@ nodes:
     position: {x: 1400, y: 400}
     props:
       condition_type: custom
-      expression: |
-        checked["score"] >= checked["config"]["target_score"] or 
-        checked["ready_for_production"]
+      expression: checked.ready_for_production == True
 
   - label: Detect Max Iterations
     type: condition
@@ -140,80 +153,22 @@ nodes:
       file_format: txt
       save_to_file: false
 
-  - label: Save Final Code
+  - label: Extract and Setup App
     type: code_job
+    position: {x: 1100, y: 200}
+    props:
+      language: python
+      filePath: projects/frontend_enhance/code/extract_and_setup_app.py
+      functionName: main
+
+  - label: Save Enhanced Prompt
+    type: db
     position: {x: 1600, y: 400}
     props:
-      language: python
-      code: |
-        import os
-        from pathlib import Path
-        import json
-        
-        output_path = Path("./generated_frontend_enhanced")
-        output_path.mkdir(parents=True, exist_ok=True)
-        
-        # Determine file extension based on framework
-        framework = checked["config"]["framework"]
-        extensions = {
-            "react": "jsx",
-            "vue": "vue",
-            "angular": "ts",
-            "svelte": "svelte",
-            "html": "html"
-        }
-        ext = extensions.get(framework, "jsx")
-        
-        # Save main code file
-        main_file = output_path / f"App.{ext}"
-        with open(main_file, 'w', encoding='utf-8') as f:
-            f.write(checked["code"])
-        
-        # Save assessment report
-        report_file = output_path / "quality_report.txt"
-        with open(report_file, 'w', encoding='utf-8') as f:
-            f.write(checked["assessment"])
-        
-        result = {
-            "main_file": str(main_file),
-            "output_dir": str(output_path),
-            "final_score": checked["score"],
-            "framework": framework,
-            "ready_for_production": checked["ready_for_production"],
-            "config": checked["config"]
-        }
-
-  - label: Generate Summary
-    type: code_job
-    position: {x: 1800, y: 400}
-    props:
-      language: python
-      code: |
-        config = saved_code['config']
-        target_score = config['target_score']
-        features = config['features']
-        
-        summary_lines = [
-            "# Frontend Generation Complete!",
-            "",
-            "## Results",
-            f"- Final Score: {saved_code['final_score']}/100",
-            f"- Production Ready: {'Yes' if saved_code['ready_for_production'] else 'Needs Review'}",
-            f"- Framework: {saved_code['framework']}",
-            "",
-            "## Generated Files",
-            f"- Main Application: {saved_code['main_file']}",
-            f"- Quality Report: {saved_code['output_dir']}/quality_report.txt",
-            "",
-            "## Features:",
-        ]
-        
-        for feature in features:
-            summary_lines.append(f"- {feature}")
-        
-        summary = '\n'.join(summary_lines)
-        print(summary)
-        result = summary
+      operation: write
+      sub_type: file
+      format: json
+      source_details: projects/frontend_enhance/generated/results.json
 
   - label: Save Summary
     type: endpoint
@@ -221,28 +176,28 @@ nodes:
     props:
       file_format: md
       save_to_file: true
-      file_path: generated_frontend_enhanced/README.md
+      file_path: projects/frontend_enhance/generated/README.md
 
 connections:
   # Initial flow
   - {from: Start, to: Load Config}
   - {from: Load Config, to: Initialize State, label: config, content_type: object}
-  - {from: Initialize State, to: Generate Frontend_first, content_type: object}
+  - {from: Initialize State, to: Generate Prompt_first, content_type: object}
   
-  # Generation and assessment  
-  - {from: Generate Frontend, to: Judge Code Quality, label: generated_code, content_type: object}
-  - {from: Judge Code Quality, to: Check Score, label: assessment, content_type: object}
-  - {from: Generate Frontend, to: Check Score, label: generated_code, content_type: object}
-  - {from: Initialize State, to: Check Score, label: config, content_type: object}
+  # Generation and evaluation flow
+  - {from: Generate Prompt, to: Generate Frontend Code, label: generated_prompt, content_type: object}
+  - {from: Generate Frontend Code, to: Save Frontend Code, label: generated_code, content_type: object}
+  - {from: Generate Frontend Code, to: Extract and Setup App, label: generated_code, content_type: object}
+  - {from: Generate Frontend Code, to: Evaluate Generated Code, label: generated_code, content_type: object}
+  - {from: Evaluate Generated Code, to: Check Score, label: code_evaluation, content_type: object}
   - {from: Check Score, to: Check Quality Target, label: checked, content_type: object}
   
   # Success path (quality target met)
-  - {from: Check Quality Target_condtrue, to: Save Final Code, label: checked, content_type: object}
-  - {from: Save Final Code, to: Generate Summary, label: saved_code}
-  - {from: Generate Summary, to: Save Summary}
+  - {from: Check Quality Target_condtrue, to: Save Enhanced Prompt, content_type: object}
+  - {from: Save Enhanced Prompt, to: Save Summary, label: saved_prompt}
   
   # Check if max iterations reached
   - {from: Check Quality Target_condfalse, to: Detect Max Iterations}
   - {from: Detect Max Iterations_condtrue, to: Stop if Max Iterations}
-  - {from: Detect Max Iterations_condfalse, to: Generate Frontend}
+  - {from: Detect Max Iterations_condfalse, to: Generate Prompt, label: feedback, content_type: object}
 
