@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 from pathlib import Path
@@ -6,10 +5,11 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.domain.ports.template import TemplateProcessorPort
-from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol, TextOutput, CodeJobOutput
+from dipeo.core.execution.node_output import ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import CodeJobNode, NodeType
 from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData
 from dipeo.domain.ports.storage import FileSystemPort
@@ -26,19 +26,23 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
-class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
-    """Handler for code execution nodes.
+class CodeJobNodeHandler(EnvelopeNodeHandler[CodeJobNode]):
+    """Handler for code execution nodes with envelope support.
     
     This handler follows the clean separation pattern:
     1. validate() - Static/structural validation (compile-time checks)
     2. pre_execute() - Runtime validation and setup (file existence, service availability)
-    3. execute_request() - Core execution logic using validated data from instance variables
+    3. execute_with_envelopes() - Core execution logic using envelope-based inputs
     
-    Instance variables are used to pass validated data between pre_execute and execute_request,
+    Instance variables are used to pass validated data between pre_execute and execute_with_envelopes,
     avoiding metadata pollution and providing clean, type-safe data flow.
     """
     
+    # Enable envelope mode
+    _expects_envelopes = True
+    
     def __init__(self, filesystem_adapter: FileSystemPort | None = None, template_processor: TemplateProcessorPort | None = None):
+        super().__init__()
         self._processor = template_processor
         self.filesystem_adapter = filesystem_adapter
         
@@ -49,7 +53,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             "shell": BashExecutor()
         }
         
-        # Instance vars for current execution (pre_execute -> execute_request)
+        # Instance vars for current execution (pre_execute -> execute_with_envelopes)
         self._current_language = None
         self._current_timeout = None
         self._current_function_name = None
@@ -144,9 +148,15 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         
         return None
     
-    async def execute_request(self, request: ExecutionRequest[CodeJobNode]) -> NodeOutputProtocol:
+    async def execute_with_envelopes(
+        self,
+        request: ExecutionRequest[CodeJobNode],
+        inputs: dict[str, Envelope]
+    ) -> NodeOutputProtocol:
+        """Execute code with envelope inputs"""
+        
         node = request.node
-        inputs = request.inputs
+        trace_id = request.execution_id or ""
         
         # Use pre-validated data from instance variables (set in pre_execute)
         language = self._current_language
@@ -154,53 +164,88 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         function_name = self._current_function_name
         executor = self._current_executor
         
+        # Prepare execution context from envelopes
+        exec_context = {}
+        
+        # Add all inputs to context
+        for key, envelope in inputs.items():
+            # Convert envelope to appropriate Python type
+            if envelope.content_type == "raw_text":
+                exec_context[key] = self.reader.as_text(envelope)
+            elif envelope.content_type == "object":
+                exec_context[key] = self.reader.as_json(envelope)
+            elif envelope.content_type == "binary":
+                exec_context[key] = self.reader.as_binary(envelope)
+            else:
+                # Default to raw body
+                exec_context[key] = envelope.body
+        
+        # Add standard variables
+        exec_context['inputs'] = exec_context.copy()
+        exec_context['node_id'] = node.id
+        
         try:
             if node.code:
                 request.add_metadata("inline_code", True)
-                result = await executor.execute_inline(node.code, inputs, timeout, function_name)
+                result = await executor.execute_inline(node.code, exec_context, timeout, function_name)
             else:
                 # Use pre-resolved file path from instance variable
                 file_path = self._current_file_path
                 request.add_metadata("filePath", str(file_path))
-                result = await executor.execute_file(file_path, inputs, timeout, function_name)
+                result = await executor.execute_file(file_path, exec_context, timeout, function_name)
         
         except TimeoutError:
-            # Still use ErrorOutput for errors
-            return ErrorOutput(
-                value=f"Code execution timed out after {timeout} seconds",
-                node_id=node.id,
-                error_type="TimeoutError",
-                metadata="{}"  # Empty metadata
+            return self.create_error_output(
+                Exception(f"Code execution timed out after {timeout} seconds"),
+                node.id,
+                trace_id
             )
         except Exception as e:
             logger.error(f"Code execution failed: {e}")
-            return ErrorOutput(
-                value=str(e),
-                node_id=node.id,
-                error_type=type(e).__name__,
-                metadata="{}"  # Empty metadata
-            )
+            return self.create_error_output(e, node.id, trace_id)
 
-        # Use CodeJobOutput for successful executions
-        if isinstance(result, dict):
-            # For dict results, convert to string representation
-            output_str = json.dumps(result, indent=2)
-            return CodeJobOutput(
-                value=output_str,
-                node_id=node.id,
-                language=language,
-                result_type="dict",  # Use typed field
-                metadata="{}"  # Empty metadata
+        # Determine output type and create envelope
+        if result is None:
+            output_envelope = EnvelopeFactory.text(
+                "",
+                produced_by=node.id,
+                trace_id=trace_id
+            )
+        elif isinstance(result, str):
+            output_envelope = EnvelopeFactory.text(
+                result,
+                produced_by=node.id,
+                trace_id=trace_id
+            )
+        elif isinstance(result, (dict, list)):
+            output_envelope = EnvelopeFactory.json(
+                result,
+                produced_by=node.id,
+                trace_id=trace_id
+            )
+        elif isinstance(result, bytes):
+            output_envelope = EnvelopeFactory.binary(
+                result,
+                produced_by=node.id,
+                trace_id=trace_id
             )
         else:
-            output = str(result)
-            return CodeJobOutput(
-                value=output,
-                node_id=node.id,
-                language=language,
-                result_type="string",  # Use typed field
-                metadata="{}"  # Empty metadata
+            # Convert to string as fallback
+            output_envelope = EnvelopeFactory.text(
+                str(result),
+                produced_by=node.id,
+                trace_id=trace_id
             )
+        
+        # Add execution metadata
+        output_envelope = output_envelope.with_meta(
+            execution_time=timeout,  # We don't have actual exec_time tracked here
+            code_hash=hash(node.code) if node.code else hash(str(self._current_file_path)),
+            language=language,
+            result_type="dict" if isinstance(result, dict) else "string"
+        )
+        
+        return self.create_success_output(output_envelope)
     
     def post_execute(
         self,

@@ -24,10 +24,8 @@ class EnvelopeAdapter:
         
         # Handle NodeOutputProtocol objects
         if isinstance(output, NodeOutputProtocol):
-            if hasattr(output, 'as_envelopes'):
-                return output.as_envelopes()
-            
-            # Extract value from NodeOutputProtocol
+            # Don't call as_envelopes() to avoid recursion
+            # Instead, extract value and handle directly
             content = output.value
             
             # Handle ErrorOutput specially
@@ -70,7 +68,7 @@ class EnvelopeAdapter:
             return EnvelopeFactory.json(content, produced_by=node_id, trace_id=trace_id)
         elif isinstance(content, bytes):
             return Envelope(
-                content_type=ContentType.GENERIC,
+                content_type=ContentType.BINARY,
                 body=content,
                 produced_by=node_id,
                 trace_id=trace_id
@@ -90,7 +88,7 @@ class EnvelopeAdapter:
         elif envelope.content_type == ContentType.CONVERSATION_STATE:
             # Return the raw conversation state
             return envelope.body
-        elif envelope.content_type == ContentType.GENERIC:
+        elif envelope.content_type == ContentType.BINARY:
             # Generic can be used for binary or other types
             return envelope.body
         else:

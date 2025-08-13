@@ -5,13 +5,17 @@ including node-specific strategies and data transformations.
 """
 
 from typing import Any
+import json
+from uuid import uuid4
 
 from dipeo.diagram_generated import NodeID, NodeType
 from dipeo.core.execution.runtime_resolver import RuntimeResolver
 from dipeo.core.execution.node_output import TextOutput
 from dipeo.core.execution.execution_context import ExecutionContext
-from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2, ExecutableNode
+from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2, ExecutableNode, ExecutableDiagram
 from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
 
 from dipeo.core.resolution import (
     NodeStrategyFactory,
@@ -317,4 +321,201 @@ class StandardRuntimeResolver(RuntimeResolver):
         """Get chain of transformations to convert between types."""
         # For now, we don't support transformation chains
         # This could be enhanced to find multi-step transformations
+        return None
+    
+    async def resolve_as_envelopes(
+        self,
+        node: ExecutableNode,
+        context: ExecutionContext,
+        diagram: ExecutableDiagram
+    ) -> dict[str, Envelope]:
+        """Resolve all inputs as envelopes.
+        
+        This is the main method for envelope-aware handlers to get their inputs.
+        """
+        resolved = {}
+        trace_id = getattr(context, 'execution_id', str(uuid4()))
+        
+        # Get incoming edges for this node
+        incoming_edges = self._get_incoming_edges(node, diagram)
+        
+        for edge in incoming_edges:
+            # Get source output - use the proper method for TypedExecutionContext
+            if hasattr(context, 'get_node_output'):
+                source_output = context.get_node_output(edge.source_node_id)
+            else:
+                # Fall back for other context types
+                source_output = getattr(context, 'get_output', lambda x: None)(str(edge.source_node_id))
+            
+            if source_output is None:
+                continue
+            
+            # Convert to envelope if needed
+            if isinstance(source_output, Envelope):
+                envelope = source_output
+            else:
+                # Use adapter for legacy outputs
+                envelopes = EnvelopeAdapter.from_legacy_output(
+                    source_output,
+                    node_id=str(edge.source_node_id),
+                    trace_id=trace_id
+                )
+                envelope = envelopes[0] if envelopes else None
+            
+            if envelope:
+                # Apply transformations if needed
+                envelope = await self._transform_envelope(
+                    envelope, edge, node
+                )
+                
+                # Apply iteration/branch filtering
+                envelope = self._filter_by_iteration(
+                    envelope, context, edge
+                )
+                
+                if envelope:
+                    # Store with edge label or target input
+                    label = getattr(edge, 'label', None) or getattr(edge, 'target_input', None) or 'default'
+                    resolved[label] = envelope
+        
+        # Add special inputs (conversation, variables, etc.)
+        resolved.update(
+            await self._resolve_special_inputs(node, context, trace_id)
+        )
+        
+        return resolved
+    
+    def _get_incoming_edges(
+        self,
+        node: ExecutableNode,
+        diagram: ExecutableDiagram
+    ) -> list[ExecutableEdgeV2]:
+        """Get all edges targeting this node."""
+        incoming = []
+        for edge in diagram.edges:
+            if edge.target_node_id == node.id:
+                incoming.append(edge)
+        return incoming
+    
+    async def _transform_envelope(
+        self,
+        envelope: Envelope,
+        edge: ExecutableEdgeV2,
+        target_node: ExecutableNode
+    ) -> Envelope:
+        """Apply edge transformations to envelope."""
+        
+        # Check if transformation needed based on edge transform_rules
+        if hasattr(edge, 'transform_rules') and edge.transform_rules:
+            # Handle common transformations
+            if 'json_to_text' in edge.transform_rules:
+                if envelope.content_type == "object":
+                    text = json.dumps(envelope.body)
+                    return EnvelopeFactory.text(
+                        text,
+                        produced_by=envelope.produced_by,
+                        trace_id=envelope.trace_id
+                    ).with_meta(**envelope.meta)
+            
+            elif 'text_to_json' in edge.transform_rules:
+                if envelope.content_type == "raw_text":
+                    try:
+                        data = json.loads(envelope.body)
+                        return EnvelopeFactory.json(
+                            data,
+                            produced_by=envelope.produced_by,
+                            trace_id=envelope.trace_id
+                        ).with_meta(**envelope.meta)
+                    except json.JSONDecodeError:
+                        # Keep as text if not valid JSON
+                        pass
+        
+        return envelope
+    
+    def _filter_by_iteration(
+        self,
+        envelope: Envelope,
+        context: ExecutionContext,
+        edge: ExecutableEdgeV2
+    ) -> Envelope | None:
+        """Filter envelope by iteration/branch."""
+        
+        # Check iteration match
+        if 'iteration' in envelope.meta:
+            # Get current iteration for target node
+            current_iteration = self._get_node_iteration(context, str(edge.target_node_id))
+            if envelope.meta['iteration'] != current_iteration:
+                return None
+        
+        # Check branch match
+        if 'branch_id' in envelope.meta:
+            active_branch = self._get_active_branch(context, str(edge.target_node_id))
+            if envelope.meta['branch_id'] != active_branch:
+                return None
+        
+        return envelope
+    
+    def _get_node_iteration(
+        self,
+        context: ExecutionContext,
+        node_id: str
+    ) -> int:
+        """Get current iteration for a node."""
+        # This would check the context for the current iteration count
+        # For now, return 0 as default
+        return 0
+    
+    def _get_active_branch(
+        self,
+        context: ExecutionContext,
+        node_id: str
+    ) -> str | None:
+        """Get active branch for a node."""
+        # This would check if node is in a conditional branch
+        # For now, return None
+        return None
+    
+    async def _resolve_special_inputs(
+        self,
+        node: ExecutableNode,
+        context: ExecutionContext,
+        trace_id: str
+    ) -> dict[str, Envelope]:
+        """Resolve special inputs like conversation state."""
+        
+        special = {}
+        
+        # Add conversation state if needed for PersonJob nodes
+        if node.type == NodeType.PERSON_JOB and hasattr(node, 'use_conversation_memory'):
+            if node.use_conversation_memory:
+                person_id = getattr(node, 'person', None)
+                if person_id:
+                    conv_state = await self._get_conversation_state(
+                        person_id, context
+                    )
+                    if conv_state:
+                        special['_conversation'] = EnvelopeFactory.conversation(
+                            conv_state,
+                            produced_by="system",
+                            trace_id=trace_id
+                        )
+        
+        # Add variables
+        if hasattr(context, 'variables') and context.variables:
+            special['_variables'] = EnvelopeFactory.json(
+                dict(context.variables),
+                produced_by="system",
+                trace_id=trace_id
+            )
+        
+        return special
+    
+    async def _get_conversation_state(
+        self,
+        person_id: str,
+        context: ExecutionContext
+    ) -> dict | None:
+        """Get conversation state for a person."""
+        # This would fetch from conversation manager
+        # For now, return None
         return None

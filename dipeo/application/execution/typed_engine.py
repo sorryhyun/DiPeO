@@ -333,7 +333,50 @@ class TypedExecutionEngine:
                 handler = self._get_handler(node.type)
                 
                 # Resolve inputs
-                inputs = context.resolve_node_inputs(node)
+                raw_inputs = context.resolve_node_inputs(node)
+                
+                # Convert inputs based on handler expectations
+                if hasattr(handler, '_expects_envelopes') and handler._expects_envelopes:
+                    # Handler expects envelopes - convert raw outputs to envelopes
+                    from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
+                    from dipeo.core.execution.envelope import Envelope
+                    
+                    envelope_inputs = {}
+                    for key, value in raw_inputs.items():
+                        # Check if value already has envelope support
+                        if hasattr(value, 'as_envelopes'):
+                            # Get the primary envelope from the output
+                            envelopes = value.as_envelopes()
+                            envelope_inputs[key] = envelopes[0] if envelopes else None
+                        elif isinstance(value, Envelope):
+                            # Already an envelope
+                            envelope_inputs[key] = value
+                        else:
+                            # Convert to envelope
+                            envelopes = EnvelopeAdapter.from_legacy_output(
+                                value, 
+                                node_id=str(node.id),
+                                trace_id=context.execution_id
+                            )
+                            envelope_inputs[key] = envelopes[0] if envelopes else None
+                    inputs = envelope_inputs
+                else:
+                    # Handler expects legacy format - convert envelopes to raw values
+                    from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
+                    from dipeo.core.execution.envelope import Envelope
+                    
+                    legacy_inputs = {}
+                    for key, value in raw_inputs.items():
+                        if isinstance(value, Envelope):
+                            # Convert envelope to legacy format
+                            legacy_inputs[key] = EnvelopeAdapter.to_legacy_input(value)
+                        elif hasattr(value, 'as_envelopes'):
+                            # Extract raw value from output
+                            legacy_inputs[key] = value.value if hasattr(value, 'value') else value
+                        else:
+                            # Already in legacy format
+                            legacy_inputs[key] = value
+                    inputs = legacy_inputs
                 
                 # Create ExecutionRequest with diagram metadata
                 from dipeo.application.execution.execution_request import ExecutionRequest

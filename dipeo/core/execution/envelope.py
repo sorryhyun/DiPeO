@@ -1,10 +1,14 @@
 from __future__ import annotations
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from uuid import uuid4
 import time
+import io
 
 from dipeo.diagram_generated.enums import ContentType
+
+if TYPE_CHECKING:
+    import numpy as np
 
 @dataclass(frozen=True)
 class Envelope:
@@ -20,6 +24,7 @@ class Envelope:
     # Content
     content_type: ContentType = field(default="raw_text")
     schema_id: str | None = field(default=None)
+    serialization_format: str | None = field(default=None)  # "numpy", "msgpack", "pickle", etc.
     body: Any = field(default=None)
     
     # Metadata
@@ -65,6 +70,39 @@ class EnvelopeFactory:
         return Envelope(
             content_type=ContentType.CONVERSATION_STATE,
             body=state,
+            meta={"timestamp": time.time()},
+            **kwargs
+        )
+    
+    @staticmethod
+    def numpy_array(array: "np.ndarray", **kwargs) -> Envelope:
+        """Create envelope for numpy array with safe serialization"""
+        import numpy as np
+        
+        # Use numpy's safe format instead of pickle
+        buffer = io.BytesIO()
+        np.save(buffer, array, allow_pickle=False)
+        
+        return Envelope(
+            content_type=ContentType.BINARY,
+            serialization_format="numpy",
+            body=buffer.getvalue(),
+            meta={
+                "timestamp": time.time(),
+                "dtype": str(array.dtype),
+                "shape": array.shape,
+                "size": array.size
+            },
+            **kwargs
+        )
+    
+    @staticmethod
+    def binary(data: bytes, format: str = "raw", **kwargs) -> Envelope:
+        """Create envelope for generic binary data"""
+        return Envelope(
+            content_type=ContentType.BINARY,
+            serialization_format=format,
+            body=data,
             meta={"timestamp": time.time()},
             **kwargs
         )

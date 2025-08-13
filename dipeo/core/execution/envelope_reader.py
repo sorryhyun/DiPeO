@@ -1,9 +1,13 @@
 import json
-from typing import Any, TypeVar, Type
+import io
+from typing import Any, TypeVar, Type, TYPE_CHECKING
 from pydantic import BaseModel, ValidationError
 
 from .envelope import Envelope
 from dipeo.diagram_generated.enums import ContentType
+
+if TYPE_CHECKING:
+    import numpy as np
 
 T = TypeVar('T', bound=BaseModel)
 
@@ -59,14 +63,45 @@ class EnvelopeReader:
     
     def as_binary(self, envelope: Envelope) -> bytes:
         """Extract binary content"""
-        # Note: ContentType enum doesn't have BINARY, use GENERIC for binary data
-        if envelope.content_type == ContentType.GENERIC:
+        if envelope.content_type == ContentType.BINARY:
+            if isinstance(envelope.body, bytes):
+                return envelope.body
+            else:
+                raise ValueError(f"Binary envelope contains non-bytes data: {type(envelope.body)}")
+        elif envelope.content_type == ContentType.GENERIC:
+            # Backward compatibility
             return envelope.body
         elif envelope.content_type == ContentType.RAW_TEXT:
             # Try to encode text as bytes
             return envelope.body.encode('utf-8')
         else:
             raise ValueError(f"Cannot extract binary from {envelope.content_type}")
+    
+    def as_numpy(self, envelope: Envelope) -> "np.ndarray":
+        """Extract numpy array from envelope"""
+        import numpy as np
+        
+        if envelope.content_type != ContentType.BINARY:
+            raise ValueError(f"Expected BINARY content type for numpy, got {envelope.content_type}")
+        
+        if envelope.serialization_format != "numpy":
+            raise ValueError(f"Expected 'numpy' serialization format, got {envelope.serialization_format}")
+        
+        if not isinstance(envelope.body, bytes):
+            raise ValueError(f"Expected bytes for numpy data, got {type(envelope.body)}")
+        
+        # Load numpy array from bytes
+        buffer = io.BytesIO(envelope.body)
+        array = np.load(buffer, allow_pickle=False)
+        
+        # Validate against metadata if present
+        if "shape" in envelope.meta and array.shape != tuple(envelope.meta["shape"]):
+            raise ValueError(f"Shape mismatch: expected {envelope.meta['shape']}, got {array.shape}")
+        
+        if "dtype" in envelope.meta and str(array.dtype) != envelope.meta["dtype"]:
+            raise ValueError(f"Dtype mismatch: expected {envelope.meta['dtype']}, got {array.dtype}")
+        
+        return array
     
     def get_meta(self, envelope: Envelope, key: str, default: Any = None) -> Any:
         """Safely get metadata value"""

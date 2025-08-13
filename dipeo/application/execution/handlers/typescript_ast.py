@@ -3,11 +3,12 @@ from typing import TYPE_CHECKING, Optional, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 
 if TYPE_CHECKING:
@@ -15,8 +16,14 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
-    """Handler for TypeScript AST parsing node."""
+class TypescriptAstNodeHandler(EnvelopeNodeHandler[TypescriptAstNode]):
+    """Handler for TypeScript AST parsing node.
+    
+    Now uses envelope-based communication for clean input/output interfaces.
+    """
+    
+    # Enable envelope mode
+    _expects_envelopes = True
     
     def __init__(self):
         """Initialize the handler.
@@ -24,6 +31,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         The TypeScript parser service will be injected via the service registry
         during execution, following the DI pattern.
         """
+        super().__init__()
         # Instance variables for passing data between methods
         self._current_debug = None
     
@@ -80,10 +88,24 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         
         return None
     
-    async def execute_request(self, request: ExecutionRequest[TypescriptAstNode]) -> NodeOutputProtocol:
-        """Execute the TypeScript AST parsing."""
+    async def execute_with_envelopes(
+        self, 
+        request: ExecutionRequest[TypescriptAstNode],
+        inputs: dict[str, Envelope]
+    ) -> NodeOutputProtocol:
+        """Execute TypeScript AST parsing with envelope inputs."""
         node = request.node
-        inputs = request.inputs
+        trace_id = request.execution_id or ""
+        
+        # Convert envelope inputs to legacy format
+        legacy_inputs = {}
+        for key, envelope in inputs.items():
+            try:
+                # Try to parse as JSON first
+                legacy_inputs[key] = self.reader.as_json(envelope)
+            except ValueError:
+                # Fall back to text
+                legacy_inputs[key] = self.reader.as_text(envelope)
 
         
         try:
@@ -104,9 +126,9 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 # Get sources from node config or inputs
                 sources = getattr(node, 'sources', None)
                 if not sources:
-                    sources = inputs.get(batch_input_key, {})
-                if not sources and 'default' in inputs and isinstance(inputs['default'], dict):
-                    sources = inputs['default'].get(batch_input_key, {})
+                    sources = legacy_inputs.get(batch_input_key, {})
+                if not sources and 'default' in legacy_inputs and isinstance(legacy_inputs['default'], dict):
+                    sources = legacy_inputs['default'].get(batch_input_key, {})
                 
                 if not sources or not isinstance(sources, dict):
                     return ErrorOutput(
@@ -132,24 +154,26 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     logger.error(f"[TypescriptAstNode {node.id}] Batch parse error: {traceback.format_exc()}")
                     raise
                 
-                # Return batch results
-                return DataOutput(
-                    value=results,
-                    node_id=node.id,
-                    metadata=json.dumps({
-                        'batch_mode': True,
-                        'total_sources': len(sources),
-                        'successful': len(results)
-                    })
+                # Create output envelope for batch results
+                output_envelope = EnvelopeFactory.json(
+                    results,
+                    produced_by=node.id,
+                    trace_id=trace_id
+                ).with_meta(
+                    batch_mode=True,
+                    total_sources=len(sources),
+                    successful=len(results)
                 )
+                
+                return self.create_success_output(output_envelope)
             
             else:
                 # Single mode: parse one source
                 source = node.source
                 if not source:
-                    source = inputs.get('source', '')
-                if not source and 'default' in inputs and isinstance(inputs['default'], dict):
-                    source = inputs['default'].get('source', '')
+                    source = legacy_inputs.get('source', '')
+                if not source and 'default' in legacy_inputs and isinstance(legacy_inputs['default'], dict):
+                    source = legacy_inputs['default'].get('source', '')
                 
                 if not source:
                     return ErrorOutput(
@@ -234,20 +258,31 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 if flatten_output and output_format == 'standard':
                     output_data = self._flatten_output(output_data)
 
-                # Return successful result with all extracted data
-                return DataOutput(
-                    value=output_data,
-                    node_id=node.id,
-                    metadata=json.dumps({
-                        'output_format': output_format
-                    })
+                # Create output envelope with parsed data
+                output_envelope = EnvelopeFactory.json(
+                    output_data,
+                    produced_by=node.id,
+                    trace_id=trace_id
+                ).with_meta(
+                    output_format=output_format
                 )
+                
+                return self.create_success_output(output_envelope)
         
         except Exception as e:
-            return ErrorOutput(
-                value=f"TypeScript parsing failed: {str(e)}",
-                node_id=node.id,
+            error_envelope = EnvelopeFactory.text(
+                f"TypeScript parsing failed: {str(e)}",
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
                 error_type=type(e).__name__
+            )
+            return self.create_error_output(
+                ErrorOutput(
+                    value=f"TypeScript parsing failed: {str(e)}",
+                    node_id=node.id,
+                    error_type=type(e).__name__
+                )
             )
     
     def post_execute(

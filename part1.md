@@ -1,762 +1,195 @@
-# Phase 1: Envelope Infrastructure Implementation Guide
+# Phase 1: Envelope Infrastructure - COMPLETED
 
-## Overview
-Introduce standardized message envelopes for node communication without breaking existing functionality.
+## Summary of Implementation
 
-## Step-by-Step Implementation
+✅ **Core Infrastructure Created:**
+- `/dipeo/core/execution/envelope.py` - Immutable message envelope with ContentType enum integration
+- `/dipeo/core/execution/envelope_reader.py` - Safe extraction methods for different content types  
+- `/dipeo/application/execution/envelope_adapter.py` - Backward compatibility adapter
+- Updated `node_output.py` with `as_envelopes()` and `primary_envelope()` methods
+- Integrated envelope wrapping in TypedExecutionEngine
+- Updated RuntimeResolver to handle envelope-based outputs
 
-### Step 1: Create Core Envelope Classes (Day 1-2)
+## Migration Guide for Handlers
 
-#### 1.1 Create `/dipeo/core/execution/envelope.py`
+### Current State: Compatibility Mode
+All handlers continue to work unchanged. The system automatically wraps outputs in envelopes and converts them back for legacy handlers.
 
+### Phase 2: Gradual Handler Migration
+
+#### Step 1: Identify Handler Migration Priority
+
+**Low Risk (Start Here):**
 ```python
-from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import Literal, Any, Protocol
-from uuid import uuid4
-import time
-
-ContentType = Literal["raw_text", "object", "conversation_state", "binary"]
-
-@dataclass(frozen=True)
-class Envelope:
-    """Immutable message envelope for inter-node communication"""
-    
-    # Identity
-    id: str = field(default_factory=lambda: str(uuid4()))
-    trace_id: str = field(default="")
-    
-    # Source
-    produced_by: str = field(default="system")
-    
-    # Content
-    content_type: ContentType = field(default="raw_text")
-    schema_id: str | None = field(default=None)
-    body: Any = field(default=None)
-    
-    # Metadata
-    meta: dict[str, Any] = field(default_factory=dict)
-    
-    def with_meta(self, **kwargs) -> Envelope:
-        """Create new envelope with updated metadata"""
-        new_meta = {**self.meta, **kwargs}
-        return dataclass.replace(self, meta=new_meta)
-    
-    def with_iteration(self, iteration: int) -> Envelope:
-        """Tag with iteration number"""
-        return self.with_meta(iteration=iteration)
-    
-    def with_branch(self, branch_id: str) -> Envelope:
-        """Tag with branch identifier"""
-        return self.with_meta(branch_id=branch_id)
-
-class EnvelopeFactory:
-    """Factory for creating envelopes"""
-    
-    @staticmethod
-    def text(content: str, **kwargs) -> Envelope:
-        return Envelope(
-            content_type="raw_text",
-            body=content,
-            meta={"timestamp": time.time()},
-            **kwargs
-        )
-    
-    @staticmethod
-    def json(data: Any, schema_id: str | None = None, **kwargs) -> Envelope:
-        return Envelope(
-            content_type="object",
-            schema_id=schema_id,
-            body=data,
-            meta={"timestamp": time.time()},
-            **kwargs
-        )
-    
-    @staticmethod
-    def conversation(state: dict, **kwargs) -> Envelope:
-        return Envelope(
-            content_type="conversation_state",
-            body=state,
-            meta={"timestamp": time.time()},
-            **kwargs
-        )
+# Simple text-output handlers
+- HelloWorldHandler
+- CommentHandler  
+- VariableGetHandler
+- VariableSetHandler
 ```
 
-#### 1.2 Create `/dipeo/core/execution/envelope_reader.py`
-
+**Medium Risk:**
 ```python
-import json
-from typing import Any, TypeVar, Type
-from pydantic import BaseModel, ValidationError
-
-from .envelope import Envelope, ContentType
-
-T = TypeVar('T', bound=BaseModel)
-
-class EnvelopeReader:
-    """Safe extraction of envelope contents"""
-    
-    def as_text(self, envelope: Envelope) -> str:
-        """Extract text content with automatic coercion"""
-        if envelope.content_type == "raw_text":
-            return str(envelope.body) if envelope.body is not None else ""
-        elif envelope.content_type == "object":
-            return json.dumps(envelope.body)
-        elif envelope.content_type == "conversation_state":
-            # Extract text from conversation
-            if isinstance(envelope.body, dict):
-                return envelope.body.get("last_message", "")
-            return str(envelope.body)
-        else:
-            raise ValueError(f"Cannot convert {envelope.content_type} to text")
-    
-    def as_json(
-        self, 
-        envelope: Envelope, 
-        model: Type[T] | None = None
-    ) -> T | dict | list:
-        """Extract and optionally validate JSON content"""
-        if envelope.content_type != "object":
-            # Try to parse text as JSON
-            if envelope.content_type == "raw_text":
-                try:
-                    data = json.loads(envelope.body)
-                except (json.JSONDecodeError, TypeError):
-                    raise ValueError(f"Cannot parse text as JSON: {envelope.body[:100]}")
-            else:
-                raise ValueError(f"Cannot extract JSON from {envelope.content_type}")
-        else:
-            data = envelope.body
-        
-        # Validate with Pydantic if model provided
-        if model:
-            try:
-                return model.model_validate(data)
-            except ValidationError as e:
-                raise ValueError(f"Schema validation failed: {e}")
-        
-        return data
-    
-    def as_conversation(self, envelope: Envelope) -> dict:
-        """Extract conversation state"""
-        if envelope.content_type != "conversation_state":
-            raise ValueError(f"Expected conversation_state, got {envelope.content_type}")
-        return envelope.body
-    
-    def as_binary(self, envelope: Envelope) -> bytes:
-        """Extract binary content"""
-        if envelope.content_type != "binary":
-            # Try to encode text as bytes
-            if envelope.content_type == "raw_text":
-                return envelope.body.encode('utf-8')
-            else:
-                raise ValueError(f"Cannot extract binary from {envelope.content_type}")
-        return envelope.body
-    
-    def get_meta(self, envelope: Envelope, key: str, default: Any = None) -> Any:
-        """Safely get metadata value"""
-        return envelope.meta.get(key, default)
+# Complex but isolated handlers
+- CodeJobHandler
+- TemplateJobHandler
+- ApiJobHandler
+- FileReadHandler
 ```
 
-### Step 2: Create Legacy Adapter (Day 3)
-
-#### 2.1 Create `/dipeo/application/execution/envelope_adapter.py`
-
+**High Risk (Migrate Last):**
 ```python
-from typing import Any
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.core.execution.node_output import NodeOutput
-
-class EnvelopeAdapter:
-    """Bridge between legacy dict outputs and envelopes"""
-    
-    @staticmethod
-    def from_legacy_output(
-        output: Any,
-        node_id: str = "unknown",
-        trace_id: str = ""
-    ) -> list[Envelope]:
-        """Convert various legacy output formats to envelopes"""
-        
-        # Handle NodeOutput objects
-        if isinstance(output, NodeOutput):
-            if hasattr(output, 'as_envelopes'):
-                return output.as_envelopes()
-            
-            # Extract from success/error format
-            if output.success:
-                content = output.data
-            else:
-                content = {"error": str(output.error)}
-                
-            return [EnvelopeAdapter._create_envelope(content, node_id, trace_id)]
-        
-        # Handle direct values
-        return [EnvelopeAdapter._create_envelope(output, node_id, trace_id)]
-    
-    @staticmethod
-    def _create_envelope(content: Any, node_id: str, trace_id: str) -> Envelope:
-        """Create appropriate envelope based on content type"""
-        
-        if content is None:
-            return EnvelopeFactory.text("", produced_by=node_id, trace_id=trace_id)
-        elif isinstance(content, str):
-            return EnvelopeFactory.text(content, produced_by=node_id, trace_id=trace_id)
-        elif isinstance(content, (dict, list)):
-            return EnvelopeFactory.json(content, produced_by=node_id, trace_id=trace_id)
-        elif isinstance(content, bytes):
-            return Envelope(
-                content_type="binary",
-                body=content,
-                produced_by=node_id,
-                trace_id=trace_id
-            )
-        else:
-            # Fallback: convert to string
-            return EnvelopeFactory.text(str(content), produced_by=node_id, trace_id=trace_id)
-    
-    @staticmethod
-    def to_legacy_input(envelope: Envelope) -> Any:
-        """Convert envelope back to expected legacy format"""
-        
-        if envelope.content_type == "raw_text":
-            return envelope.body
-        elif envelope.content_type == "object":
-            return envelope.body
-        elif envelope.content_type == "conversation_state":
-            # Return the raw conversation state
-            return envelope.body
-        elif envelope.content_type == "binary":
-            return envelope.body
-        else:
-            return envelope.body
-    
-    @staticmethod
-    def wrap_handler_output(
-        handler_result: Any,
-        node_id: str,
-        trace_id: str
-    ) -> NodeOutput:
-        """Wrap handler result with envelope support"""
-        
-        if isinstance(handler_result, NodeOutput):
-            # Enhance existing NodeOutput with envelope support
-            if not hasattr(handler_result, 'as_envelopes'):
-                envelopes = EnvelopeAdapter.from_legacy_output(
-                    handler_result, node_id, trace_id
-                )
-                handler_result._envelopes = envelopes
-            return handler_result
-        
-        # Create new NodeOutput with envelopes
-        envelopes = EnvelopeAdapter.from_legacy_output(
-            handler_result, node_id, trace_id
-        )
-        output = NodeOutput.success(data=handler_result)
-        output._envelopes = envelopes
-        return output
+# Critical path handlers
+- PersonJobHandler
+- SubDiagramHandler
+- ConditionHandler
+- LoopHandler
 ```
 
-### Step 3: Update NodeOutput Protocol (Day 4)
+#### Step 2: Handler Migration Pattern
 
-#### 3.1 Modify `/dipeo/core/execution/node_output.py`
-
+**Before (Current):**
 ```python
-# Add to existing NodeOutput class
-
-from typing import Protocol
-from dipeo.core.execution.envelope import Envelope
-
-class NodeOutputProtocol(Protocol):
-    """Protocol for node execution outputs"""
-    
-    @property
-    def success(self) -> bool:
-        """Whether execution succeeded"""
-        ...
-    
-    @property
-    def data(self) -> Any:
-        """Output data (legacy)"""
-        ...
-    
-    def as_envelopes(self) -> list[Envelope]:
-        """Convert to standardized envelopes"""
-        ...
-    
-    def primary_envelope(self) -> Envelope:
-        """Get primary output envelope"""
-        ...
-
-class NodeOutput:
-    """Concrete implementation with envelope support"""
-    
-    def __init__(self, success: bool, data: Any = None, error: Exception | None = None):
-        self.success = success
-        self.data = data
-        self.error = error
-        self._envelopes: list[Envelope] | None = None
-    
-    def as_envelopes(self) -> list[Envelope]:
-        """Convert to envelopes lazily"""
-        if self._envelopes is None:
-            from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
-            self._envelopes = EnvelopeAdapter.from_legacy_output(
-                self.data if self.success else {"error": str(self.error)},
-                node_id="unknown",
-                trace_id=""
-            )
-        return self._envelopes
-    
-    def primary_envelope(self) -> Envelope:
-        """Get first/primary envelope"""
-        envelopes = self.as_envelopes()
-        if not envelopes:
-            # Return empty envelope if none exist
-            from dipeo.core.execution.envelope import EnvelopeFactory
-            return EnvelopeFactory.text("")
-        return envelopes[0]
-    
-    def with_envelopes(self, envelopes: list[Envelope]) -> 'NodeOutput':
-        """Set explicit envelopes"""
-        self._envelopes = envelopes
-        return self
+class MyHandler(TypedNodeHandler[MyNode]):
+    async def execute_request(self, request):
+        # Direct context access
+        context = request.context
+        inputs = await self._resolve_inputs(request)
+        
+        # Process inputs directly
+        text = inputs.get('prompt', '')
+        
+        # Return plain output
+        return TextOutput(value=result, node_id=request.node.id)
 ```
 
-### Step 4: Integration Points (Day 5-7)
-
-#### 4.1 Update TypedExecutionEngine to use envelopes
-
+**After (Migrated):**
 ```python
-# In /dipeo/application/execution/typed_engine.py
-
-async def _execute_node(
-    self,
-    node: ExecutableNode,
-    context: TypedExecutionContext,
-    diagram: ExecutableDiagram
-) -> None:
-    """Execute single node with envelope support"""
+class MyHandler(TypedNodeHandler[MyNode]):
+    _expects_envelopes = True  # Opt-in flag
     
-    trace_id = context.execution_id
-    
-    try:
-        # Get handler
-        handler = self._get_handler(node)
-        
-        # Create request
-        request = ExecutionRequest(
-            node=node,
-            context=context,
-            diagram=diagram,
-            trace_id=trace_id
-        )
-        
-        # Execute
-        result = await handler.execute_request(request)
-        
-        # Ensure result has envelopes
-        if not hasattr(result, 'as_envelopes'):
-            from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
-            result = EnvelopeAdapter.wrap_handler_output(
-                result, node.id, trace_id
-            )
-        
-        # Store envelopes in context
-        for envelope in result.as_envelopes():
-            context.store_output(node.id, envelope)
-        
-        # Emit events
-        await self._emit_node_completed(node, result)
-        
-    except Exception as e:
-        # Wrap error in envelope
-        error_envelope = EnvelopeFactory.json(
-            {"error": str(e), "type": type(e).__name__},
-            produced_by=node.id,
-            trace_id=trace_id
-        )
-        context.store_output(node.id, error_envelope)
-        await self._emit_node_failed(node, e)
-```
-
-#### 4.2 Update RuntimeResolver to work with envelopes
-
-```python
-# In /dipeo/application/execution/resolvers/standard_runtime_resolver.py
-
-async def resolve_node_inputs(
-    self,
-    node: ExecutableNode,
-    context: TypedExecutionContext,
-    diagram: ExecutableDiagram
-) -> dict[str, Any]:
-    """Resolve inputs with envelope support"""
-    
-    # Check if handler expects envelopes
-    handler = self._get_handler(node)
-    expects_envelopes = getattr(handler, '_expects_envelopes', False)
-    
-    resolved = {}
-    
-    for edge in self._get_incoming_edges(node, diagram):
-        # Get source output as envelope
-        source_output = context.get_output(edge.source_id)
-        
-        if isinstance(source_output, Envelope):
-            envelope = source_output
-        else:
-            # Convert legacy output to envelope
-            from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
-            envelopes = EnvelopeAdapter.from_legacy_output(
-                source_output,
-                node_id=edge.source_id,
-                trace_id=context.execution_id
-            )
-            envelope = envelopes[0] if envelopes else None
-        
-        if envelope:
-            # Store envelope or convert to legacy format
-            if expects_envelopes:
-                resolved[edge.label or 'default'] = envelope
-            else:
-                # Convert back to legacy for compatibility
-                from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
-                resolved[edge.label or 'default'] = EnvelopeAdapter.to_legacy_input(envelope)
-    
-    return resolved
-```
-
-### Step 5: Testing (Day 8-10)
-
-#### 5.1 Create `/dipeo/tests/refactoring/test_envelopes.py`
-
-```python
-import pytest
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.core.execution.envelope_reader import EnvelopeReader
-from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
-
-class TestEnvelope:
-    def test_envelope_creation(self):
-        envelope = EnvelopeFactory.text("Hello")
-        assert envelope.content_type == "raw_text"
-        assert envelope.body == "Hello"
-        assert "timestamp" in envelope.meta
-    
-    def test_envelope_immutability(self):
-        envelope = EnvelopeFactory.text("Test")
-        with pytest.raises(AttributeError):
-            envelope.body = "Modified"
-    
-    def test_envelope_with_meta(self):
-        envelope = EnvelopeFactory.text("Test")
-        updated = envelope.with_meta(custom="value")
-        assert updated.meta["custom"] == "value"
-        assert envelope.meta.get("custom") is None  # Original unchanged
-
-class TestEnvelopeReader:
-    def setup_method(self):
-        self.reader = EnvelopeReader()
-    
-    def test_as_text_from_text(self):
-        envelope = EnvelopeFactory.text("Hello")
-        assert self.reader.as_text(envelope) == "Hello"
-    
-    def test_as_text_from_json(self):
-        envelope = EnvelopeFactory.json({"key": "value"})
-        text = self.reader.as_text(envelope)
-        assert "key" in text
-        assert "value" in text
-    
-    def test_as_json_from_object(self):
-        data = {"test": 123}
-        envelope = EnvelopeFactory.json(data)
-        assert self.reader.as_json(envelope) == data
-    
-    def test_as_json_with_validation(self):
-        from pydantic import BaseModel
-        
-        class TestModel(BaseModel):
-            name: str
-            age: int
-        
-        envelope = EnvelopeFactory.json({"name": "Alice", "age": 30})
-        result = self.reader.as_json(envelope, TestModel)
-        assert isinstance(result, TestModel)
-        assert result.name == "Alice"
-        assert result.age == 30
-
-class TestEnvelopeAdapter:
-    def test_from_legacy_string(self):
-        envelopes = EnvelopeAdapter.from_legacy_output("Hello", "node1", "trace1")
-        assert len(envelopes) == 1
-        assert envelopes[0].content_type == "raw_text"
-        assert envelopes[0].body == "Hello"
-    
-    def test_from_legacy_dict(self):
-        data = {"key": "value"}
-        envelopes = EnvelopeAdapter.from_legacy_output(data, "node1", "trace1")
-        assert len(envelopes) == 1
-        assert envelopes[0].content_type == "object"
-        assert envelopes[0].body == data
-    
-    def test_to_legacy_text(self):
-        envelope = EnvelopeFactory.text("Hello")
-        legacy = EnvelopeAdapter.to_legacy_input(envelope)
-        assert legacy == "Hello"
-    
-    def test_round_trip(self):
-        original = {"test": [1, 2, 3]}
-        envelopes = EnvelopeAdapter.from_legacy_output(original, "node", "trace")
-        converted = EnvelopeAdapter.to_legacy_input(envelopes[0])
-        assert converted == original
-```
-
-#### 5.2 Integration test with actual handlers
-
-```python
-# In /dipeo/tests/refactoring/test_envelope_integration.py
-
-import pytest
-from dipeo.application.execution.typed_engine import TypedExecutionEngine
-from dipeo.application.execution.typed_execution_context import TypedExecutionContext
-from dipeo.domain.diagram.models import ExecutableDiagram
-from dipeo.core.execution.envelope import EnvelopeFactory
-
-@pytest.mark.asyncio
-async def test_engine_with_envelopes():
-    """Test engine executes with envelope support"""
-    
-    # Create test diagram
-    diagram = create_test_diagram_with_code_nodes()
-    
-    # Create context
-    context = TypedExecutionContext(
-        execution_id="test-123",
-        diagram_id="diagram-1"
-    )
-    
-    # Create engine
-    engine = TypedExecutionEngine()
-    
-    # Execute
-    await engine.execute(diagram, context)
-    
-    # Check outputs are envelopes
-    for node in diagram.nodes:
-        output = context.get_output(node.id)
-        if output:
-            # Should be able to get as envelope
-            if isinstance(output, Envelope):
-                assert output.produced_by == node.id
-            else:
-                # Legacy output should be convertible
-                from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
-                envelopes = EnvelopeAdapter.from_legacy_output(output, node.id, "")
-                assert len(envelopes) > 0
-```
-
-### Step 6: Documentation (Day 11)
-
-#### 6.1 Create `/dipeo/docs/envelope_guide.md`
-
-```markdown
-# Envelope System Guide
-
-## Overview
-
-The Envelope system provides standardized message passing between nodes in DiPeO diagrams.
-
-## Core Concepts
-
-### Envelope
-An immutable message container with:
-- **Identity**: Unique ID and trace ID for tracking
-- **Content**: Type-tagged body with optional schema
-- **Metadata**: Timestamp, iteration, branch, and custom data
-
-### Content Types
-- `raw_text`: Plain text strings
-- `object`: JSON-serializable data structures
-- `conversation_state`: Conversation memory snapshots
-- `binary`: Raw bytes
-
-## Usage in Handlers
-
-### Reading Inputs
-
-```python
-class MyHandler(TypedNodeHandler):
     def __init__(self):
         self.reader = EnvelopeReader()
     
     async def execute_request(self, request):
+        # Inputs now come as envelopes
         inputs = await self._resolve_inputs(request)
         
-        # Get text input
-        text = self.reader.as_text(inputs['prompt'])
+        # Use EnvelopeReader for safe extraction
+        prompt_envelope = inputs.get('prompt')
+        if prompt_envelope:
+            text = self.reader.as_text(prompt_envelope)
+        else:
+            text = ''
         
-        # Get structured data
-        config = self.reader.as_json(inputs['config'])
+        # Create output with explicit envelopes
+        result_text = await self._process(text)
         
-        # Get with validation
-        from pydantic import BaseModel
-        class Config(BaseModel):
-            timeout: int
-            retries: int
+        output = TextOutput(value=result_text, node_id=request.node.id)
+        output.with_envelopes([
+            EnvelopeFactory.text(
+                result_text,
+                produced_by=str(request.node.id),
+                trace_id=request.execution_id
+            ).with_meta(
+                execution_time=time.time() - start_time,
+                handler_version="2.0"
+            )
+        ])
         
-        validated = self.reader.as_json(inputs['config'], Config)
+        return output
 ```
 
-### Creating Outputs
+#### Step 3: Testing Migration
 
+**Unit Test Pattern:**
 ```python
-# Text output
-return NodeOutput.success().with_envelopes([
-    EnvelopeFactory.text("Result text")
-])
-
-# JSON output
-return NodeOutput.success().with_envelopes([
-    EnvelopeFactory.json({"status": "complete", "count": 42})
-])
-
-# Multiple outputs
-return NodeOutput.success().with_envelopes([
-    EnvelopeFactory.text("Summary"),
-    EnvelopeFactory.json({"details": {...}})
-])
-```
-
-## Migration Guide
-
-### Phase 1: Compatibility Mode (Current)
-- All existing handlers work unchanged
-- Outputs automatically wrapped in envelopes
-- Inputs converted from envelopes when needed
-
-### Phase 2: Opt-in Envelopes
-- Add `_expects_envelopes = True` to handler class
-- Handler receives envelope objects directly
-- Better type safety and validation
-
-### Phase 3: Mandatory Envelopes
-- All handlers must use envelope interface
-- Direct context access deprecated
-- Full type safety enforced
-
-## Best Practices
-
-1. **Always use EnvelopeReader** for input extraction
-2. **Tag envelopes** with iteration/branch for loops
-3. **Include metadata** for debugging and tracing
-4. **Validate schemas** when expecting structured data
-5. **Handle missing inputs** gracefully
-
-## Troubleshooting
-
-### Common Issues
-
-**Issue**: Cannot extract JSON from text envelope
-**Solution**: Use `as_text()` first, then parse manually
-
-**Issue**: Schema validation fails
-**Solution**: Check schema matches actual data structure
-
-**Issue**: Missing envelope in inputs
-**Solution**: Check edge connections in diagram
-```
-
-### Step 7: Rollout Plan (Day 12-14)
-
-#### 7.1 Feature Flag Configuration
-
-```python
-# In /dipeo/config/features.py
-
-class FeatureFlags:
-    # Envelope system
-    ENVELOPE_SYSTEM_ENABLED = True
-    ENVELOPE_VALIDATION_STRICT = False
-    ENVELOPE_REQUIRE_SCHEMAS = False
+async def test_handler_with_envelopes():
+    handler = MyHandler()
+    handler._expects_envelopes = True
     
-    # Migration helpers
-    ENVELOPE_ADAPTER_WARNINGS = True
-    ENVELOPE_LEGACY_SUPPORT = True
+    # Create test envelope input
+    test_envelope = EnvelopeFactory.text(
+        "test input",
+        produced_by="test_node"
+    )
+    
+    # Mock request with envelope inputs
+    request = create_mock_request(
+        inputs={'prompt': test_envelope}
+    )
+    
+    # Execute and verify
+    output = await handler.execute_request(request)
+    assert hasattr(output, 'as_envelopes')
+    
+    envelopes = output.as_envelopes()
+    assert len(envelopes) == 1
+    assert envelopes[0].content_type == ContentType.RAW_TEXT
 ```
 
-#### 7.2 Gradual Handler Migration
+### Migration Checklist
 
-```python
-# Migration order (lowest risk first):
-MIGRATION_PHASES = {
-    "phase1": [
-        "HelloWorldHandler",     # Simplest
-        "CommentHandler",        # Text only
-        "VariableGetHandler",    # Read only
-    ],
-    "phase2": [
-        "CodeJobHandler",        # Complex but isolated
-        "TemplateJobHandler",    # Template processing
-        "ApiJobHandler",         # External calls
-    ],
-    "phase3": [
-        "PersonJobHandler",      # Critical path
-        "SubDiagramHandler",     # Complex flow
-        "ConditionHandler",      # Branch logic
-    ]
-}
-```
+#### Per Handler:
+- [ ] Add `_expects_envelopes = True` flag
+- [ ] Add `EnvelopeReader` instance
+- [ ] Update input processing to use `reader.as_text()`, `reader.as_json()`, etc.
+- [ ] Update output creation to include envelopes
+- [ ] Add metadata (execution_time, token_usage, etc.) to envelope meta
+- [ ] Write unit tests for envelope mode
+- [ ] Test backward compatibility (remove flag, should still work)
+- [ ] Update handler documentation
 
-## Verification Checklist
+#### System-Wide:
+- [ ] Update RuntimeResolver to check `_expects_envelopes` flag
+- [ ] Add feature flag for envelope validation strictness
+- [ ] Create migration dashboard/metrics
+- [ ] Document breaking changes (if any)
+- [ ] Update integration tests
 
-### Unit Tests
-- [ ] Envelope creation and immutability
-- [ ] EnvelopeReader all content types
-- [ ] EnvelopeAdapter legacy conversion
-- [ ] NodeOutput envelope methods
-- [ ] Schema validation
+### Benefits After Migration
 
-### Integration Tests
-- [ ] Engine executes with envelopes
-- [ ] Handler receives correct inputs
-- [ ] Legacy handlers still work
-- [ ] Event emission includes envelopes
+1. **Type Safety**: All inter-node communication is typed
+2. **Traceability**: Every message has trace_id and producer metadata  
+3. **Observability**: Standardized metadata for monitoring
+4. **Schema Validation**: Can enforce schemas on envelopes (Phase 3)
+5. **Debugging**: Clear data flow with envelope IDs
+6. **Performance**: Can optimize envelope passing without legacy conversion
 
-### Performance Tests
-- [ ] Envelope creation overhead < 0.1ms
-- [ ] Memory usage increase < 5%
-- [ ] No regression in execution speed
+### Common Pitfalls to Avoid
 
-### Documentation
-- [ ] API documentation complete
-- [ ] Migration guide published
-- [ ] Examples updated
-- [ ] README reflects changes
+1. **Don't Mix Modes**: Handler should either fully use envelopes or not at all
+2. **Always Set trace_id**: Use `request.execution_id` as trace_id
+3. **Preserve Metadata**: When transforming envelopes, preserve original metadata
+4. **Handle Missing Inputs**: Always check if envelope exists before extracting
+5. **Test Both Modes**: Ensure handler works with and without `_expects_envelopes`
 
-## Success Criteria
+### Rollback Plan
 
-1. **Zero Breaking Changes**: All existing diagrams execute unchanged
-2. **Performance Neutral**: No measurable performance degradation
-3. **Type Safety**: 100% of inter-node communication typed
-4. **Observability**: All messages traceable via envelope IDs
+If issues arise:
+1. Remove `_expects_envelopes` flag from affected handlers
+2. System automatically falls back to legacy mode
+3. No code changes needed in handlers
+4. Can rollback per-handler, not system-wide
 
-## Next Phase Trigger
+### Next Steps
 
-Phase 2 (Handler Interface Enforcement) begins when:
-- [ ] All Phase 1 code merged and deployed
-- [ ] No critical bugs for 1 week
-- [ ] 3+ handlers successfully migrated
-- [ ] Performance metrics stable
+1. **Testing Phase** (Next Week):
+   - Create comprehensive test suite
+   - Test all edge cases with envelope adapter
+   - Performance benchmarking
 
-## Emergency Rollback
+2. **Documentation** (Parallel):
+   - Complete envelope_guide.md
+   - Update handler development guide
+   - Create migration examples
 
-If critical issues arise:
+3. **Handler Migration** (Week 2-3):
+   - Start with low-risk handlers
+   - Monitor performance and errors
+   - Gradually move to critical handlers
 
-1. Set `ENVELOPE_SYSTEM_ENABLED = False`
-2. Revert handler changes via feature branch
-3. Clear envelope-related caches
-4. Monitor for legacy path stability
-
-The system is designed to fall back gracefully to legacy behavior at multiple levels.
+4. **Schema System** (Phase 3):
+   - Once 50%+ handlers migrated
+   - Add schema validation to envelopes
+   - Enable compile-time type checking

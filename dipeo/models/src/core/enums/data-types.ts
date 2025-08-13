@@ -17,7 +17,8 @@ export enum ContentType {
   OBJECT = 'object',
   EMPTY = 'empty',
   GENERIC = 'generic',
-  VARIABLE = 'variable'
+  VARIABLE = 'variable',
+  BINARY = 'binary'
 }
 
 export enum HandleDirection {

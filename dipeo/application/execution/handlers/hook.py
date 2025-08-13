@@ -10,12 +10,13 @@ from pydantic import BaseModel
 from dipeo.domain.ports.storage import FileSystemPort
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.diagram_generated.generated_nodes import HookNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.hook_model import HookNodeData, HookType
 
 if TYPE_CHECKING:
@@ -23,15 +24,21 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class HookNodeHandler(TypedNodeHandler[HookNode]):
+class HookNodeHandler(EnvelopeNodeHandler[HookNode]):
     """
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)
     2. pre_execute() - Runtime validation and setup
-    3. execute_request() - Core execution logic
+    3. execute_with_envelopes() - Core execution logic with envelope inputs
+    
+    Now uses envelope-based communication for clean input/output interfaces.
     """
     
+    # Enable envelope mode
+    _expects_envelopes = True
+    
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
+        super().__init__()
         self.filesystem_adapter = filesystem_adapter
         # Instance variables for passing data between methods
         self._current_filesystem_adapter = None
@@ -127,14 +134,28 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         # No early return - proceed to execute_request
         return None
     
-    async def execute_request(self, request: ExecutionRequest[HookNode]) -> NodeOutputProtocol:
-        """Pure execution using instance variables set in pre_execute."""
-        return await self._execute_hook_node(request)
+    async def execute_with_envelopes(
+        self, 
+        request: ExecutionRequest[HookNode],
+        inputs: dict[str, Envelope]
+    ) -> NodeOutputProtocol:
+        """Execute hook with envelope inputs."""
+        return await self._execute_hook_node(request, inputs)
     
-    async def _execute_hook_node(self, request: ExecutionRequest[HookNode]) -> NodeOutputProtocol:
+    async def _execute_hook_node(self, request: ExecutionRequest[HookNode], envelope_inputs: dict[str, Envelope]) -> NodeOutputProtocol:
         # Extract properties from request
         node = request.node
-        inputs = request.inputs
+        trace_id = request.execution_id or ""
+        
+        # Convert envelope inputs to legacy format
+        inputs = {}
+        for key, envelope in envelope_inputs.items():
+            try:
+                # Try to parse as JSON first
+                inputs[key] = self.reader.as_json(envelope)
+            except ValueError:
+                # Fall back to text
+                inputs[key] = self.reader.as_text(envelope)
         
         # Filesystem adapter already available in instance variable if needed (set in pre_execute for file hooks)
         if node.hook_type == HookType.FILE:
@@ -142,13 +163,34 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         
         try:
             result = await self._execute_hook(node, inputs)
-            return TextOutput(
-                value=str(result),
-                node_id=node.id,
-                metadata=json.dumps({"hook_type": node.hook_type})
+            
+            # Create output envelope
+            output_envelope = EnvelopeFactory.text(
+                str(result) if not isinstance(result, dict) else json.dumps(result),
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
+                hook_type=str(node.hook_type)
             )
+            
+            return self.create_success_output(output_envelope)
         except Exception as e:
-            raise NodeExecutionError(f"Hook execution failed: {e!s}") from e
+            error_envelope = EnvelopeFactory.text(
+                f"Hook execution failed: {e!s}",
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
+                error_type=type(e).__name__,
+                hook_type=str(node.hook_type)
+            )
+            return self.create_error_output(
+                ErrorOutput(
+                    value=f"Hook execution failed: {e!s}",
+                    node_id=node.id,
+                    error_type=type(e).__name__,
+                    metadata=json.dumps({"hook_type": str(node.hook_type)})
+                )
+            )
         finally:
             if hasattr(self, '_temp_filesystem_adapter'):
                 delattr(self, '_temp_filesystem_adapter')

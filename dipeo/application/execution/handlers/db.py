@@ -10,11 +10,12 @@ import yaml
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, DataOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
 from dipeo.domain.ports.template import TemplateProcessorPort
 
@@ -25,15 +26,21 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
-class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
+class DBTypedNodeHandler(EnvelopeNodeHandler[DBNode]):
     """
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)
     2. pre_execute() - Runtime validation and setup
-    3. execute_request() - Core execution logic
+    3. execute_with_envelopes() - Core execution logic with envelope inputs
+    
+    Now uses envelope-based communication for clean input/output interfaces.
     """
+    
+    # Enable envelope mode
+    _expects_envelopes = True
 
     def __init__(self, db_operations_service: Any | None = None, template_processor: TemplateProcessorPort | None = None) -> None:
+        super().__init__()
         self.db_operations_service = db_operations_service
         self._template_processor = template_processor
         # Instance variables for passing data between methods
@@ -183,11 +190,25 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
             logger.warning(f"Unknown format '{format_type}', returning as text")
             return content
 
-    async def execute_request(self, request: ExecutionRequest[DBNode]) -> NodeOutputProtocol:
-        """Pure execution using instance variables set in pre_execute."""
+    async def execute_with_envelopes(
+        self, 
+        request: ExecutionRequest[DBNode],
+        inputs: dict[str, Envelope]
+    ) -> NodeOutputProtocol:
+        """Execute database operation with envelope inputs."""
         node = request.node
         context = request.context
-        inputs = request.inputs
+        trace_id = request.execution_id or ""
+        
+        # Convert envelope inputs to legacy format
+        legacy_inputs = {}
+        for key, envelope in inputs.items():
+            try:
+                # Try to parse as JSON first
+                legacy_inputs[key] = self.reader.as_json(envelope)
+            except ValueError:
+                # Fall back to text
+                legacy_inputs[key] = self.reader.as_text(envelope)
         
         # Use pre-validated service and configuration from instance variables (set in pre_execute)
         db_service = self._current_db_service
@@ -208,7 +229,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 if hasattr(context, 'get_variables'):
                     variables = context.get_variables()
                 
-                merged_variables = {**variables, **inputs}
+                merged_variables = {**variables, **legacy_inputs}
                 if template_processor:
                     file_path = template_processor.process_single_brace(file_path, merged_variables)
 
@@ -232,7 +253,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
             processed_paths = self._expand_glob_patterns(processed_paths, base_dir)
 
         if node.operation == "write":
-            input_val = inputs.get('generated_code') or inputs.get('content') or inputs.get('value') or self._first_non_empty(inputs)
+            input_val = legacy_inputs.get('generated_code') or legacy_inputs.get('content') or legacy_inputs.get('value') or self._first_non_empty(legacy_inputs)
             if isinstance(input_val, dict):
                 actual_content = input_val.get('generated_code') or input_val.get('content') or input_val.get('value')
                 if actual_content is not None:
@@ -247,7 +268,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 if not isinstance(input_val, str):
                     input_val = str(input_val)
         else:
-            input_val = self._first_non_empty(inputs)
+            input_val = self._first_non_empty(legacy_inputs)
 
         try:
             if node.operation == "read" and len(processed_paths) > 1:
@@ -276,17 +297,20 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                         logger.warning(f"Failed to read file {file_path}: {e}")
                         results[file_path] = None
 
-                return DataOutput(
-                    value=results,
-                    node_id=node.id,
-                    metadata=json.dumps({
-                        "multiple_files": True, 
-                        "file_count": len(processed_paths), 
-                        "format": format_type,
-                        "serialize_json": serialize_json,
-                        "glob": getattr(node, 'glob', False)
-                    })
+                # Create output envelope for multiple files
+                output_envelope = EnvelopeFactory.json(
+                    results,
+                    produced_by=node.id,
+                    trace_id=trace_id
+                ).with_meta(
+                    multiple_files=True,
+                    file_count=len(processed_paths),
+                    format=format_type,
+                    serialize_json=serialize_json,
+                    glob=getattr(node, 'glob', False)
                 )
+                
+                return self.create_success_output(output_envelope)
             
             elif len(processed_paths) == 1:
                 file_path = processed_paths[0]
@@ -313,36 +337,53 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     )
 
                 serialize_json = getattr(node, 'serialize_json', False)
-                if isinstance(output_value, (dict, list)) and serialize_json and not format_type:
-                    return TextOutput(
-                        value=json.dumps(output_value),
-                        node_id=node.id,
-                        metadata=json.dumps({"serialized": True, "original_type": type(output_value).__name__, "format": format_type})
-                    )
-                elif isinstance(output_value, dict):
-                    return DataOutput(
-                        value=output_value,
-                        node_id=node.id,
-                        metadata=json.dumps({})
-                    )
-                elif isinstance(output_value, list):
-                    return DataOutput(
-                        value={"default": output_value},
-                        node_id=node.id,
-                        metadata=json.dumps({"wrapped_list": True})
-                    )
+                
+                # Create appropriate output envelope based on value type
+                if isinstance(output_value, (dict, list)):
+                    if serialize_json and not format_type:
+                        # Serialize to text if requested
+                        output_envelope = EnvelopeFactory.text(
+                            json.dumps(output_value),
+                            produced_by=node.id,
+                            trace_id=trace_id
+                        ).with_meta(
+                            serialized=True,
+                            original_type=type(output_value).__name__,
+                            format=format_type
+                        )
+                    else:
+                        # Return as JSON envelope
+                        output_envelope = EnvelopeFactory.json(
+                            output_value if isinstance(output_value, dict) else {"default": output_value},
+                            produced_by=node.id,
+                            trace_id=trace_id
+                        ).with_meta(
+                            wrapped_list=isinstance(output_value, list)
+                        )
                 else:
-                    return TextOutput(
-                        value=str(output_value),
-                        node_id=node.id,
-                        metadata=json.dumps({})
+                    # Return as text envelope
+                    output_envelope = EnvelopeFactory.text(
+                        str(output_value),
+                        produced_by=node.id,
+                        trace_id=trace_id
                     )
+                
+                return self.create_success_output(output_envelope)
             
             else:
-                return ErrorOutput(
-                    value="No file paths specified for DB operation",
-                    node_id=node.id,
+                error_envelope = EnvelopeFactory.text(
+                    "No file paths specified for DB operation",
+                    produced_by=node.id,
+                    trace_id=trace_id
+                ).with_meta(
                     error_type="ValidationError"
+                )
+                return self.create_error_output(
+                    ErrorOutput(
+                        value="No file paths specified for DB operation",
+                        node_id=node.id,
+                        error_type="ValidationError"
+                    )
                 )
 
         except Exception as exc:

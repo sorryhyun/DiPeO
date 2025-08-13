@@ -13,9 +13,10 @@ from typing import TYPE_CHECKING, Optional
 from pydantic import BaseModel
 
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.core.execution.node_output import ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import NodeType, SubDiagramNode
 from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
 
@@ -31,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
-class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
-    """Handler for executing diagrams within diagrams.
+class SubDiagramNodeHandler(EnvelopeNodeHandler[SubDiagramNode]):
+    """Handler for executing diagrams within diagrams with envelope support.
     
     This handler supports three execution modes:
     1. Lightweight execution (default) - Runs without state persistence
@@ -40,10 +41,15 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     3. Batch execution - Process multiple items through the same sub-diagram
     
     Routes execution to appropriate executor based on configuration.
+    Now uses envelope-based communication for clean interfaces.
     """
+    
+    # Enable envelope mode
+    _expects_envelopes = True
     
     def __init__(self):
         """Initialize executors."""
+        super().__init__()
         # Initialize executors
         self.lightweight_executor = LightweightSubDiagramExecutor()
         self.single_executor = SingleSubDiagramExecutor()
@@ -144,30 +150,78 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         # Return None to proceed with normal execution
         return None
     
-    async def execute_request(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
-        """Route execution to appropriate executor based on configuration."""
+    async def execute_with_envelopes(
+        self,
+        request: ExecutionRequest[SubDiagramNode],
+        inputs: dict[str, Envelope]
+    ) -> NodeOutputProtocol:
+        """Route execution to appropriate executor based on configuration with envelope support."""
         node = request.node
+        trace_id = request.execution_id or ""
         
         try:
-            # Check if batch mode is enabled
+            # Convert envelopes to legacy inputs for executors (temporary during migration)
+            # This allows existing executors to work without modification
+            legacy_inputs = {}
+            for key, envelope in inputs.items():
+                if envelope.content_type == "raw_text":
+                    legacy_inputs[key] = self.reader.as_text(envelope)
+                elif envelope.content_type == "object":
+                    legacy_inputs[key] = self.reader.as_json(envelope)
+                elif envelope.content_type == "binary":
+                    legacy_inputs[key] = self.reader.as_binary(envelope)
+                elif envelope.content_type == "conversation_state":
+                    legacy_inputs[key] = self.reader.as_conversation(envelope)
+                else:
+                    legacy_inputs[key] = envelope.body
+            
+            # Update request inputs for executors
+            request.inputs = legacy_inputs
+            
+            # Route to appropriate executor
             if getattr(node, 'batch', False):
                 logger.info(f"Executing SubDiagramNode {node.id} in batch mode")
-                return await self.batch_executor.execute(request)
-            
-            # Check if we should use standard single execution (for compatibility)
-            # This could be controlled by a flag or specific configuration
-            use_standard_execution = getattr(node, 'use_standard_execution', False)
-            if use_standard_execution:
+                result = await self.batch_executor.execute(request)
+            elif getattr(node, 'use_standard_execution', False):
                 logger.info(f"Executing SubDiagramNode {node.id} in standard mode")
-                return await self.single_executor.execute(request)
+                result = await self.single_executor.execute(request)
+            else:
+                logger.debug(f"Executing SubDiagramNode {node.id} in lightweight mode")
+                result = await self.lightweight_executor.execute(request)
             
-            # Default to lightweight execution
-            logger.debug(f"Executing SubDiagramNode {node.id} in lightweight mode")
-            return await self.lightweight_executor.execute(request)
+            # Convert result to envelope
+            if hasattr(result, 'value'):
+                # Check if it's a dict (typical for batch or complex results)
+                if isinstance(result.value, dict):
+                    output_envelope = EnvelopeFactory.json(
+                        result.value,
+                        produced_by=node.id,
+                        trace_id=trace_id
+                    ).with_meta(
+                        diagram_name=node.diagram_name or "inline",
+                        execution_mode="batch" if getattr(node, 'batch', False) else "single"
+                    )
+                else:
+                    # Text output
+                    output_envelope = EnvelopeFactory.text(
+                        str(result.value),
+                        produced_by=node.id,
+                        trace_id=trace_id
+                    ).with_meta(
+                        diagram_name=node.diagram_name or "inline"
+                    )
+            else:
+                # Fallback for unexpected result format
+                output_envelope = EnvelopeFactory.text(
+                    str(result),
+                    produced_by=node.id,
+                    trace_id=trace_id
+                )
             
-        except Exception:
-            # Let on_error handle it
-            raise
+            return self.create_success_output(output_envelope)
+            
+        except Exception as e:
+            return self.create_error_output(e, node.id, trace_id)
     
     async def on_error(
         self,

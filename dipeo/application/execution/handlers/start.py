@@ -3,11 +3,12 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import StartNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.start_model import StartNodeData, HookTriggerMode
 from dipeo.application.registry import STATE_STORE
 
@@ -16,9 +17,14 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class StartNodeHandler(TypedNodeHandler[StartNode]):
+class StartNodeHandler(EnvelopeNodeHandler[StartNode]):
+    """Handler for start nodes with envelope support."""
+    
+    # Enable envelope mode
+    _expects_envelopes = True
     
     def __init__(self):
+        super().__init__()
         # Instance variables for passing data between methods
         self._current_trigger_mode = None
         self._current_hook_event = None
@@ -83,52 +89,66 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         
         return None
     
-    async def execute_request(self, request: ExecutionRequest[StartNode]) -> NodeOutputProtocol:
-        """Pure execution using instance variables"""
+    async def execute_with_envelopes(
+        self,
+        request: ExecutionRequest[StartNode],
+        inputs: dict[str, Envelope]
+    ) -> NodeOutputProtocol:
+        """Execute start node with envelope inputs."""
         node = request.node
         context = request.context
+        trace_id = request.execution_id or ""
         
-        if self._current_trigger_mode == HookTriggerMode.NONE:
-            if self._current_input_variables and 'default' in self._current_input_variables:
-                return DataOutput(
-                    value=self._current_input_variables,
-                    node_id=node.id,
-                    metadata=json.dumps({"message": "Simple start point"})
-                )
+        # Process any incoming envelopes (though Start nodes typically don't have inputs)
+        input_data = {}
+        for key, envelope in inputs.items():
+            if envelope.content_type == "raw_text":
+                input_data[key] = self.reader.as_text(envelope)
+            elif envelope.content_type == "object":
+                input_data[key] = self.reader.as_json(envelope)
             else:
-                output_data = self._current_input_variables if self._current_input_variables else {}
-                return DataOutput(
-                    value={"default": output_data},
-                    node_id=node.id,
-                    metadata=json.dumps({"message": "Simple start point"})
-                )
+                input_data[key] = envelope.body
+        
+        # Merge with input variables
+        combined_data = {**self._current_input_variables, **input_data}
+        
+        # Determine output based on trigger mode
+        if self._current_trigger_mode == HookTriggerMode.NONE:
+            if combined_data and 'default' in combined_data:
+                output_data = combined_data
+                message = "Simple start point"
+            else:
+                output_data = {"default": combined_data if combined_data else {}}
+                message = "Simple start point"
         
         elif self._current_trigger_mode == HookTriggerMode.MANUAL:
-            output_data = {**self._current_input_variables, **(node.custom_data or {})}
-            
-            return DataOutput(
-                value={"default": output_data},
-                node_id=node.id,
-                metadata=json.dumps({"message": "Manual execution started"})
-            )
+            output_data = {**combined_data, **(node.custom_data or {})}
+            output_data = {"default": output_data}
+            message = "Manual execution started"
         
         elif self._current_trigger_mode == HookTriggerMode.HOOK:
             hook_data = await self._get_hook_event_data(node, context, request.services)
             
             if hook_data:
-                output_data = {**self._current_input_variables, **(node.custom_data or {}), **hook_data}
-                return DataOutput(
-                    value={"default": output_data},
-                    node_id=node.id,
-                    metadata=json.dumps({"message": f"Triggered by hook event: {self._current_hook_event}"})
-                )
+                output_data = {**combined_data, **(node.custom_data or {}), **hook_data}
+                output_data = {"default": output_data}
+                message = f"Triggered by hook event: {self._current_hook_event}"
             else:
-                output_data = {**self._current_input_variables, **(node.custom_data or {})}
-                return DataOutput(
-                    value={"default": output_data},
-                    node_id=node.id,
-                    metadata=json.dumps({"message": "Hook trigger mode but no event data available"})
-                )
+                output_data = {**combined_data, **(node.custom_data or {})}
+                output_data = {"default": output_data}
+                message = "Hook trigger mode but no event data available"
+        
+        # Create envelope output
+        output_envelope = EnvelopeFactory.json(
+            output_data,
+            produced_by=node.id,
+            trace_id=trace_id
+        ).with_meta(
+            trigger_mode=str(self._current_trigger_mode) if self._current_trigger_mode else "none",
+            message=message
+        )
+        
+        return self.create_success_output(output_envelope)
     
     async def _get_hook_event_data(
         self,

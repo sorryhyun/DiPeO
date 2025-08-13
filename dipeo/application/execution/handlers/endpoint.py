@@ -5,12 +5,13 @@ import json
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import EndpointNode, NodeType
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
 if TYPE_CHECKING:
@@ -19,15 +20,21 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
+class EndpointNodeHandler(EnvelopeNodeHandler[EndpointNode]):
     """
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)
     2. pre_execute() - Runtime validation and setup
-    3. execute_request() - Core execution logic
+    3. execute_with_envelopes() - Core execution logic with envelope inputs
+    
+    Now uses envelope-based communication for clean input/output interfaces.
     """
     
+    # Enable envelope mode
+    _expects_envelopes = True
+    
     def __init__(self, filesystem_adapter: Optional["FileSystemPort"] = None):
+        super().__init__()
         self.filesystem_adapter = filesystem_adapter
         # Instance variables for passing data between methods
         self._current_save_enabled = False
@@ -80,14 +87,10 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
             if not file_name and hasattr(node, 'metadata') and node.metadata:
                 file_name = node.metadata.get('file_path')
             
-            # Try to get from typed_node service
+            # Try to get from node config if available
             if not file_name:
-                typed_node_key = ServiceKey("typed_node")
-                if services.has(typed_node_key):
-                    typed_node = services.get(typed_node_key)
-                    if hasattr(typed_node, 'to_dict'):
-                        node_dict = typed_node.to_dict()
-                        file_name = node_dict.get('file_path') or node_dict.get('file_name')
+                # Use node.id as a default fallback
+                pass
             
             # Use default if still no file name
             if not file_name:
@@ -114,12 +117,28 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         
         return None
     
-    async def execute_request(self, request: ExecutionRequest[EndpointNode]) -> NodeOutputProtocol:
-        """Pure execution using instance variables set in pre_execute."""
+    async def execute_with_envelopes(
+        self, 
+        request: ExecutionRequest[EndpointNode],
+        inputs: dict[str, Envelope]
+    ) -> NodeOutputProtocol:
+        """Execute endpoint with envelope inputs."""
         node = request.node
-        inputs = request.inputs
+        trace_id = request.execution_id or ""
         
-        result_data = inputs if inputs else {}
+        # Convert envelope inputs to data
+        result_data = {}
+        for key, envelope in inputs.items():
+            try:
+                # Try to parse as JSON first
+                result_data[key] = self.reader.as_json(envelope)
+            except ValueError:
+                # Fall back to text
+                result_data[key] = self.reader.as_text(envelope)
+        
+        # If only one input with key 'default', unwrap it
+        if len(result_data) == 1 and 'default' in result_data:
+            result_data = result_data['default']
         
         # Check if we need to save to file (config prepared in pre_execute)
         if self._current_save_enabled:
@@ -141,25 +160,43 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                     with filesystem_adapter.open(file_path, "wb") as f:
                         f.write(content.encode('utf-8'))
 
-                    return DataOutput(
-                        value={"default": result_data},
-                        node_id=node.id,
-                        metadata=json.dumps({"saved_to": file_name})
+                    # Create output envelope
+                    output_envelope = EnvelopeFactory.json(
+                        result_data if isinstance(result_data, dict) else {"default": result_data},
+                        produced_by=node.id,
+                        trace_id=trace_id
+                    ).with_meta(
+                        saved_to=file_name
                     )
+                    
+                    return self.create_success_output(output_envelope)
                 except Exception as exc:
                     # Return error when save fails
-                    return ErrorOutput(
-                        value=f"Failed to save to file {file_name}: {str(exc)}",
-                        node_id=node.id,
+                    error_envelope = EnvelopeFactory.text(
+                        f"Failed to save to file {file_name}: {str(exc)}",
+                        produced_by=node.id,
+                        trace_id=trace_id
+                    ).with_meta(
                         error_type="SaveError",
-                        metadata=json.dumps({"attempted_file": file_name})
+                        attempted_file=file_name
+                    )
+                    return self.create_error_output(
+                        ErrorOutput(
+                            value=f"Failed to save to file {file_name}: {str(exc)}",
+                            node_id=node.id,
+                            error_type="SaveError",
+                            metadata=json.dumps({"attempted_file": file_name})
+                        )
                     )
 
-        return DataOutput(
-            value={"default": result_data},
-            node_id=node.id,
-            metadata="{}"
+        # Create output envelope for pass-through case
+        output_envelope = EnvelopeFactory.json(
+            result_data if isinstance(result_data, dict) else {"default": result_data},
+            produced_by=node.id,
+            trace_id=trace_id
         )
+        
+        return self.create_success_output(output_envelope)
     
     def post_execute(
         self,

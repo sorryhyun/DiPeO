@@ -7,11 +7,12 @@ from typing import TYPE_CHECKING, Any, Optional
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import DIAGRAM
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
 from dipeo.core.execution.node_output import ConditionOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.condition_model import ConditionNodeData
 
 from .evaluators import (
@@ -28,10 +29,14 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
-class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
-    """Handler for condition nodes using evaluator pattern."""
+class ConditionNodeHandler(EnvelopeNodeHandler[ConditionNode]):
+    """Handler for condition nodes using evaluator pattern with envelope support."""
+    
+    # Enable envelope mode
+    _expects_envelopes = True
     
     def __init__(self):
+        super().__init__()
         self._evaluators: dict[str, ConditionEvaluator] = {
             "detect_max_iterations": MaxIterationsEvaluator(),
             "check_nodes_executed": NodesExecutedEvaluator(),
@@ -121,17 +126,32 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # No early return - proceed to execute_request
         return None
     
-    async def execute_request(self, request: ExecutionRequest[ConditionNode]) -> NodeOutputProtocol:
+    async def execute_with_envelopes(
+        self,
+        request: ExecutionRequest[ConditionNode],
+        inputs: dict[str, Envelope]
+    ) -> NodeOutputProtocol:
+        """Execute condition evaluation with envelope inputs."""
         node = request.node
         context = request.context
-        inputs = request.inputs
+        trace_id = request.execution_id or ""
+        
+        # Convert envelopes to legacy inputs for evaluators
+        legacy_inputs = {}
+        for key, envelope in inputs.items():
+            if envelope.content_type == "raw_text":
+                legacy_inputs[key] = self.reader.as_text(envelope)
+            elif envelope.content_type == "object":
+                legacy_inputs[key] = self.reader.as_json(envelope)
+            else:
+                legacy_inputs[key] = envelope.body
         
         # Use evaluator and diagram from instance variables (set in pre_execute)
         evaluator = self._current_evaluator
         diagram = self._current_diagram
         
         # Execute evaluation with pre-selected evaluator
-        eval_result = await evaluator.evaluate(node, context, diagram, inputs)
+        eval_result = await evaluator.evaluate(node, context, diagram, legacy_inputs)
         result = eval_result["result"]
         output_value = eval_result["output_data"] or {}
         
@@ -147,6 +167,23 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             f"has_false_output={false_output is not None}"
         )
         
+        # Create output envelope with condition result
+        output_envelope = EnvelopeFactory.json(
+            {
+                "result": result,
+                "true_output": true_output,
+                "false_output": false_output,
+                "condition_type": node.condition_type,
+                "evaluation_metadata": self._current_evaluation_metadata
+            },
+            produced_by=node.id,
+            trace_id=trace_id
+        ).with_meta(
+            condition_type=node.condition_type,
+            result=result
+        )
+        
+        # Create ConditionOutput for backward compatibility
         output = ConditionOutput(
             value=result,
             node_id=node.id,
@@ -158,6 +195,9 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             "condition_type": node.condition_type,
             "evaluation_metadata": self._current_evaluation_metadata
         })
+        
+        # Attach envelope to output
+        output._envelopes = [output_envelope]
         return output
     
     def post_execute(
