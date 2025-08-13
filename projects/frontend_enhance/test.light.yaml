@@ -101,7 +101,7 @@ nodes:
       operation: write
       sub_type: file
       format: json
-      source_details: apps/server/generated/frontend_generator.json
+      source_details: projects/frontend_enhance/generated/frontend_generator.json
 
   - label: Evaluate Generated Code
     type: person_job
@@ -179,7 +179,7 @@ connections:
   # Generation and evaluation flow
   - {from: Generate Prompt, to: Generate Frontend Code, label: generated_prompt, content_type: object}
   - {from: Generate Frontend Code, to: Save Frontend Code, label: generated_code, content_type: object}
-  - {from: Save Frontend Code, to: Evaluate Generated Code, label: generated_code, content_type: object}
+  - {from: Generate Frontend Code, to: Evaluate Generated Code, label: generated_code, content_type: object}
   - {from: Evaluate Generated Code, to: Check Score, label: code_evaluation, content_type: object}
   - {from: Check Score, to: Check Quality Target, label: checked, content_type: object}
   

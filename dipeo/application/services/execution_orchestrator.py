@@ -169,6 +169,33 @@ class ExecutionOrchestrator(ConversationManager):
         self._execution_logs.clear()
         self._current_execution_id = None
     
+    def clear_person_messages(self, person_id: PersonID) -> None:
+        """Clear all messages involving a specific person from the conversation.
+        
+        This is used for GOLDFISH memory profile to ensure complete memory reset
+        between diagram executions.
+        """
+        # Get current conversation
+        conversation = self._conversation_repo.get_global_conversation()
+        
+        # Filter out messages involving this person
+        filtered_messages = [
+            msg for msg in conversation.messages
+            if msg.from_person_id != person_id and msg.to_person_id != person_id
+        ]
+        
+        # Clear and rebuild conversation with filtered messages
+        conversation.clear()
+        for msg in filtered_messages:
+            conversation.add_message(msg)
+        
+        # Also clear from execution logs
+        if self._current_execution_id and self._current_execution_id in self._execution_logs:
+            self._execution_logs[self._current_execution_id] = [
+                log for log in self._execution_logs[self._current_execution_id]
+                if log.get("from_person_id") != str(person_id) and log.get("to_person_id") != str(person_id)
+            ]
+    
     # ===== Initialization =====
     
     async def initialize(self) -> None:

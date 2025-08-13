@@ -71,6 +71,22 @@ class Person:
         """Set memory limit to 0 - person can't see messages but they still exist."""
         self._memory_limiter = MemoryLimiter(0, preserve_system=False)
     
+    def clear_conversation_history(self) -> None:
+        """Clear all messages involving this person from the conversation.
+        
+        This is used for GOLDFISH memory profile to ensure complete memory reset
+        between diagram executions.
+        """
+        if not self._conversation_manager:
+            return
+        
+        # Request the conversation manager to clear messages for this person
+        if hasattr(self._conversation_manager, 'clear_person_messages'):
+            self._conversation_manager.clear_person_messages(self.id)
+        else:
+            # Fallback: reset memory filter to show nothing
+            self._memory_limiter = MemoryLimiter(0, preserve_system=False)
+    
     def get_message_count(self) -> int:
         return len(self.get_messages())
     

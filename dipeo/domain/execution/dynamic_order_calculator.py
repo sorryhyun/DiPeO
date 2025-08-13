@@ -256,18 +256,35 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
         """Check if node dependencies are satisfied."""
         # For nodes with multiple inputs (potential loops)
         if len(incoming_edges) > 1:
-            # Check if this is a loop scenario
-            has_loop_edge = any(
-                self._is_loop_edge(edge, node, node_states, context)
+            # Check if any edge is from a condition node (potential loop edge)
+            has_conditional_edge = any(
+                edge.source_output in ["condtrue", "condfalse"]
                 for edge in incoming_edges
             )
             
-            if has_loop_edge:
-                # For loops, require at least one dependency satisfied
-                return any(
-                    self._is_dependency_satisfied(edge, node_states, context)
-                    for edge in incoming_edges
-                )
+            if has_conditional_edge:
+                # Get the node's execution count
+                target_exec_count = context.get_node_execution_count(node.id) if context else 0
+                
+                if target_exec_count == 0:
+                    # First execution: only require non-conditional edges to be satisfied
+                    # This allows nodes to start when their initial inputs are ready,
+                    # without waiting for loop conditions that haven't been evaluated yet
+                    non_conditional_edges = [
+                        edge for edge in incoming_edges 
+                        if edge.source_output not in ["condtrue", "condfalse"]
+                    ]
+                    if non_conditional_edges:
+                        return all(
+                            self._is_dependency_satisfied(edge, node_states, context)
+                            for edge in non_conditional_edges
+                        )
+                else:
+                    # Subsequent executions: require at least one dependency (loop logic)
+                    return any(
+                        self._is_dependency_satisfied(edge, node_states, context)
+                        for edge in incoming_edges
+                    )
         
         # For single input or non-loop cases, require all dependencies
         return all(

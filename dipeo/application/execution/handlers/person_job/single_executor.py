@@ -112,8 +112,8 @@ class SinglePersonJobExecutor:
         
         # Special handling for GOLDFISH - ensure no memory at all
         if is_goldfish:
-            # Set memory to truly forget everything except current input
-            person.forget_all_messages()
+            # Clear conversation history for this person
+            person.clear_conversation_history()
         
         # Use inputs directly
         transformed_inputs = inputs

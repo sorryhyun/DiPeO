@@ -96,7 +96,7 @@
         "operation": "write",
         "sub_type": "file",
         "format": "json",
-        "file": "apps/server/generated/frontend_generator.json",
+        "file": "projects/frontend_enhance/generated/frontend_generator.json",
         "label": "save frontend code"
       }
     },
@@ -245,7 +245,7 @@
     },
     {
       "id": "arrow_5",
-      "source": "node_5_default_output",
+      "source": "node_4_default_output",
       "target": "node_6_default_input",
       "label": "generated_code",
       "data": null,
@@ -585,8 +585,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-13T03:33:26.227Z",
-    "modified": "2025-08-13T03:33:26.227Z",
+    "created": "2025-08-13T04:22:48.304Z",
+    "modified": "2025-08-13T04:22:48.304Z",
     "version": "1.0.0",
     "id": null
   }

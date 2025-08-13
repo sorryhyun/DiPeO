@@ -35,5 +35,10 @@ class ConversationManager(Protocol):
     def clear_all_conversations(self) -> None:
         ...
     
+    @abstractmethod
+    def clear_person_messages(self, person_id: Any) -> None:
+        """Clear all messages involving a specific person."""
+        ...
+    
 
 
