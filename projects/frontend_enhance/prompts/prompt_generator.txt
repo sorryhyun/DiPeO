@@ -1,5 +1,4 @@
-Feedback from the previous prompt:
-{{feedback.default.checked.code_evaluation}}
+===
 
 Generate a detailed, clear, and effective prompt that will guide an AI to generate high-quality frontend code. The prompt should be:
 1. Specific and unambiguous
@@ -7,5 +6,13 @@ Generate a detailed, clear, and effective prompt that will guide an AI to genera
 3. Include relevant examples where helpful
 4. Define clear constraints and requirements
 5. Be production-ready for immediate use
+
+Read the prompt you generated previously, and reflect the following feedbacks:
+
+===
+
+{{feedback.default.checked.code_evaluation}}
+
+===
 
 Format the prompt with clear section headers and structured content.

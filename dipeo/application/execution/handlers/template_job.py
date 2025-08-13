@@ -15,7 +15,7 @@ from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol, TemplateJobOutput
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.infrastructure.services.jinja_template.template_integration import get_enhanced_template_service
-from dipeo.application.utils.template import TemplateProcessor
+from dipeo.domain.ports.template import TemplateProcessorPort
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_context import ExecutionContext
@@ -32,9 +32,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     3. execute_request() - Core execution logic
     """
     
-    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
+    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None, template_processor: Optional[TemplateProcessorPort] = None):
         self.filesystem_adapter = filesystem_adapter
         self._template_service = None  # Lazy initialization
+        self._template_processor = template_processor
         # Instance variables for passing data between methods
         self._current_filesystem_adapter = None
         self._current_engine = None
@@ -114,7 +115,15 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             )
         
         # Initialize template processor for path interpolation
-        template_processor = TemplateProcessor()
+        # Use injected processor or try to get from services
+        from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
+        template_processor = self._template_processor
+        if not template_processor:
+            try:
+                template_processor = services.resolve(TEMPLATE_PROCESSOR)
+            except:
+                # If not available in services, template processing will be skipped
+                pass
         self._current_template_processor = template_processor
         
         # No early return - proceed to execute_request
@@ -164,8 +173,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             if node.template_content:
                 template_content = node.template_content
             else:
-                # First process single bracket {} interpolation for diagram variables
-                processed_path = template_processor.process_single_brace(node.template_path, template_vars)
+                # First process single bracket {} interpolation for diagram variables (if processor available)
+                processed_path = node.template_path
+                if template_processor:
+                    processed_path = template_processor.process_single_brace(node.template_path, template_vars)
                 
                 # Then process Jinja2 {{ }} syntax if present
                 processed_template_path = template_service.render_string(processed_path, **template_vars).strip()
@@ -208,8 +219,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             # Write to file if output_path is specified
             if node.output_path:
-                # First process single bracket {} interpolation for diagram variables
-                processed_path = template_processor.process_single_brace(node.output_path, template_vars)
+                # First process single bracket {} interpolation for diagram variables (if processor available)
+                processed_path = node.output_path
+                if template_processor:
+                    processed_path = template_processor.process_single_brace(node.output_path, template_vars)
                 
                 # Then process Jinja2 {{ }} syntax if present
                 processed_output_path = template_service.render_string(processed_path, **template_vars).strip()

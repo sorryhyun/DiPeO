@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.utils.template import TemplateProcessor
+from dipeo.domain.ports.template import TemplateProcessorPort
 from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol, TextOutput, CodeJobOutput
 from dipeo.diagram_generated.generated_nodes import CodeJobNode, NodeType
 from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData
@@ -38,8 +38,8 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     avoiding metadata pollution and providing clean, type-safe data flow.
     """
     
-    def __init__(self, filesystem_adapter: FileSystemPort | None = None):
-        self._processor = TemplateProcessor()
+    def __init__(self, filesystem_adapter: FileSystemPort | None = None, template_processor: TemplateProcessorPort | None = None):
+        self._processor = template_processor
         self.filesystem_adapter = filesystem_adapter
         
         self._executors: dict[str, CodeExecutor] = {

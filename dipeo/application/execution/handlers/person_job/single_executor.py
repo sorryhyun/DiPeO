@@ -123,12 +123,17 @@ class SinglePersonJobExecutor:
         if has_conversation_input:
             self._conversation_handler.load_conversation_from_inputs(person, transformed_inputs)
 
-        # Build prompt BEFORE applying memory management
-        template_values = self._prompt_builder.prepare_template_values(
-            transformed_inputs, 
-            conversation_manager=self._conversation_manager,
-            person_id=person_id
-        )
+        # Get conversation context from person (respects memory profile)
+        conversation_context = person.get_conversation_context()
+        
+        # Prepare template values from inputs
+        input_values = self._prompt_builder.prepare_template_values(transformed_inputs)
+        
+        # Combine input values with conversation context
+        template_values = {
+            **input_values,
+            **conversation_context
+        }
         
         # Load prompts using the prompt resolver
         prompt_content = node.default_prompt
@@ -152,15 +157,20 @@ class SinglePersonJobExecutor:
             if loaded_content:
                 prompt_content = loaded_content
 
-        # Disable auto-prepend if we have conversation input (to avoid duplication)
-        # Also disable for GOLDFISH memory profile (true goldfish - no memory)
+        # Build prompt with template substitution
         built_prompt = self._prompt_builder.build(
             prompt=prompt_content,
-            first_only_prompt=first_only_content,
-            execution_count=execution_count,
             template_values=template_values,
-            auto_prepend_conversation=(not has_conversation_input and not is_goldfish)
+            first_only_prompt=first_only_content,
+            execution_count=execution_count
         )
+        
+        # Prepend conversation if appropriate (not for GOLDFISH or when conversation is already provided)
+        if not has_conversation_input and not is_goldfish:
+            built_prompt = self._prompt_builder.prepend_conversation_if_needed(
+                built_prompt, 
+                conversation_context
+            )
         
         # Log the built prompt
         if '{{' in (built_prompt or ''):
@@ -181,8 +191,8 @@ class SinglePersonJobExecutor:
             "prompt": built_prompt,
             "llm_service": llm_service,
             "from_person_id": "system",
-            "temperature": 0.7,
-            "max_tokens": 4096,
+            "temperature": 0.2,
+            "max_tokens": 128000,
         }
         
         # Handle tools configuration

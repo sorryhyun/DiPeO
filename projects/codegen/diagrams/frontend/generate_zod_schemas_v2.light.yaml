@@ -10,7 +10,7 @@ nodes:
   type: sub_diagram
   position: {x: 43, y: 66}
   props:
-    diagram_name: projects/codegen/diagrams/shared/parse_typescript_batch
+    diagram_name: projects/codegen/diagrams/shared/parse_typescript_batch_direct
     diagram_format: light
     passInputData: false
     ignoreIfSub: true

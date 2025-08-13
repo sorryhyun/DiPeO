@@ -87,112 +87,161 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
 
         
         try:
-            # Get source code from node config or inputs
-            # Also check in 'default' key as DiPeO may pass data there
             # Add debug logging
             import logging
             logger = logging.getLogger(__name__)
-
-            source = node.source
-            if not source:
-                source = inputs.get('source', '')
-            if not source and 'default' in inputs and isinstance(inputs['default'], dict):
-                source = inputs['default'].get('source', '')
-            # Debug: print what we found
-            if not source:
-                return ErrorOutput(
-                    value="No TypeScript source code provided",
-                    node_id=node.id,
-                    error_type="ValidationError"
-                )
             
             # Get TypeScript parser from services using DI pattern
             parser_service = request.get_service("ast_parser")
             
-            # Parse the TypeScript code using the parser service
-            try:
-                result = await parser_service.parse(
-                    source=source,
-                    extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
-                    options={
-                        'includeJSDoc': node.includeJSDoc or False,
-                        'parseMode': node.parseMode or 'module'
-                    }
-                )
-            except Exception as parser_error:
-                import traceback
-                logger.error(f"[TypescriptAstNode {node.id}] Traceback: {traceback.format_exc()}")
-                raise
+            # Check if batch mode is enabled
+            batch_mode = getattr(node, 'batch', False)
             
-
-            # Extract AST data from the result
-            ast_data = result.get('ast', {})
-            metadata = result.get('metadata', {})
-
-
-            # Apply transformations based on node configuration
-            transform_enums = getattr(node, 'transformEnums', False)
-            flatten_output = getattr(node, 'flattenOutput', False)
-            output_format = getattr(node, 'outputFormat', 'standard')
-            
-            # Transform enums if requested
-            enums = ast_data.get('enums', [])
-            if transform_enums and enums:
-                enums = self._transform_enums(enums)
-            
-            # Build output data based on format
-            if output_format == 'for_codegen':
-                # Optimized format for code generation
-                output_data = {
-                    'interfaces': ast_data.get('interfaces', []),
-                    'types': ast_data.get('types', []),
-                    'enums': enums,
-                    'consts': ast_data.get('constants', []),
-                    'total_definitions': (
-                        len(ast_data.get('interfaces', [])) +
-                        len(ast_data.get('types', [])) +
-                        len(enums) +
-                        len(ast_data.get('constants', []))
+            if batch_mode:
+                # Batch mode: parse multiple sources at once
+                batch_input_key = getattr(node, 'batchInputKey', 'sources')
+                
+                # Get sources from node config or inputs
+                sources = getattr(node, 'sources', None)
+                if not sources:
+                    sources = inputs.get(batch_input_key, {})
+                if not sources and 'default' in inputs and isinstance(inputs['default'], dict):
+                    sources = inputs['default'].get(batch_input_key, {})
+                
+                if not sources or not isinstance(sources, dict):
+                    return ErrorOutput(
+                        value=f"Batch mode enabled but no sources dictionary provided at key '{batch_input_key}'",
+                        node_id=node.id,
+                        error_type="ValidationError"
                     )
-                }
-            elif output_format == 'for_analysis':
-                # Detailed format for analysis
-                output_data = {
-                    'ast': ast_data,
-                    'metadata': metadata,
-                    'summary': {
-                        'interfaces': len(ast_data.get('interfaces', [])),
-                        'types': len(ast_data.get('types', [])),
-                        'enums': len(enums),
-                        'classes': len(ast_data.get('classes', [])),
-                        'functions': len(ast_data.get('functions', [])),
-                        'constants': len(ast_data.get('constants', []))
-                    }
-                }
-            else:
-                # Standard format (default)
-                output_data = {
-                    'ast': metadata.get('astSummary', {}),
-                    'interfaces': ast_data.get('interfaces', []),
-                    'types': ast_data.get('types', []),
-                    'enums': enums,
-                    'classes': ast_data.get('classes', []),
-                    'functions': ast_data.get('functions', []),
-                    'constants': ast_data.get('constants', [])
-                }
+                
+                logger.debug(f"[TypescriptAstNode {node.id}] Batch parsing {len(sources)} sources")
+                
+                # Parse all sources in batch
+                try:
+                    results = await parser_service.parse_batch(
+                        sources=sources,
+                        extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
+                        options={
+                            'includeJSDoc': node.includeJSDoc or False,
+                            'parseMode': node.parseMode or 'module'
+                        }
+                    )
+                except Exception as parser_error:
+                    import traceback
+                    logger.error(f"[TypescriptAstNode {node.id}] Batch parse error: {traceback.format_exc()}")
+                    raise
+                
+                # Return batch results
+                return DataOutput(
+                    value=results,
+                    node_id=node.id,
+                    metadata=json.dumps({
+                        'batch_mode': True,
+                        'total_sources': len(sources),
+                        'successful': len(results)
+                    })
+                )
             
-            # Flatten output if requested
-            if flatten_output and output_format == 'standard':
-                output_data = self._flatten_output(output_data)
+            else:
+                # Single mode: parse one source
+                source = node.source
+                if not source:
+                    source = inputs.get('source', '')
+                if not source and 'default' in inputs and isinstance(inputs['default'], dict):
+                    source = inputs['default'].get('source', '')
+                
+                if not source:
+                    return ErrorOutput(
+                        value="No TypeScript source code provided",
+                        node_id=node.id,
+                        error_type="ValidationError"
+                    )
+                
+                # Parse the TypeScript code using the parser service
+                try:
+                    result = await parser_service.parse(
+                        source=source,
+                        extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
+                        options={
+                            'includeJSDoc': node.includeJSDoc or False,
+                            'parseMode': node.parseMode or 'module'
+                        }
+                    )
+                except Exception as parser_error:
+                    import traceback
+                    logger.error(f"[TypescriptAstNode {node.id}] Traceback: {traceback.format_exc()}")
+                    raise
+                
 
-            # Return successful result with all extracted data
-            return DataOutput(
-                value=output_data,
-                node_id=node.id,
-                metadata=json.dumps({
-                    'output_format': output_format
-                })
-            )
+                # Extract AST data from the result
+                ast_data = result.get('ast', {})
+                metadata = result.get('metadata', {})
+
+
+                # Apply transformations based on node configuration
+                transform_enums = getattr(node, 'transformEnums', False)
+                flatten_output = getattr(node, 'flattenOutput', False)
+                output_format = getattr(node, 'outputFormat', 'standard')
+                
+                # Transform enums if requested
+                enums = ast_data.get('enums', [])
+                if transform_enums and enums:
+                    enums = self._transform_enums(enums)
+                
+                # Build output data based on format
+                if output_format == 'for_codegen':
+                    # Optimized format for code generation
+                    output_data = {
+                        'interfaces': ast_data.get('interfaces', []),
+                        'types': ast_data.get('types', []),
+                        'enums': enums,
+                        'consts': ast_data.get('constants', []),
+                        'total_definitions': (
+                            len(ast_data.get('interfaces', [])) +
+                            len(ast_data.get('types', [])) +
+                            len(enums) +
+                            len(ast_data.get('constants', []))
+                        )
+                    }
+                elif output_format == 'for_analysis':
+                    # Detailed format for analysis
+                    output_data = {
+                        'ast': ast_data,
+                        'metadata': metadata,
+                        'summary': {
+                            'interfaces': len(ast_data.get('interfaces', [])),
+                            'types': len(ast_data.get('types', [])),
+                            'enums': len(enums),
+                            'classes': len(ast_data.get('classes', [])),
+                            'functions': len(ast_data.get('functions', [])),
+                            'constants': len(ast_data.get('constants', []))
+                        }
+                    }
+                else:
+                    # Standard format (default)
+                    output_data = {
+                        'ast': metadata.get('astSummary', {}),
+                        'interfaces': ast_data.get('interfaces', []),
+                        'types': ast_data.get('types', []),
+                        'enums': enums,
+                        'classes': ast_data.get('classes', []),
+                        'functions': ast_data.get('functions', []),
+                        'constants': ast_data.get('constants', [])
+                    }
+                
+                # Flatten output if requested
+                if flatten_output and output_format == 'standard':
+                    output_data = self._flatten_output(output_data)
+
+                # Return successful result with all extracted data
+                return DataOutput(
+                    value=output_data,
+                    node_id=node.id,
+                    metadata=json.dumps({
+                        'output_format': output_format
+                    })
+                )
         
         except Exception as e:
             return ErrorOutput(

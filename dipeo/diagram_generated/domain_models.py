@@ -568,6 +568,9 @@ class TypescriptAstNodeData(BaseNodeData):
     extractPatterns: Optional[List[str]] = Field(default=None)
     includeJSDoc: Optional[bool] = Field(default=None)
     parseMode: Optional[Union[Literal['module'], Literal['script']]] = Field(default=None)
+    batch: Optional[bool] = Field(default=None)
+    sources: Optional[Dict[str, str]] = Field(default=None)
+    batchInputKey: Optional[str] = Field(default=None)
 
 
 class UserResponseNodeData(BaseNodeData):

@@ -154,6 +154,57 @@ class Person:
         
         return result
     
+    def get_conversation_context(self) -> dict[str, Any]:
+        """Get this person's view of the conversation, formatted for templates.
+        
+        This method respects the person's memory filters and limits,
+        providing a consistent view of the conversation that can be used
+        in prompts and templates.
+        """
+        messages = self.get_messages()  # Uses memory filters
+        
+        # Format messages for template use
+        formatted_messages = [
+            {
+                'from': str(msg.from_person_id) if msg.from_person_id else '',
+                'to': str(msg.to_person_id) if msg.to_person_id else '',
+                'content': msg.content,
+                'type': msg.message_type
+            } for msg in messages
+        ]
+        
+        # Build person-specific conversation views
+        person_conversations = {}
+        for msg in messages:
+            # Add to sender's view
+            if msg.from_person_id != "system":
+                person_id = str(msg.from_person_id)
+                if person_id not in person_conversations:
+                    person_conversations[person_id] = []
+                person_conversations[person_id].append({
+                    'role': 'assistant',
+                    'content': msg.content
+                })
+            
+            # Add to recipient's view
+            if msg.to_person_id != "system":
+                person_id = str(msg.to_person_id)
+                if person_id not in person_conversations:
+                    person_conversations[person_id] = []
+                person_conversations[person_id].append({
+                    'role': 'user',
+                    'content': msg.content
+                })
+        
+        return {
+            'global_conversation': formatted_messages,
+            'global_message_count': len(messages),
+            'person_conversations': person_conversations,
+            'last_message': messages[-1].content if messages else None,
+            'last_message_from': str(messages[-1].from_person_id) if messages else None,
+            'last_message_to': str(messages[-1].to_person_id) if messages else None
+        }
+    
     def apply_memory_settings(self, settings: MemorySettings) -> None:
         """Apply memory settings - main method for person memory configuration."""
         view_mapping = {

@@ -2,11 +2,11 @@
 
 import json
 import logging
-from typing import Any
+from typing import Any, Optional
 
-from dipeo.application.utils.template import TemplateProcessor
 from dipeo.core import ServiceError, ValidationError
 from dipeo.domain.api.value_objects import RetryPolicy, RetryStrategy
+from dipeo.domain.ports.template import TemplateProcessorPort
 from dipeo.diagram_generated.enums import HttpMethod
 
 log = logging.getLogger(__name__)
@@ -14,8 +14,8 @@ log = logging.getLogger(__name__)
 
 class APIBusinessLogic:
     
-    def __init__(self):
-        self._template_processor = TemplateProcessor()
+    def __init__(self, template_processor: Optional[TemplateProcessorPort] = None):
+        self._template_processor = template_processor
 
     def validate_api_response(
         self,
@@ -90,8 +90,10 @@ class APIBusinessLogic:
 
     def substitute_variables(self, data: Any, context: dict[str, Any]) -> Any:
         if isinstance(data, str):
-            # Use TemplateProcessor for single brace variable substitution
-            return self._template_processor.process_single_brace(data, context)
+            # Use TemplateProcessor for single brace variable substitution if available
+            if self._template_processor:
+                return self._template_processor.process_single_brace(data, context)
+            return data  # Return unchanged if no processor available
             
         if isinstance(data, dict):
             return {k: self.substitute_variables(v, context) for k, v in data.items()}

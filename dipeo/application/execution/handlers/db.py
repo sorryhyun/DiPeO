@@ -16,7 +16,7 @@ from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
 from dipeo.core.execution.node_output import TextOutput, ErrorOutput, DataOutput, NodeOutputProtocol
 from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
-from dipeo.application.utils.template import TemplateProcessor
+from dipeo.domain.ports.template import TemplateProcessorPort
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_context import ExecutionContext
@@ -33,8 +33,9 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     3. execute_request() - Core execution logic
     """
 
-    def __init__(self, db_operations_service: Any | None = None) -> None:
+    def __init__(self, db_operations_service: Any | None = None, template_processor: TemplateProcessorPort | None = None) -> None:
         self.db_operations_service = db_operations_service
+        self._template_processor = template_processor
         # Instance variables for passing data between methods
         self._current_db_service = None
         self._current_base_dir = None
@@ -101,7 +102,16 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         self._current_base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
         
         # Initialize template processor for path interpolation
-        self._current_template_processor = TemplateProcessor()
+        # Use injected processor or try to get from services
+        from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
+        template_processor = self._template_processor
+        if not template_processor:
+            try:
+                template_processor = request.services.resolve(TEMPLATE_PROCESSOR)
+            except:
+                # If not available in services, template processing will be skipped
+                pass
+        self._current_template_processor = template_processor
         
         # No early return - proceed to execute_request
         return None
@@ -199,7 +209,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     variables = context.get_variables()
                 
                 merged_variables = {**variables, **inputs}
-                file_path = template_processor.process_single_brace(file_path, merged_variables)
+                if template_processor:
+                    file_path = template_processor.process_single_brace(file_path, merged_variables)
 
             processed_paths.append(file_path)
         

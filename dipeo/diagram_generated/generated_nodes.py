@@ -509,6 +509,9 @@ class TypescriptAstNode(BaseExecutableNode):
     extractPatterns: Optional[List[str]] = None
     includeJSDoc: Optional[bool] = None
     parseMode: Optional[Literal["module", "script"]] = None
+    batch: Optional[bool] = None
+    sources: Optional[Dict[str, str]] = None
+    batchInputKey: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -522,6 +525,9 @@ class TypescriptAstNode(BaseExecutableNode):
         data["extractPatterns"] = self.extractPatterns
         data["includeJSDoc"] = self.includeJSDoc
         data["parseMode"] = self.parseMode
+        data["batch"] = self.batch
+        data["sources"] = self.sources
+        data["batchInputKey"] = self.batchInputKey
         return data
 
 
@@ -805,6 +811,9 @@ def create_executable_node(
             extractPatterns=data.get("extractPatterns", None),
             includeJSDoc=data.get("includeJSDoc", None),
             parseMode=data.get("parseMode", None),
+            batch=data.get("batch", None),
+            sources=data.get("sources", None),
+            batchInputKey=data.get("batchInputKey", None),
         )
     
 

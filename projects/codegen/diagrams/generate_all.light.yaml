@@ -11,12 +11,12 @@ nodes:
       custom_data:
         message: Starting complete code generation from TypeScript sources
 
-  # Parse all TypeScript files once
+  # Parse all TypeScript files once using direct batch parsing
   - label: Parse All TypeScript
     type: sub_diagram
     position: {x: 200, y: 400}
     props:
-      diagram_name: projects/codegen/diagrams/shared/parse_typescript_batch
+      diagram_name: projects/codegen/diagrams/shared/parse_typescript_batch_direct
       diagram_format: light
       passInputData: false
 

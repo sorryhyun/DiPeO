@@ -83,7 +83,7 @@ nodes:
       first_prompt_file: prompt_generator_first.txt
       prompt_file: prompt_generator.txt
       max_iteration: 3
-      memory_profile: GOLDFISH
+      memory_profile: ONLY_I_SENT
 
   - label: Generate Frontend Code
     type: person_job
@@ -153,6 +153,14 @@ nodes:
       file_format: txt
       save_to_file: false
 
+  - label: Extract and Setup App
+    type: code_job
+    position: {x: 1100, y: 200}
+    props:
+      language: python
+      filePath: projects/frontend_enhance/code/extract_and_setup_app.py
+      functionName: main
+
   - label: Save Enhanced Prompt
     type: db
     position: {x: 1600, y: 400}
@@ -179,6 +187,7 @@ connections:
   # Generation and evaluation flow
   - {from: Generate Prompt, to: Generate Frontend Code, label: generated_prompt, content_type: object}
   - {from: Generate Frontend Code, to: Save Frontend Code, label: generated_code, content_type: object}
+  - {from: Generate Frontend Code, to: Extract and Setup App, label: generated_code, content_type: object}
   - {from: Generate Frontend Code, to: Evaluate Generated Code, label: generated_code, content_type: object}
   - {from: Evaluate Generated Code, to: Check Score, label: code_evaluation, content_type: object}
   - {from: Check Score, to: Check Quality Target, label: checked, content_type: object}
