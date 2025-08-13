@@ -40,10 +40,14 @@ class AllInvolvedFilter:
 class SentByMeFilter:
     
     def filter(self, messages: list[Message], person_id: PersonID) -> list[Message]:
-        return [msg for msg in messages if msg.from_person_id == person_id]
+        return [
+            msg for msg in messages 
+            if msg.from_person_id == person_id or 
+               (msg.from_person_id == PersonID("system") and msg.to_person_id == person_id)
+        ]
     
     def describe(self) -> str:
-        return "Messages I sent"
+        return "Messages I sent and system messages to me"
 
 
 class SentToMeFilter:

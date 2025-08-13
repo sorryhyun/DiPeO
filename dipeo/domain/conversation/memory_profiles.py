@@ -42,7 +42,7 @@ class MemoryProfileFactory:
         ),
         MemoryProfile.ONLY_I_SENT: MemorySettings(
             view=MemoryViewEnum.SENT_BY_ME,
-            max_messages=3,
+            max_messages=None,  # No limit to preserve all my messages and system prompts
             preserve_system=True
         ),
         MemoryProfile.GOLDFISH: MemorySettings(
