@@ -16,14 +16,26 @@ For motivations, guide, details in Korean, read [Korean docs](docs/korean/index.
 ```bash
 # clone github project first
 make install
-make codegen
+make graphql-schema  # Generate GraphQL types
 make dev-all
 ```
 
 That's it! This will:
 - Install dependencies if it's your first time
-- Generate required code
+- Generate GraphQL schema and TypeScript types
 - Start both frontend and backend services
+
+### Code Generation (For Development)
+
+If you need to modify the codebase or add new features:
+
+```bash
+# After modifying TypeScript specifications
+cd dipeo/models && pnpm build  # Build TypeScript models
+dipeo run codegen/diagrams/generate_all --light --debug --timeout=90  # Generate code
+make apply-syntax-only  # Apply staged changes
+make graphql-schema  # Update GraphQL types
+```
 
 ## ollama supports
 - Now we support ollama. All you have to do is add random api key to the file and write the diagram as:

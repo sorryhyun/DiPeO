@@ -164,3 +164,7 @@ yarn.lock
 /apps/server/src/__generated__/
 /files/codegen/code/services/tests/.dipeo_cache/
 /temp/
+/projects/frontend_enhance/generated-app/
+/projects/frontend_enhance/mycomponent-app/
+/projects/frontend_enhance/list-app/
+/projects/frontend_enhance/smartlist-app/

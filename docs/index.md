@@ -9,11 +9,12 @@
 - [Diagram Formats](diagram_formats.md) - Native, Light, and Readable format specifications
 
 ## Guides
-- [How to Write Light Diagrams](how_to_write_light_diagram.md) - Light YAML format guide
+- [Comprehensive Light Diagram Guide](comprehensive_light_diagram_guide.md) - Complete Light YAML format guide
+- [Overall Architecture](overall_architecture.md) - System architecture and technology stack
+- [GraphQL Subscriptions](graphql-subscriptions.md) - Real-time updates implementation
 - [Codegen Dog Fooding](../projects/codegen/codegen_dog_fooding.md) - Using DiPeO to generate its own code
 - [PyCharm Setup](pycharm-setup.md) - IDE configuration
 
 ## Archive
 - [Korean Guide](korean/korean_guide.md) - 한국어 가이드
-- [Korean Diagram Guide](korean/korean_how_to_write_diagram.md) - 다이어그램 작성 가이드
 - [Motivations](motivations.md) - Project background
