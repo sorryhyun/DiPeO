@@ -438,7 +438,11 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
                     node_id = data.get("node_id")
                     node_output = data.get("output")
                     if node_id and node_output:
-                        execution_results[node_id] = node_output
+                        # Extract value from NodeOutputProtocol if present
+                        if hasattr(node_output, 'value'):
+                            execution_results[node_id] = node_output.value
+                        else:
+                            execution_results[node_id] = node_output
             
             elif update_type == "EXECUTION_STATUS_CHANGED":
                 data = update.get("data", {})

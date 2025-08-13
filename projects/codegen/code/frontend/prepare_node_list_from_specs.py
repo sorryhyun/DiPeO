@@ -21,7 +21,9 @@ def prepare_node_list_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(ast_data, dict):
             constants = ast_data.get('constants', [])
             for const in constants:
-                if const.get('name', '').endswith('Spec'):
+                # Check for both 'Spec' and 'spec' to handle camelCase naming
+                name = const.get('name', '')
+                if name.endswith('Spec') or name.endswith('spec'):
                     node_types.append(node_type)
                     break
     

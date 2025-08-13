@@ -45,16 +45,25 @@ def generate_simple_registry(node_types: List[str], template_content: str) -> st
 
 def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Entry point for code_job node."""
+    # Handle various input structures
+    node_list = []
+    
+    # Check direct node_list key
     if 'node_list' in inputs:
         node_list_data = inputs['node_list']
         if isinstance(node_list_data, dict) and 'node_list' in node_list_data:
             node_list = node_list_data['node_list']
+        elif isinstance(node_list_data, list):
+            node_list = node_list_data
         else:
             node_list = node_list_data
-    elif 'default' in inputs and isinstance(inputs['default'], dict):
-        node_list = inputs['default'].get('node_list', [])
-    else:
-        node_list = []
+    # Check default key (common pattern for code_job inputs)
+    elif 'default' in inputs:
+        default_data = inputs['default']
+        if isinstance(default_data, dict) and 'node_list' in default_data:
+            node_list = default_data['node_list']
+        elif isinstance(default_data, list):
+            node_list = default_data
     
     template_content = inputs.get('template_content', '')
     

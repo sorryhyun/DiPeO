@@ -35,7 +35,9 @@ def extract_node_list_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
             # Check if it has the expected structure
             constants = ast_data.get('constants', [])
             for const in constants:
-                if const.get('name', '').endswith('Spec'):
+                # Check for both 'Spec' and 'spec' to handle camelCase naming
+                name = const.get('name', '')
+                if name.endswith('Spec') or name.endswith('spec'):
                     # Found a valid node spec
                     node_types.append(node_type)
                     break

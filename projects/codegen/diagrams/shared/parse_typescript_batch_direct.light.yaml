@@ -48,7 +48,6 @@ nodes:
         ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', '*.ts')))
         ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', 'query-definitions', '*.ts')))
         
-        print(f"Found {len(ts_files)} TypeScript files to parse")
         
         result = {
             'file_paths': ts_files
@@ -75,7 +74,6 @@ nodes:
                 print(f"Warning: Failed to read {file_path}: {e}")
                 continue
         
-        print(f"Successfully read {len(sources)} TypeScript files")
         result = {'sources':sources}
         
   # Parse all TypeScript sources in a single batch operation
@@ -133,7 +131,6 @@ nodes:
                 except Exception as e:
                     print(f"Warning: Failed to cache {file_path}: {e}")
             
-            print(f"Successfully cached {cached_count} parsed TypeScript files")
             result = {'cached_count': cached_count}
       
   # End
