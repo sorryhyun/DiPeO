@@ -39,6 +39,8 @@ dipeo/diagram_generated_staged/
 .logs
 apps/server/.import_linter_cache
 docs/part1.md
+part1.md
+
 part2.md
 part4.md
 TODO.md

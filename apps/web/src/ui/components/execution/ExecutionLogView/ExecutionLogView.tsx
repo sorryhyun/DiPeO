@@ -31,16 +31,16 @@ const LogLevelIcon: React.FC<{ level: string }> = ({ level }) => {
 const getLogLevelColor = (level: string): string => {
   switch (level.toUpperCase()) {
     case 'ERROR':
-      return 'text-red-600 bg-red-50';
+      return 'text-red-400 bg-red-900/20';
     case 'WARNING':
     case 'WARN':
-      return 'text-yellow-600 bg-yellow-50';
+      return 'text-yellow-400 bg-yellow-900/20';
     case 'INFO':
-      return 'text-blue-600 bg-blue-50';
+      return 'text-blue-400 bg-blue-900/20';
     case 'DEBUG':
-      return 'text-gray-600 bg-gray-50';
+      return 'text-gray-300 bg-gray-800/20';
     default:
-      return 'text-gray-500 bg-gray-50';
+      return 'text-gray-400 bg-gray-800/20';
   }
 };
 
@@ -87,7 +87,7 @@ export const ExecutionLogView: React.FC = () => {
 
   if (!isRunning && logs.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-400">
+      <div className="flex-1 flex items-center justify-center bg-gray-900 text-gray-400">
         <div className="text-center">
           <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
           <p>No execution logs available</p>
@@ -100,19 +100,19 @@ export const ExecutionLogView: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col">
       {/* Controls */}
-      <div className="px-4 py-2 bg-gray-50 border-b flex items-center justify-between">
+      <div className="px-4 py-2 bg-gray-800 border-b border-gray-700 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <input
             type="text"
             placeholder="Filter logs..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="px-3 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1 text-sm bg-gray-700 text-white border border-gray-600 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <select
             value={levelFilter}
             onChange={(e) => setLevelFilter(e.target.value)}
-            className="px-3 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1 text-sm bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="ALL">All Levels</option>
             <option value="DEBUG">Debug</option>
@@ -144,7 +144,7 @@ export const ExecutionLogView: React.FC = () => {
       </div>
 
       {/* Logs */}
-      <div className="flex-1 overflow-auto p-4 font-mono text-xs">
+      <div className="flex-1 overflow-auto p-4 font-mono text-xs bg-gray-900">
         {filteredLogs.length === 0 ? (
           <div className="text-center text-gray-400 py-8">
             No logs match your filter criteria
@@ -155,20 +155,20 @@ export const ExecutionLogView: React.FC = () => {
               <div
                 key={index}
                 className={`flex items-start space-x-2 py-1 px-2 rounded ${
-                  log.level.toUpperCase() === 'ERROR' ? 'bg-red-50' : ''
+                  log.level.toUpperCase() === 'ERROR' ? 'bg-red-900/10' : ''
                 }`}
               >
                 <LogLevelIcon level={log.level} />
                 <div className="flex-1 break-all">
-                  <span className="text-gray-500">{formatTimestamp(log.timestamp)}</span>
+                  <span className="text-gray-400">{formatTimestamp(log.timestamp)}</span>
                   <span className={`ml-2 px-1 py-0.5 text-xs rounded ${getLogLevelColor(log.level)}`}>
                     {log.level}
                   </span>
-                  <span className="ml-2 text-gray-600">{log.logger}</span>
+                  <span className="ml-2 text-gray-300">{log.logger}</span>
                   {log.node_id && (
-                    <span className="ml-2 text-purple-600">({log.node_id.slice(0, 8)}...)</span>
+                    <span className="ml-2 text-purple-400">({log.node_id.slice(0, 8)}...)</span>
                   )}
-                  <div className="mt-1 text-gray-800">{log.message}</div>
+                  <div className="mt-1 text-white">{log.message}</div>
                 </div>
               </div>
             ))}
@@ -179,8 +179,8 @@ export const ExecutionLogView: React.FC = () => {
 
       {/* Status */}
       {isRunning && (
-        <div className="px-4 py-2 bg-green-50 border-t text-sm text-green-700 flex items-center">
-          <div className="animate-pulse w-2 h-2 bg-green-500 rounded-full mr-2" />
+        <div className="px-4 py-2 bg-green-900/20 border-t border-gray-700 text-sm text-green-400 flex items-center">
+          <div className="animate-pulse w-2 h-2 bg-green-400 rounded-full mr-2" />
           Streaming logs...
         </div>
       )}

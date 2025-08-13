@@ -160,6 +160,79 @@ export function useExecutionUpdates({
     }
     console.log('[useExecutionUpdates] Parsed eventData:', eventData);
     
+    // Handle batch updates
+    if (eventType === 'BATCH_UPDATE' && eventData.events && Array.isArray(eventData.events)) {
+      console.log('[useExecutionUpdates] Processing batch update with', eventData.events.length, 'events');
+      
+      // Process each event in the batch
+      for (const event of eventData.events) {
+        const batchEventType = event.type;
+        const batchEventData = event.data || {};
+        
+        // Handle node status changes from batch
+        if (batchEventType === 'NODE_STATUS_CHANGED') {
+          const nodeIdStr = batchEventData.node_id || '';
+          const nodeType = batchEventData.node_type || '';
+          const nodeStatus = batchEventData.status || '';
+          
+          if (nodeIdStr && nodeStatus) {
+            console.log('[useExecutionUpdates] Batch NODE_STATUS_CHANGED:', { nodeIdStr, nodeType, nodeStatus });
+            
+            if (nodeStatus === 'RUNNING') {
+              handleNodeStart(nodeIdStr, nodeType);
+            } else if (nodeStatus === 'COMPLETED' || nodeStatus === 'MAXITER_REACHED') {
+              const tokenCount = batchEventData.tokens_used || batchEventData.metrics?.tokens || undefined;
+              const output = batchEventData.output || batchEventData.result || undefined;
+              handleNodeComplete(nodeIdStr, tokenCount, output);
+            } else if (nodeStatus === 'FAILED') {
+              updateNodeState(nodeIdStr, {
+                status: 'error',
+                endTime: new Date(),
+                error: batchEventData.error || 'Unknown error'
+              });
+              
+              executionActions.updateNodeExecution(nodeId(nodeIdStr), {
+                status: Status.FAILED,
+                timestamp: Date.now(),
+                error: batchEventData.error ?? undefined
+              });
+              
+              showThrottledToast(`node-error-${nodeIdStr}`, 'error', `Node ${nodeIdStr.slice(0, 8)}... failed: ${batchEventData.error}`);
+            } else if (nodeStatus === 'SKIPPED') {
+              incrementCompletedNodes();
+              
+              updateNodeState(nodeIdStr, {
+                status: 'skipped',
+                endTime: new Date(),
+              });
+              
+              addSkippedNode(nodeIdStr, 'Skipped');
+              executionActions.updateNodeExecution(nodeId(nodeIdStr), {
+                status: Status.SKIPPED,
+                timestamp: Date.now()
+              });
+            }
+          }
+        }
+        // Handle legacy node events from batch
+        else if (batchEventType === 'node_started' || batchEventType === 'node_completed') {
+          const nodeIdStr = event.data?.nodeId || '';
+          const nodeType = event.data?.nodeType || '';
+          
+          if (batchEventType === 'node_started' && nodeIdStr) {
+            console.log('[useExecutionUpdates] Batch node_started:', { nodeIdStr, nodeType });
+            handleNodeStart(nodeIdStr, nodeType);
+          } else if (batchEventType === 'node_completed' && nodeIdStr) {
+            const tokenCount = event.data?.tokens_used || event.data?.metrics?.tokens || undefined;
+            const output = event.data?.output || event.data?.result || undefined;
+            console.log('[useExecutionUpdates] Batch node_completed:', { nodeIdStr, tokenCount });
+            handleNodeComplete(nodeIdStr, tokenCount, output);
+          }
+        }
+      }
+      return; // Don't process the batch wrapper as an individual event
+    }
+    
     // Check for critical execution-level events FIRST (no throttling for these)
     const status = eventData.status || executionUpdates.status;
     const error = eventData.error || executionUpdates.error;
