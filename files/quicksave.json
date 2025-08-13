@@ -5,9 +5,10 @@
       "type": "start",
       "position": {
         "x": 50,
-        "y": 200
+        "y": 400
       },
       "data": {
+        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {},
         "label": "start"
@@ -15,15 +16,17 @@
     },
     {
       "id": "node_1",
-      "type": "code_job",
+      "type": "db",
       "position": {
         "x": 200,
-        "y": 200
+        "y": 400
       },
       "data": {
-        "language": "python",
-        "code": "import os\nimport glob\n\n# Define base paths for TypeScript models\nbase_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')\nmodels_dir = os.path.join(base_dir, 'dipeo/models/src')\n\n# Gather TypeScript files from main dir and subdirectories\nts_files = []\n\n# Main directory files\nts_files.extend(glob.glob(os.path.join(models_dir, '*.ts')))\n\n# Core files\nts_files.extend(glob.glob(os.path.join(models_dir, 'core', '*.ts')))\nts_files.extend(glob.glob(os.path.join(models_dir, 'core', 'nodes', '*.ts')))\nts_files.extend(glob.glob(os.path.join(models_dir, 'core', 'enums', '*.ts')))\n\n# Specifications files\nts_files.extend(glob.glob(os.path.join(models_dir, 'specifications', '*.ts')))\nts_files.extend(glob.glob(os.path.join(models_dir, 'specifications', 'nodes', '*.ts')))\n\n# Utilities files\nts_files.extend(glob.glob(os.path.join(models_dir, 'utilities', '*.ts')))\n\n# Codegen files\nts_files.extend(glob.glob(os.path.join(models_dir, 'codegen', '*.ts')))\n\n# Frontend files\nts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', '*.ts')))\nts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', 'query-definitions', '*.ts')))\n\nprint(f\"Found {len(ts_files)} TypeScript files to parse\")\n\nresult = {\n    'file_paths': ts_files\n}\n",
-        "label": "gather typescript files"
+        "operation": "read",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/frontend_enhance_config.json",
+        "label": "load config"
       }
     },
     {
@@ -31,59 +34,180 @@
       "type": "code_job",
       "position": {
         "x": 400,
-        "y": 200
+        "y": 400
       },
       "data": {
         "language": "python",
-        "code": "import os\n\nfile_paths = inputs.get('default', {}).get('file_paths', [])\nsources = {}\nfor file_path in file_paths:\n    try:\n        with open(file_path, 'r', encoding='utf-8') as f:\n            content = f.read()\n            # Use file path as key for tracking\n            sources[file_path] = content\n    except Exception as e:\n        print(f\"Warning: Failed to read {file_path}: {e}\")\n        continue\n\nprint(f\"Successfully read {len(sources)} TypeScript files\")\nresult = {'sources':sources}\n",
-        "label": "read all sources"
+        "code": "import json\n\n# Parse the loaded config\nif isinstance(config, str):\n    config_data = json.loads(config)\nelse:\n    config_data = config\n\niteration_count = 0\ncurrent_score = 0\nimprovements_history = []\n\nresult = {\n    \"history\": improvements_history,\n    \"prompt_type\": config_data[\"prompt_type\"],\n    \"target_framework\": config_data[\"framework\"],\n    \"prompt_requirements\": config_data[\"prompt_requirements\"],\n    \"evaluation_criteria\": config_data[\"evaluation_criteria\"],\n    \"prompt_sections\": config_data[\"prompt_sections\"],\n}\n",
+        "label": "initialize state"
       }
     },
     {
       "id": "node_3",
-      "type": "typescript_ast",
+      "type": "person_job",
       "position": {
         "x": 600,
-        "y": 200
+        "y": 400
       },
       "data": {
-        "batch": true,
-        "batchInputKey": "sources",
-        "includeJSDoc": true,
-        "parseMode": "module",
-        "outputFormat": "for_codegen",
-        "extractPatterns": [
-          "interface",
-          "type",
-          "enum",
-          "const"
-        ],
-        "label": "batch parse typescript"
+        "person": "Prompt Designer",
+        "first_prompt_file": "prompt_generator_first.txt",
+        "prompt_file": "prompt_generator.txt",
+        "max_iteration": 3,
+        "memory_profile": "ONLY_I_SENT",
+        "label": "generate prompt",
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_4",
-      "type": "code_job",
+      "type": "person_job",
       "position": {
         "x": 800,
-        "y": 200
+        "y": 400
       },
       "data": {
-        "language": "python",
-        "code": "import os\nimport json\n\n# Get batch results\nbatch_results = inputs.get('default', {})\nif not isinstance(batch_results, dict):\n    print(\"Warning: No batch results to cache\")\n    result = {'cached_count': 0}\nelse:\n    base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')\n    models_dir = os.path.join(base_dir, 'dipeo/models/src')\n    \n    cached_count = 0\n    for file_path, parse_result in batch_results.items():\n        # Get relative path from models_dir\n        if file_path.startswith(models_dir):\n            relative_path = os.path.relpath(file_path, models_dir)\n        else:\n            # Fallback to basename if not in expected location\n            relative_path = os.path.basename(file_path)\n        \n        # Create cache path preserving directory structure\n        cache_path = f'temp/{relative_path}.json'\n        cache_dir = os.path.dirname(cache_path)\n        \n        # Ensure cache directory exists\n        if cache_dir and cache_dir != 'temp':\n            os.makedirs(cache_dir, exist_ok=True)\n        \n        # Save the parsed result to cache\n        try:\n            with open(cache_path, 'w', encoding='utf-8') as f:\n                json.dump(parse_result, f, indent=2)\n            cached_count += 1\n        except Exception as e:\n            print(f\"Warning: Failed to cache {file_path}: {e}\")\n    \n    print(f\"Successfully cached {cached_count} parsed TypeScript files\")\n    result = {'cached_count': cached_count}\n",
-        "label": "save cache files"
+        "person": "Frontend Generator",
+        "default_prompt": "{{generated_prompt}}",
+        "max_iteration": 3,
+        "memory_profile": "GOLDFISH",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 2,
+          "preserve_system": false
+        },
+        "label": "generate frontend code",
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_5",
+      "type": "db",
+      "position": {
+        "x": 900,
+        "y": 300
+      },
+      "data": {
+        "operation": "write",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/generated/frontend_generator.json",
+        "label": "save frontend code"
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "person_job",
+      "position": {
+        "x": 1000,
+        "y": 400
+      },
+      "data": {
+        "person": "Code Evaluator",
+        "prompt_file": "code_evaluator.txt",
+        "max_iteration": 3,
+        "memory_profile": "GOLDFISH",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 2,
+          "preserve_system": false
+        },
+        "label": "evaluate generated code",
+        "first_only_prompt": ""
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "code_job",
+      "position": {
+        "x": 1200,
+        "y": 400
+      },
+      "data": {
+        "language": "python",
+        "code": "import re\n# Extract score from code evaluation\nscore_match = re.search(r'Score:\\s*(\\d+)', code_evaluation, re.IGNORECASE)\nif score_match:\n    score = int(score_match.group(1))\n\n# Check if ready for production\nready = \"production ready\" in code_evaluation.lower() or score >= 80\n\nresult = {\n    \"score\": score,\n    \"ready_for_production\": ready,\n    \"code_evaluation\": code_evaluation\n}\n",
+        "label": "check score"
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "condition",
+      "position": {
+        "x": 1400,
+        "y": 400
+      },
+      "data": {
+        "condition_type": "custom",
+        "expression": "checked.ready_for_production == True",
+        "label": "check quality target"
+      }
+    },
+    {
+      "id": "node_9",
+      "type": "condition",
+      "position": {
+        "x": 1200,
+        "y": 600
+      },
+      "data": {
+        "condition_type": "detect_max_iterations",
+        "label": "detect max iterations"
+      }
+    },
+    {
+      "id": "node_10",
       "type": "endpoint",
       "position": {
         "x": 1000,
+        "y": 700
+      },
+      "data": {
+        "file_format": "txt",
+        "save_to_file": false,
+        "label": "stop if max iterations"
+      }
+    },
+    {
+      "id": "node_11",
+      "type": "code_job",
+      "position": {
+        "x": 1100,
         "y": 200
       },
       "data": {
-        "save_to_file": false,
-        "label": "end"
+        "language": "python",
+        "filePath": "projects/frontend_enhance/code/extract_and_setup_app.py",
+        "functionName": "main",
+        "label": "extract and setup app"
+      }
+    },
+    {
+      "id": "node_12",
+      "type": "db",
+      "position": {
+        "x": 1600,
+        "y": 400
+      },
+      "data": {
+        "operation": "write",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/generated/results.json",
+        "label": "save enhanced prompt"
+      }
+    },
+    {
+      "id": "node_13",
+      "type": "endpoint",
+      "position": {
+        "x": 2000,
+        "y": 400
+      },
+      "data": {
+        "file_format": "md",
+        "save_to_file": true,
+        "file_name": "projects/frontend_enhance/generated/README.md",
+        "label": "save summary"
       }
     }
   ],
@@ -100,14 +224,14 @@
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "label": null,
+      "label": "config",
       "data": null,
       "content_type": "object"
     },
     {
       "id": "arrow_2",
       "source": "node_2_default_output",
-      "target": "node_3_default_input",
+      "target": "node_3_first_input",
       "label": null,
       "data": null,
       "content_type": "object"
@@ -116,7 +240,7 @@
       "id": "arrow_3",
       "source": "node_3_default_output",
       "target": "node_4_default_input",
-      "label": null,
+      "label": "generated_prompt",
       "data": null,
       "content_type": "object"
     },
@@ -124,12 +248,129 @@
       "id": "arrow_4",
       "source": "node_4_default_output",
       "target": "node_5_default_input",
+      "label": "generated_code",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_4_default_output",
+      "target": "node_11_default_input",
+      "label": "generated_code",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_4_default_output",
+      "target": "node_6_default_input",
+      "label": "generated_code",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_6_default_output",
+      "target": "node_7_default_input",
+      "label": "code_evaluation",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_7_default_output",
+      "target": "node_8_default_input",
+      "label": "checked",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_9",
+      "source": "node_8_condtrue_output",
+      "target": "node_12_default_input",
       "label": null,
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_10",
+      "source": "node_12_default_output",
+      "target": "node_13_default_input",
+      "label": "saved_prompt",
       "data": null,
       "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_11",
+      "source": "node_8_condfalse_output",
+      "target": "node_9_default_input",
+      "label": null,
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_12",
+      "source": "node_9_condtrue_output",
+      "target": "node_10_default_input",
+      "label": null,
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_13",
+      "source": "node_9_condfalse_output",
+      "target": "node_3_default_input",
+      "label": "feedback",
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "object"
     }
   ],
-  "persons": [],
+  "persons": [
+    {
+      "id": "Prompt Designer",
+      "label": "prompt designer",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are an expert in prompt engineering for code generation.\nCreate clear, comprehensive, and effective prompts for frontend code generators.\nFocus on specificity, completeness, and actionable instructions.\nDo not add any suggestions which are not requested.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "Frontend Generator",
+      "label": "frontend generator",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are an expert frontend developer specializing in React and modern web development.\nGenerate production-ready frontend code based on the provided prompts.\nFollow best practices for component structure, state management, and code organization.\nDo not add any suggestions which are not requested.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "Code Evaluator",
+      "label": "code evaluator",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are a frontend code quality expert.\nEvaluate generated frontend code for correctness, best practices, performance, and maintainability.\nProvide feedback on how the prompt should be improved to generate better code.\nDo not add any suggestions which are not requested.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    }
+  ],
   "handles": [
     {
       "id": "node_0_default_output",
@@ -172,6 +413,14 @@
       "position": "right"
     },
     {
+      "id": "node_3_first_input",
+      "node_id": "node_3",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
       "id": "node_3_default_input",
       "node_id": "node_3",
       "label": "default",
@@ -186,6 +435,14 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_4_first_input",
+      "node_id": "node_4",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_4_default_input",
@@ -212,20 +469,148 @@
       "position": "left"
     },
     {
-      "id": "node_3_results_output",
-      "node_id": "node_3",
-      "label": "results",
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_3_error_output",
-      "node_id": "node_3",
-      "label": "error",
+      "id": "node_6_first_input",
+      "node_id": "node_6",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_output",
+      "node_id": "node_6",
+      "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_default_output",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8_condtrue_output",
+      "node_id": "node_8",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_8_condfalse_output",
+      "node_id": "node_8",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_9_default_input",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_9_condtrue_output",
+      "node_id": "node_9",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_9_condfalse_output",
+      "node_id": "node_9",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_10_default_input",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_11_default_input",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_11_default_output",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_12_default_input",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_12_default_output",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_13_default_input",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
@@ -233,8 +618,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-13T06:34:21.286Z",
-    "modified": "2025-08-13T06:34:21.286Z",
+    "created": "2025-08-13T07:00:06.434Z",
+    "modified": "2025-08-13T07:00:06.434Z",
     "version": "1.0.0",
     "id": null
   }
