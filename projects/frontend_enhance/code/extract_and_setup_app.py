@@ -371,6 +371,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         component_names = set()
         
         for file_path in files:
+            # Check for components in components/ subdirectory
             if 'components/' in file_path and file_path.endswith('.tsx'):
                 # Extract component name
                 match = re.search(r'components/(\w+)/(\w+)\.tsx', file_path)
@@ -378,12 +379,61 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                     comp_name = match.group(1)
                     if comp_name not in ['index']:
                         component_names.add(comp_name)
-                        component_imports.append(f"import {comp_name} from './components/{comp_name}'")
+                        component_imports.append(f"import {{ {comp_name} }} from './components/{comp_name}'")
+            
+            # Also check for components directly in src/ (like src/List.tsx)
+            elif file_path.startswith('src/') and file_path.endswith('.tsx'):
+                # Skip main, App, test files, and supporting files
+                if any(skip in file_path.lower() for skip in ['main', 'app', 'test', 'setup', 'types', 'adapter', 'context', 'hook', 'utils', 'stories', 'example']):
+                    continue
+                    
+                # Extract component name from file (e.g., src/List.tsx -> List)
+                file_name = Path(file_path).stem
+                if file_name and file_name[0].isupper():  # Component names should start with uppercase
+                    # Try to verify it's actually a React component by checking content
+                    content = files.get(file_path, '')
+                    if 'export' in content and ('function ' + file_name in content or 'const ' + file_name in content or 'export default' in content):
+                        component_names.add(file_name)
+                        component_imports.append(f"import {{ {file_name} }} from './{file_name}'")
         
         # Generate a dynamic App.tsx based on detected components
         if component_names:
             imports = "\n".join(component_imports[:3])  # Limit to first 3 components
             comp_name = list(component_names)[0]
+            
+            # Generate component usage based on component type
+            component_usage = ""
+            if 'List' in comp_name:
+                # For List components, provide sample data
+                component_usage = f"""
+          <section>
+            <h2 className="text-xl font-semibold mb-4">{comp_name} Component Demo</h2>
+            <{comp_name} 
+              items={{[
+                {{ id: '1', name: 'First Item', description: 'This is the first item' }},
+                {{ id: '2', name: 'Second Item', description: 'This is the second item' }},
+                {{ id: '3', name: 'Third Item', description: 'This is the third item' }},
+              ]}}
+            />
+          </section>"""
+            elif 'Button' in comp_name:
+                # For Button components, show variations
+                component_usage = f"""
+          <section>
+            <h2 className="text-xl font-semibold mb-4">{comp_name} Component Demo</h2>
+            <div className="space-x-4">
+              <{comp_name} onClick={{() => alert('Primary clicked!')}}>Primary</{comp_name}>
+              <{comp_name} variant="secondary" onClick={{() => alert('Secondary clicked!')}}>Secondary</{comp_name}>
+              <{comp_name} variant="outline" onClick={{() => alert('Outline clicked!')}}>Outline</{comp_name}>
+            </div>
+          </section>"""
+            else:
+                # Default component usage
+                component_usage = f"""
+          <section>
+            <h2 className="text-xl font-semibold mb-4">{comp_name} Component Demo</h2>
+            <{comp_name} />
+          </section>"""
             
             app_tsx = f"""{imports}
 
@@ -391,13 +441,9 @@ function App() {{
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Generated Component Demo</h1>
+        <h1 className="text-3xl font-bold mb-8">{comp_name} Component Showcase</h1>
         
-        <div className="space-y-8 bg-white p-8 rounded-lg shadow">
-          <section>
-            <h2 className="text-xl font-semibold mb-4">Component Showcase</h2>
-            {f'<{comp_name} />' if comp_name else ''}
-          </section>
+        <div className="space-y-8 bg-white p-8 rounded-lg shadow">{component_usage}
         </div>
       </div>
     </div>

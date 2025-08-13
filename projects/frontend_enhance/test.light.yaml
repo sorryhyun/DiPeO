@@ -9,7 +9,7 @@ persons:
       You are an expert in prompt engineering for code generation.
       Create clear, comprehensive, and effective prompts for frontend code generators.
       Focus on specificity, completeness, and actionable instructions.
-      Do not add any suggestions which are not requested, like 'If you want' or something.
+      Do not add any suggestions which are not requested, like 'If you want' or something at the end.
       
   Frontend Generator:
     service: openai
@@ -19,7 +19,7 @@ persons:
       You are an expert frontend developer specializing in React and modern web development.
       Generate production-ready frontend code based on the provided prompts.
       Follow best practices for component structure, state management, and code organization.
-      Do not add any suggestions which are not requested, like 'If you want' or something.
+      Do not add any suggestions which are not requested, like 'If you want' or something at the end.
 
       
   Code Evaluator:
@@ -30,7 +30,7 @@ persons:
       You are a frontend code quality expert.
       Evaluate generated frontend code for correctness, best practices, performance, and maintainability.
       Provide feedback on how the prompt should be improved to generate better code.
-      Do not add any suggestions which are not requested, like 'If you want' or something.
+      Do not add any suggestions which are not requested, like 'If you want' or something at the end.
 
 nodes:
   - label: Start

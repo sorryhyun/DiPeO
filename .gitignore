@@ -18,7 +18,7 @@ AGENTS.md
 *.db-shm
 *.db-wal
 *.db
-
+files/plans
 # Temporary files and cache
 .temp/
 apps/web/schema.graphql
