@@ -204,15 +204,12 @@ class TypedExecutionContext(ExecutionContextProtocol):
             output = self._tracker.get_last_output(node_id)
             if isinstance(output, ConditionOutput):
                 active_branch, _ = output.get_branch_output()  # Returns ("condtrue", data) or ("condfalse", data)
-                
-                logger.debug(f"ConditionNode {node_id} completed with branch: {active_branch}")
-                
+
                 # Only process edges on the active branch
                 outgoing_edges = [
                     e for e in self.diagram.edges 
                     if e.source_node_id == node_id and e.source_output == active_branch
                 ]
-                logger.debug(f"Found {len(outgoing_edges)} edges on active branch {active_branch}")
             else:
                 # No valid output, can't determine branch
                 return
@@ -260,10 +257,6 @@ class TypedExecutionContext(ExecutionContextProtocol):
             
             if can_reset:
                 nodes_to_reset.append(target_node.id)
-        
-        # Debug logging for nodes to reset
-        if nodes_to_reset:
-            logger.debug(f"Resetting {len(nodes_to_reset)} nodes: {nodes_to_reset}")
         
         # Reset nodes and cascade
         for node_id_to_reset in nodes_to_reset:

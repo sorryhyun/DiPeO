@@ -166,11 +166,11 @@ class SinglePersonJobExecutor:
         )
         
         # Prepend conversation if appropriate (not for GOLDFISH or when conversation is already provided)
-        if not has_conversation_input and not is_goldfish:
-            built_prompt = self._prompt_builder.prepend_conversation_if_needed(
-                built_prompt, 
-                conversation_context
-            )
+        # if not has_conversation_input and not is_goldfish:
+        #     built_prompt = self._prompt_builder.prepend_conversation_if_needed(
+        #         built_prompt,
+        #         conversation_context
+        #     )
         
         # Log the built prompt
         if '{{' in (built_prompt or ''):

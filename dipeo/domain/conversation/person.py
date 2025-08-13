@@ -128,10 +128,14 @@ class Person:
             content=prompt,
             message_type="person_to_person" if from_person_id != "system" else "system_to_person"
         )
-        self.add_message(incoming)
         
-        # Get messages from this person's filtered view
+        # Get messages from this person's filtered view BEFORE adding the new message
+        # This prevents double-appending when using filters like SENT_BY_ME
         person_messages = self.get_messages()
+        person_messages = person_messages + [incoming]
+        
+        # Now add the incoming message to the conversation history
+        self.add_message(incoming)
         
         # Delegate to LLM service with person context
         # The infrastructure layer handles system prompts and message formatting
