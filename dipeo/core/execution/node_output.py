@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Generic, Optional, Protocol, TypeVar, run
 
 if TYPE_CHECKING:
     from dipeo.diagram_generated import Message, NodeID, TokenUsage, Status
+    from dipeo.core.execution.envelope import Envelope
 
 T = TypeVar('T')
 
@@ -48,6 +49,14 @@ class NodeOutputProtocol(Protocol[T]):
         ...
     
     def set_metadata_dict(self, data: dict[str, Any]) -> None:
+        ...
+    
+    def as_envelopes(self) -> list['Envelope']:
+        """Convert to standardized envelopes"""
+        ...
+    
+    def primary_envelope(self) -> 'Envelope':
+        """Get primary output envelope"""
         ...
 
 
@@ -112,6 +121,31 @@ class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
             result["token_usage"] = None
             
         return result
+    
+    def as_envelopes(self) -> list['Envelope']:
+        """Convert to envelopes lazily"""
+        if not hasattr(self, '_envelopes') or self._envelopes is None:
+            from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
+            self._envelopes = EnvelopeAdapter.from_legacy_output(
+                self,
+                node_id=str(self.node_id),
+                trace_id=""
+            )
+        return self._envelopes
+    
+    def primary_envelope(self) -> 'Envelope':
+        """Get first/primary envelope"""
+        envelopes = self.as_envelopes()
+        if not envelopes:
+            # Return empty envelope if none exist
+            from dipeo.core.execution.envelope import EnvelopeFactory
+            return EnvelopeFactory.text("")
+        return envelopes[0]
+    
+    def with_envelopes(self, envelopes: list['Envelope']) -> 'BaseNodeOutput':
+        """Set explicit envelopes"""
+        self._envelopes = envelopes
+        return self
     
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> BaseNodeOutput:

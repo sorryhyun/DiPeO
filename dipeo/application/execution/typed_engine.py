@@ -361,6 +361,13 @@ class TypedExecutionEngine:
                 # If pre_execute returned output, use it; otherwise execute normally
                 if output is None:
                     output = await handler.execute_request(request)
+                
+                # Ensure result has envelopes
+                if not hasattr(output, 'as_envelopes'):
+                    from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
+                    output = EnvelopeAdapter.wrap_handler_output(
+                        output, str(node.id), context.execution_id
+                    )
             
             # Calculate execution metrics
             end_time = time.time()

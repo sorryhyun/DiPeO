@@ -124,6 +124,25 @@ class StandardRuntimeResolver(RuntimeResolver):
         if not source_output:
             return None
         
+        # Handle envelope if source output has envelopes
+        if hasattr(source_output, 'as_envelopes'):
+            # Get primary envelope
+            envelope = source_output.primary_envelope()
+            
+            # Convert envelope to legacy format for now (backward compatibility)
+            from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
+            legacy_value = EnvelopeAdapter.to_legacy_input(envelope)
+            
+            # Special handling for condition outputs
+            if isinstance(source_output, ConditionOutput):
+                if source_output.value:  # True branch
+                    output_value = {"condtrue": source_output.true_output or {}}
+                else:  # False branch
+                    output_value = {"condfalse": source_output.false_output or {}}
+                return StandardNodeOutput.from_dict(output_value)
+            
+            return StandardNodeOutput.from_value(legacy_value)
+        
         # Convert to StandardNodeOutput for consistent handling
         if isinstance(source_output, NodeOutputProtocol):
             if isinstance(source_output, ConditionOutput):
