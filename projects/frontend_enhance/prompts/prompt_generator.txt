@@ -1,5 +1,5 @@
 Feedback from the previous prompt:
-{{feedback}}
+{{feedback.default.checked.code_evaluation}}
 
 Generate a detailed, clear, and effective prompt that will guide an AI to generate high-quality frontend code. The prompt should be:
 1. Specific and unambiguous

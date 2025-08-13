@@ -6,6 +6,8 @@ import webbrowser
 from pathlib import Path
 from typing import Any
 
+from dipeo.infrastructure.logging_config import setup_logging
+
 from ..server_manager import ServerManager
 from .base import DiagramLoader
 
@@ -28,6 +30,16 @@ class RunCommand:
         use_unified: bool = False,
     ) -> bool:
         """Run a diagram via server."""
+        # Setup logging if debug mode is enabled
+        if debug:
+            setup_logging(
+                component="cli",
+                log_level="DEBUG",
+                log_to_file=True,
+                log_dir=".logs",
+                console_output=False  # Avoid duplicate console output
+            )
+        
         # Resolve diagram path
         diagram_path = self.loader.resolve_diagram_path(diagram, format_type)
         print(f"📄 Loading diagram: {diagram_path}")

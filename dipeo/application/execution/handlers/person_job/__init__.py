@@ -127,13 +127,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             
             # BatchExecutor uses SingleExecutor internally, so it inherits the services
             self._services_configured = True
-        
-        # Max iteration check is now handled in the engine before transition_node_to_running
-        # Just log for debugging
-        execution_count = context.get_node_execution_count(node.id)
-        logger.info(f"[PRE_EXECUTE] PersonJobNode {node.id} - execution_count: {execution_count}, max_iteration: {node.max_iteration}")
-        
-        # Return None to proceed with normal execution
         return None
     
     async def execute_request(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutputProtocol:

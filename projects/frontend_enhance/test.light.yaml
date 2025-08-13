@@ -94,6 +94,15 @@ nodes:
       max_iteration: 3
       memory_profile: GOLDFISH
 
+  - label: Save Frontend Code
+    type: db
+    position: {x: 900, y: 300}
+    props:
+      operation: write
+      sub_type: file
+      format: json
+      source_details: apps/server/generated/frontend_generator.json
+
   - label: Evaluate Generated Code
     type: person_job
     position: {x: 1000, y: 400}
@@ -145,23 +154,13 @@ nodes:
       save_to_file: false
 
   - label: Save Enhanced Prompt
-    type: code_job
+    type: db
     position: {x: 1600, y: 400}
     props:
-      language: python
-      code: |
-        import os
-        from pathlib import Path
-        import json
-        
-        output_path = Path("./generated")
-        output_path.mkdir(parents=True, exist_ok=True)
-        
-        
-        # Save main prompt file
-        prompt_file = output_path / f"frontend_generator.json"
-        with open(prompt_file, 'w', encoding='utf-8') as f:
-            json.dump(inputs, f)
+      operation: write
+      sub_type: file
+      format: json
+      source_details: projects/frontend_enhance/generated/results.json
 
   - label: Save Summary
     type: endpoint
@@ -179,7 +178,8 @@ connections:
   
   # Generation and evaluation flow
   - {from: Generate Prompt, to: Generate Frontend Code, label: generated_prompt, content_type: object}
-  - {from: Generate Frontend Code, to: Evaluate Generated Code, label: generated_code, content_type: object}
+  - {from: Generate Frontend Code, to: Save Frontend Code, label: generated_code, content_type: object}
+  - {from: Save Frontend Code, to: Evaluate Generated Code, label: generated_code, content_type: object}
   - {from: Evaluate Generated Code, to: Check Score, label: code_evaluation, content_type: object}
   - {from: Check Score, to: Check Quality Target, label: checked, content_type: object}
   

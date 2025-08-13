@@ -210,6 +210,9 @@ class TypedExecutionEngine:
             def is_first_execution(self, node_id: str | NodeID) -> bool:
                 return self.get_node_execution_count(node_id) <= 1
             
+            def get_node_state(self, node_id: str | NodeID) -> Any:
+                return self._context.get_node_state(node_id)
+            
             @property
             def current_node_id(self) -> NodeID | None:
                 return self._context.current_node_id
@@ -224,16 +227,11 @@ class TypedExecutionEngine:
         
         calc_context = OrderCalculatorContext(context, node_outputs, node_exec_counts)
         
-        # Get node states dict for order calculator
-        node_states = {
-            node.id: context.get_node_state(node.id)
-            for node in context.diagram.nodes
-        }
-        
+        # Pass the actual context or calc_context depending on the calculator implementation
+        # DomainDynamicOrderCalculator can handle extracting states from either
         return self.order_calculator.get_ready_nodes(
             diagram=context.diagram,
-            node_states=node_states,
-            context=calc_context
+            context=calc_context  # type: ignore
         )
     
     async def _execute_nodes(

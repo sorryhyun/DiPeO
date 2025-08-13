@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
-from dipeo.application.execution.states.node_readiness_checker import NodeReadinessChecker
 from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
 from dipeo.core.execution import ExecutionContext as ExecutionContextProtocol
 from dipeo.core.execution.execution_tracker import CompletionStatus, ExecutionTracker
@@ -56,7 +55,6 @@ class TypedExecutionContext(ExecutionContextProtocol):
     # State management (private to enforce encapsulation)
     _node_states: dict[NodeID, NodeState] = field(default_factory=dict)
     _tracker: ExecutionTracker = field(default_factory=ExecutionTracker)
-    _readiness_checker: Optional[NodeReadinessChecker] = None
     _state_lock: threading.Lock = field(default_factory=threading.Lock)
     
     # Runtime data
@@ -76,11 +74,6 @@ class TypedExecutionContext(ExecutionContextProtocol):
     runtime_resolver: Optional[RuntimeResolver] = None
     event_bus: Optional[EventEmitter] = None
     container: Optional["Container"] = None
-    
-    def __post_init__(self):
-        """Initialize readiness checker after dataclass initialization."""
-        if self._readiness_checker is None:
-            self._readiness_checker = NodeReadinessChecker(self.diagram, self._tracker)
     
     # ========== Node State Queries ==========
     
@@ -112,15 +105,6 @@ class TypedExecutionContext(ExecutionContextProtocol):
                 node_id for node_id, state in self._node_states.items()
                 if state.status == Status.COMPLETED
             ]
-    
-    def get_ready_nodes(self) -> list[NodeID]:
-        """Get nodes that are ready to execute (all dependencies met)."""
-        with self._state_lock:
-            return [
-                node.id for node in self.diagram.nodes
-                if self._readiness_checker.is_node_ready(node, self._node_states)
-            ]
-    
     def get_running_nodes(self) -> list[NodeID]:
         """Get nodes currently in execution."""
         with self._state_lock:
@@ -369,16 +353,11 @@ class TypedExecutionContext(ExecutionContextProtocol):
         if any(state.status == Status.RUNNING for state in self._node_states.values()):
             return False
         
-        # Check if any nodes are ready
-        return len(self.get_ready_nodes()) == 0
+        # Check if all nodes have been processed (no pending nodes with met dependencies)
+        # This is a simplified check - the engine's order calculator determines actual readiness
+        has_pending = any(state.status == Status.PENDING for state in self._node_states.values())
+        return not has_pending
     
-    def get_ready_executable_nodes(self) -> list[ExecutableNode]:
-        """Get executable node objects that are ready to run."""
-        ready_ids = self.get_ready_nodes()
-        return [
-            node for node in self.diagram.nodes
-            if node.id in ready_ids
-        ]
     
     def calculate_progress(self) -> dict[str, Any]:
         """Calculate execution progress."""

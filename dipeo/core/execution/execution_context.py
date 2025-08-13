@@ -39,11 +39,6 @@ class ExecutionContext(Protocol):
         ...
     
     @abstractmethod
-    def get_ready_nodes(self) -> list[NodeID]:
-        """Get nodes that are ready to execute (all dependencies met)."""
-        ...
-    
-    @abstractmethod
     def get_running_nodes(self) -> list[NodeID]:
         """Get nodes currently in execution."""
         ...
