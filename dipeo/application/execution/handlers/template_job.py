@@ -34,8 +34,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None, template_processor: Optional[TemplateProcessorPort] = None):
         super().__init__()

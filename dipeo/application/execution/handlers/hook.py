@@ -33,8 +33,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
         super().__init__()

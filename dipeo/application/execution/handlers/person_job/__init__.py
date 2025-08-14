@@ -39,8 +39,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self):
         super().__init__()

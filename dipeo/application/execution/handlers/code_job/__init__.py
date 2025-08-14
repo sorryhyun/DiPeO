@@ -37,8 +37,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     avoiding metadata pollution and providing clean, type-safe data flow.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self, filesystem_adapter: FileSystemPort | None = None, template_processor: TemplateProcessorPort | None = None):
         super().__init__()

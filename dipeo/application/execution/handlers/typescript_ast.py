@@ -21,8 +21,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self):
         """Initialize the handler.

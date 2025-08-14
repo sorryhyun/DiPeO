@@ -6,6 +6,20 @@
       "additionalProperties": false,
       "type": "object"
     },
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "HttpMethod": {
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
+      "type": "string"
+    },
     "ApiJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -71,8 +85,10 @@
       ],
       "type": "object"
     },
-    "JsonDict": {
-      "additionalProperties": false,
+    "JsonObject": {
+      "additionalProperties": {
+        "$ref": "#/definitions/JsonValue"
+      },
       "type": "object"
     },
     "JsonValue": {
@@ -95,22 +111,6 @@
           ]
         }
       ]
-    },
-    "JsonObject": {
-      "additionalProperties": {
-        "$ref": "#/definitions/JsonValue"
-      },
-      "type": "object"
-    },
-    "HttpMethod": {
-      "enum": [
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "PATCH"
-      ],
-      "type": "string"
     }
   }
 }

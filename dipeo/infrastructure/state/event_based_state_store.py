@@ -420,12 +420,12 @@ class EventBasedStateStore(StateStorePort):
             if not state:
                 raise ValueError(f"Execution {execution_id} not found")
         
-        # Handle protocol outputs vs raw outputs
+        # Handle Envelope outputs
         if hasattr(output, "__class__") and hasattr(output, "to_dict"):
-            # It's a protocol output (Envelope or legacy NodeOutput)
+            # It's an Envelope protocol output
             serialized_output = serialize_protocol(output)
-        elif isinstance(output, dict) and ("envelope_format" in output or "_envelope_format" in output or "_protocol_type" in output):
-            # Already serialized, use as-is
+        elif isinstance(output, dict) and (output.get("envelope_format") or output.get("_envelope_format")):
+            # Already serialized Envelope, use as-is
             serialized_output = output
         else:
             from dipeo.core.execution.envelope import EnvelopeFactory

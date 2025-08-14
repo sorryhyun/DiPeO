@@ -35,8 +35,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
 
     def __init__(self, db_operations_service: Any | None = None, template_processor: TemplateProcessorPort | None = None) -> None:
         super().__init__()

@@ -32,8 +32,6 @@ logger = logging.getLogger(__name__)
 class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     """Handler for condition nodes using evaluator pattern with envelope support."""
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self):
         super().__init__()

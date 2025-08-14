@@ -19,9 +19,6 @@ if TYPE_CHECKING:
 class StartNodeHandler(TypedNodeHandler[StartNode]):
     """Handler for start nodes with envelope support."""
     
-    # Enable envelope mode
-    _expects_envelopes = True
-    
     def __init__(self):
         super().__init__()
         # Instance variables for passing data between methods

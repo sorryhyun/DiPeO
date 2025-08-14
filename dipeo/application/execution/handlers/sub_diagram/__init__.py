@@ -43,8 +43,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     Now uses envelope-based communication for clean interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self):
         """Initialize executors."""

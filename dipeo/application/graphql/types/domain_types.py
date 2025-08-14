@@ -27,7 +27,6 @@ from dipeo.diagram_generated.domain_models import (
     ExecutionOptions,
     SerializedNodeOutput,
     SerializedEnvelope,
-    LegacySerializedOutput,
     EnvelopeMeta,
 )
 
@@ -106,33 +105,8 @@ class SerializedEnvelopeType:
     body: Optional[JSONScalar] = None
     meta: strawberry.auto
 
-# LegacySerializedOutput type for backward compatibility
-@strawberry.experimental.pydantic.type(LegacySerializedOutput)
-class LegacySerializedOutputType:
-    type: strawberry.auto  # Will be exposed as 'type' in GraphQL
-    value: Optional[JSONScalar] = None
-    node_id: strawberry.auto
-    metadata: strawberry.auto
-    timestamp: strawberry.auto
-    error: strawberry.auto
-    token_usage: strawberry.auto
-    execution_time: strawberry.auto
-    retry_count: strawberry.auto
-    person_id: strawberry.auto
-    conversation_id: strawberry.auto
-    language: strawberry.auto
-    stdout: strawberry.auto
-    stderr: strawberry.auto
-    success: strawberry.auto
-    status_code: strawberry.auto
-    headers: Optional[JSONScalar] = None
-    response_time: strawberry.auto
-    true_output: Optional[JSONScalar] = None
-    false_output: Optional[JSONScalar] = None
-    error_type: strawberry.auto
-
-# Union type for SerializedNodeOutput
-SerializedNodeOutputType = strawberry.union("SerializedNodeOutputType", [SerializedEnvelopeType, LegacySerializedOutputType])
+# SerializedNodeOutput is now just SerializedEnvelope
+SerializedNodeOutputType = SerializedEnvelopeType
 
 @strawberry.experimental.pydantic.type(DomainHandle, all_fields=True)
 class DomainHandleType:

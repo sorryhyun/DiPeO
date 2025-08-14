@@ -224,33 +224,6 @@ class SerializedEnvelope(BaseModel):
     meta: EnvelopeMeta
 
 
-class LegacySerializedOutput(BaseModel):
-    """LegacySerializedOutput model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    type: str = Field(alias='_type')
-    value: Any
-    node_id: str
-    metadata: str
-    timestamp: Optional[str] = Field(default=None)
-    error: Optional[Union[str, None]] = Field(default=None)
-    token_usage: Optional[Union[TokenUsage, None]] = Field(default=None)
-    execution_time: Optional[Union[float, None]] = Field(default=None)
-    retry_count: Optional[float] = Field(default=None)
-    person_id: Optional[Union[str, None]] = Field(default=None)
-    conversation_id: Optional[Union[str, None]] = Field(default=None)
-    language: Optional[Union[str, None]] = Field(default=None)
-    stdout: Optional[Union[str, None]] = Field(default=None)
-    stderr: Optional[Union[str, None]] = Field(default=None)
-    success: Optional[bool] = Field(default=None)
-    status_code: Optional[Union[float, None]] = Field(default=None)
-    headers: Optional[Dict[str, str]] = Field(default=None)
-    response_time: Optional[Union[float, None]] = Field(default=None)
-    true_output: Optional[Any] = Field(default=None)
-    false_output: Optional[Any] = Field(default=None)
-    error_type: Optional[Union[str, None]] = Field(default=None)
-
-
 class ExecutionState(BaseModel):
     """ExecutionState model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -610,7 +583,7 @@ class UserResponseNodeData(BaseNodeData):
 
 
 # Type aliases that reference models
-SerializedNodeOutput = Union[SerializedEnvelope, LegacySerializedOutput]
+SerializedNodeOutput = SerializedEnvelope
 PersonMemoryMessage = Message
 PersonBatchJobNodeData = PersonJobNodeData
 
@@ -683,9 +656,6 @@ def is_envelope_meta(obj: Any) -> bool:
 def is_serialized_envelope(obj: Any) -> bool:
     """Check if object is a SerializedEnvelope."""
     return isinstance(obj, SerializedEnvelope)
-def is_legacy_serialized_output(obj: Any) -> bool:
-    """Check if object is a LegacySerializedOutput."""
-    return isinstance(obj, LegacySerializedOutput)
 def is_execution_state(obj: Any) -> bool:
     """Check if object is a ExecutionState."""
     return isinstance(obj, ExecutionState)

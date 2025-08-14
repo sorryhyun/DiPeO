@@ -207,104 +207,34 @@ def serialize_protocol(output: Envelope) -> dict[str, Any]:
 def deserialize_protocol(data: dict[str, Any]) -> Envelope:
     """Reconstruct envelope from stored data.
     
-    Handles both new Envelope format and legacy NodeOutput format for backward compatibility.
+    Only handles the standard Envelope format now that legacy support has been removed.
     """
     
-    # Check for new Envelope format (using discriminator)
-    if data.get("envelope_format") or data.get("_envelope_format"):
-        # New Envelope format
-        content_type_val = data.get("content_type", "raw_text")
-        
-        # Handle content_type conversion
-        if isinstance(content_type_val, str):
-            try:
-                # Try to convert to ContentType enum
-                content_type = ContentType(content_type_val)
-            except (ValueError, KeyError):
-                # If not a valid enum value, default to RAW_TEXT
-                content_type = ContentType.RAW_TEXT
-        else:
-            content_type = content_type_val
-        
-        return Envelope(
-            id=data.get("id", str(uuid4())),
-            trace_id=data.get("trace_id", ""),
-            produced_by=data.get("produced_by", "system"),
-            content_type=content_type,
-            schema_id=data.get("schema_id"),
-            serialization_format=data.get("serialization_format"),
-            body=data.get("body"),
-            meta=data.get("meta", {})
-        )
+    # Envelope format (with discriminator check for safety)
+    if not (data.get("envelope_format") or data.get("_envelope_format")):
+        raise ValueError(f"Invalid envelope data: missing envelope_format discriminator")
     
-    # Legacy NodeOutput format - convert to Envelope
-    # This path maintains backward compatibility with existing stored data
-    node_id = data.get("node_id", "unknown")
-    value = data.get("value")
-    metadata_str = data.get("metadata", "{}")
+    content_type_val = data.get("content_type", "raw_text")
     
-    # Parse metadata if it's a JSON string
-    meta = {}
-    if isinstance(metadata_str, str):
+    # Handle content_type conversion
+    if isinstance(content_type_val, str):
         try:
-            meta = json.loads(metadata_str)
-        except (json.JSONDecodeError, TypeError):
-            meta = {}
-    elif isinstance(metadata_str, dict):
-        meta = metadata_str
-    
-    # Determine content type based on legacy protocol type or value type
-    protocol_type = data.get("_protocol_type", data.get("_type", ""))
-    
-    # Map legacy types to ContentType
-    if "Condition" in protocol_type:
-        content_type = ContentType.RAW_TEXT  # Store condition result as text
-        # Add condition-specific metadata
-        meta["condition_result"] = value
-        meta["condtrue"] = data.get("true_output")
-        meta["condfalse"] = data.get("false_output")
-        meta["active_branch"] = "condtrue" if value else "condfalse"
-    elif "Conversation" in protocol_type:
-        content_type = ContentType.CONVERSATION_STATE
-    elif "Data" in protocol_type or isinstance(value, dict):
-        content_type = ContentType.OBJECT
+            # Try to convert to ContentType enum
+            content_type = ContentType(content_type_val)
+        except (ValueError, KeyError):
+            # If not a valid enum value, default to RAW_TEXT
+            content_type = ContentType.RAW_TEXT
     else:
-        content_type = ContentType.RAW_TEXT
+        content_type = content_type_val
     
-    # Migrate legacy fields to metadata
-    if data.get("token_usage"):
-        meta["token_usage"] = data["token_usage"]
-    if data.get("execution_time") is not None:
-        meta["execution_time"] = data["execution_time"]
-    if data.get("retry_count"):
-        meta["retry_count"] = data["retry_count"]
-    if data.get("status"):
-        meta["status"] = data["status"]
-    if data.get("error"):
-        meta["error"] = data["error"]
-    if data.get("timestamp"):
-        # Handle timestamp conversion
-        ts = data["timestamp"]
-        if isinstance(ts, str):
-            try:
-                # Parse ISO format timestamp
-                from datetime import datetime
-                dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
-                meta["timestamp"] = dt.timestamp()
-            except:
-                meta["timestamp"] = time.time()
-        else:
-            meta["timestamp"] = ts
-    
-    # Create Envelope with migrated data
     return Envelope(
-        id=str(uuid4()),
-        trace_id="",
-        produced_by=str(node_id),
+        id=data.get("id", str(uuid4())),
+        trace_id=data.get("trace_id", ""),
+        produced_by=data.get("produced_by", "system"),
         content_type=content_type,
-        schema_id=None,
-        serialization_format=None,
-        body=value,
-        meta=meta
+        schema_id=data.get("schema_id"),
+        serialization_format=data.get("serialization_format"),
+        body=data.get("body"),
+        meta=data.get("meta", {})
     )
     

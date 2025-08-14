@@ -30,8 +30,6 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self, integrated_api_service=None, api_key_service=None):
         super().__init__()

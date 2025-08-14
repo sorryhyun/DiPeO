@@ -4,11 +4,10 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 330,
+        "x": 100,
         "y": 200
       },
       "data": {
-        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {},
         "label": "start"
@@ -16,82 +15,62 @@
     },
     {
       "id": "node_1",
-      "type": "person_job",
+      "type": "db",
       "position": {
-        "x": 632,
-        "y": 231
+        "x": 300,
+        "y": 200
       },
       "data": {
-        "default_prompt": "say hi",
-        "max_iteration": 3,
-        "memory_profile": "FULL",
-        "person": "person 1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "label": "printer",
-        "first_only_prompt": ""
+        "operation": "read",
+        "sub_type": "file",
+        "format": "text",
+        "file": "projects/dipeodipeo/request.txt",
+        "label": "load_request"
       }
     },
     {
       "id": "node_2",
-      "type": "condition",
+      "type": "person_job",
       "position": {
-        "x": 620,
-        "y": 425
+        "x": 600,
+        "y": 200
       },
       "data": {
-        "condition_type": "detect_max_iterations",
-        "flipped": [
-          true,
-          true
-        ],
-        "label": "condition"
+        "person": "diagram_designer",
+        "prompt_file": "diagram_generator.txt",
+        "max_iteration": 1,
+        "text_format_file": "projects/dipeodipeo/light_diagram_models.py",
+        "label": "generate_diagram",
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_3",
-      "type": "endpoint",
+      "type": "code_job",
       "position": {
-        "x": 0,
-        "y": 437
+        "x": 700,
+        "y": 200
       },
       "data": {
-        "file_format": "txt",
-        "save_to_file": true,
-        "flipped": [
-          true,
-          false
-        ],
-        "file_name": "files/results/total.txt",
-        "label": "endpoint"
+        "language": "python",
+        "filePath": "projects/dipeodipeo/process.py",
+        "functionName": "process_diagram",
+        "label": "format_yaml"
       }
     },
     {
       "id": "node_4",
-      "type": "person_job",
+      "type": "db",
       "position": {
-        "x": 311,
-        "y": 443
+        "x": 1000,
+        "y": 200
       },
       "data": {
-        "default_prompt": "How many times did you respond?",
-        "flipped": [
-          true,
-          false
-        ],
-        "max_iteration": 1,
-        "memory_profile": "FULL",
-        "person": "person 1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "label": "ask",
-        "first_only_prompt": ""
+        "operation": "write",
+        "sub_type": "file",
+        "format": "yaml",
+        "file": "projects/dipeodipeo/generated/diagram.light.yaml",
+        "label": "save_diagram"
       }
     }
   ],
@@ -108,48 +87,36 @@
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "label": null,
+      "label": "workflow_description",
       "data": null,
-      "content_type": "conversation_state"
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_2",
-      "source": "node_2_condfalse_output",
-      "target": "node_1_default_input",
-      "label": null,
-      "data": {
-        "branch": "false"
-      },
-      "content_type": "conversation_state"
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
+      "label": "generated_diagram",
+      "data": null,
+      "content_type": "object"
     },
     {
       "id": "arrow_3",
-      "source": "node_2_condtrue_output",
+      "source": "node_3_default_output",
       "target": "node_4_default_input",
-      "label": null,
-      "data": {
-        "branch": "true"
-      },
-      "content_type": "conversation_state"
-    },
-    {
-      "id": "arrow_4",
-      "source": "node_4_default_output",
-      "target": "node_3_default_input",
-      "label": null,
+      "label": "diagram_output",
       "data": null,
-      "content_type": "raw_text"
+      "content_type": "object"
     }
   ],
   "persons": [
     {
-      "id": "person 1",
-      "label": "person 1",
+      "id": "diagram_designer",
+      "label": "diagram_designer",
       "llm_config": {
         "service": "openai",
         "model": "gpt-5-nano-2025-08-07",
         "api_key_id": "APIKEY_52609F",
-        "system_prompt": null,
+        "system_prompt": "You are an expert DiPeO diagram designer. You create well-structured light format diagrams\nthat follow best practices for modularity, error handling, and performance.\nAlways ensure proper node positioning with x-coordinates incrementing by 200-300 for readability.\n",
         "prompt_file": null
       },
       "type": "person"
@@ -163,14 +130,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_1_first_input",
-      "node_id": "node_1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -189,6 +148,14 @@
       "position": "right"
     },
     {
+      "id": "node_2_first_input",
+      "node_id": "node_2",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
       "id": "node_2_default_input",
       "node_id": "node_2",
       "label": "default",
@@ -197,19 +164,11 @@
       "position": "left"
     },
     {
-      "id": "node_2_condtrue_output",
+      "id": "node_2_default_output",
       "node_id": "node_2",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_2_condfalse_output",
-      "node_id": "node_2",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
@@ -221,12 +180,12 @@
       "position": "left"
     },
     {
-      "id": "node_4_first_input",
-      "node_id": "node_4",
-      "label": "first",
-      "direction": "input",
+      "id": "node_3_default_output",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "output",
       "data_type": "any",
-      "position": "left"
+      "position": "right"
     },
     {
       "id": "node_4_default_input",
@@ -250,8 +209,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-14T10:07:43.126Z",
-    "modified": "2025-08-14T10:07:43.126Z",
+    "created": "2025-08-14T12:14:35.243Z",
+    "modified": "2025-08-14T12:14:35.243Z",
     "version": "1.0.0",
     "id": null
   }
