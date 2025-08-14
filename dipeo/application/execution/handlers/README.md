@@ -52,11 +52,11 @@ handlers/
 
 ### 1. Base Handler (`handler_base.py`)
 
-Abstract base for all node handlers:
+Abstract base for all node handlers with envelope-based communication:
 
 ```python
 class TypedNodeHandler(ABC, Generic[T]):
-    """Base class for typed node handlers"""
+    """Base class for typed node handlers with envelope support"""
     
     @property
     @abstractmethod
@@ -82,8 +82,8 @@ class TypedNodeHandler(ABC, Generic[T]):
         return None
     
     @abstractmethod
-    async def execute_request(self, request: ExecutionRequest[T]) -> NodeOutputProtocol:
-        """Main execution logic"""
+    async def execute_with_envelopes(self, request: ExecutionRequest[T], inputs: dict[str, Envelope]) -> NodeOutputProtocol:
+        """Main execution logic with envelope inputs"""
         pass
 ```
 
@@ -147,8 +147,8 @@ class TypedNodeHandler(ABC, Generic[T]):
         Returns NodeOutputProtocol to skip execution, None to proceed."""
         return None
     
-    async def execute_request(self, request: ExecutionRequest[T]) -> NodeOutputProtocol:
-        """Main execution logic."""
+    async def execute_with_envelopes(self, request: ExecutionRequest[T], inputs: dict[str, Envelope]) -> NodeOutputProtocol:
+        """Main execution logic with envelope inputs."""
         pass
 ```
 
@@ -174,8 +174,8 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             return ErrorOutput(value="Invalid method", node_id=request.node.id)
         return None
     
-    async def execute_request(self, request):
-        # Use instance vars directly
+    async def execute_with_envelopes(self, request, inputs):
+        # Use instance vars directly and process envelope inputs
         response = await self.api_service.call(
             method=self._current_method,
             headers=self._current_headers
@@ -261,9 +261,10 @@ class CustomNodeHandler(TypedNodeHandler[CustomNode]):
         # Return ErrorOutput for failures, None to proceed
         return None
     
-    async def execute_request(self, request: ExecutionRequest[CustomNode]) -> NodeOutputProtocol:
-        """Execute using validated data from pre_execute"""
+    async def execute_with_envelopes(self, request: ExecutionRequest[CustomNode], inputs: dict[str, Envelope]) -> NodeOutputProtocol:
+        """Execute using validated data from pre_execute and envelope inputs"""
         # Use instance variables set in pre_execute
+        # Process envelope inputs using self.reader
         return DataOutput(value=result, node_id=request.node.id)
 ```
 
@@ -272,12 +273,12 @@ class CustomNodeHandler(TypedNodeHandler[CustomNode]):
 1. **Registration**: Handlers are decorated with `@register_handler` and auto-registered on import
 2. **Initialization**: Factory creates handler instances with dependencies  
 3. **Pre-execution**: `pre_execute()` validates inputs and prepares data
-4. **Execution**: `execute_request()` performs the main logic
+4. **Execution**: `execute_with_envelopes()` performs the main logic with envelope inputs
 5. **Post-execution**: Optional `post_execute()` for cleanup
 
 ## Error Handling
 
-Handlers should return `ErrorOutput` for recoverable errors in `pre_execute()` or `execute_request()`:
+Handlers should return `ErrorOutput` for recoverable errors in `pre_execute()` or `execute_with_envelopes()`:
 
 ```python
 async def pre_execute(self, request):
@@ -295,7 +296,7 @@ For unrecoverable errors, raise exceptions that will be caught by the execution 
 ## Best Practices
 
 1. **Use pre_execute()** for validation and setup
-2. **Store state in instance variables** between pre_execute and execute_request
+2. **Store state in instance variables** between pre_execute and execute_with_envelopes
 3. **Return early with ErrorOutput** for validation failures
 4. **Keep handlers focused** on a single node type
 5. **Make I/O operations async** for better performance

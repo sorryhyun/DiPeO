@@ -19,37 +19,16 @@ T = TypeVar('T', bound=ExecutableNode)
 TNode = TypeVar('TNode')
 
 
-class EnvelopeHandlerProtocol(Protocol):
-    """Protocol for envelope-aware handlers"""
-    _expects_envelopes: bool = True
-    
-    async def resolve_envelope_inputs(
-        self, 
-        request: "ExecutionRequest"
-    ) -> dict[str, Envelope]: ...
-    
-    async def execute_with_envelopes(
-        self,
-        request: "ExecutionRequest",
-        inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol: ...
-
-
 class TypedNodeHandler(Generic[T], ABC):
-    """Enhanced base handler with envelope enforcement.
+    """Base handler for type-safe node execution with envelope communication.
     
-    Base for type-safe node handlers. Defines execution pattern for typed nodes.
-    Supports both legacy and envelope-based communication patterns.
+    All handlers inherit from this class and implement execute_with_envelopes.
+    Provides envelope-based input/output handling with full type safety.
     """
     
-    # Class-level flag for migration
-    _expects_envelopes: bool = False
-    
     def __init__(self):
-        # Only initialize envelope support if needed
-        if self._expects_envelopes:
-            self.reader = EnvelopeReader()
-            self._resolver = None  # Injected by engine
+        self.reader = EnvelopeReader()
+        self._resolver = None  # Injected by engine
     
     @property
     @abstractmethod
@@ -77,23 +56,11 @@ class TypedNodeHandler(Generic[T], ABC):
     def validate(self, request: "ExecutionRequest[T]") -> Optional[str]:
         return None
     
-    @abstractmethod
-    async def execute_request(
-        self, 
-        request: "ExecutionRequest[T]"
-    ) -> NodeOutputProtocol:
-        """Main execution method.
-        
-        Legacy handlers should implement this directly.
-        Envelope-aware handlers should override _execute_handler() instead.
-        """
-        ...
-    
     async def pre_execute(self, request: "ExecutionRequest[T]") -> Optional[NodeOutputProtocol]:
         """Pre-execution hook for checks and early returns.
         
-        Called before execute_request. If this returns a NodeOutputProtocol,
-        that output is used and execute_request is skipped.
+        Called before execute_with_envelopes. If this returns a NodeOutputProtocol,
+        that output is used and execute_with_envelopes is skipped.
         
         Returns:
             NodeOutputProtocol if execution should be skipped, None otherwise
@@ -113,36 +80,8 @@ class TypedNodeHandler(Generic[T], ABC):
         error: Exception
     ) -> Optional[NodeOutputProtocol]:
         return None
-
-
-class EnvelopeNodeHandler(TypedNodeHandler[T], ABC):
-    """Base class for envelope-aware handlers.
     
-    Handlers that want to use the envelope pattern should inherit from this class
-    instead of TypedNodeHandler and implement execute_with_envelopes.
-    """
-    
-    # Enable envelope mode
-    _expects_envelopes: bool = True
-    
-    def __init__(self):
-        super().__init__()
-        self.reader = EnvelopeReader()
-        self._resolver = None  # Injected by engine
-    
-    async def execute_request(
-        self, 
-        request: "ExecutionRequest[T]"
-    ) -> NodeOutputProtocol:
-        """Routes to envelope-based execution"""
-        
-        # Resolve inputs as envelopes
-        inputs = await self._resolve_envelope_inputs(request)
-        
-        # Execute with envelopes
-        return await self.execute_with_envelopes(request, inputs)
-    
-    async def _resolve_envelope_inputs(
+    async def resolve_envelope_inputs(
         self,
         request: "ExecutionRequest[T]"
     ) -> dict[str, Envelope]:
@@ -248,3 +187,4 @@ class EnvelopeNodeHandler(TypedNodeHandler[T], ABC):
 
 # For backward compatibility
 TypedNodeHandlerBase = TypedNodeHandler
+EnvelopeNodeHandler = TypedNodeHandler

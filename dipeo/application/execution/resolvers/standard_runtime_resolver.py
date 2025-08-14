@@ -15,7 +15,6 @@ from dipeo.core.execution.execution_context import ExecutionContext
 from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2, ExecutableNode, ExecutableDiagram
 from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
 
 from dipeo.core.resolution import (
     NodeStrategyFactory,
@@ -133,9 +132,18 @@ class StandardRuntimeResolver(RuntimeResolver):
             # Get primary envelope
             envelope = source_output.primary_envelope()
             
-            # Convert envelope to legacy format for now (backward compatibility)
-            from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
-            legacy_value = EnvelopeAdapter.to_legacy_input(envelope)
+            # Extract value directly from envelope
+            from dipeo.diagram_generated.enums import ContentType
+            if envelope.content_type == ContentType.RAW_TEXT:
+                value = envelope.body
+            elif envelope.content_type == ContentType.OBJECT:
+                value = envelope.body
+            elif envelope.content_type == ContentType.CONVERSATION_STATE:
+                value = envelope.body
+            elif envelope.content_type == ContentType.BINARY:
+                value = envelope.body
+            else:
+                value = envelope.body
             
             # Special handling for condition outputs
             if isinstance(source_output, ConditionOutput):
@@ -145,7 +153,7 @@ class StandardRuntimeResolver(RuntimeResolver):
                     output_value = {"condfalse": source_output.false_output or {}}
                 return StandardNodeOutput.from_dict(output_value)
             
-            return StandardNodeOutput.from_value(legacy_value)
+            return StandardNodeOutput.from_value(value)
         
         # Convert to StandardNodeOutput for consistent handling
         if isinstance(source_output, NodeOutputProtocol):
@@ -160,7 +168,7 @@ class StandardRuntimeResolver(RuntimeResolver):
                 # All other protocol outputs
                 return StandardNodeOutput.from_value(source_output.value)
         elif isinstance(source_output, dict) and "value" in source_output:
-            # Legacy dict format
+            # Dict format
             return StandardNodeOutput.from_value(source_output["value"])
         else:
             # Raw value
@@ -354,12 +362,21 @@ class StandardRuntimeResolver(RuntimeResolver):
             if isinstance(source_output, Envelope):
                 envelope = source_output
             else:
-                # Use adapter for legacy outputs
-                envelopes = EnvelopeAdapter.from_legacy_output(
-                    source_output,
-                    node_id=str(edge.source_node_id),
-                    trace_id=trace_id
-                )
+                # Create envelopes from outputs
+                from dipeo.core.execution.envelope import EnvelopeFactory
+                # Extract value from source_output
+                if hasattr(source_output, 'value'):
+                    value = source_output.value
+                else:
+                    value = source_output
+                    
+                if isinstance(value, str):
+                    envelopes = [EnvelopeFactory.text(value, produced_by=str(edge.source_node_id), trace_id=context.execution_id)]
+                elif isinstance(value, (dict, list)):
+                    envelopes = [EnvelopeFactory.json(value, produced_by=str(edge.source_node_id), trace_id=context.execution_id)]
+                else:
+                    envelopes = [EnvelopeFactory.text(str(value), produced_by=str(edge.source_node_id), trace_id=context.execution_id)]
+                
                 envelope = envelopes[0] if envelopes else None
             
             if envelope:
