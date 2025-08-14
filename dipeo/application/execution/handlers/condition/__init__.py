@@ -97,26 +97,20 @@ class ConditionNodeHandler(EnvelopeNodeHandler[ConditionNode]):
         # Validate diagram service is available
         diagram = request.get_service(DIAGRAM.name)
         if not diagram:
-            return ErrorOutput(
-                value="Diagram service not available",
-                node_id=node.id,
-                error_type="ServiceError",
-                metadata=json.dumps({
-                    "condition_type": condition_type
-                })
+            return self.create_error_output(
+                ValueError("Diagram service not available"),
+                node.id,
+                request.execution_id or ""
             )
         
         # Select and validate evaluator
         evaluator = self._evaluators.get(condition_type)
         if not evaluator:
             logger.error(f"No evaluator found for condition type: {condition_type}")
-            return ErrorOutput(
-                value=f"No evaluator for condition type: {condition_type}",
-                node_id=node.id,
-                error_type="ConfigurationError",
-                metadata=json.dumps({
-                    "condition_type": condition_type
-                })
+            return self.create_error_output(
+                ValueError(f"No evaluator for condition type: {condition_type}"),
+                node.id,
+                request.execution_id or ""
             )
         
         # Store evaluator and diagram in instance variables for execute_request
@@ -168,6 +162,9 @@ class ConditionNodeHandler(EnvelopeNodeHandler[ConditionNode]):
         )
         
         # Create output envelope with condition result
+        # The envelope needs special metadata for the StandardRuntimeResolver to handle
+        from dataclasses import replace
+        
         output_envelope = EnvelopeFactory.json(
             {
                 "result": result,
@@ -180,25 +177,16 @@ class ConditionNodeHandler(EnvelopeNodeHandler[ConditionNode]):
             trace_id=trace_id
         ).with_meta(
             condition_type=node.condition_type,
-            result=result
+            result=result,
+            # Add branch metadata for runtime resolver
+            branch_taken="true" if result else "false",
+            branch_data=true_output if result else false_output
         )
         
-        # Create ConditionOutput for backward compatibility
-        output = ConditionOutput(
-            value=result,
-            node_id=node.id,
-            true_output=true_output,
-            false_output=false_output
-        )
-        # Set metadata as JSON string using instance variable
-        output.metadata = json.dumps({
-            "condition_type": node.condition_type,
-            "evaluation_metadata": self._current_evaluation_metadata
-        })
+        # Update content type to condition_result for proper handling
+        output_envelope = replace(output_envelope, content_type="condition_result")
         
-        # Attach envelope to output
-        output._envelopes = [output_envelope]
-        return output
+        return self.create_success_output(output_envelope)
     
     def post_execute(
         self,
@@ -220,18 +208,9 @@ class ConditionNodeHandler(EnvelopeNodeHandler[ConditionNode]):
         request: ExecutionRequest[ConditionNode],
         error: Exception
     ) -> NodeOutputProtocol | None:
-        condition_type = request.node.condition_type
-        
-        output = ConditionOutput(
-            value=False,
-            node_id=request.node.id,
-            true_output=None,
-            false_output=request.inputs if request.inputs else {}
+        # Return error envelope - condition defaults to false on error
+        return self.create_error_output(
+            error,
+            request.node.id,
+            request.execution_id or ""
         )
-        # Set metadata as JSON string
-        output.metadata = json.dumps({
-            "condition_type": condition_type,
-            "error": str(error),
-            "error_type": type(error).__name__
-        })
-        return output

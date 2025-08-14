@@ -121,17 +121,7 @@ class BaseNodeOutput(Generic[T], NodeOutputProtocol[T]):
             result["token_usage"] = None
             
         return result
-    
-    def as_envelopes(self) -> list['Envelope']:
-        """Convert to envelopes lazily"""
-        if not hasattr(self, '_envelopes') or self._envelopes is None:
-            from dipeo.application.execution.envelope_adapter import EnvelopeAdapter
-            self._envelopes = EnvelopeAdapter.from_legacy_output(
-                self,
-                node_id=str(self.node_id),
-                trace_id=""
-            )
-        return self._envelopes
+
     
     def primary_envelope(self) -> 'Envelope':
         """Get first/primary envelope"""
@@ -333,7 +323,35 @@ class TemplateJobOutput(TextOutput):
 
 
 def serialize_protocol(output: NodeOutputProtocol) -> dict[str, Any]:
-    """Serialize protocol output for storage with type preservation."""
+    """Serialize protocol output for storage with type preservation.
+    
+    Supports both NodeOutput and Envelope instances for seamless migration.
+    """
+    # Import here to avoid circular dependency
+    from dipeo.core.execution.envelope import Envelope
+    from dipeo.core.execution.envelope_output import EnvelopeOutput
+    
+    # Handle Envelope instances directly
+    if isinstance(output, Envelope):
+        return {
+            "_protocol_type": "Envelope",
+            "_envelope_format": True,
+            "id": output.id,
+            "trace_id": output.trace_id,
+            "produced_by": output.produced_by,
+            "content_type": output.content_type,
+            "schema_id": output.schema_id,
+            "serialization_format": output.serialization_format,
+            "body": output.body,
+            "meta": output.meta
+        }
+    
+    # Handle EnvelopeOutput adapter
+    if isinstance(output, EnvelopeOutput):
+        envelope = output.primary_envelope()
+        return serialize_protocol(envelope)
+    
+    # Legacy NodeOutput serialization
     base_dict = {
         "_protocol_type": output.__class__.__name__,
         "value": output.value,
@@ -388,9 +406,34 @@ def serialize_protocol(output: NodeOutputProtocol) -> dict[str, Any]:
 
 
 def deserialize_protocol(data: dict[str, Any]) -> NodeOutputProtocol:
-    """Reconstruct protocol output from stored data with type information."""
-    from dipeo.diagram_generated import TokenUsage
+    """Reconstruct protocol output from stored data with type information.
     
+    Supports both NodeOutput and Envelope formats for seamless migration.
+    """
+    from dipeo.diagram_generated import TokenUsage, NodeID, Status
+    
+    # Check if this is an Envelope format
+    if data.get("_envelope_format") or data.get("_protocol_type") == "Envelope":
+        from dipeo.core.execution.envelope import Envelope
+        from dipeo.diagram_generated.enums import ContentType
+        
+        # Convert content_type string to enum if needed
+        content_type = data.get("content_type", ContentType.RAW_TEXT)
+        if isinstance(content_type, str):
+            content_type = ContentType(content_type)
+        
+        return Envelope(
+            id=data.get("id", ""),
+            trace_id=data.get("trace_id", ""),
+            produced_by=data.get("produced_by", "system"),
+            content_type=content_type,
+            schema_id=data.get("schema_id"),
+            serialization_format=data.get("serialization_format"),
+            body=data.get("body"),
+            meta=data.get("meta", {})
+        )
+    
+    # Legacy NodeOutput deserialization
     protocol_type = data.get("_protocol_type", "BaseNodeOutput")
     node_id = NodeID(data["node_id"])
     value = data["value"]
@@ -422,40 +465,39 @@ def deserialize_protocol(data: dict[str, Any]) -> NodeOutputProtocol:
     }
     
     if protocol_type == "ConditionOutput":
+        common_kwargs["value"] = bool(value)
         return ConditionOutput(
             **common_kwargs,
-            value=bool(value),
             true_output=data.get("true_output"),
             false_output=data.get("false_output")
         )
     elif protocol_type == "ErrorOutput":
+        common_kwargs["value"] = str(value)
         return ErrorOutput(
             **common_kwargs,
-            value=str(value),
             error=data.get("error", str(value)),
             error_type=data.get("error_type", "UnknownError")
         )
     elif protocol_type == "PersonJobOutput":
         return PersonJobOutput(
             **common_kwargs,
-            value=value,  # Should be list of Messages
             person_id=data.get("person_id"),
             conversation_id=data.get("conversation_id"),
             model=data.get("model")
         )
     elif protocol_type == "CodeJobOutput":
+        common_kwargs["value"] = str(value)
         return CodeJobOutput(
             **common_kwargs,
-            value=str(value),
             language=data.get("language"),
             stdout=data.get("stdout"),
             stderr=data.get("stderr"),
             result_type=data.get("result_type")
         )
     elif protocol_type == "APIJobOutput":
+        common_kwargs["value"] = dict(value) if not isinstance(value, dict) else value
         return APIJobOutput(
             **common_kwargs,
-            value=dict(value) if not isinstance(value, dict) else value,
             status_code=data.get("status_code"),
             headers=data.get("headers"),
             response_time=data.get("response_time"),
@@ -463,22 +505,18 @@ def deserialize_protocol(data: dict[str, Any]) -> NodeOutputProtocol:
             method=data.get("method")
         )
     elif protocol_type == "TemplateJobOutput":
+        common_kwargs["value"] = str(value)
         return TemplateJobOutput(
             **common_kwargs,
-            value=str(value),
             engine=data.get("engine"),
             template_path=data.get("template_path"),
             output_path=data.get("output_path")
         )
     elif protocol_type == "TextOutput":
-        return TextOutput(
-            **common_kwargs,
-            value=str(value)
-        )
+        common_kwargs["value"] = str(value)
+        return TextOutput(**common_kwargs)
     elif protocol_type == "DataOutput":
-        return DataOutput(
-            **common_kwargs,
-            value=dict(value) if not isinstance(value, dict) else value
-        )
+        common_kwargs["value"] = dict(value) if not isinstance(value, dict) else value
+        return DataOutput(**common_kwargs)
     else:
         return BaseNodeOutput(**common_kwargs)

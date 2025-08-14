@@ -6,6 +6,7 @@ This module provides:
 - Support for iterative execution without losing state
 - Node-type-specific strategies and input resolution
 - Executable diagram structures and compilation
+- Envelope-based message passing (migration in progress)
 """
 
 from dipeo.core.execution.execution_tracker import (
@@ -25,6 +26,25 @@ from dipeo.core.execution.node_output import (
     TextOutput,
     serialize_protocol,
     deserialize_protocol,
+)
+from dipeo.core.execution.envelope import (
+    Envelope,
+    EnvelopeFactory,
+)
+from dipeo.core.execution.envelope_reader import (
+    EnvelopeReader,
+)
+from dipeo.core.execution.envelope_output import (
+    EnvelopeOutput,
+    ConversationEnvelopeOutput,
+    ConditionEnvelopeOutput,
+    DataEnvelopeOutput,
+    create_text_output,
+    create_json_output,
+    create_error_output,
+    create_conversation_output,
+    create_condition_output,
+    create_data_output,
 )
 from dipeo.core.execution.node_strategy import (
     NodeStrategy,
@@ -60,7 +80,7 @@ from dipeo.diagram_generated.generated_nodes import (
 )
 
 __all__ = [
-    # Node outputs
+    # Node outputs (legacy)
     "NodeOutputProtocol",
     "BaseNodeOutput",
     "TextOutput",
@@ -70,6 +90,20 @@ __all__ = [
     "ErrorOutput",
     "serialize_protocol",
     "deserialize_protocol",
+    # Envelope system (new)
+    "Envelope",
+    "EnvelopeFactory",
+    "EnvelopeReader",
+    "EnvelopeOutput",
+    "ConversationEnvelopeOutput",
+    "ConditionEnvelopeOutput",
+    "DataEnvelopeOutput",
+    "create_text_output",
+    "create_json_output",
+    "create_error_output",
+    "create_conversation_output",
+    "create_condition_output",
+    "create_data_output",
     # Execution tracking
     "ExecutionTracker",
     "FlowStatus",

@@ -94,10 +94,10 @@ class CodeJobNodeHandler(EnvelopeNodeHandler[CodeJobNode]):
         executor = self._executors.get(language)
         if not executor:
             supported = ', '.join(self._executors.keys())
-            return ErrorOutput(
-                value=f"Unsupported language: {language}. Supported: {supported}",
-                node_id=node.id,
-                error_type="UnsupportedLanguageError"
+            return self.create_error_output(
+                ValueError(f"Unsupported language: {language}. Supported: {supported}"),
+                node.id,
+                request.execution_id or ""
             )
         
         # 3. Runtime validation: Resolve and check file path if needed
@@ -110,17 +110,17 @@ class CodeJobNodeHandler(EnvelopeNodeHandler[CodeJobNode]):
             
             # Check file exists at runtime
             if not file_path.exists():
-                return ErrorOutput(
-                    value=f"File not found: {node.filePath}",
-                    node_id=node.id,
-                    error_type="FileNotFoundError"
+                return self.create_error_output(
+                    FileNotFoundError(f"File not found: {node.filePath}"),
+                    node.id,
+                    request.execution_id or ""
                 )
             
             if not file_path.is_file():
-                return ErrorOutput(
-                    value=f"Path is not a file: {node.filePath}",
-                    node_id=node.id,
-                    error_type="ValidationError"
+                return self.create_error_output(
+                    ValueError(f"Path is not a file: {node.filePath}"),
+                    node.id,
+                    request.execution_id or ""
                 )
         
         # 4. Store all validated data in instance variables for execute_request
@@ -268,9 +268,8 @@ class CodeJobNodeHandler(EnvelopeNodeHandler[CodeJobNode]):
         request: ExecutionRequest[CodeJobNode],
         error: Exception
     ) -> NodeOutputProtocol | None:
-        return ErrorOutput(
-            value=f"Code execution failed: {error!s}",
-            node_id=request.node.id,
-            error_type=type(error).__name__,
-            metadata="{}"  # Empty metadata
+        return self.create_error_output(
+            error,
+            request.node.id,
+            request.execution_id or ""
         )

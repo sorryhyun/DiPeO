@@ -121,10 +121,10 @@ class SubDiagramNodeHandler(EnvelopeNodeHandler[SubDiagramNode]):
             
             # Validate required services
             if not all([state_store, message_router, diagram_service]):
-                return ErrorOutput(
-                    value="Required services not available for sub-diagram execution",
-                    node_id=request.node.id,
-                    error_type="ServiceNotAvailableError"
+                return self.create_error_output(
+                    ValueError("Required services not available for sub-diagram execution"),
+                    request.node.id,
+                    request.execution_id or ""
                 )
             
             # Set services on executors
@@ -233,18 +233,14 @@ class SubDiagramNodeHandler(EnvelopeNodeHandler[SubDiagramNode]):
         if isinstance(error, ValueError):
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Validation error in sub-diagram: {error}")
-            return ErrorOutput(
-                value=str(error),
-                node_id=request.node.id,
-                error_type="ValidationError"
-            )
+        else:
+            # For other errors, log them
+            logger.error(f"Error executing sub-diagram: {error}")
         
-        # For other errors, log them
-        logger.error(f"Error executing sub-diagram: {error}")
-        return ErrorOutput(
-            value=str(error),
-            node_id=request.node.id,
-            error_type=type(error).__name__
+        return self.create_error_output(
+            error,
+            request.node.id,
+            request.execution_id or ""
         )
     
     def post_execute(

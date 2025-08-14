@@ -141,48 +141,67 @@ class TypedNodeHandler(Generic[T], ABC):
         *envelopes: Envelope
     ) -> NodeOutputProtocol:
         """Create successful output with envelopes"""
-        from dipeo.diagram_generated import NodeID
         
-        # Get the primary envelope's content as the value
-        value = ""
+        # Return the primary envelope directly for consistent handling
         if envelopes:
-            primary = envelopes[0]
-            value = primary.body if primary.body is not None else ""
+            return envelopes[0]
         
-        # Create output with proper node_id
-        node_id = NodeID(envelopes[0].produced_by) if envelopes else NodeID("unknown")
-        output = BaseNodeOutput(value=value, node_id=node_id)
-        output._envelopes = list(envelopes)
-        return output
+        # If no envelopes provided, create an empty text envelope
+        from dipeo.diagram_generated import NodeID
+        return EnvelopeFactory.text("", node_id="unknown")
     
     def create_error_output(
         self,
-        error: Exception,
-        node_id: str,
-        trace_id: str
+        error: Exception | ErrorOutput,
+        node_id: str | None = None,
+        trace_id: str | None = None
     ) -> NodeOutputProtocol:
-        """Create error output as envelope"""
+        """Create error output as envelope
+        
+        Args:
+            error: Exception or ErrorOutput instance
+            node_id: Node ID (optional if error is ErrorOutput)
+            trace_id: Trace ID for tracking
+        """
         from dipeo.diagram_generated import NodeID
         
-        error_envelope = EnvelopeFactory.json(
-            {
-                "error": str(error),
-                "type": type(error).__name__,
-                "node": node_id
-            },
-            produced_by=node_id,
-            trace_id=trace_id
+        # Handle both Exception and ErrorOutput cases
+        if isinstance(error, ErrorOutput):
+            # Extract info from ErrorOutput
+            error_msg = error.value
+            error_type = error.error_type or "ExecutionError"
+            if node_id is None:
+                node_id = str(error.node_id)
+            # Extract metadata if available
+            metadata = {}
+            if hasattr(error, 'metadata') and error.metadata:
+                try:
+                    import json
+                    metadata = json.loads(error.metadata) if isinstance(error.metadata, str) else error.metadata
+                except:
+                    pass
+        else:
+            # Handle Exception case
+            error_msg = str(error)
+            error_type = type(error).__name__
+            metadata = {}
+            if node_id is None:
+                node_id = "unknown"
+        
+        # Create error envelope using EnvelopeFactory
+        error_envelope = EnvelopeFactory.error(
+            error_msg,
+            error_type=error_type,
+            node_id=node_id,
+            trace_id=trace_id or ""
         )
         
-        # Create ErrorOutput with proper node_id
-        node_id_obj = NodeID(node_id)
-        output = ErrorOutput(
-            value=str(error),
-            node_id=node_id_obj,
-            error_type=type(error).__name__
-        )
-        output._envelopes = [error_envelope]
-        return output
+        # Add any additional metadata
+        if metadata:
+            error_envelope = error_envelope.with_meta(**metadata)
+        
+        # Return the error envelope directly for consistent handling
+        return error_envelope
 
 
 # For backward compatibility

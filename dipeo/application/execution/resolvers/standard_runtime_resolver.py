@@ -127,7 +127,25 @@ class StandardRuntimeResolver(RuntimeResolver):
         if not source_output:
             return None
         
-        # Handle envelope if source output has envelopes
+        # Handle pure Envelope instances (Phase 4 migration)
+        if isinstance(source_output, Envelope):
+            # Extract value directly from envelope body
+            value = source_output.body
+            
+            # Special handling for condition outputs stored in envelope
+            if source_output.content_type == "condition_result":
+                # Extract branch data from envelope metadata
+                branch_taken = source_output.meta.get("branch_taken")
+                branch_data = source_output.meta.get("branch_data", {})
+                if branch_taken == "true":
+                    output_value = {"condtrue": branch_data}
+                else:
+                    output_value = {"condfalse": branch_data}
+                return StandardNodeOutput.from_dict(output_value)
+            
+            return StandardNodeOutput.from_value(value)
+        
+        # Handle envelope if source output has envelopes (legacy EnvelopeOutput adapter)
         if hasattr(source_output, 'as_envelopes'):
             # Get primary envelope
             envelope = source_output.primary_envelope()
@@ -240,6 +258,27 @@ class StandardRuntimeResolver(RuntimeResolver):
         output_name: str = "default"
     ) -> Any:
         """Extract a specific output value from a node output."""
+        # Handle pure Envelope instances (Phase 4 migration)
+        if isinstance(output, Envelope):
+            # For envelopes with condition results
+            if output.content_type == "condition_result":
+                branch_taken = output.meta.get("branch_taken")
+                branch_data = output.meta.get("branch_data", {})
+                if branch_taken == "true" and output_name == "condtrue":
+                    return branch_data
+                elif branch_taken == "false" and output_name == "condfalse":
+                    return branch_data
+                return None
+            
+            # For regular envelopes
+            if output_name == "default":
+                return output.body
+            # Try to extract from body if it's a dict
+            if isinstance(output.body, dict):
+                return output.body.get(output_name)
+            return None
+        
+        # Legacy handling for NodeOutput types
         if isinstance(output, ConditionOutput):
             # Special handling for condition outputs
             if output.value:  # True branch
