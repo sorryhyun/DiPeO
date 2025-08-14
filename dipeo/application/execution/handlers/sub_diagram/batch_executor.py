@@ -14,8 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
-from dipeo.core.execution.envelope import NodeOutputProtocol
-from dipeo.core.execution.envelope import EnvelopeFactory
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 
 from .base_executor import BaseSubDiagramExecutor
@@ -57,7 +56,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         self, 
         node: SubDiagramNode, 
         batch_config: dict[str, Any]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Create output for empty batch."""
         logger.warning(f"Batch mode enabled but no items found for key '{batch_config['input_key']}'")
         return EnvelopeFactory.json(
@@ -73,7 +72,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
             batch_parallel=batch_config['parallel']
         )
     
-    async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
+    async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope:
         """Execute sub-diagram for each item in the batch."""
         node = request.node
         
@@ -150,7 +149,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         results: list[Any],
         errors: list[dict[str, Any]],
         batch_config: dict[str, Any]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Create batch execution output."""
         batch_output = {
             'total_items': len(batch_items),
@@ -437,7 +436,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
                     node_id = data.get("node_id")
                     node_output = data.get("output")
                     if node_id and node_output:
-                        # Extract value from NodeOutputProtocol if present
+                        # Extract value from Envelope if present
                         if hasattr(node_output, 'value'):
                             execution_results[node_id] = node_output.value
                         else:

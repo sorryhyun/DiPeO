@@ -7,7 +7,6 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import StartNode, NodeType
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.start_model import StartNodeData, HookTriggerMode
 from dipeo.application.registry import STATE_STORE
@@ -62,7 +61,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[StartNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[StartNode]) -> Optional[Envelope]:
         """Runtime validation and setup"""
         node = request.node
         
@@ -93,7 +92,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         self,
         request: ExecutionRequest[StartNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Execute start node with envelope inputs."""
         node = request.node
         context = request.context
@@ -148,7 +147,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
             message=message
         )
         
-        return self.create_success_output(output_envelope)
+        return output_envelope
     
     async def _get_hook_event_data(
         self,
@@ -162,8 +161,8 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
     def post_execute(
         self,
         request: ExecutionRequest[StartNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         # Debug logging without using request.metadata
         if self._current_trigger_mode:
             print(f"[StartNode] Executed with trigger mode: {self._current_trigger_mode}")

@@ -9,7 +9,6 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import API_SERVICE
 from dipeo.diagram_generated.generated_nodes import ApiJobNode, NodeType
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData, HttpMethod
 
@@ -63,23 +62,25 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     def description(self) -> str:
         return "Makes HTTP requests to external APIs with authentication support"
 
-    async def pre_execute(self, request: ExecutionRequest[ApiJobNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[ApiJobNode]) -> Optional[Envelope]:
         """Pre-execution validation and setup."""
         node = request.node
         
         # Check service availability
         api_service = self.api_service or request.get_service(API_SERVICE.name)
         if not api_service:
-            return self.create_error_output(
-                RuntimeError("API service not available"),
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                "API service not available",
+                error_type="RuntimeError",
+                produced_by=str(node.id)
             )
         
         # Validate URL
         if not node.url:
-            return self.create_error_output(
-                ValueError("No URL provided"),
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                "No URL provided",
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         
         # Convert and validate HTTP method
@@ -88,9 +89,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             try:
                 method = HttpMethod(method.upper())
             except ValueError:
-                return self.create_error_output(
-                    ValueError(f"Invalid HTTP method: {method}"),
-                    node_id=str(node.id)
+                return EnvelopeFactory.error(
+                    f"Invalid HTTP method: {method}",
+                    error_type="ValueError",
+                    produced_by=str(node.id)
                 )
         
         # Parse and validate JSON inputs
@@ -101,9 +103,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         
         parsed_data = self._parse_json_inputs(headers, params, body, auth_config)
         if "error" in parsed_data:
-            return self.create_error_output(
-                ValueError(parsed_data["error"]),
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                parsed_data["error"],
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         
         # Store validated data in instance variables for execute_request to use
@@ -121,7 +124,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         self, 
         request: ExecutionRequest[ApiJobNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Execute API request with envelope inputs."""
         node = request.node
         trace_id = request.execution_id or ""
@@ -154,9 +157,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 try:
                     headers = json.loads(headers_text)
                 except json.JSONDecodeError:
-                    return self.create_error_output(
-                        ValueError("Invalid headers format in input"),
-                        node_id=str(node.id)
+                    return EnvelopeFactory.error(
+                        "Invalid headers format in input",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
                     )
         
         # Check for params override from input
@@ -168,9 +172,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 try:
                     params = json.loads(params_text)
                 except json.JSONDecodeError:
-                    return self.create_error_output(
-                        ValueError("Invalid params format in input"),
-                        node_id=str(node.id)
+                    return EnvelopeFactory.error(
+                        "Invalid params format in input",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
                     )
         
         # Check for body override from input
@@ -218,7 +223,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 status_code=200  # Default success code
             )
             
-            return self.create_success_output(output_envelope)
+            return output_envelope
 
         except Exception as e:
             error_envelope = EnvelopeFactory.text(
@@ -230,9 +235,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 url=url,
                 method=str(method)
             )
-            return self.create_error_output(
-                e,
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id)
             )
 
     def _parse_json_inputs(
@@ -316,8 +322,8 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     def post_execute(
         self,
         request: ExecutionRequest[ApiJobNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         # Post-execution logging can use node properties or output fields
         # No need for metadata access
         return output
@@ -326,12 +332,13 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         self,
         request: ExecutionRequest[ApiJobNode],
         error: Exception
-    ) -> Optional[NodeOutputProtocol]:
+    ) -> Optional[Envelope]:
         # Use node properties for error context
         url = request.node.url or "unknown"
         method = str(self._current_method) if self._current_method else request.node.method or "unknown"
         
-        return self.create_error_output(
-            error,
-            node_id=str(request.node.id)
+        return EnvelopeFactory.error(
+            str(error),
+            error_type=error.__class__.__name__,
+            produced_by=str(request.node.id)
         )

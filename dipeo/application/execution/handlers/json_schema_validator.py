@@ -11,7 +11,6 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import JsonSchemaValidatorNode, NodeType
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.json_schema_validator_model import JsonSchemaValidatorNodeData
 
@@ -67,7 +66,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[JsonSchemaValidatorNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[JsonSchemaValidatorNode]) -> Optional[Envelope]:
         """Runtime validation and setup"""
         node = request.node
         services = request.services
@@ -81,9 +80,10 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         # Check filesystem adapter availability
         filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
-            return self.create_error_output(
-                RuntimeError("Filesystem adapter is required for JSON schema validation"),
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                "Filesystem adapter is required for JSON schema validation",
+                error_type="RuntimeError",
+                produced_by=str(node.id)
             )
         
         return None
@@ -92,7 +92,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         self, 
         request: ExecutionRequest[JsonSchemaValidatorNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Execute JSON schema validation with envelope inputs."""
         node = request.node
         services = request.services
@@ -110,9 +110,10 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     schema_path = Path(base_dir) / node.schema_path
                 
                 if not filesystem_adapter.exists(schema_path):
-                    return self.create_error_output(
-                        ValueError(f"Schema file not found: {node.schema_path}"),
-                        node_id=str(node.id)
+                    return EnvelopeFactory.error(
+                        f"Schema file not found: {node.schema_path}",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
                     )
                 
                 with filesystem_adapter.open(schema_path, 'rb') as f:
@@ -129,9 +130,10 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     data_path = Path(base_dir) / node.data_path
                 
                 if not filesystem_adapter.exists(data_path):
-                    return self.create_error_output(
-                        ValueError(f"Data file not found: {node.data_path}"),
-                        node_id=str(node.id)
+                    return EnvelopeFactory.error(
+                        f"Data file not found: {node.data_path}",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
                     )
                 
                 with filesystem_adapter.open(data_path, 'rb') as f:
@@ -139,9 +141,10 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
             else:
                 # Use input data from envelopes
                 if not inputs:
-                    return self.create_error_output(
-                        ValueError("No input data provided and no data_path specified"),
-                        node_id=str(node.id)
+                    return EnvelopeFactory.error(
+                        "No input data provided and no data_path specified",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
                     )
                 
                 # Convert envelope inputs to data
@@ -205,7 +208,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     data_path=node.data_path
                 )
                 
-                return self.create_success_output(output_envelope)
+                return output_envelope
             else:
                 # Log failure
                 if self._current_debug:
@@ -222,15 +225,17 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                 
                 # Return validation errors as error envelope
                 error_message = f"Validation failed: {'; '.join(validation_result['errors'])}"
-                return self.create_error_output(
-                    ValueError(error_message),
-                    node_id=str(node.id)
+                return EnvelopeFactory.error(
+                    error_message,
+                    error_type="ValueError",
+                    produced_by=str(node.id)
                 )
         
         except Exception as e:
-            return self.create_error_output(
-                e,
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id)
             )
     
     async def _validate_data(self, data: Any, schema: dict, strict_mode: bool = False, error_on_extra: bool = False) -> dict[str, Any]:
@@ -289,8 +294,8 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     def post_execute(
         self,
         request: ExecutionRequest[JsonSchemaValidatorNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         # Debug logging without using request.metadata
         if self._current_debug:
             if not output.has_error():

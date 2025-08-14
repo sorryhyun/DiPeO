@@ -10,7 +10,6 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import INTEGRATED_API_SERVICE, API_KEY_SERVICE
 from dipeo.diagram_generated.generated_nodes import IntegratedApiNode, NodeType
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.integrated_api_model import IntegratedApiNodeData
 from dipeo.diagram_generated.enums import APIServiceType
@@ -65,7 +64,7 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     def description(self) -> str:
         return "Executes operations on various API providers (Notion, Slack, GitHub, etc.)"
     
-    async def pre_execute(self, request: ExecutionRequest[IntegratedApiNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[IntegratedApiNode]) -> Optional[Envelope]:
         """Pre-execution setup: validate services and API key availability.
         
         Moves service checks, API key validation, and provider resolution
@@ -78,15 +77,17 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         api_key_service = self.api_key_service or request.services.resolve(API_KEY_SERVICE)
         
         if not integrated_api_service:
-            return self.create_error_output(
-                ValueError("Integrated API service not available"),
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                "Integrated API service not available",
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         
         if not api_key_service:
-            return self.create_error_output(
-                ValueError("API key service not available"),
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                "API key service not available",
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         
         # Get the API key for the provider
@@ -106,9 +107,10 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         )
         
         if not provider_summary:
-            return self.create_error_output(
-                ValueError(f"No API key configured for provider '{provider}'"),
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                f"No API key configured for provider '{provider}'",
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         
         # Now get the full key details including the actual key
@@ -129,7 +131,7 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         self, 
         request: ExecutionRequest[IntegratedApiNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Execute integrated API operation with envelope inputs."""
         return await self._execute_api_operation(request, inputs)
     
@@ -137,7 +139,7 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         self, 
         request: ExecutionRequest[IntegratedApiNode],
         envelope_inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Execute the API operation through the integrated service."""
         
         # Extract properties from request
@@ -214,7 +216,7 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
                 operation=operation
             )
             
-            return self.create_success_output(output_envelope)
+            return output_envelope
             
         except ValueError as e:
             # Configuration or validation errors
@@ -228,9 +230,10 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
                 provider=provider,
                 operation=operation
             )
-            return self.create_error_output(
-                e,
-                node_id=str(node.id),
+            return EnvelopeFactory.error(
+                str(e),
+                error_type="ValidationError",
+                produced_by=str(node.id),
                 trace_id=trace_id
             )
             
@@ -246,8 +249,9 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
                 provider=provider,
                 operation=operation
             )
-            return self.create_error_output(
-                e,
-                node_id=str(node.id),
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id),
                 trace_id=trace_id
             )

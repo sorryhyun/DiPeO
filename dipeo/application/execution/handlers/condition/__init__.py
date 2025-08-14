@@ -12,7 +12,6 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import DIAGRAM
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.condition_model import ConditionNodeData
 
@@ -86,7 +85,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[ConditionNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[ConditionNode]) -> Optional[Envelope]:
         """Pre-execution setup: validate services and select evaluator.
         
         Moves evaluator selection and service validation out of execute_request
@@ -98,20 +97,22 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Validate diagram service is available
         diagram = request.get_service(DIAGRAM.name)
         if not diagram:
-            return self.create_error_output(
-                ValueError("Diagram service not available"),
-                node.id,
-                request.execution_id or ""
+            return EnvelopeFactory.error(
+                "Diagram service not available",
+                error_type="ValueError",
+                produced_by=node.id,
+                trace_id=request.execution_id or ""
             )
         
         # Select and validate evaluator
         evaluator = self._evaluators.get(condition_type)
         if not evaluator:
             logger.error(f"No evaluator found for condition type: {condition_type}")
-            return self.create_error_output(
-                ValueError(f"No evaluator for condition type: {condition_type}"),
-                node.id,
-                request.execution_id or ""
+            return EnvelopeFactory.error(
+                f"No evaluator for condition type: {condition_type}",
+                error_type="ValueError",
+                produced_by=node.id,
+                trace_id=request.execution_id or ""
             )
         
         # Store evaluator and diagram in instance variables for execute_request
@@ -125,7 +126,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         self,
         request: ExecutionRequest[ConditionNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Execute condition evaluation with envelope inputs."""
         node = request.node
         context = request.context
@@ -187,8 +188,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     def post_execute(
         self,
         request: ExecutionRequest[ConditionNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         # Debug logging without using request.metadata
         condition_type = request.node.condition_type
         result = output.value if hasattr(output, 'value') else None
@@ -203,10 +204,11 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         self,
         request: ExecutionRequest[ConditionNode],
         error: Exception
-    ) -> NodeOutputProtocol | None:
+    ) -> Envelope | None:
         # Return error envelope - condition defaults to false on error
-        return self.create_error_output(
-            error,
-            request.node.id,
-            request.execution_id or ""
+        return EnvelopeFactory.error(
+            str(error),
+            error_type=error.__class__.__name__,
+            produced_by=request.node.id,
+            trace_id=request.execution_id or ""
         )

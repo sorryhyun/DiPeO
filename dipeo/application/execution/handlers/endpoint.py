@@ -10,7 +10,6 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import EndpointNode, NodeType
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
@@ -63,7 +62,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     def description(self) -> str:
         return "Endpoint node – pass through data and optionally save to file"
 
-    async def pre_execute(self, request: ExecutionRequest[EndpointNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[EndpointNode]) -> Optional[Envelope]:
         """Pre-execution validation and setup."""
         node = request.node
         services = request.services
@@ -73,11 +72,11 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
             filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
             
             if not filesystem_adapter:
-                from dipeo.core.execution.envelope import NodeOutputProtocol
-                return self.create_error_output(
-                ValueError("Filesystem adapter is required when save_to_file is enabled"),
-                node_id=str(node.id)
-            )
+                return EnvelopeFactory.error(
+                    "Filesystem adapter is required when save_to_file is enabled",
+                    error_type="ValueError",
+                    produced_by=str(node.id)
+                )
             
             # Resolve file name
             file_name = node.file_name
@@ -120,7 +119,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         self, 
         request: ExecutionRequest[EndpointNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Execute endpoint with envelope inputs."""
         node = request.node
         trace_id = request.execution_id or ""
@@ -168,7 +167,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                         saved_to=file_name
                     )
                     
-                    return self.create_success_output(output_envelope)
+                    return output_envelope
                 except Exception as exc:
                     # Return error when save fails
                     error_envelope = EnvelopeFactory.text(
@@ -179,9 +178,10 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                         error_type="SaveError",
                         attempted_file=file_name
                     )
-                    return self.create_error_output(
-                        exc,
-                        node_id=str(node.id),
+                    return EnvelopeFactory.error(
+                        str(exc),
+                        error_type=exc.__class__.__name__,
+                        produced_by=str(node.id),
                         trace_id=trace_id
                     )
 
@@ -192,13 +192,13 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
             trace_id=trace_id
         )
         
-        return self.create_success_output(output_envelope)
+        return output_envelope
     
     def post_execute(
         self,
         request: ExecutionRequest[EndpointNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         # Post-execution logging can use instance variables if needed
         # No need for metadata access
         return output

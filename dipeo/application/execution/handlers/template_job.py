@@ -12,7 +12,6 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.infrastructure.services.jinja_template.template_integration import get_enhanced_template_service
@@ -79,7 +78,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[TemplateJobNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[TemplateJobNode]) -> Optional[Envelope]:
         """Pre-execution setup: validate template file and processor availability.
         
         Moves template file existence check, processor setup, and service validation
@@ -91,9 +90,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Get filesystem adapter from services or use injected one
         filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
-            return self.create_error_output(
-                RuntimeError("Filesystem adapter is required for template job execution"),
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                "Filesystem adapter is required for template job execution",
+                error_type="RuntimeError",
+                produced_by=str(node.id)
             )
         
         # Store filesystem adapter in instance variable for execute_request
@@ -102,9 +102,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Validate template engine
         engine = node.engine or "internal"
         if engine not in ["internal", "jinja2"]:
-            return self.create_error_output(
-                ValueError(f"Unsupported template engine: {engine}"),
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                f"Unsupported template engine: {engine}",
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         self._current_engine = engine
         
@@ -113,9 +114,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             template_service = self._get_template_service()
             self._current_template_service = template_service
         except Exception as e:
-            return self.create_error_output(
-                e,
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id)
             )
         
         # Initialize template processor for path interpolation
@@ -145,7 +147,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         self, 
         request: ExecutionRequest[TemplateJobNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Execute template rendering with envelope inputs."""
         # print(f"[DEBUG] TemplateJobNode.execute_with_envelopes started for node {request.node.id}")
         node = request.node
@@ -202,9 +204,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 template_path = Path(processed_template_path)
                 
                 if not filesystem_adapter.exists(template_path):
-                    return self.create_error_output(
-                        FileNotFoundError(f"Template file not found: {node.template_path}"),
-                        node_id=str(node.id)
+                    return EnvelopeFactory.error(
+                        f"Template file not found: {node.template_path}",
+                        error_type="FileNotFoundError",
+                        produced_by=str(node.id)
                     )
                 
                 with filesystem_adapter.open(template_path, 'rb') as f:
@@ -225,9 +228,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                         # Log the fallback but don't store in metadata
                         logger.debug(f"Enhancement fallback: {e}")
             except Exception as render_error:
-                return self.create_error_output(
-                    render_error,
-                    node_id=str(node.id)
+                return EnvelopeFactory.error(
+                    str(render_error),
+                    error_type=render_error.__class__.__name__,
+                    produced_by=str(node.id)
                 )
             
             # Write to file if output_path is specified
@@ -261,7 +265,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 output_path=str(output_path) if node.output_path else None
             )
             
-            return self.create_success_output(output_envelope)
+            return output_envelope
         
         except Exception as e:
             error_envelope = EnvelopeFactory.text(
@@ -272,9 +276,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 error_type=type(e).__name__,
                 engine=node.engine or "internal"
             )
-            return self.create_error_output(
-                e,
-                node_id=str(node.id)
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id)
             )
     
     async def _render_jinja2(self, template: str, variables: dict[str, Any]) -> str:
@@ -292,8 +297,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     def post_execute(
         self,
         request: ExecutionRequest[TemplateJobNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         """Post-execution hook to log template execution details."""
         # Post-execution logging can use instance variables if needed
         # No need for metadata access

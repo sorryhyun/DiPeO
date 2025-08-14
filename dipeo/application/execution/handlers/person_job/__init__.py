@@ -16,7 +16,6 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.domain.conversation import Person
 from dipeo.diagram_generated.generated_nodes import PersonJobNode, NodeType
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData
 
@@ -99,7 +98,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[PersonJobNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[PersonJobNode]) -> Optional[Envelope]:
         """Pre-execution hook to check max_iteration limit and configure services."""
         node = request.node
         context = request.context
@@ -140,7 +139,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         self,
         request: ExecutionRequest[PersonJobNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Execute person job with envelope inputs.
         
         Envelopes allow clean, typed communication between nodes.
@@ -224,7 +223,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                         trace_id=trace_id
                     )
                 
-                return self.create_success_output(output_envelope)
+                return output_envelope
             else:
                 # Use single executor for normal execution
                 result = await self.single_executor.execute(request)
@@ -264,7 +263,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                         )
                         envelopes.append(conv_envelope)
                     
-                    return self.create_success_output(*envelopes)
+                    return envelopes[0] if len(envelopes) == 1 else envelopes
                 else:
                     # Fallback for unexpected result format
                     output_envelope = EnvelopeFactory.text(
@@ -272,16 +271,21 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                         produced_by=node.id,
                         trace_id=trace_id
                     )
-                    return self.create_success_output(output_envelope)
+                    return output_envelope
                     
         except Exception as e:
-            return self.create_error_output(e, node.id, trace_id)
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=node.id,
+                trace_id=trace_id
+            )
     
     async def on_error(
         self,
         request: ExecutionRequest[PersonJobNode],
         error: Exception
-    ) -> Optional[NodeOutputProtocol]:
+    ) -> Optional[Envelope]:
         """Handle errors gracefully with envelope output."""
         trace_id = request.execution_id or ""
         
@@ -289,21 +293,27 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         if isinstance(error, ValueError):
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Validation error in person job: {error}")
-            return self.create_error_output(
-                ValueError(f"ValidationError: {error}"),
-                request.node.id,
-                trace_id
+            return EnvelopeFactory.error(
+                f"ValidationError: {error}",
+                error_type="ValueError",
+                produced_by=request.node.id,
+                trace_id=trace_id
             )
         
         # For other errors, log them
         logger.error(f"Error executing person job: {error}")
-        return self.create_error_output(error, request.node.id, trace_id)
+        return EnvelopeFactory.error(
+            str(error),
+            error_type=error.__class__.__name__,
+            produced_by=request.node.id,
+            trace_id=trace_id
+        )
     
     def post_execute(
         self,
         request: ExecutionRequest[PersonJobNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         """Post-execution hook to log execution details."""
         # Log execution details if in debug mode (using instance variable)
         if self._current_debug:

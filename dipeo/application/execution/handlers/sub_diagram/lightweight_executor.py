@@ -278,7 +278,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             for node_id_str, node_state in execution_state.node_states.items():
                 if node_state.status == Status.COMPLETED and node_state.output:
                     if node_id_str not in execution_results:
-                        # Extract value from NodeOutputProtocol if present
+                        # Extract value from Envelope if present
                         output = node_state.output
                         if hasattr(output, 'value'):
                             execution_results[node_id_str] = output.value
@@ -297,7 +297,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         for node_id_str, node_state in execution_state.node_states.items():
             if node_state.status == Status.COMPLETED and node_state.output:
                 if node_id_str not in execution_results:
-                    # Extract value from NodeOutputProtocol if present
+                    # Extract value from Envelope if present
                     output = node_state.output
                     if hasattr(output, 'value'):
                         execution_results[node_id_str] = output.value

@@ -8,7 +8,6 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.domain.ports.template import TemplateProcessorPort
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import CodeJobNode, NodeType
 from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData
@@ -81,7 +80,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     def description(self) -> str:
         return "Executes Python, TypeScript, or Bash code from files or inline with enhanced capabilities"
 
-    async def pre_execute(self, request: ExecutionRequest[CodeJobNode]) -> NodeOutputProtocol | None:
+    async def pre_execute(self, request: ExecutionRequest[CodeJobNode]) -> Envelope | None:
         """Runtime validation and setup - prepares execution environment."""
         node = request.node
         
@@ -94,10 +93,11 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         executor = self._executors.get(language)
         if not executor:
             supported = ', '.join(self._executors.keys())
-            return self.create_error_output(
-                ValueError(f"Unsupported language: {language}. Supported: {supported}"),
-                node.id,
-                request.execution_id or ""
+            return EnvelopeFactory.error(
+                f"Unsupported language: {language}. Supported: {supported}",
+                error_type="ValueError",
+                produced_by=node.id,
+                trace_id=request.execution_id or ""
             )
         
         # 3. Runtime validation: Resolve and check file path if needed
@@ -110,17 +110,19 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             
             # Check file exists at runtime
             if not file_path.exists():
-                return self.create_error_output(
-                    FileNotFoundError(f"File not found: {node.filePath}"),
-                    node.id,
-                    request.execution_id or ""
+                return EnvelopeFactory.error(
+                    f"File not found: {node.filePath}",
+                    error_type="FileNotFoundError",
+                    produced_by=node.id,
+                    trace_id=request.execution_id or ""
                 )
             
             if not file_path.is_file():
-                return self.create_error_output(
-                    ValueError(f"Path is not a file: {node.filePath}"),
-                    node.id,
-                    request.execution_id or ""
+                return EnvelopeFactory.error(
+                    f"Path is not a file: {node.filePath}",
+                    error_type="ValueError",
+                    produced_by=node.id,
+                    trace_id=request.execution_id or ""
                 )
         
         # 4. Store all validated data in instance variables for execute_request
@@ -152,7 +154,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         self,
         request: ExecutionRequest[CodeJobNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Execute code with envelope inputs"""
         
         node = request.node
@@ -195,14 +197,20 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 result = await executor.execute_file(file_path, exec_context, timeout, function_name)
         
         except TimeoutError:
-            return self.create_error_output(
-                Exception(f"Code execution timed out after {timeout} seconds"),
-                node.id,
-                trace_id
+            return EnvelopeFactory.error(
+                f"Code execution timed out after {timeout} seconds",
+                error_type="TimeoutError",
+                produced_by=node.id,
+                trace_id=trace_id
             )
         except Exception as e:
             logger.error(f"Code execution failed: {e}")
-            return self.create_error_output(e, node.id, trace_id)
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=node.id,
+                trace_id=trace_id
+            )
 
         # Determine output type and create envelope
         if result is None:
@@ -245,13 +253,13 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             result_type="dict" if isinstance(result, dict) else "string"
         )
         
-        return self.create_success_output(output_envelope)
+        return output_envelope
     
     def post_execute(
         self,
         request: ExecutionRequest[CodeJobNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         # Use instance variable for language
         if request.metadata and request.metadata.get("debug"):
             language = self._current_language
@@ -267,9 +275,10 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         self,
         request: ExecutionRequest[CodeJobNode],
         error: Exception
-    ) -> NodeOutputProtocol | None:
-        return self.create_error_output(
-            error,
-            request.node.id,
-            request.execution_id or ""
+    ) -> Envelope | None:
+        return EnvelopeFactory.error(
+            str(error),
+            error_type=error.__class__.__name__,
+            produced_by=request.node.id,
+            trace_id=request.execution_id or ""
         )

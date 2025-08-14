@@ -9,7 +9,6 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import EXECUTION_CONTEXT
 from dipeo.diagram_generated.generated_nodes import UserResponseNode, NodeType
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
 
@@ -52,14 +51,14 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
         self, 
         request: ExecutionRequest[UserResponseNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         return await self._execute_user_response(request, inputs)
     
     async def _execute_user_response(
         self, 
         request: ExecutionRequest[UserResponseNode],
         envelope_inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         # Extract properties from request
         node = request.node
         context = request.context
@@ -114,7 +113,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
                 user_response=response
             )
             
-            return self.create_success_output(output_envelope)
+            return output_envelope
         # Return empty response when no handler available
         output_envelope = EnvelopeFactory.text(
             "",
@@ -125,4 +124,4 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
             user_response=""
         )
         
-        return self.create_success_output(output_envelope)
+        return output_envelope

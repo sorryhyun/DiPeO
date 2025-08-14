@@ -8,7 +8,6 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.domain.conversation import Person
 from dipeo.domain.conversation.memory_profiles import MemoryProfile, MemoryProfileFactory
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.domain_models import Message, PersonID
 
@@ -49,10 +48,10 @@ class SinglePersonJobExecutor:
         # Initialize prompt resolver with filesystem and diagram
         self._prompt_resolver = PromptFileResolver(filesystem_adapter, diagram)
     
-    async def execute(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutputProtocol:
+    async def execute(self, request: ExecutionRequest[PersonJobNode]) -> Envelope:
         """Execute the person job for a single person with envelope support.
         
-        Returns NodeOutputProtocol that can be converted to envelopes by the handler.
+        Returns Envelope that contains the execution results.
         """
         # Get node and context from request
         node = request.node
@@ -278,7 +277,7 @@ class SinglePersonJobExecutor:
     
     
     
-    def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str, trace_id: str = "") -> NodeOutputProtocol:
+    def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str, trace_id: str = "") -> Envelope:
         """Build node output with envelope support for proper conversion."""
         from dipeo.diagram_generated import TokenUsage
         

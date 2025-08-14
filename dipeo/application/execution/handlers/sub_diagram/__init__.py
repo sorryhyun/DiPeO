@@ -15,7 +15,6 @@ from pydantic import BaseModel
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import NodeType, SubDiagramNode
 from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
@@ -103,7 +102,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol | None:
+    async def pre_execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope | None:
         """Pre-execution hook to configure services and validate execution context."""
         # Configure services for executors on first execution
         if not self._services_configured:
@@ -121,10 +120,11 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             # Validate required services
             if not all([state_store, message_router, diagram_service]):
-                return self.create_error_output(
-                    ValueError("Required services not available for sub-diagram execution"),
-                    request.node.id,
-                    request.execution_id or ""
+                return EnvelopeFactory.error(
+                    "Required services not available for sub-diagram execution",
+                    error_type="ValueError",
+                    produced_by=request.node.id,
+                    trace_id=request.execution_id or ""
                 )
             
             # Set services on executors
@@ -154,7 +154,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         self,
         request: ExecutionRequest[SubDiagramNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Route execution to appropriate executor based on configuration with envelope support."""
         node = request.node
         trace_id = request.execution_id or ""
@@ -218,16 +218,21 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                     trace_id=trace_id
                 )
             
-            return self.create_success_output(output_envelope)
+            return output_envelope
             
         except Exception as e:
-            return self.create_error_output(e, node.id, trace_id)
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=node.id,
+                trace_id=trace_id
+            )
     
     async def on_error(
         self,
         request: ExecutionRequest[SubDiagramNode],
         error: Exception
-    ) -> NodeOutputProtocol | None:
+    ) -> Envelope | None:
         """Handle errors gracefully."""
         # For ValueError (domain validation), only log in debug mode
         if isinstance(error, ValueError):
@@ -237,17 +242,18 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             # For other errors, log them
             logger.error(f"Error executing sub-diagram: {error}")
         
-        return self.create_error_output(
-            error,
-            request.node.id,
-            request.execution_id or ""
+        return EnvelopeFactory.error(
+            str(error),
+            error_type=error.__class__.__name__,
+            produced_by=request.node.id,
+            trace_id=request.execution_id or ""
         )
     
     def post_execute(
         self,
         request: ExecutionRequest[SubDiagramNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         """Post-execution hook to log execution details."""
         # Log execution details in debug mode
         if logger.isEnabledFor(logging.DEBUG):

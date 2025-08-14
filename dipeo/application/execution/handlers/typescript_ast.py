@@ -7,7 +7,6 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 
@@ -72,7 +71,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[TypescriptAstNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[TypescriptAstNode]) -> Optional[Envelope]:
         """Runtime validation and setup."""
         # Set debug flag for later use
         self._current_debug = False  # Will be set based on context if needed
@@ -80,9 +79,10 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         # Check parser service availability
         parser_service = request.get_service("ast_parser")
         if not parser_service:
-            return self.create_error_output(
-                RuntimeError("TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry."),
-                node_id=str(request.node.id)
+            return EnvelopeFactory.error(
+                "TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
+                error_type="RuntimeError",
+                produced_by=str(request.node.id)
             )
         
         return None
@@ -91,7 +91,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         self, 
         request: ExecutionRequest[TypescriptAstNode],
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Execute TypeScript AST parsing with envelope inputs."""
         node = request.node
         trace_id = request.execution_id or ""
@@ -130,10 +130,11 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     sources = legacy_inputs['default'].get(batch_input_key, {})
                 
                 if not sources or not isinstance(sources, dict):
-                    return self.create_error_output(
-                ValueError(f"Batch mode enabled but no sources dictionary provided at key '{batch_input_key}'"),
-                node_id=str(node.id)
-            )
+                    return EnvelopeFactory.error(
+                        f"Batch mode enabled but no sources dictionary provided at key '{batch_input_key}'",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
+                    )
                 
                 logger.debug(f"[TypescriptAstNode {node.id}] Batch parsing {len(sources)} sources")
                 
@@ -163,7 +164,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     successful=len(results)
                 )
                 
-                return self.create_success_output(output_envelope)
+                return output_envelope
             
             else:
                 # Single mode: parse one source
@@ -174,10 +175,11 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     source = legacy_inputs['default'].get('source', '')
                 
                 if not source:
-                    return self.create_error_output(
-                ValueError("No TypeScript source code provided"),
-                node_id=str(node.id)
-            )
+                    return EnvelopeFactory.error(
+                        "No TypeScript source code provided",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
+                    )
                 
                 # Parse the TypeScript code using the parser service
                 try:
@@ -264,20 +266,21 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     output_format=output_format
                 )
                 
-                return self.create_success_output(output_envelope)
+                return output_envelope
         
         except Exception as e:
-            return self.create_error_output(
-                e,
-                node_id=str(node.id),
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id),
                 trace_id=trace_id
             )
     
     def post_execute(
         self,
         request: ExecutionRequest[TypescriptAstNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         """Post-execution hook to log parsing statistics."""
         # Log execution details if in debug mode (using instance variable)
         if self._current_debug:
