@@ -4,10 +4,11 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 100,
-        "y": 200
+        "x": 50,
+        "y": 400
       },
       "data": {
+        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {},
         "label": "start"
@@ -17,60 +18,196 @@
       "id": "node_1",
       "type": "db",
       "position": {
-        "x": 300,
-        "y": 200
+        "x": 200,
+        "y": 400
       },
       "data": {
         "operation": "read",
         "sub_type": "file",
-        "format": "text",
-        "file": "projects/dipeodipeo/request.txt",
-        "label": "load_request"
+        "format": "json",
+        "file": "projects/frontend_enhance/frontend_enhance_config.json",
+        "label": "load config"
       }
     },
     {
       "id": "node_2",
-      "type": "person_job",
+      "type": "code_job",
       "position": {
-        "x": 600,
-        "y": 200
+        "x": 400,
+        "y": 400
       },
       "data": {
-        "person": "diagram_designer",
-        "prompt_file": "diagram_generator.txt",
-        "max_iteration": 1,
-        "text_format_file": "projects/dipeodipeo/light_diagram_models.py",
-        "label": "generate_diagram",
-        "first_only_prompt": ""
+        "language": "python",
+        "code": "import json\n\n# Parse the loaded config\nif isinstance(config, str):\n    config_data = json.loads(config)\nelse:\n    config_data = config\n\niteration_count = 0\ncurrent_score = 0\nimprovements_history = []\n\nresult = {\n    \"history\": improvements_history,\n    \"prompt_type\": config_data[\"prompt_type\"],\n    \"target_framework\": config_data[\"framework\"],\n    \"prompt_requirements\": config_data[\"prompt_requirements\"],\n    \"evaluation_criteria\": config_data[\"evaluation_criteria\"],\n    \"prompt_sections\": config_data[\"prompt_sections\"],\n}\n",
+        "label": "initialize state"
       }
     },
     {
       "id": "node_3",
-      "type": "code_job",
+      "type": "person_job",
       "position": {
-        "x": 700,
-        "y": 200
+        "x": 600,
+        "y": 400
       },
       "data": {
-        "language": "python",
-        "filePath": "projects/dipeodipeo/process.py",
-        "functionName": "process_diagram",
-        "label": "format_yaml"
+        "person": "Prompt Designer",
+        "first_prompt_file": "prompt_generator_first.txt",
+        "prompt_file": "prompt_generator.txt",
+        "max_iteration": 3,
+        "memory_profile": "ONLY_I_SENT",
+        "label": "generate prompt",
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_4",
+      "type": "person_job",
+      "position": {
+        "x": 800,
+        "y": 400
+      },
+      "data": {
+        "person": "Frontend Generator",
+        "default_prompt": "{{generated_prompt}}",
+        "max_iteration": 3,
+        "memory_profile": "GOLDFISH",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 2,
+          "preserve_system": false
+        },
+        "label": "generate frontend code",
+        "first_only_prompt": ""
+      }
+    },
+    {
+      "id": "node_5",
       "type": "db",
       "position": {
-        "x": 1000,
-        "y": 200
+        "x": 900,
+        "y": 300
       },
       "data": {
         "operation": "write",
         "sub_type": "file",
-        "format": "yaml",
-        "file": "projects/dipeodipeo/generated/diagram.light.yaml",
-        "label": "save_diagram"
+        "format": "json",
+        "file": "projects/frontend_enhance/generated/frontend_generator.json",
+        "label": "save frontend code"
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "person_job",
+      "position": {
+        "x": 1000,
+        "y": 400
+      },
+      "data": {
+        "person": "Code Evaluator",
+        "prompt_file": "code_evaluator.txt",
+        "max_iteration": 3,
+        "memory_profile": "GOLDFISH",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 2,
+          "preserve_system": false
+        },
+        "label": "evaluate generated code",
+        "first_only_prompt": ""
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "code_job",
+      "position": {
+        "x": 1200,
+        "y": 400
+      },
+      "data": {
+        "language": "python",
+        "code": "import re\n# Extract score from code evaluation\nscore_match = re.search(r'Score:\\s*(\\d+)', code_evaluation, re.IGNORECASE)\nif score_match:\n    score = int(score_match.group(1))\n\n# Check if ready for production\nready = \"production ready\" in code_evaluation.lower() or score >= 80\n\nresult = {\n    \"score\": score,\n    \"ready_for_production\": ready,\n    \"code_evaluation\": code_evaluation\n}\n",
+        "label": "check score"
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "condition",
+      "position": {
+        "x": 1400,
+        "y": 400
+      },
+      "data": {
+        "condition_type": "custom",
+        "expression": "checked.ready_for_production == True",
+        "label": "check quality target"
+      }
+    },
+    {
+      "id": "node_9",
+      "type": "condition",
+      "position": {
+        "x": 1200,
+        "y": 600
+      },
+      "data": {
+        "condition_type": "detect_max_iterations",
+        "label": "detect max iterations"
+      }
+    },
+    {
+      "id": "node_10",
+      "type": "endpoint",
+      "position": {
+        "x": 1000,
+        "y": 700
+      },
+      "data": {
+        "file_format": "txt",
+        "save_to_file": false,
+        "label": "stop if max iterations"
+      }
+    },
+    {
+      "id": "node_11",
+      "type": "code_job",
+      "position": {
+        "x": 1100,
+        "y": 200
+      },
+      "data": {
+        "language": "python",
+        "filePath": "projects/frontend_enhance/code/extract_and_setup_app.py",
+        "functionName": "main",
+        "label": "extract and setup app"
+      }
+    },
+    {
+      "id": "node_12",
+      "type": "db",
+      "position": {
+        "x": 1600,
+        "y": 400
+      },
+      "data": {
+        "operation": "write",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/generated/results.json",
+        "label": "save enhanced prompt"
+      }
+    },
+    {
+      "id": "node_13",
+      "type": "endpoint",
+      "position": {
+        "x": 2000,
+        "y": 400
+      },
+      "data": {
+        "file_format": "md",
+        "save_to_file": true,
+        "file_name": "projects/frontend_enhance/generated/README.md",
+        "label": "save summary"
       }
     }
   ],
@@ -87,15 +224,15 @@
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "label": "workflow_description",
+      "label": "config",
       "data": null,
-      "content_type": "raw_text"
+      "content_type": "object"
     },
     {
       "id": "arrow_2",
       "source": "node_2_default_output",
-      "target": "node_3_default_input",
-      "label": "generated_diagram",
+      "target": "node_3_first_input",
+      "label": null,
       "data": null,
       "content_type": "object"
     },
@@ -103,20 +240,132 @@
       "id": "arrow_3",
       "source": "node_3_default_output",
       "target": "node_4_default_input",
-      "label": "diagram_output",
+      "label": "generated_prompt",
       "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_4_default_output",
+      "target": "node_5_default_input",
+      "label": "generated_code",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_4_default_output",
+      "target": "node_11_default_input",
+      "label": "generated_code",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_4_default_output",
+      "target": "node_6_default_input",
+      "label": "generated_code",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_6_default_output",
+      "target": "node_7_default_input",
+      "label": "code_evaluation",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_7_default_output",
+      "target": "node_8_default_input",
+      "label": "checked",
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_9",
+      "source": "node_8_condtrue_output",
+      "target": "node_12_default_input",
+      "label": null,
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_10",
+      "source": "node_12_default_output",
+      "target": "node_13_default_input",
+      "label": "saved_prompt",
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_11",
+      "source": "node_8_condfalse_output",
+      "target": "node_9_default_input",
+      "label": null,
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_12",
+      "source": "node_9_condtrue_output",
+      "target": "node_10_default_input",
+      "label": null,
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_13",
+      "source": "node_9_condfalse_output",
+      "target": "node_3_default_input",
+      "label": "feedback",
+      "data": {
+        "branch": "false"
+      },
       "content_type": "object"
     }
   ],
   "persons": [
     {
-      "id": "diagram_designer",
-      "label": "diagram_designer",
+      "id": "Prompt Designer",
+      "label": "prompt designer",
       "llm_config": {
         "service": "openai",
         "model": "gpt-5-nano-2025-08-07",
         "api_key_id": "APIKEY_52609F",
-        "system_prompt": "You are an expert DiPeO diagram designer. You create well-structured light format diagrams\nthat follow best practices for modularity, error handling, and performance.\nAlways ensure proper node positioning with x-coordinates incrementing by 200-300 for readability.\n",
+        "system_prompt": "You are an expert in prompt engineering for code generation.\nCreate clear, comprehensive, and effective prompts for frontend code generators.\nFocus on specificity, completeness, and actionable instructions.\nDo not add any suggestions which are not requested, like 'If you want' or something at the end.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "Frontend Generator",
+      "label": "frontend generator",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are an expert frontend developer specializing in React and modern web development.\nGenerate production-ready frontend code based on the provided prompts.\nFollow best practices for component structure, state management, and code organization.\nDo not add any suggestions which are not requested, like 'If you want' or something at the end.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "Code Evaluator",
+      "label": "code evaluator",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are a frontend code quality expert.\nEvaluate generated frontend code for correctness, best practices, performance, and maintainability.\nProvide feedback on how the prompt should be improved to generate better code.\nDo not add any suggestions which are not requested, like 'If you want' or something at the end.\n",
         "prompt_file": null
       },
       "type": "person"
@@ -148,14 +397,6 @@
       "position": "right"
     },
     {
-      "id": "node_2_first_input",
-      "node_id": "node_2",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
       "id": "node_2_default_input",
       "node_id": "node_2",
       "label": "default",
@@ -170,6 +411,14 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_3_first_input",
+      "node_id": "node_3",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_3_default_input",
@@ -188,6 +437,14 @@
       "position": "right"
     },
     {
+      "id": "node_4_first_input",
+      "node_id": "node_4",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
       "id": "node_4_default_input",
       "node_id": "node_4",
       "label": "default",
@@ -202,6 +459,158 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6_first_input",
+      "node_id": "node_6",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_output",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_default_output",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8_condtrue_output",
+      "node_id": "node_8",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_8_condfalse_output",
+      "node_id": "node_8",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_9_default_input",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_9_condtrue_output",
+      "node_id": "node_9",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_9_condfalse_output",
+      "node_id": "node_9",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_10_default_input",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_11_default_input",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_11_default_output",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_12_default_input",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_12_default_output",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_13_default_input",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
@@ -209,8 +618,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-14T12:14:35.243Z",
-    "modified": "2025-08-14T12:14:35.243Z",
+    "created": "2025-08-14T12:54:52.173Z",
+    "modified": "2025-08-14T12:54:52.173Z",
     "version": "1.0.0",
     "id": null
   }

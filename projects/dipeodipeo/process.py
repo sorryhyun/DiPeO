@@ -60,6 +60,7 @@ def process_diagram(inputs: Dict[str, Any]) -> str:
         return diagram
 
     # Extract the complete diagram YAML string from response
+    print(inputs)
     generated_diagram = inputs.get('generated_diagram', {})
     diagram_yaml_string = generated_diagram['output'][1]['content'][0]['text']
     

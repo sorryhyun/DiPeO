@@ -45,7 +45,11 @@ class PromptFileResolver:
         Returns:
             Prompt content as string, or None if file not found
         """
-        if not self.filesystem or not prompt_filename:
+        if not self.filesystem:
+            logger.error(f"[PromptResolver] No filesystem adapter available! Cannot load prompt file: {prompt_filename}")
+            return None
+        if not prompt_filename:
+            logger.warning(f"[PromptResolver] No prompt filename provided")
             return None
         
         try:

@@ -106,7 +106,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         
         # Configure services for executors on first execution
         if not self._services_configured:
-            from dipeo.application.registry import (
+            from dipeo.application.registry.keys import (
                 LLM_SERVICE,
                 DIAGRAM,
                 CONVERSATION_MANAGER,
@@ -148,13 +148,19 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         try:
             # Extract prompt from envelope (optional, use default_prompt if not provided)
             prompt_envelope = self.get_optional_input(inputs, 'prompt')
+            prompt = None
             if prompt_envelope:
                 prompt = self.reader.as_text(prompt_envelope)
             else:
+                # Check if node has prompt_file configured (will be handled by single_executor)
+                has_prompt_file = getattr(node, 'prompt_file', None) or getattr(node, 'first_prompt_file', None)
+                
                 # Use default_prompt from node configuration
                 prompt = getattr(node, 'default_prompt', None)
-                if not prompt:
-                    raise ValueError(f"No prompt provided and no default_prompt configured for node {node.id}")
+                
+                # Only raise error if no prompt sources are available
+                if not prompt and not has_prompt_file:
+                    raise ValueError(f"No prompt provided and no default_prompt or prompt_file configured for node {node.id}")
             
             # Extract context (optional)
             context_data = None
@@ -174,13 +180,45 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                     conversation_state = self.reader.as_conversation(conv_envelope)
             
             # Prepare request with extracted inputs
-            # We need to update the request inputs for the executors
-            request.inputs = {
-                'prompt': prompt,
-                'context': context_data,
-            }
-            if conversation_state:
-                request.inputs['_conversation'] = conversation_state
+            # Only override inputs if we extracted them from envelopes
+            # Otherwise keep original inputs for single_executor to handle prompt_file
+            if prompt is not None or context_data is not None:
+                # Convert envelope inputs to plain values for executors
+                processed_inputs = {}
+                # Convert all envelope inputs to their values
+                for key, envelope in inputs.items():
+                    if envelope.content_type == "raw_text":
+                        processed_inputs[key] = self.reader.as_text(envelope)
+                    elif envelope.content_type == "object":
+                        processed_inputs[key] = self.reader.as_json(envelope)
+                    elif envelope.content_type == "conversation_state":
+                        processed_inputs[key] = self.reader.as_conversation(envelope)
+                    else:
+                        processed_inputs[key] = envelope.body
+                
+                # Override with explicit values if provided
+                if prompt is not None:
+                    processed_inputs['prompt'] = prompt
+                if context_data is not None:
+                    processed_inputs['context'] = context_data
+                if conversation_state:
+                    processed_inputs['_conversation'] = conversation_state
+                    
+                request.inputs = processed_inputs
+            else:
+                # Keep original inputs for single_executor to process
+                # Convert envelopes to plain values
+                processed_inputs = {}
+                for key, envelope in inputs.items():
+                    if envelope.content_type == "raw_text":
+                        processed_inputs[key] = self.reader.as_text(envelope)
+                    elif envelope.content_type == "object":
+                        processed_inputs[key] = self.reader.as_json(envelope)
+                    elif envelope.content_type == "conversation_state":
+                        processed_inputs[key] = self.reader.as_conversation(envelope)
+                    else:
+                        processed_inputs[key] = envelope.body
+                request.inputs = processed_inputs
             
             # Check if batch mode is enabled
             if getattr(node, 'batch', False):
@@ -226,44 +264,17 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 # Use single executor for normal execution
                 result = await self.single_executor.execute(request)
                 
-                # Extract response content and create envelope
-                if hasattr(result, 'value'):
-                    content = result.value
-                    
-                    # Check if it contains token usage metadata
-                    token_usage = None
-                    if isinstance(content, dict) and 'token_usage' in content:
-                        token_usage = content.pop('token_usage')
-                        # If only token_usage was in the dict, use the response text
-                        if 'response' in content:
-                            content = content['response']
-                    
-                    # Create output envelope
-                    output_envelope = EnvelopeFactory.text(
-                        content if isinstance(content, str) else str(content),
-                        produced_by=node.id,
-                        trace_id=trace_id
-                    ).with_meta(
-                        person_id=node.person
-                    )
-                    
-                    if token_usage:
-                        output_envelope = output_envelope.with_meta(token_usage=token_usage)
-                    
-                    # Add conversation update if needed
-                    envelopes = [output_envelope]
-                    # Check if memory is enabled and we have conversation update
-                    if memory_enabled and hasattr(result, 'conversation_update'):
-                        conv_envelope = EnvelopeFactory.conversation(
-                            result.conversation_update,
-                            produced_by=node.id,
-                            trace_id=trace_id
-                        )
-                        envelopes.append(conv_envelope)
-                    
-                    return envelopes[0] if len(envelopes) == 1 else envelopes
+                # The single executor already returns an Envelope, just pass it through
+                # SinglePersonJobExecutor.execute() returns properly typed envelopes:
+                # - JSON envelope for structured output (text_format/text_format_file)
+                # - Text envelope for regular text output
+                # - Conversation envelope for conversation output
+                if isinstance(result, Envelope):
+                    # Already a properly formatted envelope, return as-is
+                    return result
                 else:
-                    # Fallback for unexpected result format
+                    # Fallback for unexpected result format (shouldn't happen)
+                    logger.warning(f"Unexpected result type from single_executor: {type(result)}")
                     output_envelope = EnvelopeFactory.text(
                         str(result),
                         produced_by=node.id,
