@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import Any, Optional, Protocol, Sequence
 
 from dipeo.diagram_generated import NodeID, NodeState
-from dipeo.core.execution.envelope import NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope
 
 
 class ExecutionContext(Protocol):
@@ -27,7 +27,7 @@ class ExecutionContext(Protocol):
         ...
     
     @abstractmethod
-    def get_node_output(self, node_id: NodeID) -> NodeOutputProtocol | None:
+    def get_node_output(self, node_id: NodeID) -> Envelope | None:
         """Get the typed output of a completed node."""
         ...
     
@@ -71,7 +71,7 @@ class ExecutionContext(Protocol):
         ...
     
     @abstractmethod
-    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
+    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[Envelope] = None) -> None:
         """Transition a node to max iterations state."""
         ...
     

@@ -33,20 +33,13 @@ class Envelope:
     body: Any
     meta: dict[str, Any]
 
-@runtime_checkable
-class NodeOutputProtocol(Protocol[T]):
-    """Base protocol for all node outputs"""
-    value: T
-    metadata: str  # JSON string
-    node_id: NodeID
-    timestamp: datetime
 ```
 
 **Key Features:**
 - Immutable message envelopes
 - Built-in serialization support
-- Protocol compatibility for backward compatibility
 - Unified messaging across all node types
+- Content type support for different data formats
 
 ### 2. Execution Context (`execution_context.py`)
 
@@ -59,13 +52,13 @@ class ExecutionContext:
     def __init__(self, diagram: ExecutableDiagram, execution_id: str):
         self.diagram = diagram
         self.execution_id = execution_id
-        self.node_outputs: dict[NodeID, NodeOutputProtocol] = {}
+        self.node_outputs: dict[NodeID, Envelope] = {}
         self.metadata: dict[str, Any] = {}
     
-    def store_output(self, node_id: NodeID, output: NodeOutputProtocol):
+    def store_output(self, node_id: NodeID, output: Envelope):
         """Store node execution results"""
     
-    def get_output(self, node_id: NodeID) -> NodeOutputProtocol | None:
+    def get_output(self, node_id: NodeID) -> Envelope | None:
         """Retrieve node output by ID"""
 ```
 
@@ -110,7 +103,7 @@ class ExecutionTracker:
     def record_node_start(self, node_id: NodeID, timestamp: datetime):
         """Record node execution start"""
     
-    def record_node_complete(self, node_id: NodeID, output: NodeOutputProtocol):
+    def record_node_complete(self, node_id: NodeID, output: Envelope):
         """Record node completion with output"""
     
     def get_execution_metrics(self) -> ExecutionMetrics:
@@ -158,7 +151,7 @@ class NodeStrategyProtocol(Protocol):
     
     async def execute(self, 
                      node: ExecutableNode, 
-                     context: ExecutionContext) -> NodeOutputProtocol:
+                     context: ExecutionContext) -> Envelope:
         """Execute node with strategy"""
     
     def can_handle(self, node_type: str) -> bool:
@@ -200,12 +193,16 @@ class RuntimeResolver:
 
 ## Interfaces and Protocols
 
-### NodeOutputProtocol
-Primary contract for all node outputs:
+### Envelope
+Primary message format for all node outputs:
 ```python
-class NodeOutputProtocol(Protocol[T]):
-    value: T                      # Primary output value
-    metadata: dict[str, Any]      # Additional metadata
+@dataclass(frozen=True)
+class Envelope:
+    id: str                       # Unique envelope ID
+    produced_by: str              # Source node ID
+    content_type: ContentType     # Type of content
+    body: Any                     # Actual content
+    meta: dict[str, Any]          # Additional metadata
     node_id: NodeID              # Source node identifier
     timestamp: datetime          # Execution timestamp
     
@@ -288,9 +285,9 @@ context = ExecutionContext.from_state(restored_state)
 ## Development Guidelines
 
 ### Adding New Output Types
-1. Extend `BaseNodeOutput` or implement `NodeOutputProtocol`
-2. Define type parameter for strong typing
-3. Implement required methods
+1. Create envelopes with appropriate content types
+2. Use EnvelopeFactory for consistent creation
+3. Store metadata in the meta field
 4. Add validation logic if needed
 5. Register with output factory
 

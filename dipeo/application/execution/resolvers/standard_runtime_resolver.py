@@ -12,7 +12,6 @@ from dipeo.diagram_generated import NodeID, NodeType
 from dipeo.core.execution.runtime_resolver import RuntimeResolver
 from dipeo.core.execution.execution_context import ExecutionContext
 from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2, ExecutableNode, ExecutableDiagram
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 
 from dipeo.core.resolution import (
@@ -144,47 +143,9 @@ class StandardRuntimeResolver(RuntimeResolver):
             
             return StandardNodeOutput.from_value(value)
         
-        # Handle envelope if source output has envelopes (legacy EnvelopeOutput adapter)
-        if hasattr(source_output, 'as_envelopes'):
-            # Get primary envelope
-            envelope = source_output.primary_envelope()
-            
-            # Extract value directly from envelope
-            from dipeo.diagram_generated.enums import ContentType
-            if envelope.content_type == ContentType.RAW_TEXT:
-                value = envelope.body
-            elif envelope.content_type == ContentType.OBJECT:
-                value = envelope.body
-            elif envelope.content_type == ContentType.CONVERSATION_STATE:
-                value = envelope.body
-            elif envelope.content_type == ContentType.BINARY:
-                value = envelope.body
-            else:
-                value = envelope.body
-            
-            # Special handling for condition outputs
-            if isinstance(source_output, ConditionOutput):
-                if source_output.value:  # True branch
-                    output_value = {"condtrue": source_output.true_output or {}}
-                else:  # False branch
-                    output_value = {"condfalse": source_output.false_output or {}}
-                return StandardNodeOutput.from_dict(output_value)
-            
-            return StandardNodeOutput.from_value(value)
-        
-        # Convert to StandardNodeOutput for consistent handling
-        if isinstance(source_output, NodeOutputProtocol):
-            if isinstance(source_output, ConditionOutput):
-                # Special handling for condition outputs
-                if source_output.value:  # True branch
-                    output_value = {"condtrue": source_output.true_output or {}}
-                else:  # False branch
-                    output_value = {"condfalse": source_output.false_output or {}}
-                return StandardNodeOutput.from_dict(output_value)
-            else:
-                # All other protocol outputs
-                return StandardNodeOutput.from_value(source_output.value)
-        elif isinstance(source_output, dict) and "value" in source_output:
+        # If we reach here, source_output is not an Envelope (shouldn't happen)
+        # Handle dict format or raw value as fallback
+        if isinstance(source_output, dict) and "value" in source_output:
             # Dict format
             return StandardNodeOutput.from_value(source_output["value"])
         else:
@@ -253,7 +214,7 @@ class StandardRuntimeResolver(RuntimeResolver):
     
     def extract_output_value(
         self,
-        output: NodeOutputProtocol,
+        output: Envelope,
         output_name: str = "default"
     ) -> Any:
         """Extract a specific output value from a node output."""
@@ -277,22 +238,9 @@ class StandardRuntimeResolver(RuntimeResolver):
                 return output.body.get(output_name)
             return None
         
-        # Legacy handling for NodeOutput types
-        if isinstance(output, ConditionOutput):
-            # Special handling for condition outputs
-            if output.value:  # True branch
-                outputs = output.true_output or {}
-            else:  # False branch
-                outputs = output.false_output or {}
-            return outputs.get(output_name)
-        else:
-            # For other outputs, the value is the default output
-            if output_name == "default":
-                return output.value
-            # Try to extract from value if it's a dict
-            if isinstance(output.value, dict):
-                return output.value.get(output_name)
-            return None
+        # Should not reach here as output should always be an Envelope
+        # Return None for safety
+        return None
     
     def apply_transformation(
         self,

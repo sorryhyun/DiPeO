@@ -17,7 +17,7 @@ from dipeo.application.execution.states.execution_state_persistence import Execu
 from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
 from dipeo.core.execution import ExecutionContext as ExecutionContextProtocol
 from dipeo.core.execution.execution_tracker import CompletionStatus, ExecutionTracker
-from dipeo.core.execution.envelope import NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope
 from dipeo.core.execution.runtime_resolver import RuntimeResolver
 from dipeo.diagram_generated import (
     ExecutionState,
@@ -84,15 +84,15 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     def get_node_result(self, node_id: NodeID) -> dict[str, Any] | None:
         """Get the execution result of a completed node."""
-        protocol_output = self._tracker.get_last_output(node_id)
-        if protocol_output:
-            result = {"value": protocol_output.value}
-            if hasattr(protocol_output, 'metadata') and protocol_output.metadata:
-                result["metadata"] = protocol_output.metadata
+        envelope = self._tracker.get_last_output(node_id)
+        if envelope:
+            result = {"value": envelope.body}
+            if envelope.meta:
+                result["metadata"] = envelope.meta
             return result
         return None
     
-    def get_node_output(self, node_id: NodeID) -> NodeOutputProtocol | None:
+    def get_node_output(self, node_id: NodeID) -> Envelope | None:
         """Get the typed output of a completed node."""
         return self._tracker.get_last_output(node_id)
     
@@ -161,7 +161,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
                 error=error
             )
     
-    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
+    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[Envelope] = None) -> None:
         """Transition a node to max iterations state."""
         logger.debug(f"[MAXITER] Transitioning {node_id} to MAXITER_REACHED")
         with self._state_lock:

@@ -19,7 +19,6 @@ from dipeo.core.execution.execution_tracker import (
 from dipeo.core.execution.envelope import (
     Envelope,
     EnvelopeFactory,
-    NodeOutputProtocol,
     serialize_protocol,
     deserialize_protocol,
 )
@@ -60,8 +59,7 @@ from dipeo.diagram_generated.generated_nodes import (
 )
 
 __all__ = [
-    # Node outputs (protocol only)
-    "NodeOutputProtocol",
+    # Envelope serialization
     "serialize_protocol",
     "deserialize_protocol",
     # Envelope system (new)

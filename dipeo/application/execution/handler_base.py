@@ -6,7 +6,6 @@ import warnings
 
 from pydantic import BaseModel
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
-from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.core.execution.envelope_reader import EnvelopeReader
 
@@ -56,29 +55,29 @@ class TypedNodeHandler(Generic[T], ABC):
     def validate(self, request: "ExecutionRequest[T]") -> Optional[str]:
         return None
     
-    async def pre_execute(self, request: "ExecutionRequest[T]") -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: "ExecutionRequest[T]") -> Optional[Envelope]:
         """Pre-execution hook for checks and early returns.
         
-        Called before execute_with_envelopes. If this returns a NodeOutputProtocol,
+        Called before execute_with_envelopes. If this returns an Envelope,
         that output is used and execute_with_envelopes is skipped.
         
         Returns:
-            NodeOutputProtocol if execution should be skipped, None otherwise
+            Envelope if execution should be skipped, None otherwise
         """
         return None
     
     def post_execute(
         self,
         request: "ExecutionRequest[T]",
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         return output
     
     async def on_error(
         self,
         request: "ExecutionRequest[T]",
         error: Exception
-    ) -> Optional[NodeOutputProtocol]:
+    ) -> Optional[Envelope]:
         return None
     
     async def resolve_envelope_inputs(
@@ -108,7 +107,7 @@ class TypedNodeHandler(Generic[T], ABC):
         self,
         request: "ExecutionRequest[T]",
         inputs: dict[str, Envelope]
-    ) -> NodeOutputProtocol:
+    ) -> Envelope:
         """Handler implementation with envelopes.
         
         This is the main method to implement for envelope-aware handlers.

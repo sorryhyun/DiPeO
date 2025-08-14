@@ -1,70 +1,22 @@
 from __future__ import annotations
 from dataclasses import dataclass, field, replace
-from typing import Any, TYPE_CHECKING, Protocol, TypeVar, runtime_checkable
+from typing import Any, TYPE_CHECKING, TypeVar
 from uuid import uuid4
 import time
 import io
 import json
-from datetime import datetime
-from abc import abstractmethod
 
 from dipeo.diagram_generated.enums import ContentType
 
 if TYPE_CHECKING:
     import numpy as np
-    from dipeo.diagram_generated import NodeID, TokenUsage, Status
 
 T = TypeVar('T')
 
 
-@runtime_checkable
-class NodeOutputProtocol(Protocol[T]):
-    """Protocol for node outputs in DiPeO execution system.
-    
-    This protocol defines the interface that all node outputs must implement.
-    Both Envelope and legacy adapter classes implement this interface.
-    """
-    
-    value: T
-    metadata: str  # JSON string for intentional friction
-    node_id: NodeID
-    timestamp: datetime
-    
-    # Promoted typed fields
-    token_usage: 'TokenUsage | None'
-    execution_time: float | None
-    retry_count: int
-    status: 'Status | None'  # Node execution status
-    
-    def get_output(self, key: str, default: Any = None) -> Any:
-        ...
-    
-    def has_error(self) -> bool:
-        ...
-    
-    def to_dict(self) -> dict[str, Any]:
-        ...
-    
-    def get_metadata_dict(self) -> dict[str, Any]:
-        ...
-    
-    def set_metadata_dict(self, data: dict[str, Any]) -> None:
-        ...
-    
-    def as_envelopes(self) -> list['Envelope']:
-        """Convert to standardized envelopes"""
-        ...
-    
-    def primary_envelope(self) -> 'Envelope':
-        """Get primary output envelope"""
-        ...
-
 @dataclass(frozen=True)
 class Envelope:
-    """Immutable message envelope for inter-node communication.
-    
-    Now implements NodeOutputProtocol interface for seamless migration.
-    """
+    """Immutable message envelope for inter-node communication."""
     
     # Identity
     id: str = field(default_factory=lambda: str(uuid4()))
@@ -95,129 +47,14 @@ class Envelope:
         """Tag with branch identifier"""
         return self.with_meta(branch_id=branch_id)
     
-    # NodeOutputProtocol compatibility methods
-    @property
-    def value(self) -> Any:
-        """Get the envelope body for NodeOutputProtocol compatibility."""
-        return self.body
-    
-    @property
-    def node_id(self) -> 'NodeID':
-        """Get node ID for NodeOutputProtocol compatibility."""
-        from dipeo.diagram_generated import NodeID
-        return NodeID(self.produced_by)
-    
-    @property
-    def metadata(self) -> str:
-        """Get metadata as JSON string for NodeOutputProtocol compatibility."""
-        return json.dumps(self.meta) if self.meta else "{}"
-    
-    @property
-    def timestamp(self) -> datetime:
-        """Get timestamp for NodeOutputProtocol compatibility."""
-        if "timestamp" in self.meta and isinstance(self.meta["timestamp"], (int, float)):
-            return datetime.fromtimestamp(self.meta["timestamp"])
-        return datetime.now()
-    
-    @property
-    def token_usage(self) -> 'TokenUsage | None':
-        """Get token usage for NodeOutputProtocol compatibility."""
-        if "token_usage" in self.meta and self.meta["token_usage"]:
-            from dipeo.diagram_generated import TokenUsage
-            usage_data = self.meta["token_usage"]
-            if isinstance(usage_data, dict):
-                return TokenUsage(
-                    input=usage_data.get("input", 0),
-                    output=usage_data.get("output", 0),
-                    cached=usage_data.get("cached"),
-                    total=usage_data.get("total")
-                )
-        return None
-    
-    @property
-    def execution_time(self) -> float | None:
-        """Get execution time for NodeOutputProtocol compatibility."""
-        return self.meta.get("execution_time")
-    
-    @property
-    def retry_count(self) -> int:
-        """Get retry count for NodeOutputProtocol compatibility."""
-        return self.meta.get("retry_count", 0)
-    
-    @property
-    def status(self) -> 'Status | None':
-        """Get status for NodeOutputProtocol compatibility."""
-        if "status" in self.meta:
-            from dipeo.diagram_generated import Status
-            status_val = self.meta["status"]
-            if isinstance(status_val, str):
-                try:
-                    return Status(status_val)
-                except ValueError:
-                    pass
-        return None
-    
     @property
     def error(self) -> str | None:
         """Get error message if present."""
         return self.meta.get("error")
     
-    def get_output(self, key: str, default: Any = None) -> Any:
-        """Get output value by key for NodeOutputProtocol compatibility."""
-        # First check body if it's a dict
-        if isinstance(self.body, dict):
-            if key in self.body:
-                return self.body[key]
-        
-        # Then check metadata
-        return self.meta.get(key, default)
-    
     def has_error(self) -> bool:
         """Check if envelope represents an error."""
         return "error" in self.meta and self.meta["error"] is not None
-    
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for NodeOutputProtocol compatibility."""
-        result = {
-            "value": self.body,
-            "node_id": self.produced_by,
-            "metadata": self.metadata,
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
-            "error": self.error,
-            "execution_time": self.execution_time,
-            "retry_count": self.retry_count,
-            "status": self.status.value if self.status else None
-        }
-        
-        # Include token_usage if present
-        token_usage = self.token_usage
-        if token_usage:
-            result["token_usage"] = {
-                "input": token_usage.input,
-                "output": token_usage.output,
-                "cached": token_usage.cached,
-                "total": token_usage.total
-            }
-        else:
-            result["token_usage"] = None
-        
-        return result
-    
-    def get_metadata_dict(self) -> dict[str, Any]:
-        """Get metadata as dictionary for NodeOutputProtocol compatibility."""
-        return dict(self.meta)
-    
-    def set_metadata_dict(self, data: dict[str, Any]) -> None:
-        """NodeOutputProtocol compatibility - but Envelope is immutable."""
-        raise NotImplementedError("Envelope is immutable. Use with_meta() to create new envelope with updated metadata.")
-    
-    def as_envelopes(self) -> list['Envelope']:
-        """Return self as list for NodeOutputProtocol compatibility."""
-        return [self]
-    
-    def primary_envelope(self) -> 'Envelope':
-        """Return self for NodeOutputProtocol compatibility."""
-        return self
 
 class EnvelopeFactory:
     """Factory for creating envelopes with backward compatibility support"""
@@ -281,7 +118,7 @@ class EnvelopeFactory:
         
         # Use numpy's safe format instead of pickle
         buffer = io.BytesIO()
-        np.save(buffer, array, allow_pickle=False)
+        np.save(buffer, array, allow_pickle=False)  # type: ignore[arg-type]
         
         return Envelope(
             content_type=ContentType.BINARY,
@@ -348,88 +185,30 @@ class EnvelopeFactory:
         )
 
 
-def serialize_protocol(output: NodeOutputProtocol) -> dict[str, Any]:
-    """Serialize protocol output for storage.
+def serialize_protocol(output: Envelope) -> dict[str, Any]:
+    """Serialize envelope for storage.
     
-    Always produces consistent Envelope format for new data.
+    Always produces consistent Envelope format.
     """
-    # Always serialize as Envelope format for consistency
-    if isinstance(output, Envelope):
-        # Direct serialization for Envelope instances
-        return {
-            "envelope_format": True,  # Discriminator for deserialization
-            "id": output.id,
-            "trace_id": output.trace_id,
-            "produced_by": output.produced_by,
-            "content_type": output.content_type.value if hasattr(output.content_type, 'value') else output.content_type,
-            "schema_id": output.schema_id,
-            "serialization_format": output.serialization_format,
-            "body": output.body,
-            "meta": output.meta
-        }
-    
-    # Convert any other NodeOutputProtocol to Envelope format
-    # This ensures consistent storage format
-    meta = {}
-    
-    # Parse metadata if it's a JSON string
-    if hasattr(output, 'metadata') and output.metadata:
-        try:
-            if isinstance(output.metadata, str):
-                meta = json.loads(output.metadata)
-            elif isinstance(output.metadata, dict):
-                meta = output.metadata
-        except json.JSONDecodeError:
-            pass
-    
-    # Add structured fields to metadata
-    if hasattr(output, 'execution_time') and output.execution_time is not None:
-        meta['execution_time'] = output.execution_time
-    if hasattr(output, 'retry_count') and output.retry_count:
-        meta['retry_count'] = output.retry_count
-    if hasattr(output, 'timestamp'):
-        meta['timestamp'] = output.timestamp.timestamp() if hasattr(output.timestamp, 'timestamp') else time.time()
-    
-    # Add token usage if present
-    if hasattr(output, 'token_usage') and output.token_usage:
-        meta['token_usage'] = {
-            "input": output.token_usage.input,
-            "output": output.token_usage.output,
-            "cached": output.token_usage.cached,
-            "total": output.token_usage.total
-        }
-    
-    # Add status if present
-    if hasattr(output, 'status') and output.status:
-        meta['status'] = output.status.value if hasattr(output.status, 'value') else str(output.status)
-    
-    # Determine content type based on value
-    value = output.value if hasattr(output, 'value') else None
-    if isinstance(value, dict):
-        content_type = ContentType.OBJECT
-    else:
-        content_type = ContentType.RAW_TEXT
-    
-    # Return in Envelope format
+    # Direct serialization for Envelope instances
     return {
-        "envelope_format": True,
-        "id": str(uuid4()),
-        "trace_id": "",
-        "produced_by": str(output.node_id) if hasattr(output, 'node_id') else "system",
-        "content_type": content_type.value if hasattr(content_type, 'value') else content_type,
-        "schema_id": None,
-        "serialization_format": None,
-        "body": value,
-        "meta": meta
+        "envelope_format": True,  # Discriminator for deserialization
+        "id": output.id,
+        "trace_id": output.trace_id,
+        "produced_by": output.produced_by,
+        "content_type": output.content_type.value if hasattr(output.content_type, 'value') else output.content_type,
+        "schema_id": output.schema_id,
+        "serialization_format": output.serialization_format,
+        "body": output.body,
+        "meta": output.meta
     }
 
 
-def deserialize_protocol(data: dict[str, Any]) -> NodeOutputProtocol:
-    """Reconstruct protocol output from stored data.
+def deserialize_protocol(data: dict[str, Any]) -> Envelope:
+    """Reconstruct envelope from stored data.
     
     Handles both new Envelope format and legacy NodeOutput format for backward compatibility.
     """
-    from dipeo.diagram_generated import TokenUsage, NodeID, Status
     
     # Check for new Envelope format (using discriminator)
     if data.get("envelope_format") or data.get("_envelope_format"):
