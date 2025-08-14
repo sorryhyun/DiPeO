@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import Any, Optional, Protocol, Sequence
 
 from dipeo.diagram_generated import NodeID, NodeState
-from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.envelope import NodeOutputProtocol
 
 
 class ExecutionContext(Protocol):

@@ -2,6 +2,7 @@
 
 import json
 import logging
+import time
 from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
@@ -11,7 +12,7 @@ from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import DIAGRAM
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
-from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.condition_model import ConditionNodeData
 
@@ -161,18 +162,24 @@ class ConditionNodeHandler(EnvelopeNodeHandler[ConditionNode]):
             f"has_false_output={false_output is not None}"
         )
         
-        # Create ConditionEnvelopeOutput for proper branch routing
-        from dipeo.core.execution.envelope_output import ConditionEnvelopeOutput
+        # Create Envelope directly for proper branch routing
+        from dipeo.core.execution.envelope import Envelope
         
-        output = ConditionEnvelopeOutput(
-            condition_result=result,
-            node_id=node.id,
-            true_output=true_output,
-            false_output=false_output,
-            meta={
-                "condition_type": node.condition_type,
-                "evaluation_metadata": self._current_evaluation_metadata
-            }
+        # Prepare metadata with condition-specific fields
+        meta = {
+            "condtrue": true_output,
+            "condfalse": false_output,
+            "active_branch": "condtrue" if result else "condfalse",
+            "condition_type": node.condition_type,
+            "evaluation_metadata": self._current_evaluation_metadata,
+            "timestamp": time.time()
+        }
+        
+        output = Envelope(
+            content_type="condition_result",  # Special content type for conditions
+            body=result,
+            produced_by=str(node.id),
+            meta=meta
         )
         
         return output

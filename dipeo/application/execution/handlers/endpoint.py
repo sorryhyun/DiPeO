@@ -10,7 +10,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import EndpointNode, NodeType
-from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
@@ -73,7 +73,7 @@ class EndpointNodeHandler(EnvelopeNodeHandler[EndpointNode]):
             filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
             
             if not filesystem_adapter:
-                from dipeo.core.execution.node_output import NodeOutputProtocol
+                from dipeo.core.execution.envelope import NodeOutputProtocol
                 return self.create_error_output(
                 ValueError("Filesystem adapter is required when save_to_file is enabled"),
                 node_id=str(node.id)

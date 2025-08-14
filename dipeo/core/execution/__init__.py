@@ -16,29 +16,15 @@ from dipeo.core.execution.execution_tracker import (
     NodeExecutionRecord,
     NodeRuntimeState,
 )
-from dipeo.core.execution.node_output import (
+from dipeo.core.execution.envelope import (
+    Envelope,
+    EnvelopeFactory,
     NodeOutputProtocol,
     serialize_protocol,
     deserialize_protocol,
 )
-from dipeo.core.execution.envelope import (
-    Envelope,
-    EnvelopeFactory,
-)
 from dipeo.core.execution.envelope_reader import (
     EnvelopeReader,
-)
-from dipeo.core.execution.envelope_output import (
-    EnvelopeOutput,
-    ConversationEnvelopeOutput,
-    ConditionEnvelopeOutput,
-    DataEnvelopeOutput,
-    create_text_output,
-    create_json_output,
-    create_error_output,
-    create_conversation_output,
-    create_condition_output,
-    create_data_output,
 )
 from dipeo.core.execution.node_strategy import (
     NodeStrategy,
@@ -82,16 +68,6 @@ __all__ = [
     "Envelope",
     "EnvelopeFactory",
     "EnvelopeReader",
-    "EnvelopeOutput",
-    "ConversationEnvelopeOutput",
-    "ConditionEnvelopeOutput",
-    "DataEnvelopeOutput",
-    "create_text_output",
-    "create_json_output",
-    "create_error_output",
-    "create_conversation_output",
-    "create_condition_output",
-    "create_data_output",
     # Execution tracking
     "ExecutionTracker",
     "FlowStatus",

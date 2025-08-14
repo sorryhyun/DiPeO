@@ -12,7 +12,7 @@ from dipeo.diagram_generated import NodeID, NodeType
 from dipeo.core.execution.runtime_resolver import RuntimeResolver
 from dipeo.core.execution.execution_context import ExecutionContext
 from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2, ExecutableNode, ExecutableDiagram
-from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 
 from dipeo.core.resolution import (

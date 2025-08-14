@@ -17,7 +17,7 @@ from dipeo.application.execution.states.execution_state_persistence import Execu
 from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
 from dipeo.core.execution import ExecutionContext as ExecutionContextProtocol
 from dipeo.core.execution.execution_tracker import CompletionStatus, ExecutionTracker
-from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.runtime_resolver import RuntimeResolver
 from dipeo.diagram_generated import (
     ExecutionState,
@@ -204,24 +204,18 @@ class TypedExecutionContext(ExecutionContextProtocol):
             # Get the output to determine which branch was taken
             output = self._tracker.get_last_output(node_id)
 
-            # Handle ConditionEnvelopeOutput
-            from dipeo.core.execution.envelope_output import ConditionEnvelopeOutput
-            if isinstance(output, ConditionEnvelopeOutput):
-                # This handles ConditionEnvelopeOutput
-                active_branch, _ = output.get_branch_output()  # Returns ("condtrue", data) or ("condfalse", data)
-            else:
-                # Handle pure Envelope for future compatibility
-                from dipeo.core.execution.envelope import Envelope
-                if isinstance(output, Envelope):
-                    # Extract branch from envelope metadata
-                    if output.content_type == "condition_result":
-                        branch_taken = output.meta.get("branch_taken", "false")
-                        active_branch = "condtrue" if branch_taken == "true" else "condfalse"
-                    else:
-                        # Fallback: check the body for result
-                        result = output.body.get("result", False) if isinstance(output.body, dict) else False
-                        active_branch = "condtrue" if result else "condfalse"
+            # Handle Envelope with condition result
+            from dipeo.core.execution.envelope import Envelope
+            if isinstance(output, Envelope):
+                # Extract branch from envelope metadata
+                if output.content_type == "condition_result":
+                    # Use active_branch from metadata (set by condition handler)
+                    active_branch = output.meta.get("active_branch", "condfalse")
                 else:
+                    # Fallback: check the body for result
+                    result = output.body.get("result", False) if isinstance(output.body, dict) else False
+                    active_branch = "condtrue" if result else "condfalse"
+            else:
                     # No valid output, can't determine branch
                     return
 

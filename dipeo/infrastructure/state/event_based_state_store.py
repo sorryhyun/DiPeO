@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dipeo.core.constants import STATE_DB_PATH
-from dipeo.core.execution.node_output import serialize_protocol
+from dipeo.core.execution.envelope import serialize_protocol
 from dipeo.core.ports import StateStorePort
 from dipeo.diagram_generated import (
     DiagramID,

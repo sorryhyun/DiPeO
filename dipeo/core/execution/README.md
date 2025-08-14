@@ -19,28 +19,34 @@ The execution module implements a **protocol-based architecture** with clear sep
 
 ## Core Components
 
-### 1. Node Output System (`node_output.py`)
+### 1. Envelope System (`envelope.py`)
 
-Provides type-safe output contracts for all node types:
+Provides unified message passing system with type-safe output contracts:
 
 ```python
+@dataclass(frozen=True)
+class Envelope:
+    """Immutable message envelope for inter-node communication"""
+    id: str
+    produced_by: str
+    content_type: ContentType
+    body: Any
+    meta: dict[str, Any]
+
 @runtime_checkable
 class NodeOutputProtocol(Protocol[T]):
     """Base protocol for all node outputs"""
     value: T
-    metadata: dict[str, Any]
+    metadata: str  # JSON string
     node_id: NodeID
     timestamp: datetime
 ```
 
-**Specialized Output Types:**
-- `TextOutput` - Plain text results from LLM nodes
-- `ConversationOutput` - Conversation history with messages
-- `DataOutput` - Structured data with JSON schema
-- `ConditionOutput` - Boolean results with branching info
-- `BatchOutput` - Collections from batch operations
-- `FileOutput` - File operation results with paths
-- `ValidationOutput` - Validation results with errors/warnings
+**Key Features:**
+- Immutable message envelopes
+- Built-in serialization support
+- Protocol compatibility for backward compatibility
+- Unified messaging across all node types
 
 ### 2. Execution Context (`execution_context.py`)
 
@@ -354,7 +360,8 @@ async def test_execution_flow():
 
 ## Migration Notes
 
-- Legacy `node_output` module being replaced with protocol-based approach
+- ✅ Legacy `node_output` module replaced with unified envelope system (2025-08-14)
+- ✅ All outputs now use immutable `Envelope` instances
 - Old `ExecutionState` class deprecated in favor of `ExecutionContext`
 - Direct state updates replaced with event-based state management
 - Synchronous execution being migrated to async throughout

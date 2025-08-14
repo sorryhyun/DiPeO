@@ -330,10 +330,11 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
         if edge.source_output in ["condtrue", "condfalse"]:
             if context:
                 output = context.get_node_output(edge.source_node_id)
-                # Check for ConditionEnvelopeOutput
-                from dipeo.core.execution.envelope_output import ConditionEnvelopeOutput
-                if isinstance(output, ConditionEnvelopeOutput):
-                    active_branch, _ = output.get_branch_output()
+                # Check for Envelope with condition result
+                from dipeo.core.execution.envelope import Envelope
+                if isinstance(output, Envelope) and output.content_type == "condition_result":
+                    # Use active_branch from metadata
+                    active_branch = output.meta.get("active_branch", "condfalse")
                     # Only satisfied if this edge is on the active branch
                     return edge.source_output == active_branch
                 elif hasattr(output, 'value') and isinstance(output.value, bool):

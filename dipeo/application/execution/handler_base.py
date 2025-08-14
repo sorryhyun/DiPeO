@@ -6,7 +6,7 @@ import warnings
 
 from pydantic import BaseModel
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
-from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.core.execution.envelope_reader import EnvelopeReader
 

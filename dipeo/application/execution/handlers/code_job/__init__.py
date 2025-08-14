@@ -8,7 +8,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.domain.ports.template import TemplateProcessorPort
-from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import CodeJobNode, NodeType
 from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData
@@ -255,10 +255,10 @@ class CodeJobNodeHandler(EnvelopeNodeHandler[CodeJobNode]):
         # Use instance variable for language
         if request.metadata and request.metadata.get("debug"):
             language = self._current_language
-            # Check if output is an error
-            is_error = isinstance(output, ErrorOutput)
+            # Check if output is an error by checking has_error method
+            is_error = hasattr(output, 'has_error') and output.has_error()
             print(f"[CodeJobNode] Executed {language} code - Success: {not is_error}")
-            if is_error:
+            if is_error and hasattr(output, 'value'):
                 print(f"[CodeJobNode] Error: {output.value}")
         
         return output

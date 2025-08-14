@@ -15,7 +15,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.node_output import NodeOutputProtocol
+    from dipeo.core.execution.envelope import NodeOutputProtocol
     from dipeo.diagram_generated import NodeID
 
 

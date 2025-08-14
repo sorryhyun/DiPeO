@@ -5,7 +5,7 @@ from typing import Any, Protocol
 
 from dipeo.diagram_generated import NodeID, NodeState
 from dipeo.diagram_generated.domain_models import DiagramID
-from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.execution_context import ExecutionContext
 
 
