@@ -197,13 +197,29 @@ class ExecutionMetrics(BaseModel):
 
 
 class SerializedNodeOutput(BaseModel):
-    """SerializedNodeOutput model"""
+    """SerializedNodeOutput model - supports both Envelope and legacy NodeOutput formats"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    type: str = Field(alias='_type')
-    value: Any
-    node_id: str
-    metadata: str
+    # Format discriminator
+    envelope_format: Optional[bool] = Field(default=None)
+    
+    # Legacy NodeOutput fields (now optional)
+    type: Optional[str] = Field(alias='_type', default=None)
+    value: Optional[Any] = Field(default=None)
+    node_id: Optional[str] = Field(default=None)
+    metadata: Optional[str] = Field(default=None)
+    
+    # Envelope fields (new)
+    id: Optional[str] = Field(default=None)
+    trace_id: Optional[str] = Field(default=None)
+    produced_by: Optional[str] = Field(default=None)
+    content_type: Optional[str] = Field(default=None)
+    schema_id: Optional[str] = Field(default=None)
+    serialization_format: Optional[str] = Field(default=None)
+    body: Optional[Any] = Field(default=None)
+    meta: Optional[Dict[str, Any]] = Field(default=None)
+    
+    # Common optional fields (used by both formats)
     timestamp: Optional[str] = Field(default=None)
     error: Optional[Union[str, None]] = Field(default=None)
     token_usage: Optional[Union[TokenUsage, None]] = Field(default=None)

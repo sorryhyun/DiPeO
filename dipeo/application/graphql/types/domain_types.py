@@ -81,28 +81,44 @@ class NodeStateType:
 
 @strawberry.experimental.pydantic.type(SerializedNodeOutput)
 class SerializedNodeOutputType:
-    type: str  # Will be exposed as 'type' in GraphQL
-    value: JSONScalar
-    node_id: str
-    metadata: str
-    timestamp: Optional[str]
-    error: Optional[str]
-    token_usage: Optional[TokenUsageType]
-    execution_time: Optional[float]
-    retry_count: Optional[int]
+    # Format discriminator
+    envelope_format: Optional[bool] = None
+    
+    # Legacy NodeOutput fields (now optional)
+    type: Optional[str] = None  # Will be exposed as 'type' in GraphQL
+    value: Optional[JSONScalar] = None
+    node_id: Optional[str] = None
+    metadata: Optional[str] = None
+    
+    # Envelope fields (new)
+    id: Optional[str] = None
+    trace_id: Optional[str] = None
+    produced_by: Optional[str] = None
+    content_type: Optional[str] = None
+    schema_id: Optional[str] = None
+    serialization_format: Optional[str] = None
+    body: Optional[JSONScalar] = None
+    meta: Optional[JSONScalar] = None
+    
+    # Common optional fields (used by both formats)
+    timestamp: Optional[str] = None
+    error: Optional[str] = None
+    token_usage: Optional[TokenUsageType] = None
+    execution_time: Optional[float] = None
+    retry_count: Optional[int] = None
     # Node-specific fields
-    person_id: Optional[str]
-    conversation_id: Optional[str]
-    language: Optional[str]
-    stdout: Optional[str]
-    stderr: Optional[str]
-    success: Optional[bool]
-    status_code: Optional[int]
-    headers: Optional[JSONScalar]
-    response_time: Optional[float]
-    true_output: Optional[JSONScalar]
-    false_output: Optional[JSONScalar]
-    error_type: Optional[str]
+    person_id: Optional[str] = None
+    conversation_id: Optional[str] = None
+    language: Optional[str] = None
+    stdout: Optional[str] = None
+    stderr: Optional[str] = None
+    success: Optional[bool] = None
+    status_code: Optional[int] = None
+    headers: Optional[JSONScalar] = None
+    response_time: Optional[float] = None
+    true_output: Optional[JSONScalar] = None
+    false_output: Optional[JSONScalar] = None
+    error_type: Optional[str] = None
 
 @strawberry.experimental.pydantic.type(DomainHandle, all_fields=True)
 class DomainHandleType:

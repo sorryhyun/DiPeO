@@ -58,7 +58,34 @@ export interface ExecutionMetrics {
 }
 
 
-export interface SerializedNodeOutput {
+// Envelope metadata structure
+export interface EnvelopeMeta {
+  node_id?: string;
+  token_usage?: TokenUsage;
+  execution_time?: number;
+  retry_count?: number;
+  error?: string;
+  error_type?: string;
+  timestamp?: string | number;
+  // Other potential metadata fields
+  [key: string]: any;
+}
+
+// Serialized Envelope format (new)
+export interface SerializedEnvelope {
+  envelope_format: true;  // Discriminator field
+  id: string;
+  trace_id: string;
+  produced_by: string;
+  content_type: string;
+  schema_id?: string;
+  serialization_format?: string;
+  body: any;
+  meta: EnvelopeMeta;
+}
+
+// Legacy serialized output format
+export interface LegacySerializedOutput {
   _type: string;  // "PersonJobOutput", "ConditionOutput", etc.
   value: any;
   node_id: string;
@@ -83,6 +110,9 @@ export interface SerializedNodeOutput {
   false_output?: any;
   error_type?: string | null;
 }
+
+// Union type supporting both formats
+export type SerializedNodeOutput = SerializedEnvelope | LegacySerializedOutput;
 
 export interface ExecutionState {
   id: ExecutionID;
