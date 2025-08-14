@@ -129,11 +129,6 @@ class EnvelopeOutput:
         envelope = EnvelopeFactory.error(error_msg, error_type=error_type, node_id=node_id, **kwargs)
         return cls(envelope)
     
-    @classmethod
-    def from_node_output(cls, output: Any) -> 'EnvelopeOutput':
-        """Create from existing NodeOutput for migration."""
-        envelope = EnvelopeFactory.from_node_output(output)
-        return cls(envelope)
 
 
 class ConversationEnvelopeOutput(EnvelopeOutput):

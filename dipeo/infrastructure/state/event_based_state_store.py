@@ -429,14 +429,21 @@ class EventBasedStateStore(StateStorePort):
         elif isinstance(output, dict) and "_protocol_type" in output:
             serialized_output = output
         else:
-            from dipeo.core.execution.node_output import BaseNodeOutput
+            from dipeo.core.execution.envelope import EnvelopeFactory
             from dipeo.diagram_generated import NodeID
             
-            wrapped_output = BaseNodeOutput(
-                value={"default": str(output)} if is_exception else output,
-                node_id=NodeID(node_id),
-                error=str(output) if is_exception else None,
-            )
+            # Create an envelope for outputs that don't have the protocol interface
+            if is_exception:
+                wrapped_output = EnvelopeFactory.error(
+                    str(output),
+                    error_type=type(output).__name__ if hasattr(output, '__class__') else "Exception",
+                    node_id=str(node_id)
+                )
+            else:
+                wrapped_output = EnvelopeFactory.text(
+                    str(output),
+                    node_id=str(node_id)
+                )
             serialized_output = serialize_protocol(wrapped_output)
         
         # Convert to SerializedNodeOutput if needed

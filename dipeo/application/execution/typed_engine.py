@@ -297,13 +297,12 @@ class TypedExecutionEngine:
                     logger.info(f"PersonJobNode {node_id} has reached max_iteration ({node.max_iteration}), transitioning to MAXITER_REACHED")
                     
                     # Transition directly to MAXITER_REACHED without running
-                    from dipeo.core.execution.node_output import TextOutput
+                    from dipeo.core.execution.envelope import EnvelopeFactory
                     from dipeo.diagram_generated.enums import Status
-                    output = TextOutput(
-                        value="",
-                        node_id=node_id,
-                        status=Status.MAXITER_REACHED,
-                        metadata="{}"
+                    output = EnvelopeFactory.text(
+                        "",
+                        node_id=str(node_id),
+                        meta={"status": Status.MAXITER_REACHED.value}
                     )
                     context.transition_node_to_maxiter(node_id, output)
                     

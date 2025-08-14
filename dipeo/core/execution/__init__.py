@@ -17,13 +17,7 @@ from dipeo.core.execution.execution_tracker import (
     NodeRuntimeState,
 )
 from dipeo.core.execution.node_output import (
-    BaseNodeOutput,
-    ConditionOutput,
-    ConversationOutput,
-    DataOutput,
-    ErrorOutput,
     NodeOutputProtocol,
-    TextOutput,
     serialize_protocol,
     deserialize_protocol,
 )
@@ -80,14 +74,8 @@ from dipeo.diagram_generated.generated_nodes import (
 )
 
 __all__ = [
-    # Node outputs (legacy)
+    # Node outputs (protocol only)
     "NodeOutputProtocol",
-    "BaseNodeOutput",
-    "TextOutput",
-    "ConversationOutput",
-    "ConditionOutput",
-    "DataOutput",
-    "ErrorOutput",
     "serialize_protocol",
     "deserialize_protocol",
     # Envelope system (new)

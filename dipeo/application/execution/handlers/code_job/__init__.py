@@ -8,7 +8,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.domain.ports.template import TemplateProcessorPort
-from dipeo.core.execution.node_output import ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import CodeJobNode, NodeType
 from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData

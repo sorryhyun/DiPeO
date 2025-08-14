@@ -17,7 +17,7 @@ from dipeo.application.execution.states.execution_state_persistence import Execu
 from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
 from dipeo.core.execution import ExecutionContext as ExecutionContextProtocol
 from dipeo.core.execution.execution_tracker import CompletionStatus, ExecutionTracker
-from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
+from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.core.execution.runtime_resolver import RuntimeResolver
 from dipeo.diagram_generated import (
     ExecutionState,
@@ -204,10 +204,10 @@ class TypedExecutionContext(ExecutionContextProtocol):
             # Get the output to determine which branch was taken
             output = self._tracker.get_last_output(node_id)
 
-            # Handle ConditionOutput and ConditionEnvelopeOutput
+            # Handle ConditionEnvelopeOutput
             from dipeo.core.execution.envelope_output import ConditionEnvelopeOutput
-            if isinstance(output, (ConditionOutput, ConditionEnvelopeOutput)):
-                # This handles both ConditionOutput and ConditionEnvelopeOutput
+            if isinstance(output, ConditionEnvelopeOutput):
+                # This handles ConditionEnvelopeOutput
                 active_branch, _ = output.get_branch_output()  # Returns ("condtrue", data) or ("condfalse", data)
             else:
                 # Handle pure Envelope for future compatibility

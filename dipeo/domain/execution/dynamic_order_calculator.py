@@ -10,7 +10,6 @@ from collections import defaultdict
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.core.execution.dynamic_order_calculator import DynamicOrderCalculator as DynamicOrderCalculatorProtocol
 from dipeo.core.execution.execution_context import ExecutionContext
-from dipeo.core.execution.node_output import ConditionOutput
 from dipeo.diagram_generated import NodeID, NodeState, Status, NodeType
 from dipeo.diagram_generated.generated_nodes import ConditionNode
 
@@ -331,7 +330,9 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
         if edge.source_output in ["condtrue", "condfalse"]:
             if context:
                 output = context.get_node_output(edge.source_node_id)
-                if isinstance(output, ConditionOutput):
+                # Check for ConditionEnvelopeOutput
+                from dipeo.core.execution.envelope_output import ConditionEnvelopeOutput
+                if isinstance(output, ConditionEnvelopeOutput):
                     active_branch, _ = output.get_branch_output()
                     # Only satisfied if this edge is on the active branch
                     return edge.source_output == active_branch

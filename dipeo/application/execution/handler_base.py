@@ -6,7 +6,7 @@ import warnings
 
 from pydantic import BaseModel
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
-from dipeo.core.execution.node_output import NodeOutputProtocol, BaseNodeOutput, ErrorOutput
+from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.core.execution.envelope_reader import EnvelopeReader
 
@@ -152,41 +152,25 @@ class TypedNodeHandler(Generic[T], ABC):
     
     def create_error_output(
         self,
-        error: Exception | ErrorOutput,
+        error: Exception,
         node_id: str | None = None,
         trace_id: str | None = None
     ) -> NodeOutputProtocol:
         """Create error output as envelope
         
         Args:
-            error: Exception or ErrorOutput instance
-            node_id: Node ID (optional if error is ErrorOutput)
+            error: Exception instance
+            node_id: Node ID
             trace_id: Trace ID for tracking
         """
         from dipeo.diagram_generated import NodeID
         
-        # Handle both Exception and ErrorOutput cases
-        if isinstance(error, ErrorOutput):
-            # Extract info from ErrorOutput
-            error_msg = error.value
-            error_type = error.error_type or "ExecutionError"
-            if node_id is None:
-                node_id = str(error.node_id)
-            # Extract metadata if available
-            metadata = {}
-            if hasattr(error, 'metadata') and error.metadata:
-                try:
-                    import json
-                    metadata = json.loads(error.metadata) if isinstance(error.metadata, str) else error.metadata
-                except:
-                    pass
-        else:
-            # Handle Exception case
-            error_msg = str(error)
-            error_type = type(error).__name__
-            metadata = {}
-            if node_id is None:
-                node_id = "unknown"
+        # Handle Exception case
+        error_msg = str(error)
+        error_type = type(error).__name__
+        metadata = {}
+        if node_id is None:
+            node_id = "unknown"
         
         # Create error envelope using EnvelopeFactory
         error_envelope = EnvelopeFactory.error(
