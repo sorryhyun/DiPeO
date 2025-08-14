@@ -72,8 +72,7 @@ class TypeScriptParser:
         Raises:
             ServiceError: If parsing fails
         """
-        # logger.debug(f"[TypeScriptParser] Starting parse with {len(source)} chars, patterns: {extract_patterns}")
-        
+
         options = options or {}
         include_jsdoc = options.get('includeJSDoc', False)
         parse_mode = options.get('parseMode', 'module')
@@ -86,7 +85,6 @@ class TypeScriptParser:
         ).hexdigest()
         
         if self.cache_enabled and self._cache is not None and cache_key in self._cache:
-            # logger.debug(f"[TypeScriptParser] Cache hit for content hash {cache_key[:8]}")
             return self._cache[cache_key]
         
         # Ensure parser script exists
@@ -118,10 +116,7 @@ class TypeScriptParser:
 
             # Setup environment (handles GitHub Actions if needed)
             env = setup_github_actions_env(os.environ.copy())
-            
-            # logger.debug(f"[TypeScriptParser] Executing command: {' '.join(cmd)}")
-            # logger.debug(f"[TypeScriptParser] Working dir: {self.project_root}")
-            
+
             # Use async subprocess for non-blocking execution
             process = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -160,7 +155,6 @@ class TypeScriptParser:
                 raise ServiceError(f'Parser failed: {stderr}')
             
             parsed_result = json.loads(stdout)
-            # logger.debug(f"[TypeScriptParser] Parsed JSON result, keys: {list(parsed_result.keys())}")
 
             # Check for parser errors
             if parsed_result.get('error'):
@@ -192,8 +186,7 @@ class TypeScriptParser:
 
             if self.cache_enabled and self._cache is not None:
                 self._cache[cache_key] = result
-                # logger.debug(f"[TypeScriptParser] Cached result for content hash {cache_key[:8]}")
-            
+
             return result
             
         except subprocess.TimeoutExpired:
@@ -225,7 +218,6 @@ class TypeScriptParser:
         """Clear the in-memory AST cache."""
         if self._cache is not None:
             self._cache.clear()
-            logger.debug("[TypeScript Parser] Cache cleared")
         else:
             logger.debug("[TypeScript Parser] Cache is disabled, nothing to clear")
     
@@ -295,16 +287,13 @@ class TypeScriptParser:
             ).hexdigest()
             
             if self.cache_enabled and self._cache is not None and cache_key in self._cache:
-                logger.debug(f"[TypeScript Parser] Batch: Cache hit for {key} (hash {cache_key[:8]})")
                 cached_results[key] = self._cache[cache_key]
             else:
                 uncached_sources[key] = source
         
         if not uncached_sources:
             return cached_results
-        
-        logger.debug(f"[TypeScript Parser] Batch processing {len(uncached_sources)} uncached sources")
-        
+
         # Ensure parser script exists
         if not self.parser_script.exists():
             raise ServiceError(f'TypeScript parser script not found at {self.parser_script}')
@@ -416,8 +405,7 @@ class TypeScriptParser:
             # Log batch processing statistics
             if 'metadata' in batch_result:
                 meta = batch_result['metadata']
-                logger.debug(f"[TypeScript Parser] Batch completed: {meta['successCount']}/{meta['totalFiles']} successful in {meta['processingTimeMs']}ms")
-            
+
             return results
             
         except subprocess.TimeoutExpired:

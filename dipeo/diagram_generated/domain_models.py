@@ -196,30 +196,42 @@ class ExecutionMetrics(BaseModel):
     bottlenecks: Optional[List[Dict[str, Any]]] = Field(default=None)
 
 
-class SerializedNodeOutput(BaseModel):
-    """SerializedNodeOutput model - supports both Envelope and legacy NodeOutput formats"""
+class EnvelopeMeta(BaseModel):
+    """EnvelopeMeta model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    # Format discriminator
-    envelope_format: Optional[bool] = Field(default=None)
-    
-    # Legacy NodeOutput fields (now optional)
-    type: Optional[str] = Field(alias='_type', default=None)
-    value: Optional[Any] = Field(default=None)
     node_id: Optional[str] = Field(default=None)
-    metadata: Optional[str] = Field(default=None)
+    token_usage: Optional[TokenUsage] = Field(default=None)
+    execution_time: Optional[float] = Field(default=None)
+    retry_count: Optional[float] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    error_type: Optional[str] = Field(default=None)
+    timestamp: Optional[Union[str, float]] = Field(default=None)
+
+
+class SerializedEnvelope(BaseModel):
+    """SerializedEnvelope model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    # Envelope fields (new)
-    id: Optional[str] = Field(default=None)
-    trace_id: Optional[str] = Field(default=None)
-    produced_by: Optional[str] = Field(default=None)
-    content_type: Optional[str] = Field(default=None)
+    envelope_format: Literal[True]
+    id: str
+    trace_id: str
+    produced_by: str
+    content_type: str
     schema_id: Optional[str] = Field(default=None)
     serialization_format: Optional[str] = Field(default=None)
-    body: Optional[Any] = Field(default=None)
-    meta: Optional[Dict[str, Any]] = Field(default=None)
+    body: Any
+    meta: EnvelopeMeta
+
+
+class LegacySerializedOutput(BaseModel):
+    """LegacySerializedOutput model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    # Common optional fields (used by both formats)
+    type: str = Field(alias='_type')
+    value: Any
+    node_id: str
+    metadata: str
     timestamp: Optional[str] = Field(default=None)
     error: Optional[Union[str, None]] = Field(default=None)
     token_usage: Optional[Union[TokenUsage, None]] = Field(default=None)
@@ -598,6 +610,7 @@ class UserResponseNodeData(BaseNodeData):
 
 
 # Type aliases that reference models
+SerializedNodeOutput = Union[SerializedEnvelope, LegacySerializedOutput]
 PersonMemoryMessage = Message
 PersonBatchJobNodeData = PersonJobNodeData
 
@@ -664,9 +677,15 @@ def is_node_metrics(obj: Any) -> bool:
 def is_execution_metrics(obj: Any) -> bool:
     """Check if object is a ExecutionMetrics."""
     return isinstance(obj, ExecutionMetrics)
-def is_serialized_node_output(obj: Any) -> bool:
-    """Check if object is a SerializedNodeOutput."""
-    return isinstance(obj, SerializedNodeOutput)
+def is_envelope_meta(obj: Any) -> bool:
+    """Check if object is a EnvelopeMeta."""
+    return isinstance(obj, EnvelopeMeta)
+def is_serialized_envelope(obj: Any) -> bool:
+    """Check if object is a SerializedEnvelope."""
+    return isinstance(obj, SerializedEnvelope)
+def is_legacy_serialized_output(obj: Any) -> bool:
+    """Check if object is a LegacySerializedOutput."""
+    return isinstance(obj, LegacySerializedOutput)
 def is_execution_state(obj: Any) -> bool:
     """Check if object is a ExecutionState."""
     return isinstance(obj, ExecutionState)

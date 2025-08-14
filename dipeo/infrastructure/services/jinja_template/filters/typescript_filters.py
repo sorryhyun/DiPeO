@@ -92,6 +92,16 @@ class TypeScriptToPythonFilters:
         # Clean the type
         ts_type = cls.strip_inline_comments(ts_type).strip()
         
+        # Handle boolean literals first (before infrastructure transformer)
+        if ts_type == 'true':
+            result = 'Literal[True]'
+            cls._type_cache[cache_key] = result
+            return result
+        if ts_type == 'false':
+            result = 'Literal[False]'
+            cls._type_cache[cache_key] = result
+            return result
+        
         # Try to use infrastructure's type transformer first
         # But only for simple types, not complex nested structures
         infrastructure_transformer = get_infrastructure_type_transformer()
