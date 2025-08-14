@@ -5,7 +5,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.domain.ports.template import TemplateProcessorPort
 from dipeo.core.execution.envelope import NodeOutputProtocol
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
-class CodeJobNodeHandler(EnvelopeNodeHandler[CodeJobNode]):
+class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     """Handler for code execution nodes with envelope support.
     
     This handler follows the clean separation pattern:

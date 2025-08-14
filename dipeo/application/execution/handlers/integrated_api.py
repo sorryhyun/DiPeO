@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import INTEGRATED_API_SERVICE, API_KEY_SERVICE
 from dipeo.diagram_generated.generated_nodes import IntegratedApiNode, NodeType
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class IntegratedApiNodeHandler(EnvelopeNodeHandler[IntegratedApiNode]):
+class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     """Handler for executing integrated API operations across multiple providers.
     
     Clean separation of concerns:

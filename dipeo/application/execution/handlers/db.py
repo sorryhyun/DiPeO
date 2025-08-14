@@ -10,7 +10,7 @@ import yaml
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
-class DBTypedNodeHandler(EnvelopeNodeHandler[DBNode]):
+class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     """
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)

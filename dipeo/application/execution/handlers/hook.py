@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from dipeo.domain.ports.storage import FileSystemPort
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class HookNodeHandler(EnvelopeNodeHandler[HookNode]):
+class HookNodeHandler(TypedNodeHandler[HookNode]):
     """
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)

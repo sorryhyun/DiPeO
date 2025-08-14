@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.domain.conversation import Person
 from dipeo.diagram_generated.generated_nodes import PersonJobNode, NodeType
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
-class PersonJobNodeHandler(EnvelopeNodeHandler[PersonJobNode]):
+class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     """Handler for executing AI person jobs with conversation memory.
     
     This handler supports both single person execution and batch execution

@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Optional
 from pydantic import BaseModel
 
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.core.execution.envelope import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
-class SubDiagramNodeHandler(EnvelopeNodeHandler[SubDiagramNode]):
+class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     """Handler for executing diagrams within diagrams with envelope support.
     
     This handler supports three execution modes:

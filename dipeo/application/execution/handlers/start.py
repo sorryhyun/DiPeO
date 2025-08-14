@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import StartNode, NodeType
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class StartNodeHandler(EnvelopeNodeHandler[StartNode]):
+class StartNodeHandler(TypedNodeHandler[StartNode]):
     """Handler for start nodes with envelope support."""
     
     # Enable envelope mode

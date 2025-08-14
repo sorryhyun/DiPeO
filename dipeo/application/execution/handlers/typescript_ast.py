@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class TypescriptAstNodeHandler(EnvelopeNodeHandler[TypescriptAstNode]):
+class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     """Handler for TypeScript AST parsing node.
     
     Now uses envelope-based communication for clean input/output interfaces.

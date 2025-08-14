@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional, Any
 from pydantic import BaseModel
 from dipeo.domain.ports.storage import FileSystemPort
 
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class JsonSchemaValidatorNodeHandler(EnvelopeNodeHandler[JsonSchemaValidatorNode]):
+class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     """Handler for JSON Schema validation.
     
     Now uses envelope-based communication for clean input/output interfaces.

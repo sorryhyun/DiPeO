@@ -5,7 +5,7 @@ import json
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class EndpointNodeHandler(EnvelopeNodeHandler[EndpointNode]):
+class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     """
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)

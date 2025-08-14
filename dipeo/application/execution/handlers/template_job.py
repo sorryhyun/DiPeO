@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional, Any
 from pydantic import BaseModel
 from dipeo.domain.ports.storage import FileSystemPort
 
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
-class TemplateJobNodeHandler(EnvelopeNodeHandler[TemplateJobNode]):
+class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     """
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)

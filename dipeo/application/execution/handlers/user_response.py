@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel
 
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import EXECUTION_CONTEXT
 from dipeo.diagram_generated.generated_nodes import UserResponseNode, NodeType
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class UserResponseNodeHandler(EnvelopeNodeHandler[UserResponseNode]):
+class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     """Handler for interactive user input.
     
     Now uses envelope-based communication for clean input/output interfaces.

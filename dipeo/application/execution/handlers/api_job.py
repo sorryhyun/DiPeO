@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.handler_base import EnvelopeNodeHandler
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import API_SERVICE
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
-class ApiJobNodeHandler(EnvelopeNodeHandler[ApiJobNode]):
+class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     """
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)
