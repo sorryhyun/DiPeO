@@ -8,7 +8,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.domain.conversation import Person
 from dipeo.domain.conversation.memory_profiles import MemoryProfile, MemoryProfileFactory
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
-from dipeo.core.execution.node_output import ConversationOutput, TextOutput, NodeOutputProtocol, PersonJobOutput
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.domain_models import Message, PersonID
 
 from .prompt_resolver import PromptFileResolver
@@ -48,11 +48,15 @@ class SinglePersonJobExecutor:
         # Initialize prompt resolver with filesystem and diagram
         self._prompt_resolver = PromptFileResolver(filesystem_adapter, diagram)
     
-    async def execute(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutputProtocol:
-        """Execute the person job for a single person."""
+    async def execute(self, request: ExecutionRequest[PersonJobNode]) -> Envelope:
+        """Execute the person job for a single person with envelope support.
+        
+        Returns Envelope that contains the execution results.
+        """
         # Get node and context from request
         node = request.node
         context = request.context
+        trace_id = request.execution_id or ""
         
         # Get inputs from request (already resolved by engine)
         inputs = request.inputs or {}
@@ -179,10 +183,10 @@ class SinglePersonJobExecutor:
         # Skip if no prompt
         if not built_prompt:
             logger.warning(f"Skipping execution for person {person_id} - no prompt available")
-            return TextOutput(
-                value="",
-                node_id=node.id,
-                metadata="{}"  # Empty metadata - skipped status handled by empty value
+            return EnvelopeFactory.text(
+                "",
+                produced_by=str(node.id),
+                trace_id=trace_id
             )
         
         # Execute LLM call
@@ -223,13 +227,14 @@ class SinglePersonJobExecutor:
         result = await person.complete(**complete_kwargs)
 
         
-        # Build and return output
+        # Build and return output with envelope support
         return self._build_node_output(
             result=result,
             person=person,
             node=node,
             diagram=self._diagram,
-            model=person.llm_config.model
+            model=person.llm_config.model,
+            trace_id=trace_id
         )
     
     def _get_or_create_person(
@@ -272,9 +277,9 @@ class SinglePersonJobExecutor:
     
     
     
-    def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str) -> NodeOutputProtocol:
+    def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str, trace_id: str = "") -> Envelope:
+        """Build node output with envelope support for proper conversion."""
         from dipeo.diagram_generated import TokenUsage
-        from dipeo.core.execution.node_output import TextOutput, DataOutput
         
         # Extract token usage as typed field
         token_usage = None
@@ -297,14 +302,20 @@ class SinglePersonJobExecutor:
             for msg in person.get_messages():
                 messages.append(msg)
             
-            return PersonJobOutput(
-                value=messages,
-                node_id=node.id,
-                metadata="{}",  # Empty metadata - model is now a typed field
-                token_usage=token_usage,
+            # Return conversation envelope directly
+            conversation_state = {
+                "messages": messages,
+                "last_message": messages[-1] if messages else None
+            }
+            return EnvelopeFactory.conversation(
+                conversation_state,
+                produced_by=str(node.id),
+                trace_id=trace_id
+            ).with_meta(
                 person_id=person_id,
                 conversation_id=conversation_id,
-                model=model  # Use typed field for model
+                model=model,
+                token_usage=token_usage.model_dump() if token_usage else None
             )
         else:
             # Check if we used text_format (structured output)
@@ -313,21 +324,28 @@ class SinglePersonJobExecutor:
             
             structured_data = self._text_format_handler.process_structured_output(result, has_text_format)
             if structured_data:
-                return DataOutput(
-                    value=structured_data,
-                    node_id=node.id,
-                    metadata="{}",
-                    token_usage=token_usage,
-                    execution_time=None,
-                    retry_count=0
+                # Return JSON envelope for structured data
+                return EnvelopeFactory.json(
+                    structured_data,
+                    produced_by=str(node.id),
+                    trace_id=trace_id
+                ).with_meta(
+                    person_id=person_id,
+                    model=model,
+                    is_structured=True,
+                    token_usage=token_usage.model_dump() if token_usage else None
                 )
             
             # Default: return text output
-            return TextOutput(
-                value=result.text if hasattr(result, 'text') else str(result),
-                node_id=node.id,
-                metadata="{}",
-                token_usage=token_usage,
-                execution_time=None,
-                retry_count=0
+            text_value = result.text if hasattr(result, 'text') else str(result)
+            output = EnvelopeFactory.text(
+                text_value,
+                produced_by=str(node.id),
+                trace_id=trace_id
+            ).with_meta(
+                person_id=person_id,
+                model=model,
+                token_usage=token_usage.model_dump() if token_usage else None
             )
+            
+            return output

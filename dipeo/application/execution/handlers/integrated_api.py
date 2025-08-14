@@ -10,7 +10,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import INTEGRATED_API_SERVICE, API_KEY_SERVICE
 from dipeo.diagram_generated.generated_nodes import IntegratedApiNode, NodeType
-from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.integrated_api_model import IntegratedApiNodeData
 from dipeo.diagram_generated.enums import APIServiceType
 
@@ -25,10 +25,16 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)
     2. pre_execute() - Runtime validation and setup
-    3. execute_request() - Core execution logic
+    3. execute_with_envelopes() - Core execution logic with envelope inputs
+    
+    Now uses envelope-based communication for clean input/output interfaces.
     """
     
+    # Enable envelope mode
+    _expects_envelopes = True
+    
     def __init__(self, integrated_api_service=None, api_key_service=None):
+        super().__init__()
         self.integrated_api_service = integrated_api_service
         self.api_key_service = api_key_service
         # Instance variables for passing data between methods
@@ -58,7 +64,7 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     def description(self) -> str:
         return "Executes operations on various API providers (Notion, Slack, GitHub, etc.)"
     
-    async def pre_execute(self, request: ExecutionRequest[IntegratedApiNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[IntegratedApiNode]) -> Optional[Envelope]:
         """Pre-execution setup: validate services and API key availability.
         
         Moves service checks, API key validation, and provider resolution
@@ -71,17 +77,17 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         api_key_service = self.api_key_service or request.services.resolve(API_KEY_SERVICE)
         
         if not integrated_api_service:
-            return ErrorOutput(
-                value="Integrated API service not available",
-                node_id=node.id,
-                error_type="ServiceNotAvailableError"
+            return EnvelopeFactory.error(
+                "Integrated API service not available",
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         
         if not api_key_service:
-            return ErrorOutput(
-                value="API key service not available",
-                node_id=node.id,
-                error_type="ServiceNotAvailableError"
+            return EnvelopeFactory.error(
+                "API key service not available",
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         
         # Get the API key for the provider
@@ -101,10 +107,10 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         )
         
         if not provider_summary:
-            return ErrorOutput(
-                value=f"No API key configured for provider '{provider}'",
-                node_id=node.id,
-                error_type="ConfigurationError"
+            return EnvelopeFactory.error(
+                f"No API key configured for provider '{provider}'",
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         
         # Now get the full key details including the actual key
@@ -121,16 +127,24 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         # No early return - proceed to execute_request
         return None
 
-    async def execute_request(self, request: ExecutionRequest[IntegratedApiNode]) -> NodeOutputProtocol:
-        """Pure execution using instance variables set in pre_execute."""
-        return await self._execute_api_operation(request)
+    async def execute_with_envelopes(
+        self, 
+        request: ExecutionRequest[IntegratedApiNode],
+        inputs: dict[str, Envelope]
+    ) -> Envelope:
+        """Execute integrated API operation with envelope inputs."""
+        return await self._execute_api_operation(request, inputs)
     
-    async def _execute_api_operation(self, request: ExecutionRequest[IntegratedApiNode]) -> NodeOutputProtocol:
+    async def _execute_api_operation(
+        self, 
+        request: ExecutionRequest[IntegratedApiNode],
+        envelope_inputs: dict[str, Envelope]
+    ) -> Envelope:
         """Execute the API operation through the integrated service."""
         
         # Extract properties from request
         node = request.node
-        inputs = request.inputs
+        trace_id = request.execution_id or ""
         
         # Use pre-validated services and API key from instance variables (set in pre_execute)
         integrated_api_service = self._current_integrated_api_service
@@ -141,15 +155,26 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         # Prepare configuration
         config = node.config or {}
         
-        # Merge any input data into config
-        if inputs:
-            # Handle different input structures
-            default_input = inputs.get("default", {})
-            if isinstance(default_input, dict):
-                config = {**config, **default_input}
-            elif default_input:
-                # If input is not a dict, add it as a 'data' field
-                config["data"] = default_input
+        # Merge any input data from envelopes into config
+        if envelope_inputs:
+            # Check for default input envelope
+            if default_envelope := self.get_optional_input(envelope_inputs, 'default'):
+                try:
+                    default_input = self.reader.as_json(default_envelope)
+                    if isinstance(default_input, dict):
+                        config = {**config, **default_input}
+                    else:
+                        config["data"] = default_input
+                except ValueError:
+                    # Fall back to text if not JSON
+                    config["data"] = self.reader.as_text(default_envelope)
+            else:
+                # Process all inputs and add to config
+                for key, envelope in envelope_inputs.items():
+                    try:
+                        config[key] = self.reader.as_json(envelope)
+                    except ValueError:
+                        config[key] = self.reader.as_text(envelope)
         
         # Get optional parameters
         resource_id = node.resource_id
@@ -181,37 +206,52 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
             
             # Successfully executed operation
             
-            return DataOutput(
-                value={"default": result},
-                node_id=node.id,
-                metadata=json.dumps({
-                    "provider": provider,
-                    "operation": operation
-                })
+            # Create output envelope
+            output_envelope = EnvelopeFactory.json(
+                result if isinstance(result, dict) else {"default": result},
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
+                provider=provider,
+                operation=operation
             )
+            
+            return output_envelope
             
         except ValueError as e:
             # Configuration or validation errors
             # Validation error
-            return ErrorOutput(
-                value=str(e),
-                node_id=node.id,
+            error_envelope = EnvelopeFactory.text(
+                str(e),
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
                 error_type="ValidationError",
-                metadata=json.dumps({
-                    "provider": provider,
-                    "operation": operation
-                })
+                provider=provider,
+                operation=operation
+            )
+            return EnvelopeFactory.error(
+                str(e),
+                error_type="ValidationError",
+                produced_by=str(node.id),
+                trace_id=trace_id
             )
             
         except Exception as e:
             # Other errors
             # API operation failed
-            return ErrorOutput(
-                value=str(e),
-                node_id=node.id,
+            error_envelope = EnvelopeFactory.text(
+                str(e),
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
                 error_type=type(e).__name__,
-                metadata=json.dumps({
-                    "provider": provider,
-                    "operation": operation
-                })
+                provider=provider,
+                operation=operation
+            )
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id),
+                trace_id=trace_id
             )

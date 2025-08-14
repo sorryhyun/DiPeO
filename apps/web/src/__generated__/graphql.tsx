@@ -97,6 +97,7 @@ export type CliSessionResult = {
 };
 
 export enum ContentType {
+  BINARY = 'BINARY',
   CONVERSATION_STATE = 'CONVERSATION_STATE',
   EMPTY = 'EMPTY',
   GENERIC = 'GENERIC',

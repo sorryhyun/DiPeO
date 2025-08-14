@@ -17,7 +17,7 @@ from dipeo.application.execution.states.execution_state_persistence import Execu
 from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
 from dipeo.core.execution import ExecutionContext as ExecutionContextProtocol
 from dipeo.core.execution.execution_tracker import CompletionStatus, ExecutionTracker
-from dipeo.core.execution.node_output import NodeOutputProtocol, ConditionOutput
+from dipeo.core.execution.envelope import Envelope
 from dipeo.core.execution.runtime_resolver import RuntimeResolver
 from dipeo.diagram_generated import (
     ExecutionState,
@@ -84,15 +84,15 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     def get_node_result(self, node_id: NodeID) -> dict[str, Any] | None:
         """Get the execution result of a completed node."""
-        protocol_output = self._tracker.get_last_output(node_id)
-        if protocol_output:
-            result = {"value": protocol_output.value}
-            if hasattr(protocol_output, 'metadata') and protocol_output.metadata:
-                result["metadata"] = protocol_output.metadata
+        envelope = self._tracker.get_last_output(node_id)
+        if envelope:
+            result = {"value": envelope.body}
+            if envelope.meta:
+                result["metadata"] = envelope.meta
             return result
         return None
     
-    def get_node_output(self, node_id: NodeID) -> NodeOutputProtocol | None:
+    def get_node_output(self, node_id: NodeID) -> Envelope | None:
         """Get the typed output of a completed node."""
         return self._tracker.get_last_output(node_id)
     
@@ -161,7 +161,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
                 error=error
             )
     
-    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[NodeOutputProtocol] = None) -> None:
+    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[Envelope] = None) -> None:
         """Transition a node to max iterations state."""
         logger.debug(f"[MAXITER] Transitioning {node_id} to MAXITER_REACHED")
         with self._state_lock:
@@ -195,24 +195,35 @@ class TypedExecutionContext(ExecutionContextProtocol):
             StartNode,
         )
 
+
         # Get the node that just completed
         completed_node = self.diagram.get_node(node_id)
-        
+
         # Special handling for ConditionNode - only reset nodes on the active branch
         if isinstance(completed_node, ConditionNode):
-            # Get the ConditionOutput to determine which branch was taken
+            # Get the output to determine which branch was taken
             output = self._tracker.get_last_output(node_id)
-            if isinstance(output, ConditionOutput):
-                active_branch, _ = output.get_branch_output()  # Returns ("condtrue", data) or ("condfalse", data)
 
-                # Only process edges on the active branch
-                outgoing_edges = [
-                    e for e in self.diagram.edges 
-                    if e.source_node_id == node_id and e.source_output == active_branch
-                ]
+            # Handle Envelope with condition result
+            from dipeo.core.execution.envelope import Envelope
+            if isinstance(output, Envelope):
+                # Extract branch from envelope metadata
+                if output.content_type == "condition_result":
+                    # Use active_branch from metadata (set by condition handler)
+                    active_branch = output.meta.get("active_branch", "condfalse")
+                else:
+                    # Fallback: check the body for result
+                    result = output.body.get("result", False) if isinstance(output.body, dict) else False
+                    active_branch = "condtrue" if result else "condfalse"
             else:
-                # No valid output, can't determine branch
-                return
+                    # No valid output, can't determine branch
+                    return
+
+            # Only process edges on the active branch
+            outgoing_edges = [
+                e for e in self.diagram.edges 
+                if e.source_node_id == node_id and e.source_output == active_branch
+            ]
         else:
             # For non-condition nodes, process all outgoing edges as before
             outgoing_edges = [e for e in self.diagram.edges if e.source_node_id == node_id]
@@ -257,7 +268,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
             
             if can_reset:
                 nodes_to_reset.append(target_node.id)
-        
+
         # Reset nodes and cascade
         for node_id_to_reset in nodes_to_reset:
             self.reset_node(node_id_to_reset)

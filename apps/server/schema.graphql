@@ -50,6 +50,7 @@ enum ContentType {
   EMPTY
   GENERIC
   VARIABLE
+  BINARY
 }
 
 input CreateApiKeyInput {

@@ -10,9 +10,10 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
+from uuid import uuid4
 
 from dipeo.core.constants import STATE_DB_PATH
-from dipeo.core.execution.node_output import serialize_protocol
+from dipeo.core.execution.envelope import serialize_protocol
 from dipeo.core.ports import StateStorePort
 from dipeo.diagram_generated import (
     DiagramID,
@@ -340,28 +341,24 @@ class EventBasedStateStore(StateStorePort):
         
         from dipeo.diagram_generated import SerializedNodeOutput
         
-        # Parse node_outputs and convert to SerializedNodeOutput objects
+        # Parse node_outputs - they should be in proper SerializedNodeOutput format
         raw_outputs = json.loads(row[6]) if row[6] else {}
         node_outputs = {}
         for node_id, output_data in raw_outputs.items():
             if isinstance(output_data, dict):
-                # Map _protocol_type to type field (using alias)
-                if "_protocol_type" in output_data:
-                    protocol_type = output_data.pop("_protocol_type")
-                    # Map BaseNodeOutput to a valid type for SerializedNodeOutput
-                    if protocol_type == "BaseNodeOutput":
-                        output_data["_type"] = "TextOutput"  # Default fallback type
-                    else:
-                        output_data["_type"] = protocol_type
-                # Skip SerializedNodeOutput conversion due to Pydantic _type field issue
+                # The data should already be in the correct format from serialize_protocol
+                # Just store it as-is for now (will be properly typed when used)
                 node_outputs[node_id] = output_data
             else:
-                # Fallback for unexpected data - use dict instead of SerializedNodeOutput
+                # Fallback for unexpected non-dict data
                 node_outputs[node_id] = {
-                    "_type": "Unknown",
-                    "value": output_data,
-                    "node_id": node_id,
-                    "metadata": "{}"
+                    "envelope_format": True,
+                    "id": str(uuid4()),
+                    "trace_id": "",
+                    "produced_by": node_id,
+                    "content_type": "raw_text",
+                    "body": output_data,
+                    "meta": {}
                 }
         
         state_data = {
@@ -425,28 +422,32 @@ class EventBasedStateStore(StateStorePort):
         
         # Handle protocol outputs vs raw outputs
         if hasattr(output, "__class__") and hasattr(output, "to_dict"):
+            # It's a protocol output (Envelope or legacy NodeOutput)
             serialized_output = serialize_protocol(output)
-        elif isinstance(output, dict) and "_protocol_type" in output:
+        elif isinstance(output, dict) and ("envelope_format" in output or "_envelope_format" in output or "_protocol_type" in output):
+            # Already serialized, use as-is
             serialized_output = output
         else:
-            from dipeo.core.execution.node_output import BaseNodeOutput
+            from dipeo.core.execution.envelope import EnvelopeFactory
             from dipeo.diagram_generated import NodeID
             
-            wrapped_output = BaseNodeOutput(
-                value={"default": str(output)} if is_exception else output,
-                node_id=NodeID(node_id),
-                error=str(output) if is_exception else None,
-            )
+            # Create an envelope for outputs that don't have the protocol interface
+            if is_exception:
+                wrapped_output = EnvelopeFactory.error(
+                    str(output),
+                    error_type=type(output).__name__ if hasattr(output, '__class__') else "Exception",
+                    node_id=str(node_id)
+                )
+            else:
+                wrapped_output = EnvelopeFactory.text(
+                    str(output),
+                    node_id=str(node_id)
+                )
             serialized_output = serialize_protocol(wrapped_output)
         
-        # Convert to SerializedNodeOutput if needed
-        from dipeo.diagram_generated import SerializedNodeOutput
-        if isinstance(serialized_output, dict):
-            # Skip SerializedNodeOutput conversion for now due to Pydantic _type field issue
-            # Just use the dict directly which has all the needed fields
-            serialized_node_output = serialized_output
-        else:
-            serialized_node_output = serialized_output
+        # The serialized_output is already in the correct format
+        # No need for additional conversion
+        serialized_node_output = serialized_output
         
         # Update cache immediately
         await cache.set_node_output(node_id, serialized_output)
@@ -620,28 +621,23 @@ class EventBasedStateStore(StateStorePort):
         
         executions = []
         for row in rows:
-            # Parse node_outputs and convert to SerializedNodeOutput objects
+            # Parse node_outputs - they should be in proper format from serialize_protocol
             raw_outputs = json.loads(row[6]) if row[6] else {}
             node_outputs = {}
             for node_id, output_data in raw_outputs.items():
                 if isinstance(output_data, dict):
-                    # Ensure _protocol_type is preserved as _type
-                    if "_protocol_type" in output_data and "_type" not in output_data:
-                        protocol_type = output_data["_protocol_type"]
-                        # Map BaseNodeOutput to a valid type for SerializedNodeOutput
-                        if protocol_type == "BaseNodeOutput":
-                            output_data["_type"] = "TextOutput"  # Default fallback type
-                        else:
-                            output_data["_type"] = protocol_type
-                    # Skip SerializedNodeOutput conversion due to Pydantic _type field issue
+                    # The data should already be in the correct format
                     node_outputs[node_id] = output_data
                 else:
-                    # Fallback for unexpected data - use dict instead of SerializedNodeOutput
+                    # Fallback for unexpected non-dict data
                     node_outputs[node_id] = {
-                        "_protocol_type": "Unknown",
-                        "value": output_data,
-                        "node_id": node_id,
-                        "metadata": "{}"
+                        "envelope_format": True,
+                        "id": str(uuid4()),
+                        "trace_id": "",
+                        "produced_by": node_id,
+                        "content_type": "raw_text",
+                        "body": output_data,
+                        "meta": {}
                     }
             
             state_data = {

@@ -29,7 +29,9 @@ def extract_node_specs(inputs: dict) -> dict:
                     for node_name, node_data in data['node_specs'].items():
                         if isinstance(node_data, dict) and 'constants' in node_data:
                             for const in node_data['constants']:
-                                if const.get('name', '').endswith('Spec'):
+                                # Check for both 'Spec' and 'spec' to handle camelCase naming
+                                name = const.get('name', '')
+                                if name.endswith('Spec') or name.endswith('spec'):
                                     spec_value = const.get('value', {})
                                     if isinstance(spec_value, dict) and 'nodeType' in spec_value:
                                         # Clean up nodeType (remove quotes and NodeType. prefix)
@@ -66,7 +68,9 @@ def extract_node_specs(inputs: dict) -> dict:
                     data = json.load(f)
                     # Extract the node specification
                     for const in data.get('constants', []):
-                        if const.get('name', '').endswith('Spec'):
+                        # Check for both 'Spec' and 'spec' to handle camelCase naming
+                        name = const.get('name', '')
+                        if name.endswith('Spec') or name.endswith('spec'):
                             spec_value = const.get('value', {})
                             if isinstance(spec_value, dict) and 'nodeType' in spec_value:
                                 # Clean up nodeType (remove quotes and NodeType. prefix)

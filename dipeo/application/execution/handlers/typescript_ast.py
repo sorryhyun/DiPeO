@@ -7,7 +7,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
-from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 
 if TYPE_CHECKING:
@@ -16,7 +16,13 @@ if TYPE_CHECKING:
 
 @register_handler
 class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
-    """Handler for TypeScript AST parsing node."""
+    """Handler for TypeScript AST parsing node.
+    
+    Now uses envelope-based communication for clean input/output interfaces.
+    """
+    
+    # Enable envelope mode
+    _expects_envelopes = True
     
     def __init__(self):
         """Initialize the handler.
@@ -24,6 +30,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         The TypeScript parser service will be injected via the service registry
         during execution, following the DI pattern.
         """
+        super().__init__()
         # Instance variables for passing data between methods
         self._current_debug = None
     
@@ -64,7 +71,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[TypescriptAstNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[TypescriptAstNode]) -> Optional[Envelope]:
         """Runtime validation and setup."""
         # Set debug flag for later use
         self._current_debug = False  # Will be set based on context if needed
@@ -72,18 +79,32 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         # Check parser service availability
         parser_service = request.get_service("ast_parser")
         if not parser_service:
-            return ErrorOutput(
-                value="TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
-                node_id=request.node.id,
-                error_type="ServiceError"
+            return EnvelopeFactory.error(
+                "TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
+                error_type="RuntimeError",
+                produced_by=str(request.node.id)
             )
         
         return None
     
-    async def execute_request(self, request: ExecutionRequest[TypescriptAstNode]) -> NodeOutputProtocol:
-        """Execute the TypeScript AST parsing."""
+    async def execute_with_envelopes(
+        self, 
+        request: ExecutionRequest[TypescriptAstNode],
+        inputs: dict[str, Envelope]
+    ) -> Envelope:
+        """Execute TypeScript AST parsing with envelope inputs."""
         node = request.node
-        inputs = request.inputs
+        trace_id = request.execution_id or ""
+        
+        # Convert envelope inputs to legacy format
+        legacy_inputs = {}
+        for key, envelope in inputs.items():
+            try:
+                # Try to parse as JSON first
+                legacy_inputs[key] = self.reader.as_json(envelope)
+            except ValueError:
+                # Fall back to text
+                legacy_inputs[key] = self.reader.as_text(envelope)
 
         
         try:
@@ -104,15 +125,15 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 # Get sources from node config or inputs
                 sources = getattr(node, 'sources', None)
                 if not sources:
-                    sources = inputs.get(batch_input_key, {})
-                if not sources and 'default' in inputs and isinstance(inputs['default'], dict):
-                    sources = inputs['default'].get(batch_input_key, {})
+                    sources = legacy_inputs.get(batch_input_key, {})
+                if not sources and 'default' in legacy_inputs and isinstance(legacy_inputs['default'], dict):
+                    sources = legacy_inputs['default'].get(batch_input_key, {})
                 
                 if not sources or not isinstance(sources, dict):
-                    return ErrorOutput(
-                        value=f"Batch mode enabled but no sources dictionary provided at key '{batch_input_key}'",
-                        node_id=node.id,
-                        error_type="ValidationError"
+                    return EnvelopeFactory.error(
+                        f"Batch mode enabled but no sources dictionary provided at key '{batch_input_key}'",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
                     )
                 
                 logger.debug(f"[TypescriptAstNode {node.id}] Batch parsing {len(sources)} sources")
@@ -132,30 +153,32 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     logger.error(f"[TypescriptAstNode {node.id}] Batch parse error: {traceback.format_exc()}")
                     raise
                 
-                # Return batch results
-                return DataOutput(
-                    value=results,
-                    node_id=node.id,
-                    metadata=json.dumps({
-                        'batch_mode': True,
-                        'total_sources': len(sources),
-                        'successful': len(results)
-                    })
+                # Create output envelope for batch results
+                output_envelope = EnvelopeFactory.json(
+                    results,
+                    produced_by=node.id,
+                    trace_id=trace_id
+                ).with_meta(
+                    batch_mode=True,
+                    total_sources=len(sources),
+                    successful=len(results)
                 )
+                
+                return output_envelope
             
             else:
                 # Single mode: parse one source
                 source = node.source
                 if not source:
-                    source = inputs.get('source', '')
-                if not source and 'default' in inputs and isinstance(inputs['default'], dict):
-                    source = inputs['default'].get('source', '')
+                    source = legacy_inputs.get('source', '')
+                if not source and 'default' in legacy_inputs and isinstance(legacy_inputs['default'], dict):
+                    source = legacy_inputs['default'].get('source', '')
                 
                 if not source:
-                    return ErrorOutput(
-                        value="No TypeScript source code provided",
-                        node_id=node.id,
-                        error_type="ValidationError"
+                    return EnvelopeFactory.error(
+                        "No TypeScript source code provided",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
                     )
                 
                 # Parse the TypeScript code using the parser service
@@ -234,37 +257,45 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 if flatten_output and output_format == 'standard':
                     output_data = self._flatten_output(output_data)
 
-                # Return successful result with all extracted data
-                return DataOutput(
-                    value=output_data,
-                    node_id=node.id,
-                    metadata=json.dumps({
-                        'output_format': output_format
-                    })
+                # Create output envelope with parsed data
+                output_envelope = EnvelopeFactory.json(
+                    output_data,
+                    produced_by=node.id,
+                    trace_id=trace_id
+                ).with_meta(
+                    output_format=output_format
                 )
+                
+                return output_envelope
         
         except Exception as e:
-            return ErrorOutput(
-                value=f"TypeScript parsing failed: {str(e)}",
-                node_id=node.id,
-                error_type=type(e).__name__
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id),
+                trace_id=trace_id
             )
     
     def post_execute(
         self,
         request: ExecutionRequest[TypescriptAstNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         """Post-execution hook to log parsing statistics."""
         # Log execution details if in debug mode (using instance variable)
-        if self._current_debug and isinstance(output, DataOutput):
+        if self._current_debug:
+            # Try to extract value from the output (works for both Envelope and legacy outputs)
+            output_value = None
+            if hasattr(output, 'value'):
+                output_value = output.value
+            
             # Extract counts from the actual output data if available
-            if isinstance(output.value, dict):
+            if isinstance(output_value, dict):
                 stats = []
                 # Check various output formats for counts
-                if 'summary' in output.value:
+                if 'summary' in output_value:
                     # for_analysis format
-                    summary = output.value['summary']
+                    summary = output_value['summary']
                     for key in ['interfaces', 'types', 'enums', 'classes', 'functions', 'constants']:
                         count = summary.get(key, 0)
                         if count > 0:
@@ -272,8 +303,8 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 else:
                     # standard or for_codegen format - count items directly
                     for key in ['interfaces', 'types', 'enums', 'classes', 'functions', 'constants']:
-                        if key in output.value and isinstance(output.value[key], list):
-                            count = len(output.value[key])
+                        if key in output_value and isinstance(output_value[key], list):
+                            count = len(output_value[key])
                             if count > 0:
                                 stats.append(f"{count} {key}")
                 

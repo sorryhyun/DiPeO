@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.core.execution.node_output import ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import NodeType, SubDiagramNode
 from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
 
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 @register_handler
 class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
-    """Handler for executing diagrams within diagrams.
+    """Handler for executing diagrams within diagrams with envelope support.
     
     This handler supports three execution modes:
     1. Lightweight execution (default) - Runs without state persistence
@@ -40,10 +40,15 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     3. Batch execution - Process multiple items through the same sub-diagram
     
     Routes execution to appropriate executor based on configuration.
+    Now uses envelope-based communication for clean interfaces.
     """
+    
+    # Enable envelope mode
+    _expects_envelopes = True
     
     def __init__(self):
         """Initialize executors."""
+        super().__init__()
         # Initialize executors
         self.lightweight_executor = LightweightSubDiagramExecutor()
         self.single_executor = SingleSubDiagramExecutor()
@@ -97,7 +102,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol | None:
+    async def pre_execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope | None:
         """Pre-execution hook to configure services and validate execution context."""
         # Configure services for executors on first execution
         if not self._services_configured:
@@ -115,10 +120,11 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             # Validate required services
             if not all([state_store, message_router, diagram_service]):
-                return ErrorOutput(
-                    value="Required services not available for sub-diagram execution",
-                    node_id=request.node.id,
-                    error_type="ServiceNotAvailableError"
+                return EnvelopeFactory.error(
+                    "Required services not available for sub-diagram execution",
+                    error_type="ValueError",
+                    produced_by=request.node.id,
+                    trace_id=request.execution_id or ""
                 )
             
             # Set services on executors
@@ -144,60 +150,110 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         # Return None to proceed with normal execution
         return None
     
-    async def execute_request(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
-        """Route execution to appropriate executor based on configuration."""
+    async def execute_with_envelopes(
+        self,
+        request: ExecutionRequest[SubDiagramNode],
+        inputs: dict[str, Envelope]
+    ) -> Envelope:
+        """Route execution to appropriate executor based on configuration with envelope support."""
         node = request.node
+        trace_id = request.execution_id or ""
         
         try:
-            # Check if batch mode is enabled
+            # Convert envelopes to legacy inputs for executors (temporary during migration)
+            # This allows existing executors to work without modification
+            legacy_inputs = {}
+            for key, envelope in inputs.items():
+                if envelope.content_type == "raw_text":
+                    legacy_inputs[key] = self.reader.as_text(envelope)
+                elif envelope.content_type == "object":
+                    legacy_inputs[key] = self.reader.as_json(envelope)
+                elif envelope.content_type == "binary":
+                    legacy_inputs[key] = self.reader.as_binary(envelope)
+                elif envelope.content_type == "conversation_state":
+                    legacy_inputs[key] = self.reader.as_conversation(envelope)
+                else:
+                    legacy_inputs[key] = envelope.body
+            
+            # Update request inputs for executors
+            request.inputs = legacy_inputs
+            
+            # Route to appropriate executor
             if getattr(node, 'batch', False):
                 logger.info(f"Executing SubDiagramNode {node.id} in batch mode")
-                return await self.batch_executor.execute(request)
-            
-            # Check if we should use standard single execution (for compatibility)
-            # This could be controlled by a flag or specific configuration
-            use_standard_execution = getattr(node, 'use_standard_execution', False)
-            if use_standard_execution:
+                result = await self.batch_executor.execute(request)
+            elif getattr(node, 'use_standard_execution', False):
                 logger.info(f"Executing SubDiagramNode {node.id} in standard mode")
-                return await self.single_executor.execute(request)
+                result = await self.single_executor.execute(request)
+            else:
+                logger.debug(f"Executing SubDiagramNode {node.id} in lightweight mode")
+                result = await self.lightweight_executor.execute(request)
             
-            # Default to lightweight execution
-            logger.debug(f"Executing SubDiagramNode {node.id} in lightweight mode")
-            return await self.lightweight_executor.execute(request)
+            # Convert result to envelope
+            if hasattr(result, 'value'):
+                # Check if it's a dict (typical for batch or complex results)
+                if isinstance(result.value, dict):
+                    output_envelope = EnvelopeFactory.json(
+                        result.value,
+                        produced_by=node.id,
+                        trace_id=trace_id
+                    ).with_meta(
+                        diagram_name=node.diagram_name or "inline",
+                        execution_mode="batch" if getattr(node, 'batch', False) else "single"
+                    )
+                else:
+                    # Text output
+                    output_envelope = EnvelopeFactory.text(
+                        str(result.value),
+                        produced_by=node.id,
+                        trace_id=trace_id
+                    ).with_meta(
+                        diagram_name=node.diagram_name or "inline"
+                    )
+            else:
+                # Fallback for unexpected result format
+                output_envelope = EnvelopeFactory.text(
+                    str(result),
+                    produced_by=node.id,
+                    trace_id=trace_id
+                )
             
-        except Exception:
-            # Let on_error handle it
-            raise
+            return output_envelope
+            
+        except Exception as e:
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=node.id,
+                trace_id=trace_id
+            )
     
     async def on_error(
         self,
         request: ExecutionRequest[SubDiagramNode],
         error: Exception
-    ) -> NodeOutputProtocol | None:
+    ) -> Envelope | None:
         """Handle errors gracefully."""
         # For ValueError (domain validation), only log in debug mode
         if isinstance(error, ValueError):
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Validation error in sub-diagram: {error}")
-            return ErrorOutput(
-                value=str(error),
-                node_id=request.node.id,
-                error_type="ValidationError"
-            )
+        else:
+            # For other errors, log them
+            logger.error(f"Error executing sub-diagram: {error}")
         
-        # For other errors, log them
-        logger.error(f"Error executing sub-diagram: {error}")
-        return ErrorOutput(
-            value=str(error),
-            node_id=request.node.id,
-            error_type=type(error).__name__
+        return EnvelopeFactory.error(
+            str(error),
+            error_type=error.__class__.__name__,
+            produced_by=request.node.id,
+            trace_id=request.execution_id or ""
         )
     
     def post_execute(
         self,
         request: ExecutionRequest[SubDiagramNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         """Post-execution hook to log execution details."""
         # Log execution details in debug mode
         if logger.isEnabledFor(logging.DEBUG):

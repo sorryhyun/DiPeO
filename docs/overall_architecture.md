@@ -11,8 +11,8 @@ The refactor branch reorganises the project into a single **monorepo** and intro
 
 | Path                      | What it is                                         | Highlights                                                                              |
 | ------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| **`apps/web`**            | React 19 visual editor                             | Vite, TailwindCSS, XYFlow canvas, Apollo + GraphQL, TRPC, TanStack Query, Zustand state |
-| **`apps/server`**         | FastAPI / Strawberry-GraphQL backend               | Python 3.13, Hypercorn ASGI, Server-Sent Events (SSE) for live updates                  |
+| **`apps/web`**            | React 19 visual editor                             | Vite, TailwindCSS, @xyflow/react canvas, Apollo + GraphQL, TRPC, TanStack Query, Zustand state |
+| **`apps/server`**         | FastAPI / Strawberry-GraphQL backend               | Python 3.13, Hypercorn ASGI, GraphQL subscriptions for live updates                     |
 | **`apps/cli`**            | Headless CLI runner                                | `dipeo run diagram.yml`, code-gen helpers                                               |
 | **`dipeo/`**              | Core domain + application + infrastructure library | Execution engine, DI containers, adapters, code-gen output                              |
 | **`diagram_generated*/`** | Auto-generated code                                | Pydantic models, node handlers, GraphQL schema, TS hooks                                |
@@ -23,9 +23,9 @@ The refactor branch reorganises the project into a single **monorepo** and intro
 
 | Layer                        | Purpose                                      | Key tech                                                                                                            |
 | ---------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Front-end**<br>`apps/web`  | Drag-and-drop diagram editor, run monitor    | *React 19*, Vite, XYFlow, Apollo Client + `graphql-ws`, TRPC, Zustand, TanStack Query, React-Hook-Form, TailwindCSS |
-| **Backend**<br>`apps/server` | Exposes GraphQL & SSE API, orchestrates runs | *Python 3.13*, FastAPI, Strawberry GraphQL, **sse-starlette**, Hypercorn, Pydantic v2                               |
-| **Core library**<br>`dipeo/` | Domain models, execution engine, memory      | Clean architecture, async runtime, Pydantic, DI service registry                                                    |
+| **Front-end**<br>`apps/web`  | Drag-and-drop diagram editor, run monitor    | *React 19*, Vite, @xyflow/react, Apollo Client + `graphql-ws`, TRPC, Zustand, TanStack Query, React-Hook-Form, TailwindCSS |
+| **Backend**<br>`apps/server` | Exposes GraphQL API, orchestrates runs       | *Python 3.13*, FastAPI, Strawberry GraphQL, GraphQL subscriptions, Hypercorn, Pydantic v2                          |
+| **Core library**<br>`dipeo/` | Domain models, execution engine, memory      | Event-driven architecture, async runtime, Pydantic, DI service registry                                             |
 | **CLI**<br>`apps/cli`        | Scriptable interface, code-gen driver        | `click`-style UX, pure Python, `requests/pyyaml` only                                                               |
 
 ---
@@ -78,16 +78,16 @@ sequenceDiagram
   participant Backend
   participant ExecutionEngine
   participant LLMService
-  UI->>Backend: runDiagram(id)
+  UI->>Backend: runDiagram(id) via GraphQL
   Backend->>ExecutionEngine: start()
   loop async steps
     ExecutionEngine->>LLMService: complete()
     LLMService-->>ExecutionEngine: result
-    ExecutionEngine-->>Backend: progress event (SSE)
-    Backend-->>UI: progress event
+    ExecutionEngine-->>Backend: event emitted
+    Backend-->>UI: GraphQL subscription update
   end
   ExecutionEngine-->>Backend: finished
-  Backend-->>UI: finished
+  Backend-->>UI: completion event via subscription
 ```
 
 ---
@@ -97,8 +97,8 @@ sequenceDiagram
 | Area             | Tools / libs                                                                                                           |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | **Languages**    | TypeScript 5 (pnpm + Vite) • Python 3.13                                                                               |
-| **Front-end**    | React 19, XYFlow, Apollo Client, GraphQL-WS, TRPC, TanStack Query, Zustand, TailwindCSS, Zod                           |
-| **Back-end**     | FastAPI, Strawberry GraphQL, Hypercorn, **sse-starlette**, Pydantic v2, Tenacity (retry), Redis (optional for pub-sub) |
+| **Front-end**    | React 19, @xyflow/react, Apollo Client, GraphQL-WS, TRPC, TanStack Query, Zustand, TailwindCSS, Zod                    |
+| **Back-end**     | FastAPI, Strawberry GraphQL, Hypercorn, Pydantic v2, Tenacity (retry), AsyncEventBus, Redis (optional for pub-sub)     |
 | **DI / IoC**     | Custom service-registry pattern (core / infra / app containers)                                                        |
 | **LLM adapters** | OpenAI, Anthropic, Gemini (extensible)                                                                                 |
 | **Tooling**      | Ruff, Mypy, Makefile helpers                                                                                           |
@@ -132,10 +132,27 @@ For standalone Windows installations, use PyInstaller to create `.exe` files fro
 
 ---
 
-## 9. Why the refactor matters 🌟
+## 9. Event-Driven Architecture
+
+The system uses a fully event-driven architecture for execution and monitoring:
+
+* **AsyncEventBus** – Central event distribution with fire-and-forget pattern
+* **EventBasedStateStore** – Lock-free state persistence with per-execution caches
+* **GraphQL Subscriptions** – Real-time updates to UI (replaced SSE)
+* **No Global Locks** – Per-execution isolation enables true parallel execution
+* **Event Types** – Standardized events (EXECUTION_STARTED, NODE_COMPLETED, etc.)
+
+This architecture enables:
+- Zero-impact monitoring (fire-and-forget events)
+- True parallel execution without contention
+- Clean separation of concerns via event decoupling
+- Asynchronous state persistence
+
+## 10. Why the refactor matters 🌟
 
 * **Single service registry** → no hidden globals, easier tests.
 * **Unified code-gen** → one source of truth for types across TS & Python.
 * **Memory filters** → flexible multi-agent patterns without per-agent silos.
 * **Three-container DI** → swap infra (LLM, storage) without touching domain logic.
+* **Event-driven design** → True parallel execution without global locks.
 * **Monorepo discipline** → atomic changes across web, server, and CLI.

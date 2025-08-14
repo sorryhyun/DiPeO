@@ -17,8 +17,13 @@ def prepare_node_list_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
     node_types = []
     
     # Handle case where db node passes data as 'default'
-    if 'default' in inputs and len(inputs) == 1:
-        inputs = inputs['default']
+    # Also handle when code_job adds 'inputs' and 'node_id' keys
+    if 'default' in inputs:
+        # The actual data is in the 'default' key
+        actual_data = inputs['default']
+        # Check if this looks like the spec files (should be a dict with file paths as keys)
+        if isinstance(actual_data, dict) and any(k.endswith('.spec.ts.json') for k in actual_data.keys()):
+            inputs = actual_data
     
     # Process each spec file
     for filename, ast_data in inputs.items():
@@ -35,7 +40,9 @@ def prepare_node_list_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
             # Check if it has the expected structure
             constants = ast_data.get('constants', [])
             for const in constants:
-                if const.get('name', '').endswith('Spec'):
+                # Check for both 'Spec' and 'spec' to handle camelCase naming
+                name = const.get('name', '')
+                if name.endswith('Spec') or name.endswith('spec'):
                     # Found a valid node spec
                     node_types.append(node_type)
                     break

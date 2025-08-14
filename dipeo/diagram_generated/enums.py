@@ -46,6 +46,8 @@ class ContentType(str, Enum):
     
     VARIABLE = "variable"
     
+    BINARY = "binary"
+    
 
 
 class HandleDirection(str, Enum):

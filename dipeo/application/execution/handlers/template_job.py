@@ -12,7 +12,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
-from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol, TemplateJobOutput
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.infrastructure.services.jinja_template.template_integration import get_enhanced_template_service
 from dipeo.domain.ports.template import TemplateProcessorPort
@@ -29,10 +29,16 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)
     2. pre_execute() - Runtime validation and setup
-    3. execute_request() - Core execution logic
+    3. execute_with_envelopes() - Core execution logic with envelope inputs
+    
+    Now uses envelope-based communication for clean input/output interfaces.
     """
     
+    # Enable envelope mode
+    _expects_envelopes = True
+    
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None, template_processor: Optional[TemplateProcessorPort] = None):
+        super().__init__()
         self.filesystem_adapter = filesystem_adapter
         self._template_service = None  # Lazy initialization
         self._template_processor = template_processor
@@ -72,7 +78,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[TemplateJobNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[TemplateJobNode]) -> Optional[Envelope]:
         """Pre-execution setup: validate template file and processor availability.
         
         Moves template file existence check, processor setup, and service validation
@@ -84,10 +90,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Get filesystem adapter from services or use injected one
         filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
-            return ErrorOutput(
-                value="Filesystem adapter is required for template job execution",
-                node_id=node.id,
-                error_type="ServiceError"
+            return EnvelopeFactory.error(
+                "Filesystem adapter is required for template job execution",
+                error_type="RuntimeError",
+                produced_by=str(node.id)
             )
         
         # Store filesystem adapter in instance variable for execute_request
@@ -96,10 +102,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Validate template engine
         engine = node.engine or "internal"
         if engine not in ["internal", "jinja2"]:
-            return ErrorOutput(
-                value=f"Unsupported template engine: {engine}",
-                node_id=node.id,
-                error_type="UnsupportedEngineError"
+            return EnvelopeFactory.error(
+                f"Unsupported template engine: {engine}",
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         self._current_engine = engine
         
@@ -108,10 +114,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             template_service = self._get_template_service()
             self._current_template_service = template_service
         except Exception as e:
-            return ErrorOutput(
-                value=f"Failed to initialize template service: {str(e)}",
-                node_id=node.id,
-                error_type="ServiceInitError"
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id)
             )
         
         # Initialize template processor for path interpolation
@@ -137,11 +143,15 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             # print("[DEBUG] Template service created successfully")
         return self._template_service
     
-    async def execute_request(self, request: ExecutionRequest[TemplateJobNode]) -> NodeOutputProtocol:
-        """Pure execution using instance variables set in pre_execute."""
-        # print(f"[DEBUG] TemplateJobNode.execute_request started for node {request.node.id}")
+    async def execute_with_envelopes(
+        self, 
+        request: ExecutionRequest[TemplateJobNode],
+        inputs: dict[str, Envelope]
+    ) -> Envelope:
+        """Execute template rendering with envelope inputs."""
+        # print(f"[DEBUG] TemplateJobNode.execute_with_envelopes started for node {request.node.id}")
         node = request.node
-        inputs = request.inputs
+        trace_id = request.execution_id or ""
         
         # Use services from instance variables (set in pre_execute)
         filesystem_adapter = self._current_filesystem_adapter
@@ -157,16 +167,24 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             if node.variables:
                 template_vars.update(node.variables)
 
-            # Add inputs from connected nodes
+            # Add inputs from connected nodes - convert from envelopes
             if inputs:
-                
-                # Check if we have a single 'default' key with dict value
-                if len(inputs) == 1 and 'default' in inputs and isinstance(inputs['default'], dict):
-                    # Unwrap the default for better template ergonomics
-                    template_vars.update(inputs['default'])
-                else:
-                    # For labeled connections, merge all inputs into template_vars
-                    template_vars.update(inputs)
+                # Process envelope inputs
+                for key, envelope in inputs.items():
+                    try:
+                        # Try to parse as JSON first
+                        value = self.reader.as_json(envelope)
+                    except ValueError:
+                        # Fall back to text
+                        value = self.reader.as_text(envelope)
+                    
+                    # Check if we have a single 'default' key with dict value
+                    if key == 'default' and isinstance(value, dict):
+                        # Unwrap the default for better template ergonomics
+                        template_vars.update(value)
+                    else:
+                        # For labeled connections, add to template_vars
+                        template_vars[key] = value
 
             # Get template content
             # print(f"[DEBUG] Getting template content...")
@@ -186,10 +204,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 template_path = Path(processed_template_path)
                 
                 if not filesystem_adapter.exists(template_path):
-                    return ErrorOutput(
-                        value=f"Template file not found: {node.template_path}",
-                        node_id=node.id,
-                        error_type="FileNotFoundError"
+                    return EnvelopeFactory.error(
+                        f"Template file not found: {node.template_path}",
+                        error_type="FileNotFoundError",
+                        produced_by=str(node.id)
                     )
                 
                 with filesystem_adapter.open(template_path, 'rb') as f:
@@ -210,11 +228,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                         # Log the fallback but don't store in metadata
                         logger.debug(f"Enhancement fallback: {e}")
             except Exception as render_error:
-                return ErrorOutput(
-                    value=f"Template rendering failed: {str(render_error)}",
-                    node_id=node.id,
-                    error_type="RenderError",
-                    metadata="{}"  # Empty metadata
+                return EnvelopeFactory.error(
+                    str(render_error),
+                    error_type=render_error.__class__.__name__,
+                    produced_by=str(node.id)
                 )
             
             # Write to file if output_path is specified
@@ -237,23 +254,33 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 with filesystem_adapter.open(output_path, 'wb') as f:
                     f.write(rendered.encode('utf-8'))
             
-            return TemplateJobOutput(
-                value=rendered,
-                node_id=node.id,
-                metadata="{}",  # Empty metadata
-                engine=engine,  # Use typed field
-                template_path=node.template_path,  # Use typed field
-                output_path=str(output_path) if node.output_path else None  # Use typed field
+            # Create output envelope
+            output_envelope = EnvelopeFactory.text(
+                rendered,
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
+                engine=engine,
+                template_path=node.template_path,
+                output_path=str(output_path) if node.output_path else None
             )
+            
+            return output_envelope
         
         except Exception as e:
-            output = ErrorOutput(
-                value=str(e),
-                node_id=node.id,
-                error_type=type(e).__name__
+            error_envelope = EnvelopeFactory.text(
+                str(e),
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
+                error_type=type(e).__name__,
+                engine=node.engine or "internal"
             )
-            output.metadata = json.dumps({"engine": node.engine or "internal"})
-            return output
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id)
+            )
     
     async def _render_jinja2(self, template: str, variables: dict[str, Any]) -> str:
         """Render template using Jinja2."""
@@ -270,8 +297,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     def post_execute(
         self,
         request: ExecutionRequest[TemplateJobNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         """Post-execution hook to log template execution details."""
         # Post-execution logging can use instance variables if needed
         # No need for metadata access

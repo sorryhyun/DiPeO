@@ -42,7 +42,7 @@ class ChatGPTAdapter(BaseLLMAdapter):
     
     def _is_temperature_unsupported_model(self) -> bool:
         """Check if the model doesn't support temperature parameter."""
-        return 'gpt-5-nano' in self.model_name
+        return 'gpt-5' in self.model_name
 
     def _prepare_api_request(self, messages: list[dict[str, str]], **kwargs) -> tuple[list[dict], list[dict], dict]:
         """Prepare common API request parameters for both sync and async calls."""
@@ -287,6 +287,7 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 pydantic_model = api_params.pop('_pydantic_model', None)
                 
                 # Build API call parameters
+                print(api_params)
                 create_params = {
                     "model": self.model_name,
                     "input": input_messages,

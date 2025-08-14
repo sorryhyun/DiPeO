@@ -9,7 +9,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import API_SERVICE
 from dipeo.diagram_generated.generated_nodes import ApiJobNode, NodeType
-from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol, APIJobOutput
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData, HttpMethod
 
 if TYPE_CHECKING:
@@ -22,10 +22,16 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)
     2. pre_execute() - Runtime validation and setup
-    3. execute_request() - Core execution logic
+    3. execute_with_envelopes() - Core execution logic with envelope inputs
+    
+    Now uses envelope-based communication for clean input/output interfaces.
     """
     
+    # Enable envelope mode
+    _expects_envelopes = True
+    
     def __init__(self, api_service=None):
+        super().__init__()
         self.api_service = api_service
         # Instance variables for passing data between methods
         self._current_api_service = None
@@ -56,25 +62,25 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     def description(self) -> str:
         return "Makes HTTP requests to external APIs with authentication support"
 
-    async def pre_execute(self, request: ExecutionRequest[ApiJobNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[ApiJobNode]) -> Optional[Envelope]:
         """Pre-execution validation and setup."""
         node = request.node
         
         # Check service availability
         api_service = self.api_service or request.get_service(API_SERVICE.name)
         if not api_service:
-            return ErrorOutput(
-                value="API service not available",
-                node_id=node.id,
-                error_type="ServiceNotAvailableError"
+            return EnvelopeFactory.error(
+                "API service not available",
+                error_type="RuntimeError",
+                produced_by=str(node.id)
             )
         
         # Validate URL
         if not node.url:
-            return ErrorOutput(
-                value="No URL provided",
-                node_id=node.id,
-                error_type="ValidationError"
+            return EnvelopeFactory.error(
+                "No URL provided",
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         
         # Convert and validate HTTP method
@@ -83,10 +89,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             try:
                 method = HttpMethod(method.upper())
             except ValueError:
-                return ErrorOutput(
-                    value=f"Invalid HTTP method: {method}",
-                    node_id=node.id,
-                    error_type="ValidationError"
+                return EnvelopeFactory.error(
+                    f"Invalid HTTP method: {method}",
+                    error_type="ValueError",
+                    produced_by=str(node.id)
                 )
         
         # Parse and validate JSON inputs
@@ -97,10 +103,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         
         parsed_data = self._parse_json_inputs(headers, params, body, auth_config)
         if "error" in parsed_data:
-            return ErrorOutput(
-                value=parsed_data["error"],
-                node_id=node.id,
-                error_type="ValidationError"
+            return EnvelopeFactory.error(
+                parsed_data["error"],
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         
         # Store validated data in instance variables for execute_request to use
@@ -114,9 +120,14 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         # Return None to proceed with normal execution
         return None
 
-    async def execute_request(self, request: ExecutionRequest[ApiJobNode]) -> NodeOutputProtocol:
-        """Pure execution using instance variables set in pre_execute."""
+    async def execute_with_envelopes(
+        self, 
+        request: ExecutionRequest[ApiJobNode],
+        inputs: dict[str, Envelope]
+    ) -> Envelope:
+        """Execute API request with envelope inputs."""
         node = request.node
+        trace_id = request.execution_id or ""
         
         # Use pre-validated data from instance variables (set in pre_execute)
         api_service = self._current_api_service
@@ -131,12 +142,55 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         timeout = node.timeout or 30
         auth_type = node.auth_type or "none"
         
+        # Process any dynamic inputs from envelopes
+        # Check for url override from input
+        if url_envelope := self.get_optional_input(inputs, 'url'):
+            url = self.reader.as_text(url_envelope)
+        
+        # Check for headers override from input
+        if headers_envelope := self.get_optional_input(inputs, 'headers'):
+            try:
+                headers = self.reader.as_json(headers_envelope)
+            except ValueError:
+                # If not JSON, treat as text
+                headers_text = self.reader.as_text(headers_envelope)
+                try:
+                    headers = json.loads(headers_text)
+                except json.JSONDecodeError:
+                    return EnvelopeFactory.error(
+                        "Invalid headers format in input",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
+                    )
+        
+        # Check for params override from input
+        if params_envelope := self.get_optional_input(inputs, 'params'):
+            try:
+                params = self.reader.as_json(params_envelope)
+            except ValueError:
+                params_text = self.reader.as_text(params_envelope)
+                try:
+                    params = json.loads(params_text)
+                except json.JSONDecodeError:
+                    return EnvelopeFactory.error(
+                        "Invalid params format in input",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
+                    )
+        
+        # Check for body override from input
+        if body_envelope := self.get_optional_input(inputs, 'body'):
+            try:
+                body = self.reader.as_json(body_envelope)
+            except ValueError:
+                # If not JSON, treat as text
+                body = self.reader.as_text(body_envelope)
+        
         print(f"[ApiJobNode] URL: {url}")
         print(f"[ApiJobNode] Method: {method}")
         print(f"[ApiJobNode] Headers: {headers}")
 
         try:
-
             auth = self._prepare_auth(auth_type, auth_config)
             headers = self._apply_auth_headers(headers, auth_type, auth_config)
             request_data = self._prepare_request_data(method, params, body)
@@ -155,27 +209,36 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 expected_status_codes=list(range(200, 300))
             )
             
-            # Convert response to dict format for APIJobOutput
+            # Convert response to dict format
             response_dict = response_data if isinstance(response_data, dict) else {"result": str(response_data)}
             
-            # Note: In a real implementation, we'd get status_code and headers from the actual HTTP response
-            # For now, we'll use defaults since the api_service abstraction doesn't provide these
-            return APIJobOutput(
-                value=response_dict,
-                node_id=node.id,
-                status_code=200,  # Default success code
-                headers={},  # Would be populated from actual response
-                metadata="{}",  # Empty metadata - url and method are now typed fields
-                url=url,  # Use typed field
-                method=method_value  # Use typed field
+            # Create output envelope
+            output_envelope = EnvelopeFactory.json(
+                response_dict,
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
+                url=url,
+                method=method_value,
+                status_code=200  # Default success code
             )
+            
+            return output_envelope
 
         except Exception as e:
-            return ErrorOutput(
-                value=str(e),
-                node_id=node.id,
+            error_envelope = EnvelopeFactory.text(
+                str(e),
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
                 error_type=type(e).__name__,
-                metadata="{}"  # Empty metadata - error details in value and error_type
+                url=url,
+                method=str(method)
+            )
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id)
             )
 
     def _parse_json_inputs(
@@ -259,8 +322,8 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     def post_execute(
         self,
         request: ExecutionRequest[ApiJobNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         # Post-execution logging can use node properties or output fields
         # No need for metadata access
         return output
@@ -269,18 +332,13 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         self,
         request: ExecutionRequest[ApiJobNode],
         error: Exception
-    ) -> Optional[NodeOutputProtocol]:
+    ) -> Optional[Envelope]:
         # Use node properties for error context
         url = request.node.url or "unknown"
         method = str(self._current_method) if self._current_method else request.node.method or "unknown"
         
-        output = ErrorOutput(
-            value=f"API request failed: {str(error)}",
-            node_id=request.node.id,
-            error_type=type(error).__name__
+        return EnvelopeFactory.error(
+            str(error),
+            error_type=error.__class__.__name__,
+            produced_by=str(request.node.id)
         )
-        output.metadata = json.dumps({
-            "url": url,
-            "method": method
-        })
-        return output

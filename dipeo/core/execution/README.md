@@ -19,28 +19,27 @@ The execution module implements a **protocol-based architecture** with clear sep
 
 ## Core Components
 
-### 1. Node Output System (`node_output.py`)
+### 1. Envelope System (`envelope.py`)
 
-Provides type-safe output contracts for all node types:
+Provides unified message passing system with type-safe output contracts:
 
 ```python
-@runtime_checkable
-class NodeOutputProtocol(Protocol[T]):
-    """Base protocol for all node outputs"""
-    value: T
-    metadata: dict[str, Any]
-    node_id: NodeID
-    timestamp: datetime
+@dataclass(frozen=True)
+class Envelope:
+    """Immutable message envelope for inter-node communication"""
+    id: str
+    produced_by: str
+    content_type: ContentType
+    body: Any
+    meta: dict[str, Any]
+
 ```
 
-**Specialized Output Types:**
-- `TextOutput` - Plain text results from LLM nodes
-- `ConversationOutput` - Conversation history with messages
-- `DataOutput` - Structured data with JSON schema
-- `ConditionOutput` - Boolean results with branching info
-- `BatchOutput` - Collections from batch operations
-- `FileOutput` - File operation results with paths
-- `ValidationOutput` - Validation results with errors/warnings
+**Key Features:**
+- Immutable message envelopes
+- Built-in serialization support
+- Unified messaging across all node types
+- Content type support for different data formats
 
 ### 2. Execution Context (`execution_context.py`)
 
@@ -53,13 +52,13 @@ class ExecutionContext:
     def __init__(self, diagram: ExecutableDiagram, execution_id: str):
         self.diagram = diagram
         self.execution_id = execution_id
-        self.node_outputs: dict[NodeID, NodeOutputProtocol] = {}
+        self.node_outputs: dict[NodeID, Envelope] = {}
         self.metadata: dict[str, Any] = {}
     
-    def store_output(self, node_id: NodeID, output: NodeOutputProtocol):
+    def store_output(self, node_id: NodeID, output: Envelope):
         """Store node execution results"""
     
-    def get_output(self, node_id: NodeID) -> NodeOutputProtocol | None:
+    def get_output(self, node_id: NodeID) -> Envelope | None:
         """Retrieve node output by ID"""
 ```
 
@@ -104,7 +103,7 @@ class ExecutionTracker:
     def record_node_start(self, node_id: NodeID, timestamp: datetime):
         """Record node execution start"""
     
-    def record_node_complete(self, node_id: NodeID, output: NodeOutputProtocol):
+    def record_node_complete(self, node_id: NodeID, output: Envelope):
         """Record node completion with output"""
     
     def get_execution_metrics(self) -> ExecutionMetrics:
@@ -152,7 +151,7 @@ class NodeStrategyProtocol(Protocol):
     
     async def execute(self, 
                      node: ExecutableNode, 
-                     context: ExecutionContext) -> NodeOutputProtocol:
+                     context: ExecutionContext) -> Envelope:
         """Execute node with strategy"""
     
     def can_handle(self, node_type: str) -> bool:
@@ -194,12 +193,16 @@ class RuntimeResolver:
 
 ## Interfaces and Protocols
 
-### NodeOutputProtocol
-Primary contract for all node outputs:
+### Envelope
+Primary message format for all node outputs:
 ```python
-class NodeOutputProtocol(Protocol[T]):
-    value: T                      # Primary output value
-    metadata: dict[str, Any]      # Additional metadata
+@dataclass(frozen=True)
+class Envelope:
+    id: str                       # Unique envelope ID
+    produced_by: str              # Source node ID
+    content_type: ContentType     # Type of content
+    body: Any                     # Actual content
+    meta: dict[str, Any]          # Additional metadata
     node_id: NodeID              # Source node identifier
     timestamp: datetime          # Execution timestamp
     
@@ -282,9 +285,9 @@ context = ExecutionContext.from_state(restored_state)
 ## Development Guidelines
 
 ### Adding New Output Types
-1. Extend `BaseNodeOutput` or implement `NodeOutputProtocol`
-2. Define type parameter for strong typing
-3. Implement required methods
+1. Create envelopes with appropriate content types
+2. Use EnvelopeFactory for consistent creation
+3. Store metadata in the meta field
 4. Add validation logic if needed
 5. Register with output factory
 
@@ -354,7 +357,8 @@ async def test_execution_flow():
 
 ## Migration Notes
 
-- Legacy `node_output` module being replaced with protocol-based approach
+- ✅ Legacy `node_output` module replaced with unified envelope system (2025-08-14)
+- ✅ All outputs now use immutable `Envelope` instances
 - Old `ExecutionState` class deprecated in favor of `ExecutionContext`
 - Direct state updates replaced with event-based state management
 - Synchronous execution being migrated to async throughout

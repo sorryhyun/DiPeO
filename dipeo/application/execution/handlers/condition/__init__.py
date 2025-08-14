@@ -2,6 +2,7 @@
 
 import json
 import logging
+import time
 from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
@@ -11,7 +12,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import DIAGRAM
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
-from dipeo.core.execution.node_output import ConditionOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.condition_model import ConditionNodeData
 
 from .evaluators import (
@@ -29,9 +30,13 @@ logger = logging.getLogger(__name__)
 
 @register_handler
 class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
-    """Handler for condition nodes using evaluator pattern."""
+    """Handler for condition nodes using evaluator pattern with envelope support."""
+    
+    # Enable envelope mode
+    _expects_envelopes = True
     
     def __init__(self):
+        super().__init__()
         self._evaluators: dict[str, ConditionEvaluator] = {
             "detect_max_iterations": MaxIterationsEvaluator(),
             "check_nodes_executed": NodesExecutedEvaluator(),
@@ -80,7 +85,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[ConditionNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[ConditionNode]) -> Optional[Envelope]:
         """Pre-execution setup: validate services and select evaluator.
         
         Moves evaluator selection and service validation out of execute_request
@@ -92,26 +97,22 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Validate diagram service is available
         diagram = request.get_service(DIAGRAM.name)
         if not diagram:
-            return ErrorOutput(
-                value="Diagram service not available",
-                node_id=node.id,
-                error_type="ServiceError",
-                metadata=json.dumps({
-                    "condition_type": condition_type
-                })
+            return EnvelopeFactory.error(
+                "Diagram service not available",
+                error_type="ValueError",
+                produced_by=node.id,
+                trace_id=request.execution_id or ""
             )
         
         # Select and validate evaluator
         evaluator = self._evaluators.get(condition_type)
         if not evaluator:
             logger.error(f"No evaluator found for condition type: {condition_type}")
-            return ErrorOutput(
-                value=f"No evaluator for condition type: {condition_type}",
-                node_id=node.id,
-                error_type="ConfigurationError",
-                metadata=json.dumps({
-                    "condition_type": condition_type
-                })
+            return EnvelopeFactory.error(
+                f"No evaluator for condition type: {condition_type}",
+                error_type="ValueError",
+                produced_by=node.id,
+                trace_id=request.execution_id or ""
             )
         
         # Store evaluator and diagram in instance variables for execute_request
@@ -121,17 +122,32 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # No early return - proceed to execute_request
         return None
     
-    async def execute_request(self, request: ExecutionRequest[ConditionNode]) -> NodeOutputProtocol:
+    async def execute_with_envelopes(
+        self,
+        request: ExecutionRequest[ConditionNode],
+        inputs: dict[str, Envelope]
+    ) -> Envelope:
+        """Execute condition evaluation with envelope inputs."""
         node = request.node
         context = request.context
-        inputs = request.inputs
+        trace_id = request.execution_id or ""
+        
+        # Convert envelopes to legacy inputs for evaluators
+        legacy_inputs = {}
+        for key, envelope in inputs.items():
+            if envelope.content_type == "raw_text":
+                legacy_inputs[key] = self.reader.as_text(envelope)
+            elif envelope.content_type == "object":
+                legacy_inputs[key] = self.reader.as_json(envelope)
+            else:
+                legacy_inputs[key] = envelope.body
         
         # Use evaluator and diagram from instance variables (set in pre_execute)
         evaluator = self._current_evaluator
         diagram = self._current_diagram
         
         # Execute evaluation with pre-selected evaluator
-        eval_result = await evaluator.evaluate(node, context, diagram, inputs)
+        eval_result = await evaluator.evaluate(node, context, diagram, legacy_inputs)
         result = eval_result["result"]
         output_value = eval_result["output_data"] or {}
         
@@ -147,24 +163,33 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             f"has_false_output={false_output is not None}"
         )
         
-        output = ConditionOutput(
-            value=result,
-            node_id=node.id,
-            true_output=true_output,
-            false_output=false_output
-        )
-        # Set metadata as JSON string using instance variable
-        output.metadata = json.dumps({
+        # Create Envelope directly for proper branch routing
+        from dipeo.core.execution.envelope import Envelope
+        
+        # Prepare metadata with condition-specific fields
+        meta = {
+            "condtrue": true_output,
+            "condfalse": false_output,
+            "active_branch": "condtrue" if result else "condfalse",
             "condition_type": node.condition_type,
-            "evaluation_metadata": self._current_evaluation_metadata
-        })
+            "evaluation_metadata": self._current_evaluation_metadata,
+            "timestamp": time.time()
+        }
+        
+        output = Envelope(
+            content_type="condition_result",  # Special content type for conditions
+            body=result,
+            produced_by=str(node.id),
+            meta=meta
+        )
+        
         return output
     
     def post_execute(
         self,
         request: ExecutionRequest[ConditionNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         # Debug logging without using request.metadata
         condition_type = request.node.condition_type
         result = output.value if hasattr(output, 'value') else None
@@ -179,19 +204,11 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         self,
         request: ExecutionRequest[ConditionNode],
         error: Exception
-    ) -> NodeOutputProtocol | None:
-        condition_type = request.node.condition_type
-        
-        output = ConditionOutput(
-            value=False,
-            node_id=request.node.id,
-            true_output=None,
-            false_output=request.inputs if request.inputs else {}
+    ) -> Envelope | None:
+        # Return error envelope - condition defaults to false on error
+        return EnvelopeFactory.error(
+            str(error),
+            error_type=error.__class__.__name__,
+            produced_by=request.node.id,
+            trace_id=request.execution_id or ""
         )
-        # Set metadata as JSON string
-        output.metadata = json.dumps({
-            "condition_type": condition_type,
-            "error": str(error),
-            "error_type": type(error).__name__
-        })
-        return output

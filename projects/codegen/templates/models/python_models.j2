@@ -30,7 +30,15 @@ from .integrations import *
   {%- set alias_type_raw = alias.type -%}
   {%- set py_type = alias_type_raw | ts_to_python(alias_name) -%}
   {%- if py_type != alias_name and alias_name not in all_branded_ids -%}
-    {%- if py_type in interface_names -%}
+    {#- Use namespace to handle scoping issue -#}
+    {%- set ns = namespace(needs_defer=false) -%}
+    {#- Check if the type references any interface (including in Union types) -#}
+    {%- for interface_name in interface_names -%}
+      {%- if interface_name in py_type -%}
+        {%- set ns.needs_defer = true -%}
+      {%- endif -%}
+    {%- endfor -%}
+    {%- if ns.needs_defer -%}
       {%- set _ = deferred_aliases.append({'name': alias_name, 'type': py_type}) -%}
     {%- else -%}
       {%- set _ = processed_aliases.append({'name': alias_name, 'type': py_type}) -%}

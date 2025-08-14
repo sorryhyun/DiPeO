@@ -5,7 +5,7 @@ from typing import Any, Protocol, Callable
 
 from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2, ExecutableNode
 from dipeo.core.execution.execution_context import ExecutionContext
-from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope
 
 
 class TransformationRule(Protocol):
@@ -77,7 +77,7 @@ class RuntimeResolver(Protocol):
     @abstractmethod
     def extract_output_value(
         self,
-        output: NodeOutputProtocol,
+        output: Envelope,
         output_name: str = "default"
     ) -> Any:
         """

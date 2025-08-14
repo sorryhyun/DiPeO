@@ -15,7 +15,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.diagram_generated.generated_nodes import HookNode, NodeType
-from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.hook_model import HookNodeData, HookType
 
 if TYPE_CHECKING:
@@ -28,10 +28,16 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     Clean separation of concerns:
     1. validate() - Static/structural validation (compile-time checks)
     2. pre_execute() - Runtime validation and setup
-    3. execute_request() - Core execution logic
+    3. execute_with_envelopes() - Core execution logic with envelope inputs
+    
+    Now uses envelope-based communication for clean input/output interfaces.
     """
     
+    # Enable envelope mode
+    _expects_envelopes = True
+    
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
+        super().__init__()
         self.filesystem_adapter = filesystem_adapter
         # Instance variables for passing data between methods
         self._current_filesystem_adapter = None
@@ -59,7 +65,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     def requires_services(self) -> list[str]:
         return ["filesystem_adapter"]
     
-    async def pre_execute(self, request: ExecutionRequest[HookNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[HookNode]) -> Optional[Envelope]:
         """Pre-execution setup: validate hook configuration and prepare resources.
         
         Moves hook validation, configuration parsing, and service resolution
@@ -70,10 +76,10 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         # Validate hook type
         valid_hook_types = {HookType.SHELL, HookType.WEBHOOK, HookType.PYTHON, HookType.FILE}
         if node.hook_type not in valid_hook_types:
-            return ErrorOutput(
-                value=f"Unknown hook type: {node.hook_type}",
-                node_id=node.id,
-                error_type="InvalidHookType"
+            return EnvelopeFactory.error(
+                f"Unknown hook type: {node.hook_type}",
+                error_type="ValueError",
+                produced_by=str(node.id)
             )
         
         # Validate configuration based on hook type
@@ -81,39 +87,39 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         
         if node.hook_type == HookType.SHELL:
             if not config.get("command"):
-                return ErrorOutput(
-                    value="Shell hook requires 'command' in config",
-                    node_id=node.id,
-                    error_type="MissingCommand"
+                return EnvelopeFactory.error(
+                    "Shell hook requires 'command' in config",
+                    error_type="ValueError",
+                    produced_by=str(node.id)
                 )
         elif node.hook_type == HookType.WEBHOOK:
             if not config.get("url"):
-                return ErrorOutput(
-                    value="Webhook hook requires 'url' in config",
-                    node_id=node.id,
-                    error_type="MissingURL"
+                return EnvelopeFactory.error(
+                    "Webhook hook requires 'url' in config",
+                    error_type="ValueError",
+                    produced_by=str(node.id)
                 )
         elif node.hook_type == HookType.PYTHON:
             if not config.get("script"):
-                return ErrorOutput(
-                    value="Python hook requires 'script' in config",
-                    node_id=node.id,
-                    error_type="MissingScript"
+                return EnvelopeFactory.error(
+                    "Python hook requires 'script' in config",
+                    error_type="ValueError",
+                    produced_by=str(node.id)
                 )
         elif node.hook_type == HookType.FILE:
             if not config.get("file_path"):
-                return ErrorOutput(
-                    value="File hook requires 'file_path' in config",
-                    node_id=node.id,
-                    error_type="MissingFilePath"
+                return EnvelopeFactory.error(
+                    "File hook requires 'file_path' in config",
+                    error_type="ValueError",
+                    produced_by=str(node.id)
                 )
             # Get filesystem adapter for file hooks
             filesystem_adapter = self.filesystem_adapter or request.services.resolve(FILESYSTEM_ADAPTER)
             if not filesystem_adapter:
-                return ErrorOutput(
-                    value="Filesystem adapter is required for file hooks",
-                    node_id=node.id,
-                    error_type="MissingFilesystemAdapter"
+                return EnvelopeFactory.error(
+                    "Filesystem adapter is required for file hooks",
+                    error_type="ValueError",
+                    produced_by=str(node.id)
                 )
             # Store in instance variable for execute_request
             self._current_filesystem_adapter = filesystem_adapter
@@ -127,14 +133,28 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         # No early return - proceed to execute_request
         return None
     
-    async def execute_request(self, request: ExecutionRequest[HookNode]) -> NodeOutputProtocol:
-        """Pure execution using instance variables set in pre_execute."""
-        return await self._execute_hook_node(request)
+    async def execute_with_envelopes(
+        self, 
+        request: ExecutionRequest[HookNode],
+        inputs: dict[str, Envelope]
+    ) -> Envelope:
+        """Execute hook with envelope inputs."""
+        return await self._execute_hook_node(request, inputs)
     
-    async def _execute_hook_node(self, request: ExecutionRequest[HookNode]) -> NodeOutputProtocol:
+    async def _execute_hook_node(self, request: ExecutionRequest[HookNode], envelope_inputs: dict[str, Envelope]) -> Envelope:
         # Extract properties from request
         node = request.node
-        inputs = request.inputs
+        trace_id = request.execution_id or ""
+        
+        # Convert envelope inputs to legacy format
+        inputs = {}
+        for key, envelope in envelope_inputs.items():
+            try:
+                # Try to parse as JSON first
+                inputs[key] = self.reader.as_json(envelope)
+            except ValueError:
+                # Fall back to text
+                inputs[key] = self.reader.as_text(envelope)
         
         # Filesystem adapter already available in instance variable if needed (set in pre_execute for file hooks)
         if node.hook_type == HookType.FILE:
@@ -142,13 +162,24 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         
         try:
             result = await self._execute_hook(node, inputs)
-            return TextOutput(
-                value=str(result),
-                node_id=node.id,
-                metadata=json.dumps({"hook_type": node.hook_type})
+            
+            # Create output envelope
+            output_envelope = EnvelopeFactory.text(
+                str(result) if not isinstance(result, dict) else json.dumps(result),
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
+                hook_type=str(node.hook_type)
             )
+            
+            return output_envelope
         except Exception as e:
-            raise NodeExecutionError(f"Hook execution failed: {e!s}") from e
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id),
+                trace_id=trace_id
+            )
         finally:
             if hasattr(self, '_temp_filesystem_adapter'):
                 delattr(self, '_temp_filesystem_adapter')

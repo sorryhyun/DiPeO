@@ -18,7 +18,7 @@ AGENTS.md
 *.db-shm
 *.db-wal
 *.db
-
+files/plans
 # Temporary files and cache
 .temp/
 apps/web/schema.graphql
@@ -39,6 +39,8 @@ dipeo/diagram_generated_staged/
 .logs
 apps/server/.import_linter_cache
 docs/part1.md
+part1.md
+
 part2.md
 part4.md
 TODO.md
@@ -164,3 +166,7 @@ yarn.lock
 /apps/server/src/__generated__/
 /files/codegen/code/services/tests/.dipeo_cache/
 /temp/
+/projects/frontend_enhance/generated-app/
+/projects/frontend_enhance/mycomponent-app/
+/projects/frontend_enhance/list-app/
+/projects/frontend_enhance/smartlist-app/

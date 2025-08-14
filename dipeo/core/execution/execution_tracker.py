@@ -15,7 +15,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.node_output import NodeOutputProtocol
+    from dipeo.core.execution.envelope import Envelope
     from dipeo.diagram_generated import NodeID
 
 
@@ -40,7 +40,7 @@ class NodeExecutionRecord:
     started_at: datetime
     ended_at: datetime | None
     status: CompletionStatus
-    output: NodeOutputProtocol | None
+    output: Envelope | None
     error: str | None
     token_usage: dict[str, int] | None = None
     duration: float = 0.0  # seconds
@@ -74,7 +74,7 @@ class ExecutionTracker:
         self._execution_records: dict[NodeID, list[NodeExecutionRecord]] = {}
         self._runtime_states: dict[NodeID, NodeRuntimeState] = {}
         self._execution_counts: dict[NodeID, int] = {}
-        self._last_outputs: dict[NodeID, NodeOutputProtocol] = {}
+        self._last_outputs: dict[NodeID, Envelope] = {}
         self._execution_order: list[NodeID] = []
     
     def start_execution(self, node_id: NodeID) -> int:
@@ -106,7 +106,7 @@ class ExecutionTracker:
         self,
         node_id: NodeID,
         status: CompletionStatus,
-        output: NodeOutputProtocol | None = None,
+        output: Envelope | None = None,
         error: str | None = None,
         token_usage: dict[str, int] | None = None
     ) -> None:
@@ -142,7 +142,7 @@ class ExecutionTracker:
         records = self._execution_records.get(node_id, [])
         return len(records) > 0
     
-    def get_last_output(self, node_id: NodeID) -> NodeOutputProtocol | None:
+    def get_last_output(self, node_id: NodeID) -> Envelope | None:
         return self._last_outputs.get(node_id)
     
     def get_runtime_state(self, node_id: NodeID) -> NodeRuntimeState:

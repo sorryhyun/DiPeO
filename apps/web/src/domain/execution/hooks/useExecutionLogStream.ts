@@ -31,11 +31,36 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
   useEffect(() => {
     if (data?.execution_updates) {
       const update = data.execution_updates;
-      // Check if this is a log event
-      if (update.event_type === 'log' && update.data) {
+      
+      // Handle batch updates
+      if (update.event_type === 'BATCH_UPDATE' && update.data) {
+        const batchData = update.data;
+        if (batchData.events && Array.isArray(batchData.events)) {
+          // Process each event in the batch
+          const newLogs: LogEntry[] = [];
+          for (const event of batchData.events) {
+            if (event.type === 'EXECUTION_LOG' && event.data) {
+              const logData = event.data;
+              if (typeof logData === 'object' && logData !== null) {
+                newLogs.push({
+                  level: logData.level || 'INFO',
+                  message: logData.message || '',
+                  timestamp: logData.timestamp || event.timestamp || new Date().toISOString(),
+                  logger: logData.logger || '',
+                  node_id: logData.node_id,
+                });
+              }
+            }
+          }
+          if (newLogs.length > 0) {
+            setLogs(prev => [...prev, ...newLogs]);
+          }
+        }
+      }
+      // Also handle individual log events (for backward compatibility)
+      else if (update.event_type === 'EXECUTION_LOG' && update.data) {
         const logData = update.data;
         if (typeof logData === 'object' && logData !== null) {
-          // Convert the log data to LogEntry format
           const newLog: LogEntry = {
             level: logData.level || 'INFO',
             message: logData.message || '',

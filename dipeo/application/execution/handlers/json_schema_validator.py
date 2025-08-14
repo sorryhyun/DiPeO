@@ -11,7 +11,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import JsonSchemaValidatorNode, NodeType
-from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.json_schema_validator_model import JsonSchemaValidatorNodeData
 
 if TYPE_CHECKING:
@@ -20,8 +20,16 @@ if TYPE_CHECKING:
 
 @register_handler
 class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
+    """Handler for JSON Schema validation.
+    
+    Now uses envelope-based communication for clean input/output interfaces.
+    """
+    
+    # Enable envelope mode
+    _expects_envelopes = True
     
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
+        super().__init__()
         self._validator = None
         self.filesystem_adapter = filesystem_adapter
         # Instance variables for passing data between methods
@@ -58,7 +66,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[JsonSchemaValidatorNode]) -> Optional[NodeOutputProtocol]:
+    async def pre_execute(self, request: ExecutionRequest[JsonSchemaValidatorNode]) -> Optional[Envelope]:
         """Runtime validation and setup"""
         node = request.node
         services = request.services
@@ -72,18 +80,23 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         # Check filesystem adapter availability
         filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
-            return ErrorOutput(
-                value="Filesystem adapter is required for JSON schema validation",
-                node_id=node.id,
-                error_type="ServiceError"
+            return EnvelopeFactory.error(
+                "Filesystem adapter is required for JSON schema validation",
+                error_type="RuntimeError",
+                produced_by=str(node.id)
             )
         
         return None
     
-    async def execute_request(self, request: ExecutionRequest[JsonSchemaValidatorNode]) -> NodeOutputProtocol:
+    async def execute_with_envelopes(
+        self, 
+        request: ExecutionRequest[JsonSchemaValidatorNode],
+        inputs: dict[str, Envelope]
+    ) -> Envelope:
+        """Execute JSON schema validation with envelope inputs."""
         node = request.node
-        inputs = request.inputs
         services = request.services
+        trace_id = request.execution_id or ""
         
         filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
         
@@ -97,10 +110,10 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     schema_path = Path(base_dir) / node.schema_path
                 
                 if not filesystem_adapter.exists(schema_path):
-                    return ErrorOutput(
-                        value=f"Schema file not found: {node.schema_path}",
-                        node_id=node.id,
-                        error_type="FileNotFoundError"
+                    return EnvelopeFactory.error(
+                        f"Schema file not found: {node.schema_path}",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
                     )
                 
                 with filesystem_adapter.open(schema_path, 'rb') as f:
@@ -117,46 +130,54 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     data_path = Path(base_dir) / node.data_path
                 
                 if not filesystem_adapter.exists(data_path):
-                    return ErrorOutput(
-                        value=f"Data file not found: {node.data_path}",
-                        node_id=node.id,
-                        error_type="FileNotFoundError"
+                    return EnvelopeFactory.error(
+                        f"Data file not found: {node.data_path}",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
                     )
                 
                 with filesystem_adapter.open(data_path, 'rb') as f:
                     data_to_validate = json.loads(f.read().decode('utf-8'))
             else:
-                # Use input data
+                # Use input data from envelopes
                 if not inputs:
-                    return ErrorOutput(
-                        value="No input data provided and no data_path specified",
-                        node_id=node.id,
-                        error_type="NoDataError"
+                    return EnvelopeFactory.error(
+                        "No input data provided and no data_path specified",
+                        error_type="ValueError",
+                        produced_by=str(node.id)
                     )
                 
-                # If there's only one input, use it directly
+                # Convert envelope inputs to data
                 if len(inputs) == 1:
-                    input_value = list(inputs.values())[0]
-                    # Try to parse JSON strings
-                    if isinstance(input_value, str) and input_value.strip() and input_value.strip()[0] in '{[':
-                        try:
-                            data_to_validate = json.loads(input_value)
-                        except json.JSONDecodeError:
-                            data_to_validate = input_value
-                    else:
-                        data_to_validate = input_value
-                else:
-                    # Multiple inputs, use them as object
-                    data_to_validate = {}
-                    for key, value in inputs.items():
-                        # Try to parse JSON strings
-                        if isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
+                    # Single input - use it directly
+                    envelope = list(inputs.values())[0]
+                    try:
+                        data_to_validate = self.reader.as_json(envelope)
+                    except ValueError:
+                        # Fall back to text
+                        data_to_validate = self.reader.as_text(envelope)
+                        # Try to parse if it looks like JSON
+                        if isinstance(data_to_validate, str) and data_to_validate.strip() and data_to_validate.strip()[0] in '{[':
                             try:
-                                data_to_validate[key] = json.loads(value)
+                                data_to_validate = json.loads(data_to_validate)
                             except json.JSONDecodeError:
+                                pass
+                else:
+                    # Multiple inputs - create object from them
+                    data_to_validate = {}
+                    for key, envelope in inputs.items():
+                        try:
+                            data_to_validate[key] = self.reader.as_json(envelope)
+                        except ValueError:
+                            value = self.reader.as_text(envelope)
+                            # Try to parse JSON strings
+                            if isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
+                                try:
+                                    data_to_validate[key] = json.loads(value)
+                                except json.JSONDecodeError:
+                                    data_to_validate[key] = value
+                            else:
                                 data_to_validate[key] = value
-                        else:
-                            data_to_validate[key] = value
             
             # Perform validation using instance variables
             validation_result = await self._validate_data(
@@ -175,16 +196,19 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     if self._current_schema_path:
                         print(f"[JsonSchemaValidatorNode]   - Schema file: {self._current_schema_path}")
                 
-                return DataOutput(
-                    value={"default": data_to_validate},
-                    node_id=node.id,
-                    metadata=json.dumps({
-                        "strict_mode": self._current_strict_mode,
-                        "message": "Validation successful",
-                        "schema_path": self._current_schema_path,
-                        "data_path": node.data_path
-                    })
+                # Create success envelope
+                output_envelope = EnvelopeFactory.json(
+                    data_to_validate if isinstance(data_to_validate, dict) else {"default": data_to_validate},
+                    produced_by=node.id,
+                    trace_id=trace_id
+                ).with_meta(
+                    strict_mode=self._current_strict_mode,
+                    message="Validation successful",
+                    schema_path=self._current_schema_path,
+                    data_path=node.data_path
                 )
+                
+                return output_envelope
             else:
                 # Log failure
                 if self._current_debug:
@@ -199,24 +223,19 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     if len(validation_result['errors']) > 3:
                         print(f"[JsonSchemaValidatorNode]     ... and {len(validation_result['errors']) - 3} more errors")
                 
-                # Return validation errors as ErrorOutput
+                # Return validation errors as error envelope
                 error_message = f"Validation failed: {'; '.join(validation_result['errors'])}"
-                return ErrorOutput(
-                    value=error_message,
-                    node_id=node.id,
-                    error_type="ValidationError",
-                    metadata=json.dumps({
-                        "errors": validation_result["errors"],
-                        "strict_mode": self._current_strict_mode,
-                        "validation_passed": False
-                    })
+                return EnvelopeFactory.error(
+                    error_message,
+                    error_type="ValueError",
+                    produced_by=str(node.id)
                 )
         
         except Exception as e:
-            return ErrorOutput(
-                value=str(e),
-                node_id=node.id,
-                error_type=type(e).__name__
+            return EnvelopeFactory.error(
+                str(e),
+                error_type=e.__class__.__name__,
+                produced_by=str(node.id)
             )
     
     async def _validate_data(self, data: Any, schema: dict, strict_mode: bool = False, error_on_extra: bool = False) -> dict[str, Any]:
@@ -275,16 +294,16 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     def post_execute(
         self,
         request: ExecutionRequest[JsonSchemaValidatorNode],
-        output: NodeOutputProtocol
-    ) -> NodeOutputProtocol:
+        output: Envelope
+    ) -> Envelope:
         # Debug logging without using request.metadata
         if self._current_debug:
-            if isinstance(output, DataOutput):
+            if not output.has_error():
                 print(f"[JsonSchemaValidatorNode] Validation complete - Valid: True, Strict: {self._current_strict_mode}")
-            elif isinstance(output, ErrorOutput):
-                # Parse metadata if it's a JSON string
+            else:
+                # Try to get errors from metadata
                 try:
-                    metadata = json.loads(output.metadata) if isinstance(output.metadata, str) else output.metadata
+                    metadata = output.get_metadata_dict()
                     errors = metadata.get("errors", [])
                     if errors:
                         print(f"[JsonSchemaValidatorNode] Validation errors: {len(errors)}")

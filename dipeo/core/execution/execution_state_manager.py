@@ -5,7 +5,7 @@ from typing import Any, Protocol
 
 from dipeo.diagram_generated import NodeID, NodeState
 from dipeo.diagram_generated.domain_models import DiagramID
-from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope
 from dipeo.core.execution.execution_context import ExecutionContext
 
 
@@ -130,7 +130,7 @@ class ExecutionStateManager(Protocol):
         execution_id: str,
         node_id: NodeID,
         state: NodeState,
-        output: NodeOutputProtocol | None = None,
+        output: Envelope | None = None,
         error: str | None = None
     ) -> None:
         """Update the state of a specific node.

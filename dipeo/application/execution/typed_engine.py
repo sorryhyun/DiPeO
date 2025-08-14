@@ -297,13 +297,12 @@ class TypedExecutionEngine:
                     logger.info(f"PersonJobNode {node_id} has reached max_iteration ({node.max_iteration}), transitioning to MAXITER_REACHED")
                     
                     # Transition directly to MAXITER_REACHED without running
-                    from dipeo.core.execution.node_output import TextOutput
+                    from dipeo.core.execution.envelope import EnvelopeFactory
                     from dipeo.diagram_generated.enums import Status
-                    output = TextOutput(
-                        value="",
-                        node_id=node_id,
-                        status=Status.MAXITER_REACHED,
-                        metadata="{}"
+                    output = EnvelopeFactory.text(
+                        "",
+                        node_id=str(node_id),
+                        meta={"status": Status.MAXITER_REACHED.value}
                     )
                     context.transition_node_to_maxiter(node_id, output)
                     
@@ -332,8 +331,16 @@ class TypedExecutionEngine:
                 # Get handler
                 handler = self._get_handler(node.type)
                 
-                # Resolve inputs
-                inputs = context.resolve_node_inputs(node)
+                # Resolve inputs directly as envelopes
+                from dipeo.core.execution.envelope import Envelope
+                
+                # Use handler's resolve_envelope_inputs method
+                inputs = await handler.resolve_envelope_inputs(
+                    request=type('TempRequest', (), {
+                        'node': node,
+                        'context': context
+                    })()
+                )
                 
                 # Create ExecutionRequest with diagram metadata
                 from dipeo.application.execution.execution_request import ExecutionRequest
@@ -360,7 +367,7 @@ class TypedExecutionEngine:
                 
                 # If pre_execute returned output, use it; otherwise execute normally
                 if output is None:
-                    output = await handler.execute_request(request)
+                    output = await handler.execute_with_envelopes(request, inputs)
             
             # Calculate execution metrics
             end_time = time.time()

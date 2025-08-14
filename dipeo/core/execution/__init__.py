@@ -6,6 +6,7 @@ This module provides:
 - Support for iterative execution without losing state
 - Node-type-specific strategies and input resolution
 - Executable diagram structures and compilation
+- Envelope-based message passing (migration in progress)
 """
 
 from dipeo.core.execution.execution_tracker import (
@@ -15,16 +16,14 @@ from dipeo.core.execution.execution_tracker import (
     NodeExecutionRecord,
     NodeRuntimeState,
 )
-from dipeo.core.execution.node_output import (
-    BaseNodeOutput,
-    ConditionOutput,
-    ConversationOutput,
-    DataOutput,
-    ErrorOutput,
-    NodeOutputProtocol,
-    TextOutput,
+from dipeo.core.execution.envelope import (
+    Envelope,
+    EnvelopeFactory,
     serialize_protocol,
     deserialize_protocol,
+)
+from dipeo.core.execution.envelope_reader import (
+    EnvelopeReader,
 )
 from dipeo.core.execution.node_strategy import (
     NodeStrategy,
@@ -60,16 +59,13 @@ from dipeo.diagram_generated.generated_nodes import (
 )
 
 __all__ = [
-    # Node outputs
-    "NodeOutputProtocol",
-    "BaseNodeOutput",
-    "TextOutput",
-    "ConversationOutput",
-    "ConditionOutput",
-    "DataOutput",
-    "ErrorOutput",
+    # Envelope serialization
     "serialize_protocol",
     "deserialize_protocol",
+    # Envelope system (new)
+    "Envelope",
+    "EnvelopeFactory",
+    "EnvelopeReader",
     # Execution tracking
     "ExecutionTracker",
     "FlowStatus",

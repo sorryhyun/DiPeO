@@ -26,6 +26,9 @@ from dipeo.diagram_generated.domain_models import (
     Vec2,
     ExecutionOptions,
     SerializedNodeOutput,
+    SerializedEnvelope,
+    LegacySerializedOutput,
+    EnvelopeMeta,
 )
 
 # Import the Status enum for GraphQL type resolution
@@ -79,30 +82,57 @@ class NodeStateType:
     def output(self) -> Optional[JSONScalar]:
         return self.output if hasattr(self, 'output') else None
 
-@strawberry.experimental.pydantic.type(SerializedNodeOutput)
-class SerializedNodeOutputType:
-    type: str  # Will be exposed as 'type' in GraphQL
-    value: JSONScalar
-    node_id: str
-    metadata: str
-    timestamp: Optional[str]
-    error: Optional[str]
-    token_usage: Optional[TokenUsageType]
-    execution_time: Optional[float]
-    retry_count: Optional[int]
-    # Node-specific fields
-    person_id: Optional[str]
-    conversation_id: Optional[str]
-    language: Optional[str]
-    stdout: Optional[str]
-    stderr: Optional[str]
-    success: Optional[bool]
-    status_code: Optional[int]
-    headers: Optional[JSONScalar]
-    response_time: Optional[float]
-    true_output: Optional[JSONScalar]
-    false_output: Optional[JSONScalar]
-    error_type: Optional[str]
+# EnvelopeMeta type for the new format
+@strawberry.experimental.pydantic.type(EnvelopeMeta)
+class EnvelopeMetaType:
+    node_id: Optional[str] = None
+    token_usage: Optional[TokenUsageType] = None
+    execution_time: Optional[float] = None
+    retry_count: Optional[int] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    timestamp: Optional[JSONScalar] = None  # Can be str or float
+
+# SerializedEnvelope type for the new format
+@strawberry.experimental.pydantic.type(SerializedEnvelope)
+class SerializedEnvelopeType:
+    envelope_format: strawberry.auto
+    id: strawberry.auto
+    trace_id: strawberry.auto
+    produced_by: strawberry.auto
+    content_type: strawberry.auto
+    schema_id: strawberry.auto
+    serialization_format: strawberry.auto
+    body: Optional[JSONScalar] = None
+    meta: strawberry.auto
+
+# LegacySerializedOutput type for backward compatibility
+@strawberry.experimental.pydantic.type(LegacySerializedOutput)
+class LegacySerializedOutputType:
+    type: strawberry.auto  # Will be exposed as 'type' in GraphQL
+    value: Optional[JSONScalar] = None
+    node_id: strawberry.auto
+    metadata: strawberry.auto
+    timestamp: strawberry.auto
+    error: strawberry.auto
+    token_usage: strawberry.auto
+    execution_time: strawberry.auto
+    retry_count: strawberry.auto
+    person_id: strawberry.auto
+    conversation_id: strawberry.auto
+    language: strawberry.auto
+    stdout: strawberry.auto
+    stderr: strawberry.auto
+    success: strawberry.auto
+    status_code: strawberry.auto
+    headers: Optional[JSONScalar] = None
+    response_time: strawberry.auto
+    true_output: Optional[JSONScalar] = None
+    false_output: Optional[JSONScalar] = None
+    error_type: strawberry.auto
+
+# Union type for SerializedNodeOutput
+SerializedNodeOutputType = strawberry.union("SerializedNodeOutputType", [SerializedEnvelopeType, LegacySerializedOutputType])
 
 @strawberry.experimental.pydantic.type(DomainHandle, all_fields=True)
 class DomainHandleType:

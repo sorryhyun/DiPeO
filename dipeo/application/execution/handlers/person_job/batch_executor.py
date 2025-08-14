@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Optional, Tuple, List, Dict
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
-from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
+from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.domain.conversation import Person
 
 from .single_executor import SinglePersonJobExecutor
@@ -41,22 +41,29 @@ class BatchPersonJobExecutor:
     def _create_empty_batch_output(
         self, 
         node: PersonJobNode, 
-        batch_config: Dict[str, Any]
-    ) -> DataOutput:
-        """Create output for empty batch."""
+        batch_config: Dict[str, Any],
+        trace_id: str = ""
+    ) -> Envelope:
+        """Create an Envelope for empty batch."""
         logger.warning(f"Batch mode enabled but no items found for key '{batch_config['input_key']}'")
-        return DataOutput(
-            value={
-                'total_items': 0,
-                'successful': 0,
-                'failed': 0,
-                'results': [],
-                'errors': None
-            },
-            node_id=node.id,
-            metadata=json.dumps({
-                'batch_parallel': batch_config['parallel']
-            })
+        
+        empty_result = {
+            'total_items': 0,
+            'successful': 0,
+            'failed': 0,
+            'results': [],
+            'errors': None
+        }
+        
+        # Return envelope directly
+        return EnvelopeFactory.json(
+            empty_result,
+            produced_by=node.id,
+            trace_id=trace_id
+        ).with_meta(
+            batch_mode="empty",
+            batch_parallel=batch_config['parallel'],
+            person_id=node.person
         )
     
     async def _execute_batch(
@@ -81,9 +88,10 @@ class BatchPersonJobExecutor:
         batch_items: List[Any],
         results: List[Any],
         errors: List[Dict[str, Any]],
-        batch_config: Dict[str, Any]
-    ) -> DataOutput:
-        """Create batch execution output."""
+        batch_config: Dict[str, Any],
+        trace_id: str = ""
+    ) -> Envelope:
+        """Create an Envelope containing batch execution results."""
         batch_output = {
             'total_items': len(batch_items),
             'successful': len(results),
@@ -92,18 +100,24 @@ class BatchPersonJobExecutor:
             'errors': errors if errors else None
         }
         
-        return DataOutput(
-            value=batch_output,
-            node_id=node.id,
-            metadata=json.dumps({
-                'batch_parallel': batch_config['parallel'],
-                'person': node.person
-            })
+        # Return envelope directly with batch metadata
+        return EnvelopeFactory.json(
+            batch_output,
+            produced_by=node.id,
+            trace_id=trace_id
+        ).with_meta(
+            batch_mode="completed",
+            batch_parallel=batch_config['parallel'],
+            person_id=node.person,
+            total_items=len(batch_items),
+            successful=len(results),
+            failed=len(errors)
         )
     
-    async def execute(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutputProtocol:
-        """Execute person job for each item in the batch."""
+    async def execute(self, request: ExecutionRequest[PersonJobNode]) -> Envelope:
+        """Execute person job for each item in the batch and return an Envelope."""
         node = request.node
+        trace_id = request.execution_id or ""
         
         # Get batch configuration
         batch_config = self._get_batch_configuration(node)
@@ -118,7 +132,7 @@ class BatchPersonJobExecutor:
         batch_items = self._extract_batch_items(request.inputs, batch_config['input_key'])
         
         if not batch_items:
-            return self._create_empty_batch_output(node, batch_config)
+            return self._create_empty_batch_output(node, batch_config, trace_id)
         
         logger.info(f"Processing batch of {len(batch_items)} items for person {node.person}")
         
@@ -129,13 +143,14 @@ class BatchPersonJobExecutor:
             batch_config
         )
         
-        # Return batch output
+        # Return batch output with envelope
         return self._create_batch_output(
             node=node,
             batch_items=batch_items,
             results=results,
             errors=errors,
-            batch_config=batch_config
+            batch_config=batch_config,
+            trace_id=trace_id
         )
     
     def _extract_batch_items(self, inputs: Optional[dict[str, Any]], batch_input_key: str) -> list[Any]:
@@ -357,10 +372,13 @@ class BatchPersonJobExecutor:
     def _format_item_result(self, index: int, result: Any) -> Dict[str, Any]:
         """Format the result from a single item execution."""
         if hasattr(result, 'value'):
+            output_value = result.value
+            metadata = result.metadata if hasattr(result, 'metadata') else {}
+            
             return {
                 'index': index,
-                'output': result.value,
-                'metadata': result.metadata if hasattr(result, 'metadata') else {}
+                'output': output_value,
+                'metadata': metadata
             }
         else:
             return {
