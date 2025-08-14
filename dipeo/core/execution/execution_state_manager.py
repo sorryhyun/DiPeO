@@ -130,7 +130,7 @@ class ExecutionStateManager(Protocol):
         execution_id: str,
         node_id: NodeID,
         state: NodeState,
-        output: NodeOutputProtocol | None = None,
+        output: Envelope | None = None,
         error: str | None = None
     ) -> None:
         """Update the state of a specific node.
