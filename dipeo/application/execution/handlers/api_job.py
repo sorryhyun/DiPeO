@@ -9,7 +9,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import API_SERVICE
 from dipeo.diagram_generated.generated_nodes import ApiJobNode, NodeType
-from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol, APIJobOutput
+from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData, HttpMethod
 
@@ -70,18 +70,16 @@ class ApiJobNodeHandler(EnvelopeNodeHandler[ApiJobNode]):
         # Check service availability
         api_service = self.api_service or request.get_service(API_SERVICE.name)
         if not api_service:
-            return ErrorOutput(
-                value="API service not available",
-                node_id=node.id,
-                error_type="ServiceNotAvailableError"
+            return self.create_error_output(
+                RuntimeError("API service not available"),
+                node_id=str(node.id)
             )
         
         # Validate URL
         if not node.url:
-            return ErrorOutput(
-                value="No URL provided",
-                node_id=node.id,
-                error_type="ValidationError"
+            return self.create_error_output(
+                ValueError("No URL provided"),
+                node_id=str(node.id)
             )
         
         # Convert and validate HTTP method
@@ -90,10 +88,9 @@ class ApiJobNodeHandler(EnvelopeNodeHandler[ApiJobNode]):
             try:
                 method = HttpMethod(method.upper())
             except ValueError:
-                return ErrorOutput(
-                    value=f"Invalid HTTP method: {method}",
-                    node_id=node.id,
-                    error_type="ValidationError"
+                return self.create_error_output(
+                    ValueError(f"Invalid HTTP method: {method}"),
+                    node_id=str(node.id)
                 )
         
         # Parse and validate JSON inputs
@@ -104,10 +101,9 @@ class ApiJobNodeHandler(EnvelopeNodeHandler[ApiJobNode]):
         
         parsed_data = self._parse_json_inputs(headers, params, body, auth_config)
         if "error" in parsed_data:
-            return ErrorOutput(
-                value=parsed_data["error"],
-                node_id=node.id,
-                error_type="ValidationError"
+            return self.create_error_output(
+                ValueError(parsed_data["error"]),
+                node_id=str(node.id)
             )
         
         # Store validated data in instance variables for execute_request to use
@@ -159,11 +155,8 @@ class ApiJobNodeHandler(EnvelopeNodeHandler[ApiJobNode]):
                     headers = json.loads(headers_text)
                 except json.JSONDecodeError:
                     return self.create_error_output(
-                        ErrorOutput(
-                            value="Invalid headers format in input",
-                            node_id=node.id,
-                            error_type="ValidationError"
-                        )
+                        ValueError("Invalid headers format in input"),
+                        node_id=str(node.id)
                     )
         
         # Check for params override from input
@@ -176,11 +169,8 @@ class ApiJobNodeHandler(EnvelopeNodeHandler[ApiJobNode]):
                     params = json.loads(params_text)
                 except json.JSONDecodeError:
                     return self.create_error_output(
-                        ErrorOutput(
-                            value="Invalid params format in input",
-                            node_id=node.id,
-                            error_type="ValidationError"
-                        )
+                        ValueError("Invalid params format in input"),
+                        node_id=str(node.id)
                     )
         
         # Check for body override from input
@@ -241,12 +231,8 @@ class ApiJobNodeHandler(EnvelopeNodeHandler[ApiJobNode]):
                 method=str(method)
             )
             return self.create_error_output(
-                ErrorOutput(
-                    value=str(e),
-                    node_id=node.id,
-                    error_type=type(e).__name__,
-                    metadata=json.dumps({"url": url, "method": str(method)})
-                )
+                e,
+                node_id=str(node.id)
             )
 
     def _parse_json_inputs(
@@ -345,13 +331,7 @@ class ApiJobNodeHandler(EnvelopeNodeHandler[ApiJobNode]):
         url = request.node.url or "unknown"
         method = str(self._current_method) if self._current_method else request.node.method or "unknown"
         
-        output = ErrorOutput(
-            value=f"API request failed: {str(error)}",
-            node_id=request.node.id,
-            error_type=type(error).__name__
+        return self.create_error_output(
+            error,
+            node_id=str(request.node.id)
         )
-        output.metadata = json.dumps({
-            "url": url,
-            "method": method
-        })
-        return output

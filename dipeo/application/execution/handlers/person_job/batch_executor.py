@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Optional, Tuple, List, Dict
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
-from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.domain.conversation import Person
 
@@ -44,8 +43,8 @@ class BatchPersonJobExecutor:
         node: PersonJobNode, 
         batch_config: Dict[str, Any],
         trace_id: str = ""
-    ) -> DataOutput:
-        """Create output for empty batch with envelope support."""
+    ) -> Envelope:
+        """Create an Envelope for empty batch."""
         logger.warning(f"Batch mode enabled but no items found for key '{batch_config['input_key']}'")
         
         empty_result = {
@@ -56,16 +55,8 @@ class BatchPersonJobExecutor:
             'errors': None
         }
         
-        output = DataOutput(
-            value=empty_result,
-            node_id=node.id,
-            metadata=json.dumps({
-                'batch_parallel': batch_config['parallel']
-            })
-        )
-        
-        # Attach envelope for handler conversion
-        output._envelope = EnvelopeFactory.json(
+        # Return envelope directly
+        return EnvelopeFactory.json(
             empty_result,
             produced_by=node.id,
             trace_id=trace_id
@@ -74,8 +65,6 @@ class BatchPersonJobExecutor:
             batch_parallel=batch_config['parallel'],
             person_id=node.person
         )
-        
-        return output
     
     async def _execute_batch(
         self,
@@ -101,8 +90,8 @@ class BatchPersonJobExecutor:
         errors: List[Dict[str, Any]],
         batch_config: Dict[str, Any],
         trace_id: str = ""
-    ) -> DataOutput:
-        """Create batch execution output with envelope support."""
+    ) -> Envelope:
+        """Create an Envelope containing batch execution results."""
         batch_output = {
             'total_items': len(batch_items),
             'successful': len(results),
@@ -111,17 +100,8 @@ class BatchPersonJobExecutor:
             'errors': errors if errors else None
         }
         
-        output = DataOutput(
-            value=batch_output,
-            node_id=node.id,
-            metadata=json.dumps({
-                'batch_parallel': batch_config['parallel'],
-                'person': node.person
-            })
-        )
-        
-        # Create envelope with batch metadata
-        output._envelope = EnvelopeFactory.json(
+        # Return envelope directly with batch metadata
+        return EnvelopeFactory.json(
             batch_output,
             produced_by=node.id,
             trace_id=trace_id
@@ -133,11 +113,9 @@ class BatchPersonJobExecutor:
             successful=len(results),
             failed=len(errors)
         )
-        
-        return output
     
-    async def execute(self, request: ExecutionRequest[PersonJobNode]) -> NodeOutputProtocol:
-        """Execute person job for each item in the batch with envelope support."""
+    async def execute(self, request: ExecutionRequest[PersonJobNode]) -> Envelope:
+        """Execute person job for each item in the batch and return an Envelope."""
         node = request.node
         trace_id = request.execution_id or ""
         
@@ -392,17 +370,10 @@ class BatchPersonJobExecutor:
         )
     
     def _format_item_result(self, index: int, result: Any) -> Dict[str, Any]:
-        """Format the result from a single item execution with envelope awareness."""
+        """Format the result from a single item execution."""
         if hasattr(result, 'value'):
             output_value = result.value
             metadata = result.metadata if hasattr(result, 'metadata') else {}
-            
-            # Check if result has envelope information
-            if hasattr(result, '_envelope'):
-                metadata['has_envelope'] = True
-                # Extract any important envelope metadata if needed
-                if hasattr(result._envelope, 'metadata'):
-                    metadata['envelope_meta'] = result._envelope.metadata
             
             return {
                 'index': index,

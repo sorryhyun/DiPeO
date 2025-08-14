@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
-from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 
@@ -33,10 +32,10 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
             diagram_service=diagram_service
         )
     
-    async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
-        """Execute a single sub-diagram with envelope support.
+    async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope:
+        """Execute a single sub-diagram and return an Envelope.
         
-        Returns NodeOutputProtocol that can be converted to envelopes by the handler.
+        Returns an Envelope containing the execution results.
         """
         node = request.node
         trace_id = request.execution_id or ""
@@ -44,22 +43,16 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         # Check if we should skip execution when running as a sub-diagram
         if getattr(node, 'ignoreIfSub', False):
             if self._is_sub_diagram_context(request):
-                # Create envelope-ready output
+                # Return skip envelope directly
                 skip_data = {
                     "status": "skipped",
                     "reason": "Skipped because running as sub-diagram with ignoreIfSub=true"
                 }
-                output = DataOutput(
-                    value=skip_data,
-                    node_id=node.id
-                )
-                # Attach envelope for handler conversion
-                output._envelope = EnvelopeFactory.json(
+                return EnvelopeFactory.json(
                     skip_data,
                     produced_by=node.id,
                     trace_id=trace_id
                 ).with_meta(execution_status="skipped")
-                return output
         
         try:
             # Use pre-configured services (set by handler)
@@ -113,13 +106,8 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         except Exception as e:
             logger.error(f"Error executing sub-diagram node {node.id}: {e}", exc_info=True)
             error_data = {"error": str(e)}
-            output = DataOutput(
-                value=error_data,
-                node_id=node.id,
-                metadata=json.dumps({"error": str(e)})
-            )
-            # Attach error envelope for handler conversion
-            output._envelope = EnvelopeFactory.json(
+            # Return error envelope directly
+            return EnvelopeFactory.json(
                 error_data,
                 produced_by=node.id,
                 trace_id=trace_id
@@ -127,7 +115,6 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
                 execution_status="failed",
                 error_type=type(e).__name__
             )
-            return output
     
     def _create_execution_use_case(
         self,
@@ -186,25 +173,17 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         sub_execution_id: str,
         execution_results: dict[str, Any],
         execution_error: str | None
-    ) -> DataOutput:
-        """Build the node output with envelope support.
+    ) -> Envelope:
+        """Build and return an Envelope with execution results.
         
-        Creates output that includes envelope metadata for proper conversion.
+        Creates an Envelope containing the execution results or error.
         """
         trace_id = sub_execution_id  # Use sub_execution_id as trace_id for continuity
         
         if execution_error:
             error_data = {"error": execution_error}
-            output = DataOutput(
-                value=error_data,
-                node_id=node.id,
-                metadata=json.dumps({
-                    "sub_execution_id": sub_execution_id,
-                    "error": execution_error
-                })
-            )
-            # Attach error envelope
-            output._envelope = EnvelopeFactory.json(
+            # Return error envelope directly
+            return EnvelopeFactory.json(
                 error_data,
                 produced_by=node.id,
                 trace_id=trace_id
@@ -212,49 +191,37 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
                 sub_execution_id=sub_execution_id,
                 execution_status="failed"
             )
-            return output
         
         # Process output mapping
         output_value = self._process_output_mapping(node, execution_results)
         
-        # Create success output with envelope
-        output = DataOutput(
-            value=output_value,
-            node_id=node.id,
-            metadata=json.dumps({
-                "sub_execution_id": sub_execution_id
-            })
-        )
-        
-        # Determine envelope type based on output value
+        # Determine envelope type and create it directly
         if isinstance(output_value, dict):
-            output._envelope = EnvelopeFactory.json(
+            envelope = EnvelopeFactory.json(
                 output_value,
                 produced_by=node.id,
                 trace_id=trace_id
             )
         elif isinstance(output_value, str):
-            output._envelope = EnvelopeFactory.text(
+            envelope = EnvelopeFactory.text(
                 output_value,
                 produced_by=node.id,
                 trace_id=trace_id
             )
         else:
             # Default to JSON for complex types
-            output._envelope = EnvelopeFactory.json(
+            envelope = EnvelopeFactory.json(
                 output_value if isinstance(output_value, (dict, list)) else {"value": output_value},
                 produced_by=node.id,
                 trace_id=trace_id
             )
         
         # Add execution metadata to envelope
-        output._envelope = output._envelope.with_meta(
+        return envelope.with_meta(
             sub_execution_id=sub_execution_id,
             execution_status="completed",
             diagram_name=node.diagram_name or "inline"
         )
-        
-        return output
     
     def _is_sub_diagram_context(self, request: ExecutionRequest[SubDiagramNode]) -> bool:
         """Check if we're running in a sub-diagram context."""

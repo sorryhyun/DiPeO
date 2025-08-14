@@ -12,7 +12,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
-from dipeo.core.execution.node_output import TextOutput, ErrorOutput, NodeOutputProtocol, TemplateJobOutput
+from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.infrastructure.services.jinja_template.template_integration import get_enhanced_template_service
@@ -91,10 +91,9 @@ class TemplateJobNodeHandler(EnvelopeNodeHandler[TemplateJobNode]):
         # Get filesystem adapter from services or use injected one
         filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
-            return ErrorOutput(
-                value="Filesystem adapter is required for template job execution",
-                node_id=node.id,
-                error_type="ServiceError"
+            return self.create_error_output(
+                RuntimeError("Filesystem adapter is required for template job execution"),
+                node_id=str(node.id)
             )
         
         # Store filesystem adapter in instance variable for execute_request
@@ -103,10 +102,9 @@ class TemplateJobNodeHandler(EnvelopeNodeHandler[TemplateJobNode]):
         # Validate template engine
         engine = node.engine or "internal"
         if engine not in ["internal", "jinja2"]:
-            return ErrorOutput(
-                value=f"Unsupported template engine: {engine}",
-                node_id=node.id,
-                error_type="UnsupportedEngineError"
+            return self.create_error_output(
+                ValueError(f"Unsupported template engine: {engine}"),
+                node_id=str(node.id)
             )
         self._current_engine = engine
         
@@ -115,10 +113,9 @@ class TemplateJobNodeHandler(EnvelopeNodeHandler[TemplateJobNode]):
             template_service = self._get_template_service()
             self._current_template_service = template_service
         except Exception as e:
-            return ErrorOutput(
-                value=f"Failed to initialize template service: {str(e)}",
-                node_id=node.id,
-                error_type="ServiceInitError"
+            return self.create_error_output(
+                e,
+                node_id=str(node.id)
             )
         
         # Initialize template processor for path interpolation
@@ -205,10 +202,9 @@ class TemplateJobNodeHandler(EnvelopeNodeHandler[TemplateJobNode]):
                 template_path = Path(processed_template_path)
                 
                 if not filesystem_adapter.exists(template_path):
-                    return ErrorOutput(
-                        value=f"Template file not found: {node.template_path}",
-                        node_id=node.id,
-                        error_type="FileNotFoundError"
+                    return self.create_error_output(
+                        FileNotFoundError(f"Template file not found: {node.template_path}"),
+                        node_id=str(node.id)
                     )
                 
                 with filesystem_adapter.open(template_path, 'rb') as f:
@@ -229,11 +225,9 @@ class TemplateJobNodeHandler(EnvelopeNodeHandler[TemplateJobNode]):
                         # Log the fallback but don't store in metadata
                         logger.debug(f"Enhancement fallback: {e}")
             except Exception as render_error:
-                return ErrorOutput(
-                    value=f"Template rendering failed: {str(render_error)}",
-                    node_id=node.id,
-                    error_type="RenderError",
-                    metadata="{}"  # Empty metadata
+                return self.create_error_output(
+                    render_error,
+                    node_id=str(node.id)
                 )
             
             # Write to file if output_path is specified
@@ -279,12 +273,8 @@ class TemplateJobNodeHandler(EnvelopeNodeHandler[TemplateJobNode]):
                 engine=node.engine or "internal"
             )
             return self.create_error_output(
-                ErrorOutput(
-                    value=str(e),
-                    node_id=node.id,
-                    error_type=type(e).__name__,
-                    metadata=json.dumps({"engine": node.engine or "internal"})
-                )
+                e,
+                node_id=str(node.id)
             )
     
     async def _render_jinja2(self, template: str, variables: dict[str, Any]) -> str:

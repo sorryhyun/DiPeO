@@ -14,7 +14,8 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
-from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import NodeOutputProtocol
+from dipeo.core.execution.envelope import EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 
 from .base_executor import BaseSubDiagramExecutor
@@ -56,21 +57,20 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         self, 
         node: SubDiagramNode, 
         batch_config: dict[str, Any]
-    ) -> DataOutput:
+    ) -> NodeOutputProtocol:
         """Create output for empty batch."""
         logger.warning(f"Batch mode enabled but no items found for key '{batch_config['input_key']}'")
-        return DataOutput(
-            value={
+        return EnvelopeFactory.json(
+            {
                 'total_items': 0,
                 'successful': 0,
                 'failed': 0,
                 'results': [],
                 'errors': None
             },
-            node_id=node.id,
-            metadata=json.dumps({
-                'batch_parallel': batch_config['parallel']
-            })
+            produced_by=str(node.id)
+        ).with_meta(
+            batch_parallel=batch_config['parallel']
         )
     
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
@@ -150,7 +150,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         results: list[Any],
         errors: list[dict[str, Any]],
         batch_config: dict[str, Any]
-    ) -> DataOutput:
+    ) -> NodeOutputProtocol:
         """Create batch execution output."""
         batch_output = {
             'total_items': len(batch_items),
@@ -160,13 +160,12 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
             'errors': errors if errors else None
         }
         
-        return DataOutput(
-            value=batch_output,
-            node_id=node.id,
-            metadata=json.dumps({
-                'batch_parallel': batch_config['parallel'],
-                'diagram': node.diagram_name or 'inline'
-            })
+        return EnvelopeFactory.json(
+            batch_output,
+            produced_by=str(node.id)
+        ).with_meta(
+            batch_parallel=batch_config['parallel'],
+            diagram=node.diagram_name or 'inline'
         )
     
     def _extract_batch_items(self, inputs: dict[str, Any] | None, batch_input_key: str) -> list[Any]:

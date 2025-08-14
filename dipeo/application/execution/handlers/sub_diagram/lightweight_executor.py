@@ -11,7 +11,6 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.core.execution.node_output import DataOutput, NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated import ExecutionID, ExecutionState, NodeState, Status, TokenUsage
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
@@ -39,10 +38,10 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             diagram_service=diagram_service
         )
     
-    async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> NodeOutputProtocol:
+    async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope:
         """Execute a sub-diagram in lightweight mode without state persistence.
         
-        Returns NodeOutputProtocol with envelope support for handler conversion.
+        Returns an Envelope containing the execution results.
         """
         node = request.node
         trace_id = request.execution_id or ""
@@ -74,13 +73,8 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         except Exception as e:
             logger.error(f"Error in lightweight sub-diagram execution for node {node.id}: {e}", exc_info=True)
             error_data = {"error": str(e)}
-            output = DataOutput(
-                value=error_data,
-                node_id=node.id,
-                metadata=json.dumps({"error": str(e)})
-            )
-            # Attach error envelope
-            output._envelope = EnvelopeFactory.json(
+            # Return error envelope directly
+            return EnvelopeFactory.json(
                 error_data,
                 produced_by=node.id,
                 trace_id=trace_id
@@ -89,7 +83,6 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
                 execution_status="failed",
                 error_type=type(e).__name__
             )
-            return output
     
     async def _prepare_diagram(self, node: SubDiagramNode, request: ExecutionRequest) -> "ExecutableDiagram":
         """Prepare the diagram for execution (load and compile)."""
@@ -316,49 +309,40 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         node: SubDiagramNode,
         execution_results: dict[str, Any],
         trace_id: str = ""
-    ) -> DataOutput:
-        """Build the node output with envelope support.
+    ) -> Envelope:
+        """Build and return an Envelope with execution results.
         
-        Creates output that includes envelope metadata for proper conversion.
+        Creates an Envelope containing the execution results.
         """
         # Process output mapping
         output_value = self._process_output_mapping(node, execution_results)
         
-        # Create output
-        output = DataOutput(
-            value=output_value,
-            node_id=node.id,
-            metadata=json.dumps({"execution_mode": "lightweight"})
-        )
-        
-        # Determine envelope type based on output value
+        # Determine envelope type and create it directly
         if isinstance(output_value, dict):
-            output._envelope = EnvelopeFactory.json(
+            envelope = EnvelopeFactory.json(
                 output_value,
                 produced_by=node.id,
                 trace_id=trace_id
             )
         elif isinstance(output_value, str):
-            output._envelope = EnvelopeFactory.text(
+            envelope = EnvelopeFactory.text(
                 output_value,
                 produced_by=node.id,
                 trace_id=trace_id
             )
         else:
             # Default to JSON for complex types
-            output._envelope = EnvelopeFactory.json(
+            envelope = EnvelopeFactory.json(
                 output_value if isinstance(output_value, (dict, list)) else {"value": output_value},
                 produced_by=node.id,
                 trace_id=trace_id
             )
         
         # Add execution metadata to envelope
-        output._envelope = output._envelope.with_meta(
+        return envelope.with_meta(
             execution_mode="lightweight",
             execution_status="completed",
             diagram_name=node.diagram_name or "inline",
             node_count=len(execution_results)
         )
-        
-        return output
     

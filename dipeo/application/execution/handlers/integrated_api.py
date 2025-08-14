@@ -10,7 +10,7 @@ from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import INTEGRATED_API_SERVICE, API_KEY_SERVICE
 from dipeo.diagram_generated.generated_nodes import IntegratedApiNode, NodeType
-from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.integrated_api_model import IntegratedApiNodeData
 from dipeo.diagram_generated.enums import APIServiceType
@@ -78,17 +78,15 @@ class IntegratedApiNodeHandler(EnvelopeNodeHandler[IntegratedApiNode]):
         api_key_service = self.api_key_service or request.services.resolve(API_KEY_SERVICE)
         
         if not integrated_api_service:
-            return ErrorOutput(
-                value="Integrated API service not available",
-                node_id=node.id,
-                error_type="ServiceNotAvailableError"
+            return self.create_error_output(
+                ValueError("Integrated API service not available"),
+                node_id=str(node.id)
             )
         
         if not api_key_service:
-            return ErrorOutput(
-                value="API key service not available",
-                node_id=node.id,
-                error_type="ServiceNotAvailableError"
+            return self.create_error_output(
+                ValueError("API key service not available"),
+                node_id=str(node.id)
             )
         
         # Get the API key for the provider
@@ -108,10 +106,9 @@ class IntegratedApiNodeHandler(EnvelopeNodeHandler[IntegratedApiNode]):
         )
         
         if not provider_summary:
-            return ErrorOutput(
-                value=f"No API key configured for provider '{provider}'",
-                node_id=node.id,
-                error_type="ConfigurationError"
+            return self.create_error_output(
+                ValueError(f"No API key configured for provider '{provider}'"),
+                node_id=str(node.id)
             )
         
         # Now get the full key details including the actual key
@@ -232,15 +229,9 @@ class IntegratedApiNodeHandler(EnvelopeNodeHandler[IntegratedApiNode]):
                 operation=operation
             )
             return self.create_error_output(
-                ErrorOutput(
-                    value=str(e),
-                    node_id=node.id,
-                    error_type="ValidationError",
-                    metadata=json.dumps({
-                        "provider": provider,
-                        "operation": operation
-                    })
-                )
+                e,
+                node_id=str(node.id),
+                trace_id=trace_id
             )
             
         except Exception as e:
@@ -256,13 +247,7 @@ class IntegratedApiNodeHandler(EnvelopeNodeHandler[IntegratedApiNode]):
                 operation=operation
             )
             return self.create_error_output(
-                ErrorOutput(
-                    value=str(e),
-                    node_id=node.id,
-                    error_type=type(e).__name__,
-                    metadata=json.dumps({
-                        "provider": provider,
-                        "operation": operation
-                    })
-                )
+                e,
+                node_id=str(node.id),
+                trace_id=trace_id
             )

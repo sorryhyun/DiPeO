@@ -10,7 +10,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import EndpointNode, NodeType
-from dipeo.core.execution.node_output import DataOutput, ErrorOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
@@ -73,12 +73,11 @@ class EndpointNodeHandler(EnvelopeNodeHandler[EndpointNode]):
             filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
             
             if not filesystem_adapter:
-                from dipeo.core.execution.node_output import ErrorOutput
-                return ErrorOutput(
-                    value="Filesystem adapter is required when save_to_file is enabled",
-                    node_id=node.id,
-                    error_type="ServiceNotAvailableError"
-                )
+                from dipeo.core.execution.node_output import NodeOutputProtocol
+                return self.create_error_output(
+                ValueError("Filesystem adapter is required when save_to_file is enabled"),
+                node_id=str(node.id)
+            )
             
             # Resolve file name
             file_name = node.file_name
@@ -181,12 +180,9 @@ class EndpointNodeHandler(EnvelopeNodeHandler[EndpointNode]):
                         attempted_file=file_name
                     )
                     return self.create_error_output(
-                        ErrorOutput(
-                            value=f"Failed to save to file {file_name}: {str(exc)}",
-                            node_id=node.id,
-                            error_type="SaveError",
-                            metadata=json.dumps({"attempted_file": file_name})
-                        )
+                        exc,
+                        node_id=str(node.id),
+                        trace_id=trace_id
                     )
 
         # Create output envelope for pass-through case

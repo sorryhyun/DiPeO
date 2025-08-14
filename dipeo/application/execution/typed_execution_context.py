@@ -195,24 +195,41 @@ class TypedExecutionContext(ExecutionContextProtocol):
             StartNode,
         )
 
+
         # Get the node that just completed
         completed_node = self.diagram.get_node(node_id)
-        
+
         # Special handling for ConditionNode - only reset nodes on the active branch
         if isinstance(completed_node, ConditionNode):
-            # Get the ConditionOutput to determine which branch was taken
+            # Get the output to determine which branch was taken
             output = self._tracker.get_last_output(node_id)
-            if isinstance(output, ConditionOutput):
-                active_branch, _ = output.get_branch_output()  # Returns ("condtrue", data) or ("condfalse", data)
 
-                # Only process edges on the active branch
-                outgoing_edges = [
-                    e for e in self.diagram.edges 
-                    if e.source_node_id == node_id and e.source_output == active_branch
-                ]
+            # Handle ConditionOutput and ConditionEnvelopeOutput
+            from dipeo.core.execution.envelope_output import ConditionEnvelopeOutput
+            if isinstance(output, (ConditionOutput, ConditionEnvelopeOutput)):
+                # This handles both ConditionOutput and ConditionEnvelopeOutput
+                active_branch, _ = output.get_branch_output()  # Returns ("condtrue", data) or ("condfalse", data)
             else:
-                # No valid output, can't determine branch
-                return
+                # Handle pure Envelope for future compatibility
+                from dipeo.core.execution.envelope import Envelope
+                if isinstance(output, Envelope):
+                    # Extract branch from envelope metadata
+                    if output.content_type == "condition_result":
+                        branch_taken = output.meta.get("branch_taken", "false")
+                        active_branch = "condtrue" if branch_taken == "true" else "condfalse"
+                    else:
+                        # Fallback: check the body for result
+                        result = output.body.get("result", False) if isinstance(output.body, dict) else False
+                        active_branch = "condtrue" if result else "condfalse"
+                else:
+                    # No valid output, can't determine branch
+                    return
+
+            # Only process edges on the active branch
+            outgoing_edges = [
+                e for e in self.diagram.edges 
+                if e.source_node_id == node_id and e.source_output == active_branch
+            ]
         else:
             # For non-condition nodes, process all outgoing edges as before
             outgoing_edges = [e for e in self.diagram.edges if e.source_node_id == node_id]
@@ -257,7 +274,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
             
             if can_reset:
                 nodes_to_reset.append(target_node.id)
-        
+
         # Reset nodes and cascade
         for node_id_to_reset in nodes_to_reset:
             self.reset_node(node_id_to_reset)

@@ -161,32 +161,21 @@ class ConditionNodeHandler(EnvelopeNodeHandler[ConditionNode]):
             f"has_false_output={false_output is not None}"
         )
         
-        # Create output envelope with condition result
-        # The envelope needs special metadata for the StandardRuntimeResolver to handle
-        from dataclasses import replace
+        # Create ConditionEnvelopeOutput for proper branch routing
+        from dipeo.core.execution.envelope_output import ConditionEnvelopeOutput
         
-        output_envelope = EnvelopeFactory.json(
-            {
-                "result": result,
-                "true_output": true_output,
-                "false_output": false_output,
+        output = ConditionEnvelopeOutput(
+            condition_result=result,
+            node_id=node.id,
+            true_output=true_output,
+            false_output=false_output,
+            meta={
                 "condition_type": node.condition_type,
                 "evaluation_metadata": self._current_evaluation_metadata
-            },
-            produced_by=node.id,
-            trace_id=trace_id
-        ).with_meta(
-            condition_type=node.condition_type,
-            result=result,
-            # Add branch metadata for runtime resolver
-            branch_taken="true" if result else "false",
-            branch_data=true_output if result else false_output
+            }
         )
         
-        # Update content type to condition_result for proper handling
-        output_envelope = replace(output_envelope, content_type="condition_result")
-        
-        return self.create_success_output(output_envelope)
+        return output
     
     def post_execute(
         self,

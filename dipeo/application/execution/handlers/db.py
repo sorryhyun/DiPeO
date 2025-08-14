@@ -14,7 +14,7 @@ from dipeo.application.execution.handler_base import EnvelopeNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
-from dipeo.core.execution.node_output import TextOutput, ErrorOutput, DataOutput, NodeOutputProtocol
+from dipeo.core.execution.node_output import NodeOutputProtocol
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
 from dipeo.domain.ports.template import TemplateProcessorPort
@@ -80,28 +80,25 @@ class DBTypedNodeHandler(EnvelopeNodeHandler[DBNode]):
         db_service = request.services.resolve(DB_OPERATIONS_SERVICE)
         
         if db_service is None:
-            return ErrorOutput(
-                value="Database operations service not available",
-                node_id=node.id,
-                error_type="ServiceNotAvailableError"
+            return self.create_error_output(
+                ValueError("Database operations service not available"),
+                node_id=str(node.id)
             )
         
         # Validate operation type
         valid_operations = ["read", "write", "append"]
         if node.operation not in valid_operations:
-            return ErrorOutput(
-                value=f"Invalid operation: {node.operation}. Valid operations: {', '.join(valid_operations)}",
-                node_id=node.id,
-                error_type="InvalidOperationError"
+            return self.create_error_output(
+                ValueError(f"Invalid operation: {node.operation}. Valid operations: {', '.join(valid_operations)}"),
+                node_id=str(node.id)
             )
         
         # Validate file paths are provided
         file_paths = node.file
         if not file_paths:
-            return ErrorOutput(
-                value="No file paths specified for database operation",
-                node_id=node.id,
-                error_type="MissingFilePathError"
+            return self.create_error_output(
+                ValueError("No file paths specified for database operation"),
+                node_id=str(node.id)
             )
         
         # Store service and configuration in instance variables for execute_request
@@ -371,25 +368,15 @@ class DBTypedNodeHandler(EnvelopeNodeHandler[DBNode]):
                 return self.create_success_output(output_envelope)
             
             else:
-                error_envelope = EnvelopeFactory.text(
-                    "No file paths specified for DB operation",
-                    produced_by=node.id,
-                    trace_id=trace_id
-                ).with_meta(
-                    error_type="ValidationError"
-                )
                 return self.create_error_output(
-                    ErrorOutput(
-                        value="No file paths specified for DB operation",
-                        node_id=node.id,
-                        error_type="ValidationError"
-                    )
+                    ValueError("No file paths specified for DB operation"),
+                    node_id=str(node.id),
+                    trace_id=trace_id
                 )
 
         except Exception as exc:
             logger.exception("DB operation failed: %s", exc)
-            return ErrorOutput(
-                value=f"DB operation failed: {exc}",
-                node_id=node.id,
-                error_type=type(exc).__name__
+            return self.create_error_output(
+                exc,
+                node_id=str(node.id)
             )
