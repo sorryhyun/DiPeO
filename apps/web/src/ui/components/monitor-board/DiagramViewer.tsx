@@ -31,7 +31,7 @@ export function DiagramViewer({ store, readOnly = true }: DiagramViewerProps) {
 
   // Subscribe to store changes
   useEffect(() => {
-    const unsubscribe = store.subscribe((state) => {
+    const updateDiagram = (state: ExecutionLocalStore) => {
       // Convert store nodes to ReactFlow nodes
       const rfNodes: ReactFlowNode[] = (state.nodes || []).map((node: any) => {
         const nodeState = state.nodeStates.get(node.id);
@@ -95,10 +95,13 @@ export function DiagramViewer({ store, readOnly = true }: DiagramViewerProps) {
 
       setNodes(rfNodes);
       setEdges(rfEdges);
-    });
+    };
 
-    // Trigger initial update
-    store.getState();
+    // Subscribe to future changes
+    const unsubscribe = store.subscribe(updateDiagram);
+    
+    // Apply initial state immediately
+    updateDiagram(store.getState());
 
     return unsubscribe;
   }, [store]);
@@ -107,7 +110,7 @@ export function DiagramViewer({ store, readOnly = true }: DiagramViewerProps) {
   useEffect(() => {
     if (rfInstance && nodes.length > 0) {
       requestAnimationFrame(() => {
-        rfInstance.fitView({ padding: 0.2, duration: 200 });
+        void rfInstance.fitView({ padding: 0.2, duration: 200 });
       });
     }
   }, [rfInstance, nodes.length]);

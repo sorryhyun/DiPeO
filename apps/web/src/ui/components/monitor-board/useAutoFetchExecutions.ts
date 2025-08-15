@@ -71,10 +71,10 @@ export function useAutoFetchExecutions({
         }
         
         return false;
-      });
+      }) as Array<{ id: string }>;
       
       // Deduplicate IDs in case the backend returns duplicates
-      const ids = [...new Set(relevantExecutions.map((e: any) => e.id))];
+      const ids = [...new Set(relevantExecutions.map(e => e.id))];
       onExecutionsFetched(ids);
     }
   }, [data, enabled, loading, error, onExecutionsFetched, includeCompleted]);
