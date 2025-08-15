@@ -37,21 +37,37 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
+
+    - name: Cache uv dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/uv
+          .venv
+        key: ${{ runner.os }}-uv-${{ hashFiles('requirements.txt', 'pyproject.toml', 'uv.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-
 
     - name: Install Node dependencies
       run: pnpm install --frozen-lockfile
 
-    - name: Install Python dependencies
+    - name: Install Python dependencies with uv
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        uv venv --python ${{ matrix.python-version }}
+        source .venv/bin/activate
+        uv pip sync requirements.txt
+        uv pip install "ruff>=0.8.0" mypy pytest-asyncio pytest-cov isort black import-linter
 
     - name: Build TypeScript models
       run: pnpm --filter @dipeo/models build
 
     - name: Generate code
-      run: make codegen-auto
+      run: |
+        source .venv/bin/activate
+        make codegen-auto
 
     - name: Build frontend
       run: pnpm --filter web build

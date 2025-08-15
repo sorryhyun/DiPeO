@@ -172,7 +172,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 else:
                     # For labeled connections, add to template_vars
                     template_vars[key] = value
-        
         return template_vars
 
     async def run(

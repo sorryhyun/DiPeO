@@ -48,10 +48,7 @@ nodes:
         ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', '*.ts')))
         ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', 'query-definitions', '*.ts')))
         
-        
-        result = {
-            'file_paths': ts_files
-        }
+        result = ts_files
     
   # Read all TypeScript sources into a dictionary
   - label: Read All Sources
@@ -61,10 +58,8 @@ nodes:
       language: python
       code: |
         import os
-        
-        file_paths = inputs.get('default', {}).get('file_paths', [])
         sources = {}
-        for file_path in file_paths:
+        for file_path in inputs['default']['results']:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()

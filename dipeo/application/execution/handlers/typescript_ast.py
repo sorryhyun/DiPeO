@@ -106,7 +106,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         
         # Check if batch mode is enabled
         batch_mode = getattr(node, 'batch', False)
-        
+
         if batch_mode:
             # Batch mode: parse multiple sources at once
             batch_input_key = getattr(node, 'batchInputKey', 'sources')
@@ -114,15 +114,30 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             # Get sources from node config or inputs
             sources = getattr(node, 'sources', None)
             if not sources:
+                # Try direct access first
                 sources = inputs.get(batch_input_key, {})
-            if not sources and 'default' in inputs and isinstance(inputs['default'], dict):
-                sources = inputs['default'].get(batch_input_key, {})
+            
+            # If not found, check if inputs has a 'default' key with the sources
+            if not sources and 'default' in inputs:
+                default_input = inputs['default']
+                if isinstance(default_input, dict):
+                    # Check if the default input has the batch_input_key
+                    if batch_input_key in default_input:
+                        sources = default_input[batch_input_key]
+                    # Or if the default input IS the sources dict directly
+                    elif all(isinstance(k, str) and k.endswith('.ts') for k in default_input.keys()):
+                        sources = default_input
+            
+            # Also check if inputs itself looks like a sources dict (all keys are file paths)
+            if not sources and isinstance(inputs, dict) and inputs:
+                # Check if this looks like a sources dictionary (keys are file paths)
+                if all(isinstance(k, str) and (k.endswith('.ts') or '/' in k) for k in inputs.keys() if k != 'default'):
+                    # Exclude 'default' key and use the rest as sources
+                    sources = {k: v for k, v in inputs.items() if k != 'default'}
             
             if not sources or not isinstance(sources, dict):
                 raise ValueError(f"Batch mode enabled but no sources dictionary provided at key '{batch_input_key}'")
-            
-            logger.debug(f"[TypescriptAstNode {node.id}] Batch parsing {len(sources)} sources")
-            
+
             # Parse all sources in batch
             try:
                 results = await parser_service.parse_batch(
@@ -174,10 +189,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             # Extract AST data from the result
             ast_data = result.get('ast', {})
             metadata = result.get('metadata', {})
-            
-            # Log extraction results
-            logger.info(f"[TypescriptAstNode {node.id}] Extracted {metadata.get('extractedCount', 0)} definitions")
-            
+
             # Return processed result with metadata
             return {
                 'ast': ast_data,

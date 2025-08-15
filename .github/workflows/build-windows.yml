@@ -42,40 +42,45 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            apps/server/setup.py
-            apps/cli/setup.py
       
       - name: Install Windows dependencies
         run: |
           # Install Visual Studio Build Tools components if needed
           # This is usually pre-installed on GitHub Actions Windows runners
       
-      - name: Setup Python Environment
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      
+      - name: Cache uv dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~\AppData\Local\uv\cache
+            .venv
+          key: ${{ runner.os }}-uv-${{ hashFiles('requirements.txt', 'pyproject.toml', 'uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+      
+      - name: Setup Python Environment with uv
         run: |
-          # Use the GitHub Actions Python directly (no venv)
-          python -m pip install --upgrade pip setuptools wheel
+          # Create virtual environment with uv
+          uv venv --python 3.13
           
-          # Install dependencies in parallel and with no-deps where possible
-          Write-Host "Installing Python dependencies..."
+          # Activate venv (Windows PowerShell)
+          & .\.venv\Scripts\Activate.ps1
           
-          # Install PyInstaller separately first (it has many dependencies)
-          pip install --no-deps pyinstaller==6.14.2
-          pip install pyinstaller==6.14.2
+          Write-Host "Installing Python dependencies with uv..."
           
-          # Install core dependencies from requirements.txt
-          pip install -r requirements.txt --no-compile
+          # Install all dependencies from requirements.txt
+          uv pip sync requirements.txt
           
-          # Install the CLI and server packages (editable installs are slower)
-          pip install -e ./apps/server -e ./apps/cli --no-deps
-          pip install -e ./apps/server -e ./apps/cli
+          # Install development dependencies
+          uv pip install "ruff>=0.8.0" mypy pytest-asyncio pytest-cov isort black import-linter
           
-          # Add Windows-specific workarounds (only if needed)
-          pip install --upgrade cffi pycparser --no-compile
+          # Install PyInstaller for building executables
+          uv pip install pyinstaller==6.14.2
           
-          # Quick version checks (skip full pip list)
+          # Quick version checks
           Write-Host "Python version: $(python --version)"
           Write-Host "PyInstaller version: $(pyinstaller --version)"
           
@@ -122,6 +127,9 @@ jobs:
       
       - name: Generate code
         run: |
+          # Activate venv
+          & .\.venv\Scripts\Activate.ps1
+          
           Write-Host "Running unified diagram-based code generation..."
           
           # Generate models
@@ -150,6 +158,9 @@ jobs:
       - name: Build Python Server
         working-directory: apps/server
         run: |
+          # Activate venv
+          & ..\..\..venv\Scripts\Activate.ps1
+          
           # Build with PyInstaller
           pyinstaller --clean dipeo-server-correct.spec
           

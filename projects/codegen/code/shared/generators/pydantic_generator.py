@@ -37,8 +37,10 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     try:
         import datamodel_code_generator
     except ImportError:
-        print("Installing datamodel-code-generator...")
-        subprocess.run([sys.executable, '-m', 'pip', 'install', 'datamodel-code-generator'], check=True)
+        raise ImportError(
+            "datamodel-code-generator is not installed. "
+            "Please run: uv add datamodel-code-generator"
+        )
     
     def process_schema(schema_file: Path) -> Tuple[str, str, bool, str]:
         """Process a single schema file and return (model_name, output_path, success, error_msg)."""

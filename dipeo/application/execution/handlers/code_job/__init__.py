@@ -166,7 +166,21 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             if envelope.content_type == "raw_text":
                 exec_context[key] = envelope.as_text()
             elif envelope.content_type == "object":
-                exec_context[key] = envelope.as_json()
+                value = envelope.as_json()
+                # Handle different input structures for the default key
+                if key == "default":
+                    if isinstance(value, list):
+                        # If we get a list at the default key, wrap it to maintain dict structure
+                        # This typically happens from sub_diagrams that return multiple results
+                        exec_context[key] = {"results": value}
+                    elif isinstance(value, dict) and "results" in value:
+                        # If already has 'results' key (e.g., from batch sub_diagram), use as-is
+                        exec_context[key] = value
+                    else:
+                        # For other dict structures, use as-is
+                        exec_context[key] = value
+                else:
+                    exec_context[key] = value
             elif envelope.content_type == "binary":
                 exec_context[key] = envelope.as_bytes()
             else:
