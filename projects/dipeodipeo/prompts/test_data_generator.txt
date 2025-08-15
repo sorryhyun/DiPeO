@@ -1,0 +1,52 @@
+Generate test data based on the workflow description provided. The test data should be realistic, well-structured, suitable, but not too wordy for testing the DiPeO diagram that will be generated.
+
+WORKFLOW DESCRIPTION:
+{{workflow_description}}
+
+REQUIREMENTS:
+
+1. ANALYZE THE WORKFLOW:
+   - Identify what type of data the workflow will process
+   - Determine appropriate field names and data types
+   - Consider the data volume and complexity needed for testing
+
+2. DATA GENERATION GUIDELINES:
+   - Create realistic, meaningful test data (not just random values)
+   - Include edge cases and boundary conditions
+   - Ensure data variety to test different paths in the workflow
+   - Generate between 10-50 rows depending on complexity
+   - Use appropriate data types (string, integer, float, boolean, date, etc.)
+
+3. CSV FORMAT REQUIREMENTS:
+   - Always include headers as the first row
+   - Use comma as the delimiter
+   - Quote fields containing commas or special characters
+   - Ensure consistent column count across all rows
+   - Handle null values appropriately (empty string or explicit NULL)
+
+4. FIELD SUGGESTIONS BASED ON COMMON PATTERNS:
+   - For "user" workflows: id, name, email, age, status, created_date
+   - For "product" workflows: product_id, name, category, price, quantity, in_stock
+   - For "transaction" workflows: transaction_id, amount, currency, status, timestamp
+   - For "log" workflows: timestamp, level, message, source, user_id
+   - For "sensor" workflows: sensor_id, timestamp, value, unit, location
+
+5. DATA QUALITY:
+   - Ensure referential integrity if IDs are used
+   - Use realistic ranges for numeric values
+   - Include both valid and edge-case data
+   - Add some rows with missing optional fields
+   - Use ISO format for dates (YYYY-MM-DD) and timestamps
+
+6. EXAMPLE PATTERNS TO INCLUDE:
+   - Normal cases (70% of data)
+   - Edge cases (20% of data)
+   - Potential error cases (10% of data)
+
+IMPORTANT:
+- The test data should directly relate to the workflow being tested
+- Consider what operations the workflow will perform (filtering, aggregation, transformation)
+- Include enough variety to exercise all paths in the diagram
+- Make the data self-documenting with clear, descriptive values
+
+Generate test data that will effectively validate the diagram's functionality and help identify potential issues during execution.

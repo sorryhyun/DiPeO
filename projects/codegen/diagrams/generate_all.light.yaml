@@ -109,10 +109,18 @@ nodes:
       filePath: projects/codegen/code/models/generate_typescript_indexes.py
       functionName: main
 
+#  - label: Generate Handler Stubs
+#    type: sub_diagram
+#    position: {x: 400, y: 650}
+#    props:
+#      diagram_name: projects/codegen/diagrams/models/generate_handler_stubs
+#      diagram_format: light
+#      passInputData: false
+
   # ===== Frontend Generation (from generate_frontend) =====
   - label: Discover Node Specs
     type: db
-    position: {x: 400, y: 650}
+    position: {x: 400, y: 700}
     props:
       operation: read
       sub_type: file
@@ -123,7 +131,7 @@ nodes:
 
   - label: Prepare Node List
     type: code_job
-    position: {x: 600, y: 650}
+    position: {x: 600, y: 700}
     props:
       language: python
       filePath: projects/codegen/code/frontend/prepare_node_list_from_specs.py
@@ -131,7 +139,7 @@ nodes:
 
   - label: Batch Generate Frontend
     type: sub_diagram
-    position: {x: 800, y: 650}
+    position: {x: 800, y: 700}
     props:
       diagram_name: projects/codegen/diagrams/frontend/generate_frontend_single
       diagram_format: light
@@ -141,7 +149,7 @@ nodes:
 
   - label: Generate Frontend Registry
     type: sub_diagram
-    position: {x: 400, y: 700}
+    position: {x: 400, y: 750}
     props:
       diagram_name: projects/codegen/diagrams/frontend/generate_frontend_registry
       diagram_format: light
@@ -149,7 +157,7 @@ nodes:
 
   - label: Generate GraphQL Queries
     type: sub_diagram
-    position: {x: 400, y: 750}
+    position: {x: 400, y: 800}
     props:
       diagram_name: projects/codegen/diagrams/frontend/generate_graphql_queries
       diagram_format: light
@@ -157,7 +165,7 @@ nodes:
 
   - label: Generate Zod Schemas
     type: sub_diagram
-    position: {x: 400, y: 800}
+    position: {x: 400, y: 850}
     props:
       diagram_name: projects/codegen/diagrams/frontend/generate_zod_schemas_v2
       diagram_format: light
@@ -165,7 +173,7 @@ nodes:
 
   - label: Generate Field Configs
     type: sub_diagram
-    position: {x: 400, y: 850}
+    position: {x: 400, y: 900}
     props:
       diagram_name: projects/codegen/diagrams/frontend/generate_field_configs_v2
       diagram_format: light
@@ -212,6 +220,7 @@ connections:
   - {from: Parse All TypeScript, to: Generate Strawberry Mutations}
   - {from: Parse All TypeScript, to: Generate Validation Models}
   - {from: Parse All TypeScript, to: Generate TypeScript Indexes}
+#  - {from: Parse All TypeScript, to: Generate Handler Stubs}
   
   # Start frontend generation in parallel
   - {from: Parse All TypeScript, to: Discover Node Specs}
@@ -236,6 +245,7 @@ connections:
   - {from: Generate Strawberry Mutations, to: Summarize Results}
   - {from: Generate Validation Models, to: Summarize Results}
   - {from: Generate TypeScript Indexes, to: Summarize Results}
+#  - {from: Generate Handler Stubs, to: Summarize Results}
   - {from: Batch Generate Frontend, to: Summarize Results}
   - {from: Generate Frontend Registry, to: Summarize Results}
   - {from: Generate GraphQL Queries, to: Summarize Results}
