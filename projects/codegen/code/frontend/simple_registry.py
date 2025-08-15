@@ -61,10 +61,8 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     elif 'default' in inputs:
         default_data = inputs['default']
         if isinstance(default_data, dict):
-            # Handle the 'results' wrapper that code_job adds for lists
-            if 'results' in default_data:
-                node_list = default_data['results']
-            elif 'node_list' in default_data:
+            # SEAC compliant: Direct pass-through
+            if 'node_list' in default_data:
                 node_list = default_data['node_list']
         elif isinstance(default_data, list):
             node_list = default_data

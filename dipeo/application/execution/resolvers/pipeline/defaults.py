@@ -34,60 +34,67 @@ class DefaultsStage(PipelineStage):
         return ctx
     
     def _apply_defaults(self, ctx: PipelineContext) -> None:
-        """Apply default values for missing inputs."""
+        """Apply default values for missing inputs.
         
-        # Check if node has required inputs defined
-        if hasattr(ctx.node, 'required_inputs'):
-            for required_input in ctx.node.required_inputs:
-                if required_input not in ctx.final_inputs:
-                    # Get default value for this input
-                    default_value = self._get_default_value(
-                        ctx.node, 
-                        required_input
-                    )
-                    if default_value is not None:
-                        ctx.final_inputs[required_input] = default_value
+        SEAC: Only apply declared port defaults, no type-based or global fallbacks.
+        """
         
-        # Apply node-type specific defaults
-        self._apply_node_specific_defaults(ctx)
+        # Only apply explicitly declared port defaults
+        if hasattr(ctx.node, 'input_ports'):
+            # Node has port specifications
+            for port in ctx.node.input_ports:
+                port_name = port.get('name', 'default')
+                
+                # Check if this port has a value
+                if port_name not in ctx.final_inputs:
+                    # Only apply if port has an explicit default value
+                    if 'default' in port:
+                        ctx.final_inputs[port_name] = port['default']
+                    elif port.get('required', False):
+                        # Required port with no value and no default - this will be caught in validation
+                        pass
+        
+        # Check if node has legacy default_values defined (backward compatibility)
+        elif hasattr(ctx.node, 'default_values'):
+            defaults = ctx.node.default_values
+            if isinstance(defaults, dict):
+                for input_name, default_value in defaults.items():
+                    if input_name not in ctx.final_inputs:
+                        ctx.final_inputs[input_name] = default_value
     
     def _get_default_value(self, node, input_name: str) -> Any:
-        """Get default value for a specific input."""
+        """Get default value for a specific input.
         
-        # Check if node has default values defined
+        SEAC: Only returns explicitly declared defaults, no type-based guessing.
+        """
+        
+        # Check if node has port specifications
+        if hasattr(node, 'input_ports'):
+            for port in node.input_ports:
+                if port.get('name', 'default') == input_name:
+                    return port.get('default')
+        
+        # Check if node has legacy default values defined
         if hasattr(node, 'default_values'):
             defaults = node.default_values
             if isinstance(defaults, dict) and input_name in defaults:
                 return defaults[input_name]
         
-        # Check for input type-based defaults
-        if hasattr(node, 'input_types'):
-            input_type = node.input_types.get(input_name)
-            if input_type:
-                return self._get_type_default(input_type)
-        
-        # Default to None for most inputs
+        # No default found
         return None
     
     def _get_type_default(self, input_type: str) -> Any:
-        """Get default value based on input type."""
+        """DEPRECATED: Type-based defaults are no longer used in SEAC.
         
-        type_defaults = {
-            'string': '',
-            'number': 0,
-            'boolean': False,
-            'array': [],
-            'object': {},
-            'null': None,
-        }
-        
-        return type_defaults.get(input_type, None)
+        This method is kept for backward compatibility but should not be used.
+        """
+        return None
     
     def _apply_node_specific_defaults(self, ctx: PipelineContext) -> None:
-        """Apply defaults specific to certain node types."""
+        """DEPRECATED: Node-specific default logic removed in SEAC.
         
-        # Add node-type specific default logic here
-        # For example, certain nodes might have special default behaviors
+        All defaults should be declared in port specifications.
+        """
         pass
     
     def _validate_inputs(self, ctx: PipelineContext) -> None:

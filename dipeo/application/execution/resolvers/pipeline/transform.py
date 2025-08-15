@@ -22,7 +22,10 @@ class TransformStage(PipelineStage):
         self.transformation_engine = StandardTransformationEngine()
     
     async def process(self, ctx: PipelineContext) -> PipelineContext:
-        """Apply transformations to filtered edge values."""
+        """Apply transformations to filtered edge values.
+        
+        SEAC: Supports 'pack' (default) and 'spread' packing modes.
+        """
         
         for edge in ctx.filtered_edges:
             # Get the value for this edge
@@ -36,11 +39,31 @@ class TransformStage(PipelineStage):
             if transformed_value is None:
                 continue
             
-            # Determine the input key for this value
-            input_key = self._get_input_key(edge, ctx)
+            # Determine packing mode (default: 'pack')
+            packing_mode = getattr(edge, 'packing', 'pack') or 'pack'
             
-            # Store the transformed value
-            ctx.transformed_values[input_key] = transformed_value
+            if packing_mode == 'spread':
+                # Spread mode: shallow-merge dict keys into the node's input namespace
+                if not isinstance(transformed_value, dict):
+                    raise ValueError(
+                        f"Cannot use 'spread' packing with non-dict value from edge {edge.source_node_id} -> {edge.target_node_id}. "
+                        f"Value type: {type(transformed_value).__name__}"
+                    )
+                
+                # Check for key collisions
+                for key in transformed_value.keys():
+                    if key in ctx.transformed_values:
+                        raise ValueError(
+                            f"Key collision during 'spread' packing: '{key}' already exists in inputs. "
+                            f"Edge: {edge.source_node_id} -> {edge.target_node_id}"
+                        )
+                
+                # Spread the dict into the transformed values
+                ctx.transformed_values.update(transformed_value)
+            else:
+                # Pack mode (default): bind to the variable named by label
+                input_key = self._get_input_key(edge, ctx)
+                ctx.transformed_values[input_key] = transformed_value
         
         return ctx
     

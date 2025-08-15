@@ -50,5 +50,5 @@ def extract_node_list_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
     # Sort for consistent output
     node_types.sort()
     
-    # Return just the list - code_job handler will wrap it in 'results'
+    # Return just the list directly (SEAC compliant)
     return node_types

@@ -48,6 +48,7 @@ nodes:
         ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', '*.ts')))
         ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', 'query-definitions', '*.ts')))
         
+        # Return list directly for SEAC compatibility
         result = ts_files
     
   # Read all TypeScript sources into a dictionary
@@ -59,7 +60,16 @@ nodes:
       code: |
         import os
         sources = {}
-        for file_path in inputs['default']['results']:
+        # Handle both wrapped and direct structures (SEAC compatibility)
+        file_list = inputs.get('default', [])
+        if isinstance(file_list, dict) and 'results' in file_list:
+            # Legacy wrapped structure
+            file_list = file_list['results']
+        elif not isinstance(file_list, list):
+            # If it's not a list, try to handle it gracefully
+            file_list = []
+        
+        for file_path in file_list:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
@@ -77,7 +87,7 @@ nodes:
     position: {x: 600, y: 200}
     props:
       batch: true
-      batchInputKey: sources
+      batchInputKey: sources  # Key to find sources in inputs
       includeJSDoc: true
       parseMode: module
       outputFormat: for_codegen
@@ -93,8 +103,14 @@ nodes:
         import os
         import json
         
-        # Get batch results
+        # Get batch results - handle both wrapped and direct structures
         batch_results = inputs.get('default', {})
+        
+        # Handle SEAC compatibility - check for wrapped structure
+        if isinstance(batch_results, dict) and 'results' in batch_results:
+            # Legacy wrapped structure from batch sub_diagram
+            batch_results = batch_results['results']
+        
         if not isinstance(batch_results, dict):
             print("Warning: No batch results to cache")
             result = {'cached_count': 0}

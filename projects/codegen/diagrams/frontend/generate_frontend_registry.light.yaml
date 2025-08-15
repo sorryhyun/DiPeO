@@ -1,5 +1,5 @@
-# Generate Frontend Node Registry
-# Creates the nodeRegistry.ts file that imports and registers all node configs
+# Generate Frontend Node Registry - Simplified
+# Uses simple_registry_v2 that works directly with DB glob results
 
 version: light
 
@@ -21,25 +21,17 @@ nodes:
         # Dynamically discover all node spec files
         - "temp/specifications/nodes/*.spec.ts.json"
 
-  - label: Extract Node List
+  - label: Generate Registry
     type: code_job
     position: {x: 350, y: 200}
     props:
       language: python
-      filePath: projects/codegen/code/frontend/extract_node_list_from_specs.py
-      functionName: extract_node_list_from_specs
-
-  - label: Generate Registry
-    type: code_job
-    position: {x: 500, y: 200}
-    props:
-      language: python
-      filePath: projects/codegen/code/frontend/simple_registry.py
+      filePath: projects/codegen/code/frontend/simple_registry_v2.py
       functionName: main
 
   - label: Write Registry
     type: db
-    position: {x: 650, y: 200}
+    position: {x: 500, y: 200}
     props:
       operation: write
       sub_type: file
@@ -47,11 +39,10 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 800, y: 200}
+    position: {x: 650, y: 200}
 
 connections:
   - {from: Start, to: Discover Node Specs}
-  - {from: Discover Node Specs, to: Extract Node List, content_type: object}
-  - {from: Extract Node List, to: Generate Registry, content_type: object}
+  - {from: Discover Node Specs, to: Generate Registry, label: default, content_type: object}
   - {from: Generate Registry, to: Write Registry, label: generated_code, content_type: object}
   - {from: Write Registry, to: End}

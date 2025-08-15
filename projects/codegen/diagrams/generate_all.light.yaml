@@ -1,4 +1,5 @@
-# Unified Code Generation Pipeline
+# Unified Code Generation Pipeline - Simplified
+# Uses simplified extractors that work directly with DB glob results
 # Generates all code from TypeScript sources - models, backend, and frontend in parallel
 
 version: light
@@ -134,8 +135,8 @@ nodes:
     position: {x: 600, y: 700}
     props:
       language: python
-      filePath: projects/codegen/code/frontend/prepare_node_list_from_specs.py
-      functionName: prepare_node_list_from_specs
+      filePath: projects/codegen/code/shared/simplified_extractors.py
+      functionName: prepare_node_list_for_batch
 
   - label: Batch Generate Frontend
     type: sub_diagram
@@ -229,8 +230,8 @@ connections:
   - {from: Parse All TypeScript, to: Generate Zod Schemas}
   - {from: Parse All TypeScript, to: Generate Field Configs}
   
-  # Frontend batch processing chain
-  - {from: Discover Node Specs, to: Prepare Node List, content_type: object}
+  # Frontend batch processing chain - uses simplified extractors
+  - {from: Discover Node Specs, to: Prepare Node List, label: default, content_type: object}
   - {from: Prepare Node List, to: Batch Generate Frontend, content_type: object}
   
   # All generation tasks converge to Summarize Results

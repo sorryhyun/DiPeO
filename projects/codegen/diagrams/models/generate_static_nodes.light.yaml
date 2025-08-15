@@ -1,5 +1,5 @@
-# Generate Static Node Classes from Domain Models
-# Replaces dipeo/models/scripts/generate-static-nodes.ts
+# Generate Static Node Classes from Domain Models - Simplified
+# Uses simplified extractors that work directly with DB glob results
 # Generates Python static node classes from TypeScript domain model interfaces
 
 version: light
@@ -72,14 +72,14 @@ nodes:
       filePath: projects/codegen/code/models/extract_base_interface.py
       functionName: extract_base_interface
 
-  # Extract node data from AST files
+  # Extract node data using simplified extractor
   - label: Extract Node Data
     type: code_job
     position: {x: 600, y: 300}
     props:
       language: python
-      filePath: projects/codegen/code/models/extract_node_data_from_ast.py
-      functionName: extract_node_data_from_ast
+      filePath: projects/codegen/code/shared/simplified_extractors.py
+      functionName: extract_node_data_from_glob
 
   # Generate static nodes from all parsed data
   - label: Generate Static Nodes

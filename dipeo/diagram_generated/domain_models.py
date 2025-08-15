@@ -76,6 +76,7 @@ class DomainArrow(BaseModel):
     target: HandleID
     content_type: Optional[Union[ContentType, None]] = Field(default=None)
     label: Optional[Union[str, None]] = Field(default=None)
+    packing: Optional[Union[Literal['pack'], Literal['spread'], None]] = Field(default=None)
     data: Optional[Dict[str, Any]] = Field(default=None)
 
 

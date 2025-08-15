@@ -90,20 +90,25 @@ def extract_enums(ast_data: dict) -> List[dict]:
 def main(inputs: dict) -> List[dict]:
     """Main entry point for enum extraction."""
     ast_data = inputs.get('default', {})
-    # Handle multiple files loaded with glob
     all_enums = []
     
-    if isinstance(ast_data, dict) and all(isinstance(k, str) and k.endswith('.json') for k in ast_data.keys()):
-        # Multiple files from glob operation
-        for file_path, file_content in ast_data.items():
-            # Skip invalid entries (strings or None)
-            if not isinstance(file_content, dict):
-                continue
-                
-            file_enums = extract_enums(file_content)
-            all_enums.extend(file_enums)
+    # SEAC compliant: Handle direct structures only
+    if isinstance(ast_data, dict):
+        # Check if we have multiple files from glob
+        if all(isinstance(k, str) and k.endswith('.json') for k in ast_data.keys() if k):
+            # Multiple files from glob operation
+            for file_path, file_content in ast_data.items():
+                # Skip invalid entries (strings or None)
+                if not isinstance(file_content, dict):
+                    continue
+                    
+                file_enums = extract_enums(file_content)
+                all_enums.extend(file_enums)
+        else:
+            # Single file or direct data
+            all_enums = extract_enums(ast_data)
     else:
-        # Single file or direct data
+        # Direct data (shouldn't happen normally but handle gracefully)
         all_enums = extract_enums(ast_data)
     
     # Return just the list of enums

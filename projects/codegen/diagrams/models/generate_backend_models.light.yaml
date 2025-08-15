@@ -1,5 +1,5 @@
-# Backend Batch Generation with TypeScript Specifications
-# Uses the TypeScript specification parser to generate backend files for multiple node types
+# Backend Batch Generation with TypeScript Specifications - Simplified
+# Uses simplified extractors that work directly with DB glob results
 # Also generates conversion functions for TypeScript <-> Python transformations
 
 version: light
@@ -40,8 +40,8 @@ nodes:
     position: {x: 500, y: 200}
     props:
       language: python
-      filePath: projects/codegen/code/models/prepare_node_list_from_specs.py
-      functionName: prepare_node_list_from_specs
+      filePath: projects/codegen/code/shared/simplified_extractors.py
+      functionName: prepare_node_list_for_batch
 
   - label: Batch Generate Backend Models
     type: sub_diagram

@@ -74,6 +74,18 @@ export interface HandleConfiguration {
 }
 
 /**
+ * Input port specification for SEAC (Strict Envelopes & Arrow Contracts)
+ */
+export interface InputPortSpecification {
+  name?: string;  // Port name (omit for single unnamed port)
+  contentType: 'raw_text' | 'object' | 'conversation_state' | 'binary';
+  required: boolean;
+  default?: any;  // Default value if not connected
+  accepts?: string[];  // Type hints for validation
+  description?: string;
+}
+
+/**
  * Output specification for a node
  */
 export interface OutputSpecification {
@@ -112,6 +124,7 @@ export interface NodeSpecification {
   description: string;
   fields: FieldSpecification[];
   handles: HandleConfiguration;
+  inputPorts?: InputPortSpecification[];  // SEAC: Port contracts for inputs
   outputs?: Record<string, OutputSpecification>;
   execution?: ExecutionConfiguration;
   examples?: ExampleConfiguration[];

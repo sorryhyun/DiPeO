@@ -150,22 +150,45 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         errors: list[dict[str, Any]],
         batch_config: dict[str, Any]
     ) -> Envelope:
-        """Create batch execution output."""
-        batch_output = {
-            'total_items': len(batch_items),
-            'successful': len(results),
-            'failed': len(errors),
-            'results': [r.value if hasattr(r, 'value') else r for r in results],
-            'errors': errors if errors else None
-        }
+        """Create batch execution output based on output_mode setting."""
+        # Get output mode from node properties, defaulting to pure_list for SEAC compliance
+        output_mode = getattr(node, 'output_mode', 'pure_list')
         
-        return EnvelopeFactory.json(
-            batch_output,
-            produced_by=str(node.id)
-        ).with_meta(
-            batch_parallel=batch_config['parallel'],
-            diagram=node.diagram_name or 'inline'
-        )
+        # Process results to extract values
+        materialized_results = [r.value if hasattr(r, 'value') else r for r in results]
+        
+        # SEAC: Support both pure_list and rich_object output modes
+        if output_mode == 'pure_list':
+            # Pure list mode: envelope body is just the array
+            return EnvelopeFactory.json(
+                materialized_results,
+                produced_by=str(node.id)
+            ).with_meta(
+                total_items=len(batch_items),
+                successful=len(results),
+                failed=len(errors),
+                batch_parallel=batch_config['parallel'],
+                diagram=node.diagram_name or 'inline',
+                errors=errors if errors else None
+            )
+        else:
+            # Rich object mode: legacy wrapped output
+            result_key = getattr(node, 'result_key', 'results')
+            batch_output = {
+                'total_items': len(batch_items),
+                'successful': len(results),
+                'failed': len(errors),
+                result_key: materialized_results,
+                'errors': errors if errors else None
+            }
+            
+            return EnvelopeFactory.json(
+                batch_output,
+                produced_by=str(node.id)
+            ).with_meta(
+                batch_parallel=batch_config['parallel'],
+                diagram=node.diagram_name or 'inline'
+            )
     
     def _extract_batch_items(self, inputs: dict[str, Any] | None, batch_input_key: str) -> list[Any]:
         """Extract batch items from inputs.
