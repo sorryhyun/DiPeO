@@ -1015,6 +1015,13 @@ export type ActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type ActiveCliSessionQuery = { __typename?: 'Query', active_cli_session?: { __typename?: 'CliSession', session_id: string, execution_id: string, diagram_name: string, diagram_format: string, started_at: any, is_active: boolean, diagram_data?: string | null } | null };
 
+export type ListRecentExecutionsQueryVariables = Exact<{
+  limit?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type ListRecentExecutionsQuery = { __typename?: 'Query', executions: Array<{ __typename?: 'ExecutionStateType', id: string, diagram_id?: string | null, status: Status, started_at: string, ended_at?: string | null, error?: string | null }> };
+
 
 export const ControlExecutionDocument = gql`
     mutation ControlExecution($input: ExecutionControlInput!) {
@@ -2798,3 +2805,48 @@ export type ActiveCliSessionQueryHookResult = ReturnType<typeof useActiveCliSess
 export type ActiveCliSessionLazyQueryHookResult = ReturnType<typeof useActiveCliSessionLazyQuery>;
 export type ActiveCliSessionSuspenseQueryHookResult = ReturnType<typeof useActiveCliSessionSuspenseQuery>;
 export type ActiveCliSessionQueryResult = Apollo.QueryResult<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>;
+export const ListRecentExecutionsDocument = gql`
+    query ListRecentExecutions($limit: Int) {
+  executions(limit: $limit) {
+    id
+    diagram_id
+    status
+    started_at
+    ended_at
+    error
+  }
+}
+    `;
+
+/**
+ * __useListRecentExecutionsQuery__
+ *
+ * To run a query within a React component, call `useListRecentExecutionsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useListRecentExecutionsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useListRecentExecutionsQuery({
+ *   variables: {
+ *      limit: // value for 'limit'
+ *   },
+ * });
+ */
+export function useListRecentExecutionsQuery(baseOptions?: Apollo.QueryHookOptions<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>(ListRecentExecutionsDocument, options);
+      }
+export function useListRecentExecutionsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>(ListRecentExecutionsDocument, options);
+        }
+export function useListRecentExecutionsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>(ListRecentExecutionsDocument, options);
+        }
+export type ListRecentExecutionsQueryHookResult = ReturnType<typeof useListRecentExecutionsQuery>;
+export type ListRecentExecutionsLazyQueryHookResult = ReturnType<typeof useListRecentExecutionsLazyQuery>;
+export type ListRecentExecutionsSuspenseQueryHookResult = ReturnType<typeof useListRecentExecutionsSuspenseQuery>;
+export type ListRecentExecutionsQueryResult = Apollo.QueryResult<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>;

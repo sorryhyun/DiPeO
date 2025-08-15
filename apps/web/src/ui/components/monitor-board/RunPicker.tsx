@@ -5,27 +5,25 @@ import { gql } from '@apollo/client';
 
 // GraphQL query to fetch recent executions
 const LIST_EXECUTIONS = gql`
-  query ListExecutions($limit: Int) {
-    list_executions(limit: $limit) {
-      executions {
-        id
-        diagram_name
-        status
-        started_at
-        finished_at
-        error_message
-      }
+  query ListRecentExecutions($limit: Int) {
+    executions(limit: $limit) {
+      id
+      diagram_id
+      status
+      started_at
+      ended_at
+      error
     }
   }
 `;
 
 interface Execution {
   id: string;
-  diagram_name: string;
+  diagramName: string;
   status: string;
-  started_at: string;
-  finished_at?: string | null;
-  error_message?: string | null;
+  startedAt: string;
+  finishedAt?: string | null;
+  errorMessage?: string | null;
 }
 
 interface RunPickerProps {
@@ -46,9 +44,9 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
 
   // Filter executions based on search term and exclude already added ones
   const filteredExecutions = useMemo(() => {
-    if (!data?.list_executions?.executions) return [];
+    if (!data?.executions) return [];
     
-    return data.list_executions.executions.filter((exec: Execution) => {
+    return data.executions.filter((exec: Execution) => {
       // Exclude already added executions
       if (existingIds.includes(exec.id)) return false;
       
@@ -58,7 +56,7 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
       const searchLower = searchTerm.toLowerCase();
       return (
         exec.id.toLowerCase().includes(searchLower) ||
-        exec.diagram_name.toLowerCase().includes(searchLower) ||
+        exec.diagramName.toLowerCase().includes(searchLower) ||
         exec.status.toLowerCase().includes(searchLower)
       );
     });
@@ -185,22 +183,22 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
                       </div>
                       <div>
                         <div className="font-medium text-gray-200">
-                          {execution.diagram_name}
+                          {execution.diagram_id || 'Unknown Diagram'}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
                           ID: {execution.id}
                         </div>
                         <div className="text-xs text-gray-500 mt-0.5">
-                          Started: {formatTime(execution.started_at)}
-                          {execution.finished_at && (
+                          Started: {formatTime(execution.startedAt)}
+                          {execution.finishedAt && (
                             <span className="ml-2">
-                              • Ended: {formatTime(execution.finished_at)}
+                              • Ended: {formatTime(execution.finishedAt)}
                             </span>
                           )}
                         </div>
-                        {execution.error_message && (
+                        {execution.errorMessage && (
                           <div className="text-xs text-red-400 mt-1 truncate">
-                            {execution.error_message}
+                            {execution.errorMessage}
                           </div>
                         )}
                       </div>

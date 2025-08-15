@@ -51,7 +51,7 @@ nodes:
     position: {x: 700, y: 300}
     props:
       language: python
-      filePath: projects/codegen/code/models/strawberry_types_generator_v2.py
+      filePath: projects/codegen/code/shared/simplified_extractors.py
       functionName: generate_node_mutations
 
   # Use template_job for rendering with automatic enhancements

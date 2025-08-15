@@ -149,6 +149,57 @@ def prepare_strawberry_types(inputs: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def generate_node_mutations(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Generate node-specific mutations for each node type.
+    
+    Args:
+        inputs: Either glob results OR strawberry_types from prepare_strawberry_types
+        
+    Returns:
+        Dictionary with mutations ready for template processing
+    """
+    # Check if we have strawberry_types already or need to generate them
+    if 'strawberry_types' in inputs:
+        # Handle the double nesting from DiPeO
+        strawberry_types_data = inputs.get('strawberry_types', {})
+        if isinstance(strawberry_types_data, dict) and 'strawberry_types' in strawberry_types_data:
+            strawberry_types = strawberry_types_data['strawberry_types']
+        else:
+            strawberry_types = strawberry_types_data if isinstance(strawberry_types_data, list) else []
+    else:
+        # Generate strawberry types from glob results
+        types_data = prepare_strawberry_types(inputs)
+        strawberry_types = types_data.get('strawberry_types', [])
+    
+    mutations = []
+    
+    for node_type_info in strawberry_types:
+        # Generate create mutation
+        mutations.append({
+            'name': f"create_{node_type_info['node_type']}_node",
+            'input_type': f"Create{node_type_info['class_name']}Input",
+            'return_type': f"{node_type_info['class_name']}DataType",
+            'node_type': node_type_info['node_type'],
+            'operation': 'create'
+        })
+        
+        # Generate update mutation
+        mutations.append({
+            'name': f"update_{node_type_info['node_type']}_node",
+            'input_type': f"Update{node_type_info['class_name']}Input",
+            'return_type': f"{node_type_info['class_name']}DataType",
+            'node_type': node_type_info['node_type'],
+            'operation': 'update'
+        })
+    
+    return {
+        'mutations': mutations,
+        'strawberry_types': strawberry_types,
+        'generated_at': datetime.now().isoformat()
+    }
+
+
 def extract_models_from_glob(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """
     Extract all model data (interfaces, types, enums) from glob-loaded AST files.
@@ -475,6 +526,19 @@ def prepare_node_list_for_batch(inputs: Dict[str, Any]) -> List[Dict[str, str]]:
     
     # Return list for batch processing
     return [{'node_spec_path': node_type} for node_type in sorted(node_types)]
+
+
+def generate_models_summary(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate summary of Python models generation."""
+    generation_result = inputs.get('generation_result', {})
+    
+    result = {
+        'status': 'success',
+        'message': 'Python domain models generated successfully',
+        'details': generation_result
+    }
+    
+    return result
 
 
 # Backward compatibility aliases
