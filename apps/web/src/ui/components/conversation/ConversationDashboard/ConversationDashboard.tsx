@@ -403,34 +403,43 @@ const ConversationDashboard: React.FC = () => {
   if (isEmbedded) {
     // Embedded view - no expansion controls or person bar
     return (
-      <div className="h-full flex flex-col">
-        {renderTabSwitcher()}
-        {activeTab === 'conversation' ? (
-          <>
-            {renderPersonBar()}
-            {showFilters && renderFilters()}
-            <div className="flex-1 flex overflow-hidden">
-              {isLoading ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <span className="text-gray-500">Loading conversations...</span>
-                </div>
-              ) : dashboardSelectedPerson ? (
-                renderConversation()
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-gray-400">
-                  <div className="text-center">
-                    <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Select a person from the left sidebar or click &quot;Whole Conversation&quot;</p>
+      <div className="h-full flex flex-col overflow-hidden">
+        {/* Tab switcher - Fixed at top */}
+        <div className="flex-shrink-0">
+          {renderTabSwitcher()}
+        </div>
+        
+        {/* Content area - Scrollable */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {activeTab === 'conversation' ? (
+            <>
+              <div className="flex-shrink-0">
+                {renderPersonBar()}
+                {showFilters && renderFilters()}
+              </div>
+              <div className="flex-1 flex overflow-hidden">
+                {isLoading ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <span className="text-gray-500">Loading conversations...</span>
                   </div>
-                </div>
-              )}
-            </div>
-          </>
-        ) : activeTab === 'execution-order' ? (
-          <ExecutionOrderView />
-        ) : (
-          <ExecutionLogView />
-        )}
+                ) : dashboardSelectedPerson ? (
+                  renderConversation()
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>Select a person from the left sidebar or click &quot;Whole Conversation&quot;</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : activeTab === 'execution-order' ? (
+            <ExecutionOrderView />
+          ) : (
+            <ExecutionLogView />
+          )}
+        </div>
       </div>
     );
   }

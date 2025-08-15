@@ -19,11 +19,11 @@ const LIST_EXECUTIONS = gql`
 
 interface Execution {
   id: string;
-  diagramName: string;
+  diagram_id: string;
   status: string;
-  startedAt: string;
-  finishedAt?: string | null;
-  errorMessage?: string | null;
+  started_at: string;
+  ended_at?: string | null;
+  error?: string | null;
 }
 
 interface RunPickerProps {
@@ -47,6 +47,9 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
     if (!data?.executions) return [];
     
     return data.executions.filter((exec: Execution) => {
+      // Exclude batch executions (sub-executions created by PersonBatchJobNode)
+      if (exec.id && exec.id.includes('_batch_')) return false;
+      
       // Exclude already added executions
       if (existingIds.includes(exec.id)) return false;
       
@@ -56,7 +59,7 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
       const searchLower = searchTerm.toLowerCase();
       return (
         exec.id.toLowerCase().includes(searchLower) ||
-        exec.diagramName.toLowerCase().includes(searchLower) ||
+        exec.diagram_id.toLowerCase().includes(searchLower) ||
         exec.status.toLowerCase().includes(searchLower)
       );
     });
@@ -88,8 +91,16 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
   };
 
   const handleManualAdd = () => {
-    if (manualId.trim() && !existingIds.includes(manualId.trim())) {
-      onSelect(manualId.trim());
+    const trimmedId = manualId.trim();
+    
+    // Prevent adding batch execution IDs
+    if (trimmedId.includes('_batch_')) {
+      alert('Batch executions cannot be added directly. Please add the parent execution instead.');
+      return;
+    }
+    
+    if (trimmedId && !existingIds.includes(trimmedId)) {
+      onSelect(trimmedId);
       setManualId('');
     }
   };
@@ -189,16 +200,16 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
                           ID: {execution.id}
                         </div>
                         <div className="text-xs text-gray-500 mt-0.5">
-                          Started: {formatTime(execution.startedAt)}
-                          {execution.finishedAt && (
+                          Started: {formatTime(execution.started_at)}
+                          {execution.ended_at && (
                             <span className="ml-2">
-                              • Ended: {formatTime(execution.finishedAt)}
+                              • Ended: {formatTime(execution.ended_at)}
                             </span>
                           )}
                         </div>
-                        {execution.errorMessage && (
+                        {execution.error && (
                           <div className="text-xs text-red-400 mt-1 truncate">
-                            {execution.errorMessage}
+                            {execution.error}
                           </div>
                         )}
                       </div>

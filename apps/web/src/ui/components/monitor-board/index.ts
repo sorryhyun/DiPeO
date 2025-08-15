@@ -6,5 +6,6 @@ export { RunPicker } from './RunPicker';
 export { useRunSubscription } from './useRunSubscription';
 export { useUrlSyncedIds } from './useUrlSyncedIds';
 export { useMonitorBoardMode } from './useMonitorBoardMode';
+export { useAutoFetchExecutions } from './useAutoFetchExecutions';
 export { createExecutionLocalStore } from './executionLocalStore';
 export type { ExecutionLocalStore, StoreExecutionState, ExecutionLocalStoreActions } from './executionLocalStore';

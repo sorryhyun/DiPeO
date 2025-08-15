@@ -1,14 +1,28 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 export function useUrlSyncedIds() {
+  // Track if IDs were explicitly provided in URL
+  const hasExplicitIds = useRef<boolean>(false);
+  
   const [executionIds, setExecutionIds] = useState<string[]>(() => {
     const params = new URLSearchParams(window.location.search);
     const idsParam = params.get('ids');
-    return idsParam ? idsParam.split(',').filter(Boolean) : [];
+    if (idsParam) {
+      hasExplicitIds.current = true;
+      // Deduplicate IDs from URL
+      const ids = idsParam.split(',').filter(Boolean);
+      return [...new Set(ids)];
+    }
+    return [];
   });
 
   // Sync state to URL
   useEffect(() => {
+    // Don't sync to URL if these are auto-fetched IDs (no explicit IDs were provided)
+    if (!hasExplicitIds.current && executionIds.length > 0) {
+      return; // Skip URL update for auto-fetched IDs
+    }
+    
     const params = new URLSearchParams(window.location.search);
     const currentIds = params.get('ids');
     const newIdsString = executionIds.join(',');
@@ -30,6 +44,8 @@ export function useUrlSyncedIds() {
   }, [executionIds]);
 
   const addExecutionId = useCallback((id: string) => {
+    // When user manually adds an ID, mark as explicit
+    hasExplicitIds.current = true;
     setExecutionIds(prev => {
       if (prev.includes(id)) return prev;
       return [...prev, id];
@@ -55,11 +71,31 @@ export function useUrlSyncedIds() {
     setExecutionIds([]);
   }, []);
 
+  // Bulk update for auto-fetched executions
+  const setAutoFetchedIds = useCallback((ids: string[]) => {
+    // Only update if we're in auto-fetch mode (no explicit IDs)
+    if (!hasExplicitIds.current) {
+      setExecutionIds(prev => {
+        // Deduplicate the incoming IDs first
+        const uniqueIds = [...new Set(ids)];
+        
+        // If nothing changed, return prev to avoid re-render
+        if (uniqueIds.length === prev.length && uniqueIds.every((id, i) => id === prev[i])) {
+          return prev;
+        }
+        
+        return uniqueIds;
+      });
+    }
+  }, []);
+
   return {
     executionIds,
     addExecutionId,
     removeExecutionId,
     reorderExecutionIds,
     clearAll,
+    setAutoFetchedIds,
+    hasExplicitIds: hasExplicitIds.current,
   };
 }

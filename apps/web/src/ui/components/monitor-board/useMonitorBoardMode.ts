@@ -5,9 +5,7 @@ import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
  * Hook to handle monitor mode based on URL parameters
  * 
  * Behavior:
- * - ?monitor=true&ids=exec1,exec2 - Opens multi-run board with specified executions
- * - ?monitor=true&ids=exec1 - Opens single execution monitor
- * - ?monitor=true - Opens single execution monitor (backward compatibility)
+ * - ?monitor=true - Opens monitor board (with run picker and multi-execution view)
  * - No monitor param - Normal diagram editing mode
  */
 export function useMonitorBoardMode() {
@@ -29,18 +27,14 @@ export function useMonitorBoardMode() {
     return { isMonitorMode: true, executionIds: ids };
   }, []);
 
-  // Determine whether to show board or single execution view
-  const shouldShowBoard = isMonitorMode && executionIds.length > 1;
-  const shouldShowSingleExecution = isMonitorMode && executionIds.length <= 1;
+  // Always show board when monitor=true
+  const shouldShowBoard = isMonitorMode;
+  const shouldShowSingleExecution = false; // Never use single execution mode
 
   useEffect(() => {
     if (shouldShowBoard) {
-      // Multi-run monitor board mode
+      // Monitor board mode
       setActiveCanvas('monitor');
-      setMonitorMode(true);
-    } else if (shouldShowSingleExecution) {
-      // Single execution monitor mode
-      setActiveCanvas('execution');
       setMonitorMode(true);
     } else {
       // Default mode - diagram editing
@@ -49,7 +43,7 @@ export function useMonitorBoardMode() {
         setMonitorMode(false);
       }
     }
-  }, [shouldShowBoard, shouldShowSingleExecution, setActiveCanvas, setMonitorMode, activeCanvas]);
+  }, [shouldShowBoard, setActiveCanvas, setMonitorMode, activeCanvas]);
 
   return {
     isMonitorBoard: shouldShowBoard,

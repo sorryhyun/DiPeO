@@ -1,9 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { createExecutionLocalStore } from './executionLocalStore';
 import { useRunSubscription } from './useRunSubscription';
 import { RunHeader } from './RunHeader';
 import { EventStrip } from './EventStrip';
-import DiagramCanvas from '@/ui/components/diagram/DiagramCanvas';
+import { DiagramViewer } from './DiagramViewer';
+import { useQuery } from '@apollo/client';
+import { GetDiagramDocument, GetExecutionDocument } from '@/__generated__/graphql';
 import type { StoreApi } from 'zustand';
 import type { ExecutionLocalStore } from './executionLocalStore';
 
@@ -18,59 +20,71 @@ export function RunColumn({ executionId, onRemove }: RunColumnProps) {
   
   // Subscribe to execution updates
   useRunSubscription({ executionId, store });
+  
+  // Fetch execution to get diagram_id
+  const { data: executionData } = useQuery(GetExecutionDocument, {
+    variables: { id: executionId },
+    skip: !executionId,
+  });
+  
+  const diagramId = executionData?.execution?.diagram_id;
+  
+  // Fetch diagram using the diagram_id from execution
+  const { data: diagramData, loading: diagramLoading } = useQuery(GetDiagramDocument, {
+    variables: { id: diagramId },
+    skip: !diagramId,
+  });
+  
+  // Store diagram data in the local store when it's fetched
+  useEffect(() => {
+    if (diagramData?.diagram) {
+      const { nodes, arrows, handles } = diagramData.diagram;
+      store.getState().setDiagramData(
+        executionData?.execution?.diagram_id || 'Unknown Diagram',
+        nodes || [],
+        arrows || [],
+        handles || []
+      );
+    }
+  }, [diagramData, executionData, store]);
 
   return (
     <div 
-      className="rounded-2xl bg-gray-800/60 border border-gray-700 shadow p-3 min-w-[480px] flex flex-col"
+      className="rounded-2xl bg-gray-800/60 border border-gray-700 shadow p-3 min-w-[480px] flex flex-col h-full overflow-hidden"
       style={{ scrollSnapAlign: 'start' }}
     >
-      {/* Column Header with run info and controls */}
-      <RunHeader 
-        executionId={executionId} 
-        store={store}
-        onRemove={onRemove}
-      />
-      
-      {/* Diagram Canvas - Read only view with execution highlights */}
-      <div className="h-[56vh] rounded-xl overflow-hidden mb-3 bg-gray-900/50 border border-gray-700">
-        <DiagramCanvasWithStore 
-          executionMode 
-          store={store} 
-          readOnly 
+      {/* Column Header with run info and controls - Fixed at top */}
+      <div className="flex-shrink-0">
+        <RunHeader 
+          executionId={executionId} 
+          store={store}
+          onRemove={onRemove}
         />
       </div>
       
-      {/* Event strip showing execution timeline */}
-      <EventStrip 
-        executionId={executionId} 
-        store={store} 
-      />
-    </div>
-  );
-}
-
-// Wrapper component to provide the store to DiagramCanvas
-// This will be updated once we modify DiagramCanvas to accept a store prop
-function DiagramCanvasWithStore({ 
-  executionMode, 
-  store, 
-  readOnly 
-}: { 
-  executionMode: boolean;
-  store: StoreApi<ExecutionLocalStore>;
-  readOnly: boolean;
-}) {
-  // For now, we'll just render the standard DiagramCanvas
-  // This will be updated when we modify DiagramCanvas to accept the store prop
-  return (
-    <div className="h-full w-full flex items-center justify-center text-gray-500">
-      <div className="text-center">
-        <div className="text-sm opacity-75">Diagram visualization</div>
-        <div className="text-xs opacity-50 mt-1">Execution ID: {store.getState().id}</div>
+      {/* Scrollable content area */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Diagram Canvas - Read only view with execution highlights */}
+        <div className="flex-1 rounded-xl overflow-hidden mb-3 bg-gray-900/50 border border-gray-700 min-h-[400px]">
+          {diagramLoading ? (
+            <div className="h-full w-full flex items-center justify-center text-gray-500">
+              <div className="text-center">
+                <div className="text-sm opacity-75">Loading diagram...</div>
+              </div>
+            </div>
+          ) : (
+            <DiagramViewer store={store} readOnly />
+          )}
+        </div>
+        
+        {/* Event strip showing execution timeline - Fixed height with internal scroll */}
+        <div className="flex-shrink-0">
+          <EventStrip 
+            executionId={executionId} 
+            store={store} 
+          />
+        </div>
       </div>
     </div>
   );
-  
-  // TODO: Once DiagramCanvas is modified to accept store prop:
-  // return <DiagramCanvas executionMode={executionMode} store={store} readOnly={readOnly} />;
 }

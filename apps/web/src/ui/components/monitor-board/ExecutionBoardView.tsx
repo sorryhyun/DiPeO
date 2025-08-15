@@ -1,8 +1,9 @@
-import React, { useRef, useEffect } from 'react';
-import { Plus, X, Grid3X3, List, Maximize2, Minimize2 } from 'lucide-react';
+import React, { useRef, useEffect, useCallback } from 'react';
+import { Plus, X, Grid3X3, List, Maximize2, Minimize2, Activity } from 'lucide-react';
 import { RunColumn } from './RunColumn';
 import { RunPicker } from './RunPicker';
 import { useUrlSyncedIds } from './useUrlSyncedIds';
+import { useAutoFetchExecutions } from './useAutoFetchExecutions';
 
 export default function ExecutionBoardView() {
   const {
@@ -11,11 +12,25 @@ export default function ExecutionBoardView() {
     removeExecutionId,
     reorderExecutionIds,
     clearAll,
+    setAutoFetchedIds,
+    hasExplicitIds,
   } = useUrlSyncedIds();
   
   const [showRunPicker, setShowRunPicker] = React.useState(false);
   const [compactMode, setCompactMode] = React.useState(false);
+  const [includeCompleted, setIncludeCompleted] = React.useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-fetch executions when no explicit IDs are provided
+  const handleAutoFetchedExecutions = useCallback((fetchedIds: string[]) => {
+    setAutoFetchedIds(fetchedIds);
+  }, [setAutoFetchedIds]);
+
+  const { loading: autoFetchLoading, executionCount } = useAutoFetchExecutions({
+    enabled: !hasExplicitIds, // Only auto-fetch if no explicit IDs in URL
+    onExecutionsFetched: handleAutoFetchedExecutions,
+    includeCompleted,
+  });
 
   // Handle horizontal scrolling with shift+wheel
   useEffect(() => {
@@ -58,10 +73,27 @@ export default function ExecutionBoardView() {
             Execution Monitor Board
           </h1>
           <div className="flex items-center gap-1 px-2 py-1 bg-gray-800 rounded-lg">
+            {!hasExplicitIds && (
+              <Activity className="w-3 h-3 text-blue-400 animate-pulse mr-1" />
+            )}
             <span className="text-xs text-gray-400">
               {executionIds.length} run{executionIds.length !== 1 ? 's' : ''}
+              {!hasExplicitIds && ' (auto)'}
             </span>
           </div>
+          {!hasExplicitIds && (
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1.5 text-xs text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={includeCompleted}
+                  onChange={(e) => setIncludeCompleted(e.target.checked)}
+                  className="rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                />
+                Include completed
+              </label>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center gap-2">
@@ -104,20 +136,56 @@ export default function ExecutionBoardView() {
       {executionIds.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <Grid3X3 className="w-12 h-12 text-gray-700 mx-auto mb-4" />
-            <h2 className="text-lg font-medium text-gray-400 mb-2">
-              No executions on the board
-            </h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Add execution runs to monitor them side by side
-            </p>
-            <button
-              onClick={() => setShowRunPicker(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors mx-auto"
-            >
-              <Plus className="w-4 h-4" />
-              Add First Run
-            </button>
+            {!hasExplicitIds && autoFetchLoading ? (
+              <>
+                <Activity className="w-12 h-12 text-blue-500 animate-pulse mx-auto mb-4" />
+                <h2 className="text-lg font-medium text-gray-400 mb-2">
+                  Searching for active executions...
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Monitoring for running and recent executions
+                </p>
+              </>
+            ) : !hasExplicitIds ? (
+              <>
+                <Grid3X3 className="w-12 h-12 text-gray-700 mx-auto mb-4" />
+                <h2 className="text-lg font-medium text-gray-400 mb-2">
+                  No active executions found
+                </h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Executions will appear here automatically when they start
+                </p>
+                <div className="flex items-center gap-3 justify-center">
+                  <span className="text-xs text-gray-500">
+                    Auto-refreshing every 3 seconds
+                  </span>
+                  <button
+                    onClick={() => setShowRunPicker(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors text-sm"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Manually
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Grid3X3 className="w-12 h-12 text-gray-700 mx-auto mb-4" />
+                <h2 className="text-lg font-medium text-gray-400 mb-2">
+                  No executions on the board
+                </h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Add execution runs to monitor them side by side
+                </p>
+                <button
+                  onClick={() => setShowRunPicker(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors mx-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add First Run
+                </button>
+              </>
+            )}
           </div>
         </div>
       ) : (
@@ -130,7 +198,7 @@ export default function ExecutionBoardView() {
           }}
         >
           <div
-            className="min-h-full grid gap-4 px-4 py-4"
+            className="h-full grid gap-4 px-4 py-4"
             style={{
               gridAutoFlow: 'column',
               gridAutoColumns: compactMode ? 'minmax(400px, 1fr)' : 'minmax(600px, 1fr)',

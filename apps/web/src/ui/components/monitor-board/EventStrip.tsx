@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import { ChevronRight, AlertCircle, CheckCircle, XCircle, Clock, Activity } from 'lucide-react';
 import type { StoreApi } from 'zustand';
-import type { ExecutionLocalStore } from './executionLocalStore';
+import type { ExecutionLocalStore, NodeEvent } from './executionLocalStore';
 
 interface EventStripProps {
   executionId: string;
@@ -19,10 +19,10 @@ interface Event {
 }
 
 export function EventStrip({ executionId, store }: EventStripProps) {
-  const { startedAt, finishedAt, nodeStates, isRunning } = useStore(store);
+  const { startedAt, finishedAt, nodeEvents, nodeStates, isRunning } = useStore(store);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
-  // Generate events from execution and node states
+  // Generate events from execution and node events
   const events = useMemo(() => {
     const eventList: Event[] = [];
     
@@ -36,34 +36,35 @@ export function EventStrip({ executionId, store }: EventStripProps) {
       });
     }
     
-    // Add node events
-    nodeStates.forEach((state, nodeId) => {
-      const baseId = `node-${nodeId}`;
+    // Add node events from the chronological events array
+    nodeEvents.forEach((event, index) => {
+      // Use index and timestamp to ensure unique IDs for nodes that run multiple times
+      const baseId = `node-${event.nodeId}-${event.timestamp}-${index}`;
       
-      if (state.status === 'running') {
+      if (event.status === 'running') {
         eventList.push({
-          id: `${baseId}-start`,
+          id: baseId,
           type: 'node_start',
-          timestamp: state.timestamp,
-          nodeId,
-          message: `Node ${nodeId} started`,
+          timestamp: event.timestamp,
+          nodeId: event.nodeId,
+          message: `Node ${event.nodeId} started`,
         });
-      } else if (state.status === 'completed') {
+      } else if (event.status === 'completed') {
         eventList.push({
-          id: `${baseId}-complete`,
+          id: baseId,
           type: 'node_complete',
-          timestamp: state.timestamp,
-          nodeId,
-          message: `Node ${nodeId} completed`,
+          timestamp: event.timestamp,
+          nodeId: event.nodeId,
+          message: `Node ${event.nodeId} completed`,
         });
-      } else if (state.status === 'failed') {
+      } else if (event.status === 'failed') {
         eventList.push({
-          id: `${baseId}-fail`,
+          id: baseId,
           type: 'node_fail',
-          timestamp: state.timestamp,
-          nodeId,
-          message: `Node ${nodeId} failed`,
-          error: state.error || undefined,
+          timestamp: event.timestamp,
+          nodeId: event.nodeId,
+          message: `Node ${event.nodeId} failed`,
+          error: event.error || undefined,
         });
       }
     });
@@ -79,9 +80,9 @@ export function EventStrip({ executionId, store }: EventStripProps) {
       });
     }
     
-    // Sort by timestamp
+    // Sort by timestamp (should already be sorted, but ensure it)
     return eventList.sort((a, b) => a.timestamp - b.timestamp);
-  }, [startedAt, finishedAt, nodeStates]);
+  }, [startedAt, finishedAt, nodeEvents, nodeStates]);
 
   const toggleEvent = (eventId: string) => {
     setExpandedEvents(prev => {
