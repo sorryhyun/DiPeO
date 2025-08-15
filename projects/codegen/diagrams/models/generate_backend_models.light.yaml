@@ -50,7 +50,7 @@ nodes:
       diagram_name: projects/codegen/diagrams/models/generate_backend_models_single
       diagram_format: light
       batch: true  # Enable batch mode
-      batch_input_key: items  # Use 'items' key from input
+      batch_input_key: default  # Use 'default' key from input
       batch_parallel: true  # Process in parallel
 
 

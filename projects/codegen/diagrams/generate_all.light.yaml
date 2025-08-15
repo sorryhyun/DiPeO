@@ -144,7 +144,7 @@ nodes:
       diagram_name: projects/codegen/diagrams/frontend/generate_frontend_single
       diagram_format: light
       batch: true
-      batch_input_key: items
+      batch_input_key: default
       batch_parallel: true
 
   - label: Generate Frontend Registry

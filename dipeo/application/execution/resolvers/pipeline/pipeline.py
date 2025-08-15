@@ -12,7 +12,6 @@ from dipeo.domain.diagram.models.executable_diagram import (
 from .base import PipelineContext
 from .incoming_edges import IncomingEdgesStage
 from .filter import FilterStage
-from .provider_stage import ProviderStage
 from .transform import TransformStage
 from .defaults import DefaultsStage
 
@@ -25,9 +24,8 @@ class InputResolutionPipeline:
     
     1. IncomingEdges: Collect edges and retrieve values
     2. Filter: Apply strategy-based filtering
-    3. Providers: Apply explicit provider-based inputs
-    4. Transform: Apply data transformations
-    5. Defaults: Apply default values
+    3. Transform: Apply data transformations
+    4. Defaults: Apply default values
     
     Each stage is ~50-100 lines focused on a single responsibility,
     replacing the monolithic 520-line StandardRuntimeResolver.
@@ -38,7 +36,6 @@ class InputResolutionPipeline:
         self.stages = [
             IncomingEdgesStage(),
             FilterStage(),
-            ProviderStage(),
             TransformStage(),
             DefaultsStage(),
         ]

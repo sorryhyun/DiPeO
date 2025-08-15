@@ -37,8 +37,8 @@ def prepare_node_list_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("No node types found in spec files")
     
     
-    result = {
-        'items': [{'node_spec_path': node_type} for node_type in sorted(node_types)]
-    }
+    # Return the list directly - it will be placed under 'default' key
+    # and batch executor will use batch_input_key='default' to find it
+    result = [{'node_spec_path': node_type} for node_type in sorted(node_types)]
     
     return result
