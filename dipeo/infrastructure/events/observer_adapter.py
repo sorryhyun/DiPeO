@@ -97,5 +97,6 @@ def create_event_bus_with_observers(observers: list[ExecutionObserver]) -> Async
         event_bus.subscribe(EventType.NODE_STARTED, adapter)
         event_bus.subscribe(EventType.NODE_COMPLETED, adapter)
         event_bus.subscribe(EventType.NODE_FAILED, adapter)
+        event_bus.subscribe(EventType.EXECUTION_COMPLETED, adapter)
     
     return event_bus

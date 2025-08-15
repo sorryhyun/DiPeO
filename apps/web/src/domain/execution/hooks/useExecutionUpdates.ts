@@ -139,12 +139,12 @@ export function useExecutionUpdates({
   useEffect(() => {
     if (!executionUpdates) return;
     
-    // Log all updates for debugging
-    console.log('[useExecutionUpdates] Received update:', {
-      event_type: executionUpdates.event_type,
-      data: executionUpdates.data,
-      full: executionUpdates
-    });
+    // Log all updates for debugging (commented out to reduce noise)
+    // console.log('[useExecutionUpdates] Received update:', {
+    //   event_type: executionUpdates.event_type,
+    //   data: executionUpdates.data,
+    //   full: executionUpdates
+    // });
     
     // Check if this is a node event
     const eventType = executionUpdates.event_type;
@@ -158,7 +158,7 @@ export function useExecutionUpdates({
         eventData = {};
       }
     }
-    console.log('[useExecutionUpdates] Parsed eventData:', eventData);
+    // console.log('[useExecutionUpdates] Parsed eventData:', eventData);
     
     // Handle batch updates
     if (eventType === 'BATCH_UPDATE' && eventData.events && Array.isArray(eventData.events)) {
@@ -176,7 +176,7 @@ export function useExecutionUpdates({
           const nodeStatus = batchEventData.status || '';
           
           if (nodeIdStr && nodeStatus) {
-            console.log('[useExecutionUpdates] Batch NODE_STATUS_CHANGED:', { nodeIdStr, nodeType, nodeStatus });
+            // console.log('[useExecutionUpdates] Batch NODE_STATUS_CHANGED:', { nodeIdStr, nodeType, nodeStatus });
             
             if (nodeStatus === 'RUNNING') {
               handleNodeStart(nodeIdStr, nodeType);
@@ -220,12 +220,12 @@ export function useExecutionUpdates({
           const nodeType = event.data?.nodeType || '';
           
           if (batchEventType === 'node_started' && nodeIdStr) {
-            console.log('[useExecutionUpdates] Batch node_started:', { nodeIdStr, nodeType });
+            // console.log('[useExecutionUpdates] Batch node_started:', { nodeIdStr, nodeType });
             handleNodeStart(nodeIdStr, nodeType);
           } else if (batchEventType === 'node_completed' && nodeIdStr) {
             const tokenCount = event.data?.tokens_used || event.data?.metrics?.tokens || undefined;
             const output = event.data?.output || event.data?.result || undefined;
-            console.log('[useExecutionUpdates] Batch node_completed:', { nodeIdStr, tokenCount });
+            // console.log('[useExecutionUpdates] Batch node_completed:', { nodeIdStr, tokenCount });
             handleNodeComplete(nodeIdStr, tokenCount, output);
           }
         }
@@ -240,7 +240,10 @@ export function useExecutionUpdates({
     
     // Handle EXECUTION completion events immediately (bypass throttling)
     if (eventType === 'EXECUTION_STATUS_CHANGED' || eventType === 'EXECUTION_COMPLETED') {
-      console.log('[useExecutionUpdates] EXECUTION_STATUS_CHANGED event:', { status, eventData });
+      // Only log important status changes
+      if (status === 'COMPLETED' || status === 'FAILED' || status === 'ABORTED') {
+        console.log('[useExecutionUpdates] Execution status:', status);
+      }
       if (status === 'COMPLETED' || status === 'MAXITER_REACHED') {
         const totalTokens = tokenUsage ? 
           (tokenUsage.input + tokenUsage.output + (tokenUsage.cached || 0)) : 
@@ -294,16 +297,16 @@ export function useExecutionUpdates({
       const nodeType = eventData.node_type || eventData.nodeType || '';
       const nodeStatus = eventData.status || '';
       
-      console.log('[useExecutionUpdates] NODE_STATUS_CHANGED - Extracting fields:', {
-        nodeIdStr,
-        nodeType,
-        nodeStatus,
-        eventDataKeys: Object.keys(eventData),
-        eventDataType: typeof eventData,
-      });
+      // console.log('[useExecutionUpdates] NODE_STATUS_CHANGED - Extracting fields:', {
+      //   nodeIdStr,
+      //   nodeType,
+      //   nodeStatus,
+      //   eventDataKeys: Object.keys(eventData),
+      //   eventDataType: typeof eventData,
+      // });
       
       if (nodeIdStr && nodeStatus) {
-        console.log('[useExecutionUpdates] ✅ Node status changed:', { nodeIdStr, nodeType, nodeStatus });
+        // console.log('[useExecutionUpdates] ✅ Node status changed:', { nodeIdStr, nodeType, nodeStatus });
         
         if (nodeStatus === 'RUNNING') {
           handleNodeStart(nodeIdStr, nodeType);
@@ -348,7 +351,7 @@ export function useExecutionUpdates({
       const nodeType = eventData.node_type || eventData.nodeType || '';
       
       if (nodeIdStr) {
-        console.log('[useExecutionUpdates] ✅ Node started event:', { nodeIdStr, nodeType });
+        // console.log('[useExecutionUpdates] ✅ Node started event:', { nodeIdStr, nodeType });
         handleNodeStart(nodeIdStr, nodeType);
       } else {
         console.warn('[useExecutionUpdates] NODE_STARTED event missing node_id:', eventData);
@@ -360,7 +363,7 @@ export function useExecutionUpdates({
       const output = eventData.output || eventData.result || undefined;
       
       if (nodeIdStr) {
-        console.log('[useExecutionUpdates] ✅ Node completed event:', { nodeIdStr, tokenCount, output });
+        // console.log('[useExecutionUpdates] ✅ Node completed event:', { nodeIdStr, tokenCount, output });
         handleNodeComplete(nodeIdStr, tokenCount, output);
       } else {
         console.warn('[useExecutionUpdates] NODE_COMPLETED event missing node_id:', eventData);
@@ -383,7 +386,7 @@ export function useExecutionUpdates({
     const status = updateData.status || '';
     const nodeIdStr = updateData.node_id || '';
     
-    console.log('[useExecutionUpdates] Node update received (deprecated path):', { status, nodeIdStr, updateData });
+    // console.log('[useExecutionUpdates] Node update received (deprecated path):', { status, nodeIdStr, updateData });
 
     if (status === 'RUNNING' && nodeIdStr) {
       handleNodeStart(nodeIdStr, updateData.node_type);

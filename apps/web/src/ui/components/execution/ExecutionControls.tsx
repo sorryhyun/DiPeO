@@ -25,11 +25,12 @@ const ExecutionControls = () => {
                    execution.execution.error ? 'fail' :
                    execution.execution.endTime ? 'success' : 'idle';
   
-  console.log('[ExecutionControls] State:', { 
-    storeIsRunning: executionData.isRunning, 
-    contextIsRunning: execution.isRunning,
-    runStatus 
-  });
+  // Uncomment for debugging execution state issues
+  // console.log('[ExecutionControls] State:', { 
+  //   storeIsRunning: executionData.isRunning, 
+  //   contextIsRunning: execution.isRunning,
+  //   runStatus 
+  // });
   
   // Get current running node from execution state
   const currentRunningNode = executionData.runningNodes.size > 0 
