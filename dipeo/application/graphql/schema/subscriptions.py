@@ -152,6 +152,9 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                                 # Handle NODE_STATUS_CHANGED events from UnifiedEventObserver
                                 # The data is already in the correct format
                                 data = event.get("data", {})
+                            elif event_type == "EXECUTION_STATUS_CHANGED":
+                                # Handle EXECUTION_STATUS_CHANGED events for execution start/stop
+                                data = event.get("data", {})
                             else:
                                 # For other events, pass through the data as-is
                                 data = {k: v for k, v in event.items() if k not in ["type", "timestamp", "executionId"]}

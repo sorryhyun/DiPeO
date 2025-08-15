@@ -240,6 +240,7 @@ export function useExecutionUpdates({
     
     // Handle EXECUTION completion events immediately (bypass throttling)
     if (eventType === 'EXECUTION_STATUS_CHANGED' || eventType === 'EXECUTION_COMPLETED') {
+      console.log('[useExecutionUpdates] EXECUTION_STATUS_CHANGED event:', { status, eventData });
       if (status === 'COMPLETED' || status === 'MAXITER_REACHED') {
         const totalTokens = tokenUsage ? 
           (tokenUsage.input + tokenUsage.output + (tokenUsage.cached || 0)) : 

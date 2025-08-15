@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/ui/components/common/forms/buttons';
 import { useMonitorMode } from '@/domain/execution/hooks';
 import { useCanvas } from '@/domain/diagram/contexts';
-import { useNodesData, useArrowsData, usePersonsData, useDiagramData as useStoreDiagramData } from '@/infrastructure/store/hooks';
+import { useNodesData, useArrowsData, usePersonsData, useDiagramData as useStoreDiagramData, useExecutionData } from '@/infrastructure/store/hooks';
 import { nodeId, diagramId, DomainDiagram } from '@/infrastructure/types';
 import { toast } from 'sonner';
 
@@ -17,14 +17,24 @@ const ExecutionControls = () => {
   const arrows = useArrowsData();
   const persons = usePersonsData();
   const { handles } = useStoreDiagramData();
+  const executionData = useExecutionData();
   
   // Map execution state to old runStatus format
-  const runStatus = execution.isRunning ? 'running' : 
+  // Use store's isRunning state as the source of truth
+  const runStatus = executionData.isRunning ? 'running' : 
                    execution.execution.error ? 'fail' :
                    execution.execution.endTime ? 'success' : 'idle';
   
+  console.log('[ExecutionControls] State:', { 
+    storeIsRunning: executionData.isRunning, 
+    contextIsRunning: execution.isRunning,
+    runStatus 
+  });
+  
   // Get current running node from execution state
-  const currentRunningNode = null; // TODO: Get from nodeStates or running nodes
+  const currentRunningNode = executionData.runningNodes.size > 0 
+    ? Array.from(executionData.runningNodes)[0] 
+    : null;
 
   return (
     <div className="flex items-center justify-center gap-4 p-4 bg-gray-800/50 backdrop-blur-sm border-b border-gray-700">
@@ -38,7 +48,7 @@ const ExecutionControls = () => {
         </div>
       )}
       
-      {runStatus === 'running' ? (
+      {executionData.isRunning ? (
         <>
           <Button 
             variant="outline" 
@@ -113,9 +123,9 @@ const ExecutionControls = () => {
       ) : null}
       
       <div className="whitespace-nowrap text-base font-medium ml-4">
-        {runStatus === 'running' && <span className="text-blue-400 animate-pulse">⚡ Running...</span>}
-        {runStatus === 'success' && <span className="text-green-400">✅ Success</span>}
-        {runStatus === 'fail' && <span className="text-red-400">❌ Fail</span>}
+        {executionData.isRunning && <span className="text-blue-400 animate-pulse">⚡ Running...</span>}
+        {!executionData.isRunning && execution.execution.endTime && !execution.execution.error && <span className="text-green-400">✅ Success</span>}
+        {!executionData.isRunning && execution.execution.error && <span className="text-red-400">❌ Fail</span>}
       </div>
     </div>
   );

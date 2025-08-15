@@ -112,15 +112,12 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         
         return None
     
-    async def execute_with_envelopes(
-        self, 
+    async def prepare_inputs(
+        self,
         request: ExecutionRequest[EndpointNode],
         inputs: dict[str, Envelope]
-    ) -> Envelope:
-        """Execute endpoint with envelope inputs."""
-        node = request.node
-        trace_id = request.execution_id or ""
-        
+    ) -> dict[str, Any]:
+        """Convert envelope inputs to data."""
         # Convert envelope inputs to data
         result_data = {}
         for key, envelope in inputs.items():
@@ -134,6 +131,19 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         # If only one input with key 'default', unwrap it
         if len(result_data) == 1 and 'default' in result_data:
             result_data = result_data['default']
+        
+        return {"data": result_data}
+    
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[EndpointNode]
+    ) -> Any:
+        """Execute endpoint logic."""
+        node = request.node
+        
+        # Get data from prepared inputs
+        result_data = inputs.get("data", {})
         
         # Check if we need to save to file (config prepared in pre_execute)
         if self._current_save_enabled:
@@ -155,39 +165,48 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                     with filesystem_adapter.open(file_path, "wb") as f:
                         f.write(content.encode('utf-8'))
 
-                    # Create output envelope
-                    output_envelope = EnvelopeFactory.json(
-                        result_data if isinstance(result_data, dict) else {"default": result_data},
-                        produced_by=node.id,
-                        trace_id=trace_id
-                    ).with_meta(
-                        saved_to=file_name
-                    )
-                    
-                    return output_envelope
+                    # Return data with save metadata
+                    return {
+                        "data": result_data,
+                        "saved_to": file_name,
+                        "save_success": True
+                    }
                 except Exception as exc:
                     # Return error when save fails
-                    error_envelope = EnvelopeFactory.text(
-                        f"Failed to save to file {file_name}: {str(exc)}",
-                        produced_by=node.id,
-                        trace_id=trace_id
-                    ).with_meta(
-                        error_type="SaveError",
-                        attempted_file=file_name
-                    )
-                    return EnvelopeFactory.error(
-                        str(exc),
-                        error_type=exc.__class__.__name__,
-                        produced_by=str(node.id),
-                        trace_id=trace_id
-                    )
+                    raise Exception(f"Failed to save to file {file_name}: {str(exc)}")
 
-        # Create output envelope for pass-through case
+        # Return data for pass-through case
+        return {
+            "data": result_data,
+            "saved_to": None,
+            "save_success": False
+        }
+    
+    def serialize_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[EndpointNode]
+    ) -> Envelope:
+        """Serialize endpoint result to envelope."""
+        node = request.node
+        trace_id = request.execution_id or ""
+        
+        # Extract data and metadata from result
+        result_data = result.get("data", {})
+        saved_to = result.get("saved_to")
+        
+        # Create output envelope
         output_envelope = EnvelopeFactory.json(
             result_data if isinstance(result_data, dict) else {"default": result_data},
             produced_by=node.id,
             trace_id=trace_id
         )
+        
+        # Add save metadata if applicable
+        if saved_to:
+            output_envelope = output_envelope.with_meta(
+                saved_to=saved_to
+            )
         
         return output_envelope
     

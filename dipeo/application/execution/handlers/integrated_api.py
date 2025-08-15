@@ -125,13 +125,28 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         # No early return - proceed to execute_request
         return None
 
-    async def execute_with_envelopes(
-        self, 
-        request: ExecutionRequest[IntegratedApiNode],
-        inputs: dict[str, Envelope]
-    ) -> Envelope:
-        """Execute integrated API operation with envelope inputs."""
-        return await self._execute_api_operation(request, inputs)
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[IntegratedApiNode]
+    ) -> dict[str, Any]:
+        """Execute integrated API operation."""
+        # Convert legacy dict inputs back to envelopes for the existing implementation
+        envelope_inputs = {}
+        for key, value in inputs.items():
+            if isinstance(value, dict):
+                envelope_inputs[key] = EnvelopeFactory.json(value, produced_by="input")
+            else:
+                envelope_inputs[key] = EnvelopeFactory.text(str(value), produced_by="input")
+        
+        # Use existing implementation
+        result_envelope = await self._execute_api_operation(request, envelope_inputs)
+        
+        # Return the result as dict for the base class to serialize
+        if result_envelope.content_type == "object":
+            return result_envelope.as_json()
+        else:
+            return {"result": result_envelope.as_text()}
     
     async def _execute_api_operation(
         self, 
