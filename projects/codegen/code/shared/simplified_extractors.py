@@ -269,21 +269,95 @@ def prepare_graphql_schema_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
         all_types.extend(types)
         all_enums.extend(enums)
     
-    # Extract GraphQL input types from node data interfaces
+    # Transform GraphQL input types from node data interfaces
     input_types = []
     for interface in node_data_interfaces:
         if interface.get('name', '').endswith('Data'):
+            # Transform properties to fields for template compatibility
+            fields = interface.get('properties', [])
             input_types.append({
                 'name': interface['name'],
-                'properties': interface.get('properties', [])
+                'fields': fields,  # Use 'fields' instead of 'properties'
+                'description': interface.get('description')
             })
+    
+    # Separate scalars from regular types
+    scalars = []
+    graphql_types = []
+    
+    # Define known scalar types (ID types and JSON types)
+    scalar_names = {
+        'NodeID', 'ArrowID', 'HandleID', 'PersonID', 'ApiKeyID', 
+        'DiagramID', 'ExecutionID', 'SerializedNodeOutput',
+        'PersonMemoryMessage', 'PersonBatchJobNodeData',
+        'JsonValue', 'JsonDict', 'JSON', 'Array', 'ID'
+    }
+    
+    for type_def in all_types:
+        type_name = type_def.get('name')
+        
+        # Check if this is a scalar type
+        if type_name in scalar_names or type_name.endswith('ID'):
+            scalars.append({
+                'name': type_name,
+                'description': type_def.get('description') or f'Unique identifier for {type_name.replace("ID", "").lower()}'
+            })
+        else:
+            # Regular GraphQL type
+            graphql_type = {
+                'name': type_name,
+                'fields': [],  # Type aliases don't have fields in GraphQL
+                'description': type_def.get('description')
+            }
+            graphql_types.append(graphql_type)
+    
+    # Add standard GraphQL scalars if not already present
+    scalar_names_present = {s['name'] for s in scalars}
+    if 'JSON' not in scalar_names_present:
+        scalars.append({
+            'name': 'JSON',
+            'description': 'The `JSON` scalar type represents JSON values'
+        })
+    if 'JsonDict' not in scalar_names_present:
+        scalars.append({
+            'name': 'JsonDict',
+            'description': 'JSON object type'
+        })
+    if 'JsonValue' not in scalar_names_present:
+        scalars.append({
+            'name': 'JsonValue',
+            'description': 'Any JSON value'
+        })
+    if 'Array' not in scalar_names_present:
+        scalars.append({
+            'name': 'Array',
+            'description': 'Array type'
+        })
+    if 'ID' not in scalar_names_present:
+        scalars.append({
+            'name': 'ID',
+            'description': 'The `ID` scalar type represents a unique identifier'
+        })
+    
+    # Process interfaces to extract as GraphQL types if needed
+    for interface in all_interfaces:
+        if not interface.get('name', '').endswith('Data'):
+            # Non-data interfaces might be exposed as types
+            graphql_type = {
+                'name': interface.get('name'),
+                'fields': interface.get('properties', []),
+                'description': interface.get('description')
+            }
+            graphql_types.append(graphql_type)
     
     return {
         'interfaces': all_interfaces,
-        'types': all_types,
+        'types': graphql_types,
         'enums': all_enums,
         'input_types': input_types,
         'node_data_interfaces': node_data_interfaces,
+        'scalars': scalars,  # Now properly populated
+        'node_types': [it['name'] for it in input_types],  # For union type
         'now': datetime.now().isoformat()
     }
 

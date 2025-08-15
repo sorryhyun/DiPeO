@@ -2,16 +2,24 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonJobNodeData",
   "definitions": {
-    "PersonID": {
+    "MemorySettings": {
       "additionalProperties": false,
       "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
+        "max_messages": {
+          "type": [
+            "null",
+            "number"
+          ]
+        },
+        "preserve_system": {
+          "type": "boolean"
+        },
+        "view": {
+          "$ref": "#/definitions/MemoryView"
         }
       },
       "required": [
-        "__brand"
+        "view"
       ],
       "type": "object"
     },
@@ -124,24 +132,16 @@
       ],
       "type": "string"
     },
-    "MemorySettings": {
+    "PersonID": {
       "additionalProperties": false,
       "properties": {
-        "max_messages": {
-          "type": [
-            "null",
-            "number"
-          ]
-        },
-        "preserve_system": {
-          "type": "boolean"
-        },
-        "view": {
-          "$ref": "#/definitions/MemoryView"
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
         }
       },
       "required": [
-        "view"
+        "__brand"
       ],
       "type": "object"
     }
