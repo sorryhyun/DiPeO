@@ -171,10 +171,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 for key, envelope in inputs.items():
                     try:
                         # Try to parse as JSON first
-                        value = self.reader.as_json(envelope)
+                        value = envelope.as_json()
                     except ValueError:
                         # Fall back to text
-                        value = self.reader.as_text(envelope)
+                        value = envelope.as_text()
                     
                     # Check if we have a single 'default' key with dict value
                     if key == 'default' and isinstance(value, dict):

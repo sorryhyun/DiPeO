@@ -1,1 +1,208 @@
-string indices must be integers, not 'str'
+version: light
+name: csv_data_processing_pipeline
+description: 'Create a DiPeO diagram that implements a Python-based data processing pipeline: load CSVs from a directory,
+  validate, process files in parallel (async), aggregate, and save to JSON. Includes explicit error handling and performance
+  considerations.'
+nodes:
+- label: start
+  type: start
+  position:
+    x: 0
+    y: 0
+  props:
+    flipped: false
+    trigger_mode: manual
+    custom_data:
+      directory_path: /path/to/csv_dir
+      output_path: ./output/results.json
+- label: list_csv_files
+  type: code_job
+  position:
+    x: 300
+    y: 0
+  props:
+    flipped: false
+    language: python
+    code: |
+      import json
+      from pathlib import Path
+
+      def main(directory_path: str):
+          errors = []
+          file_paths = []
+          p = Path(directory_path)
+          if not p.exists():
+              return { 'file_paths': [], 'errors': [ f"Directory not found: {directory_path}" ] }
+          if not p.is_dir():
+              return { 'file_paths': [], 'errors': [ f"Path is not a directory: {directory_path}" ] }
+          files = sorted([ str(fp) for fp in p.glob('*.csv') if fp.is_file() ])
+          return { 'file_paths': files, 'errors': [] }
+    timeout: 120
+- label: process_files_in_parallel
+  type: code_job
+  position:
+    x: 600
+    y: 0
+  props:
+    flipped: false
+    language: python
+    code: |
+      import asyncio
+      import pandas as pd
+      from datetime import datetime
+
+      async def process_single_file(filepath):
+          try:
+              df = pd.read_csv(filepath)
+          except Exception as e:
+              return { 'file': filepath, 'status': 'error', 'metrics': None, 'errors': [f"Load error: {str(e)}"] }
+
+          required = ['id','value','timestamp','category']
+          missing = [c for c in required if c not in df.columns]
+          if missing:
+              return { 'file': filepath, 'status': 'invalid', 'metrics': None, 'errors': [f"Missing columns: {missing}"] }
+
+          if df[required].isnull().any().any():
+              return { 'file': filepath, 'status': 'invalid', 'metrics': None, 'errors': ['Null values in essential columns'] }
+
+          vals = pd.to_numeric(df['value'], errors='coerce')
+          if vals.isnull().any():
+              return { 'file': filepath, 'status': 'invalid', 'metrics': None, 'errors': ["Non-numeric values in 'value'"] }
+
+          try:
+              pd.to_datetime(df['timestamp'], errors='raise')
+          except Exception as e:
+              return { 'file': filepath, 'status': 'invalid', 'metrics': None, 'errors': ["Invalid timestamp values"] }
+
+          sum_v = float(vals.sum())
+          count = int(vals.count())
+          mean = float(vals.mean()) if count > 0 else None
+
+          return { 'file': filepath, 'status': 'valid', 'metrics': { 'sum': sum_v, 'count': count, 'mean': mean }, 'errors': [] }
+
+      async def main(input_obj):
+          if isinstance(input_obj, dict) and 'file_paths' in input_obj:
+              paths = input_obj['file_paths']
+          else:
+              paths = input_obj if isinstance(input_obj, list) else []
+          start_time = datetime.utcnow().isoformat()
+          per_file_results = []
+
+          sem = asyncio.Semaphore(min(32, max(1, len(paths)//2 if paths else 1)))
+
+          async def sem_process(p):
+              async with sem:
+                  return await process_single_file(p)
+
+          tasks = [asyncio.create_task(sem_process(p)) for p in paths]
+          if tasks:
+              per_file_results = await asyncio.gather(*tasks)
+          end_time = datetime.utcnow().isoformat()
+          return { 'start_time': start_time, 'end_time': end_time, 'per_file_results': per_file_results }
+    timeout: 300
+- label: aggregate_results
+  type: code_job
+  position:
+    x: 900
+    y: 0
+  props:
+    flipped: false
+    language: python
+    code: |
+      def main(input_obj):
+          if isinstance(input_obj, dict):
+              start_time = input_obj.get('start_time')
+              end_time = input_obj.get('end_time')
+              per_files = input_obj.get('per_file_results', [])
+          else:
+              per_files = input_obj
+              start_time = end_time = None
+
+          total_files = len(per_files)
+          valid_files = sum(1 for f in per_files if isinstance(f, dict) and f.get('status') == 'valid')
+          invalid_files = sum(1 for f in per_files if isinstance(f, dict) and f.get('status') == 'invalid')
+          error_files = sum(1 for f in per_files if isinstance(f, dict) and f.get('status') == 'error')
+
+          total_sum = 0.0
+          total_count = 0
+          for f in per_files:
+              if isinstance(f, dict) and f.get('status') == 'valid' and isinstance(f.get('metrics'), dict):
+                  total_sum += float(f['metrics'].get('sum', 0.0))
+                  total_count += int(f['metrics'].get('count', 0))
+
+          mean_value = float(total_sum) / float(total_count) if total_count > 0 else None
+
+          aggregated = {
+              'summary': {
+                  'total_files': total_files,
+                  'valid_files': valid_files,
+                  'invalid_files': invalid_files,
+                  'error_files': error_files,
+                  'start_time': start_time,
+                  'end_time': end_time
+              },
+              'per_file': per_files,
+              'aggregated': {
+                  'total_sum': total_sum,
+                  'total_count': total_count,
+                  'mean_value': mean_value
+              }
+          }
+          return aggregated
+    timeout: 120
+- label: provide_output_path
+  type: code_job
+  position:
+    x: 1050
+    y: 0
+  props:
+    flipped: false
+    language: python
+    code: |
+      def main():
+          # Provide a sensible default path; can be overridden by a separate input in the diagram
+          return { 'output_path': './output/results.json' }
+    timeout: 60
+- label: save_results_json
+  type: code_job
+  position:
+    x: 1200
+    y: 0
+  props:
+    flipped: false
+    language: python
+    code: |
+      import json
+      from pathlib import Path
+
+      def main(aggregated_result, output_path):
+          try:
+              path = Path(output_path)
+              path.parent.mkdir(parents=True, exist_ok=True)
+              with path.open('w', encoding='utf-8') as f:
+                  json.dump(aggregated_result, f, indent=2)
+              return { 'status': 'success', 'path': str(path) }
+          except Exception as e:
+              return { 'status': 'error', 'errors': [str(e)] }
+    timeout: 60
+connections:
+- from: start
+  to: list_csv_files
+  label: directory_path
+  content_type: raw_text
+- from: list_csv_files
+  to: process_files_in_parallel
+  label: file_paths
+  content_type: object
+- from: process_files_in_parallel
+  to: aggregate_results
+  label: per_file_results
+  content_type: object
+- from: aggregate_results
+  to: save_results_json
+  label: aggregated_result
+  content_type: object
+- from: provide_output_path
+  to: save_results_json
+  label: output_path
+  content_type: raw_text

@@ -163,13 +163,13 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             legacy_inputs = {}
             for key, envelope in inputs.items():
                 if envelope.content_type == "raw_text":
-                    legacy_inputs[key] = self.reader.as_text(envelope)
+                    legacy_inputs[key] = envelope.as_text()
                 elif envelope.content_type == "object":
-                    legacy_inputs[key] = self.reader.as_json(envelope)
+                    legacy_inputs[key] = envelope.as_json()
                 elif envelope.content_type == "binary":
-                    legacy_inputs[key] = self.reader.as_binary(envelope)
+                    legacy_inputs[key] = envelope.as_bytes()
                 elif envelope.content_type == "conversation_state":
-                    legacy_inputs[key] = self.reader.as_conversation(envelope)
+                    legacy_inputs[key] = envelope.as_conversation()
                 else:
                     legacy_inputs[key] = envelope.body
             

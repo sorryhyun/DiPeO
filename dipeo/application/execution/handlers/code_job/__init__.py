@@ -171,11 +171,11 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         for key, envelope in inputs.items():
             # Convert envelope to appropriate Python type
             if envelope.content_type == "raw_text":
-                exec_context[key] = self.reader.as_text(envelope)
+                exec_context[key] = envelope.as_text()
             elif envelope.content_type == "object":
-                exec_context[key] = self.reader.as_json(envelope)
+                exec_context[key] = envelope.as_json()
             elif envelope.content_type == "binary":
-                exec_context[key] = self.reader.as_binary(envelope)
+                exec_context[key] = envelope.as_bytes()
             else:
                 # Default to raw body
                 exec_context[key] = envelope.body

@@ -55,6 +55,67 @@ class Envelope:
     def has_error(self) -> bool:
         """Check if envelope represents an error."""
         return "error" in self.meta and self.meta["error"] is not None
+    
+    def as_text(self) -> str:
+        """Extract text content with automatic coercion."""
+        if self.content_type == ContentType.RAW_TEXT:
+            return str(self.body) if self.body is not None else ""
+        elif self.content_type == ContentType.OBJECT:
+            return json.dumps(self.body)
+        elif self.content_type == ContentType.CONVERSATION_STATE:
+            # Extract text from conversation
+            if isinstance(self.body, dict):
+                return self.body.get("last_message", "")
+            return str(self.body)
+        else:
+            raise ValueError(f"Cannot convert {self.content_type} to text")
+    
+    def as_json(self, model: type[T] | None = None) -> T | dict | list:
+        """Extract and optionally validate JSON content."""
+        if self.content_type != ContentType.OBJECT:
+            # Try to parse text as JSON
+            if self.content_type == ContentType.RAW_TEXT:
+                try:
+                    data = json.loads(self.body)
+                except (json.JSONDecodeError, TypeError):
+                    raise ValueError(f"Cannot parse text as JSON: {str(self.body)[:100]}")
+            else:
+                raise ValueError(f"Cannot extract JSON from {self.content_type}")
+        else:
+            data = self.body
+        
+        # Validate with Pydantic if model provided
+        if model:
+            try:
+                from pydantic import BaseModel, ValidationError
+                if issubclass(model, BaseModel):
+                    return model.model_validate(data)
+            except (ImportError, ValidationError) as e:
+                raise ValueError(f"Schema validation failed: {e}")
+        
+        return data
+    
+    def as_bytes(self) -> bytes:
+        """Extract binary content."""
+        if self.content_type == ContentType.BINARY:
+            if isinstance(self.body, bytes):
+                return self.body
+            else:
+                raise ValueError(f"Binary envelope contains non-bytes data: {type(self.body)}")
+        elif self.content_type == ContentType.GENERIC:
+            # Backward compatibility
+            return self.body
+        elif self.content_type == ContentType.RAW_TEXT:
+            # Try to encode text as bytes
+            return self.body.encode('utf-8')
+        else:
+            raise ValueError(f"Cannot extract binary from {self.content_type}")
+    
+    def as_conversation(self) -> dict:
+        """Extract conversation state."""
+        if self.content_type != ContentType.CONVERSATION_STATE:
+            raise ValueError(f"Expected conversation_state, got {self.content_type}")
+        return self.body
 
 class EnvelopeFactory:
     """Factory for creating envelopes with backward compatibility support"""

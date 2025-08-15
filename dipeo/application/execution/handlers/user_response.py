@@ -68,17 +68,17 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
             # Check for default input first
             if default_envelope := self.get_optional_input(envelope_inputs, 'default'):
                 try:
-                    input_context = self.reader.as_json(default_envelope)
+                    input_context = default_envelope.as_json()
                 except ValueError:
-                    input_context = self.reader.as_text(default_envelope)
+                    input_context = default_envelope.as_text()
             else:
                 # Collect all inputs
                 input_data = {}
                 for key, envelope in envelope_inputs.items():
                     try:
-                        input_data[key] = self.reader.as_json(envelope)
+                        input_data[key] = envelope.as_json()
                     except ValueError:
-                        input_data[key] = self.reader.as_text(envelope)
+                        input_data[key] = envelope.as_text()
                 input_context = input_data
         
         # Get execution context from ServiceRegistry

@@ -202,10 +202,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         for key, envelope in inputs.items():
             try:
                 # Try to parse as JSON first
-                legacy_inputs[key] = self.reader.as_json(envelope)
+                legacy_inputs[key] = envelope.as_json()
             except ValueError:
                 # Fall back to text
-                legacy_inputs[key] = self.reader.as_text(envelope)
+                legacy_inputs[key] = envelope.as_text()
         
         # Use pre-validated service and configuration from instance variables (set in pre_execute)
         db_service = self._current_db_service

@@ -7,7 +7,6 @@ import warnings
 from pydantic import BaseModel
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.core.execution.envelope_reader import EnvelopeReader
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_request import ExecutionRequest
@@ -26,7 +25,6 @@ class TypedNodeHandler(Generic[T], ABC):
     """
     
     def __init__(self):
-        self.reader = EnvelopeReader()
         self._resolver = None  # Injected by engine
     
     @property

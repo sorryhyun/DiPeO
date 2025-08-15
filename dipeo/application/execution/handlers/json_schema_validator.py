@@ -150,10 +150,10 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     # Single input - use it directly
                     envelope = list(inputs.values())[0]
                     try:
-                        data_to_validate = self.reader.as_json(envelope)
+                        data_to_validate = envelope.as_json()
                     except ValueError:
                         # Fall back to text
-                        data_to_validate = self.reader.as_text(envelope)
+                        data_to_validate = envelope.as_text()
                         # Try to parse if it looks like JSON
                         if isinstance(data_to_validate, str) and data_to_validate.strip() and data_to_validate.strip()[0] in '{[':
                             try:
@@ -165,9 +165,9 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                     data_to_validate = {}
                     for key, envelope in inputs.items():
                         try:
-                            data_to_validate[key] = self.reader.as_json(envelope)
+                            data_to_validate[key] = envelope.as_json()
                         except ValueError:
-                            value = self.reader.as_text(envelope)
+                            value = envelope.as_text()
                             # Try to parse JSON strings
                             if isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
                                 try:

@@ -134,9 +134,9 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         legacy_inputs = {}
         for key, envelope in inputs.items():
             if envelope.content_type == "raw_text":
-                legacy_inputs[key] = self.reader.as_text(envelope)
+                legacy_inputs[key] = envelope.as_text()
             elif envelope.content_type == "object":
-                legacy_inputs[key] = self.reader.as_json(envelope)
+                legacy_inputs[key] = envelope.as_json()
             else:
                 legacy_inputs[key] = envelope.body
         

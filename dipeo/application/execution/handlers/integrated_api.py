@@ -158,21 +158,21 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
             # Check for default input envelope
             if default_envelope := self.get_optional_input(envelope_inputs, 'default'):
                 try:
-                    default_input = self.reader.as_json(default_envelope)
+                    default_input = default_envelope.as_json()
                     if isinstance(default_input, dict):
                         config = {**config, **default_input}
                     else:
                         config["data"] = default_input
                 except ValueError:
                     # Fall back to text if not JSON
-                    config["data"] = self.reader.as_text(default_envelope)
+                    config["data"] = default_envelope.as_text()
             else:
                 # Process all inputs and add to config
                 for key, envelope in envelope_inputs.items():
                     try:
-                        config[key] = self.reader.as_json(envelope)
+                        config[key] = envelope.as_json()
                     except ValueError:
-                        config[key] = self.reader.as_text(envelope)
+                        config[key] = envelope.as_text()
         
         # Get optional parameters
         resource_id = node.resource_id

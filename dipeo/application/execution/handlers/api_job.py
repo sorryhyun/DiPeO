@@ -143,15 +143,15 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         # Process any dynamic inputs from envelopes
         # Check for url override from input
         if url_envelope := self.get_optional_input(inputs, 'url'):
-            url = self.reader.as_text(url_envelope)
+            url = url_envelope.as_text()
         
         # Check for headers override from input
         if headers_envelope := self.get_optional_input(inputs, 'headers'):
             try:
-                headers = self.reader.as_json(headers_envelope)
+                headers = headers_envelope.as_json()
             except ValueError:
                 # If not JSON, treat as text
-                headers_text = self.reader.as_text(headers_envelope)
+                headers_text = headers_envelope.as_text()
                 try:
                     headers = json.loads(headers_text)
                 except json.JSONDecodeError:
@@ -164,9 +164,9 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         # Check for params override from input
         if params_envelope := self.get_optional_input(inputs, 'params'):
             try:
-                params = self.reader.as_json(params_envelope)
+                params = params_envelope.as_json()
             except ValueError:
-                params_text = self.reader.as_text(params_envelope)
+                params_text = params_envelope.as_text()
                 try:
                     params = json.loads(params_text)
                 except json.JSONDecodeError:
@@ -179,10 +179,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         # Check for body override from input
         if body_envelope := self.get_optional_input(inputs, 'body'):
             try:
-                body = self.reader.as_json(body_envelope)
+                body = body_envelope.as_json()
             except ValueError:
                 # If not JSON, treat as text
-                body = self.reader.as_text(body_envelope)
+                body = body_envelope.as_text()
         
         print(f"[ApiJobNode] URL: {url}")
         print(f"[ApiJobNode] Method: {method}")

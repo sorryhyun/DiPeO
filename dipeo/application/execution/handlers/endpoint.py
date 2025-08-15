@@ -126,10 +126,10 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         for key, envelope in inputs.items():
             try:
                 # Try to parse as JSON first
-                result_data[key] = self.reader.as_json(envelope)
+                result_data[key] = envelope.as_json()
             except ValueError:
                 # Fall back to text
-                result_data[key] = self.reader.as_text(envelope)
+                result_data[key] = envelope.as_text()
         
         # If only one input with key 'default', unwrap it
         if len(result_data) == 1 and 'default' in result_data:

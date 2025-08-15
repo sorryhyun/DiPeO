@@ -22,9 +22,6 @@ from dipeo.core.execution.envelope import (
     serialize_protocol,
     deserialize_protocol,
 )
-from dipeo.core.execution.envelope_reader import (
-    EnvelopeReader,
-)
 from dipeo.core.execution.node_strategy import (
     NodeStrategy,
     PersonJobNodeStrategy,
@@ -65,7 +62,6 @@ __all__ = [
     # Envelope system (new)
     "Envelope",
     "EnvelopeFactory",
-    "EnvelopeReader",
     # Execution tracking
     "ExecutionTracker",
     "FlowStatus",

@@ -99,9 +99,9 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         input_data = {}
         for key, envelope in inputs.items():
             if envelope.content_type == "raw_text":
-                input_data[key] = self.reader.as_text(envelope)
+                input_data[key] = envelope.as_text()
             elif envelope.content_type == "object":
-                input_data[key] = self.reader.as_json(envelope)
+                input_data[key] = envelope.as_json()
             else:
                 input_data[key] = envelope.body
         

@@ -149,10 +149,10 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         for key, envelope in envelope_inputs.items():
             try:
                 # Try to parse as JSON first
-                inputs[key] = self.reader.as_json(envelope)
+                inputs[key] = envelope.as_json()
             except ValueError:
                 # Fall back to text
-                inputs[key] = self.reader.as_text(envelope)
+                inputs[key] = envelope.as_text()
         
         # Filesystem adapter already available in instance variable if needed (set in pre_execute for file hooks)
         if node.hook_type == HookType.FILE:

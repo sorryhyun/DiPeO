@@ -150,7 +150,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             prompt_envelope = self.get_optional_input(inputs, 'prompt')
             prompt = None
             if prompt_envelope:
-                prompt = self.reader.as_text(prompt_envelope)
+                prompt = prompt_envelope.as_text()
             else:
                 # Check if node has prompt_file configured (will be handled by single_executor)
                 has_prompt_file = getattr(node, 'prompt_file', None) or getattr(node, 'first_prompt_file', None)
@@ -166,10 +166,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             context_data = None
             if context_envelope := self.get_optional_input(inputs, 'context'):
                 try:
-                    context_data = self.reader.as_json(context_envelope)
+                    context_data = context_envelope.as_json()
                 except ValueError:
                     # Fall back to text
-                    context_data = self.reader.as_text(context_envelope)
+                    context_data = context_envelope.as_text()
             
             # Get conversation state if needed (based on memory_profile)
             conversation_state = None
@@ -177,7 +177,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             memory_enabled = node.memory_profile and node.memory_profile != 'NONE'
             if memory_enabled:
                 if conv_envelope := self.get_optional_input(inputs, '_conversation'):
-                    conversation_state = self.reader.as_conversation(conv_envelope)
+                    conversation_state = conv_envelope.as_conversation()
             
             # Prepare request with extracted inputs
             # Only override inputs if we extracted them from envelopes
@@ -188,11 +188,11 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 # Convert all envelope inputs to their values
                 for key, envelope in inputs.items():
                     if envelope.content_type == "raw_text":
-                        processed_inputs[key] = self.reader.as_text(envelope)
+                        processed_inputs[key] = envelope.as_text()
                     elif envelope.content_type == "object":
-                        processed_inputs[key] = self.reader.as_json(envelope)
+                        processed_inputs[key] = envelope.as_json()
                     elif envelope.content_type == "conversation_state":
-                        processed_inputs[key] = self.reader.as_conversation(envelope)
+                        processed_inputs[key] = envelope.as_conversation()
                     else:
                         processed_inputs[key] = envelope.body
                 
@@ -211,11 +211,11 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 processed_inputs = {}
                 for key, envelope in inputs.items():
                     if envelope.content_type == "raw_text":
-                        processed_inputs[key] = self.reader.as_text(envelope)
+                        processed_inputs[key] = envelope.as_text()
                     elif envelope.content_type == "object":
-                        processed_inputs[key] = self.reader.as_json(envelope)
+                        processed_inputs[key] = envelope.as_json()
                     elif envelope.content_type == "conversation_state":
-                        processed_inputs[key] = self.reader.as_conversation(envelope)
+                        processed_inputs[key] = envelope.as_conversation()
                     else:
                         processed_inputs[key] = envelope.body
                 request.inputs = processed_inputs
@@ -234,7 +234,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 if not items:
                     # Try to get from a dedicated batch input
                     if batch_envelope := self.get_optional_input(inputs, batch_input_key):
-                        items = self.reader.as_json(batch_envelope)
+                        items = batch_envelope.as_json()
                 
                 if items:
                     request.inputs[batch_input_key] = items
