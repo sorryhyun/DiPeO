@@ -153,6 +153,13 @@ class TypedNodeHandler(Generic[T], ABC):
             # Already an envelope, return as-is
             return result
         elif isinstance(result, dict):
+            # Reject deprecated {results: ...} pattern
+            if set(result.keys()) == {"results"}:
+                raise ValueError(
+                    f"Handler {self.node_type} returned deprecated {{results: ...}} format. "
+                    f"Handlers must return Envelope or list[Envelope] directly."
+                )
+            
             # JSON envelope for dictionaries
             return EnvelopeFactory.json(
                 result,

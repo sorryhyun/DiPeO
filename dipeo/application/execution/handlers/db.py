@@ -14,7 +14,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.core.execution.envelope import Envelope, get_envelope_factory
 from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
 from dipeo.domain.ports.template import TemplateProcessorPort
 
@@ -78,7 +78,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         db_service = request.services.resolve(DB_OPERATIONS_SERVICE)
         
         if db_service is None:
-            return EnvelopeFactory.error(
+            factory = get_envelope_factory()
+            return factory.error(
                 "Database operations service not available",
                 error_type="ValueError",
                 produced_by=str(node.id)
@@ -87,7 +88,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         # Validate operation type
         valid_operations = ["read", "write", "append"]
         if node.operation not in valid_operations:
-            return EnvelopeFactory.error(
+            factory = get_envelope_factory()
+            return factory.error(
                 f"Invalid operation: {node.operation}. Valid operations: {', '.join(valid_operations)}",
                 error_type="ValueError",
                 produced_by=str(node.id)
@@ -96,7 +98,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         # Validate file paths are provided
         file_paths = node.file
         if not file_paths:
-            return EnvelopeFactory.error(
+            factory = get_envelope_factory()
+            return factory.error(
                 "No file paths specified for database operation",
                 error_type="ValueError",
                 produced_by=str(node.id)
@@ -343,10 +346,11 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         """Custom serialization for DB results."""
         node = request.node
         trace_id = request.execution_id or ""
+        factory = get_envelope_factory()
         
         # Handle multiple files result
         if isinstance(result, dict) and 'multiple_files' in result:
-            return EnvelopeFactory.json(
+            return factory.json(
                 result['results'],
                 produced_by=node.id,
                 trace_id=trace_id
@@ -367,7 +371,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
             if isinstance(output_value, (dict, list)):
                 if serialize_json and not format_type:
                     # Serialize to text if requested
-                    return EnvelopeFactory.text(
+                    return factory.text(
                         json.dumps(output_value),
                         produced_by=node.id,
                         trace_id=trace_id
@@ -378,7 +382,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     )
                 else:
                     # Return as JSON envelope
-                    return EnvelopeFactory.json(
+                    return factory.json(
                         output_value if isinstance(output_value, dict) else {"default": output_value},
                         produced_by=node.id,
                         trace_id=trace_id
@@ -387,7 +391,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     )
             else:
                 # Return as text envelope
-                return EnvelopeFactory.text(
+                return factory.text(
                     str(output_value),
                     produced_by=node.id,
                     trace_id=trace_id

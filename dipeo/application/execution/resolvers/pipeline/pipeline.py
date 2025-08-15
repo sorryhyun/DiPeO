@@ -12,7 +12,7 @@ from dipeo.domain.diagram.models.executable_diagram import (
 from .base import PipelineContext
 from .incoming_edges import IncomingEdgesStage
 from .filter import FilterStage
-from .special_inputs import SpecialInputsStage
+from .provider_stage import ProviderStage
 from .transform import TransformStage
 from .defaults import DefaultsStage
 
@@ -25,7 +25,7 @@ class InputResolutionPipeline:
     
     1. IncomingEdges: Collect edges and retrieve values
     2. Filter: Apply strategy-based filtering
-    3. SpecialInputs: Handle node-specific requirements
+    3. Providers: Apply explicit provider-based inputs
     4. Transform: Apply data transformations
     5. Defaults: Apply default values
     
@@ -38,7 +38,7 @@ class InputResolutionPipeline:
         self.stages = [
             IncomingEdgesStage(),
             FilterStage(),
-            SpecialInputsStage(),
+            ProviderStage(),
             TransformStage(),
             DefaultsStage(),
         ]

@@ -7,7 +7,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.core.execution.envelope import Envelope, get_envelope_factory
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 
 if TYPE_CHECKING:
@@ -81,7 +81,8 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         # Check parser service availability
         parser_service = request.get_service("ast_parser")
         if not parser_service:
-            return EnvelopeFactory.error(
+            factory = get_envelope_factory()
+            return factory.error(
                 "TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
                 error_type="RuntimeError",
                 produced_by=str(request.node.id)
@@ -205,10 +206,11 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         """Custom serialization for TypeScript AST results."""
         node = request.node
         trace_id = request.execution_id or ""
+        factory = get_envelope_factory()
         
         # Handle batch mode results
         if isinstance(result, dict) and result.get('batch_mode'):
-            return EnvelopeFactory.json(
+            return factory.json(
                 result['results'],
                 produced_by=node.id,
                 trace_id=trace_id
@@ -241,7 +243,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             }
             output['summary'] = summary
             
-            return EnvelopeFactory.json(
+            return factory.json(
                 output,
                 produced_by=node.id,
                 trace_id=trace_id
