@@ -55,6 +55,15 @@ class ServerManager:
                 else ""
             ),
         }
+        
+        # On Windows, ensure virtual environment paths are preserved
+        if sys.platform == "win32":
+            # Preserve VIRTUAL_ENV if it exists
+            if "VIRTUAL_ENV" in subprocess.os.environ:
+                env["VIRTUAL_ENV"] = subprocess.os.environ["VIRTUAL_ENV"]
+            # Preserve PATH to include venv Scripts directory
+            if "PATH" in subprocess.os.environ:
+                env["PATH"] = subprocess.os.environ["PATH"]
 
         self.process = subprocess.Popen(
             [sys.executable, "main.py"],
