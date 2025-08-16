@@ -210,7 +210,7 @@ jobs:
           & $nsisPath scripts/minimal-installer.nsi
           
           # Verify installer was created
-          if (!(Test-Path "DiPeO-Setup-Minimal.exe")) {
+          if (!(Test-Path "scripts/DiPeO-Setup-Minimal.exe")) {
             Write-Error "Failed to create installer!"
             exit 1
           }
@@ -221,7 +221,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: DiPeO-Windows-Installer
-          path: DiPeO-Setup-Minimal.exe
+          path: scripts/DiPeO-Setup-Minimal.exe
           retention-days: 30
       
       - name: Upload Server Executable
@@ -244,7 +244,7 @@ jobs:
         with:
           name: "DiPeO ${{ github.ref_name }}"
           files: |
-            DiPeO-Setup-Minimal.exe
+            scripts/DiPeO-Setup-Minimal.exe
             apps/server/dist/dipeo-server.exe
             apps/web/dist/dipeo-frontend.exe
           draft: false
