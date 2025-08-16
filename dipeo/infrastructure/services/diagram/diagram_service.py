@@ -57,6 +57,14 @@ class DiagramService(BaseService, DiagramPort):
         
         self._initialized = True
         logger.info(f"DiagramService initialized at: {self.base_path}")
+        logger.info(f"Project root: {self.base_path.parent}")
+        
+        # Check if projects directory exists
+        projects_path = self.base_path.parent / "projects"
+        if self.filesystem.exists(projects_path):
+            logger.info(f"Projects directory found: {projects_path}")
+        else:
+            logger.warning(f"Projects directory not found: {projects_path}")
     
     def detect_format(self, content: str) -> DiagramFormat:
         """Detect the format of diagram content."""
@@ -142,7 +150,7 @@ class DiagramService(BaseService, DiagramPort):
             format_enum = self._format_string_to_enum(format_type)
             extensions = [self.format_detector.get_file_extension(format_enum)]
         else:
-            extensions = [".native.json", ".light.yaml", ".readable.yaml"]
+            extensions = [".native.json", ".light.yaml", ".light.yml", ".readable.yaml", ".readable.yml"]
         
         try:
             def scan_directory(dir_path: Path, base_for_relative: Path) -> None:
@@ -174,16 +182,21 @@ class DiagramService(BaseService, DiagramPort):
                         scan_directory(item, base_for_relative)
             
             # Scan both files/ and projects/ directories
+            logger.debug(f"Scanning files directory: {self.base_path}")
             scan_directory(self.base_path, self.base_path)
             
             # Also scan projects/ directory if it exists
             projects_path = self.base_path.parent / "projects"
             if self.filesystem.exists(projects_path):
+                logger.debug(f"Scanning projects directory: {projects_path}")
                 scan_directory(projects_path, projects_path)
+            else:
+                logger.debug(f"Projects directory not found: {projects_path}")
                 
         except Exception as e:
             raise StorageError(f"Failed to list diagrams: {e}")
         
+        logger.info(f"Found {len(diagrams)} diagrams total")
         diagrams.sort(key=lambda x: x.modified, reverse=True)
         return diagrams
     
@@ -283,7 +296,34 @@ class DiagramService(BaseService, DiagramPort):
                 content = f.read().decode('utf-8')
             
             format_str = self._detect_format_from_path(path)
-            return self.converter.deserialize(content, format_str)
+            diagram = self.converter.deserialize_from_storage(content, format_str)
+            
+            # Ensure metadata.id is set to the diagram_id
+            if diagram:
+                if diagram.metadata is None:
+                    from dipeo.diagram_generated import DiagramMetadata
+                    from datetime import datetime
+                    # Get file stats for created/modified times
+                    try:
+                        stat = self.filesystem.stat(path)
+                        created_time = stat.created.isoformat() if hasattr(stat, 'created') else datetime.now().isoformat()
+                        modified_time = stat.modified.isoformat() if hasattr(stat, 'modified') else datetime.now().isoformat()
+                    except:
+                        created_time = datetime.now().isoformat()
+                        modified_time = datetime.now().isoformat()
+                    
+                    diagram.metadata = DiagramMetadata(
+                        version="1.0.0",
+                        created=created_time,
+                        modified=modified_time
+                    )
+                diagram.metadata.id = diagram_id
+                if not diagram.metadata.name:
+                    # Extract name from the last part of the path
+                    name_parts = diagram_id.split('/')
+                    diagram.metadata.name = name_parts[-1] if name_parts else diagram_id
+            
+            return diagram
         except Exception as e:
             logger.warning(f"Failed to get diagram {diagram_id}: {e}")
             return None

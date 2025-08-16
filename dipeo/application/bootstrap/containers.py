@@ -55,6 +55,11 @@ class Container:
         diagram_converter = self.registry.resolve(DIAGRAM_CONVERTER)
         if diagram_converter and hasattr(diagram_converter, 'initialize'):
             await diagram_converter.initialize()
+        
+        from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
+        diagram_service = self.registry.resolve(DIAGRAM_SERVICE_NEW)
+        if diagram_service and hasattr(diagram_service, 'initialize'):
+            await diagram_service.initialize()
     
     async def shutdown(self):
         pass

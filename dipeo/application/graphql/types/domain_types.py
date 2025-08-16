@@ -116,8 +116,12 @@ class DomainHandleType:
 @strawberry.experimental.pydantic.type(DomainNode)
 class DomainNodeType:
     id: strawberry.auto
-    type: strawberry.auto
     position: strawberry.auto
+    
+    @strawberry.field
+    def type(self) -> str:
+        """Return the enum value (lowercase) instead of the enum name."""
+        return self.type.value if hasattr(self, 'type') else ''
     
     @strawberry.field
     def data(self) -> JSONScalar:

@@ -4,6 +4,8 @@
 
 DiPeO uses a diagram-driven, multi-stage code generation pipeline that "dog-foods" its own execution engine. All code generation is orchestrated through DiPeO diagrams, maintaining type safety from TypeScript node specifications to GraphQL queries and Python handlers.
 
+**Key Philosophy**: DiPeO uses itself to build itself - all code generation runs through DiPeO diagrams, proving the platform's maturity and capabilities.
+
 ## Generation Flow
 
 ```
@@ -29,6 +31,7 @@ DiPeO uses a diagram-driven, multi-stage code generation pipeline that "dog-food
 - **Dynamic Discovery**: Automatically finds all TypeScript files using glob patterns
 - **External Code**: All generation logic in `projects/codegen/code/` for reusability
 - **Syntax Validation**: Default validation ensures generated code is syntactically correct
+- **Single Source of Truth**: TypeScript definitions generate all downstream code
 
 ### Stage 1: TypeScript Parsing & Caching
 
@@ -141,6 +144,28 @@ dipeo run codegen/diagrams/models/generate_backend_models_single --light \
   --input-data '{"node_name": "person_job"}'
 ```
 
+## Dog-fooding Architecture
+
+DiPeO's code generation exemplifies "dog-fooding" - using DiPeO diagrams to generate DiPeO's own code:
+
+1. **Visual Programming**: Each generation step is a diagram node
+2. **Composability**: Sub-diagrams handle specific generation tasks
+3. **Parallelization**: Batch processing for multiple files
+4. **Error Handling**: Graceful degradation in batch operations
+5. **Caching**: AST parsing cached to avoid redundant work
+
+This approach proves DiPeO's maturity - the platform is robust enough to build itself.
+
+## Why The Staging Approach Matters
+
+The staging directory (`diagram_generated_staged`) serves critical purposes:
+
+1. **Preview Changes**: Review generated code before applying
+2. **Atomic Updates**: All-or-nothing application of changes
+3. **Syntax Validation**: Catch errors before they break the system
+4. **Rollback Safety**: Easy to discard bad generations
+5. **Frontend Dependency**: Frontend reads from applied (not staged) models
+
 ## Adding New Features
 
 ### Adding a New Node Type
@@ -236,34 +261,47 @@ dipeo run codegen/diagrams/models/generate_backend_models_single --light \
    cd apps/web && pnpm codegen  # Generate TypeScript from updated schema
    ```
 
-### Adding New Mutations
+## V2 Generation Improvements
 
-1. **Add to schema** (`/apps/server/schema.graphql`):
-   ```graphql
-   type Mutation {
-     myNewMutation(input: MyInput!): MyResult!
-   }
-   ```
+The current generation system uses "v2" diagrams with key improvements:
 
-2. **Add to query generator**:
-   ```python
-   queries.append("""mutation MyNewMutation($input: MyInput!) {
-     myNewMutation(input: $input) {
-       success
-       data {
-         id
-       }
-       error
-     }
-   }""")
-   ```
+1. **Template Job Nodes**: Direct template rendering without intermediate steps
+2. **Dynamic Discovery**: Glob patterns find all files automatically
+3. **External Code**: All logic in `projects/codegen/code/` for reusability
+4. **Batch Processing**: Parallel generation of multiple nodes
+5. **Better Error Handling**: Graceful degradation in batch operations
 
-3. **Implement resolver** in `/dipeo/application/graphql/`:
-   ```python
-   @strawberry.mutation
-   async def my_new_mutation(self, input: MyInput) -> MyResult:
-       # Implementation
-   ```
+Example v2 pattern:
+```yaml
+- label: Generate Field Configs
+  type: template_job
+  props:
+    template_path: projects/codegen/templates/frontend/field_config_v2.jinja2
+    output_path: "{{ output_dir }}/fields/{{ node_type_pascal }}Fields.ts"
+    context:
+      node_type: "{{ node_type }}"
+      fields: "{{ fields }}"
+      # ... other context
+```
+
+## Custom Template System
+
+DiPeO uses Jinja2 templates with custom filters:
+
+**Type Conversion Filters**:
+- `ts_to_python` - Convert TypeScript types to Python
+- `ts_to_graphql` - Convert TypeScript types to GraphQL
+- `get_zod_type` - Get Zod validation type
+- `get_graphql_type` - Get GraphQL type
+
+**Naming Convention Filters**:
+- `snake_case`, `camel_case`, `pascal_case` - Case conversions
+- `pluralize` - Collection naming
+
+**Key Generators**:
+- `/projects/codegen/code/models/` - Python model generation
+- `/projects/codegen/code/frontend/` - React/TypeScript generation
+- All use external files for testability and reuse
 
 ## Key Files and Directories
 
@@ -295,25 +333,35 @@ dipeo run codegen/diagrams/models/generate_backend_models_single --light \
 - `/apps/web/codegen.yml` - GraphQL code generator config
 - `Makefile` - Orchestrates the generation pipeline
 
-## Architecture: Dog-fooding Approach
+## Architecture Notes
 
-DiPeO's code generation is a prime example of "dog-fooding" - using DiPeO diagrams to generate DiPeO's own code:
+### Why Make Commands Over Master Diagrams
 
-1. **Visual Programming**: Each generation step is a diagram node
-2. **Composability**: Sub-diagrams handle specific generation tasks
-3. **Parallelization**: Batch processing for multiple files
-4. **Error Handling**: Graceful degradation in batch operations
-5. **Caching**: AST parsing cached to avoid redundant work
+The codebase uses Make commands rather than a single master diagram because:
+- **Better error handling**: Make stops on first error
+- **Clear execution flow**: Each step is explicit
+- **Easier debugging**: Can run individual steps
+- **Standard tooling**: Developers know Make
 
-## Why The Staging Approach Matters
+### Two-Stage GraphQL Generation
 
-The staging directory (`diagram_generated_staged`) serves critical purposes:
+The system generates GraphQL in two stages:
+1. **DiPeO generates queries** from domain knowledge
+2. **GraphQL codegen generates TypeScript** from queries + schema
 
-1. **Preview Changes**: Review generated code before applying
-2. **Atomic Updates**: All-or-nothing application of changes
-3. **Syntax Validation**: Catch errors before they break the system
-4. **Rollback Safety**: Easy to discard bad generations
-5. **Frontend Dependency**: Frontend reads from applied (not staged) models
+This provides:
+- **Domain-driven queries**: Operations match your domain model
+- **Type safety**: End-to-end from Python to TypeScript  
+- **Flexibility**: Can customize queries without changing schema
+- **Consistency**: All queries follow same patterns
+
+### External Code Organization
+
+All generation logic lives in external Python files:
+- Matches diagram structure for discoverability
+- Enables unit testing of generation logic
+- Supports code reuse across diagrams
+- Example: `parse_typescript_single.light.yaml` uses functions from `projects/codegen/code/shared/typescript_spec_parser.py`
 
 ## Best Practices
 
@@ -351,55 +399,6 @@ make dev-all                                            # Restart servers
   make graphql-schema
   ```
 
-## V2 Generation Improvements
+## Conclusion
 
-The current generation system uses "v2" diagrams with key improvements:
-
-1. **Template Job Nodes**: Direct template rendering without intermediate steps
-2. **Dynamic Discovery**: Glob patterns find all files automatically
-3. **External Code**: All logic in `projects/codegen/code/` for reusability
-4. **Batch Processing**: Parallel generation of multiple nodes
-5. **Better Error Handling**: Graceful degradation in batch operations
-
-Example v2 pattern:
-```yaml
-- label: Generate Field Configs
-  type: template_job
-  props:
-    template_path: projects/codegen/templates/frontend/field_config_v2.jinja2
-    output_path: "{{ output_dir }}/fields/{{ node_type_pascal }}Fields.ts"
-    context:
-      node_type: "{{ node_type }}"
-      fields: "{{ fields }}"
-      # ... other context
-```
-
-## Architecture Notes
-
-### Why Make Commands Over Master Diagrams
-
-The codebase uses Make commands rather than a single master diagram because:
-- **Better error handling**: Make stops on first error
-- **Clear execution flow**: Each step is explicit
-- **Easier debugging**: Can run individual steps
-- **Standard tooling**: Developers know Make
-
-### Two-Stage GraphQL Generation
-
-The system generates GraphQL in two stages:
-1. **DiPeO generates queries** from domain knowledge
-2. **GraphQL codegen generates TypeScript** from queries + schema
-
-This provides:
-- **Domain-driven queries**: Operations match your domain model
-- **Type safety**: End-to-end from Python to TypeScript  
-- **Flexibility**: Can customize queries without changing schema
-- **Consistency**: All queries follow same patterns
-
-### External Code Organization
-
-All generation logic lives in external Python files:
-- Matches diagram structure for discoverability
-- Enables unit testing of generation logic
-- Supports code reuse across diagrams
-- Example: `parse_typescript_single.light.yaml` uses functions from `projects/codegen/code/shared/typescript_spec_parser.py`
+DiPeO's code generation system demonstrates the platform's maturity through its dog-fooding approach. By using DiPeO diagrams to orchestrate the generation of DiPeO's own code, the system proves its robustness and capabilities. The v2 architecture with staging directories, external code organization, and parallel batch processing shows how visual programming can handle sophisticated meta-programming tasks while maintaining type safety from TypeScript specifications through to Python models and GraphQL operations.

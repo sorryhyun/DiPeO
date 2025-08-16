@@ -4,117 +4,255 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 100,
-        "y": 200
+        "x": 0,
+        "y": 0
       },
       "data": {
-        "custom_data": {},
-        "output_data_structure": {},
-        "label": "start"
+        "trigger_mode": "manual",
+        "custom_data": {
+          "user_prompt": "create data processor diagram"
+        },
+        "output_data_structure": {
+          "type": "object"
+        },
+        "label": "objectiveinput"
       }
     },
     {
       "id": "node_1",
       "type": "code_job",
       "position": {
-        "x": 300,
-        "y": 200
+        "x": 260,
+        "y": 0
       },
       "data": {
         "language": "python",
-        "code": "def main(user_requirements=None, workflow_description=None):\n    # If input variables are provided, use them\n    if user_requirements:\n        return user_requirements\n    # Otherwise, read from file\n    try:\n        with open('projects/dipeodipeo/request.txt', 'r') as f:\n            return f.read().strip()\n    except FileNotFoundError:\n        return \"Create a simple data processing diagram\"\n",
-        "label": "load_request"
+        "code": "import json\n\n# Sample, compact DataSource and DataSink artifacts (small, concrete examples)\ndata_sources = [\n    {\"id\": \"source_csv_1\", \"type\": \"csv\", \"location\": \"./data/input.csv\", \"schema\": {\"fields\": {\"id\": \"int\", \"name\": \"str\", \"value\": \"float\", \"timestamp\": \"str\"}}},\n    {\"id\": \"source_api_1\", \"type\": \"api\", \"endpoint\": \"https://api.example.com/data\", \"schema\": {\"fields\": {\"id\": \"int\", \"category\": \"str\", \"amount\": \"float\", \"ts\": \"str\"}}},\n    {\"id\": \"source_kafka_1\", \"type\": \"kafka\", \"topic\": \"events\", \"bootstrap_servers\": [\"localhost:9092\"], \"schema\": {\"fields\": {\"id\": \"str\", \"payload\": \"dict\"}}}\n]\n\ndata_sinks = [\n    {\"id\": \"sink_dw\", \"type\": \"parquet_store\", \"destination\": \"./warehouse/parquet/\", \"schema\": {\"fields\": {\"id\": \"int\", \"name\": \"str\", \"value\": \"float\", \"timestamp\": \"str\"}}},\n    {\"id\": \"sink_blob\", \"type\": \"filesystem\", \"destination\": \"./lake/csv/\", \"schema\": {\"fields\": {\"id\": \"int\", \"name\": \"str\", \"value\": \"float\", \"timestamp\": \"str\"}}}\n]\n\ntransformation_plan = {\"steps\": [\"clean_nulls\", \"normalize_fields\", \"enrich_with_metadata\", \"deduplicate\"]}\n\nconfig = {\n    \"data_sources\": data_sources,\n    \"data_sinks\": data_sinks,\n    \"transformation_plan\": transformation_plan,\n    \"retry_policy\": {\"max_retries\": 3, \"backoff_seconds\": 5}\n}\n\nprint(json.dumps({\"data_config\": config}))\n",
+        "timeout": 60,
+        "label": "definedataconfig"
       }
     },
     {
       "id": "node_2",
-      "type": "person_job",
+      "type": "code_job",
       "position": {
-        "x": 500,
-        "y": 200
+        "x": 500.8478876074853,
+        "y": -163.77232472008345
       },
       "data": {
-        "person": "prompt_engineer",
-        "prompt_file": "prompt_generator.txt",
-        "max_iteration": 1,
-        "label": "generate_prompt",
-        "first_only_prompt": ""
+        "language": "python",
+        "code": "import json, sys, asyncio\n\n# Optional parallel orchestration for independent sources with deterministic ordering\n\ndef main():\n    s = sys.stdin.read()\n    payload = json.loads(s) if s else {}\n    data_config = payload.get('data_config', {})\n    sources = data_config.get('data_sources', [])\n    order = sorted([src.get('id') for src in sources])  # deterministic ordering by id\n    print(json.dumps({\"load_plan\": {\"order\": order}}))\n\nif __name__ == '__main__':\n    main()\n",
+        "timeout": 60,
+        "label": "parallelorchestrator"
       }
     },
     {
       "id": "node_3",
-      "type": "person_job",
+      "type": "code_job",
       "position": {
-        "x": 700,
-        "y": 200
+        "x": 780,
+        "y": 0
       },
       "data": {
-        "person": "test_data_creator",
-        "prompt_file": "test_data_generator.txt",
-        "max_iteration": 1,
-        "text_format_file": "projects/dipeodipeo/test_data_models.py",
-        "label": "generate_test_data",
-        "first_only_prompt": ""
+        "language": "python",
+        "code": "import json, sys\n\npayload = json.loads(sys.stdin.read()) if sys.stdin and sys.stdin.readable() else {}\ndata_config = payload.get('data_config', {})\nload_plan = payload.get('load_plan', {})\norder = load_plan.get('order', [])\n\nsources = {src['id']: src for src in data_config.get('data_sources', [])}\nloaded = []\nfor sid in order:\n    src = sources.get(sid)\n    if not src:\n        continue\n    stype = src.get('type')\n    if stype == 'csv':\n        recs = [{\"id\": 1, \"name\": \"Alice\", \"value\": 10.0, \"timestamp\": \"2025-01-01T00:00:00Z\"}]\n    elif stype == 'api':\n        recs = [{\"id\": 101, \"category\": \"A\", \"amount\": 3.14, \"ts\": \"2025-01-01T00:01:00Z\"}]\n    elif stype == 'kafka':\n        recs = [{\"id\": \"ev1\", \"payload\": {\"k\": 1}}]\n    else:\n        recs = []\n    loaded.append({\"source_id\": sid, \"source_type\": stype, \"records\": recs, \"record_count\": len(recs)})\n\nprint(json.dumps({\"loaded_data\": loaded}))\n",
+        "timeout": 60,
+        "label": "loaddata"
       }
     },
     {
       "id": "node_4",
-      "type": "db",
+      "type": "code_job",
       "position": {
-        "x": 1000,
-        "y": 200
+        "x": 1040,
+        "y": 0
       },
       "data": {
-        "operation": "write",
-        "sub_type": "file",
-        "format": "csv",
-        "file": "projects/dipeodipeo/generated/test_data.csv",
-        "label": "save_test_data"
+        "language": "python",
+        "code": "import json, sys\ns = sys.stdin.read()\npayload = json.loads(s) if s else {}\nloaded = payload.get('loaded_data', [])\nrequired = {'id','timestamp','value'}\nvalid = True\nerrors = []\nfor src in loaded:\n    for rec in src.get('records', []):\n        missing = [f for f in required if f not in rec]\n        if missing:\n            valid = False\n            errors.append({\"source_id\": src.get('source_id'), \"missing_fields\": missing, \"record\": rec})\n            break\n    if not valid:\n        break\nprint(json.dumps({\"validation_result\": {\"valid\": valid, \"errors\": errors}}))\n",
+        "timeout": 60,
+        "label": "validatedata"
       }
     },
     {
       "id": "node_5",
-      "type": "person_job",
+      "type": "condition",
       "position": {
-        "x": 1200,
-        "y": 200
+        "x": 1280,
+        "y": 0
       },
       "data": {
-        "person": "diagram_designer",
-        "default_prompt": "{{generated_prompt}}",
-        "max_iteration": 1,
-        "text_format_file": "projects/dipeodipeo/light_diagram_models.py",
-        "label": "generate_diagram",
-        "first_only_prompt": ""
+        "condition_type": "custom",
+        "expression": "validation_result.get('valid', False)",
+        "node_indices": [
+          "TransformData",
+          "Remediation"
+        ],
+        "label": "qualitygate"
       }
     },
     {
       "id": "node_6",
       "type": "code_job",
       "position": {
-        "x": 1400,
-        "y": 200
+        "x": 1520,
+        "y": 0
       },
       "data": {
         "language": "python",
-        "filePath": "projects/dipeodipeo/process.py",
-        "functionName": "process_diagram",
-        "label": "format_yaml"
+        "code": "import json, sys\ns = sys.stdin.read()\npayload = json.loads(s) if s else {}\nloaded = payload.get('loaded_data', [])\ntransformed = []\nfor src in loaded:\n    for rec in src.get('records', []):\n        r = dict(rec)\n        for k, v in list(r.items()):\n            if isinstance(v, str) and v.replace('.', '', 1).isdigit():\n                r[k] = float(v) if '.' in v else int(v)\n        transformed.append({\"source_id\": src.get('source_id'), \"record\": r})\ntransformation_plan = payload.get('transformation_plan', {\"steps\": [\"clean_nulls\",\"normalize_fields\"]})\nprint(json.dumps({\"transformed_data\": transformed, \"transformation_plan\": transformation_plan}))\n",
+        "timeout": 60,
+        "label": "transformdata"
       }
     },
     {
       "id": "node_7",
-      "type": "db",
+      "type": "code_job",
       "position": {
-        "x": 1600,
+        "x": 1800,
+        "y": 0
+      },
+      "data": {
+        "language": "python",
+        "code": "import json, sys\ns = sys.stdin.read()\npayload = json.loads(s) if s else {}\ntransformed = payload.get('transformed_data', [])\nrouting_result = {\"valid\": transformed, \"invalid\": []}\n# Pass sinks along for downstream save (simplified for demonstration)\nrouting_result[\"data_sinks\"] = payload.get('transformation_plan', {})\nprint(json.dumps({\"routing_result\": routing_result, \"data_config\": payload.get('data_config', {})}))\n",
+        "timeout": 60,
+        "label": "routedata"
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "code_job",
+      "position": {
+        "x": 2060,
+        "y": 0
+      },
+      "data": {
+        "language": "python",
+        "code": "import json, os, csv, sys\ns = sys.stdin.read()\npayload = json.loads(s) if s else {}\nrouting = payload.get('routing_result', {})\ntransformed = routing.get('valid', [])\ndata_sinks = payload.get('data_config', {}).get('data_sinks', [])\nsave_results = []\nfor sink in data_sinks:\n    dest = sink.get('destination', './outputs')\n    os.makedirs(dest, exist_ok=True)\n    path = os.path.join(dest, sink.get('id', 'sink') + \".csv\")\n    with open(path, 'w', encoding='utf-8', newline='') as f:\n        writer = csv.writer(f)\n        writer.writerow(['source_id','record_id','timestamp','value'])\n        for rec_item in transformed:\n            rec = rec_item.get('record', {})\n            writer.writerow([rec_item.get('source_id'), rec.get('id'), rec.get('timestamp', ''), rec.get('value', '')])\n    size = os.path.getsize(path)\n    save_results.append({\"sink_id\": sink.get('id'), \"path\": path, \"size_bytes\": size, \"status\": \"written\"})\nprint(json.dumps({\"save_results\": save_results, \"routing_result\": {\"valid\": transformed, \"invalid\": []}}))\n",
+        "timeout": 60,
+        "label": "savedata"
+      }
+    },
+    {
+      "id": "node_9",
+      "type": "code_job",
+      "position": {
+        "x": 2320,
+        "y": 0
+      },
+      "data": {
+        "language": "python",
+        "code": "import json, sys\ns = sys.stdin.read()\npayload = json.loads(s) if s else {}\nsave_results = payload.get('save_results', [])\npipeline_run = {\n    'id': 'run_001',\n    'status': 'success',\n    'metrics': {\"records_processed\": sum(len(r) for r in save_results) if save_results else 0},\n    'logs': [\"pipeline execution completed\", f\"sinks={len(save_results)}\"]\n}\nprint(json.dumps({'pipeline_run': pipeline_run}))\n",
+        "timeout": 60,
+        "label": "observability"
+      }
+    },
+    {
+      "id": "node_10",
+      "type": "user_response",
+      "position": {
+        "x": 2580,
+        "y": 0
+      },
+      "data": {
+        "prompt": "Final Results:\\n- Data ingested from configured sources.\\n- Validation performed; if valid, transformation applied.\\n- Data saved to sinks.\\n- Observability emitted (PipelineRun).\\n- If remediation occurred, see remediation paths.",
+        "timeout": 60,
+        "label": "finaloutput"
+      }
+    },
+    {
+      "id": "node_11",
+      "type": "code_job",
+      "position": {
+        "x": 0,
         "y": 200
       },
       "data": {
-        "operation": "write",
-        "sub_type": "file",
-        "format": "yaml",
-        "file": "projects/dipeodipeo/generated/diagram.light.yaml",
-        "label": "save_diagram"
+        "language": "python",
+        "code": "import json, sys\ns = sys.stdin.read()\npayload = json.loads(s) if s else {}\nremediation_plan = {\n    'action': 'retry',\n    'reason': 'validation_failed_non_fatal',\n    'retry_count': 0,\n    'max_retries': 3\n}\nprint(json.dumps({'remediation_plan': remediation_plan}))\n",
+        "timeout": 60,
+        "label": "remediation"
+      }
+    },
+    {
+      "id": "node_12",
+      "type": "condition",
+      "position": {
+        "x": 360,
+        "y": 200
+      },
+      "data": {
+        "condition_type": "custom",
+        "expression": "remediation_plan.get('action')",
+        "node_indices": [
+          "LoadData",
+          "DeadLetter",
+          "HumanReview"
+        ],
+        "label": "remediationdecision"
+      }
+    },
+    {
+      "id": "node_13",
+      "type": "code_job",
+      "position": {
+        "x": 720,
+        "y": 200
+      },
+      "data": {
+        "language": "python",
+        "code": "import json, os, sys\ns = sys.stdin.read()\npayload = json.loads(s) if s else {}\npath = './dlq/failed_records.json'\nos.makedirs('./dlq', exist_ok=True)\nwith open(path, 'w', encoding='utf-8') as f:\n    f.write(json.dumps({'failed_batch': payload}))\nprint(json.dumps({'dead_letter_path': path}))\n",
+        "timeout": 60,
+        "label": "deadletter"
+      }
+    },
+    {
+      "id": "node_14",
+      "type": "person_job",
+      "position": {
+        "x": 720,
+        "y": 400
+      },
+      "data": {
+        "person": "data_governance_policy",
+        "first_only_prompt": "Review remediation decisions for retention and governance gates.",
+        "default_prompt": "Please assess remediation plan and approve retry or escalate.",
+        "max_iteration": 1,
+        "memory_profile": "MINIMAL",
+        "memory_settings": {
+          "view": "system_and_me",
+          "max_messages": 5,
+          "preserve_system": true
+        },
+        "label": "humanreview"
+      }
+    },
+    {
+      "id": "node_15",
+      "type": "start",
+      "position": {
+        "x": 0,
+        "y": 400
+      },
+      "data": {
+        "trigger_mode": "manual",
+        "output_data_structure": {
+          "type": "object"
+        },
+        "custom_data": {},
+        "label": "remediationnotes"
+      }
+    },
+    {
+      "id": "node_16",
+      "type": "endpoint",
+      "position": {
+        "x": 0,
+        "y": 520
+      },
+      "data": {
+        "save_to_file": false,
+        "label": "remediationend"
       }
     }
   ],
@@ -123,104 +261,100 @@
       "id": "arrow_0",
       "source": "node_0_default_output",
       "target": "node_1_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
+      "content_type": "raw_text",
+      "label": "prompt_raw",
+      "data": null
     },
     {
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "label": "user_requirements",
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
+      "content_type": "object",
+      "label": "data_config",
+      "data": null
     },
     {
       "id": "arrow_2",
-      "source": "node_1_default_output",
+      "source": "node_2_default_output",
       "target": "node_3_default_input",
-      "label": "workflow_description",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
+      "content_type": "object",
+      "label": "load_plan",
+      "data": null
     },
     {
       "id": "arrow_3",
-      "source": "node_2_default_output",
-      "target": "node_5_default_input",
-      "label": "generated_prompt",
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
+      "source": "node_3_default_output",
+      "target": "node_4_default_input",
+      "content_type": "object",
+      "label": "loaded_data",
+      "data": null
     },
     {
       "id": "arrow_4",
-      "source": "node_3_default_output",
-      "target": "node_4_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
+      "source": "node_4_default_output",
+      "target": "node_5_default_input",
+      "content_type": "object",
+      "label": "validation_result",
+      "data": null
     },
     {
-      "id": "arrow_5",
-      "source": "node_5_default_output",
-      "target": "node_6_default_input",
-      "label": "generated_diagram",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_6",
+      "id": "arrow_7",
       "source": "node_6_default_output",
       "target": "node_7_default_input",
-      "label": "diagram_output",
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
-    }
-  ],
-  "persons": [
-    {
-      "id": "prompt_engineer",
-      "label": "prompt_engineer",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": "You are an expert prompt engineer specializing in creating effective prompts for DiPeO diagram generation.\nYou analyze requirements and create clear, detailed prompts that result in high-quality, executable diagrams.\nFocus on clarity, specificity, and actionable instructions.\n",
-        "prompt_file": null
-      },
-      "type": "person"
+      "content_type": "object",
+      "label": "transformed_data",
+      "data": null
     },
     {
-      "id": "diagram_designer",
-      "label": "diagram_designer",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": "You are an expert DiPeO diagram designer. You create well-structured light format diagrams\nthat follow best practices for modularity, error handling, and performance.\nAlways ensure proper node positioning with x-coordinates incrementing by 200-300 for readability.\nIMPORTANT: Never use 'empty' content_type - always use 'raw_text', 'object', or 'conversation_state'.\n",
-        "prompt_file": null
-      },
-      "type": "person"
+      "id": "arrow_8",
+      "source": "node_7_default_output",
+      "target": "node_8_default_input",
+      "content_type": "object",
+      "label": "routing_result",
+      "data": null
     },
     {
-      "id": "test_data_creator",
-      "label": "test_data_creator",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": "You are a test data generation expert. You create realistic, well-structured test data\nin various formats (CSV, JSON, etc.) that can be used to test the generated diagrams.\nAlways ensure the data is meaningful and follows best practices for testing.\n",
-        "prompt_file": null
-      },
-      "type": "person"
+      "id": "arrow_9",
+      "source": "node_8_default_output",
+      "target": "node_9_default_input",
+      "content_type": "object",
+      "label": "save_results",
+      "data": null
+    },
+    {
+      "id": "arrow_10",
+      "source": "node_9_default_output",
+      "target": "node_10_default_input",
+      "content_type": "object",
+      "label": "pipeline_run",
+      "data": null
+    },
+    {
+      "id": "arrow_11",
+      "source": "node_11_default_output",
+      "target": "node_12_default_input",
+      "content_type": "object",
+      "label": "remediation",
+      "data": null
+    },
+    {
+      "id": "arrow_15",
+      "source": "node_14_default_output",
+      "target": "node_3_default_input",
+      "content_type": "object",
+      "label": "governance_done",
+      "data": null
+    },
+    {
+      "id": "arrow_16",
+      "source": "node_13_default_output",
+      "target": "node_10_default_input",
+      "content_type": "raw_text",
+      "label": "dlq_complete",
+      "data": null
     }
   ],
+  "persons": [],
   "handles": [
     {
       "id": "node_0_default_output",
@@ -247,14 +381,6 @@
       "position": "right"
     },
     {
-      "id": "node_2_first_input",
-      "node_id": "node_2",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
       "id": "node_2_default_input",
       "node_id": "node_2",
       "label": "default",
@@ -269,14 +395,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_3_first_input",
-      "node_id": "node_3",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_3_default_input",
@@ -311,14 +429,6 @@
       "position": "right"
     },
     {
-      "id": "node_5_first_input",
-      "node_id": "node_5",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
       "id": "node_5_default_input",
       "node_id": "node_5",
       "label": "default",
@@ -327,11 +437,19 @@
       "position": "left"
     },
     {
-      "id": "node_5_default_output",
+      "id": "node_5_condtrue_output",
       "node_id": "node_5",
-      "label": "default",
+      "label": "condtrue",
       "direction": "output",
-      "data_type": "any",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_5_condfalse_output",
+      "node_id": "node_5",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
       "position": "right"
     },
     {
@@ -365,16 +483,160 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8_default_output",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_9_default_input",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_9_default_output",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_10_default_input",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_10_default_output",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_11_default_input",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_11_default_output",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_12_default_input",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_12_condtrue_output",
+      "node_id": "node_12",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_12_condfalse_output",
+      "node_id": "node_12",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_13_default_input",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_13_default_output",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_14_first_input",
+      "node_id": "node_14",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_14_default_input",
+      "node_id": "node_14",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_14_default_output",
+      "node_id": "node_14",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_15_default_output",
+      "node_id": "node_15",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_16_default_input",
+      "node_id": "node_16",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
-    "name": "Untitled",
+    "name": "diagram.light.yaml",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-16T01:54:58.298Z",
-    "modified": "2025-08-16T01:54:58.298Z",
+    "created": "2025-08-16T02:36:28.331Z",
+    "modified": "2025-08-16T02:36:28.331Z",
     "version": "1.0.0",
-    "id": null
+    "id": "projects/dipeodipeo/generated/diagram.light.yaml"
   }
 }

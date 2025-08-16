@@ -241,7 +241,7 @@ All SSE endpoints and direct WebSocket connections have been removed and replace
 
 ## Related Documentation
 
-- [DiPeO Application Layer](../dipeo/application/CLAUDE.md)
+- [DiPeO Application Layer](../../dipeo/application/CLAUDE.md)
 - [Infrastructure Events](../dipeo/infrastructure/events/CLAUDE.md)
-- [Frontend Architecture](../apps/web/CLAUDE.md)
+- [Frontend Architecture](../../apps/web/CLAUDE.md)
 - [Code Generation](../files/codegen/CLAUDE.md)
