@@ -74,6 +74,11 @@ jobs:
           # Install all dependencies from requirements.txt
           uv pip sync requirements.txt
           
+          # Explicitly install local packages as editable installs to ensure proper setup
+          uv pip install -e ./dipeo
+          uv pip install -e ./apps/server
+          uv pip install -e ./apps/cli
+          
           # Install development dependencies
           uv pip install "ruff>=0.8.0" mypy pytest-asyncio pytest-cov isort black import-linter
           
@@ -130,6 +135,10 @@ jobs:
           # Activate venv
           & .\.venv\Scripts\Activate.ps1
           
+          # Set PYTHONPATH to include the project root
+          $env:PYTHONPATH = "${{ github.workspace }}"
+          Write-Host "PYTHONPATH set to: $env:PYTHONPATH"
+          
           Write-Host "Running unified diagram-based code generation..."
           
           # Generate models
@@ -144,7 +153,7 @@ jobs:
           
           # Export GraphQL schema
           Write-Host "Exporting GraphQL schema from application layer..."
-          $env:PYTHONPATH = "${{ github.workspace }};$env:PYTHONPATH"
+          $env:PYTHONPATH = "${{ github.workspace }}"
           python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
           Write-Host "GraphQL schema exported to apps/server/schema.graphql"
           

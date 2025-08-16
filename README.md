@@ -13,7 +13,7 @@
 
 ### Hmm, so can I tweak it?
 
-<center><img src="/docs/pics/img.png" width="50%" alt=""></center>
+<center><img src="/docs/pics/img.png" width="85%" alt=""></center>
 
 * Definitely, you can just run `make dev-web` and tweak it in `localhost:3000`
 * The whole procedure works inside your computer. Nothing is in cloud or somewhere in network.
@@ -91,6 +91,7 @@ make dev-all
   - [User Guide](docs/README.md) - Getting started with DiPeO diagram editor
   - We are developing some interesting projects using `dipeo` itself. Take a look at [projects](docs/projects)
 
+---
 
 > DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI‑powered agent workflows through an intuitive visual programming environment. The repository is composed of a feature-based React **frontend** (apps/web/), a domain-driven FastAPI **backend** (apps/server/), and a CLI **tool** (apps/cli/) that work together to deliver real‑time, multi‑LLM automation at scale.
 
