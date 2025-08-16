@@ -17,8 +17,12 @@ scalar {{ scalar.name }}
 {%- for enum in enums %}
 
 enum {{ enum.name }} {
-{%- for value in enum['values'] %}
+{%- for value in (enum.get('values') or enum.get('members', [])) %}
+  {%- if value is mapping %}
+  {{ value.name }}
+  {%- else %}
   {{ value }}
+  {%- endif %}
 {%- endfor %}
 }
 {%- endfor %}

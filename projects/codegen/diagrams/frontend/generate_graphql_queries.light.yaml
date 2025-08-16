@@ -1,4 +1,5 @@
-# Generate GraphQL queries from TypeScript query definitions
+# Generate GraphQL queries from TypeScript query definitions - Simplified
+# Uses glob patterns to automatically discover query definition files
 # Uses template-based generation with enum-driven architecture
 
 version: light

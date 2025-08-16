@@ -8,7 +8,7 @@ This modular structure follows the pattern of condition and code_job handlers:
 """
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Any
 
 from pydantic import BaseModel
 
@@ -43,8 +43,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     Now uses envelope-based communication for clean interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self):
         """Initialize executors."""
@@ -150,83 +148,91 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         # Return None to proceed with normal execution
         return None
     
-    async def execute_with_envelopes(
+    async def prepare_inputs(
         self,
         request: ExecutionRequest[SubDiagramNode],
         inputs: dict[str, Envelope]
+    ) -> dict[str, Any]:
+        """Convert envelopes to legacy inputs for executors."""
+        # Convert envelopes to legacy inputs for executors (temporary during migration)
+        # This allows existing executors to work without modification
+        legacy_inputs = {}
+        for key, envelope in inputs.items():
+            if envelope.content_type == "raw_text":
+                legacy_inputs[key] = envelope.as_text()
+            elif envelope.content_type == "object":
+                legacy_inputs[key] = envelope.as_json()
+            elif envelope.content_type == "binary":
+                legacy_inputs[key] = envelope.as_bytes()
+            elif envelope.content_type == "conversation_state":
+                legacy_inputs[key] = envelope.as_conversation()
+            else:
+                legacy_inputs[key] = envelope.body
+        return legacy_inputs
+    
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[SubDiagramNode]
+    ) -> Any:
+        """Route execution to appropriate executor based on configuration."""
+        node = request.node
+        
+        # Update request inputs for executors
+        request.inputs = inputs
+        
+        # Route to appropriate executor
+        if getattr(node, 'batch', False):
+            logger.info(f"Executing SubDiagramNode {node.id} in batch mode")
+            result = await self.batch_executor.execute(request)
+        elif getattr(node, 'use_standard_execution', False):
+            logger.info(f"Executing SubDiagramNode {node.id} in standard mode")
+            result = await self.single_executor.execute(request)
+        else:
+            logger.debug(f"Executing SubDiagramNode {node.id} in lightweight mode")
+            result = await self.lightweight_executor.execute(request)
+        
+        return result
+    
+    def serialize_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[SubDiagramNode]
     ) -> Envelope:
-        """Route execution to appropriate executor based on configuration with envelope support."""
+        """Convert executor result to envelope."""
         node = request.node
         trace_id = request.execution_id or ""
         
-        try:
-            # Convert envelopes to legacy inputs for executors (temporary during migration)
-            # This allows existing executors to work without modification
-            legacy_inputs = {}
-            for key, envelope in inputs.items():
-                if envelope.content_type == "raw_text":
-                    legacy_inputs[key] = self.reader.as_text(envelope)
-                elif envelope.content_type == "object":
-                    legacy_inputs[key] = self.reader.as_json(envelope)
-                elif envelope.content_type == "binary":
-                    legacy_inputs[key] = self.reader.as_binary(envelope)
-                elif envelope.content_type == "conversation_state":
-                    legacy_inputs[key] = self.reader.as_conversation(envelope)
-                else:
-                    legacy_inputs[key] = envelope.body
-            
-            # Update request inputs for executors
-            request.inputs = legacy_inputs
-            
-            # Route to appropriate executor
-            if getattr(node, 'batch', False):
-                logger.info(f"Executing SubDiagramNode {node.id} in batch mode")
-                result = await self.batch_executor.execute(request)
-            elif getattr(node, 'use_standard_execution', False):
-                logger.info(f"Executing SubDiagramNode {node.id} in standard mode")
-                result = await self.single_executor.execute(request)
-            else:
-                logger.debug(f"Executing SubDiagramNode {node.id} in lightweight mode")
-                result = await self.lightweight_executor.execute(request)
-            
-            # Convert result to envelope
-            if hasattr(result, 'value'):
-                # Check if it's a dict (typical for batch or complex results)
-                if isinstance(result.value, dict):
-                    output_envelope = EnvelopeFactory.json(
-                        result.value,
-                        produced_by=node.id,
-                        trace_id=trace_id
-                    ).with_meta(
-                        diagram_name=node.diagram_name or "inline",
-                        execution_mode="batch" if getattr(node, 'batch', False) else "single"
-                    )
-                else:
-                    # Text output
-                    output_envelope = EnvelopeFactory.text(
-                        str(result.value),
-                        produced_by=node.id,
-                        trace_id=trace_id
-                    ).with_meta(
-                        diagram_name=node.diagram_name or "inline"
-                    )
-            else:
-                # Fallback for unexpected result format
-                output_envelope = EnvelopeFactory.text(
-                    str(result),
+        # Convert result to envelope
+        if hasattr(result, 'value'):
+            # Check if it's a dict (typical for batch or complex results)
+            if isinstance(result.value, dict):
+                output_envelope = EnvelopeFactory.json(
+                    result.value,
                     produced_by=node.id,
                     trace_id=trace_id
+                ).with_meta(
+                    diagram_name=node.diagram_name or "inline",
+                    execution_mode="batch" if getattr(node, 'batch', False) else "single"
                 )
-            
-            return output_envelope
-            
-        except Exception as e:
-            return EnvelopeFactory.error(
-                str(e),
-                error_type=e.__class__.__name__,
+            else:
+                # Text output
+                output_envelope = EnvelopeFactory.text(
+                    str(result.value),
+                    produced_by=node.id,
+                    trace_id=trace_id
+                ).with_meta(
+                    diagram_name=node.diagram_name or "inline"
+                )
+        else:
+            # Fallback for unexpected result format
+            output_envelope = EnvelopeFactory.text(
+                str(result),
                 produced_by=node.id,
                 trace_id=trace_id
             )
+        
+        return output_envelope
     
     async def on_error(
         self,

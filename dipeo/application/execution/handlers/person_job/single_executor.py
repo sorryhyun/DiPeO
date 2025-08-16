@@ -183,6 +183,9 @@ class SinglePersonJobExecutor:
         # Skip if no prompt
         if not built_prompt:
             logger.warning(f"Skipping execution for person {person_id} - no prompt available")
+            logger.warning(f"prompt_content: {prompt_content}, first_only_content: {first_only_content}")
+            logger.warning(f"node.prompt_file: {getattr(node, 'prompt_file', None)}")
+            logger.warning(f"filesystem_adapter: {self._filesystem_adapter}")
             return EnvelopeFactory.text(
                 "",
                 produced_by=str(node.id),

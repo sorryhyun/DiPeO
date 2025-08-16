@@ -7,7 +7,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.core.execution.envelope import Envelope, get_envelope_factory
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 
 if TYPE_CHECKING:
@@ -18,11 +18,13 @@ if TYPE_CHECKING:
 class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     """Handler for TypeScript AST parsing node.
     
-    Now uses envelope-based communication for clean input/output interfaces.
+    Uses Template Method Pattern for cleaner code:
+    - validate() for compile-time checks
+    - pre_execute() for runtime setup
+    - run() for core parsing logic
+    - serialize_output() for custom envelope creation
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self):
         """Initialize the handler.
@@ -79,7 +81,8 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         # Check parser service availability
         parser_service = request.get_service("ast_parser")
         if not parser_service:
-            return EnvelopeFactory.error(
+            factory = get_envelope_factory()
+            return factory.error(
                 "TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
                 error_type="RuntimeError",
                 produced_by=str(request.node.id)
@@ -87,283 +90,168 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         
         return None
     
-    async def execute_with_envelopes(
-        self, 
-        request: ExecutionRequest[TypescriptAstNode],
-        inputs: dict[str, Envelope]
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[TypescriptAstNode]
+    ) -> Any:
+        """Execute TypeScript AST parsing."""
+        node = request.node
+        
+        # Add debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Get TypeScript parser from services using DI pattern
+        parser_service = request.get_service("ast_parser")
+        
+        # Check if batch mode is enabled
+        batch_mode = getattr(node, 'batch', False)
+
+        if batch_mode:
+            # Batch mode: parse multiple sources at once
+            batch_input_key = getattr(node, 'batchInputKey', 'sources')
+            
+            # Get sources from node config or inputs
+            sources = getattr(node, 'sources', None)
+            if not sources:
+                # Try direct access first
+                sources = inputs.get(batch_input_key, {})
+            
+            # If not found, check if inputs has a 'default' key with the sources
+            if not sources and 'default' in inputs:
+                default_input = inputs['default']
+                if isinstance(default_input, dict):
+                    # Check if the default input has the batch_input_key
+                    if batch_input_key in default_input:
+                        sources = default_input[batch_input_key]
+                    # Or if the default input IS the sources dict directly
+                    elif all(isinstance(k, str) and k.endswith('.ts') for k in default_input.keys()):
+                        sources = default_input
+            
+            # Also check if inputs itself looks like a sources dict (all keys are file paths)
+            if not sources and isinstance(inputs, dict) and inputs:
+                # Check if this looks like a sources dictionary (keys are file paths)
+                if all(isinstance(k, str) and (k.endswith('.ts') or '/' in k) for k in inputs.keys() if k != 'default'):
+                    # Exclude 'default' key and use the rest as sources
+                    sources = {k: v for k, v in inputs.items() if k != 'default'}
+            
+            if not sources or not isinstance(sources, dict):
+                raise ValueError(f"Batch mode enabled but no sources dictionary provided at key '{batch_input_key}'")
+
+            # Parse all sources in batch
+            try:
+                results = await parser_service.parse_batch(
+                    sources=sources,
+                    extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
+                    options={
+                        'includeJSDoc': node.includeJSDoc or False,
+                        'parseMode': node.parseMode or 'module'
+                    }
+                )
+            except Exception as parser_error:
+                import traceback
+                logger.error(f"[TypescriptAstNode {node.id}] Batch parse error: {traceback.format_exc()}")
+                raise
+            
+            # Return results with metadata for serialize_output
+            return {
+                'results': results,
+                'batch_mode': True,
+                'total_sources': len(sources)
+            }
+        
+        else:
+            # Single mode: parse one source
+            source = node.source
+            if not source:
+                source = inputs.get('source', '')
+            if not source and 'default' in inputs and isinstance(inputs['default'], dict):
+                source = inputs['default'].get('source', '')
+            
+            if not source:
+                raise ValueError("No TypeScript source code provided")
+            
+            # Parse the TypeScript code using the parser service
+            try:
+                result = await parser_service.parse(
+                    source=source,
+                    extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
+                    options={
+                        'includeJSDoc': node.includeJSDoc or False,
+                        'parseMode': node.parseMode or 'module'
+                    }
+                )
+            except Exception as parser_error:
+                import traceback
+                logger.error(f"[TypescriptAstNode {node.id}] Traceback: {traceback.format_exc()}")
+                raise
+
+            # Extract AST data from the result
+            ast_data = result.get('ast', {})
+            metadata = result.get('metadata', {})
+
+            # Return processed result with metadata
+            return {
+                'ast': ast_data,
+                'metadata': metadata,
+                'batch_mode': False
+            }
+    
+    def serialize_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[TypescriptAstNode]
     ) -> Envelope:
-        """Execute TypeScript AST parsing with envelope inputs."""
+        """Custom serialization for TypeScript AST results."""
         node = request.node
         trace_id = request.execution_id or ""
+        factory = get_envelope_factory()
         
-        # Convert envelope inputs to legacy format
-        legacy_inputs = {}
-        for key, envelope in inputs.items():
-            try:
-                # Try to parse as JSON first
-                legacy_inputs[key] = self.reader.as_json(envelope)
-            except ValueError:
-                # Fall back to text
-                legacy_inputs[key] = self.reader.as_text(envelope)
-
-        
-        try:
-            # Add debug logging
-            import logging
-            logger = logging.getLogger(__name__)
-            
-            # Get TypeScript parser from services using DI pattern
-            parser_service = request.get_service("ast_parser")
-            
-            # Check if batch mode is enabled
-            batch_mode = getattr(node, 'batch', False)
-            
-            if batch_mode:
-                # Batch mode: parse multiple sources at once
-                batch_input_key = getattr(node, 'batchInputKey', 'sources')
-                
-                # Get sources from node config or inputs
-                sources = getattr(node, 'sources', None)
-                if not sources:
-                    sources = legacy_inputs.get(batch_input_key, {})
-                if not sources and 'default' in legacy_inputs and isinstance(legacy_inputs['default'], dict):
-                    sources = legacy_inputs['default'].get(batch_input_key, {})
-                
-                if not sources or not isinstance(sources, dict):
-                    return EnvelopeFactory.error(
-                        f"Batch mode enabled but no sources dictionary provided at key '{batch_input_key}'",
-                        error_type="ValueError",
-                        produced_by=str(node.id)
-                    )
-                
-                logger.debug(f"[TypescriptAstNode {node.id}] Batch parsing {len(sources)} sources")
-                
-                # Parse all sources in batch
-                try:
-                    results = await parser_service.parse_batch(
-                        sources=sources,
-                        extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
-                        options={
-                            'includeJSDoc': node.includeJSDoc or False,
-                            'parseMode': node.parseMode or 'module'
-                        }
-                    )
-                except Exception as parser_error:
-                    import traceback
-                    logger.error(f"[TypescriptAstNode {node.id}] Batch parse error: {traceback.format_exc()}")
-                    raise
-                
-                # Create output envelope for batch results
-                output_envelope = EnvelopeFactory.json(
-                    results,
-                    produced_by=node.id,
-                    trace_id=trace_id
-                ).with_meta(
-                    batch_mode=True,
-                    total_sources=len(sources),
-                    successful=len(results)
-                )
-                
-                return output_envelope
-            
-            else:
-                # Single mode: parse one source
-                source = node.source
-                if not source:
-                    source = legacy_inputs.get('source', '')
-                if not source and 'default' in legacy_inputs and isinstance(legacy_inputs['default'], dict):
-                    source = legacy_inputs['default'].get('source', '')
-                
-                if not source:
-                    return EnvelopeFactory.error(
-                        "No TypeScript source code provided",
-                        error_type="ValueError",
-                        produced_by=str(node.id)
-                    )
-                
-                # Parse the TypeScript code using the parser service
-                try:
-                    result = await parser_service.parse(
-                        source=source,
-                        extract_patterns=node.extractPatterns or ['interface', 'type', 'enum'],
-                        options={
-                            'includeJSDoc': node.includeJSDoc or False,
-                            'parseMode': node.parseMode or 'module'
-                        }
-                    )
-                except Exception as parser_error:
-                    import traceback
-                    logger.error(f"[TypescriptAstNode {node.id}] Traceback: {traceback.format_exc()}")
-                    raise
-                
-
-                # Extract AST data from the result
-                ast_data = result.get('ast', {})
-                metadata = result.get('metadata', {})
-
-
-                # Apply transformations based on node configuration
-                transform_enums = getattr(node, 'transformEnums', False)
-                flatten_output = getattr(node, 'flattenOutput', False)
-                output_format = getattr(node, 'outputFormat', 'standard')
-                
-                # Transform enums if requested
-                enums = ast_data.get('enums', [])
-                if transform_enums and enums:
-                    enums = self._transform_enums(enums)
-                
-                # Build output data based on format
-                if output_format == 'for_codegen':
-                    # Optimized format for code generation
-                    output_data = {
-                        'interfaces': ast_data.get('interfaces', []),
-                        'types': ast_data.get('types', []),
-                        'enums': enums,
-                        'consts': ast_data.get('constants', []),
-                        'total_definitions': (
-                            len(ast_data.get('interfaces', [])) +
-                            len(ast_data.get('types', [])) +
-                            len(enums) +
-                            len(ast_data.get('constants', []))
-                        )
-                    }
-                elif output_format == 'for_analysis':
-                    # Detailed format for analysis
-                    output_data = {
-                        'ast': ast_data,
-                        'metadata': metadata,
-                        'summary': {
-                            'interfaces': len(ast_data.get('interfaces', [])),
-                            'types': len(ast_data.get('types', [])),
-                            'enums': len(enums),
-                            'classes': len(ast_data.get('classes', [])),
-                            'functions': len(ast_data.get('functions', [])),
-                            'constants': len(ast_data.get('constants', []))
-                        }
-                    }
-                else:
-                    # Standard format (default)
-                    output_data = {
-                        'ast': metadata.get('astSummary', {}),
-                        'interfaces': ast_data.get('interfaces', []),
-                        'types': ast_data.get('types', []),
-                        'enums': enums,
-                        'classes': ast_data.get('classes', []),
-                        'functions': ast_data.get('functions', []),
-                        'constants': ast_data.get('constants', [])
-                    }
-                
-                # Flatten output if requested
-                if flatten_output and output_format == 'standard':
-                    output_data = self._flatten_output(output_data)
-
-                # Create output envelope with parsed data
-                output_envelope = EnvelopeFactory.json(
-                    output_data,
-                    produced_by=node.id,
-                    trace_id=trace_id
-                ).with_meta(
-                    output_format=output_format
-                )
-                
-                return output_envelope
-        
-        except Exception as e:
-            return EnvelopeFactory.error(
-                str(e),
-                error_type=e.__class__.__name__,
-                produced_by=str(node.id),
+        # Handle batch mode results
+        if isinstance(result, dict) and result.get('batch_mode'):
+            return factory.json(
+                result['results'],
+                produced_by=node.id,
                 trace_id=trace_id
+            ).with_meta(
+                batch_mode=True,
+                total_sources=result['total_sources'],
+                successful=len(result['results'])
             )
-    
-    def post_execute(
-        self,
-        request: ExecutionRequest[TypescriptAstNode],
-        output: Envelope
-    ) -> Envelope:
-        """Post-execution hook to log parsing statistics."""
-        # Log execution details if in debug mode (using instance variable)
-        if self._current_debug:
-            # Try to extract value from the output (works for both Envelope and legacy outputs)
-            output_value = None
-            if hasattr(output, 'value'):
-                output_value = output.value
+        
+        # Handle single mode results
+        if isinstance(result, dict) and 'ast' in result:
+            # Determine what to include in the output
+            include_raw_ast = getattr(node, 'includeRawAST', False)
             
-            # Extract counts from the actual output data if available
-            if isinstance(output_value, dict):
-                stats = []
-                # Check various output formats for counts
-                if 'summary' in output_value:
-                    # for_analysis format
-                    summary = output_value['summary']
-                    for key in ['interfaces', 'types', 'enums', 'classes', 'functions', 'constants']:
-                        count = summary.get(key, 0)
-                        if count > 0:
-                            stats.append(f"{count} {key}")
-                else:
-                    # standard or for_codegen format - count items directly
-                    for key in ['interfaces', 'types', 'enums', 'classes', 'functions', 'constants']:
-                        if key in output_value and isinstance(output_value[key], list):
-                            count = len(output_value[key])
-                            if count > 0:
-                                stats.append(f"{count} {key}")
-                
-                if stats:
-                    print(f"[TypescriptAstNode] Extracted: {', '.join(stats)}")
-        
-        return output
-    
-    def _transform_enums(self, enums: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Transform enum definitions to a simpler format.
-        
-        Converts enum member references from 'EnumName.MEMBER' to 'member' format.
-        """
-        transformed_enums = []
-        
-        for enum in enums:
-            transformed = enum.copy()
+            # Build output based on extraction results
+            extracted_definitions = result['ast'].get('extracted', {})
             
-            # Transform members if they exist
-            if 'members' in transformed and isinstance(transformed['members'], list):
-                transformed_members = []
-                for member in transformed['members']:
-                    if isinstance(member, dict):
-                        # Transform member value if it's an enum reference
-                        if 'value' in member and isinstance(member['value'], str):
-                            value = member['value']
-                            # Handle "EnumName.MEMBER" -> "member"
-                            if '.' in value:
-                                value = value.split('.')[-1]
-                            # Handle "UPPER_CASE" -> "upper_case"
-                            if value.isupper() and '_' in value:
-                                value = value.lower()
-                            member = member.copy()
-                            member['value'] = value
-                    transformed_members.append(member)
-                transformed['members'] = transformed_members
+            # Prepare output
+            output = {}
+            if include_raw_ast:
+                output['rawAST'] = result['ast'].get('raw', {})
             
-            transformed_enums.append(transformed)
+            output['extracted'] = extracted_definitions
+            output['metadata'] = result['metadata']
+            
+            # Add processing summary
+            summary = {
+                'totalExtracted': result['metadata'].get('extractedCount', 0),
+                'byType': result['metadata'].get('byType', {})
+            }
+            output['summary'] = summary
+            
+            return factory.json(
+                output,
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
+                extracted_count=result['metadata'].get('extractedCount', 0),
+                parse_mode=node.parseMode or 'module',
+                include_jsdoc=node.includeJSDoc or False
+            )
         
-        return transformed_enums
-    
-    def _flatten_output(self, output_data: dict[str, Any]) -> dict[str, Any]:
-        """Flatten the output structure for easier consumption.
-        
-        Merges all definition types into a single 'definitions' array.
-        """
-        flattened = {
-            'definitions': [],
-            'ast': output_data.get('ast', {})
-        }
-        
-        # Add all definition types to the definitions array
-        for def_type in ['interfaces', 'types', 'enums', 'classes', 'functions', 'constants']:
-            if def_type in output_data and isinstance(output_data[def_type], list):
-                for item in output_data[def_type]:
-                    if isinstance(item, dict):
-                        # Add the definition type to each item
-                        item_with_type = item.copy()
-                        item_with_type['definition_type'] = def_type.rstrip('s')  # Remove plural 's'
-                        flattened['definitions'].append(item_with_type)
-        
-        return flattened
+        # Fall back to base class serialization
+        return super().serialize_output(result, request)

@@ -27,8 +27,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self, api_service=None):
         super().__init__()
@@ -120,126 +118,128 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         # Return None to proceed with normal execution
         return None
 
-    async def execute_with_envelopes(
-        self, 
+    async def prepare_inputs(
+        self,
         request: ExecutionRequest[ApiJobNode],
         inputs: dict[str, Envelope]
-    ) -> Envelope:
-        """Execute API request with envelope inputs."""
+    ) -> dict[str, Any]:
+        """Prepare API request inputs from envelopes and node configuration."""
         node = request.node
-        trace_id = request.execution_id or ""
         
-        # Use pre-validated data from instance variables (set in pre_execute)
-        api_service = self._current_api_service
-        method = self._current_method
-        headers = self._current_headers
-        params = self._current_params
-        body = self._current_body
-        auth_config = self._current_auth_config
-        
-        # Get additional node configuration
-        url = node.url
-        timeout = node.timeout or 30
-        auth_type = node.auth_type or "none"
+        # Start with pre-validated data from instance variables (set in pre_execute)
+        api_config = {
+            'api_service': self._current_api_service,
+            'method': self._current_method,
+            'headers': self._current_headers.copy(),
+            'params': self._current_params.copy(),
+            'body': self._current_body,
+            'auth_config': self._current_auth_config,
+            'url': node.url,
+            'timeout': node.timeout or 30,
+            'auth_type': node.auth_type or "none"
+        }
         
         # Process any dynamic inputs from envelopes
-        # Check for url override from input
         if url_envelope := self.get_optional_input(inputs, 'url'):
-            url = self.reader.as_text(url_envelope)
+            api_config['url'] = url_envelope.as_text()
         
-        # Check for headers override from input
         if headers_envelope := self.get_optional_input(inputs, 'headers'):
             try:
-                headers = self.reader.as_json(headers_envelope)
+                api_config['headers'] = headers_envelope.as_json()
             except ValueError:
-                # If not JSON, treat as text
-                headers_text = self.reader.as_text(headers_envelope)
+                headers_text = headers_envelope.as_text()
                 try:
-                    headers = json.loads(headers_text)
+                    api_config['headers'] = json.loads(headers_text)
                 except json.JSONDecodeError:
-                    return EnvelopeFactory.error(
-                        "Invalid headers format in input",
-                        error_type="ValueError",
-                        produced_by=str(node.id)
-                    )
+                    raise ValueError("Invalid headers format in input")
         
-        # Check for params override from input
         if params_envelope := self.get_optional_input(inputs, 'params'):
             try:
-                params = self.reader.as_json(params_envelope)
+                api_config['params'] = params_envelope.as_json()
             except ValueError:
-                params_text = self.reader.as_text(params_envelope)
+                params_text = params_envelope.as_text()
                 try:
-                    params = json.loads(params_text)
+                    api_config['params'] = json.loads(params_text)
                 except json.JSONDecodeError:
-                    return EnvelopeFactory.error(
-                        "Invalid params format in input",
-                        error_type="ValueError",
-                        produced_by=str(node.id)
-                    )
+                    raise ValueError("Invalid params format in input")
         
-        # Check for body override from input
         if body_envelope := self.get_optional_input(inputs, 'body'):
             try:
-                body = self.reader.as_json(body_envelope)
+                api_config['body'] = body_envelope.as_json()
             except ValueError:
-                # If not JSON, treat as text
-                body = self.reader.as_text(body_envelope)
+                api_config['body'] = body_envelope.as_text()
+        
+        return api_config
+
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[ApiJobNode]
+    ) -> dict[str, Any]:
+        """Execute API request."""
+        node = request.node
+        api_config = inputs
+        
+        # Extract configuration
+        api_service = api_config['api_service']
+        method = api_config['method']
+        headers = api_config['headers']
+        params = api_config['params']
+        body = api_config['body']
+        auth_config = api_config['auth_config']
+        url = api_config['url']
+        timeout = api_config['timeout']
+        auth_type = api_config['auth_type']
         
         print(f"[ApiJobNode] URL: {url}")
         print(f"[ApiJobNode] Method: {method}")
         print(f"[ApiJobNode] Headers: {headers}")
 
-        try:
-            auth = self._prepare_auth(auth_type, auth_config)
-            headers = self._apply_auth_headers(headers, auth_type, auth_config)
-            request_data = self._prepare_request_data(method, params, body)
-            
-            method_value = method.value if hasattr(method, 'value') else str(method)
-            
-            response_data = await api_service.execute_with_retry(
-                url=url,
-                method=method_value,
-                data=request_data,
-                headers=headers,
-                max_retries=node.max_retries if hasattr(node, "max_retries") else 3,
-                retry_delay=1.0,
-                timeout=timeout,
-                auth=auth,
-                expected_status_codes=list(range(200, 300))
-            )
-            
-            # Convert response to dict format
-            response_dict = response_data if isinstance(response_data, dict) else {"result": str(response_data)}
-            
-            # Create output envelope
-            output_envelope = EnvelopeFactory.json(
-                response_dict,
-                produced_by=node.id,
-                trace_id=trace_id
-            ).with_meta(
-                url=url,
-                method=method_value,
-                status_code=200  # Default success code
-            )
-            
-            return output_envelope
+        auth = self._prepare_auth(auth_type, auth_config)
+        headers = self._apply_auth_headers(headers, auth_type, auth_config)
+        request_data = self._prepare_request_data(method, params, body)
+        
+        method_value = method.value if hasattr(method, 'value') else str(method)
+        
+        response_data = await api_service.execute_with_retry(
+            url=url,
+            method=method_value,
+            data=request_data,
+            headers=headers,
+            max_retries=node.max_retries if hasattr(node, "max_retries") else 3,
+            retry_delay=1.0,
+            timeout=timeout,
+            auth=auth,
+            expected_status_codes=list(range(200, 300))
+        )
+        
+        # Convert response to dict format and include metadata
+        response_dict = response_data if isinstance(response_data, dict) else {"result": str(response_data)}
+        response_dict['_api_meta'] = {
+            'url': url,
+            'method': method_value,
+            'status_code': 200  # Default success code
+        }
+        
+        return response_dict
 
-        except Exception as e:
-            error_envelope = EnvelopeFactory.text(
-                str(e),
-                produced_by=node.id,
-                trace_id=trace_id
-            ).with_meta(
-                error_type=type(e).__name__,
-                url=url,
-                method=str(method)
-            )
-            return EnvelopeFactory.error(
-                str(e),
-                error_type=e.__class__.__name__,
-                produced_by=str(node.id)
-            )
+    def serialize_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[ApiJobNode]
+    ) -> Envelope:
+        """Serialize API response to JSON envelope."""
+        node = request.node
+        trace_id = request.execution_id or ""
+        
+        # Extract metadata if present
+        meta = result.pop('_api_meta', {}) if isinstance(result, dict) else {}
+        
+        return EnvelopeFactory.json(
+            result,
+            produced_by=node.id,
+            trace_id=trace_id
+        ).with_meta(**meta)
 
     def _parse_json_inputs(
         self, headers: Any, params: Any, body: Any, auth_config: Any

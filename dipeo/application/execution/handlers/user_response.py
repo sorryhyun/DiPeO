@@ -23,8 +23,6 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self):
         super().__init__()
@@ -47,41 +45,44 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     def description(self) -> str:
         return "Interactive node that prompts for user input"
 
-    async def execute_with_envelopes(
-        self, 
+    async def prepare_inputs(
+        self,
         request: ExecutionRequest[UserResponseNode],
         inputs: dict[str, Envelope]
-    ) -> Envelope:
-        return await self._execute_user_response(request, inputs)
-    
-    async def _execute_user_response(
-        self, 
-        request: ExecutionRequest[UserResponseNode],
-        envelope_inputs: dict[str, Envelope]
-    ) -> Envelope:
-        # Extract properties from request
-        node = request.node
-        context = request.context
-        trace_id = request.execution_id or ""
-        
+    ) -> dict[str, Any]:
+        """Convert envelope inputs to context for user prompt."""
         # Convert envelope inputs to text for context
         input_context = None
-        if envelope_inputs:
+        if inputs:
             # Check for default input first
-            if default_envelope := self.get_optional_input(envelope_inputs, 'default'):
+            if default_envelope := self.get_optional_input(inputs, 'default'):
                 try:
-                    input_context = self.reader.as_json(default_envelope)
+                    input_context = default_envelope.as_json()
                 except ValueError:
-                    input_context = self.reader.as_text(default_envelope)
+                    input_context = default_envelope.as_text()
             else:
                 # Collect all inputs
                 input_data = {}
-                for key, envelope in envelope_inputs.items():
+                for key, envelope in inputs.items():
                     try:
-                        input_data[key] = self.reader.as_json(envelope)
+                        input_data[key] = envelope.as_json()
                     except ValueError:
-                        input_data[key] = self.reader.as_text(envelope)
+                        input_data[key] = envelope.as_text()
                 input_context = input_data
+        
+        return {"input_context": input_context}
+    
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[UserResponseNode]
+    ) -> Any:
+        """Execute user response interaction."""
+        node = request.node
+        context = request.context
+        
+        # Get input context from prepared inputs
+        input_context = inputs.get("input_context")
         
         # Get execution context from ServiceRegistry
         exec_context = request.services.resolve(EXECUTION_CONTEXT)
@@ -104,7 +105,25 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
                 }
             )
 
-            # Create output envelope
+            return {"response": response, "has_handler": True}
+        
+        # Return empty response when no handler available
+        return {"response": "", "has_handler": False}
+    
+    def serialize_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[UserResponseNode]
+    ) -> Envelope:
+        """Serialize user response to envelope."""
+        node = request.node
+        trace_id = request.execution_id or ""
+        
+        response = result.get("response", "")
+        has_handler = result.get("has_handler", False)
+        
+        if has_handler:
+            # Create output envelope with response
             output_envelope = EnvelopeFactory.text(
                 response,
                 produced_by=node.id,
@@ -112,16 +131,15 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
             ).with_meta(
                 user_response=response
             )
-            
-            return output_envelope
-        # Return empty response when no handler available
-        output_envelope = EnvelopeFactory.text(
-            "",
-            produced_by=node.id,
-            trace_id=trace_id
-        ).with_meta(
-            warning="No interactive handler available",
-            user_response=""
-        )
+        else:
+            # Return empty response when no handler available
+            output_envelope = EnvelopeFactory.text(
+                "",
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
+                warning="No interactive handler available",
+                user_response=""
+            )
         
         return output_envelope

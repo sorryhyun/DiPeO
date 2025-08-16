@@ -1,6 +1,7 @@
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -37,8 +38,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     avoiding metadata pollution and providing clean, type-safe data flow.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self, filesystem_adapter: FileSystemPort | None = None, template_processor: TemplateProcessorPort | None = None):
         super().__init__()
@@ -150,21 +149,13 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         
         return None
     
-    async def execute_with_envelopes(
+    async def prepare_inputs(
         self,
         request: ExecutionRequest[CodeJobNode],
         inputs: dict[str, Envelope]
-    ) -> Envelope:
-        """Execute code with envelope inputs"""
-        
+    ) -> dict[str, Any]:
+        """Prepare execution context from envelopes."""
         node = request.node
-        trace_id = request.execution_id or ""
-        
-        # Use pre-validated data from instance variables (set in pre_execute)
-        language = self._current_language
-        timeout = self._current_timeout
-        function_name = self._current_function_name
-        executor = self._current_executor
         
         # Prepare execution context from envelopes
         exec_context = {}
@@ -173,11 +164,13 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         for key, envelope in inputs.items():
             # Convert envelope to appropriate Python type
             if envelope.content_type == "raw_text":
-                exec_context[key] = self.reader.as_text(envelope)
+                exec_context[key] = envelope.as_text()
             elif envelope.content_type == "object":
-                exec_context[key] = self.reader.as_json(envelope)
+                value = envelope.as_json()
+                # SEAC: Direct pass-through - no shape mutation
+                exec_context[key] = value
             elif envelope.content_type == "binary":
-                exec_context[key] = self.reader.as_binary(envelope)
+                exec_context[key] = envelope.as_bytes()
             else:
                 # Default to raw body
                 exec_context[key] = envelope.body
@@ -186,32 +179,43 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         exec_context['inputs'] = exec_context.copy()
         exec_context['node_id'] = node.id
         
-        try:
-            if node.code:
-                request.add_metadata("inline_code", True)
-                result = await executor.execute_inline(node.code, exec_context, timeout, function_name)
-            else:
-                # Use pre-resolved file path from instance variable
-                file_path = self._current_file_path
-                request.add_metadata("filePath", str(file_path))
-                result = await executor.execute_file(file_path, exec_context, timeout, function_name)
-        
-        except TimeoutError:
-            return EnvelopeFactory.error(
-                f"Code execution timed out after {timeout} seconds",
-                error_type="TimeoutError",
-                produced_by=node.id,
-                trace_id=trace_id
-            )
-        except Exception as e:
-            logger.error(f"Code execution failed: {e}")
-            return EnvelopeFactory.error(
-                str(e),
-                error_type=e.__class__.__name__,
-                produced_by=node.id,
-                trace_id=trace_id
-            )
+        return exec_context
 
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[CodeJobNode]
+    ) -> Any:
+        """Execute code with prepared context."""
+        node = request.node
+        exec_context = inputs
+        
+        # Use pre-validated data from instance variables (set in pre_execute)
+        timeout = self._current_timeout
+        function_name = self._current_function_name
+        executor = self._current_executor
+        
+        if node.code:
+            request.add_metadata("inline_code", True)
+            result = await executor.execute_inline(node.code, exec_context, timeout, function_name)
+        else:
+            # Use pre-resolved file path from instance variable
+            file_path = self._current_file_path
+            request.add_metadata("filePath", str(file_path))
+            result = await executor.execute_file(file_path, exec_context, timeout, function_name)
+        
+        return result
+
+    def serialize_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[CodeJobNode]
+    ) -> Envelope:
+        """Serialize code execution result to appropriate envelope type."""
+        node = request.node
+        trace_id = request.execution_id or ""
+        language = self._current_language
+        
         # Determine output type and create envelope
         if result is None:
             output_envelope = EnvelopeFactory.text(
@@ -247,7 +251,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         
         # Add execution metadata
         output_envelope = output_envelope.with_meta(
-            execution_time=timeout,  # We don't have actual exec_time tracked here
+            execution_time=self._current_timeout,
             code_hash=hash(node.code) if node.code else hash(str(self._current_file_path)),
             language=language,
             result_type="dict" if isinstance(result, dict) else "string"

@@ -1,52 +1,19 @@
 """
 Field configurations generator for DiPeO nodes.
 Consolidates all field config generation logic into a single module.
-Uses infrastructure's type transformer for centralized type mappings.
+Handles glob inputs directly and generates field configurations for UI.
 """
 
-import os
-import sys
 import json
 import traceback
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List
 from jinja2 import Template, StrictUndefined
 
 
 # ============================================================================
-# Infrastructure Imports (Dynamic)
-# ============================================================================
-
-def get_type_transformer():
-    """Dynamically import type transformer from infrastructure."""
-    try:
-        # Ensure DIPEO_BASE_DIR is in path
-        base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
-        if base_dir not in sys.path:
-            sys.path.append(base_dir)
-        
-        from dipeo.infrastructure.adapters.parsers.typescript.type_transformer import map_ts_type_to_python
-        return map_ts_type_to_python
-    except ImportError:
-        # print("WARNING: Could not import infrastructure type transformer, using fallback")
-        return None
-
-
-# ============================================================================
 # Helper Functions
 # ============================================================================
-
-def extract_mappings_from_ast(mappings_ast: dict) -> dict:
-    """Extract mappings from codegen mappings AST"""
-    # This should not be used anymore since mappings are extracted by the Extract Mappings node
-    # Return minimal defaults if called
-    # print("WARNING: extract_mappings_from_ast called - should use mappings from Extract Mappings node")
-    return {
-        'node_interface_map': {},
-        'base_fields': ['label', 'flipped'],
-        'type_to_field': {}  # Will be determined dynamically
-    }
 
 
 # ============================================================================
@@ -59,10 +26,7 @@ def generate_label(name: str) -> str:
 
 
 def get_field_type(name: str, type_text: str, type_to_field: dict = None) -> str:
-    """Determine the appropriate field type - must match FIELD_TYPES from panel.ts
-    
-    Uses infrastructure's type transformer for consistent type mapping.
-    """
+    """Determine the appropriate field type - must match FIELD_TYPES from panel.ts"""
     # Special handling for specific field names
     # Check for file fields first (before checking for 'prompt' keyword)
     if name == 'filePath' or name == 'file_path' or name == 'path':
@@ -94,24 +58,13 @@ def get_field_type(name: str, type_text: str, type_to_field: dict = None) -> str
     if 'PersonID' in clean_type:
         return 'personSelect'
     
-    # Get type transformer and convert to Python type for better mapping
-    type_transformer = get_type_transformer()
-    if type_transformer:
-        py_type = type_transformer(clean_type)
-        
-        # Map Python types to field types
-        if py_type == 'str':
-            return 'text'
-        elif py_type in ['int', 'float']:
-            return 'number'
-        elif py_type == 'bool':
-            return 'checkbox'
-        elif py_type.startswith('List['):
-            return 'textarea'
-        elif py_type.startswith('Dict['):
-            return 'code'
-        elif 'Union[' in py_type or 'Literal[' in py_type:
-            return 'select'  # For enum-like unions
+    # Handle basic TypeScript types
+    if clean_type in ['string', 'str']:
+        return 'text'
+    elif clean_type in ['number', 'int', 'float']:
+        return 'number'
+    elif clean_type in ['boolean', 'bool']:
+        return 'checkbox'
     
     # Fallback to legacy type_to_field mapping if provided
     if type_to_field and clean_type in type_to_field:
@@ -254,55 +207,41 @@ def extract_field_configs_core(ast_data: dict, mappings: dict) -> dict:
 # ============================================================================
 
 def extract_field_configs(inputs: dict) -> dict:
-    """Main entry point for the field config extractor"""
-    # Check if we have the new format (single input with multiple files)
-    if 'ast_files' in inputs and isinstance(inputs['ast_files'], dict):
-        # New format: dictionary where keys are file paths and values are file contents
-        file_dict = inputs['ast_files']
+    """Main entry point for the field config extractor - handles glob inputs directly"""
+    # The diagram passes glob results as 'ast_files' and mappings as 'mappings'
+    glob_results = inputs.get('ast_files', {})
+    
+    # Handle wrapped inputs (runtime resolver may wrap in 'default')
+    if 'default' in glob_results and isinstance(glob_results['default'], dict):
+        glob_results = glob_results['default']
+    
+    # Get mappings if provided
+    mappings = inputs.get('mappings', {})
+    
+    # Collect all interfaces and enums from glob results
+    all_interfaces = []
+    all_enums = []
+    
+    for filepath, content in glob_results.items():
+        # Skip special keys
+        if filepath in ['default', 'inputs', 'node_id', 'mappings']:
+            continue
         
-        # Handle wrapped inputs (runtime resolver may wrap in 'default')
-        if 'default' in file_dict and isinstance(file_dict['default'], dict):
-            file_dict = file_dict['default']
+        # Parse AST data if string
+        ast_data = content if isinstance(content, dict) else json.loads(content)
         
-        # Parse AST data from the files
-        diagram_ast = None
-        all_interfaces = []
-        mappings_ast = None
-        
-        for filepath, content in file_dict.items():
-            if filepath == 'default':
-                continue
-            # Extract filename from path
-            filename = filepath.split('/')[-1] if '/' in filepath else filepath
-            
-            if filename == 'diagram.ts.json':
-                diagram_ast = content if isinstance(content, dict) else json.loads(content)
-            elif filename.endswith('.data.ts.json'):
-                # This is a node data file
-                ast_data = content if isinstance(content, dict) else json.loads(content)
-                interfaces = ast_data.get('interfaces', [])
-                all_interfaces.extend(interfaces)
-            elif filename == 'codegen-mappings.ts.json':
-                mappings_ast = content if isinstance(content, dict) else json.loads(content)
-        
-        # Get mappings
-        mappings = inputs.get('mappings', {})
-        if not mappings and mappings_ast:
-            # Extract mappings from AST if not provided separately
-            mappings = extract_mappings_from_ast(mappings_ast)
-        
-        # Create aggregated AST data from collected interfaces
-        node_data_ast = {
-            'interfaces': all_interfaces,
-            'types': [],
-            'enums': [],
-            'constants': []
-        }
-    else:
-        # Legacy format: separate inputs
-        node_data_ast = inputs.get('node_data', {})
-        diagram_ast = inputs.get('default', {})
-        mappings = inputs.get('mappings', {})
+        # Collect interfaces and enums
+        all_interfaces.extend(ast_data.get('interfaces', []))
+        all_enums.extend(ast_data.get('enums', []))
+    
+    # Create aggregated AST data
+    node_data_ast = {
+        'interfaces': all_interfaces,
+        'enums': all_enums,
+        'types': [],
+        'constants': []
+    }
+    
     return extract_field_configs_core(node_data_ast, mappings)
 
 

@@ -32,8 +32,6 @@ logger = logging.getLogger(__name__)
 class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     """Handler for condition nodes using evaluator pattern with envelope support."""
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self):
         super().__init__()
@@ -122,25 +120,15 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # No early return - proceed to execute_request
         return None
     
-    async def execute_with_envelopes(
+    async def run(
         self,
-        request: ExecutionRequest[ConditionNode],
-        inputs: dict[str, Envelope]
-    ) -> Envelope:
-        """Execute condition evaluation with envelope inputs."""
+        inputs: dict[str, Any],
+        request: ExecutionRequest[ConditionNode]
+    ) -> dict[str, Any]:
+        """Execute condition evaluation."""
         node = request.node
         context = request.context
-        trace_id = request.execution_id or ""
-        
-        # Convert envelopes to legacy inputs for evaluators
-        legacy_inputs = {}
-        for key, envelope in inputs.items():
-            if envelope.content_type == "raw_text":
-                legacy_inputs[key] = self.reader.as_text(envelope)
-            elif envelope.content_type == "object":
-                legacy_inputs[key] = self.reader.as_json(envelope)
-            else:
-                legacy_inputs[key] = envelope.body
+        legacy_inputs = inputs
         
         # Use evaluator and diagram from instance variables (set in pre_execute)
         evaluator = self._current_evaluator
@@ -151,7 +139,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         result = eval_result["result"]
         output_value = eval_result["output_data"] or {}
         
-        # Store evaluation metadata in instance variable instead of request.metadata
+        # Store evaluation metadata in instance variable for later use
         self._current_evaluation_metadata = eval_result["metadata"]
         
         true_output = output_value.get("condtrue") if result else None
@@ -163,11 +151,9 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             f"has_false_output={false_output is not None}"
         )
         
-        # Create Envelope directly for proper branch routing
-        from dipeo.core.execution.envelope import Envelope
-        
-        # Prepare metadata with condition-specific fields
-        meta = {
+        # Return structured result for serialization
+        return {
+            "result": result,
             "condtrue": true_output,
             "condfalse": false_output,
             "active_branch": "condtrue" if result else "condfalse",
@@ -175,10 +161,25 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             "evaluation_metadata": self._current_evaluation_metadata,
             "timestamp": time.time()
         }
+
+    def serialize_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[ConditionNode]
+    ) -> Envelope:
+        """Serialize condition result to special condition envelope."""
+        node = request.node
+        
+        # Extract result data
+        condition_result = result["result"]
+        meta = {k: v for k, v in result.items() if k != "result"}
+        
+        # Create Envelope directly for proper branch routing
+        from dipeo.core.execution.envelope import Envelope
         
         output = Envelope(
             content_type="condition_result",  # Special content type for conditions
-            body=result,
+            body=condition_result,
             produced_by=str(node.id),
             meta=meta
         )

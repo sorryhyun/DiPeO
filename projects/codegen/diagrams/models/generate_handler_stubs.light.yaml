@@ -1,0 +1,198 @@
+# Generate Python handler stubs for nodes without existing handlers
+# This diagram identifies node types that need handlers and generates stub implementations
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    props:
+      custom_data:
+        message: Starting handler stub generation
+
+  # Load cached AST data
+  - label: Load AST Cache
+    type: code_job
+    position: {x: 200, y: 200}
+    props:
+      language: python
+      code: |
+        import os
+        import json
+        import glob
+        
+        base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+        
+        # Aggregate all cached AST data from temp directory
+        all_interfaces = []
+        
+        # Load from temp directory structure (matching parse_typescript_batch_direct output)
+        cache_patterns = [
+            'temp/*.ts.json',
+            'temp/core/*.ts.json',
+            'temp/core/nodes/*.ts.json',
+            'temp/core/enums/*.ts.json',
+            'temp/specifications/*.ts.json',
+            'temp/specifications/nodes/*.ts.json',
+            'temp/utilities/*.ts.json',
+            'temp/codegen/*.ts.json',
+            'temp/frontend/*.ts.json',
+            'temp/frontend/query-definitions/*.ts.json'
+        ]
+        
+        for pattern in cache_patterns:
+            cache_path = os.path.join(base_dir, pattern)
+            for ast_file in glob.glob(cache_path):
+                try:
+                    with open(ast_file, 'r') as f:
+                        ast_data = json.load(f)
+                        # Extract interfaces from the AST data
+                        if 'interfaces' in ast_data:
+                            all_interfaces.extend(ast_data['interfaces'])
+                except Exception as e:
+                    print(f"Warning: Failed to load {ast_file}: {e}")
+        
+        result = {'interfaces': all_interfaces}
+
+  # Load node specifications
+  - label: Load Node Specs
+    type: code_job
+    position: {x: 200, y: 300}
+    props:
+      language: python
+      code: |
+        import os
+        import json
+        import glob
+        
+        base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+        specs_path = os.path.join(base_dir, 'temp/specifications/nodes/*.spec.ts.json')
+        
+        node_specs = []
+        for spec_file in glob.glob(specs_path):
+            try:
+                with open(spec_file, 'r') as f:
+                    spec_data = json.load(f)
+                    if 'nodeType' in spec_data:
+                        node_specs.append(spec_data)
+            except Exception as e:
+                print(f"Warning: Failed to load {spec_file}: {e}")
+        
+        result = {'node_specs': node_specs}
+
+  # Combine inputs and detect which handlers are needed
+  - label: Detect Missing Handlers
+    type: code_job
+    position: {x: 400, y: 250}
+    props:
+      language: python
+      code: |
+        import sys
+        import os
+        sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
+        from projects.codegen.code.models.generate_handler_stubs import main
+        
+        # Get inputs from both previous nodes
+        ast_interfaces = inputs.get('Load AST Cache', {}).get('interfaces', [])
+        node_specs = inputs.get('Load Node Specs', {}).get('node_specs', [])
+        
+        # Prepare AST data structure
+        ast_data = {'interfaces': ast_interfaces}
+        
+        # Call the main function with both required arguments
+        result = main(ast_data, node_specs)
+
+  # Check if any stubs need to be generated
+  - label: Check Stub Count
+    type: condition
+    position: {x: 600, y: 250}
+    props:
+      value_path: total_stubs
+      operator: ">"
+      expected_value: 0
+
+  # Generate handler stubs using template (if needed)
+  - label: Generate Handler Stubs
+    type: template_job
+    position: {x: 800, y: 250}
+    props:
+      batch: true
+      batch_input_key: handler_stubs
+      template_file: projects/codegen/templates/models/handler_stub.j2
+      output_path: dipeo/diagram_generated_staged/handlers/auto/{node_type}.py
+
+  # Report no stubs needed
+  - label: No Stubs Needed
+    type: code_job
+    position: {x: 600, y: 400}
+    props:
+      language: python
+      code: |
+        result = {
+            'status': 'success',
+            'message': 'All node types already have handlers implemented',
+            'handler_stubs_generated': 0
+        }
+
+  # Summary
+  - label: Summarize Results
+    type: code_job
+    position: {x: 1000, y: 250}
+    props:
+      language: python
+      code: |
+        # Get input from either path (Generate Handler Stubs or No Stubs Needed)
+        input_from_stubs = inputs.get('Generate Handler Stubs', None)
+        input_from_no_stubs = inputs.get('No Stubs Needed', None)
+        
+        # Count generated stubs
+        stub_count = 0
+        if input_from_stubs:
+            # If we generated stubs, count them
+            if isinstance(input_from_stubs, list):
+                stub_count = len(input_from_stubs)
+            elif isinstance(input_from_stubs, dict):
+                stub_count = input_from_stubs.get('total_stubs', 0)
+        elif input_from_no_stubs:
+            # No stubs were needed
+            stub_count = 0
+        
+        result = {
+            'status': 'success',
+            'handler_stubs_generated': stub_count,
+            'message': f'Successfully generated {stub_count} handler stub(s)',
+            'output_location': 'dipeo/diagram_generated_staged/handlers/auto/'
+        }
+        
+        if stub_count > 0:
+            print(f"✅ Handler stub generation complete: {stub_count} stub(s) created")
+        else:
+            print("✅ All node types already have handlers")
+
+  - label: End
+    type: endpoint
+    position: {x: 1200, y: 250}
+    props:
+      save_to_file: false
+
+connections:
+  # Load data in parallel
+  - {from: Start, to: Load AST Cache}
+  - {from: Start, to: Load Node Specs}
+  
+  # Both loads feed into detection
+  - {from: Load AST Cache, to: Detect Missing Handlers}
+  - {from: Load Node Specs, to: Detect Missing Handlers}
+  
+  # Conditional branching based on stub count
+  - {from: Detect Missing Handlers, to: Check Stub Count}
+  - {from: Check Stub Count, to: Generate Handler Stubs, condition: true}
+  - {from: Check Stub Count, to: No Stubs Needed, condition: false}
+  
+  # Converge to summary
+  - {from: Generate Handler Stubs, to: Summarize Results}
+  - {from: No Stubs Needed, to: Summarize Results}
+  
+  # End
+  - {from: Summarize Results, to: End}

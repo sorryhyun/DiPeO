@@ -1,5 +1,5 @@
-# Generate GraphQL Schema using Template Job - Dynamic Discovery
-# Uses glob patterns to automatically discover all node data files
+# Generate GraphQL Schema using Template Job - Simplified
+# Uses simplified extractors that work directly with DB glob results
 
 version: light
 
@@ -36,17 +36,19 @@ nodes:
         - temp/core/execution.ts.json
         - temp/core/conversation.ts.json
         - temp/core/integration.ts.json
+        # Enum files
+        - "temp/core/enums/*.ts.json"  # Load all enum definitions
         # Dynamic discovery of all node data files
         - "temp/core/nodes/*.data.ts.json"  # This will match all node data files automatically!
 
-  # Prepare GraphQL data for template
+  # Prepare GraphQL data using simplified extractor
   - label: Prepare GraphQL Data
     type: code_job
     position: {x: 600, y: 300}
     props:
       language: python
-      filePath: projects/codegen/code/models/graphql_schema_generator.py
-      functionName: prepare_graphql_data_for_template
+      filePath: projects/codegen/code/shared/simplified_extractors.py
+      functionName: prepare_graphql_schema_data
 
   # Render GraphQL schema with template job
   - label: Render GraphQL Schema

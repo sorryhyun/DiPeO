@@ -47,6 +47,7 @@ class DiagramResolver:
             
             # Get diagram metadata
             all_infos = await service.list_diagrams()
+            logger.debug(f"Retrieved {len(all_infos)} diagram infos")
             
             # Apply filters if provided
             filtered_infos = all_infos

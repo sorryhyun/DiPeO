@@ -33,8 +33,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
         super().__init__()
@@ -133,56 +131,62 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         # No early return - proceed to execute_request
         return None
     
-    async def execute_with_envelopes(
-        self, 
+    async def prepare_inputs(
+        self,
         request: ExecutionRequest[HookNode],
         inputs: dict[str, Envelope]
-    ) -> Envelope:
-        """Execute hook with envelope inputs."""
-        return await self._execute_hook_node(request, inputs)
-    
-    async def _execute_hook_node(self, request: ExecutionRequest[HookNode], envelope_inputs: dict[str, Envelope]) -> Envelope:
-        # Extract properties from request
-        node = request.node
-        trace_id = request.execution_id or ""
-        
+    ) -> dict[str, Any]:
+        """Convert envelope inputs to legacy format for hook execution."""
         # Convert envelope inputs to legacy format
-        inputs = {}
-        for key, envelope in envelope_inputs.items():
+        prepared_inputs = {}
+        for key, envelope in inputs.items():
             try:
                 # Try to parse as JSON first
-                inputs[key] = self.reader.as_json(envelope)
+                prepared_inputs[key] = envelope.as_json()
             except ValueError:
                 # Fall back to text
-                inputs[key] = self.reader.as_text(envelope)
+                prepared_inputs[key] = envelope.as_text()
         
         # Filesystem adapter already available in instance variable if needed (set in pre_execute for file hooks)
-        if node.hook_type == HookType.FILE:
+        if request.node.hook_type == HookType.FILE:
             self._temp_filesystem_adapter = self._current_filesystem_adapter
+        
+        return prepared_inputs
+    
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[HookNode]
+    ) -> Any:
+        """Execute the hook with prepared inputs."""
+        node = request.node
         
         try:
             result = await self._execute_hook(node, inputs)
-            
-            # Create output envelope
-            output_envelope = EnvelopeFactory.text(
-                str(result) if not isinstance(result, dict) else json.dumps(result),
-                produced_by=node.id,
-                trace_id=trace_id
-            ).with_meta(
-                hook_type=str(node.hook_type)
-            )
-            
-            return output_envelope
-        except Exception as e:
-            return EnvelopeFactory.error(
-                str(e),
-                error_type=e.__class__.__name__,
-                produced_by=str(node.id),
-                trace_id=trace_id
-            )
+            return result
         finally:
             if hasattr(self, '_temp_filesystem_adapter'):
                 delattr(self, '_temp_filesystem_adapter')
+    
+    def serialize_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[HookNode]
+    ) -> Envelope:
+        """Serialize hook result to envelope."""
+        node = request.node
+        trace_id = request.execution_id or ""
+        
+        # Create output envelope
+        output_envelope = EnvelopeFactory.text(
+            str(result) if not isinstance(result, dict) else json.dumps(result),
+            produced_by=node.id,
+            trace_id=trace_id
+        ).with_meta(
+            hook_type=str(node.hook_type)
+        )
+        
+        return output_envelope
     
     async def _execute_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
         # Hook type already validated in pre_execute

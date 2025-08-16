@@ -77,6 +77,21 @@ export const codeJobSpec: NodeSpecification = {
     outputs: ["default"]
   },
   
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Input data passed to the code function"
+    },
+    {
+      name: "code",
+      contentType: "raw_text",
+      required: true,
+      description: "Code to execute (overrides filePath if provided)"
+    }
+  ],
+  
   outputs: {
     result: {
       type: "any",

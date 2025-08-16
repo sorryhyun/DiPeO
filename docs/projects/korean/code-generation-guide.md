@@ -1,0 +1,439 @@
+# 코드 생성 가이드
+
+## 개요
+
+DiPeO는 다이어그램 기반의 다단계 코드 생성 파이프라인을 사용하며, 자체 실행 엔진을 “도그푸딩(dog-food)”합니다. 모든 코드 생성은 DiPeO 다이어그램을 통해 오케스트레이션되며, TypeScript 노드 명세에서 GraphQL 쿼리와 Python 핸들러까지 타입 안정성을 유지합니다.
+
+**핵심 철학**: DiPeO는 DiPeO로 DiPeO를 빌드합니다. 모든 코드 생성이 DiPeO 다이어그램을 통해 실행되며, 이는 플랫폼의 성숙도와 역량을 증명합니다.
+
+## 생성 흐름
+
+```
+1. 노드 명세 (TypeScript in /dipeo/models/src/)
+   ↓
+2. generate_all 다이어그램 실행 (dipeo run codegen/diagrams/generate_all)
+   ├─→ TypeScript 파싱 → AST 캐시(글롭으로 자동 탐색)
+   ├─→ 도메인 모델 생성 → /dipeo/diagram_generated_staged/
+   └─→ 프론트엔드 코드 생성 → /apps/web/src/__generated__/
+   ↓
+3. /dipeo/diagram_generated_staged/에서 스테이징 코드 검증
+   ↓
+4. 스테이징 변경 적용 (make apply-syntax-only)
+   ↓
+5. GraphQL 스키마 내보내기 → /apps/server/schema.graphql
+   ↓
+6. TypeScript 타입 생성 (pnpm codegen)
+```
+
+**주요 특징**:
+
+* **통합 생성**: 단일 `generate_all` 다이어그램이 모델과 프론트엔드를 병렬로 처리
+* **스테이징 디렉터리**: `/dipeo/diagram_generated_staged/`에서 변경 사항을 적용 전 미리보기
+* **동적 탐색**: 글롭 패턴으로 모든 TypeScript 파일 자동 검색
+* **외부 코드화**: 생성 로직은 `projects/codegen/code/`에 위치하여 재사용 가능
+* **문법 검증**: 기본 검증으로 생성 코드의 문법적 정확성 보장
+* **단일 출처**: TypeScript 정의가 모든 다운스트림 코드를 생성
+
+### 1단계: TypeScript 파싱 & 캐싱
+
+**소스**: `/dipeo/models/src/`의 모든 TypeScript 파일
+**캐시**: `/temp/codegen/` 및 `/temp/core/` (AST JSON 파일)
+**다이어그램**: `codegen/diagrams/shared/parse_typescript_batch.light.yaml`
+
+시스템은 모든 TypeScript 파일을 자동으로 탐색해 파싱하고, 이후 단계를 위해 AST를 캐시합니다.
+
+### 2단계: 통합 코드 생성
+
+**소스**: 캐시된 AST 파일 + TypeScript 명세
+**다이어그램**: `codegen/diagrams/generate_all.light.yaml`
+**출력**:
+
+* 도메인 모델 → `/dipeo/diagram_generated_staged/`
+* 프론트엔드 코드 → `/apps/web/src/__generated__/`
+
+`generate_all` 다이어그램은 모델 생성과 프론트엔드 생성을 병렬로 실행합니다.
+
+**도메인 모델**(스테이징으로 출력):
+
+* Pydantic 모델 (`/models/`)
+* Enums (`/enums/`)
+* 검증 모델 (`/validation/`)
+* GraphQL 스키마 템플릿
+* Strawberry 타입과 mutation
+* 정적 노드 클래스
+* 타입 변환기
+
+**프론트엔드 컴포넌트**(직접 출력):
+
+* 필드 설정 (`/fields/`)
+* 노드 모델과 설정 (`/models/`, `/nodes/`)
+* GraphQL 쿼리 (`/queries/*.graphql`)
+* Zod 검증 스키마
+* 프론트엔드 레지스트리
+
+### 3단계: 스테이징 변경 적용
+
+**작업**: `/dipeo/diagram_generated_staged/` → `/dipeo/diagram_generated/`로 수동 복사
+**검증**: 기본값은 문법 검증(파이썬 컴파일 체크)
+
+`make apply-syntax-only` 또는 `make apply`를 사용해 스테이징된 백엔드 코드를 활성 디렉터리로 이동합니다. 이를 통해:
+
+* 활성화 전 검증 수행
+* 적용 전 변경 사항 리뷰 가능
+* 생성 문제 발생 시 롤백 안전성 확보
+
+### 4단계: GraphQL 스키마 내보내기
+
+**명령**: `make graphql-schema`
+**출력**: `/apps/server/schema.graphql`
+
+애플리케이션 계층에서 전체 GraphQL 스키마를 내보내며, 생성된 Strawberry 타입의 모든 타입과 오퍼레이션을 반영합니다.
+
+### 5단계: GraphQL TypeScript 생성
+
+**소스**: `/apps/web/src/__generated__/queries/*.graphql` + `/apps/server/schema.graphql`
+**출력**: `/apps/web/src/__generated__/graphql.tsx`
+**명령**: `pnpm codegen`으로 자동 실행
+
+다음을 완전 타입으로 생성:
+
+* 모든 GraphQL 오퍼레이션의 TypeScript 타입
+* React 훅(useQuery, useMutation, useSubscription)
+* Apollo Client 연동 코드
+
+## 명령어
+
+### 권장 워크플로우
+
+```bash
+# 1단계: 전체 코드 생성(모델 + 프론트엔드)
+dipeo run codegen/diagrams/generate_all --light --debug --timeout=90
+
+# 2단계: 스테이징 변경 검토
+make diff-staged           # 스테이징 vs 활성 파일 비교
+
+# 3단계: 스테이징 백엔드 코드 적용
+make apply-syntax-only     # 문법 검증만 수행하여 적용
+# 또는
+make apply                 # mypy 타입 체크를 포함한 전체 검증 적용
+
+# 4단계: GraphQL 스키마와 타입 업데이트
+make graphql-schema        # 스키마 내보내기 및 TypeScript 타입 생성
+```
+
+### 빠른 명령
+
+```bash
+make codegen-auto         # 위험: generate_all + 자동 적용 + GraphQL 스키마까지 실행
+make codegen-watch        # TypeScript 파일 변경 감시
+```
+
+### 스테이징 관련 명령
+
+```bash
+make diff-staged            # 스테이징과 활성 생성 파일 비교
+make validate-staged        # mypy 타입 체크 포함 전체 검증
+make validate-staged-syntax # 문법 검증만(더 빠름)
+make apply                  # 전체 검증과 함께 적용
+make apply-syntax-only      # 문법 검증만으로 적용
+make backup-generated       # 적용 전 백업
+```
+
+### 직접 다이어그램 실행(고급)
+
+```bash
+# 전체 생성(모델 + 프론트엔드)
+dipeo run codegen/diagrams/generate_all --light --debug
+
+# 특정 노드만 생성(디버깅용)
+dipeo run codegen/diagrams/models/generate_backend_models_single --light \
+  --input-data '{"node_name": "person_job"}'
+```
+
+## 도그푸딩 아키텍처
+
+DiPeO의 코드 생성은 “도그푸딩”의 전형입니다. 즉, DiPeO 다이어그램을 사용해 DiPeO의 코드를 생성합니다.
+
+1. **비주얼 프로그래밍**: 각 생성 단계가 다이어그램 노드로 표현
+2. **조합성**: 서브 다이어그램이 특정 생성 작업을 담당
+3. **병렬화**: 여러 파일을 배치 처리
+4. **에러 처리**: 배치 처리에서 점진적 강건성(부분 실패 시에도 유연)
+5. **캐싱**: AST 파싱 결과를 캐시해 중복 작업 방지
+
+이 접근은 플랫폼의 성숙도를 증명합니다. 스스로를 빌드할 만큼 충분히 견고합니다.
+
+## 스테이징 접근의 의의
+
+스테이징 디렉터리(`diagram_generated_staged`)는 다음과 같은 핵심 목적을 갖습니다.
+
+1. **변경 미리보기**: 적용 전 생성 코드를 리뷰
+2. **원자적 업데이트**: 전부 적용 또는 전부 취소
+3. **문법 검증**: 시스템을 깨뜨리기 전에 오류 포착
+4. **롤백 안전성**: 잘못된 생성은 손쉽게 폐기
+5. **프론트엔드 의존성**: 프론트엔드는 적용된(스테이징이 아닌) 모델을 참조
+
+## 신규 기능 추가
+
+### 새 노드 타입 추가
+
+1. **노드 명세 생성**:
+
+   ```typescript
+   // /dipeo/models/src/node-specs/my-node.spec.ts
+   export const myNodeSpec: NodeSpecification = {
+     nodeType: NodeType.MyNode,
+     category: 'processing',
+     displayName: 'My Node',
+     icon: 'Code',
+     fields: [
+       {
+         name: 'myField',
+         type: 'string',
+         required: true,
+         description: '필드 설명',
+         uiType: 'text',  // 프론트엔드 UI 힌트
+         placeholder: '값을 입력하세요...'
+       }
+     ]
+   };
+   ```
+
+2. **Python 핸들러 생성**:
+
+   ```python
+   # /dipeo/application/execution/handlers/my_node.py
+   from dipeo.diagram_generated.models.my_node import MyNodeData
+
+   class MyNodeHandler(BaseNodeHandler[MyNodeData]):
+       async def execute(self, data: MyNodeData, context: ExecutionContext):
+           # 구현
+   ```
+
+3. **코드 생성 실행**:
+
+   ```bash
+   # 새로운 노드를 포함해 전체 코드 생성
+   dipeo run codegen/diagrams/generate_all --light --debug
+
+   # 스테이징 변경 적용
+   make apply-syntax-only
+
+   # GraphQL 스키마 업데이트
+   make graphql-schema
+   ```
+
+4. **이제 노드 사용 가능**:
+
+   * Python과 TypeScript 전반에서 타입 안전성 확보
+   * 자동 생성된 UI 컴포넌트
+   * GraphQL 타입과 오퍼레이션
+   * 검증 스키마
+
+### 새로운 GraphQL 쿼리/뮤테이션 추가
+
+1. **기존 엔티티용**: 쿼리 생성기를 수정
+
+   ```python
+   # /projects/codegen/code/frontend/generators/query_generator_dipeo.py
+   # generate_diagram_queries() 등에서
+
+   queries.append("""query MyNewQuery($id: ID!) {
+     diagram(id: $id) {
+       # 필드 추가
+     }
+   }""")
+   ```
+
+2. **새 엔티티용**: 새로운 쿼리 생성기 추가
+
+   ```python
+   # /projects/codegen/code/frontend/queries/my_entity_queries.py
+   class MyEntityQueryGenerator:
+       def generate(self) -> List[str]:
+           return [
+               """query GetMyEntity($id: ID!) {
+                 myEntity(id: $id) {
+                   id
+                   name
+                 }
+               }"""
+           ]
+   ```
+
+3. **메인 생성기에 등록**:
+
+   ```python
+   # DiPeOQueryGenerator.generate_all_queries() 내
+   my_entity_generator = MyEntityQueryGenerator()
+   self.write_query_file('myEntity', my_entity_generator.generate())
+   ```
+
+4. **생성 실행**:
+
+   ```bash
+   make codegen                 # 스키마 내보내기 포함 전체 파이프라인
+   cd apps/web && pnpm codegen  # 업데이트된 스키마로 TypeScript 생성
+   ```
+
+## V2 생성 개선점
+
+현재 생성 시스템은 “v2” 다이어그램을 사용하며 다음과 같은 개선이 있습니다.
+
+1. **Template Job 노드**: 중간 단계를 생략하고 템플릿을 직접 렌더링
+2. **동적 탐색**: 글롭 패턴으로 모든 파일 자동 검색
+3. **외부 코드화**: 재사용을 위해 로직을 `projects/codegen/code/`에 배치
+4. **배치 처리**: 여러 노드를 병렬로 생성
+5. **향상된 에러 처리**: 배치 작업의 우아한 강건성
+
+v2 패턴 예시:
+
+```yaml
+- label: Generate Field Configs
+  type: template_job
+  props:
+    template_path: projects/codegen/templates/frontend/field_config_v2.jinja2
+    output_path: "{{ output_dir }}/fields/{{ node_type_pascal }}Fields.ts"
+    context:
+      node_type: "{{ node_type }}"
+      fields: "{{ fields }}"
+      # ... 기타 컨텍스트
+```
+
+## 커스텀 템플릿 시스템
+
+DiPeO는 커스텀 필터가 포함된 Jinja2 템플릿을 사용합니다.
+
+**타입 변환 필터**:
+
+* `ts_to_python` - TypeScript 타입을 Python으로 변환
+* `ts_to_graphql` - TypeScript 타입을 GraphQL로 변환
+* `get_zod_type` - Zod 검증 타입 반환
+* `get_graphql_type` - GraphQL 타입 반환
+
+**네이밍 컨벤션 필터**:
+
+* `snake_case`, `camel_case`, `pascal_case` - 케이스 변환
+* `pluralize` - 컬렉션 명칭 복수화
+
+**핵심 제너레이터**:
+
+* `/projects/codegen/code/models/` - Python 모델 생성
+* `/projects/codegen/code/frontend/` - React/TypeScript 생성
+* 모두 외부 파일을 사용하여 테스트 가능성과 재사용성 확보
+
+## 주요 파일 및 디렉터리
+
+### 소스 파일
+
+* `/dipeo/models/src/` - TypeScript 명세(단일 진실의 원천)
+
+  * `/node-specs/` - 노드 타입 정의
+  * `/core/` - 핵심 도메인 타입
+  * `/codegen/` - 코드 생성 매핑
+
+### 코드 생성 시스템
+
+* `/projects/codegen/diagrams/` - 생성 오케스트레이션 다이어그램
+
+  * `/models/` - 도메인 모델 생성 다이어그램
+  * `/frontend/` - 프론트엔드 생성 다이어그램
+  * `/shared/` - 공통 파싱 및 유틸리티
+* `/projects/codegen/code/` - 다이어그램용 외부 Python 코드
+
+  * 다이어그램 구조와 매칭되도록 구성
+  * 모든 생성 로직 외부화로 테스트 가능
+* `/projects/codegen/templates/` - Jinja2 템플릿
+
+  * `/models/` - Python 모델 템플릿
+  * `/frontend/` - TypeScript/React 템플릿
+
+### 생성 파일(수정 금지)
+
+* `/dipeo/diagram_generated_staged/` - 적용 전 미리보기용 스테이징
+* `/dipeo/diagram_generated/` - 활성화된 생성 Python 코드
+* `/apps/web/src/__generated__/` - 생성된 프론트엔드 코드
+* `/temp/` - AST 캐시(깃 무시)
+
+### 구성
+
+* `/apps/web/codegen.yml` - GraphQL 코드 제너레이터 설정
+* `Makefile` - 생성 파이프라인 오케스트레이션
+
+## 아키텍처 노트
+
+### 왜 마스터 다이어그램 대신 Make 명령을 쓰는가
+
+코드베이스는 단일 마스터 다이어그램 대신 Make 명령을 사용합니다. 그 이유는:
+
+* **우수한 에러 처리**: Make는 첫 오류에서 중단
+* **명확한 실행 흐름**: 각 단계가 명시적
+* **디버깅 용이**: 개별 단계만 실행 가능
+* **표준 도구 사용**: 개발자에게 친숙
+
+### 2단계 GraphQL 생성
+
+시스템은 GraphQL을 두 단계로 생성합니다.
+
+1. **DiPeO가 도메인 지식으로 쿼리 생성**
+2. **GraphQL 코드젠이 쿼리 + 스키마로 TypeScript 생성**
+
+이를 통해:
+
+* **도메인 주도 쿼리**: 오퍼레이션이 도메인 모델과 정합
+* **엔드 투 엔드 타입 안전성**: Python에서 TypeScript까지
+* **유연성**: 스키마 변경 없이 쿼리 커스터마이즈
+* **일관성**: 모든 쿼리가 동일한 패턴을 따름
+
+### 외부 코드 구성
+
+모든 생성 로직은 외부 Python 파일에 위치합니다.
+
+* 다이어그램 구조와 매칭되어 탐색성 향상
+* 생성 로직 단위 테스트 가능
+* 다이어그램 간 코드 재사용 지원
+* 예: `parse_typescript_single.light.yaml`은 `projects/codegen/code/shared/typescript_spec_parser.py`의 함수를 사용
+
+## 모범 사례
+
+1. **생성 파일은 절대 수정하지 말 것** - 다음 생성에서 덮어씌워짐
+2. **명세 변경 후 `make codegen` 실행** - 전체 파이프라인 자동 처리
+3. **`make diff-staged`로 변경 미리보기** - 적용 전 리뷰
+4. **`make apply`는 필요할 때만 수동 실행** - 전체 코드젠에 포함되어 있음
+5. **타이프드 오퍼레이션 활용** - 프론트엔드에서 생성된 훅 적극 사용
+6. **네이밍 컨벤션 준수**:
+
+   * 쿼리: `Get{Entity}`, `List{Entities}`
+   * 뮤테이션: `Create{Entity}`, `Update{Entity}`, `Delete{Entity}`
+   * 서브스크립션: `{Entity}Updates`
+
+## 문제 해결
+
+**노드 추가 후 타입 누락**:
+
+```bash
+dipeo run codegen/diagrams/generate_all --light --debug  # 전체 재생성
+make apply-syntax-only                                   # 스테이징 적용
+make graphql-schema                                      # 스키마 업데이트
+```
+
+**GraphQL 쿼리 미발견**:
+
+1. `/apps/web/src/__generated__/queries/`에 쿼리 파일이 생성되었는지 확인
+2. `/apps/web/`에서 `pnpm codegen` 실행 여부 확인
+3. 컴포넌트 내 쿼리 이름 일치 여부 확인
+
+**타입 불일치 오류**:
+
+* 스키마와 쿼리가 동기화되지 않았을 수 있음
+* 전체 워크플로우 실행:
+
+  ```bash
+  dipeo run codegen/diagrams/generate_all --light --debug
+  make apply-syntax-only
+  make graphql-schema
+  ```
+
+## 결론
+
+DiPeO의 코드 생성 시스템은 도그푸딩 접근을 통해 플랫폼의 성숙도를 입증합니다. DiPeO 다이어그램으로 DiPeO의 코드를 오케스트레이션함으로써, TypeScript 명세에서 Python 모델과 GraphQL 오퍼레이션까지 타입 안전성을 유지한 채 복잡한 메타 프로그래밍 과제를 시각적 프로그래밍으로 처리할 수 있음을 보여줍니다. 스테이징 디렉터리, 외부 코드 구성, 병렬 배치 처리로 구성된 v2 아키텍처는 견고함과 유연성을 동시에 제공합니다.
+

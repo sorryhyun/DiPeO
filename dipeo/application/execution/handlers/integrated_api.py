@@ -30,8 +30,6 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self, integrated_api_service=None, api_key_service=None):
         super().__init__()
@@ -127,13 +125,28 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         # No early return - proceed to execute_request
         return None
 
-    async def execute_with_envelopes(
-        self, 
-        request: ExecutionRequest[IntegratedApiNode],
-        inputs: dict[str, Envelope]
-    ) -> Envelope:
-        """Execute integrated API operation with envelope inputs."""
-        return await self._execute_api_operation(request, inputs)
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[IntegratedApiNode]
+    ) -> dict[str, Any]:
+        """Execute integrated API operation."""
+        # Convert legacy dict inputs back to envelopes for the existing implementation
+        envelope_inputs = {}
+        for key, value in inputs.items():
+            if isinstance(value, dict):
+                envelope_inputs[key] = EnvelopeFactory.json(value, produced_by="input")
+            else:
+                envelope_inputs[key] = EnvelopeFactory.text(str(value), produced_by="input")
+        
+        # Use existing implementation
+        result_envelope = await self._execute_api_operation(request, envelope_inputs)
+        
+        # Return the result as dict for the base class to serialize
+        if result_envelope.content_type == "object":
+            return result_envelope.as_json()
+        else:
+            return {"result": result_envelope.as_text()}
     
     async def _execute_api_operation(
         self, 
@@ -160,21 +173,21 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
             # Check for default input envelope
             if default_envelope := self.get_optional_input(envelope_inputs, 'default'):
                 try:
-                    default_input = self.reader.as_json(default_envelope)
+                    default_input = default_envelope.as_json()
                     if isinstance(default_input, dict):
                         config = {**config, **default_input}
                     else:
                         config["data"] = default_input
                 except ValueError:
                     # Fall back to text if not JSON
-                    config["data"] = self.reader.as_text(default_envelope)
+                    config["data"] = default_envelope.as_text()
             else:
                 # Process all inputs and add to config
                 for key, envelope in envelope_inputs.items():
                     try:
-                        config[key] = self.reader.as_json(envelope)
+                        config[key] = envelope.as_json()
                     except ValueError:
-                        config[key] = self.reader.as_text(envelope)
+                        config[key] = envelope.as_text()
         
         # Get optional parameters
         resource_id = node.resource_id

@@ -12,6 +12,7 @@ import time
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any, Optional
 
+from dipeo.application.execution.scheduler import NodeScheduler
 from dipeo.application.execution.typed_execution_context import TypedExecutionContext
 from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
 from dipeo.core.execution.runtime_resolver import RuntimeResolver
@@ -52,6 +53,7 @@ class TypedExecutionEngine:
         self.order_calculator = order_calculator or DomainDynamicOrderCalculator()
         self._settings = get_settings()
         self._managed_event_bus = False
+        self._scheduler: NodeScheduler | None = None
         
         if observers and not event_bus:
             from dipeo.infrastructure.events.observer_adapter import create_event_bus_with_observers
@@ -86,6 +88,9 @@ class TypedExecutionEngine:
                 container=container
             )
             
+            # Initialize scheduler for this execution
+            self._scheduler = NodeScheduler(diagram, self.order_calculator)
+            
             # Extract metadata from options
             for key, value in options.get('metadata', {}).items():
                 context.set_execution_metadata(key, value)
@@ -109,8 +114,8 @@ class TypedExecutionEngine:
             # Main execution loop
             step_count = 0
             while not context.is_execution_complete():
-                # Get ready nodes
-                ready_nodes = self._get_ready_nodes_from_context(context)
+                # Get ready nodes using scheduler
+                ready_nodes = await self._scheduler.get_ready_nodes(context)
                 
                 if not ready_nodes:
                     # No nodes ready, wait briefly
@@ -122,6 +127,10 @@ class TypedExecutionEngine:
                 # Execute ready nodes
                 results = await self._execute_nodes(ready_nodes, context)
                 
+                # Update scheduler with completed nodes
+                for node_id in results.keys():
+                    self._scheduler.mark_node_completed(NodeID(node_id), context)
+                
                 # Calculate progress
                 progress = context.calculate_progress()
                 
@@ -131,6 +140,7 @@ class TypedExecutionEngine:
                     "step": step_count,
                     "executed_nodes": list(results.keys()),
                     "progress": progress,
+                    "scheduler_stats": self._scheduler.get_execution_stats(),
                 }
             
             # Execution complete
@@ -176,63 +186,6 @@ class TypedExecutionEngine:
             if self._managed_event_bus:
                 await self.event_bus.stop()
     
-    def _get_ready_nodes_from_context(self, context: TypedExecutionContext) -> list[ExecutableNode]:
-        """Get ready nodes using the order calculator."""
-        # Build execution context for order calculator
-        node_outputs = {}
-        node_exec_counts = {}
-        
-        for node_id in context.get_completed_nodes():
-            output = context.get_node_output(node_id)
-            if output:
-                node_outputs[str(node_id)] = output
-            node_exec_counts[str(node_id)] = context.get_node_execution_count(node_id)
-        
-        # Create a minimal context wrapper for the order calculator
-        class OrderCalculatorContext:
-            def __init__(self, ctx: TypedExecutionContext, outputs: dict, counts: dict):
-                self._context = ctx
-                self._node_outputs = outputs
-                self._node_exec_counts = counts
-            
-            def get_metadata(self, key: str) -> Any:
-                return self._context.get_execution_metadata().get(key)
-            
-            def get_variable(self, name: str) -> Any:
-                return self._context.get_variable(name)
-            
-            def get_node_output(self, node_id: str | NodeID) -> Any:
-                return self._node_outputs.get(str(node_id))
-            
-            def get_node_execution_count(self, node_id: str | NodeID) -> int:
-                return self._node_exec_counts.get(str(node_id), 0)
-            
-            def is_first_execution(self, node_id: str | NodeID) -> bool:
-                return self.get_node_execution_count(node_id) <= 1
-            
-            def get_node_state(self, node_id: str | NodeID) -> Any:
-                return self._context.get_node_state(node_id)
-            
-            @property
-            def current_node_id(self) -> NodeID | None:
-                return self._context.current_node_id
-            
-            @property
-            def execution_id(self) -> str:
-                return self._context.execution_id
-            
-            @property
-            def diagram_id(self) -> str:
-                return self._context.diagram_id
-        
-        calc_context = OrderCalculatorContext(context, node_outputs, node_exec_counts)
-        
-        # Pass the actual context or calc_context depending on the calculator implementation
-        # DomainDynamicOrderCalculator can handle extracting states from either
-        return self.order_calculator.get_ready_nodes(
-            diagram=context.diagram,
-            context=calc_context  # type: ignore
-        )
     
     async def _execute_nodes(
         self,
@@ -274,168 +227,250 @@ class TypedExecutionEngine:
         node: ExecutableNode,
         context: TypedExecutionContext
     ) -> dict[str, Any]:
-        """Execute a single node with event notifications."""
+        """Execute a single node with event notifications.
+        
+        Simplified version that delegates to helper methods for cleaner organization.
+        """
         node_id = node.id
         start_time = time.time()
         
         # Emit node started event
+        await self._emit_node_started(context, node)
+        
+        try:
+            # Check for PersonJobNode max iteration
+            if await self._should_skip_max_iteration(node, context):
+                return await self._handle_max_iteration_reached(node, context)
+            
+            # Execute the node
+            output = await self._execute_node_handler(node, context)
+            
+            # Process completion
+            duration_ms = (time.time() - start_time) * 1000
+            token_usage = self._extract_token_usage(output)
+            
+            # Mark node as completed
+            await self._handle_node_completion(node, output, context)
+            
+            # Emit completion event
+            await self._emit_node_completed(
+                context, node, output, duration_ms, 
+                start_time, token_usage
+            )
+            
+            # Return formatted result
+            return self._format_node_result(output)
+            
+        except Exception as e:
+            await self._handle_node_failure(context, node, e)
+            raise
+    
+    async def _should_skip_max_iteration(
+        self, 
+        node: ExecutableNode, 
+        context: TypedExecutionContext
+    ) -> bool:
+        """Check if PersonJobNode has reached max iterations."""
+        from dipeo.diagram_generated.generated_nodes import PersonJobNode
+        if isinstance(node, PersonJobNode):
+            current_count = context.get_node_execution_count(node.id)
+            return current_count >= node.max_iteration
+        return False
+    
+    async def _handle_max_iteration_reached(
+        self,
+        node: ExecutableNode,
+        context: TypedExecutionContext
+    ) -> dict[str, Any]:
+        """Handle PersonJobNode that has reached max iterations."""
+        from dipeo.core.execution.envelope import EnvelopeFactory
+        from dipeo.diagram_generated.enums import Status
+        
+        node_id = node.id
+        current_count = context.get_node_execution_count(node_id)
+        
+        logger.info(
+            f"PersonJobNode {node_id} has reached max_iteration "
+            f"({node.max_iteration}), transitioning to MAXITER_REACHED"
+        )
+        
+        # Create empty output with MAXITER_REACHED status
+        output = EnvelopeFactory.text(
+            "",
+            node_id=str(node_id),
+            meta={"status": Status.MAXITER_REACHED.value}
+        )
+        
+        # Transition state
+        context.transition_node_to_maxiter(node_id, output)
+        
+        # Emit completion event
         await context.emit_event(
-            EventType.NODE_STARTED,
+            EventType.NODE_COMPLETED,
             {
                 "node_id": str(node_id),
                 "node_type": node.type,
-                "node_name": getattr(node, 'name', str(node_id))
+                "node_name": getattr(node, 'name', str(node_id)),
+                "status": "MAXITER_REACHED",
+                "output": {"value": "", "status": "MAXITER_REACHED"},
+                "metrics": {
+                    "execution_time_ms": 0,
+                    "execution_count": current_count
+                }
             }
         )
         
-        try:
-            # For PersonJobNode, check max_iteration BEFORE incrementing count
-            from dipeo.diagram_generated.generated_nodes import PersonJobNode
-            if isinstance(node, PersonJobNode):
-                current_count = context.get_node_execution_count(node_id)
-                if current_count >= node.max_iteration:
-                    logger.info(f"PersonJobNode {node_id} has reached max_iteration ({node.max_iteration}), transitioning to MAXITER_REACHED")
-                    
-                    # Transition directly to MAXITER_REACHED without running
-                    from dipeo.core.execution.envelope import EnvelopeFactory
-                    from dipeo.diagram_generated.enums import Status
-                    output = EnvelopeFactory.text(
-                        "",
-                        node_id=str(node_id),
-                        meta={"status": Status.MAXITER_REACHED.value}
-                    )
-                    context.transition_node_to_maxiter(node_id, output)
-                    
-                    # Emit completion event with MAXITER_REACHED status
-                    await context.emit_event(
-                        EventType.NODE_COMPLETED,
-                        {
-                            "node_id": str(node_id),
-                            "node_type": node.type,
-                            "node_name": getattr(node, 'name', str(node_id)),
-                            "status": "MAXITER_REACHED",
-                            "output": {"value": "", "status": "MAXITER_REACHED"},
-                            "metrics": {
-                                "execution_time_ms": 0,
-                                "execution_count": current_count
-                            }
-                        }
-                    )
-                    
-                    return {"value": "", "status": "MAXITER_REACHED"}
+        return {"value": "", "status": "MAXITER_REACHED"}
+    
+    async def _execute_node_handler(
+        self,
+        node: ExecutableNode,
+        context: TypedExecutionContext
+    ) -> Any:
+        """Execute the node's handler."""
+        with context.executing_node(node.id):
+            exec_count = context.transition_node_to_running(node.id)
             
-            # Transition to running state
-            with context.executing_node(node_id):
-                exec_count = context.transition_node_to_running(node_id)
-                
-                # Get handler
-                handler = self._get_handler(node.type)
-                
-                # Resolve inputs directly as envelopes
-                from dipeo.core.execution.envelope import Envelope
-                
-                # Use handler's resolve_envelope_inputs method
-                inputs = await handler.resolve_envelope_inputs(
-                    request=type('TempRequest', (), {
-                        'node': node,
-                        'context': context
-                    })()
-                )
-                
-                # Create ExecutionRequest with diagram metadata
-                from dipeo.application.execution.execution_request import ExecutionRequest
-                
-                # Include diagram metadata in request metadata
-                request_metadata = {}
-                if hasattr(context.diagram, 'metadata') and context.diagram.metadata:
-                    request_metadata['diagram_source_path'] = context.diagram.metadata.get('diagram_source_path')
-                    request_metadata['diagram_id'] = context.diagram.metadata.get('diagram_id')
-                
-                request = ExecutionRequest(
-                    node=node,
-                    context=context,  # Pass the context directly
-                    inputs=inputs,
-                    services=self.service_registry,
-                    metadata=request_metadata,
-                    execution_id=context.execution_id,
-                    parent_container=context.container,
-                    parent_registry=self.service_registry
-                )
-                
-                # Call pre_execute hook first
-                output = await handler.pre_execute(request)
-                
-                # If pre_execute returned output, use it; otherwise execute normally
-                if output is None:
-                    output = await handler.execute_with_envelopes(request, inputs)
+            # Get handler
+            handler = self._get_handler(node.type)
             
-            # Calculate execution metrics
-            end_time = time.time()
-            duration_ms = (end_time - start_time) * 1000
-            
-            # Extract token usage from output metadata if available (do this BEFORE marking node as completed)
-            token_usage = None
-            if hasattr(output, 'metadata') and output.metadata:
-                # Use get_metadata_dict() to parse JSON metadata
-                if hasattr(output, 'get_metadata_dict'):
-                    metadata_dict = output.get_metadata_dict()
-                    token_usage = metadata_dict.get('token_usage')
-            
-            # Handle node completion based on type (this marks node as completed)
-            await self._handle_node_completion(node, output, context)
-            
-            # Emit node completed event
-            node_state = context.get_node_state(node_id)
-            event_data = {
-                "node_id": str(node_id),
-                "node_type": node.type,
-                "node_name": getattr(node, 'name', str(node_id)),
-                "status": node_state.status.value if node_state else "unknown",
-                "output": self._serialize_output(output),
-                "node_state": node_state,  # Include the full node state for observers
-                "metrics": {
-                    "duration_ms": duration_ms,
-                    "start_time": start_time,
-                    "end_time": end_time,
-                    "execution_count": exec_count
-                }
-            }
-            
-            # Add token usage to metrics if available
-            if token_usage:
-                event_data["metrics"]["token_usage"] = token_usage
-            
-            await context.emit_event(EventType.NODE_COMPLETED, event_data)
-            
-            # Return result
-            if hasattr(output, 'to_dict'):
-                return output.to_dict()
-            elif hasattr(output, 'value'):
-                result = {"value": output.value}
-                if hasattr(output, 'metadata') and output.metadata:
-                    result["metadata"] = output.metadata
-                return result
-            else:
-                return {"value": output}
-            
-        except Exception as e:
-            logger.error(f"Error executing node {node_id}: {e}", exc_info=True)
-            
-            # Transition to failed state
-            context.transition_node_to_failed(node_id, str(e))
-            
-            # Emit node failed event
-            await context.emit_event(
-                EventType.NODE_FAILED,
-                {
-                    "node_id": str(node_id),
-                    "node_type": node.type,
-                    "node_name": getattr(node, 'name', str(node_id)),
-                    "error": str(e),
-                    "error_type": type(e).__name__
-                }
+            # Resolve inputs
+            inputs = await handler.resolve_envelope_inputs(
+                request=type('TempRequest', (), {
+                    'node': node,
+                    'context': context
+                })()
             )
-            raise
+            
+            # Create request
+            request = self._create_execution_request(
+                node, context, inputs
+            )
+            
+            # Execute with pre_execute hook
+            output = await handler.pre_execute(request)
+            if output is None:
+                output = await handler.execute_with_envelopes(request, inputs)
+            
+            return output
+    
+    def _create_execution_request(
+        self,
+        node: ExecutableNode,
+        context: TypedExecutionContext,
+        inputs: Any
+    ) -> "ExecutionRequest":
+        """Create an ExecutionRequest for the handler."""
+        from dipeo.application.execution.execution_request import ExecutionRequest
+        
+        # Include diagram metadata
+        request_metadata = {}
+        if hasattr(context.diagram, 'metadata') and context.diagram.metadata:
+            request_metadata['diagram_source_path'] = context.diagram.metadata.get('diagram_source_path')
+            request_metadata['diagram_id'] = context.diagram.metadata.get('diagram_id')
+        
+        return ExecutionRequest(
+            node=node,
+            context=context,
+            inputs=inputs,
+            services=self.service_registry,
+            metadata=request_metadata,
+            execution_id=context.execution_id,
+            parent_container=context.container,
+            parent_registry=self.service_registry
+        )
+    
+    def _extract_token_usage(self, output: Any) -> dict | None:
+        """Extract token usage from output metadata."""
+        if hasattr(output, 'metadata') and output.metadata:
+            if hasattr(output, 'get_metadata_dict'):
+                metadata_dict = output.get_metadata_dict()
+                return metadata_dict.get('token_usage')
+        return None
+    
+    async def _emit_node_started(
+        self, 
+        context: TypedExecutionContext, 
+        node: ExecutableNode
+    ) -> None:
+        """Emit node started event."""
+        await context.emit_event(
+            EventType.NODE_STARTED,
+            {
+                "node_id": str(node.id),
+                "node_type": node.type,
+                "node_name": getattr(node, 'name', str(node.id))
+            }
+        )
+    
+    async def _emit_node_completed(
+        self,
+        context: TypedExecutionContext,
+        node: ExecutableNode,
+        output: Any,
+        duration_ms: float,
+        start_time: float,
+        token_usage: dict | None
+    ) -> None:
+        """Emit node completed event."""
+        node_state = context.get_node_state(node.id)
+        exec_count = context.get_node_execution_count(node.id)
+        
+        event_data = {
+            "node_id": str(node.id),
+            "node_type": node.type,
+            "node_name": getattr(node, 'name', str(node.id)),
+            "status": node_state.status.value if node_state else "unknown",
+            "output": self._serialize_output(output),
+            "node_state": node_state,
+            "metrics": {
+                "duration_ms": duration_ms,
+                "start_time": start_time,
+                "end_time": start_time + duration_ms / 1000,
+                "execution_count": exec_count
+            }
+        }
+        
+        if token_usage:
+            event_data["metrics"]["token_usage"] = token_usage
+        
+        await context.emit_event(EventType.NODE_COMPLETED, event_data)
+    
+    async def _handle_node_failure(
+        self,
+        context: TypedExecutionContext,
+        node: ExecutableNode,
+        error: Exception
+    ) -> None:
+        """Handle node execution failure."""
+        logger.error(f"Error executing node {node.id}: {error}", exc_info=True)
+        
+        # Transition to failed state
+        context.transition_node_to_failed(node.id, str(error))
+        
+        # Emit node failed event
+        await context.emit_event(
+            EventType.NODE_FAILED,
+            {
+                "node_id": str(node.id),
+                "node_type": node.type,
+                "node_name": getattr(node, 'name', str(node.id)),
+                "error": str(error),
+                "error_type": type(error).__name__
+            }
+        )
+    
+    def _format_node_result(self, output: Any) -> dict[str, Any]:
+        """Format node output for return."""
+        if hasattr(output, 'to_dict'):
+            return output.to_dict()
+        elif hasattr(output, 'value'):
+            result = {"value": output.value}
+            if hasattr(output, 'metadata') and output.metadata:
+                result["metadata"] = output.metadata
+            return result
+        else:
+            return {"value": output}
     
     def _get_handler(self, node_type: str):
         """Get handler for node type."""

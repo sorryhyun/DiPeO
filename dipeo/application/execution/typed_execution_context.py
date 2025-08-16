@@ -96,6 +96,11 @@ class TypedExecutionContext(ExecutionContextProtocol):
         """Get the typed output of a completed node."""
         return self._tracker.get_last_output(node_id)
     
+    def get_all_node_states(self) -> dict[NodeID, NodeState]:
+        """Get all node states in the execution context."""
+        with self._state_lock:
+            return dict(self._node_states)
+    
     # ========== Execution Status Queries ==========
     
     def get_completed_nodes(self) -> list[NodeID]:

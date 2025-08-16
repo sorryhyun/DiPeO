@@ -1,3 +1,7 @@
+# Generate Zod Schemas V2 - Simplified
+# Uses glob patterns to automatically discover all node data files
+# Generates Zod validation schemas from TypeScript interfaces
+
 version: light
 nodes:
 - label: start

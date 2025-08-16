@@ -1,5 +1,5 @@
-# Generate Field Configurations from Domain Models V2
-# Simplified version using template_job for direct template rendering
+# Generate Field Configurations from Domain Models V2 - Simplified
+# Uses glob results directly for better efficiency
 # Generates UI field configurations from TypeScript interfaces
 
 version: light
@@ -110,7 +110,7 @@ connections:
   # Extract mappings from the loaded files
   - {from: Load All AST Files, to: Extract Mappings, label: default, content_type: object}
   
-  # Pass all AST files to Extract Field Configs
+  # Pass glob results directly to Extract Field Configs
   - {from: Load All AST Files, to: Extract Field Configs, label: ast_files, content_type: object}
   - {from: Extract Mappings, to: Extract Field Configs, label: mappings, content_type: object}
   

@@ -34,8 +34,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None, template_processor: Optional[TemplateProcessorPort] = None):
         super().__init__()
@@ -143,15 +141,47 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             # print("[DEBUG] Template service created successfully")
         return self._template_service
     
-    async def execute_with_envelopes(
-        self, 
+    async def prepare_inputs(
+        self,
         request: ExecutionRequest[TemplateJobNode],
         inputs: dict[str, Envelope]
-    ) -> Envelope:
-        """Execute template rendering with envelope inputs."""
-        # print(f"[DEBUG] TemplateJobNode.execute_with_envelopes started for node {request.node.id}")
+    ) -> dict[str, Any]:
+        """Prepare template variables from envelopes and node configuration."""
         node = request.node
-        trace_id = request.execution_id or ""
+        template_vars = {}
+        
+        # Add node-defined variables
+        if node.variables:
+            template_vars.update(node.variables)
+
+        # Add inputs from connected nodes - convert from envelopes
+        if inputs:
+            # Process envelope inputs
+            for key, envelope in inputs.items():
+                try:
+                    # Try to parse as JSON first
+                    value = envelope.as_json()
+                except ValueError:
+                    # Fall back to text
+                    value = envelope.as_text()
+                
+                # Check if we have a single 'default' key with dict value
+                if key == 'default' and isinstance(value, dict):
+                    # Unwrap the default for better template ergonomics
+                    template_vars.update(value)
+                else:
+                    # For labeled connections, add to template_vars
+                    template_vars[key] = value
+        return template_vars
+
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[TemplateJobNode]
+    ) -> str:
+        """Execute template rendering."""
+        node = request.node
+        template_vars = inputs
         
         # Use services from instance variables (set in pre_execute)
         filesystem_adapter = self._current_filesystem_adapter
@@ -159,128 +189,81 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         template_service = self._current_template_service
         template_processor = self._current_template_processor
         
-        try:
-            # Prepare template variables first
-            template_vars = {}
+        # Get template content
+        if node.template_content:
+            template_content = node.template_content
+        else:
+            # First process single bracket {} interpolation for diagram variables (if processor available)
+            processed_path = node.template_path
+            if template_processor:
+                processed_path = template_processor.process_single_brace(node.template_path, template_vars)
             
-            # Add node-defined variables
-            if node.variables:
-                template_vars.update(node.variables)
-
-            # Add inputs from connected nodes - convert from envelopes
-            if inputs:
-                # Process envelope inputs
-                for key, envelope in inputs.items():
-                    try:
-                        # Try to parse as JSON first
-                        value = self.reader.as_json(envelope)
-                    except ValueError:
-                        # Fall back to text
-                        value = self.reader.as_text(envelope)
-                    
-                    # Check if we have a single 'default' key with dict value
-                    if key == 'default' and isinstance(value, dict):
-                        # Unwrap the default for better template ergonomics
-                        template_vars.update(value)
-                    else:
-                        # For labeled connections, add to template_vars
-                        template_vars[key] = value
-
-            # Get template content
-            # print(f"[DEBUG] Getting template content...")
-            if node.template_content:
-                template_content = node.template_content
-            else:
-                # First process single bracket {} interpolation for diagram variables (if processor available)
-                processed_path = node.template_path
-                if template_processor:
-                    processed_path = template_processor.process_single_brace(node.template_path, template_vars)
-                
-                # Then process Jinja2 {{ }} syntax if present
-                processed_template_path = template_service.render_string(processed_path, **template_vars).strip()
-                # print(f"[DEBUG] Processed template_path: {processed_template_path}")
-                
-                # Load from file - just use the path as-is since filesystem adapter handles base path
-                template_path = Path(processed_template_path)
-                
-                if not filesystem_adapter.exists(template_path):
-                    return EnvelopeFactory.error(
-                        f"Template file not found: {node.template_path}",
-                        error_type="FileNotFoundError",
-                        produced_by=str(node.id)
-                    )
-                
-                with filesystem_adapter.open(template_path, 'rb') as f:
-                    template_content = f.read().decode('utf-8')
+            # Then process Jinja2 {{ }} syntax if present
+            processed_template_path = template_service.render_string(processed_path, **template_vars).strip()
             
-            try:
-                if engine == "internal":
-                    # Use built-in template service
-                    rendered = template_service.render_string(template_content, **template_vars)
-                elif engine == "jinja2":
-                    # Use enhanced template service for jinja2
-                    try:
-                        rendered = template_service.render_string(template_content, **template_vars)
-                        # print(f"[DEBUG] Jinja2 rendering complete")
-                    except Exception as e:
-                        # Fall back to standard Jinja2
-                        rendered = await self._render_jinja2(template_content, template_vars)
-                        # Log the fallback but don't store in metadata
-                        logger.debug(f"Enhancement fallback: {e}")
-            except Exception as render_error:
-                return EnvelopeFactory.error(
-                    str(render_error),
-                    error_type=render_error.__class__.__name__,
-                    produced_by=str(node.id)
-                )
+            # Load from file - just use the path as-is since filesystem adapter handles base path
+            template_path = Path(processed_template_path)
             
-            # Write to file if output_path is specified
-            if node.output_path:
-                # First process single bracket {} interpolation for diagram variables (if processor available)
-                processed_path = node.output_path
-                if template_processor:
-                    processed_path = template_processor.process_single_brace(node.output_path, template_vars)
-                
-                # Then process Jinja2 {{ }} syntax if present
-                processed_output_path = template_service.render_string(processed_path, **template_vars).strip()
-                
-                output_path = Path(processed_output_path)
-                
-                # Create parent directories if needed
-                parent_dir = output_path.parent
-                if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
-                    filesystem_adapter.mkdir(parent_dir, parents=True)
-                
-                with filesystem_adapter.open(output_path, 'wb') as f:
-                    f.write(rendered.encode('utf-8'))
+            if not filesystem_adapter.exists(template_path):
+                raise FileNotFoundError(f"Template file not found: {node.template_path}")
             
-            # Create output envelope
-            output_envelope = EnvelopeFactory.text(
-                rendered,
-                produced_by=node.id,
-                trace_id=trace_id
-            ).with_meta(
-                engine=engine,
-                template_path=node.template_path,
-                output_path=str(output_path) if node.output_path else None
-            )
-            
-            return output_envelope
+            with filesystem_adapter.open(template_path, 'rb') as f:
+                template_content = f.read().decode('utf-8')
         
-        except Exception as e:
-            error_envelope = EnvelopeFactory.text(
-                str(e),
-                produced_by=node.id,
-                trace_id=trace_id
-            ).with_meta(
-                error_type=type(e).__name__,
-                engine=node.engine or "internal"
-            )
-            return EnvelopeFactory.error(
-                str(e),
-                error_type=e.__class__.__name__,
-                produced_by=str(node.id)
-            )
+        # Render template
+        if engine == "internal":
+            # Use built-in template service
+            rendered = template_service.render_string(template_content, **template_vars)
+        elif engine == "jinja2":
+            # Use enhanced template service for jinja2
+            try:
+                rendered = template_service.render_string(template_content, **template_vars)
+            except Exception as e:
+                # Fall back to standard Jinja2
+                rendered = await self._render_jinja2(template_content, template_vars)
+                # Log the fallback but don't store in metadata
+                logger.debug(f"Enhancement fallback: {e}")
+        
+        # Write to file if output_path is specified
+        if node.output_path:
+            # First process single bracket {} interpolation for diagram variables (if processor available)
+            processed_path = node.output_path
+            if template_processor:
+                processed_path = template_processor.process_single_brace(node.output_path, template_vars)
+            
+            # Then process Jinja2 {{ }} syntax if present
+            processed_output_path = template_service.render_string(processed_path, **template_vars).strip()
+            
+            output_path = Path(processed_output_path)
+            
+            # Create parent directories if needed
+            parent_dir = output_path.parent
+            if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
+                filesystem_adapter.mkdir(parent_dir, parents=True)
+            
+            with filesystem_adapter.open(output_path, 'wb') as f:
+                f.write(rendered.encode('utf-8'))
+        
+        return rendered
+
+    def serialize_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[TemplateJobNode]
+    ) -> Envelope:
+        """Serialize rendered template to text envelope."""
+        node = request.node
+        trace_id = request.execution_id or ""
+        
+        return EnvelopeFactory.text(
+            result,
+            produced_by=node.id,
+            trace_id=trace_id
+        ).with_meta(
+            engine=self._current_engine,
+            template_path=node.template_path,
+            output_path=str(self._current_output_path) if hasattr(self, '_current_output_path') and self._current_output_path else None
+        )
     
     async def _render_jinja2(self, template: str, variables: dict[str, Any]) -> str:
         """Render template using Jinja2."""

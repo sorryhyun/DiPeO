@@ -57,6 +57,14 @@ class DiagramService(BaseService, DiagramPort):
         
         self._initialized = True
         logger.info(f"DiagramService initialized at: {self.base_path}")
+        logger.info(f"Project root: {self.base_path.parent}")
+        
+        # Check if projects directory exists
+        projects_path = self.base_path.parent / "projects"
+        if self.filesystem.exists(projects_path):
+            logger.info(f"Projects directory found: {projects_path}")
+        else:
+            logger.warning(f"Projects directory not found: {projects_path}")
     
     def detect_format(self, content: str) -> DiagramFormat:
         """Detect the format of diagram content."""
@@ -104,6 +112,9 @@ class DiagramService(BaseService, DiagramPort):
         if "files" in path.parts:
             idx = path.parts.index("files")
             rel_path = Path(*path.parts[idx+1:])
+        elif "projects" in path.parts:
+            idx = path.parts.index("projects")
+            rel_path = Path("projects", *path.parts[idx+1:])
         else:
             rel_path = path
         
@@ -139,10 +150,10 @@ class DiagramService(BaseService, DiagramPort):
             format_enum = self._format_string_to_enum(format_type)
             extensions = [self.format_detector.get_file_extension(format_enum)]
         else:
-            extensions = [".native.json", ".light.yaml", ".readable.yaml"]
+            extensions = [".native.json", ".light.yaml", ".light.yml", ".readable.yaml", ".readable.yml"]
         
         try:
-            def scan_directory(dir_path: Path) -> None:
+            def scan_directory(dir_path: Path, base_for_relative: Path) -> None:
                 try:
                     items = self.filesystem.listdir(dir_path)
                 except Exception:
@@ -153,7 +164,9 @@ class DiagramService(BaseService, DiagramPort):
                         for ext in extensions:
                             if str(item).endswith(ext):
                                 stat = self.filesystem.stat(item)
-                                rel_path = item.relative_to(self.base_path)
+                                # Calculate relative path from the root (parent of files/projects)
+                                root_base = self.base_path.parent
+                                rel_path = item.relative_to(root_base)
                                 diagram_id = str(rel_path).replace('\\', '/')
                                 
                                 diagrams.append(DiagramInfo(
@@ -166,12 +179,24 @@ class DiagramService(BaseService, DiagramPort):
                                 ))
                                 break
                     elif item.is_dir():
-                        scan_directory(item)
+                        scan_directory(item, base_for_relative)
             
-            scan_directory(self.base_path)
+            # Scan both files/ and projects/ directories
+            logger.debug(f"Scanning files directory: {self.base_path}")
+            scan_directory(self.base_path, self.base_path)
+            
+            # Also scan projects/ directory if it exists
+            projects_path = self.base_path.parent / "projects"
+            if self.filesystem.exists(projects_path):
+                logger.debug(f"Scanning projects directory: {projects_path}")
+                scan_directory(projects_path, projects_path)
+            else:
+                logger.debug(f"Projects directory not found: {projects_path}")
+                
         except Exception as e:
             raise StorageError(f"Failed to list diagrams: {e}")
         
+        logger.info(f"Found {len(diagrams)} diagrams total")
         diagrams.sort(key=lambda x: x.modified, reverse=True)
         return diagrams
     
@@ -271,7 +296,34 @@ class DiagramService(BaseService, DiagramPort):
                 content = f.read().decode('utf-8')
             
             format_str = self._detect_format_from_path(path)
-            return self.converter.deserialize(content, format_str)
+            diagram = self.converter.deserialize_from_storage(content, format_str)
+            
+            # Ensure metadata.id is set to the diagram_id
+            if diagram:
+                if diagram.metadata is None:
+                    from dipeo.diagram_generated import DiagramMetadata
+                    from datetime import datetime
+                    # Get file stats for created/modified times
+                    try:
+                        stat = self.filesystem.stat(path)
+                        created_time = stat.created.isoformat() if hasattr(stat, 'created') else datetime.now().isoformat()
+                        modified_time = stat.modified.isoformat() if hasattr(stat, 'modified') else datetime.now().isoformat()
+                    except:
+                        created_time = datetime.now().isoformat()
+                        modified_time = datetime.now().isoformat()
+                    
+                    diagram.metadata = DiagramMetadata(
+                        version="1.0.0",
+                        created=created_time,
+                        modified=modified_time
+                    )
+                diagram.metadata.id = diagram_id
+                if not diagram.metadata.name:
+                    # Extract name from the last part of the path
+                    name_parts = diagram_id.split('/')
+                    diagram.metadata.name = name_parts[-1] if name_parts else diagram_id
+            
+            return diagram
         except Exception as e:
             logger.warning(f"Failed to get diagram {diagram_id}: {e}")
             return None
@@ -329,28 +381,56 @@ class DiagramService(BaseService, DiagramPort):
         supported_extensions = [".native.json", ".light.yaml", ".light.yml", 
                               ".readable.yaml", ".readable.yml", ".json", ".yaml", ".yml"]
         
+        # List of directories to search in order
+        search_dirs = [self.base_path]  # files/ directory
+        projects_path = self.base_path.parent / "projects"
+        if self.filesystem.exists(projects_path):
+            search_dirs.append(projects_path)
+        
+        # If diagram_id starts with "projects/" or "files/", use it directly
+        if diagram_id.startswith("projects/") or diagram_id.startswith("files/"):
+            root_base = self.base_path.parent
+            full_path = root_base / diagram_id
+            if self.filesystem.exists(full_path):
+                return full_path
+            # Also try with extensions
+            for ext in supported_extensions:
+                if not diagram_id.endswith(ext):
+                    test_path = root_base / f"{diagram_id}{ext}"
+                    if self.filesystem.exists(test_path):
+                        return test_path
+        
         # Check if diagram_id already has an extension
         for ext in supported_extensions:
             if diagram_id.endswith(ext):
-                path = self.base_path / diagram_id
-                if self.filesystem.exists(path):
-                    return path
-                return path
+                for search_dir in search_dirs:
+                    path = search_dir / diagram_id
+                    if self.filesystem.exists(path):
+                        return path
+                # Return first search dir path if none exist (for creation)
+                return search_dirs[0] / diagram_id
         
         # If format is specified, use it
         if format:
             format_enum = self._format_string_to_enum(format)
             extension = self.format_detector.get_file_extension(format_enum)
-            return self.base_path / f"{diagram_id}{extension}"
+            # Check all search dirs
+            for search_dir in search_dirs:
+                path = search_dir / f"{diagram_id}{extension}"
+                if self.filesystem.exists(path):
+                    return path
+            # Return first search dir path if none exist (for creation)
+            return search_dirs[0] / f"{diagram_id}{extension}"
         
         # Try to find existing file with various extensions
         patterns = self.format_detector.construct_search_patterns(diagram_id)
         for pattern in patterns:
-            path = self.base_path / pattern
-            if self.filesystem.exists(path):
-                return path
+            for search_dir in search_dirs:
+                path = search_dir / pattern
+                if self.filesystem.exists(path):
+                    return path
         
-        # Default to native format
+        # Default to native format in files/ directory
         return self.base_path / f"{diagram_id}.native.json"
     
     def _detect_format_from_path(self, path: Path) -> str:

@@ -31,19 +31,21 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
         context: ExecutionContext
     ) -> dict[NodeID, NodeState]:
         """Extract node states from execution context."""
+        # Use the new get_all_node_states method for clean access
+        if hasattr(context, 'get_all_node_states'):
+            all_states = context.get_all_node_states()
+            node_states = {}
+            for node in diagram.nodes:
+                node_states[node.id] = all_states.get(node.id, NodeState(status=Status.PENDING))
+            return node_states
+        
+        # Fallback for individual state queries (should not be needed with updated protocol)
         node_states = {}
         for node in diagram.nodes:
-            # Try different ways to get node state from context
-            if hasattr(context, 'get_node_state'):
-                state = context.get_node_state(node.id)
-                if state:
-                    node_states[node.id] = state
-                else:
-                    node_states[node.id] = NodeState(status=Status.PENDING)
-            elif hasattr(context, '_node_states'):
-                node_states[node.id] = context._node_states.get(node.id, NodeState(status=Status.PENDING))
+            state = context.get_node_state(node.id)
+            if state:
+                node_states[node.id] = state
             else:
-                # Fallback to pending if context doesn't provide state
                 node_states[node.id] = NodeState(status=Status.PENDING)
         return node_states
     

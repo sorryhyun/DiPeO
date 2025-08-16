@@ -2,83 +2,317 @@ Generate a DiPeO light format diagram based on the following workflow descriptio
 
 {{workflow_description}}
 
-IMPORTANT GUIDELINES:
+{% if sample_test_data %}
+SAMPLE TEST DATA PROVIDED:
+{{sample_test_data}}
 
-1. DIAGRAM STRUCTURE:
-   - Always start with a 'start' node at position {x: 100, y: 200}
-   - End with an 'endpoint' node for file output or final results
-   - Position nodes with x-coordinates incrementing by 200-300 for readability
-   - Keep y-coordinates consistent for linear flow (200 for main path)
+Use this test data to understand the expected input format and structure your diagram accordingly.
+{% endif %}
 
-2. NODE SELECTION:
-   - Use 'db' nodes for file I/O operations (reading/writing files)
-   - Use 'code_job' nodes for data processing, validation, transformation
-   - Use 'person_job' nodes only when LLM analysis is needed
-   - Use 'condition' nodes for branching logic
-   - Use 'sub_diagram' nodes with batch=true for parallel processing
-   - Use 'endpoint' nodes to save final results
+DIPEO LIGHT DIAGRAM DOCUMENTATION:
 
-3. DATA FLOW:
-   - Always label connections with meaningful variable names
-   - Connection labels become variable names in downstream nodes
-   - Use descriptive labels like 'raw_data', 'validated_items', 'results'
+## Core Node Types and Properties
 
-4. CODE_JOB BEST PRACTICES:
-   - Keep code concise and focused on single responsibility
-   - Use Python for data processing
-   - Always set result variable or use return statement
-   - Access input variables by their connection label names
-
-5. FILE OPERATIONS:
-   - For reading multiple files, use glob patterns with glob: true
-   - For CSV/JSON files, use serialize_json: true when appropriate
-   - Use relative paths from project root (e.g., "files/data/input.csv")
-
-6. PARALLEL PROCESSING:
-   - For batch operations, use sub_diagram with batch: true and batch_parallel: true
-   - Or use code_job with asyncio for concurrent processing
-
-7. ERROR HANDLING:
-   - Add validation nodes after data loading
-   - Use condition nodes to handle error cases
-   - Include logging in code_job nodes for debugging
-
-EXAMPLE PATTERNS:
-
-For file processing:
+### PERSON_JOB Node
+Executes prompts with LLM agents, supporting iteration and memory management.
 ```yaml
-- label: load_files
+- label: Analyzer
+  type: person_job
+  props:
+    person: Agent Name              # Reference to persons section
+    default_prompt: 'Analyze {{data}}'
+    first_only_prompt: 'Start analysis of {{data}}'  # First iteration only
+    max_iteration: 5
+    memory_profile: FOCUSED         # Options: FULL, FOCUSED, MINIMAL, GOLDFISH, CUSTOM
+```
+
+**Key Features:**
+- `first_only_prompt`: Used only on first iteration
+- `default_prompt`: Used for all subsequent iterations
+- Connections with `_first` suffix are used ONLY on first iteration
+- Memory profiles control conversation history retention
+
+### CONDITION Node
+Controls flow based on boolean expressions or built-in conditions.
+```yaml
+- label: Check Valid
+  type: condition
+  props:
+    condition_type: custom
+    expression: score >= 70 and len(errors) == 0
+```
+
+**Connection Handles:**
+- Creates TWO outputs: `NodeLabel_condtrue` and `NodeLabel_condfalse`
+- Example: "Check Valid" creates "Check Valid_condtrue" and "Check Valid_condfalse"
+- MUST connect from these special handles, not from the node label directly
+
+### CODE_JOB Node
+Executes code with full access to input variables.
+```yaml
+# Inline code
+- label: Transform Data
+  type: code_job
+  props:
+    language: python  # or code_type: python (both work)
+    code: |
+      # Input variables from connections available by label name
+      processed = transform(raw_data)
+      result = processed  # or use 'return processed'
+
+# External code (recommended for complex logic)
+- label: Complex Process
+  type: code_job
+  props:
+    language: python
+    filePath: files/code/processor.py  # or code: files/code/processor.py
+    functionName: process_data
+```
+
+### DB Node
+File system operations for reading/writing data.
+```yaml
+- label: Load Config
   type: db
   props:
     operation: read
     sub_type: file
-    glob: true
-    source_details: ["files/input/*.csv"]
+    source_details: files/config.json  # or file: files/config.json (both work)
+    glob: true  # Enable glob patterns like "files/*.json"
 ```
 
-For validation:
+### CONNECTION LABELS AND DATA FLOW
+Connection labels define variable names in target nodes:
+```yaml
+connections:
+  # Label creates 'raw_data' variable in Process node
+  - from: Load Data
+    to: Process
+    label: raw_data
+    content_type: raw_text  # or object for structured data
+    
+  # In Process node, access as:
+  # Python: raw_data
+  # Templates: {{raw_data}}
+```
+
+CRITICAL REQUIREMENTS:
+
+1. CONTENT TYPE RULES:
+   - NEVER use 'empty' as a content_type - it provides no value
+   - Use 'raw_text' for plain text, CSV, or unstructured data
+   - Use 'object' for structured data (dictionaries, JSON objects, parsed data)
+   - Use 'conversation_state' only for LLM conversation contexts
+   - ALWAYS specify content_type for connections carrying data
+
+2. DIAGRAM STRUCTURE:
+   - Always start with a 'start' node at position {x: 100, y: 200}
+   - End with an 'endpoint' node for file output or final results
+   - Position nodes with x-coordinates incrementing by 200-300 for readability
+   - Keep y-coordinates consistent for linear flow (200 for main path)
+   - Use y: 400 for alternative branches in condition nodes
+
+3. NODE SELECTION (NO SUB-DIAGRAMS):
+   - Use 'db' nodes for file I/O operations (reading/writing files)
+   - Use 'code_job' nodes for ALL data processing, validation, transformation
+   - Use 'person_job' nodes only when LLM analysis is absolutely required
+   - Use 'condition' nodes for branching logic
+   - Use 'endpoint' nodes to save final results
+   - DO NOT use 'sub_diagram' nodes - implement parallel processing with code_job and asyncio instead
+
+4. CONDITION NODE CONNECTIONS:
+   - Condition nodes create TWO special connection handles:
+     - `NodeLabel_condtrue`: Output when condition evaluates to true
+     - `NodeLabel_condfalse`: Output when condition evaluates to false
+   - Example: A node labeled "Check Valid" creates handles "Check Valid_condtrue" and "Check Valid_condfalse"
+   - ALWAYS connect from these special handles, not from the node label directly
+
+5. PERSON_JOB NODE ITERATIONS:
+   - Person_job nodes with max_iteration > 1 have special input behavior:
+     - `_first` labeled connections are used ONLY on the first iteration
+     - All other connections are used on every iteration
+   - Use `first_only_prompt` for initial context, `default_prompt` for iterations
+   - Memory profiles: FOCUSED (default), FULL, MINIMAL, GOLDFISH, CUSTOM
+
+6. DATA FLOW:
+   - Always label connections with meaningful variable names
+   - Connection labels become variable names in downstream nodes
+   - Use descriptive labels like 'raw_data', 'parsed_records', 'validation_results'
+   - Specify appropriate content_type for EVERY connection with data
+
+7. CODE_JOB BEST PRACTICES:
+   - Keep code concise and focused on single responsibility
+   - Use Python for data processing
+   - Always set result variable or use return statement
+   - Access input variables by their connection label names
+   - For parallel processing, use asyncio within code_job:
+     ```python
+     import asyncio
+     async def process_item(item):
+         # Process individual item
+         return processed_item
+     
+     async def main():
+         tasks = [process_item(item) for item in input_data]
+         results = await asyncio.gather(*tasks)
+         return results
+     
+     result = asyncio.run(main())
+     ```
+
+8. FILE OPERATIONS:
+   - For reading multiple files, use glob patterns with glob: true
+   - For CSV files, parse them in a code_job node after reading as raw_text
+   - Use relative paths from project root (e.g., "files/data/input.csv")
+   - Always validate file contents before processing
+   - Both 'file' and 'source_details' work for db nodes (they're mapped internally)
+
+9. FIELD COMPATIBILITY:
+   - code_job: 'language' and 'code_type' are interchangeable
+   - db: 'file' and 'source_details' are interchangeable
+   - For external code: use 'filePath' or 'code' with file path + 'functionName'
+
+10. ERROR HANDLING:
+   - Add validation nodes after data loading
+   - Use condition nodes to handle error cases
+   - Include try-except blocks in code_job nodes
+   - Log errors for debugging
+
+EXAMPLE PATTERNS:
+
+For condition node branching:
+```yaml
+- label: Check Valid
+  type: condition
+  props:
+    condition_type: custom
+    expression: len(errors) == 0
+
+- label: Process Valid Data
+  type: code_job
+  props:
+    code: |
+      result = process_data(valid_records)
+
+- label: Handle Errors
+  type: code_job
+  props:
+    code: |
+      result = {"error": "Validation failed", "details": errors}
+
+connections:
+  # CRITICAL: Use _condtrue and _condfalse handles
+  - {from: Check Valid_condtrue, to: Process Valid Data, label: valid_records, content_type: object}
+  - {from: Check Valid_condfalse, to: Handle Errors, label: errors, content_type: object}
+```
+
+For person_job iterations with _first input:
+```yaml
+- label: Analyze Iteratively
+  type: person_job
+  props:
+    person: Analyst
+    first_only_prompt: "Initial analysis of: {{initial_context}}"
+    default_prompt: "Continue refining based on: {{feedback}}"
+    max_iteration: 3
+    memory_profile: FOCUSED
+
+connections:
+  # Connection with '_first' suffix used only on first iteration
+  - {from: Load Context, to: Analyze Iteratively, label: initial_context_first, content_type: raw_text}
+  # Regular connection used every iteration
+  - {from: Feedback Loop, to: Analyze Iteratively, label: feedback, content_type: raw_text}
+```
+
+For CSV processing without sub_diagram:
+```yaml
+- label: load_csv
+  type: db
+  props:
+    operation: read
+    sub_type: file
+    source_details: files/data/input.csv
+    format: text
+
+- label: parse_csv
+  type: code_job
+  props:
+    language: python
+    code: |
+      import csv
+      from io import StringIO
+      
+      reader = csv.DictReader(StringIO(csv_content))
+      records = list(reader)
+      result = {"records": records, "count": len(records)}
+
+connections:
+  - {from: load_csv, to: parse_csv, label: csv_content, content_type: raw_text}
+```
+
+For parallel processing without sub_diagram:
+```yaml
+- label: process_parallel
+  type: code_job
+  props:
+    language: python
+    code: |
+      import asyncio
+      
+      async def process_record(record):
+          # Your processing logic here
+          await asyncio.sleep(0.01)  # Simulate async work
+          return {**record, "processed": True}
+      
+      async def main():
+          tasks = [process_record(r) for r in input_records]
+          results = await asyncio.gather(*tasks)
+          return results
+      
+      result = asyncio.run(main())
+```
+
+For validation with proper content types:
 ```yaml
 - label: validate_data
   type: code_job
   props:
     language: python
     code: |
-      errors = []
-      for item in input_data:
-          if not validate(item):
-              errors.append(item)
-      result = {"valid": len(errors) == 0, "errors": errors}
+      valid_records = []
+      invalid_records = []
+      
+      for record in input_data.get("records", []):
+          if all(field in record for field in required_fields):
+              valid_records.append(record)
+          else:
+              invalid_records.append(record)
+      
+      result = {
+          "valid": valid_records,
+          "invalid": invalid_records,
+          "is_valid": len(invalid_records) == 0
+      }
+
+connections:
+  - {from: parse_csv, to: validate_data, label: input_data, content_type: object}
+  - {from: validate_data, to: process_valid, label: validation_result, content_type: object}
 ```
 
-For parallel processing:
+For external code (recommended for complex logic):
 ```yaml
-- label: process_batch
-  type: sub_diagram
+- label: Complex Processing
+  type: code_job
   props:
-    diagram_name: processors/single_item
-    batch: true
-    batch_input_key: items
-    batch_parallel: true
+    language: python
+    filePath: files/code/processors/data_processor.py
+    functionName: process_complex_data
+    # OR using code field with path:
+    # code: files/code/processors/data_processor.py
+    # functionName: process_complex_data
+
+connections:
+  - {from: Load Data, to: Complex Processing, label: input_data, content_type: object}
 ```
 
-Generate a complete, executable diagram following these guidelines. Ensure all node properties are valid and the diagram can be run immediately with the dipeo command.
+Generate a complete, executable diagram following these guidelines. Ensure all node properties are valid, content_types are properly specified (never 'empty'), and the diagram can be run immediately with the dipeo command.

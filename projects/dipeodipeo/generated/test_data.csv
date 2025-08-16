@@ -1,0 +1,602 @@
+{
+  "id": "resp_689ffa3dc2848194bec19f671ebccd980f82f54cefa9aca7",
+  "created_at": 1755314750.0,
+  "error": null,
+  "incomplete_details": null,
+  "instructions": null,
+  "metadata": {},
+  "model": "gpt-5-nano-2025-08-07",
+  "object": "response",
+  "output": [
+    {
+      "id": "rs_689ffa3ea390819485e10f82390a13280f82f54cefa9aca7",
+      "summary": [],
+      "type": "reasoning",
+      "encrypted_content": null,
+      "status": null
+    },
+    {
+      "id": "msg_689ffab2bc2c8194b60350522d1fefc90f82f54cefa9aca7",
+      "content": [
+        {
+          "annotations": [],
+          "text": "{\n  \"test_data\": {\n    \"specification\": {\n      \"format\": \"csv\",\n      \"num_rows\": 12,\n      \"fields\": [\n        {\"name\": \"record_id\", \"type\": \"string\", \"nullable\": false, \"unique\": true, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Unique identifier for the row (record)\"},\n        {\"name\": \"record_type\", \"type\": \"string\", \"nullable\": false, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": [\"user\",\"transaction\",\"log\"], \"description\": \"Type of record in the workflow (user, transaction, or log)\"},\n        {\"name\": \"user_id\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Reference to the user identifier when applicable\"},\n        {\"name\": \"name\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Descriptive name if applicable\"},\n        {\"name\": \"email\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Email address if applicable\"},\n        {\"name\": \"age\", \"type\": \"integer\", \"nullable\": true, \"unique\": false, \"min_value\": 0, \"max_value\": 120, \"pattern\": null, \"choices\": null, \"description\": \"Age or equivalent attribute for user-like records\"},\n        {\"name\": \"created_date\", \"type\": \"date\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": \"YYYY-MM-DD\", \"choices\": null, \"description\": \"Creation date for the record (ISO)\"},\n        {\"name\": \"transaction_id\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Transaction identifier for transaction-type records\"},\n        {\"name\": \"amount\", \"type\": \"float\", \"nullable\": true, \"unique\": false, \"min_value\": -1000000, \"max_value\": 1000000, \"pattern\": null, \"choices\": null, \"description\": \"Monetary amount for transactions\"},\n        {\"name\": \"currency\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Currency code for monetary values\"},\n        {\"name\": \"timestamp\", \"type\": \"datetime\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": \"YYYY-MM-DDTHH:MM:SSZ\", \"choices\": null, \"description\": \"Timestamp for events or transactions (ISO 8601)\"},\n        {\"name\": \"source\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Origin source or system component\"}\n      ],\n      \"include_headers\": true,\n      \"description\": \"Compact denormalized dataset to exercise a data processor diagram with users, transactions, and logs, including referential references and edge cases.\"\n    },\n    \"csv_content\": \"record_id,record_type,user_id,name,email,age,created_date,transaction_id,amount,currency,timestamp,source\\nU-001,user,U1,Alice Carter,alice.carter@example.com,34,2022-04-12,,,,,\\nU-002,user,U2,Miguel Santos,miguel.santos@example.org,28,2023-01-20,,,,,\\nU-003,user,U3,Zo\u00eb Chen-Smith,zoe.chen@example.net,0,2020-02-29,,,,,\\nU-004,user,U4,Dave Kim,NULL,41,2024-11-01,,,,,\\nTR-001,transaction,U1,,,,TXN-001,199.99,USD,2022-05-01T14:30:00Z,payment-gateway\\nTR-002,transaction,U2,,,,TXN-002,49.50,USD,2023-02-14T09:15:00Z,payment-gateway\\nTR-003,transaction,U3,,,,TXN-003,-5.00,USD,2020-02-29T12:00:00Z,web\\nTR-004,transaction,U4,,,,TXN-004,500.00,EUR,2024-11-02T08:00:00Z,credit-card\\nLG-001,log,U1,Alice Carter,alice.carter@example.com,34,2022-08-01,,,,2022-08-01T10:15:00Z,auth-service\\nLG-002,log,U2,Miguel Santos,miguel.santos@example.org,28,2023-02-14,,,,2023-02-14T09:15:00Z,sys-logger\\nLG-003,log,U3,Zo\u00eb Chen-Smith,zoe.chen@example.net,0,2020-02-29,,,,2020-02-29T05:00:00Z,etl\\nLG-004,log,U4,Dave Kim,NULL,41,2024-11-01,,,,2024-11-01T08:00:00Z,etl-processor\",\n    \"row_count\": 12,\n    \"field_count\": 12\n  },\n  \"summary\": \"Generated 12 data rows across 4 users, 4 transactions, and 4 logs. Includes edge cases: NULL email, leap day, age boundary, and a negative transaction amount to help validate the data processor diagram paths.\"\n}",
+          "type": "output_text",
+          "logprobs": [],
+          "parsed": {
+            "test_data": {
+              "specification": {
+                "format": "csv",
+                "num_rows": 12,
+                "fields": [
+                  {
+                    "name": "record_id",
+                    "type": "string",
+                    "nullable": false,
+                    "unique": true,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Unique identifier for the row (record)"
+                  },
+                  {
+                    "name": "record_type",
+                    "type": "string",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": [
+                      "user",
+                      "transaction",
+                      "log"
+                    ],
+                    "description": "Type of record in the workflow (user, transaction, or log)"
+                  },
+                  {
+                    "name": "user_id",
+                    "type": "string",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Reference to the user identifier when applicable"
+                  },
+                  {
+                    "name": "name",
+                    "type": "string",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Descriptive name if applicable"
+                  },
+                  {
+                    "name": "email",
+                    "type": "string",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Email address if applicable"
+                  },
+                  {
+                    "name": "age",
+                    "type": "integer",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": 0.0,
+                    "max_value": 120.0,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Age or equivalent attribute for user-like records"
+                  },
+                  {
+                    "name": "created_date",
+                    "type": "date",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": "YYYY-MM-DD",
+                    "choices": null,
+                    "description": "Creation date for the record (ISO)"
+                  },
+                  {
+                    "name": "transaction_id",
+                    "type": "string",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Transaction identifier for transaction-type records"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "float",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": -1000000.0,
+                    "max_value": 1000000.0,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Monetary amount for transactions"
+                  },
+                  {
+                    "name": "currency",
+                    "type": "string",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Currency code for monetary values"
+                  },
+                  {
+                    "name": "timestamp",
+                    "type": "datetime",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": "YYYY-MM-DDTHH:MM:SSZ",
+                    "choices": null,
+                    "description": "Timestamp for events or transactions (ISO 8601)"
+                  },
+                  {
+                    "name": "source",
+                    "type": "string",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Origin source or system component"
+                  }
+                ],
+                "include_headers": true,
+                "description": "Compact denormalized dataset to exercise a data processor diagram with users, transactions, and logs, including referential references and edge cases."
+              },
+              "csv_content": "record_id,record_type,user_id,name,email,age,created_date,transaction_id,amount,currency,timestamp,source\nU-001,user,U1,Alice Carter,alice.carter@example.com,34,2022-04-12,,,,,\nU-002,user,U2,Miguel Santos,miguel.santos@example.org,28,2023-01-20,,,,,\nU-003,user,U3,Zo\u00eb Chen-Smith,zoe.chen@example.net,0,2020-02-29,,,,,\nU-004,user,U4,Dave Kim,NULL,41,2024-11-01,,,,,\nTR-001,transaction,U1,,,,TXN-001,199.99,USD,2022-05-01T14:30:00Z,payment-gateway\nTR-002,transaction,U2,,,,TXN-002,49.50,USD,2023-02-14T09:15:00Z,payment-gateway\nTR-003,transaction,U3,,,,TXN-003,-5.00,USD,2020-02-29T12:00:00Z,web\nTR-004,transaction,U4,,,,TXN-004,500.00,EUR,2024-11-02T08:00:00Z,credit-card\nLG-001,log,U1,Alice Carter,alice.carter@example.com,34,2022-08-01,,,,2022-08-01T10:15:00Z,auth-service\nLG-002,log,U2,Miguel Santos,miguel.santos@example.org,28,2023-02-14,,,,2023-02-14T09:15:00Z,sys-logger\nLG-003,log,U3,Zo\u00eb Chen-Smith,zoe.chen@example.net,0,2020-02-29,,,,2020-02-29T05:00:00Z,etl\nLG-004,log,U4,Dave Kim,NULL,41,2024-11-01,,,,2024-11-01T08:00:00Z,etl-processor",
+              "row_count": 12,
+              "field_count": 12
+            },
+            "summary": "Generated 12 data rows across 4 users, 4 transactions, and 4 logs. Includes edge cases: NULL email, leap day, age boundary, and a negative transaction amount to help validate the data processor diagram paths."
+          }
+        }
+      ],
+      "role": "assistant",
+      "status": "completed",
+      "type": "message"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "temperature": 1.0,
+  "tool_choice": "auto",
+  "tools": [],
+  "top_p": 1.0,
+  "background": false,
+  "max_output_tokens": null,
+  "previous_response_id": null,
+  "prompt": null,
+  "reasoning": {
+    "effort": "medium",
+    "generate_summary": null,
+    "summary": null
+  },
+  "service_tier": "default",
+  "status": "completed",
+  "text": {
+    "format": {
+      "name": "Response",
+      "schema_": {
+        "$defs": {
+          "DataType": {
+            "description": "Supported data types for test data generation.",
+            "enum": [
+              "csv",
+              "json",
+              "yaml"
+            ],
+            "title": "DataType",
+            "type": "string"
+          },
+          "FieldDefinition": {
+            "additionalProperties": false,
+            "description": "Definition of a field in the test data.",
+            "properties": {
+              "name": {
+                "description": "Field name",
+                "title": "Name",
+                "type": "string"
+              },
+              "type": {
+                "description": "Data type of the field",
+                "enum": [
+                  "string",
+                  "integer",
+                  "float",
+                  "boolean",
+                  "date",
+                  "datetime",
+                  "email",
+                  "url",
+                  "uuid"
+                ],
+                "title": "Type",
+                "type": "string"
+              },
+              "nullable": {
+                "default": false,
+                "description": "Whether the field can have null values",
+                "title": "Nullable",
+                "type": "boolean"
+              },
+              "unique": {
+                "default": false,
+                "description": "Whether values should be unique",
+                "title": "Unique",
+                "type": "boolean"
+              },
+              "min_value": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Minimum value for numeric fields",
+                "title": "Min Value"
+              },
+              "max_value": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Maximum value for numeric fields",
+                "title": "Max Value"
+              },
+              "pattern": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Regex pattern for string fields",
+                "title": "Pattern"
+              },
+              "choices": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "List of possible values (strings, numbers, or booleans)",
+                "title": "Choices"
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Field description for context",
+                "title": "Description"
+              }
+            },
+            "required": [
+              "name",
+              "type",
+              "nullable",
+              "unique",
+              "min_value",
+              "max_value",
+              "pattern",
+              "choices",
+              "description"
+            ],
+            "title": "FieldDefinition",
+            "type": "object"
+          },
+          "GeneratedTestData": {
+            "additionalProperties": false,
+            "description": "Generated test data with metadata.",
+            "properties": {
+              "specification": {
+                "description": "The specification used to generate this data",
+                "additionalProperties": false,
+                "properties": {
+                  "format": {
+                    "default": "csv",
+                    "description": "Output format for the test data",
+                    "enum": [
+                      "csv",
+                      "json",
+                      "yaml"
+                    ],
+                    "title": "DataType",
+                    "type": "string"
+                  },
+                  "num_rows": {
+                    "default": 10,
+                    "description": "Number of rows to generate",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "title": "Num Rows",
+                    "type": "integer"
+                  },
+                  "fields": {
+                    "description": "Field definitions for the test data",
+                    "items": {
+                      "$ref": "#/$defs/FieldDefinition"
+                    },
+                    "title": "Fields",
+                    "type": "array"
+                  },
+                  "include_headers": {
+                    "default": true,
+                    "description": "Whether to include headers in CSV output",
+                    "title": "Include Headers",
+                    "type": "boolean"
+                  },
+                  "description": {
+                    "description": "Description of what this test data represents",
+                    "title": "Description",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "format",
+                  "num_rows",
+                  "fields",
+                  "include_headers",
+                  "description"
+                ],
+                "title": "TestDataSpecification",
+                "type": "object"
+              },
+              "csv_content": {
+                "description": "CSV formatted content ready to save",
+                "title": "Csv Content",
+                "type": "string"
+              },
+              "row_count": {
+                "description": "Number of data rows generated",
+                "title": "Row Count",
+                "type": "integer"
+              },
+              "field_count": {
+                "description": "Number of fields per row",
+                "title": "Field Count",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "specification",
+              "csv_content",
+              "row_count",
+              "field_count"
+            ],
+            "title": "GeneratedTestData",
+            "type": "object"
+          },
+          "TestDataSpecification": {
+            "additionalProperties": false,
+            "description": "Specification for generating test data.",
+            "properties": {
+              "format": {
+                "default": "csv",
+                "description": "Output format for the test data",
+                "enum": [
+                  "csv",
+                  "json",
+                  "yaml"
+                ],
+                "title": "DataType",
+                "type": "string"
+              },
+              "num_rows": {
+                "default": 10,
+                "description": "Number of rows to generate",
+                "maximum": 100,
+                "minimum": 1,
+                "title": "Num Rows",
+                "type": "integer"
+              },
+              "fields": {
+                "description": "Field definitions for the test data",
+                "items": {
+                  "$ref": "#/$defs/FieldDefinition"
+                },
+                "title": "Fields",
+                "type": "array"
+              },
+              "include_headers": {
+                "default": true,
+                "description": "Whether to include headers in CSV output",
+                "title": "Include Headers",
+                "type": "boolean"
+              },
+              "description": {
+                "description": "Description of what this test data represents",
+                "title": "Description",
+                "type": "string"
+              }
+            },
+            "required": [
+              "format",
+              "num_rows",
+              "fields",
+              "include_headers",
+              "description"
+            ],
+            "title": "TestDataSpecification",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response containing the generated test data.",
+        "properties": {
+          "test_data": {
+            "description": "The generated test data with CSV content",
+            "additionalProperties": false,
+            "properties": {
+              "specification": {
+                "description": "The specification used to generate this data",
+                "additionalProperties": false,
+                "properties": {
+                  "format": {
+                    "default": "csv",
+                    "description": "Output format for the test data",
+                    "enum": [
+                      "csv",
+                      "json",
+                      "yaml"
+                    ],
+                    "title": "DataType",
+                    "type": "string"
+                  },
+                  "num_rows": {
+                    "default": 10,
+                    "description": "Number of rows to generate",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "title": "Num Rows",
+                    "type": "integer"
+                  },
+                  "fields": {
+                    "description": "Field definitions for the test data",
+                    "items": {
+                      "$ref": "#/$defs/FieldDefinition"
+                    },
+                    "title": "Fields",
+                    "type": "array"
+                  },
+                  "include_headers": {
+                    "default": true,
+                    "description": "Whether to include headers in CSV output",
+                    "title": "Include Headers",
+                    "type": "boolean"
+                  },
+                  "description": {
+                    "description": "Description of what this test data represents",
+                    "title": "Description",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "format",
+                  "num_rows",
+                  "fields",
+                  "include_headers",
+                  "description"
+                ],
+                "title": "TestDataSpecification",
+                "type": "object"
+              },
+              "csv_content": {
+                "description": "CSV formatted content ready to save",
+                "title": "Csv Content",
+                "type": "string"
+              },
+              "row_count": {
+                "description": "Number of data rows generated",
+                "title": "Row Count",
+                "type": "integer"
+              },
+              "field_count": {
+                "description": "Number of fields per row",
+                "title": "Field Count",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "specification",
+              "csv_content",
+              "row_count",
+              "field_count"
+            ],
+            "title": "GeneratedTestData",
+            "type": "object"
+          },
+          "summary": {
+            "description": "Brief summary of what was generated",
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "test_data",
+          "summary"
+        ],
+        "title": "Response",
+        "type": "object"
+      },
+      "type": "json_schema",
+      "description": null,
+      "strict": true
+    },
+    "verbosity": "medium"
+  },
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 1505,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 24437,
+    "output_tokens_details": {
+      "reasoning_tokens": 23104
+    },
+    "total_tokens": 25942
+  },
+  "user": null,
+  "max_tool_calls": null,
+  "prompt_cache_key": null,
+  "safety_identifier": null,
+  "store": true,
+  "top_logprobs": 0
+}

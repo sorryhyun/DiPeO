@@ -1,20 +1,38 @@
 # DiPeO Documentation Index
 
-## User Documentation
+## Quick Start
 - [User Guide](README.md) - Getting started with DiPeO diagram editor
+- [Motivations](motivations.md) - Project background and philosophy
 
-## Developer Documentation
-- [Code Generation Guide](../projects/codegen/code-generation-guide.md) - Complete codegen pipeline and adding new features
-- [Memory System Design](memory_system_design.md) - Conversation memory architecture
-- [Diagram Formats](diagram_formats.md) - Native, Light, and Readable format specifications
+## Architecture Documentation
+> System design, architecture patterns, and technical specifications
 
-## Guides
-- [Comprehensive Light Diagram Guide](comprehensive_light_diagram_guide.md) - Complete Light YAML format guide
-- [Overall Architecture](overall_architecture.md) - System architecture and technology stack
-- [GraphQL Subscriptions](graphql-subscriptions.md) - Real-time updates implementation
-- [Codegen Dog Fooding](../projects/codegen/codegen_dog_fooding.md) - Using DiPeO to generate its own code
-- [PyCharm Setup](pycharm-setup.md) - IDE configuration
+- [Overall Architecture](architecture/overall_architecture.md) - System architecture and technology stack
+- [Memory System Design](architecture/memory_system_design.md) - Conversation memory architecture  
+- [GraphQL Subscriptions](architecture/graphql-subscriptions.md) - Real-time updates implementation
 
-## Archive
-- [Korean Guide](korean/korean_guide.md) - 한국어 가이드
-- [Motivations](motivations.md) - Project background
+### Korean Translations
+- [전체 아키텍처](architecture/korean/overall_architecture.md)
+- [메모리 시스템 설계](architecture/korean/memory_system_design.md)
+- [GraphQL 구독](architecture/korean/graphql-subscriptions.md)
+
+## Format Specifications
+> Diagram formats and data structure specifications
+
+- [Diagram Formats](formats/diagram_formats.md) - Native, Light, and Readable format specifications
+- [Comprehensive Light Diagram Guide](formats/comprehensive_light_diagram_guide.md) - Complete Light YAML format guide with examples
+
+### Korean Translations
+- [Light 다이어그램 가이드](formats/korean/comprehensive_light_diagram_guide.md)
+
+## Project Guides
+> Specific workflows and feature implementation guides
+
+- [Code Generation Guide](projects/code-generation-guide.md) - Complete codegen pipeline and adding new features
+- [DiPeO AI Diagram Generation](projects/dipeodipeo-guide.md) - AI-powered diagram generation from natural language
+- [Frontend Enhance Guide](projects/frontend-enhance-guide.md) - Iterative AI refinement for production React apps
+
+### Korean Translations
+- [코드 생성 가이드](projects/korean/code-generation-guide.md)
+- [DiPeO AI 다이어그램 생성](projects/korean/dipeodipeo-guide.md)
+- [프론트엔드 개선 가이드](projects/korean/frontend-enhance-guide.md)

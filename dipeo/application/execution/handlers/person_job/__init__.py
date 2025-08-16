@@ -39,8 +39,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     Now uses envelope-based communication for clean input/output interfaces.
     """
     
-    # Enable envelope mode
-    _expects_envelopes = True
     
     def __init__(self):
         super().__init__()
@@ -108,7 +106,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         
         # Configure services for executors on first execution
         if not self._services_configured:
-            from dipeo.application.registry import (
+            from dipeo.application.registry.keys import (
                 LLM_SERVICE,
                 DIAGRAM,
                 CONVERSATION_MANAGER,
@@ -135,151 +133,179 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             self._services_configured = True
         return None
     
-    async def execute_with_envelopes(
+    async def prepare_inputs(
         self,
         request: ExecutionRequest[PersonJobNode],
         inputs: dict[str, Envelope]
-    ) -> Envelope:
-        """Execute person job with envelope inputs.
+    ) -> dict[str, Any]:
+        """Convert envelope inputs to data for person job.
         
         Envelopes allow clean, typed communication between nodes.
         """
         node = request.node
+        
+        # Store raw inputs for batch processing
+        self._envelope_inputs = inputs
+        
+        # Extract prompt from envelope (optional, use default_prompt if not provided)
+        prompt_envelope = self.get_optional_input(inputs, 'prompt')
+        prompt = None
+        if prompt_envelope:
+            prompt = prompt_envelope.as_text()
+        else:
+            # Check if node has prompt_file configured (will be handled by single_executor)
+            has_prompt_file = getattr(node, 'prompt_file', None) or getattr(node, 'first_prompt_file', None)
+
+            # Use default_prompt from node configuration
+            prompt = getattr(node, 'default_prompt', None)
+
+            # Only raise error if no prompt sources are available
+            if not prompt and not has_prompt_file:
+                raise ValueError(f"No prompt provided and no default_prompt or prompt_file configured for node {node.id}")
+
+        # Extract context (optional)
+        context_data = None
+        if context_envelope := self.get_optional_input(inputs, 'context'):
+            try:
+                context_data = context_envelope.as_json()
+            except ValueError:
+                # Fall back to text
+                context_data = context_envelope.as_text()
+
+        # Get conversation state if needed (based on memory_profile)
+        conversation_state = None
+        # Check if memory is enabled (memory_profile is not None or 'NONE')
+        memory_enabled = node.memory_profile and node.memory_profile != 'NONE'
+        if memory_enabled:
+            if conv_envelope := self.get_optional_input(inputs, '_conversation'):
+                conversation_state = conv_envelope.as_conversation()
+            
+        # Prepare request with extracted inputs
+        # Only override inputs if we extracted them from envelopes
+        # Otherwise keep original inputs for single_executor to handle prompt_file
+        if prompt is not None or context_data is not None:
+            # Convert envelope inputs to plain values for executors
+            processed_inputs = {}
+            # Convert all envelope inputs to their values
+            for key, envelope in inputs.items():
+                if envelope.content_type == "raw_text":
+                    processed_inputs[key] = envelope.as_text()
+                elif envelope.content_type == "object":
+                    processed_inputs[key] = envelope.as_json()
+                elif envelope.content_type == "conversation_state":
+                    processed_inputs[key] = envelope.as_conversation()
+                else:
+                    processed_inputs[key] = envelope.body
+            
+            # Override with explicit values if provided
+            if prompt is not None:
+                processed_inputs['prompt'] = prompt
+            if context_data is not None:
+                processed_inputs['context'] = context_data
+            if conversation_state:
+                processed_inputs['_conversation'] = conversation_state
+                
+            return processed_inputs
+        else:
+            # Keep original inputs for single_executor to process
+            # Convert envelopes to plain values
+            processed_inputs = {}
+            for key, envelope in inputs.items():
+                if envelope.content_type == "raw_text":
+                    processed_inputs[key] = envelope.as_text()
+                elif envelope.content_type == "object":
+                    processed_inputs[key] = envelope.as_json()
+                elif envelope.content_type == "conversation_state":
+                    processed_inputs[key] = envelope.as_conversation()
+                else:
+                    processed_inputs[key] = envelope.body
+            return processed_inputs
+    
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[PersonJobNode]
+    ) -> Any:
+        """Execute person job with prepared inputs."""
+        node = request.node
+        
+        # Update request inputs for executors
+        request.inputs = inputs
+        
+        # Check if batch mode is enabled
+        if getattr(node, 'batch', False):
+            logger.info(f"Executing PersonJobNode {node.id} in batch mode")
+            
+            # Extract batch items from context
+            batch_input_key = getattr(node, 'batch_input_key', 'items')
+            items = None
+            
+            context_data = inputs.get('context')
+            if context_data and isinstance(context_data, dict):
+                items = context_data.get(batch_input_key)
+            
+            if not items:
+                # Try to get from a dedicated batch input
+                if batch_input_key in inputs:
+                    items = inputs[batch_input_key]
+            
+            if items:
+                request.inputs[batch_input_key] = items
+            
+            # Use batch executor for batch execution
+            result = await self.batch_executor.execute(request)
+            return result
+        else:
+            # Use single executor for normal execution
+            result = await self.single_executor.execute(request)
+            return result
+    
+    def serialize_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[PersonJobNode]
+    ) -> Envelope:
+        """Serialize person job result to envelope."""
+        node = request.node
         trace_id = request.execution_id or ""
         
-        try:
-            # Extract prompt from envelope (optional, use default_prompt if not provided)
-            prompt_envelope = self.get_optional_input(inputs, 'prompt')
-            if prompt_envelope:
-                prompt = self.reader.as_text(prompt_envelope)
+        # Check if batch mode
+        if getattr(node, 'batch', False):
+            # Convert batch result to envelope
+            if hasattr(result, 'value'):
+                output_envelope = EnvelopeFactory.json(
+                    result.value,
+                    produced_by=node.id,
+                    trace_id=trace_id
+                ).with_meta(
+                    batch_mode=True,
+                    person_id=node.person
+                )
             else:
-                # Use default_prompt from node configuration
-                prompt = getattr(node, 'default_prompt', None)
-                if not prompt:
-                    raise ValueError(f"No prompt provided and no default_prompt configured for node {node.id}")
-            
-            # Extract context (optional)
-            context_data = None
-            if context_envelope := self.get_optional_input(inputs, 'context'):
-                try:
-                    context_data = self.reader.as_json(context_envelope)
-                except ValueError:
-                    # Fall back to text
-                    context_data = self.reader.as_text(context_envelope)
-            
-            # Get conversation state if needed (based on memory_profile)
-            conversation_state = None
-            # Check if memory is enabled (memory_profile is not None or 'NONE')
-            memory_enabled = node.memory_profile and node.memory_profile != 'NONE'
-            if memory_enabled:
-                if conv_envelope := self.get_optional_input(inputs, '_conversation'):
-                    conversation_state = self.reader.as_conversation(conv_envelope)
-            
-            # Prepare request with extracted inputs
-            # We need to update the request inputs for the executors
-            request.inputs = {
-                'prompt': prompt,
-                'context': context_data,
-            }
-            if conversation_state:
-                request.inputs['_conversation'] = conversation_state
-            
-            # Check if batch mode is enabled
-            if getattr(node, 'batch', False):
-                logger.info(f"Executing PersonJobNode {node.id} in batch mode")
-                
-                # Extract batch items from context envelope
-                batch_input_key = getattr(node, 'batch_input_key', 'items')
-                items = None
-                
-                if context_data and isinstance(context_data, dict):
-                    items = context_data.get(batch_input_key)
-                
-                if not items:
-                    # Try to get from a dedicated batch input
-                    if batch_envelope := self.get_optional_input(inputs, batch_input_key):
-                        items = self.reader.as_json(batch_envelope)
-                
-                if items:
-                    request.inputs[batch_input_key] = items
-                
-                # Use batch executor for batch execution
-                result = await self.batch_executor.execute(request)
-                
-                # Convert batch result to envelope
-                if hasattr(result, 'value'):
-                    output_envelope = EnvelopeFactory.json(
-                        result.value,
-                        produced_by=node.id,
-                        trace_id=trace_id
-                    ).with_meta(
-                        batch_mode=True,
-                        person_id=node.person
-                    )
-                else:
-                    output_envelope = EnvelopeFactory.text(
-                        str(result),
-                        produced_by=node.id,
-                        trace_id=trace_id
-                    )
-                
+                output_envelope = EnvelopeFactory.text(
+                    str(result),
+                    produced_by=node.id,
+                    trace_id=trace_id
+                )
+            return output_envelope
+        else:
+            # The single executor already returns an Envelope, just pass it through
+            # SinglePersonJobExecutor.execute() returns properly typed envelopes:
+            # - JSON envelope for structured output (text_format/text_format_file)
+            # - Text envelope for regular text output
+            # - Conversation envelope for conversation output
+            if isinstance(result, Envelope):
+                # Already a properly formatted envelope, return as-is
+                return result
+            else:
+                # Fallback for unexpected result format (shouldn't happen)
+                logger.warning(f"Unexpected result type from single_executor: {type(result)}")
+                output_envelope = EnvelopeFactory.text(
+                    str(result),
+                    produced_by=node.id,
+                    trace_id=trace_id
+                )
                 return output_envelope
-            else:
-                # Use single executor for normal execution
-                result = await self.single_executor.execute(request)
-                
-                # Extract response content and create envelope
-                if hasattr(result, 'value'):
-                    content = result.value
-                    
-                    # Check if it contains token usage metadata
-                    token_usage = None
-                    if isinstance(content, dict) and 'token_usage' in content:
-                        token_usage = content.pop('token_usage')
-                        # If only token_usage was in the dict, use the response text
-                        if 'response' in content:
-                            content = content['response']
-                    
-                    # Create output envelope
-                    output_envelope = EnvelopeFactory.text(
-                        content if isinstance(content, str) else str(content),
-                        produced_by=node.id,
-                        trace_id=trace_id
-                    ).with_meta(
-                        person_id=node.person
-                    )
-                    
-                    if token_usage:
-                        output_envelope = output_envelope.with_meta(token_usage=token_usage)
-                    
-                    # Add conversation update if needed
-                    envelopes = [output_envelope]
-                    # Check if memory is enabled and we have conversation update
-                    if memory_enabled and hasattr(result, 'conversation_update'):
-                        conv_envelope = EnvelopeFactory.conversation(
-                            result.conversation_update,
-                            produced_by=node.id,
-                            trace_id=trace_id
-                        )
-                        envelopes.append(conv_envelope)
-                    
-                    return envelopes[0] if len(envelopes) == 1 else envelopes
-                else:
-                    # Fallback for unexpected result format
-                    output_envelope = EnvelopeFactory.text(
-                        str(result),
-                        produced_by=node.id,
-                        trace_id=trace_id
-                    )
-                    return output_envelope
-                    
-        except Exception as e:
-            return EnvelopeFactory.error(
-                str(e),
-                error_type=e.__class__.__name__,
-                produced_by=node.id,
-                trace_id=trace_id
-            )
     
     async def on_error(
         self,

@@ -1,12 +1,16 @@
 # DiPeO Makefile
+# Now using uv for Python dependency management
+# Activate virtual environment with: source .venv/bin/activate
 
-.PHONY: install install-dev codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated
+.PHONY: install install-dev install-uv sync-deps codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated
 
 # Default target
 help:
-	@echo "DiPeO Commands:"
-	@echo "  make install      - Install all dependencies"
+	@echo "DiPeO Commands (using uv for Python dependencies):"
+	@echo "  make install      - Install all dependencies (installs uv if needed)"
 	@echo "  make install-dev  - Install development dependencies (linters, formatters, etc.)"
+	@echo "  make install-uv   - Install uv package manager only"
+	@echo "  make sync-deps    - Sync Python dependencies with uv"
 	@echo ""
 	@echo "Code Generation (Recommended Workflow):"
 	@echo "  make codegen      - Generate all code to staging directory (safe)"
@@ -39,14 +43,27 @@ help:
 # Combined install
 install:
 	@echo "Installing dependencies..."
-	pip install -r requirements.txt
+	@command -v uv >/dev/null 2>&1 || (echo "Installing uv..." && curl -LsSf https://astral.sh/uv/install.sh | sh)
+	@export PATH="$$HOME/.local/bin:$$PATH" && uv venv --python 3.13 || true
+	@export PATH="$$HOME/.local/bin:$$PATH" && uv pip install -r requirements.txt
 	pnpm install
 	@echo "All dependencies installed!"
+	@echo "Activate the virtual environment with: source .venv/bin/activate"
+
+# Install uv if not present
+install-uv:
+	@command -v uv >/dev/null 2>&1 || (echo "Installing uv..." && curl -LsSf https://astral.sh/uv/install.sh | sh)
+	@echo "uv is installed. Add to PATH with: export PATH=\"$$HOME/.local/bin:$$PATH\""
+
+# Sync dependencies using uv
+sync-deps:
+	@export PATH="$$HOME/.local/bin:$$PATH" && uv pip sync requirements.txt
+	@echo "Dependencies synced with uv"
 
 # Install development dependencies
 install-dev: install
 	@echo "Installing development dependencies..."
-	pip install import-linter black mypy "ruff>=0.8.0" pytest-asyncio pytest-cov isort
+	@export PATH="$$HOME/.local/bin:$$PATH" && uv pip install import-linter black mypy "ruff>=0.8.0" pytest-asyncio pytest-cov isort
 	@echo "Development dependencies installed!"
 
 # Primary code generation command (SAFE - stages changes for review)

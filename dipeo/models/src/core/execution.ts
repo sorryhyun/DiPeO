@@ -84,35 +84,9 @@ export interface SerializedEnvelope {
   meta: EnvelopeMeta;
 }
 
-// Legacy serialized output format
-export interface LegacySerializedOutput {
-  _type: string;  // "PersonJobOutput", "ConditionOutput", etc.
-  value: any;
-  node_id: string;
-  metadata: string;  // JSON string
-  timestamp?: string;
-  error?: string | null;
-  // Typed fields based on _type
-  token_usage?: TokenUsage | null;
-  execution_time?: number | null;
-  retry_count?: number;
-  // Node-specific fields
-  person_id?: string | null;
-  conversation_id?: string | null;
-  language?: string | null;
-  stdout?: string | null;
-  stderr?: string | null;
-  success?: boolean;
-  status_code?: number | null;
-  headers?: Record<string, string> | null;
-  response_time?: number | null;
-  true_output?: any;
-  false_output?: any;
-  error_type?: string | null;
-}
-
-// Union type supporting both formats
-export type SerializedNodeOutput = SerializedEnvelope | LegacySerializedOutput;
+// SerializedNodeOutput is now just SerializedEnvelope
+// Legacy format support has been removed
+export type SerializedNodeOutput = SerializedEnvelope;
 
 export interface ExecutionState {
   id: ExecutionID;

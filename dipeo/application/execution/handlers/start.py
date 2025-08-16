@@ -19,9 +19,6 @@ if TYPE_CHECKING:
 class StartNodeHandler(TypedNodeHandler[StartNode]):
     """Handler for start nodes with envelope support."""
     
-    # Enable envelope mode
-    _expects_envelopes = True
-    
     def __init__(self):
         super().__init__()
         # Instance variables for passing data between methods
@@ -88,28 +85,35 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         
         return None
     
-    async def execute_with_envelopes(
+    async def prepare_inputs(
         self,
         request: ExecutionRequest[StartNode],
         inputs: dict[str, Envelope]
-    ) -> Envelope:
-        """Execute start node with envelope inputs."""
-        node = request.node
-        context = request.context
-        trace_id = request.execution_id or ""
-        
+    ) -> dict[str, Any]:
+        """Convert envelope inputs to data for start node."""
         # Process any incoming envelopes (though Start nodes typically don't have inputs)
         input_data = {}
         for key, envelope in inputs.items():
             if envelope.content_type == "raw_text":
-                input_data[key] = self.reader.as_text(envelope)
+                input_data[key] = envelope.as_text()
             elif envelope.content_type == "object":
-                input_data[key] = self.reader.as_json(envelope)
+                input_data[key] = envelope.as_json()
             else:
                 input_data[key] = envelope.body
         
+        return input_data
+    
+    async def run(
+        self,
+        inputs: dict[str, Any],
+        request: ExecutionRequest[StartNode]
+    ) -> Any:
+        """Execute start node logic."""
+        node = request.node
+        context = request.context
+        
         # Merge with input variables
-        combined_data = {**self._current_input_variables, **input_data}
+        combined_data = {**self._current_input_variables, **inputs}
         
         # Determine output based on trigger mode
         if self._current_trigger_mode == HookTriggerMode.NONE:
@@ -136,6 +140,29 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
                 output_data = {**combined_data, **(node.custom_data or {})}
                 output_data = {"default": output_data}
                 message = "Hook trigger mode but no event data available"
+        else:
+            # Default case
+            output_data = {"default": combined_data if combined_data else {}}
+            message = "Simple start point"
+        
+        # Return data with metadata for serialization
+        return {
+            "data": output_data,
+            "message": message
+        }
+    
+    def serialize_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[StartNode]
+    ) -> Envelope:
+        """Serialize start node result to envelope."""
+        node = request.node
+        trace_id = request.execution_id or ""
+        
+        # Extract data and message from result
+        output_data = result.get("data", {})
+        message = result.get("message", "Simple start point")
         
         # Create envelope output
         output_envelope = EnvelopeFactory.json(

@@ -85,6 +85,11 @@ class ExecutionContext(Protocol):
         """Reset a node to initial state."""
         ...
     
+    @abstractmethod
+    def get_all_node_states(self) -> dict[NodeID, NodeState]:
+        """Get all node states in the execution context."""
+        ...
+    
     # Runtime Context
     
     @abstractmethod

@@ -41,18 +41,10 @@ from .type_defs import (
     Result,
 )
 from .utils import (
-    # Error handling utilities
-    ErrorResponse,
-    contains_conversation,
-    format_error_response,
-    handle_api_errors,
-    handle_exceptions,
-    handle_file_operation,
-    has_nested_conversation,
     # Conversation detection utilities
+    contains_conversation,
+    has_nested_conversation,
     is_conversation,
-    retry_with_backoff,
-    safe_parse,
 )
 
 __version__ = "0.1.0"
@@ -94,14 +86,6 @@ __all__ = [
     "JsonList",
     "JsonValue",
     # Utilities
-    # Error handling utilities
-    "ErrorResponse",
-    "handle_exceptions",
-    "handle_file_operation",
-    "handle_api_errors",
-    "retry_with_backoff",
-    "safe_parse",
-    "format_error_response",
     # Conversation detection utilities
     "is_conversation",
     "has_nested_conversation",

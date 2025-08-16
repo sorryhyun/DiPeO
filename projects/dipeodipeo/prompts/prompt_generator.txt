@@ -1,0 +1,99 @@
+Generate an effective, detailed prompt for creating DiPeO diagrams based on the given requirements. Your prompt should guide an LLM to create well-structured, executable diagrams.
+
+USER REQUIREMENTS:
+{{user_requirements}}
+
+PROMPT GENERATION GUIDELINES:
+
+1. ANALYZE THE REQUIREMENTS:
+   - Identify the core workflow or process to be diagrammed
+   - Determine input sources and output destinations
+   - Identify processing steps and transformations needed
+   - Consider error handling and validation requirements
+
+2. STRUCTURE YOUR PROMPT:
+   
+   A. Clear Objective Statement
+      - Start with "Create a DiPeO diagram that..."
+      - Be specific about the goal and expected outcome
+      - Mention key operations (load, process, validate, save)
+   
+   B. Input/Output Specification
+      - Clearly describe input data sources and formats
+      - Specify expected output format and destination
+      - Include sample data structure if relevant
+   
+   C. Processing Steps
+      - List required operations in logical order
+      - Specify when to use code_job vs person_job
+      - Include validation and error handling steps
+   
+   D. Technical Requirements
+      - Specify programming language preferences (Python default)
+      - Mention performance considerations (parallel processing)
+      - Include any specific libraries or tools to use
+
+3. PROMPT ENGINEERING BEST PRACTICES:
+   - Use clear, action-oriented language
+   - Provide concrete examples when helpful
+   - Break complex requirements into steps
+   - Specify constraints and limitations
+   - Include success criteria
+
+4. COMMON PATTERNS TO INCLUDE:
+
+   For Data Processing Workflows:
+   ```
+   "Load [data type] from [source], validate [criteria], 
+   transform by [operation], and save to [destination]"
+   ```
+   
+   For Analysis Workflows:
+   ```
+   "Analyze [data] for [patterns/metrics], generate 
+   [insights/reports], and output [format]"
+   ```
+   
+   For Integration Workflows:
+   ```
+   "Fetch data from [API/source], combine with [local data],
+   process according to [rules], and update [target system]"
+   ```
+
+5. QUALITY CHECKLIST FOR YOUR PROMPT:
+   - [ ] Clear objective stated
+   - [ ] Input/output formats specified
+   - [ ] Processing steps enumerated
+   - [ ] Error handling mentioned
+   - [ ] Performance requirements addressed
+   - [ ] Content types properly guided (no 'empty' type)
+   - [ ] Node type selection criteria provided
+
+6. EXAMPLE PROMPT STRUCTURE:
+
+   "Create a DiPeO diagram that [main objective].
+   
+   The diagram should:
+   1. [First major step with details]
+   2. [Second major step with details]
+   3. [Additional steps...]
+   
+   Requirements:
+   - Input: [format and source]
+   - Output: [format and destination]
+   - Processing: [key operations]
+   - Validation: [criteria]
+   - Error handling: [approach]
+   
+   Use code_job nodes for [specific operations] and 
+   ensure all connections specify appropriate content_types
+   (raw_text for unstructured data, object for structured data)."
+
+7. ANTI-PATTERNS TO AVOID:
+   - Don't be vague about data formats
+   - Don't omit error handling requirements
+   - Don't forget to specify content_types
+   - Don't use sub_diagram nodes (use asyncio in code_job instead)
+   - Never suggest 'empty' content_type
+
+Generate a comprehensive, actionable prompt that will result in a high-quality, executable DiPeO diagram.

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Info, AlertCircle, AlertTriangle, Download, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { FileText, Info, AlertCircle, AlertTriangle, Download, Trash2, ArrowDown } from 'lucide-react';
 import { Button } from '@/ui/components/common/forms/buttons';
 import { useExecutionLogStream } from '@/domain/execution/hooks/useExecutionLogStream';
 import { useCanvas } from '@/domain/diagram/contexts';
@@ -52,11 +52,43 @@ export const ExecutionLogView: React.FC = () => {
   const [filter, setFilter] = useState<string>('');
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [autoScroll, setAutoScroll] = useState(true);
 
-  // Auto-scroll to bottom when new logs arrive
-  useEffect(() => {
+  // Check if user is at bottom of scroll
+  const checkIfAtBottom = useCallback(() => {
+    if (!scrollContainerRef.current) return true;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    return Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
+  }, []);
+
+  // Handle scroll events
+  const handleScroll = useCallback(() => {
+    const atBottom = checkIfAtBottom();
+    setIsAtBottom(atBottom);
+    // Disable auto-scroll if user scrolls up manually
+    if (!atBottom && autoScroll) {
+      setAutoScroll(false);
+    }
+    // Re-enable auto-scroll if user scrolls back to bottom
+    if (atBottom && !autoScroll) {
+      setAutoScroll(true);
+    }
+  }, [checkIfAtBottom, autoScroll]);
+
+  // Scroll to bottom function
+  const scrollToBottom = useCallback(() => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
+    setAutoScroll(true);
+  }, []);
+
+  // Auto-scroll to bottom when new logs arrive (only if autoScroll is enabled)
+  useEffect(() => {
+    if (autoScroll) {
+      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs, autoScroll]);
 
   const filteredLogs = logs.filter(log => {
     const matchesText = !filter || 
@@ -144,44 +176,68 @@ export const ExecutionLogView: React.FC = () => {
       </div>
 
       {/* Logs */}
-      <div className="flex-1 overflow-auto p-4 font-mono text-xs bg-gray-900">
-        {filteredLogs.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
-            No logs match your filter criteria
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {filteredLogs.map((log, index) => (
-              <div
-                key={index}
-                className={`flex items-start space-x-2 py-1 px-2 rounded ${
-                  log.level.toUpperCase() === 'ERROR' ? 'bg-red-900/10' : ''
-                }`}
-              >
-                <LogLevelIcon level={log.level} />
-                <div className="flex-1 break-all">
-                  <span className="text-gray-400">{formatTimestamp(log.timestamp)}</span>
-                  <span className={`ml-2 px-1 py-0.5 text-xs rounded ${getLogLevelColor(log.level)}`}>
-                    {log.level}
-                  </span>
-                  <span className="ml-2 text-gray-300">{log.logger}</span>
-                  {log.node_id && (
-                    <span className="ml-2 text-purple-400">({log.node_id.slice(0, 8)}...)</span>
-                  )}
-                  <div className="mt-1 text-white">{log.message}</div>
+      <div className="flex-1 relative">
+        <div 
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="h-full overflow-auto p-4 font-mono text-xs bg-gray-900"
+        >
+          {filteredLogs.length === 0 ? (
+            <div className="text-center text-gray-400 py-8">
+              No logs match your filter criteria
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {filteredLogs.map((log, index) => (
+                <div
+                  key={index}
+                  className={`flex items-start space-x-2 py-1 px-2 rounded ${
+                    log.level.toUpperCase() === 'ERROR' ? 'bg-red-900/10' : ''
+                  }`}
+                >
+                  <LogLevelIcon level={log.level} />
+                  <div className="flex-1 break-all">
+                    <span className="text-gray-400">{formatTimestamp(log.timestamp)}</span>
+                    <span className={`ml-2 px-1 py-0.5 text-xs rounded ${getLogLevelColor(log.level)}`}>
+                      {log.level}
+                    </span>
+                    <span className="ml-2 text-gray-300">{log.logger}</span>
+                    {log.node_id && (
+                      <span className="ml-2 text-purple-400">({log.node_id.slice(0, 8)}...)</span>
+                    )}
+                    <div className="mt-1 text-white">{log.message}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-            <div ref={logsEndRef} />
-          </div>
+              ))}
+              <div ref={logsEndRef} />
+            </div>
+          )}
+        </div>
+
+        {/* Scroll to bottom button */}
+        {!isAtBottom && filteredLogs.length > 0 && (
+          <button
+            onClick={scrollToBottom}
+            className="absolute bottom-4 right-4 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+            title="Scroll to bottom"
+          >
+            <ArrowDown className="h-5 w-5" />
+          </button>
         )}
       </div>
 
       {/* Status */}
       {isRunning && (
-        <div className="px-4 py-2 bg-green-900/20 border-t border-gray-700 text-sm text-green-400 flex items-center">
-          <div className="animate-pulse w-2 h-2 bg-green-400 rounded-full mr-2" />
-          Streaming logs...
+        <div className="px-4 py-2 bg-green-900/20 border-t border-gray-700 text-sm text-green-400 flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="animate-pulse w-2 h-2 bg-green-400 rounded-full mr-2" />
+            Streaming logs...
+          </div>
+          {!autoScroll && (
+            <div className="text-yellow-400 text-xs">
+              Auto-scroll paused • Scroll down to resume
+            </div>
+          )}
         </div>
       )}
     </div>

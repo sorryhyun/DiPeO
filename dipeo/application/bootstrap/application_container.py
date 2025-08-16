@@ -106,22 +106,22 @@ class ApplicationContainer:
         self.registry.register(CLI_SESSION_SERVICE, CliSessionService())
 
         from dipeo.infrastructure.services.diagram import DiagramService
-        from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
+        from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW, DIAGRAM_CONVERTER
         from pathlib import Path
         from dipeo.core.config import Config
         
         filesystem = self.registry.resolve(FILESYSTEM_ADAPTER)
+        converter = self.registry.resolve(DIAGRAM_CONVERTER)
         config = Config()
         base_path = Path(config.base_dir) / "files"
         
-        self.registry.register(
-            DIAGRAM_SERVICE_NEW,
-            lambda: DiagramService(
-                filesystem=filesystem,
-                base_path=base_path,
-                converter=None
-            )
+        # Create and register as a singleton instead of lambda
+        diagram_service = DiagramService(
+            filesystem=filesystem,
+            base_path=base_path,
+            converter=converter
         )
+        self.registry.register(DIAGRAM_SERVICE_NEW, diagram_service)
         from dipeo.application.execution.use_cases import ExecuteDiagramUseCase, PrepareDiagramForExecutionUseCase
         self.registry.register(
             EXECUTION_SERVICE,

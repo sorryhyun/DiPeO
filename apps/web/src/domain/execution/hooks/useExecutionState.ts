@@ -182,6 +182,9 @@ export function useExecutionState() {
       endTime: null,
       error: null,
     });
+    
+    // Clear any existing node states when connecting to a new execution
+    setNodeStates({});
   }, []);
 
   return {

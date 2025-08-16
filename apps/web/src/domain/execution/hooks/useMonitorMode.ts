@@ -75,7 +75,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       if (activeSession.session_id !== lastSessionIdRef.current) {
         lastSessionIdRef.current = activeSession.session_id;
         
-        console.log('[Monitor] CLI execution:', activeSession.execution_id);
+        // console.log('[Monitor] CLI execution:', activeSession.execution_id);
         toast.info(`Connected to CLI execution: ${activeSession.diagram_name}`);
         
         // Load diagram if data is provided
@@ -96,13 +96,13 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
           JSON.parse(activeSession.diagram_data).nodes?.length || 0 : 
           0;
         
-        console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
+        // console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
         execution.connectToExecution(activeSession.execution_id, nodeCount);
         hasStartedRef.current = true;
       }
     } else if (lastSessionIdRef.current) {
       // CLI session ended
-      console.log('[Monitor] CLI session ended');
+      // console.log('[Monitor] CLI session ended');
       lastSessionIdRef.current = null;
       hasStartedRef.current = false;
       
@@ -124,7 +124,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
     
     // When execution completes but we're still in monitor mode
     if (!execution.isRunning && hasStartedRef.current) {
-      console.log('[Monitor] Execution completed, clearing status');
+      // console.log('[Monitor] Execution completed, clearing status');
       // Mark that we're no longer tracking an execution
       hasStartedRef.current = false;
       

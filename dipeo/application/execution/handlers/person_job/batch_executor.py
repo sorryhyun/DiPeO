@@ -371,9 +371,11 @@ class BatchPersonJobExecutor:
     
     def _format_item_result(self, index: int, result: Any) -> Dict[str, Any]:
         """Format the result from a single item execution."""
-        if hasattr(result, 'value'):
-            output_value = result.value
-            metadata = result.metadata if hasattr(result, 'metadata') else {}
+        # Handle Envelope result from single_executor
+        if hasattr(result, 'body'):  # It's an Envelope
+            output_value = result.body
+            # Extract metadata from envelope's meta field
+            metadata = result.meta if hasattr(result, 'meta') else {}
             
             return {
                 'index': index,
@@ -381,6 +383,7 @@ class BatchPersonJobExecutor:
                 'metadata': metadata
             }
         else:
+            # Fallback for unexpected format
             return {
                 'index': index,
                 'output': str(result),
