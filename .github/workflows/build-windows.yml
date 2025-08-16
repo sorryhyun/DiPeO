@@ -159,7 +159,7 @@ jobs:
         working-directory: apps/server
         run: |
           # Activate venv
-          & ..\..\..venv\Scripts\Activate.ps1
+          & ..\..\.venv\Scripts\Activate.ps1
           
           # Build with PyInstaller
           pyinstaller --clean dipeo-server-correct.spec
