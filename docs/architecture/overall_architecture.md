@@ -62,11 +62,12 @@ All three share a single **ServiceRegistry**, making service resolution explicit
 ## 5. Memory & conversation model
 
 * Every message goes into a **global, immutable conversation log**.
-* Each *person* (LLM instance) views that log through **filters** such as `ALL_INVOLVED`, `SENT_BY_ME`, `CONVERSATION_PAIRS`, combined with sliding-window limits.
-* Memory size & filter are **configured per job**, enabling patterns like:
+* Each *person* (LLM instance) views that log through **filters** such as `ALL_INVOLVED`, `SENT_BY_ME`, `CONVERSATION_PAIRS`, `ALL_MESSAGES`, combined with sliding-window limits.
+* Memory is configured per job using **Memory Profiles** (`GOLDFISH`, `MINIMAL`, `FOCUSED`, `FULL`) or custom settings, enabling patterns like:
 
-  * **Debates** – judges see all, debaters see only pairwise turns.
-  * **Pipelines** – context gradually shrinks along downstream tasks.
+  * **Debates** – judges use `FULL` profile, debaters use `FOCUSED` profile for limited context.
+  * **Pipelines** – context gradually shrinks along downstream tasks (from `FULL` → `FOCUSED` → `MINIMAL`).
+  * **GOLDFISH** – Complete memory reset between executions for stateless agents.
 
 ---
 
@@ -98,7 +99,7 @@ sequenceDiagram
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | **Languages**    | TypeScript 5 (pnpm + Vite) • Python 3.13                                                                               |
 | **Front-end**    | React 19, @xyflow/react, Apollo Client, GraphQL-WS, TRPC, TanStack Query, Zustand, TailwindCSS, Zod                    |
-| **Back-end**     | FastAPI, Strawberry GraphQL, Hypercorn, Pydantic v2, Tenacity (retry), AsyncEventBus, Redis (optional for pub-sub)     |
+| **Back-end**     | FastAPI, Strawberry GraphQL, Hypercorn, Pydantic v2, Tenacity (retry), AsyncEventBus, Redis (optional for multi-worker)     |
 | **DI / IoC**     | Custom service-registry pattern (core / infra / app containers)                                                        |
 | **LLM adapters** | OpenAI, Anthropic, Gemini (extensible)                                                                                 |
 | **Tooling**      | Ruff, Mypy, Makefile helpers                                                                                           |
@@ -123,7 +124,7 @@ make dev-all
 
 * Build SPA: `pnpm build` → serve via CDN or mount under FastAPI.
 * Serve API: `hypercorn apps/server.main:app -w 4 -k uvloop` (or Uvicorn/Gunicorn).
-* For GraphQL subscriptions at scale, enable **Redis** broadcast.
+* For multi-worker deployments, Redis is required for GraphQL subscriptions to work across workers.
 * Container images & Helm charts are provided in `/deploy/`.
 
 ### Desktop Application

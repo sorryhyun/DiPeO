@@ -5,6 +5,8 @@
 
 ## Developer Documentation
 - [Code Generation Guide](projects/code-generation-guide.md) - Complete codegen pipeline and adding new features
+- [DiPeO AI Diagram Generation](projects/dipeodipeo-guide.md) - AI-powered diagram generation from natural language
+- [Frontend Enhance Guide](projects/frontend-enhance-guide.md) - Iterative AI refinement for production React apps
 - [Memory System Design](architecture/memory_system_design.md) - Conversation memory architecture
 - [Diagram Formats](formats/diagram_formats.md) - Native, Light, and Readable format specifications
 

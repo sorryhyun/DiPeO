@@ -39,6 +39,7 @@ Each person sees the global conversation through a configurable filter:
 | `SENT_TO_ME` | Only messages sent to this person | Input processing, classification |
 | `SYSTEM_AND_ME` | System messages and person's responses | Task-focused execution |
 | `CONVERSATION_PAIRS` | Request/response pairs | Debate, Q&A scenarios |
+| `ALL_MESSAGES` | All messages in the conversation | Complete visibility for coordinators |
 
 ### 3. Memory Limits (Windows)
 
@@ -62,30 +63,46 @@ nodes:
   - id: analyzer
     type: person_job
     person: alice
-    memory_config:
-      forget_mode: no_forget  # See everything
+    memory_profile: FULL  # See everything
     
   - id: summarizer
     type: person_job  
     person: alice  # Same person!
-    memory_config:
-      forget_mode: on_every_turn  # Limited context
-      max_messages: 5
+    memory_profile: MINIMAL  # Limited context (5 messages)
 ```
 
 ## Memory Configuration Syntax
 
+There are two ways to configure memory:
 
-The `memory_config` syntax continues to work:
-
+1. **Memory Profiles** (Recommended) - Predefined configurations:
 ```yaml
 - label: PersonNode
   type: person_job
   props:
-    memory_config:
-      forget_mode: on_every_turn
-      max_messages: 10
+    memory_profile: FOCUSED  # Options: GOLDFISH, MINIMAL, FOCUSED, FULL, ONLY_ME, ONLY_I_SENT, CUSTOM
 ```
+
+2. **Custom Memory Settings** - Fine-grained control (used when `memory_profile: CUSTOM`):
+```yaml
+- label: PersonNode
+  type: person_job
+  props:
+    memory_profile: CUSTOM
+    memory_settings:
+      view: conversation_pairs
+      max_messages: 10
+      preserve_system: true
+```
+
+### Memory Profile Definitions:
+- **GOLDFISH**: 2 messages, conversation pairs view (complete reset between runs)
+- **MINIMAL**: 5 messages, conversation pairs view
+- **FOCUSED**: 20 messages, conversation pairs view
+- **FULL**: All messages, all messages view
+- **ONLY_ME**: Messages sent to this person only
+- **ONLY_I_SENT**: Messages sent by this person only
+- **CUSTOM**: Use explicit `memory_settings`
 
 ## Common Patterns
 
@@ -97,15 +114,13 @@ Participants focus on the current exchange while judges need full context:
 - label: Optimist
   type: person_job
   props:
-    memory_config:
-      forget_mode: on_every_turn  # See Q&A pairs
+    memory_profile: FOCUSED  # Limited conversation context
     max_iteration: 3
 
 - label: Judge
   type: person_job
   props:
-    memory_config:
-      forget_mode: no_forget       # See everything
+    memory_profile: FULL     # See everything
 ```
 
 ### 2. Pipeline Pattern
@@ -115,18 +130,15 @@ Progressive refinement with decreasing context:
 ```yaml
 # Stage 1: Full analysis
 - label: Analyze
-  memory_config:
-    forget_mode: no_forget
+  memory_profile: FULL
     
 # Stage 2: Focused summary
 - label: Summarize  
-  memory_config:
-    forget_mode: on_every_turn   # Focus on exchanges
+  memory_profile: FOCUSED   # Focus on recent exchanges
     
 # Stage 3: Final extraction
 - label: Extract
-  memory_config:
-    forget_mode: upon_request          # Only direct input
+  memory_profile: MINIMAL   # Only recent context
 ```
 
 ### 3. Multi-Agent Collaboration
@@ -154,10 +166,10 @@ When a message is added to the conversation:
 
 ### Memory Application Timing
 
-The node handler determines when to apply memory settings:
-- `on_every_turn`: Applied when `execution_count > 0`
-- `upon_request`: Applied when explicitly triggered
-- `no_forget`: No memory management applied
+Memory settings are applied based on the chosen profile:
+- **GOLDFISH**: Complete reset between executions (clears conversation history)
+- **Other profiles**: Applied at node initialization, persists throughout execution
+- **Custom settings**: Applied when `memory_profile: CUSTOM` is set
 
 ### Non-Destructive Forgetting
 
@@ -201,29 +213,39 @@ memory_config:
 
 ## Advanced Configurations
 
-### Custom Memory Profiles
+### Using Memory Profiles in Code
 
-Create reusable memory configurations:
+The system provides predefined memory profiles via `MemoryProfileFactory`:
 
 ```python
-MEMORY_PROFILES = {
-    "ANALYST": MemorySettings(view=ALL_INVOLVED, max_messages=None),
-    "DEBATER": MemorySettings(view=CONVERSATION_PAIRS, max_messages=4),
-    "CLASSIFIER": MemorySettings(view=SENT_TO_ME, max_messages=1),
-    "GOLDFISH": MemorySettings(view=CONVERSATION_PAIRS, max_messages=2),
-}
+from dipeo.domain.conversation.memory_profiles import MemoryProfile, MemoryProfileFactory
+
+# Get settings for a profile
+settings = MemoryProfileFactory.get_settings(MemoryProfile.FOCUSED)
+# Returns: MemorySettings(view=CONVERSATION_PAIRS, max_messages=20, preserve_system=True)
+```
+
+### Available Memory Profiles
+
+```python
+class MemoryProfile(Enum):
+    FULL = auto()        # All messages, no limit
+    FOCUSED = auto()     # 20 messages, conversation pairs
+    MINIMAL = auto()     # 5 messages, conversation pairs  
+    GOLDFISH = auto()    # 2 messages, conversation pairs (with reset)
+    ONLY_ME = auto()     # Messages sent to person only
+    ONLY_I_SENT = auto() # Messages sent by person only
+    CUSTOM = auto()      # Use explicit memory_settings
 ```
 
 ### Dynamic Memory Management
 
-Adjust memory based on execution state:
+Memory is typically set at the job level, but can be adjusted programmatically:
 
 ```python
-if execution_count > 10:
-    # Reduce context after many iterations
-    person.apply_memory_settings(
-        MemorySettings(max_messages=5)
-    )
+# Apply memory settings to a person
+person.set_memory_view(MemoryView.CONVERSATION_PAIRS)
+person.set_memory_limit(max_messages=10, preserve_system=True)
 ```
 
 ## Future Enhancements
