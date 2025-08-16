@@ -278,7 +278,7 @@ class HookNode(BaseExecutableNode):
 @dataclass(frozen=True)
 class IntegratedApiNode(BaseExecutableNode):
     # Required node-specific fields
-    provider: APIServiceType = field()
+    provider: str = field()
     operation: str = field()
     # Type field with default
     type: NodeType = field(default=NodeType.INTEGRATED_API, init=False)

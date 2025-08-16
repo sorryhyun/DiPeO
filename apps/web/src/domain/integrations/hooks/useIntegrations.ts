@@ -57,25 +57,26 @@ const GET_OPERATION_SCHEMA = gql`
   }
 `;
 
-const TEST_INTEGRATION = gql`
-  mutation TestIntegration($input: TestIntegrationInput!) {
-    testIntegration(input: $input) {
-      success
-      provider
-      operation
-      status_code
-      response_time_ms
-      error
-      response_preview
-    }
-  }
-`;
+// TODO: These mutations need to be implemented in the backend
+// const TEST_INTEGRATION = gql`
+//   mutation TestIntegration($input: TestIntegrationInput!) {
+//     testIntegration(input: $input) {
+//       success
+//       provider
+//       operation
+//       status_code
+//       response_time_ms
+//       error
+//       response_preview
+//     }
+//   }
+// `;
 
-const EXECUTE_INTEGRATION = gql`
-  mutation ExecuteIntegration($input: ExecuteIntegrationInput!) {
-    executeIntegration(input: $input)
-  }
-`;
+// const EXECUTE_INTEGRATION = gql`
+//   mutation ExecuteIntegration($input: ExecuteIntegrationInput!) {
+//     executeIntegration(input: $input)
+//   }
+// `;
 
 export interface Provider {
   name: string;
@@ -161,11 +162,13 @@ export function useIntegrations() {
     skip: !selectedProvider || !selectedOperation,
   });
 
-  // Test integration mutation
-  const [testIntegration, { loading: testLoading }] = useMutation(TEST_INTEGRATION);
+  // Test integration mutation - TODO: implement backend mutation
+  // const [testIntegration, { loading: testLoading }] = useMutation(TEST_INTEGRATION);
+  const testLoading = false;
 
-  // Execute integration mutation
-  const [executeIntegration, { loading: executeLoading }] = useMutation(EXECUTE_INTEGRATION);
+  // Execute integration mutation - TODO: implement backend mutation
+  // const [executeIntegration, { loading: executeLoading }] = useMutation(EXECUTE_INTEGRATION);
+  const executeLoading = false;
 
   // Handle provider selection
   const selectProvider = useCallback((providerName: string) => {
@@ -178,53 +181,59 @@ export function useIntegrations() {
     setSelectedOperation(operationName);
   }, []);
 
-  // Test an integration
+  // Test an integration - TODO: implement when backend mutation is ready
   const testIntegrationCall = useCallback(
     async (config: any, apiKeyId?: string, dryRun: boolean = false) => {
       if (!selectedProvider || !selectedOperation) {
         throw new Error('Provider and operation must be selected');
       }
 
-      const result = await testIntegration({
-        variables: {
-          input: {
-            provider: selectedProvider,
-            operation: selectedOperation,
-            config_preview: config,
-            api_key_id: apiKeyId,
-            dry_run: dryRun,
-          },
-        },
-      });
+      // TODO: Uncomment when backend mutation is implemented
+      // const result = await testIntegration({
+      //   variables: {
+      //     input: {
+      //       provider: selectedProvider,
+      //       operation: selectedOperation,
+      //       config_preview: config,
+      //       api_key_id: apiKeyId,
+      //       dry_run: dryRun,
+      //     },
+      //   },
+      // });
+      // return result.data?.testIntegration as TestResult;
 
-      return result.data?.testIntegration as TestResult;
+      console.warn('Test integration not implemented yet');
+      return null;
     },
-    [selectedProvider, selectedOperation, testIntegration]
+    [selectedProvider, selectedOperation]
   );
 
-  // Execute an integration
+  // Execute an integration - TODO: implement when backend mutation is ready
   const executeIntegrationCall = useCallback(
     async (config: any, resourceId?: string, apiKeyId?: string, timeout?: number) => {
       if (!selectedProvider || !selectedOperation) {
         throw new Error('Provider and operation must be selected');
       }
 
-      const result = await executeIntegration({
-        variables: {
-          input: {
-            provider: selectedProvider,
-            operation: selectedOperation,
-            config,
-            resource_id: resourceId,
-            api_key_id: apiKeyId,
-            timeout,
-          },
-        },
-      });
-
-      return result.data?.executeIntegration;
+      // TODO: Uncomment when backend mutation is implemented
+      // const result = await executeIntegration({
+      //   variables: {
+      //     input: {
+      //       provider: selectedProvider,
+      //       operation: selectedOperation,
+      //       config,
+      //       resource_id: resourceId,
+      //       api_key_id: apiKeyId,
+      //       timeout,
+      //     },
+      //   },
+      // });
+      // return result.data?.executeIntegration;
+      
+      console.warn('Execute integration not implemented yet');
+      return null;
     },
-    [selectedProvider, selectedOperation, executeIntegration]
+    [selectedProvider, selectedOperation]
   );
 
   // Get available providers as options

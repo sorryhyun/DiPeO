@@ -32,6 +32,8 @@ async def create_server_container() -> Container:
         EVENT_BUS,
         MESSAGE_ROUTER,
         STATE_STORE,
+        PROVIDER_REGISTRY,
+        INTEGRATED_API_SERVICE,
     )
     from dipeo.infrastructure.config import get_settings
     from dipeo.infrastructure.events import AsyncEventBus
@@ -88,6 +90,26 @@ async def create_server_container() -> Container:
     event_bus.subscribe(EventType.NODE_COMPLETED, metrics_observer)
     event_bus.subscribe(EventType.NODE_FAILED, metrics_observer)
     event_bus.subscribe(EventType.EXECUTION_COMPLETED, metrics_observer)
+
+    # Initialize provider registry for webhook integration
+    from dipeo.infrastructure.services.integrated_api.registry import ProviderRegistry
+    provider_registry = ProviderRegistry()
+    
+    # Load providers from manifests
+    try:
+        import glob
+        manifest_pattern = str(BASE_DIR / "integrations" / "*" / "provider.yaml")
+        for manifest_path in glob.glob(manifest_pattern):
+            await provider_registry.load_manifest(manifest_path)
+    except Exception as e:
+        # Log but don't fail if no providers found
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to load provider manifests: {e}")
+    
+    container.registry.register(PROVIDER_REGISTRY, provider_registry)
+    
+    # Subscribe webhook events to streaming monitor
+    event_bus.subscribe(EventType.WEBHOOK_RECEIVED, streaming_monitor)
 
     # Start services
     await event_bus.start()

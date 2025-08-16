@@ -78,6 +78,15 @@ export type ApiKeyResult = {
   success: Scalars['Boolean']['output'];
 };
 
+export type AuthConfigType = {
+  __typename?: 'AuthConfigType';
+  format?: Maybe<Scalars['String']['output']>;
+  header?: Maybe<Scalars['String']['output']>;
+  query_param?: Maybe<Scalars['String']['output']>;
+  scopes?: Maybe<Array<Scalars['String']['output']>>;
+  strategy: Scalars['String']['output'];
+};
+
 export type CliSession = {
   __typename?: 'CliSession';
   diagram_data?: Maybe<Scalars['String']['output']>;
@@ -243,7 +252,7 @@ export type DomainNodeType = {
   data: Scalars['JSON']['output'];
   id: Scalars['String']['output'];
   position: Vec2Type;
-  type: NodeType;
+  type: Scalars['String']['output'];
 };
 
 export type DomainPersonType = {
@@ -486,6 +495,28 @@ export type NodeResult = {
 
 export { NodeType };
 
+export type OperationSchemaType = {
+  __typename?: 'OperationSchemaType';
+  description?: Maybe<Scalars['String']['output']>;
+  method: Scalars['String']['output'];
+  operation: Scalars['String']['output'];
+  path: Scalars['String']['output'];
+  query_params?: Maybe<Scalars['JSON']['output']>;
+  request_body?: Maybe<Scalars['JSON']['output']>;
+  response?: Maybe<Scalars['JSON']['output']>;
+};
+
+export type OperationType = {
+  __typename?: 'OperationType';
+  description?: Maybe<Scalars['String']['output']>;
+  has_pagination: Scalars['Boolean']['output'];
+  method: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  path: Scalars['String']['output'];
+  required_scopes?: Maybe<Array<Scalars['String']['output']>>;
+  timeout_override?: Maybe<Scalars['Float']['output']>;
+};
+
 export type PersonLLMConfigInput = {
   api_key_id: Scalars['ID']['input'];
   model: Scalars['String']['input'];
@@ -510,6 +541,36 @@ export type PersonResult = {
   success: Scalars['Boolean']['output'];
 };
 
+export type ProviderMetadataType = {
+  __typename?: 'ProviderMetadataType';
+  description?: Maybe<Scalars['String']['output']>;
+  documentation_url?: Maybe<Scalars['String']['output']>;
+  manifest_path?: Maybe<Scalars['String']['output']>;
+  support_email?: Maybe<Scalars['String']['output']>;
+  type: Scalars['String']['output'];
+  version: Scalars['String']['output'];
+};
+
+export type ProviderStatisticsType = {
+  __typename?: 'ProviderStatisticsType';
+  provider_types: Scalars['JSON']['output'];
+  providers: Array<Scalars['JSON']['output']>;
+  total_operations: Scalars['Int']['output'];
+  total_providers: Scalars['Int']['output'];
+};
+
+export type ProviderType = {
+  __typename?: 'ProviderType';
+  auth_config?: Maybe<AuthConfigType>;
+  base_url?: Maybe<Scalars['String']['output']>;
+  default_timeout: Scalars['Float']['output'];
+  metadata: ProviderMetadataType;
+  name: Scalars['String']['output'];
+  operations: Array<OperationType>;
+  rate_limit?: Maybe<RateLimitConfigType>;
+  retry_policy?: Maybe<RetryPolicyType>;
+};
+
 export type Query = {
   __typename?: 'Query';
   active_cli_session?: Maybe<CliSession>;
@@ -526,10 +587,15 @@ export type Query = {
   execution_order: Scalars['JSON']['output'];
   executions: Array<ExecutionStateType>;
   health: Scalars['JSON']['output'];
+  operation_schema?: Maybe<OperationSchemaType>;
   person?: Maybe<DomainPersonType>;
   persons: Array<DomainPersonType>;
   prompt_file: Scalars['JSON']['output'];
   prompt_files: Array<Scalars['JSON']['output']>;
+  provider?: Maybe<ProviderType>;
+  provider_operations: Array<OperationType>;
+  provider_statistics: ProviderStatisticsType;
+  providers: Array<ProviderType>;
   supported_formats: Array<DiagramFormatInfo>;
   system_info: Scalars['JSON']['output'];
 };
@@ -603,6 +669,12 @@ export type QueryexecutionsArgs = {
 };
 
 
+export type Queryoperation_schemaArgs = {
+  operation: Scalars['String']['input'];
+  provider: Scalars['String']['input'];
+};
+
+
 export type QuerypersonArgs = {
   id: Scalars['ID']['input'];
 };
@@ -617,12 +689,39 @@ export type Queryprompt_fileArgs = {
   filename: Scalars['String']['input'];
 };
 
+
+export type QueryproviderArgs = {
+  name: Scalars['String']['input'];
+};
+
+
+export type Queryprovider_operationsArgs = {
+  provider: Scalars['String']['input'];
+};
+
+export type RateLimitConfigType = {
+  __typename?: 'RateLimitConfigType';
+  algorithm: Scalars['String']['output'];
+  capacity: Scalars['Int']['output'];
+  refill_per_sec: Scalars['Float']['output'];
+  window_size_sec?: Maybe<Scalars['Int']['output']>;
+};
+
 export type RegisterCliSessionInput = {
   diagram_data?: InputMaybe<Scalars['JSON']['input']>;
   diagram_format: Scalars['String']['input'];
   diagram_name: Scalars['String']['input'];
   diagram_path?: InputMaybe<Scalars['String']['input']>;
   execution_id: Scalars['String']['input'];
+};
+
+export type RetryPolicyType = {
+  __typename?: 'RetryPolicyType';
+  base_delay_ms: Scalars['Int']['output'];
+  max_delay_ms?: Maybe<Scalars['Int']['output']>;
+  max_retries: Scalars['Int']['output'];
+  retry_on_status: Array<Scalars['Int']['output']>;
+  strategy: Scalars['String']['output'];
 };
 
 export { Status };
@@ -741,7 +840,7 @@ export type CreateNodeMutationVariables = Exact<{
 }>;
 
 
-export type CreateNodeMutation = { __typename?: 'Mutation', create_node: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNodeType', id: string, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
+export type CreateNodeMutation = { __typename?: 'Mutation', create_node: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNodeType', id: string, type: string, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
 
 export type CreatePersonMutationVariables = Exact<{
   input: CreatePersonInput;
@@ -894,7 +993,7 @@ export type GetDiagramQueryVariables = Exact<{
 }>;
 
 
-export type GetDiagramQuery = { __typename?: 'Query', diagram?: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: string, node_id: string, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: string, source: string, target: string, content_type?: ContentType | null, label?: string | null, data?: any | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } | null };
+export type GetDiagramQuery = { __typename?: 'Query', diagram?: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: string, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: string, node_id: string, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: string, source: string, target: string, content_type?: ContentType | null, label?: string | null, data?: any | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } | null };
 
 export type GetExecutionQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -1014,6 +1113,26 @@ export type ActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type ActiveCliSessionQuery = { __typename?: 'Query', active_cli_session?: { __typename?: 'CliSession', session_id: string, execution_id: string, diagram_name: string, diagram_format: string, started_at: any, is_active: boolean, diagram_data?: string | null } | null };
+
+export type GetProvidersQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetProvidersQuery = { __typename?: 'Query', providers: Array<{ __typename?: 'ProviderType', name: string, base_url?: string | null, default_timeout: number, operations: Array<{ __typename?: 'OperationType', name: string, method: string, path: string, description?: string | null, required_scopes?: Array<string> | null }>, metadata: { __typename?: 'ProviderMetadataType', version: string, type: string, description?: string | null, documentation_url?: string | null } }> };
+
+export type GetProviderOperationsQueryVariables = Exact<{
+  provider: Scalars['String']['input'];
+}>;
+
+
+export type GetProviderOperationsQuery = { __typename?: 'Query', provider_operations: Array<{ __typename?: 'OperationType', name: string, method: string, path: string, description?: string | null, required_scopes?: Array<string> | null, has_pagination: boolean, timeout_override?: number | null }> };
+
+export type GetOperationSchemaQueryVariables = Exact<{
+  provider: Scalars['String']['input'];
+  operation: Scalars['String']['input'];
+}>;
+
+
+export type GetOperationSchemaQuery = { __typename?: 'Query', operation_schema?: { __typename?: 'OperationSchemaType', operation: string, method: string, path: string, description?: string | null, request_body?: any | null, query_params?: any | null, response?: any | null } | null };
 
 export type ListRecentExecutionsQueryVariables = Exact<{
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -2813,6 +2932,153 @@ export type ActiveCliSessionQueryHookResult = ReturnType<typeof useActiveCliSess
 export type ActiveCliSessionLazyQueryHookResult = ReturnType<typeof useActiveCliSessionLazyQuery>;
 export type ActiveCliSessionSuspenseQueryHookResult = ReturnType<typeof useActiveCliSessionSuspenseQuery>;
 export type ActiveCliSessionQueryResult = Apollo.QueryResult<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>;
+export const GetProvidersDocument = gql`
+    query GetProviders {
+  providers {
+    name
+    operations {
+      name
+      method
+      path
+      description
+      required_scopes
+    }
+    metadata {
+      version
+      type
+      description
+      documentation_url
+    }
+    base_url
+    default_timeout
+  }
+}
+    `;
+
+/**
+ * __useGetProvidersQuery__
+ *
+ * To run a query within a React component, call `useGetProvidersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetProvidersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetProvidersQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGetProvidersQuery(baseOptions?: Apollo.QueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
+      }
+export function useGetProvidersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
+        }
+export function useGetProvidersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
+        }
+export type GetProvidersQueryHookResult = ReturnType<typeof useGetProvidersQuery>;
+export type GetProvidersLazyQueryHookResult = ReturnType<typeof useGetProvidersLazyQuery>;
+export type GetProvidersSuspenseQueryHookResult = ReturnType<typeof useGetProvidersSuspenseQuery>;
+export type GetProvidersQueryResult = Apollo.QueryResult<GetProvidersQuery, GetProvidersQueryVariables>;
+export const GetProviderOperationsDocument = gql`
+    query GetProviderOperations($provider: String!) {
+  provider_operations(provider: $provider) {
+    name
+    method
+    path
+    description
+    required_scopes
+    has_pagination
+    timeout_override
+  }
+}
+    `;
+
+/**
+ * __useGetProviderOperationsQuery__
+ *
+ * To run a query within a React component, call `useGetProviderOperationsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetProviderOperationsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetProviderOperationsQuery({
+ *   variables: {
+ *      provider: // value for 'provider'
+ *   },
+ * });
+ */
+export function useGetProviderOperationsQuery(baseOptions: Apollo.QueryHookOptions<GetProviderOperationsQuery, GetProviderOperationsQueryVariables> & ({ variables: GetProviderOperationsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>(GetProviderOperationsDocument, options);
+      }
+export function useGetProviderOperationsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>(GetProviderOperationsDocument, options);
+        }
+export function useGetProviderOperationsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>(GetProviderOperationsDocument, options);
+        }
+export type GetProviderOperationsQueryHookResult = ReturnType<typeof useGetProviderOperationsQuery>;
+export type GetProviderOperationsLazyQueryHookResult = ReturnType<typeof useGetProviderOperationsLazyQuery>;
+export type GetProviderOperationsSuspenseQueryHookResult = ReturnType<typeof useGetProviderOperationsSuspenseQuery>;
+export type GetProviderOperationsQueryResult = Apollo.QueryResult<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>;
+export const GetOperationSchemaDocument = gql`
+    query GetOperationSchema($provider: String!, $operation: String!) {
+  operation_schema(provider: $provider, operation: $operation) {
+    operation
+    method
+    path
+    description
+    request_body
+    query_params
+    response
+  }
+}
+    `;
+
+/**
+ * __useGetOperationSchemaQuery__
+ *
+ * To run a query within a React component, call `useGetOperationSchemaQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetOperationSchemaQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetOperationSchemaQuery({
+ *   variables: {
+ *      provider: // value for 'provider'
+ *      operation: // value for 'operation'
+ *   },
+ * });
+ */
+export function useGetOperationSchemaQuery(baseOptions: Apollo.QueryHookOptions<GetOperationSchemaQuery, GetOperationSchemaQueryVariables> & ({ variables: GetOperationSchemaQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>(GetOperationSchemaDocument, options);
+      }
+export function useGetOperationSchemaLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>(GetOperationSchemaDocument, options);
+        }
+export function useGetOperationSchemaSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>(GetOperationSchemaDocument, options);
+        }
+export type GetOperationSchemaQueryHookResult = ReturnType<typeof useGetOperationSchemaQuery>;
+export type GetOperationSchemaLazyQueryHookResult = ReturnType<typeof useGetOperationSchemaLazyQuery>;
+export type GetOperationSchemaSuspenseQueryHookResult = ReturnType<typeof useGetOperationSchemaSuspenseQuery>;
+export type GetOperationSchemaQueryResult = Apollo.QueryResult<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>;
 export const ListRecentExecutionsDocument = gql`
     query ListRecentExecutions($limit: Int) {
   executions(limit: $limit) {

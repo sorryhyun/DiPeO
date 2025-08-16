@@ -27,6 +27,14 @@ type ApiKeyResult {
 """Unique identifier for arrows"""
 scalar ArrowID
 
+type AuthConfigType {
+  strategy: String!
+  header: String
+  query_param: String
+  format: String
+  scopes: [String!]
+}
+
 type CliSession {
   execution_id: String!
   diagram_name: String!
@@ -193,9 +201,9 @@ type DomainHandleType {
 }
 
 type DomainNodeType {
+  type: String!
   data: JSON!
   id: String!
-  type: NodeType!
   position: Vec2Type!
 }
 
@@ -370,6 +378,26 @@ enum NodeType {
   INTEGRATED_API
 }
 
+type OperationSchemaType {
+  operation: String!
+  method: String!
+  path: String!
+  description: String
+  request_body: JSON
+  query_params: JSON
+  response: JSON
+}
+
+type OperationType {
+  name: String!
+  method: String!
+  path: String!
+  description: String
+  required_scopes: [String!]
+  has_pagination: Boolean!
+  timeout_override: Float
+}
+
 """Unique identifier for persons"""
 scalar PersonID
 
@@ -395,6 +423,33 @@ type PersonResult {
   error: String
 }
 
+type ProviderMetadataType {
+  version: String!
+  type: String!
+  manifest_path: String
+  description: String
+  documentation_url: String
+  support_email: String
+}
+
+type ProviderStatisticsType {
+  total_providers: Int!
+  total_operations: Int!
+  provider_types: JSON!
+  providers: [JSON!]!
+}
+
+type ProviderType {
+  name: String!
+  operations: [OperationType!]!
+  metadata: ProviderMetadataType!
+  base_url: String
+  auth_config: AuthConfigType
+  rate_limit: RateLimitConfigType
+  retry_policy: RetryPolicyType
+  default_timeout: Float!
+}
+
 type Query {
   diagram(id: ID!): DomainDiagramType
   diagrams(filter: DiagramFilterInput = null, limit: Int! = 100, offset: Int! = 0): [DomainDiagramType!]!
@@ -405,6 +460,11 @@ type Query {
   api_key(id: ID!): DomainApiKeyType
   api_keys(service: String = null): [DomainApiKeyType!]!
   available_models(service: String!, api_key_id: ID!): [String!]!
+  providers: [ProviderType!]!
+  provider(name: String!): ProviderType
+  provider_operations(provider: String!): [OperationType!]!
+  operation_schema(provider: String!, operation: String!): OperationSchemaType
+  provider_statistics: ProviderStatisticsType!
   system_info: JSON!
   execution_capabilities: JSON!
   health: JSON!
@@ -418,12 +478,27 @@ type Query {
   execution_history(diagram_id: ID = null, limit: Int! = 100, include_metrics: Boolean! = false): [ExecutionStateType!]!
 }
 
+type RateLimitConfigType {
+  algorithm: String!
+  capacity: Int!
+  refill_per_sec: Float!
+  window_size_sec: Int
+}
+
 input RegisterCliSessionInput {
   execution_id: String!
   diagram_name: String!
   diagram_format: String!
   diagram_data: JSON = null
   diagram_path: String = null
+}
+
+type RetryPolicyType {
+  strategy: String!
+  max_retries: Int!
+  base_delay_ms: Int!
+  max_delay_ms: Int
+  retry_on_status: [Int!]!
 }
 
 enum Status {

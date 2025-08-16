@@ -69,6 +69,7 @@ DIAGRAM_CONVERTER = ServiceKey["DiagramConverter"]("diagram_converter")
 API_SERVICE = ServiceKey["APIService"]("api_service")
 API_KEY_SERVICE = ServiceKey["APIKeyPort"]("api_key_service")
 INTEGRATED_API_SERVICE = ServiceKey["IntegratedApiServicePort"]("integrated_api_service")
+PROVIDER_REGISTRY = ServiceKey["Any"]("provider_registry")  # Provider registry for webhook integration
 
 # Parser Services
 AST_PARSER = ServiceKey["ASTParserPort"]("ast_parser")
@@ -145,6 +146,7 @@ __all__ = [
     "API_SERVICE",
     "API_KEY_SERVICE",
     "INTEGRATED_API_SERVICE",
+    "PROVIDER_REGISTRY",
     
     # Parser
     "AST_PARSER",

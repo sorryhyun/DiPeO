@@ -10,7 +10,7 @@
 import { z } from 'zod';
 
 export interface IntegratedApiNodeData {
-  provider: 'notion' | 'slack' | 'github' | 'jira' | 'google_search';
+  provider: string;
   operation: string;
   resource_id?: string;
   config?: Record<string, any>;
@@ -20,7 +20,7 @@ export interface IntegratedApiNodeData {
 
 // Zod schema for validation
 export const IntegratedApiNodeDataSchema = z.object({
-  provider: z.enum(["notion", "slack", "github", "jira", "google_search"]),
+  provider: z.string(),
   operation: z.string(),
   resource_id: z.string().optional(),
   config: z.record(z.any()).optional(),

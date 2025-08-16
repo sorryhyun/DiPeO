@@ -11,6 +11,7 @@ class EventType(Enum):
     EXECUTION_COMPLETED = "execution_completed"
     METRICS_COLLECTED = "metrics_collected"
     OPTIMIZATION_SUGGESTED = "optimization_suggested"
+    WEBHOOK_RECEIVED = "webhook_received"
 
 
 @dataclass

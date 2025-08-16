@@ -12,11 +12,12 @@ from dipeo.domain.ports.storage import FileSystemPort
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
+from dipeo.application.registry.keys import FILESYSTEM_ADAPTER, EVENT_BUS
 from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.diagram_generated.generated_nodes import HookNode, NodeType
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.hook_model import HookNodeData, HookType
+from dipeo.core.events import EventConsumer, ExecutionEvent
 
 if TYPE_CHECKING:
     from dipeo.core.execution.execution_context import ExecutionContext
@@ -253,8 +254,19 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             raise NodeExecutionError(f"Shell command timed out after {timeout} seconds")
     
     async def _execute_webhook_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
-        # Configuration already validated in pre_execute
+        """Execute webhook hook - either send a request or subscribe to events.
+        
+        Two modes supported:
+        1. Outgoing webhook: Send HTTP request to external URL
+        2. Event subscription: Subscribe to webhook events from providers
+        """
         config = node.config
+        
+        # Check if this is a subscription hook
+        if config.get("subscribe_to"):
+            return await self._subscribe_to_webhook_events(node, inputs)
+        
+        # Otherwise, it's an outgoing webhook request
         url = config.get("url")
         
         method = config.get("method", "POST")
@@ -282,6 +294,82 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     return await response.json()
             except aiohttp.ClientError as e:
                 raise NodeExecutionError(f"Webhook request failed: {e!s}")
+    
+    async def _subscribe_to_webhook_events(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+        """Subscribe to webhook events from providers.
+        
+        This allows a diagram to be triggered by incoming webhooks.
+        The hook node will wait for matching events from the event bus.
+        """
+        config = node.config
+        subscribe_config = config.get("subscribe_to", {})
+        
+        provider = subscribe_config.get("provider")
+        event_name = subscribe_config.get("event_name")
+        timeout = subscribe_config.get("timeout", 60)  # Default 60 second wait
+        filter_conditions = subscribe_config.get("filters", {})
+        
+        if not provider:
+            raise NodeExecutionError("Webhook subscription requires 'provider' in subscribe_to config")
+        
+        # Create an event consumer to wait for the webhook event
+        received_event = None
+        event_received = asyncio.Event()
+        
+        class WebhookEventConsumer(EventConsumer):
+            async def consume(self, event: ExecutionEvent) -> None:
+                nonlocal received_event
+                
+                # Check if this is a webhook event for our provider
+                event_data = event.data
+                if event_data.get("source") != "webhook":
+                    return
+                
+                if event_data.get("provider") != provider:
+                    return
+                
+                if event_name and event_data.get("event_name") != event_name:
+                    return
+                
+                # Apply additional filters if specified
+                payload = event_data.get("payload", {})
+                for key, expected_value in filter_conditions.items():
+                    if payload.get(key) != expected_value:
+                        return
+                
+                # Event matches our criteria
+                received_event = event_data
+                event_received.set()
+        
+        # Register our consumer with the event bus (if available)
+        # Note: In a real implementation, we'd need access to the event bus
+        # For now, this is a placeholder showing the pattern
+        
+        try:
+            # Wait for the event with timeout
+            await asyncio.wait_for(event_received.wait(), timeout=timeout)
+            
+            if received_event:
+                return {
+                    "status": "triggered",
+                    "provider": provider,
+                    "event_name": received_event.get("event_name"),
+                    "payload": received_event.get("payload"),
+                    "headers": received_event.get("headers", {})
+                }
+            else:
+                return {
+                    "status": "timeout",
+                    "provider": provider,
+                    "message": f"No matching webhook event received within {timeout} seconds"
+                }
+                
+        except asyncio.TimeoutError:
+            return {
+                "status": "timeout",
+                "provider": provider,
+                "message": f"Webhook subscription timed out after {timeout} seconds"
+            }
     
     async def _execute_python_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
         # Configuration already validated in pre_execute

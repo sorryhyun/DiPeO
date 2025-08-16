@@ -487,7 +487,7 @@ class IntegratedApiNodeData(BaseNodeData):
     """IntegratedApiNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    provider: APIServiceType = Field(description="The API provider to use (e.g., notion, slack, github)")
+    provider: str = Field(description="Provider id from the dynamic registry (e.g., \u0027notion\u0027, \u0027slack\u0027)")
     operation: str = Field(description="The operation to perform (provider-specific)\nThis is a string to allow dynamic operations per provider")
     config: Optional[JsonDict] = Field(default=None, description="Provider-specific configuration\nStructure depends on the selected provider and operation")
     resource_id: Optional[str] = Field(default=None, description="Optional resource ID (e.g., page_id for Notion, channel_id for Slack)")
@@ -750,4 +750,4 @@ def is_user_response_node_data(obj: Any) -> bool:
 
 
 # Constants from TypeScript
-PROVIDER_OPERATIONS = {"[APIServiceType.ANTHROPIC]": [], "[APIServiceType.BEDROCK]": [], "[APIServiceType.DEEPSEEK]": [], "[APIServiceType.GEMINI]": [], "[APIServiceType.GITHUB]": ["create_issue", "update_issue", "list_issues", "create_pr", "merge_pr", "get_repo_info"], "[APIServiceType.GOOGLE]": [], "[APIServiceType.GOOGLE_SEARCH]": ["search"], "[APIServiceType.JIRA]": ["create_issue", "update_issue", "search_issues", "transition_issue", "add_comment"], "[APIServiceType.NOTION]": ["create_page", "update_page", "read_page", "delete_page", "create_database", "query_database", "update_database"], "[APIServiceType.OLLAMA]": [], "[APIServiceType.OPENAI]": [], "[APIServiceType.SLACK]": ["send_message", "read_channel", "create_channel", "list_channels", "upload_file"], "[APIServiceType.VERTEX]": []}
+PROVIDER_OPERATIONS = {"\u0027github\u0027": ["create_issue", "update_issue", "list_issues", "create_pr", "merge_pr", "get_repo_info"], "\u0027google_search\u0027": ["search"], "\u0027jira\u0027": ["create_issue", "update_issue", "search_issues", "transition_issue", "add_comment"], "\u0027notion\u0027": ["create_page", "update_page", "read_page", "delete_page", "create_database", "query_database", "update_database"], "\u0027slack\u0027": ["send_message", "read_channel", "create_channel", "list_channels", "upload_file"]}

@@ -29,13 +29,11 @@ export enum APIServiceType {
   JIRA = 'jira'
 }
 
-export enum IntegrationProvider {
-  NOTION = 'notion',
-  SLACK = 'slack',
-  GITHUB = 'github',
-  JIRA = 'jira',
-  GOOGLE_SEARCH = 'google_search'
-}
+/**
+ * @deprecated Use plain string provider ids resolved at runtime.
+ * Kept only to avoid import breakages during transition.
+ */
+export type IntegrationProvider = string;
 
 export enum ToolType {
   WEB_SEARCH = 'web_search',

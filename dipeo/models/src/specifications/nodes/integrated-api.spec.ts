@@ -17,21 +17,12 @@ export const integratedApiSpec: NodeSpecification = {
   fields: [
     {
       name: "provider",
-      type: "enum",
+      type: "string",
       required: true,
       description: "API provider to connect to",
-      validation: {
-        allowedValues: ["notion", "slack", "github", "jira", "google_search"]
-      },
+      // UI remains a select, but options are loaded dynamically in fieldOverrides
       uiConfig: {
-        inputType: "select",
-        options: [
-          { value: "notion", label: "Notion" },
-          { value: "slack", label: "Slack" },
-          { value: "github", label: "GitHub" },
-          { value: "jira", label: "Jira" },
-          { value: "google_search", label: "Google Search" }
-        ]
+        inputType: "select"
       }
     },
     {

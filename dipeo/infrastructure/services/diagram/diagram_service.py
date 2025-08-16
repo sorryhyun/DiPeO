@@ -56,15 +56,7 @@ class DiagramService(BaseService, DiagramPort):
         await self.compiler.initialize()
         
         self._initialized = True
-        logger.info(f"DiagramService initialized at: {self.base_path}")
-        logger.info(f"Project root: {self.base_path.parent}")
-        
-        # Check if projects directory exists
-        projects_path = self.base_path.parent / "projects"
-        if self.filesystem.exists(projects_path):
-            logger.info(f"Projects directory found: {projects_path}")
-        else:
-            logger.warning(f"Projects directory not found: {projects_path}")
+
     
     def detect_format(self, content: str) -> DiagramFormat:
         """Detect the format of diagram content."""

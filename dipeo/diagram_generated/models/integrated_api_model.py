@@ -18,7 +18,7 @@ from ..integrations import *
 
 class IntegratedApiNodeData(BaseModel):
     """Data model for Integrated API node."""
-    provider: Literal["notion", "slack", "github", "jira", "google_search"] = Field(description="API provider to connect to")
+    provider: str = Field(description="API provider to connect to")
     operation: str = Field(description="Operation to perform (provider-specific)")
     resource_id: Optional[str] = Field(description="Resource identifier (e.g., page ID, channel ID)")
     config: Optional[Dict[str, Any]] = Field(description="Provider-specific configuration")
