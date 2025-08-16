@@ -1,18 +1,11 @@
-"""Unified diagram validation service."""
+"""Unified diagram validation service - façade using the domain compiler."""
 
 from typing import Any
 
 from dipeo.core.base.exceptions import ValidationError
 from dipeo.domain.validators.base_validator import BaseValidator, ValidationResult, ValidationWarning
-from dipeo.diagram_generated import (
-    DomainDiagram,
-    DomainNode,
-    NodeType,
-)
-from dipeo.domain.diagram.handle import (
-    extract_node_id_from_handle,
-    parse_handle_id,
-)
+from dipeo.diagram_generated import DomainDiagram
+from dipeo.domain.diagram.validation import validate_diagram as validate_via_compiler
 
 
 class DiagramValidator(BaseValidator):
@@ -22,7 +15,7 @@ class DiagramValidator(BaseValidator):
         self.api_key_service = api_key_service
     
     def _perform_validation(self, target: Any, result: ValidationResult) -> None:
-        """Perform diagram validation."""
+        """Perform diagram validation using the domain compiler as source of truth."""
         if isinstance(target, DomainDiagram):
             self._validate_diagram(target, result)
         elif isinstance(target, dict):
@@ -36,54 +29,24 @@ class DiagramValidator(BaseValidator):
             result.add_error(ValidationError("Target must be a DomainDiagram or dict"))
     
     def _validate_diagram(self, diagram: DomainDiagram, result: ValidationResult) -> None:
-        """Validate a DomainDiagram object."""
-        # Basic structure validation
-        if not diagram.nodes:
-            result.add_error(ValidationError("Diagram must have at least one node"))
-            return
+        """Validate a DomainDiagram object using the compiler.
         
-        # Check for duplicate node IDs
-        node_ids = [node.id for node in diagram.nodes]
-        if len(node_ids) != len(set(node_ids)):
-            result.add_error(ValidationError("Duplicate node IDs found in diagram"))
+        This is now a façade that delegates to the domain compiler for
+        all validation logic, ensuring a single source of truth.
+        """
+        # Use the compiler for validation
+        compilation_result = validate_via_compiler(diagram)
         
-        node_id_set = set(node_ids)
+        # Convert compilation errors to validation errors
+        for error in compilation_result.errors:
+            result.add_error(error.to_validation_error())
         
-        # Validate start and endpoint nodes
-        start_nodes = [n for n in diagram.nodes if n.type == NodeType.START]
-        endpoint_nodes = [n for n in diagram.nodes if n.type == NodeType.ENDPOINT]
+        # Convert compilation warnings to validation warnings
+        for warning in compilation_result.warnings:
+            result.add_warning(warning.to_validation_warning())
         
-        if not start_nodes:
-            result.add_error(ValidationError("Diagram must have at least one start node"))
-        if not endpoint_nodes:
-            result.add_warning(ValidationWarning("Diagram has no endpoint node - outputs may not be saved"))
-        
-        # Validate arrows
-        if diagram.arrows:
-            for arrow in diagram.arrows:
-                source_node_id = extract_node_id_from_handle(arrow.source)
-                target_node_id = extract_node_id_from_handle(arrow.target)
-                
-                if source_node_id not in node_id_set:
-                    result.add_error(ValidationError(
-                        f"Arrow '{arrow.id}' references non-existent source node '{source_node_id}'"
-                    ))
-                if target_node_id not in node_id_set:
-                    result.add_error(ValidationError(
-                        f"Arrow '{arrow.id}' references non-existent target node '{target_node_id}'"
-                    ))
-        
-        # Validate node connections
-        for node in diagram.nodes:
-            self._validate_node_connections(node, diagram, result)
-        
-        # Find unreachable nodes
-        unreachable = self._find_unreachable_nodes(diagram)
-        for node_id in unreachable:
-            result.add_warning(ValidationWarning(
-                f"Node '{node_id}' is unreachable from any start node",
-                field_name=f"node.{node_id}"
-            ))
+        # Additional validations not covered by the compiler
+        # (These are specific to runtime concerns like API keys)
         
         # Validate persons references
         person_ids = {person.id for person in diagram.persons} if diagram.persons else set()
@@ -104,66 +67,6 @@ class DiagramValidator(BaseValidator):
                     result.add_error(ValidationError(
                         f"Person '{person.id}' references non-existent API key '{person.api_key_id}'"
                     ))
-    
-    def _validate_node_connections(self, node: DomainNode, diagram: DomainDiagram, result: ValidationResult) -> None:
-        """Validate connections for a specific node."""
-        # Get incoming and outgoing arrows
-        incoming = []
-        outgoing = []
-        
-        for arrow in diagram.arrows:
-            if extract_node_id_from_handle(arrow.target) == node.id:
-                incoming.append(arrow)
-            if extract_node_id_from_handle(arrow.source) == node.id:
-                outgoing.append(arrow)
-        
-        # Validate based on node type
-        if node.type == NodeType.START and incoming:
-            result.add_error(ValidationError(f"Start node '{node.id}' should not have incoming connections"))
-        
-        if node.type == NodeType.ENDPOINT and outgoing:
-            result.add_error(ValidationError(f"Endpoint node '{node.id}' should not have outgoing connections"))
-        
-        if node.type == NodeType.CONDITION:
-            # Condition nodes should have true/false branches
-            handles = [parse_handle_id(arrow.source)[1] for arrow in outgoing]
-            handle_values = [h.value for h in handles if h]
-            
-            if "condtrue" not in handle_values:
-                result.add_warning(ValidationWarning(f"Condition node '{node.id}' missing true branch"))
-            if "condfalse" not in handle_values:
-                result.add_warning(ValidationWarning(f"Condition node '{node.id}' missing false branch"))
-    
-    def _find_unreachable_nodes(self, diagram: DomainDiagram) -> set[str]:
-        """Find nodes that cannot be reached from any start node."""
-        # Build adjacency list
-        graph = {}
-        for node in diagram.nodes:
-            graph[node.id] = []
-        
-        for arrow in diagram.arrows:
-            source_id = extract_node_id_from_handle(arrow.source)
-            target_id = extract_node_id_from_handle(arrow.target)
-            if source_id in graph:
-                graph[source_id].append(target_id)
-        
-        # Find all nodes reachable from start nodes
-        start_nodes = [n.id for n in diagram.nodes if n.type == NodeType.START]
-        reachable = set()
-        
-        def dfs(node_id: str):
-            if node_id in reachable:
-                return
-            reachable.add(node_id)
-            for neighbor in graph.get(node_id, []):
-                dfs(neighbor)
-        
-        for start_id in start_nodes:
-            dfs(start_id)
-        
-        # Find unreachable nodes
-        all_nodes = set(n.id for n in diagram.nodes)
-        return all_nodes - reachable
 
 
 # Convenience methods for backward compatibility

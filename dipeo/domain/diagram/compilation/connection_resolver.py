@@ -1,8 +1,12 @@
-"""Domain logic for resolving handle references to concrete node connections."""
+"""Domain logic for resolving handle references to concrete node connections.
+
+This module focuses solely on resolving arrow handle references to node connections.
+Validation logic has been moved to the shared validation utilities.
+"""
 
 from dataclasses import dataclass
 
-from dipeo.diagram_generated import DomainArrow, DomainNode, HandleDirection, HandleLabel, NodeID
+from dipeo.diagram_generated import DomainArrow, DomainNode, HandleLabel, NodeID
 from dipeo.domain.diagram.handle import parse_handle_id_safe
 
 
@@ -51,49 +55,30 @@ class ConnectionResolver:
         arrow: DomainArrow, 
         valid_nodes: set[NodeID]
     ) -> ResolvedConnection | None:
-        """Resolve a single arrow to a connection."""
-        # Parse source handle
+        """Resolve a single arrow to a connection.
+        
+        This method focuses on resolution only. Validation should be done
+        in the compiler's validation phase using shared utilities.
+        """
+        # Parse handles
         source_parsed = parse_handle_id_safe(arrow.source)
-        if not source_parsed:
-            self._errors.append(
-                f"Arrow {arrow.id}: Invalid source handle format: {arrow.source}"
-            )
-            return None
-        
-        # Parse target handle
         target_parsed = parse_handle_id_safe(arrow.target)
-        if not target_parsed:
+        
+        # Can't resolve if parsing failed
+        if not source_parsed or not target_parsed:
             self._errors.append(
-                f"Arrow {arrow.id}: Invalid target handle format: {arrow.target}"
+                f"Arrow {arrow.id}: Cannot resolve - invalid handle format"
             )
             return None
         
-        # Validate node references
-        if source_parsed.node_id not in valid_nodes:
+        # Can't resolve if nodes don't exist
+        if source_parsed.node_id not in valid_nodes or target_parsed.node_id not in valid_nodes:
             self._errors.append(
-                f"Arrow {arrow.id}: Source node '{source_parsed.node_id}' not found"
+                f"Arrow {arrow.id}: Cannot resolve - node not found"
             )
             return None
         
-        if target_parsed.node_id not in valid_nodes:
-            self._errors.append(
-                f"Arrow {arrow.id}: Target node '{target_parsed.node_id}' not found"
-            )
-            return None
-        
-        # Validate handle directions
-        if source_parsed.direction != HandleDirection.OUTPUT:
-            self._errors.append(
-                f"Arrow {arrow.id}: Source must be an output handle, got {source_parsed.direction}"
-            )
-            return None
-        
-        if target_parsed.direction != HandleDirection.INPUT:
-            self._errors.append(
-                f"Arrow {arrow.id}: Target must be an input handle, got {target_parsed.direction}"
-            )
-            return None
-        
+        # Successfully resolved
         return ResolvedConnection(
             arrow_id=arrow.id,
             source_node_id=source_parsed.node_id,

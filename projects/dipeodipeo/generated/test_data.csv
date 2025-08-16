@@ -1,6 +1,6 @@
 {
-  "id": "resp_689ffa3dc2848194bec19f671ebccd980f82f54cefa9aca7",
-  "created_at": 1755314750.0,
+  "id": "resp_68a069a83fc88198a90738c911a0fb2f02858dec65f12f4d",
+  "created_at": 1755343272.0,
   "error": null,
   "incomplete_details": null,
   "instructions": null,
@@ -9,28 +9,28 @@
   "object": "response",
   "output": [
     {
-      "id": "rs_689ffa3ea390819485e10f82390a13280f82f54cefa9aca7",
+      "id": "rs_68a069a8c21c8198810e5377c7c147fd02858dec65f12f4d",
       "summary": [],
       "type": "reasoning",
       "encrypted_content": null,
       "status": null
     },
     {
-      "id": "msg_689ffab2bc2c8194b60350522d1fefc90f82f54cefa9aca7",
+      "id": "msg_68a069e555e081988700ccd2eaec27ce02858dec65f12f4d",
       "content": [
         {
           "annotations": [],
-          "text": "{\n  \"test_data\": {\n    \"specification\": {\n      \"format\": \"csv\",\n      \"num_rows\": 12,\n      \"fields\": [\n        {\"name\": \"record_id\", \"type\": \"string\", \"nullable\": false, \"unique\": true, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Unique identifier for the row (record)\"},\n        {\"name\": \"record_type\", \"type\": \"string\", \"nullable\": false, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": [\"user\",\"transaction\",\"log\"], \"description\": \"Type of record in the workflow (user, transaction, or log)\"},\n        {\"name\": \"user_id\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Reference to the user identifier when applicable\"},\n        {\"name\": \"name\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Descriptive name if applicable\"},\n        {\"name\": \"email\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Email address if applicable\"},\n        {\"name\": \"age\", \"type\": \"integer\", \"nullable\": true, \"unique\": false, \"min_value\": 0, \"max_value\": 120, \"pattern\": null, \"choices\": null, \"description\": \"Age or equivalent attribute for user-like records\"},\n        {\"name\": \"created_date\", \"type\": \"date\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": \"YYYY-MM-DD\", \"choices\": null, \"description\": \"Creation date for the record (ISO)\"},\n        {\"name\": \"transaction_id\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Transaction identifier for transaction-type records\"},\n        {\"name\": \"amount\", \"type\": \"float\", \"nullable\": true, \"unique\": false, \"min_value\": -1000000, \"max_value\": 1000000, \"pattern\": null, \"choices\": null, \"description\": \"Monetary amount for transactions\"},\n        {\"name\": \"currency\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Currency code for monetary values\"},\n        {\"name\": \"timestamp\", \"type\": \"datetime\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": \"YYYY-MM-DDTHH:MM:SSZ\", \"choices\": null, \"description\": \"Timestamp for events or transactions (ISO 8601)\"},\n        {\"name\": \"source\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Origin source or system component\"}\n      ],\n      \"include_headers\": true,\n      \"description\": \"Compact denormalized dataset to exercise a data processor diagram with users, transactions, and logs, including referential references and edge cases.\"\n    },\n    \"csv_content\": \"record_id,record_type,user_id,name,email,age,created_date,transaction_id,amount,currency,timestamp,source\\nU-001,user,U1,Alice Carter,alice.carter@example.com,34,2022-04-12,,,,,\\nU-002,user,U2,Miguel Santos,miguel.santos@example.org,28,2023-01-20,,,,,\\nU-003,user,U3,Zo\u00eb Chen-Smith,zoe.chen@example.net,0,2020-02-29,,,,,\\nU-004,user,U4,Dave Kim,NULL,41,2024-11-01,,,,,\\nTR-001,transaction,U1,,,,TXN-001,199.99,USD,2022-05-01T14:30:00Z,payment-gateway\\nTR-002,transaction,U2,,,,TXN-002,49.50,USD,2023-02-14T09:15:00Z,payment-gateway\\nTR-003,transaction,U3,,,,TXN-003,-5.00,USD,2020-02-29T12:00:00Z,web\\nTR-004,transaction,U4,,,,TXN-004,500.00,EUR,2024-11-02T08:00:00Z,credit-card\\nLG-001,log,U1,Alice Carter,alice.carter@example.com,34,2022-08-01,,,,2022-08-01T10:15:00Z,auth-service\\nLG-002,log,U2,Miguel Santos,miguel.santos@example.org,28,2023-02-14,,,,2023-02-14T09:15:00Z,sys-logger\\nLG-003,log,U3,Zo\u00eb Chen-Smith,zoe.chen@example.net,0,2020-02-29,,,,2020-02-29T05:00:00Z,etl\\nLG-004,log,U4,Dave Kim,NULL,41,2024-11-01,,,,2024-11-01T08:00:00Z,etl-processor\",\n    \"row_count\": 12,\n    \"field_count\": 12\n  },\n  \"summary\": \"Generated 12 data rows across 4 users, 4 transactions, and 4 logs. Includes edge cases: NULL email, leap day, age boundary, and a negative transaction amount to help validate the data processor diagram paths.\"\n}",
+          "text": "{\n  \"test_data\": {\n    \"specification\": {\n      \"format\": \"csv\",\n      \"num_rows\": 30,\n      \"fields\": [\n        {\n          \"name\": \"transaction_id\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"unique\": true,\n          \"min_value\": null,\n          \"max_value\": null,\n          \"pattern\": null,\n          \"choices\": null,\n          \"description\": \"Unique transaction identifier\"\n        },\n        {\n          \"name\": \"user_id\",\n          \"type\": \"integer\",\n          \"nullable\": true,\n          \"unique\": false,\n          \"min_value\": 1,\n          \"max_value\": 999999,\n          \"pattern\": null,\n          \"choices\": null,\n          \"description\": \"ID of the user who made the transaction\"\n        },\n        {\n          \"name\": \"product_id\",\n          \"type\": \"string\",\n          \"nullable\": true,\n          \"unique\": false,\n          \"min_value\": null,\n          \"max_value\": null,\n          \"pattern\": null,\n          \"choices\": null,\n          \"description\": \"Associated product identifier\"\n        },\n        {\n          \"name\": \"amount\",\n          \"type\": \"float\",\n          \"nullable\": false,\n          \"unique\": false,\n          \"min_value\": 0.0,\n          \"max_value\": 100000.0,\n          \"pattern\": null,\n          \"choices\": null,\n          \"description\": \"Transaction amount\"\n        },\n        {\n          \"name\": \"currency\",\n          \"type\": \"string\",\n          \"nullable\": true,\n          \"unique\": false,\n          \"min_value\": null,\n          \"max_value\": null,\n          \"pattern\": null,\n          \"choices\": [\n            \"USD\",\n            \"EUR\",\n            \"GBP\",\n            \"JPY\"\n          ],\n          \"description\": \"Currency code (ISO 4217)\"\n        },\n        {\n          \"name\": \"status\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"unique\": false,\n          \"min_value\": null,\n          \"max_value\": null,\n          \"pattern\": null,\n          \"choices\": [\n            \"PENDING\",\n            \"COMPLETED\",\n            \"FAILED\",\n            \"REFUNDED\"\n          ],\n          \"description\": \"Transaction status (e.g., PENDING, COMPLETED, FAILED)\"\n        },\n        {\n          \"name\": \"timestamp\",\n          \"type\": \"datetime\",\n          \"nullable\": true,\n          \"unique\": false,\n          \"min_value\": null,\n          \"max_value\": null,\n          \"pattern\": \"YYYY-MM-DDTHH:mm:ssZ\",\n          \"choices\": null,\n          \"description\": \"Timestamp of the transaction in ISO 8601\"\n        },\n        {\n          \"name\": \"payment_method\",\n          \"type\": \"string\",\n          \"nullable\": true,\n          \"unique\": false,\n          \"min_value\": null,\n          \"max_value\": null,\n          \"pattern\": null,\n          \"choices\": null,\n          \"description\": \"Payment method used\"\n        },\n        {\n          \"name\": \"country\",\n          \"type\": \"string\",\n          \"nullable\": true,\n          \"unique\": false,\n          \"min_value\": null,\n          \"max_value\": null,\n          \"pattern\": null,\n          \"choices\": null,\n          \"description\": \"Country code or name\"\n        }\n      ],\n      \"include_headers\": true,\n      \"description\": \"Test data for a transaction workflow used to test filtering, aggregation, and transformation.\"\n    },\n    \"csv_content\": \"transaction_id,user_id,product_id,amount,currency,status,timestamp,payment_method,country\\nTXN-0001,101,PROD-1001,89.99,USD,COMPLETED,2024-11-20T14:30:00Z,Credit Card,US\\nTXN-0002,202,PROD-1002,59.50,EUR,COMPLETED,2024-11-21T09:15:00Z,PayPal,DE\\nTXN-0003,305,PROD-1003,0.00,USD,PENDING,2024-11-25T16:40:00Z,Apple Pay,US\\nTXN-0004,409,PROD-1004,250.00,GBP,FAILED,2024-11-15T11:05:00Z,Debit Card,GB\\nTXN-0005,503,PROD-1005,199.99,USD,COMPLETED,2024-11-22T20:10:00Z,Bank Transfer,US\\nTXN-0006,,PROD-1006,-12.50,USD,FAILED,2024-11-23T12:00:00Z,Unknown,US\\nTXN-0007,707,,15.75,USD,COMPLETED,2024-11-24T08:25:00Z,Gift Card,US\\nTXN-0008,880,PROD-1008,100000.00,JPY,COMPLETED,2024-11-25T15:00:00Z,Credit Card,JP\\nTXN-0009,910,PROD-1009,75.25,USD,COMPLETED,2024-11-26T10:05:00Z,PayPal,US\\nTXN-0010,102,PROD-1010,12.00,USD,REFUNDED,2024-11-27T12:30:00Z,Debit Card,US\\nTXN-0011,123,PROD-1011,45.00,USD,COMPLETED,2024-11-28T18:25:43Z,Mobile Payment,US\\nTXN-0012,345,PROD-1012,9.99,EUR,COMPLETED,2024-11-29T09:01:10Z,PayPal,DE\\nTXN-0013,567,PROD-1013,999.99,USD,COMPLETED,2024-11-30T23:59:59Z,Credit Card,US\\nTXN-0014,4,PROD-1014,0.99,GBP,COMPLETED,2024-12-01T00:00:01Z,Gift Card,GB\\nTXN-0015,214,PROD-1015,25.50,USD,COMPLETED,2024-12-01T12:12:12Z,Debit Card,US\\nTXN-0016,301,PROD-1016,0.00,USD,PENDING,2024-12-02T03:04:05Z,Bank Transfer,US\\nTXN-0017,206,PROD-1017,150.75,USD,COMPLETED,2024-12-02T14:30:00Z,PayPal,US\\nTXN-0018,401,PROD-1018,75.00,GBP,COMPLETED,2024-12-03T09:45:00Z,Credit Card,GB\\nTXN-0019,999,PROD-1019,5.99,USD,COMPLETED,2024-12-04T11:11:11Z,Debit Card,US\\nTXN-0020,120,PROD-1020,0.50,USD,COMPLETED,2024-12-04T20:20:20Z,PayPal,US\\nTXN-0021,432,,20.00,,COMPLETED,2024-12-05T08:15:00Z,Gift Card,US\\nTXN-0022,555,PROD-1022,2.50,EUR,FAILED,2024-12-05T10:30:00Z,PayPal,DE\\nTXN-0023,666,PROD-1023,65.00,USD,COMPLETED,,NULL,US\\nTXN-0024,777,PROD-1024,120.00,USD,COMPLETED,2024-12-07T07:45:00Z,Bank Transfer,US\\nTXN-0025,888,PROD-1025,8.80,USD,PENDING,2024-12-07T16:00:00Z,Debit Card,US\\nTXN-0026,12,PROD-1026,0.01,USD,COMPLETED,2024-12-08T09:25:00Z,Credit Card,US\\nTXN-0027,999,PROD-1027,5000.00,USD,COMPLETED,2024-12-09T22:10:10Z,PayPal,US\\nTXN-0028,33,PROD-1028,1200.00,EUR,COMPLETED,2024-12-10T13:13:13Z,Apple Pay,DE\\nTXN-0029,210,PROD-1029,30.25,USD,COMPLETED,2024-12-11T08:08:08Z,Debit Card,US\\nTXN-0030,511,PROD-1030,45.00,USD,COMPLETED,2024-12-12T12:12:12Z,PayPal,US\",\n    \"row_count\": 30,\n    \"field_count\": 9\n  }\n  ,\n  \"summary\": \"30-row transaction dataset for testing filter/aggregation/transform paths in a DiPeO diagram. Includes normal, boundary, and edge-case rows (zero/negative amounts, missing fields, nulls, and a suspicious status) to exercise multiple diagram paths.\"\n}",
           "type": "output_text",
           "logprobs": [],
           "parsed": {
             "test_data": {
               "specification": {
                 "format": "csv",
-                "num_rows": 12,
+                "num_rows": 30,
                 "fields": [
                   {
-                    "name": "record_id",
+                    "name": "transaction_id",
                     "type": "string",
                     "nullable": false,
                     "unique": true,
@@ -38,80 +38,21 @@
                     "max_value": null,
                     "pattern": null,
                     "choices": null,
-                    "description": "Unique identifier for the row (record)"
-                  },
-                  {
-                    "name": "record_type",
-                    "type": "string",
-                    "nullable": false,
-                    "unique": false,
-                    "min_value": null,
-                    "max_value": null,
-                    "pattern": null,
-                    "choices": [
-                      "user",
-                      "transaction",
-                      "log"
-                    ],
-                    "description": "Type of record in the workflow (user, transaction, or log)"
+                    "description": "Unique transaction identifier"
                   },
                   {
                     "name": "user_id",
-                    "type": "string",
-                    "nullable": true,
-                    "unique": false,
-                    "min_value": null,
-                    "max_value": null,
-                    "pattern": null,
-                    "choices": null,
-                    "description": "Reference to the user identifier when applicable"
-                  },
-                  {
-                    "name": "name",
-                    "type": "string",
-                    "nullable": true,
-                    "unique": false,
-                    "min_value": null,
-                    "max_value": null,
-                    "pattern": null,
-                    "choices": null,
-                    "description": "Descriptive name if applicable"
-                  },
-                  {
-                    "name": "email",
-                    "type": "string",
-                    "nullable": true,
-                    "unique": false,
-                    "min_value": null,
-                    "max_value": null,
-                    "pattern": null,
-                    "choices": null,
-                    "description": "Email address if applicable"
-                  },
-                  {
-                    "name": "age",
                     "type": "integer",
                     "nullable": true,
                     "unique": false,
-                    "min_value": 0.0,
-                    "max_value": 120.0,
+                    "min_value": 1.0,
+                    "max_value": 999999.0,
                     "pattern": null,
                     "choices": null,
-                    "description": "Age or equivalent attribute for user-like records"
+                    "description": "ID of the user who made the transaction"
                   },
                   {
-                    "name": "created_date",
-                    "type": "date",
-                    "nullable": true,
-                    "unique": false,
-                    "min_value": null,
-                    "max_value": null,
-                    "pattern": "YYYY-MM-DD",
-                    "choices": null,
-                    "description": "Creation date for the record (ISO)"
-                  },
-                  {
-                    "name": "transaction_id",
+                    "name": "product_id",
                     "type": "string",
                     "nullable": true,
                     "unique": false,
@@ -119,18 +60,18 @@
                     "max_value": null,
                     "pattern": null,
                     "choices": null,
-                    "description": "Transaction identifier for transaction-type records"
+                    "description": "Associated product identifier"
                   },
                   {
                     "name": "amount",
                     "type": "float",
-                    "nullable": true,
+                    "nullable": false,
                     "unique": false,
-                    "min_value": -1000000.0,
-                    "max_value": 1000000.0,
+                    "min_value": 0.0,
+                    "max_value": 100000.0,
                     "pattern": null,
                     "choices": null,
-                    "description": "Monetary amount for transactions"
+                    "description": "Transaction amount"
                   },
                   {
                     "name": "currency",
@@ -140,8 +81,29 @@
                     "min_value": null,
                     "max_value": null,
                     "pattern": null,
-                    "choices": null,
-                    "description": "Currency code for monetary values"
+                    "choices": [
+                      "USD",
+                      "EUR",
+                      "GBP",
+                      "JPY"
+                    ],
+                    "description": "Currency code (ISO 4217)"
+                  },
+                  {
+                    "name": "status",
+                    "type": "string",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": [
+                      "PENDING",
+                      "COMPLETED",
+                      "FAILED",
+                      "REFUNDED"
+                    ],
+                    "description": "Transaction status (e.g., PENDING, COMPLETED, FAILED)"
                   },
                   {
                     "name": "timestamp",
@@ -150,12 +112,12 @@
                     "unique": false,
                     "min_value": null,
                     "max_value": null,
-                    "pattern": "YYYY-MM-DDTHH:MM:SSZ",
+                    "pattern": "YYYY-MM-DDTHH:mm:ssZ",
                     "choices": null,
-                    "description": "Timestamp for events or transactions (ISO 8601)"
+                    "description": "Timestamp of the transaction in ISO 8601"
                   },
                   {
-                    "name": "source",
+                    "name": "payment_method",
                     "type": "string",
                     "nullable": true,
                     "unique": false,
@@ -163,17 +125,28 @@
                     "max_value": null,
                     "pattern": null,
                     "choices": null,
-                    "description": "Origin source or system component"
+                    "description": "Payment method used"
+                  },
+                  {
+                    "name": "country",
+                    "type": "string",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Country code or name"
                   }
                 ],
                 "include_headers": true,
-                "description": "Compact denormalized dataset to exercise a data processor diagram with users, transactions, and logs, including referential references and edge cases."
+                "description": "Test data for a transaction workflow used to test filtering, aggregation, and transformation."
               },
-              "csv_content": "record_id,record_type,user_id,name,email,age,created_date,transaction_id,amount,currency,timestamp,source\nU-001,user,U1,Alice Carter,alice.carter@example.com,34,2022-04-12,,,,,\nU-002,user,U2,Miguel Santos,miguel.santos@example.org,28,2023-01-20,,,,,\nU-003,user,U3,Zo\u00eb Chen-Smith,zoe.chen@example.net,0,2020-02-29,,,,,\nU-004,user,U4,Dave Kim,NULL,41,2024-11-01,,,,,\nTR-001,transaction,U1,,,,TXN-001,199.99,USD,2022-05-01T14:30:00Z,payment-gateway\nTR-002,transaction,U2,,,,TXN-002,49.50,USD,2023-02-14T09:15:00Z,payment-gateway\nTR-003,transaction,U3,,,,TXN-003,-5.00,USD,2020-02-29T12:00:00Z,web\nTR-004,transaction,U4,,,,TXN-004,500.00,EUR,2024-11-02T08:00:00Z,credit-card\nLG-001,log,U1,Alice Carter,alice.carter@example.com,34,2022-08-01,,,,2022-08-01T10:15:00Z,auth-service\nLG-002,log,U2,Miguel Santos,miguel.santos@example.org,28,2023-02-14,,,,2023-02-14T09:15:00Z,sys-logger\nLG-003,log,U3,Zo\u00eb Chen-Smith,zoe.chen@example.net,0,2020-02-29,,,,2020-02-29T05:00:00Z,etl\nLG-004,log,U4,Dave Kim,NULL,41,2024-11-01,,,,2024-11-01T08:00:00Z,etl-processor",
-              "row_count": 12,
-              "field_count": 12
+              "csv_content": "transaction_id,user_id,product_id,amount,currency,status,timestamp,payment_method,country\nTXN-0001,101,PROD-1001,89.99,USD,COMPLETED,2024-11-20T14:30:00Z,Credit Card,US\nTXN-0002,202,PROD-1002,59.50,EUR,COMPLETED,2024-11-21T09:15:00Z,PayPal,DE\nTXN-0003,305,PROD-1003,0.00,USD,PENDING,2024-11-25T16:40:00Z,Apple Pay,US\nTXN-0004,409,PROD-1004,250.00,GBP,FAILED,2024-11-15T11:05:00Z,Debit Card,GB\nTXN-0005,503,PROD-1005,199.99,USD,COMPLETED,2024-11-22T20:10:00Z,Bank Transfer,US\nTXN-0006,,PROD-1006,-12.50,USD,FAILED,2024-11-23T12:00:00Z,Unknown,US\nTXN-0007,707,,15.75,USD,COMPLETED,2024-11-24T08:25:00Z,Gift Card,US\nTXN-0008,880,PROD-1008,100000.00,JPY,COMPLETED,2024-11-25T15:00:00Z,Credit Card,JP\nTXN-0009,910,PROD-1009,75.25,USD,COMPLETED,2024-11-26T10:05:00Z,PayPal,US\nTXN-0010,102,PROD-1010,12.00,USD,REFUNDED,2024-11-27T12:30:00Z,Debit Card,US\nTXN-0011,123,PROD-1011,45.00,USD,COMPLETED,2024-11-28T18:25:43Z,Mobile Payment,US\nTXN-0012,345,PROD-1012,9.99,EUR,COMPLETED,2024-11-29T09:01:10Z,PayPal,DE\nTXN-0013,567,PROD-1013,999.99,USD,COMPLETED,2024-11-30T23:59:59Z,Credit Card,US\nTXN-0014,4,PROD-1014,0.99,GBP,COMPLETED,2024-12-01T00:00:01Z,Gift Card,GB\nTXN-0015,214,PROD-1015,25.50,USD,COMPLETED,2024-12-01T12:12:12Z,Debit Card,US\nTXN-0016,301,PROD-1016,0.00,USD,PENDING,2024-12-02T03:04:05Z,Bank Transfer,US\nTXN-0017,206,PROD-1017,150.75,USD,COMPLETED,2024-12-02T14:30:00Z,PayPal,US\nTXN-0018,401,PROD-1018,75.00,GBP,COMPLETED,2024-12-03T09:45:00Z,Credit Card,GB\nTXN-0019,999,PROD-1019,5.99,USD,COMPLETED,2024-12-04T11:11:11Z,Debit Card,US\nTXN-0020,120,PROD-1020,0.50,USD,COMPLETED,2024-12-04T20:20:20Z,PayPal,US\nTXN-0021,432,,20.00,,COMPLETED,2024-12-05T08:15:00Z,Gift Card,US\nTXN-0022,555,PROD-1022,2.50,EUR,FAILED,2024-12-05T10:30:00Z,PayPal,DE\nTXN-0023,666,PROD-1023,65.00,USD,COMPLETED,,NULL,US\nTXN-0024,777,PROD-1024,120.00,USD,COMPLETED,2024-12-07T07:45:00Z,Bank Transfer,US\nTXN-0025,888,PROD-1025,8.80,USD,PENDING,2024-12-07T16:00:00Z,Debit Card,US\nTXN-0026,12,PROD-1026,0.01,USD,COMPLETED,2024-12-08T09:25:00Z,Credit Card,US\nTXN-0027,999,PROD-1027,5000.00,USD,COMPLETED,2024-12-09T22:10:10Z,PayPal,US\nTXN-0028,33,PROD-1028,1200.00,EUR,COMPLETED,2024-12-10T13:13:13Z,Apple Pay,DE\nTXN-0029,210,PROD-1029,30.25,USD,COMPLETED,2024-12-11T08:08:08Z,Debit Card,US\nTXN-0030,511,PROD-1030,45.00,USD,COMPLETED,2024-12-12T12:12:12Z,PayPal,US",
+              "row_count": 30,
+              "field_count": 9
             },
-            "summary": "Generated 12 data rows across 4 users, 4 transactions, and 4 logs. Includes edge cases: NULL email, leap day, age boundary, and a negative transaction amount to help validate the data processor diagram paths."
+            "summary": "30-row transaction dataset for testing filter/aggregation/transform paths in a DiPeO diagram. Includes normal, boundary, and edge-case rows (zero/negative amounts, missing fields, nulls, and a suspicious status) to exercise multiple diagram paths."
           }
         }
       ],
@@ -583,15 +556,15 @@
   },
   "truncation": "disabled",
   "usage": {
-    "input_tokens": 1505,
+    "input_tokens": 1481,
     "input_tokens_details": {
       "cached_tokens": 0
     },
-    "output_tokens": 24437,
+    "output_tokens": 13873,
     "output_tokens_details": {
-      "reasoning_tokens": 23104
+      "reasoning_tokens": 11776
     },
-    "total_tokens": 25942
+    "total_tokens": 15354
   },
   "user": null,
   "max_tool_calls": null,
