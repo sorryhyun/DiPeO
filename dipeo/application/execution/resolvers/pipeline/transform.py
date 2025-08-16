@@ -5,6 +5,7 @@ import json
 
 from dipeo.core.resolution import StandardNodeOutput, StandardTransformationEngine
 from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.core.execution.resolution_error import TransformationError, SpreadCollisionError
 from .base import PipelineStage, PipelineContext
 
 
@@ -45,18 +46,22 @@ class TransformStage(PipelineStage):
             if packing_mode == 'spread':
                 # Spread mode: shallow-merge dict keys into the node's input namespace
                 if not isinstance(transformed_value, dict):
-                    raise ValueError(
-                        f"Cannot use 'spread' packing with non-dict value from edge {edge.source_node_id} -> {edge.target_node_id}. "
-                        f"Value type: {type(transformed_value).__name__}"
+                    raise TransformationError(
+                        f"Cannot use 'spread' packing with non-dict value. Value type: {type(transformed_value).__name__}",
+                        node_id=edge.target_node_id,
+                        edge_id=getattr(edge, 'id', f"{edge.source_node_id}->{edge.target_node_id}"),
+                        source_type=type(transformed_value).__name__,
+                        target_type="dict"
                     )
                 
                 # Check for key collisions
-                for key in transformed_value.keys():
-                    if key in ctx.transformed_values:
-                        raise ValueError(
-                            f"Key collision during 'spread' packing: '{key}' already exists in inputs. "
-                            f"Edge: {edge.source_node_id} -> {edge.target_node_id}"
-                        )
+                conflicting_keys = [key for key in transformed_value.keys() if key in ctx.transformed_values]
+                if conflicting_keys:
+                    raise SpreadCollisionError(
+                        conflicting_keys=conflicting_keys,
+                        node_id=edge.target_node_id,
+                        edge_id=getattr(edge, 'id', f"{edge.source_node_id}->{edge.target_node_id}")
+                    )
                 
                 # Spread the dict into the transformed values
                 ctx.transformed_values.update(transformed_value)

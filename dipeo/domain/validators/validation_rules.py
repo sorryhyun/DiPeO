@@ -1,10 +1,20 @@
 # Validation rules for diagram resolution and execution
+# DEPRECATED: This module is deprecated. Use dipeo.domain.diagram.validation.constraints instead.
 
+import warnings
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Protocol
 
 from dipeo.diagram_generated import HandleLabel, NodeID, NodeType
+from dipeo.domain.diagram.validation.constraints import GeneratedConstraints
+
+warnings.warn(
+    "dipeo.domain.validators.validation_rules is deprecated. "
+    "Use dipeo.domain.diagram.validation.constraints.GeneratedConstraints instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 class ValidationSeverity(Enum):
@@ -32,50 +42,25 @@ class NodeValidator(Protocol):
         ...
 
 
-class ValidationRules:
+class ValidationRules(GeneratedConstraints):
     # Central validation rules for diagram resolution
+    # DEPRECATED: This class now delegates to GeneratedConstraints
     
-    # Node type constraints
-    NODE_CONNECTION_RULES = {
-        NodeType.START: {
-            "max_inputs": 0,
-            "max_outputs": None,
-            "required_handles": [HandleLabel.DEFAULT],
-            "allowed_targets": [NodeType.PERSON_JOB, NodeType.CONDITION, NodeType.DB, NodeType.CODE_JOB]
-        },
-        NodeType.ENDPOINT: {
-            "max_inputs": None,
-            "max_outputs": 0,
-            "required_handles": [HandleLabel.DEFAULT],
-            "allowed_sources": None  # Any node can connect to endpoint
-        },
-        NodeType.PERSON_JOB: {
-            "max_inputs": None,
-            "max_outputs": None,
-            "required_handles": [HandleLabel.DEFAULT],
-            "allowed_targets": None,  # Can connect to any node
-            "allowed_sources": None   # Any node can connect
-        },
-        NodeType.CONDITION: {
-            "max_inputs": 1,  # Conditions typically have single input
-            "max_outputs": None,  # Multiple branches allowed
-            "required_handles": [HandleLabel.DEFAULT, HandleLabel.CONDTRUE, HandleLabel.CONDFALSE],
-            "allowed_targets": None,
-            "allowed_sources": [NodeType.PERSON_JOB, NodeType.CODE_JOB, NodeType.DB]
-        },
-        NodeType.DB: {
-            "max_inputs": None,
-            "max_outputs": None,
-            "required_handles": [],  # DB nodes have dynamic handles
-            "allowed_targets": None,
-            "allowed_sources": None
-        }
-    }
-    
-    # Execution constraints
-    MAX_PARALLEL_NODES = 10  # Maximum nodes executing in parallel
-    MAX_RECURSION_DEPTH = 50  # Maximum execution depth
-    MAX_TOTAL_NODES = 1000  # Maximum nodes in a diagram
+    # Node type constraints - now generated dynamically
+    @property 
+    def NODE_CONNECTION_RULES(self):
+        # Return dict-like interface for backward compatibility
+        result = {}
+        for node_type in NodeType:
+            constraint = self.get_constraint(node_type)
+            result[node_type] = {
+                "max_inputs": constraint.max_inputs,
+                "max_outputs": constraint.max_outputs, 
+                "required_handles": list(constraint.required_handles) if constraint.required_handles else [],
+                "allowed_sources": list(constraint.allowed_sources) if constraint.allowed_sources else None,
+                "allowed_targets": list(constraint.allowed_targets) if constraint.allowed_targets else None,
+            }
+        return result
     
     @classmethod
     def validate_node_connections(
@@ -84,12 +69,14 @@ class ValidationRules:
         incoming_count: int,
         outgoing_count: int
     ) -> list[ValidationIssue]:
-        # Validate node connection counts
+        # Validate node connection counts using generated constraints
         issues = []
-        rules = cls.NODE_CONNECTION_RULES.get(node_type, {})
+        
+        # Get constraints from GeneratedConstraints
+        max_inputs = cls.get_max_inputs(node_type)
+        max_outputs = cls.get_max_outputs(node_type)
         
         # Check input constraints
-        max_inputs = rules.get("max_inputs")
         if max_inputs is not None and incoming_count > max_inputs:
             issues.append(ValidationIssue(
                 severity=ValidationSeverity.ERROR,
@@ -98,7 +85,6 @@ class ValidationRules:
             ))
         
         # Check output constraints
-        max_outputs = rules.get("max_outputs")
         if max_outputs is not None and outgoing_count > max_outputs:
             issues.append(ValidationIssue(
                 severity=ValidationSeverity.ERROR,
@@ -106,7 +92,7 @@ class ValidationRules:
                 message=f"{node_type.value} node cannot have more than {max_outputs} outputs, found {outgoing_count}"
             ))
         
-        # Special rules
+        # Special rules (these are already encoded in constraints)
         if node_type == NodeType.START and incoming_count > 0:
             issues.append(ValidationIssue(
                 severity=ValidationSeverity.ERROR,
@@ -129,10 +115,9 @@ class ValidationRules:
         node_type: NodeType,
         available_handles: set[HandleLabel]
     ) -> list[ValidationIssue]:
-        # Validate that a node has required handles
+        # Validate that a node has required handles using generated constraints
         issues = []
-        rules = cls.NODE_CONNECTION_RULES.get(node_type, {})
-        required_handles = set(rules.get("required_handles", []))
+        required_handles = cls.get_required_handles(node_type)
         
         # Skip handle validation if no handles provided (backward compatibility)
         if not available_handles and required_handles:
@@ -160,27 +145,15 @@ class ValidationRules:
         source_type: NodeType,
         target_type: NodeType
     ) -> list[ValidationIssue]:
-        # Validate that a connection between node types is allowed
+        # Validate that a connection between node types is allowed using generated constraints
         issues = []
-        source_rules = cls.NODE_CONNECTION_RULES.get(source_type, {})
-        target_rules = cls.NODE_CONNECTION_RULES.get(target_type, {})
         
-        # Check if source can connect to target
-        allowed_targets = source_rules.get("allowed_targets")
-        if allowed_targets is not None and target_type not in allowed_targets:
+        # Use the can_connect method from GeneratedConstraints
+        if not cls.can_connect(source_type, target_type):
             issues.append(ValidationIssue(
                 severity=ValidationSeverity.WARNING,
                 category="connection_type",
-                message=f"{source_type.value} typically doesn't connect to {target_type.value}"
-            ))
-        
-        # Check if target can receive from source
-        allowed_sources = target_rules.get("allowed_sources")
-        if allowed_sources is not None and source_type not in allowed_sources:
-            issues.append(ValidationIssue(
-                severity=ValidationSeverity.WARNING,
-                category="connection_type",
-                message=f"{target_type.value} typically doesn't receive from {source_type.value}"
+                message=f"Connection from {source_type.value} to {target_type.value} may not be allowed"
             ))
         
         return issues

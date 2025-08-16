@@ -4,10 +4,11 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 100,
+        "x": 330,
         "y": 200
       },
       "data": {
+        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {},
         "label": "start"
@@ -15,91 +16,82 @@
     },
     {
       "id": "node_1",
-      "type": "code_job",
-      "position": {
-        "x": 300,
-        "y": 200
-      },
-      "data": {
-        "language": "python",
-        "code": "def main(user_requirements=None, workflow_description=None):\n    # If input variables are provided, use them\n    if user_requirements:\n        return user_requirements\n    # Otherwise, read from file\n    try:\n        with open('projects/dipeodipeo/request.txt', 'r') as f:\n            return f.read().strip()\n    except FileNotFoundError:\n        return \"Create a simple data processing diagram\"\n",
-        "label": "load_request"
-      }
-    },
-    {
-      "id": "node_2",
       "type": "person_job",
       "position": {
-        "x": 700,
-        "y": 200
+        "x": 632,
+        "y": 231
       },
       "data": {
-        "person": "test_data_creator",
-        "prompt_file": "test_data_generator.txt",
-        "max_iteration": 1,
-        "text_format_file": "projects/dipeodipeo/test_data_models.py",
-        "label": "generate_test_data",
+        "default_prompt": "say hi",
+        "max_iteration": 3,
+        "memory_profile": "FULL",
+        "person": "person 1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        },
+        "label": "printer",
         "first_only_prompt": ""
       }
     },
     {
-      "id": "node_3",
-      "type": "db",
+      "id": "node_2",
+      "type": "condition",
       "position": {
-        "x": 1000,
-        "y": 200
+        "x": 620,
+        "y": 425
       },
       "data": {
-        "operation": "write",
-        "sub_type": "file",
-        "format": "csv",
-        "file": "projects/dipeodipeo/generated/test_data.csv",
-        "label": "save_test_data"
+        "condition_type": "detect_max_iterations",
+        "flipped": [
+          true,
+          true
+        ],
+        "label": "condition"
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "endpoint",
+      "position": {
+        "x": 0,
+        "y": 437
+      },
+      "data": {
+        "file_format": "txt",
+        "save_to_file": true,
+        "flipped": [
+          true,
+          false
+        ],
+        "file_name": "files/results/total.txt",
+        "label": "endpoint"
       }
     },
     {
       "id": "node_4",
       "type": "person_job",
       "position": {
-        "x": 1200,
-        "y": 200
+        "x": 311,
+        "y": 443
       },
       "data": {
-        "person": "diagram_designer",
-        "prompt_file": "diagram_generator.txt",
+        "default_prompt": "How many times did you respond?",
+        "flipped": [
+          true,
+          false
+        ],
         "max_iteration": 1,
-        "text_format_file": "projects/dipeodipeo/light_diagram_models.py",
-        "label": "generate_diagram",
+        "memory_profile": "FULL",
+        "person": "person 1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        },
+        "label": "ask",
         "first_only_prompt": ""
-      }
-    },
-    {
-      "id": "node_5",
-      "type": "code_job",
-      "position": {
-        "x": 1400,
-        "y": 200
-      },
-      "data": {
-        "language": "python",
-        "filePath": "projects/dipeodipeo/process.py",
-        "functionName": "process_diagram",
-        "label": "format_yaml"
-      }
-    },
-    {
-      "id": "node_6",
-      "type": "db",
-      "position": {
-        "x": 1600,
-        "y": 200
-      },
-      "data": {
-        "operation": "write",
-        "sub_type": "file",
-        "format": "yaml",
-        "file": "projects/dipeodipeo/generated/diagram.light.yaml",
-        "label": "save_diagram"
       }
     }
   ],
@@ -111,58 +103,44 @@
       "label": null,
       "packing": null,
       "data": null,
-      "content_type": "object"
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "label": "workflow_description",
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_2",
-      "source": "node_1_default_output",
-      "target": "node_4_default_input",
-      "label": "workflow_description",
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_3",
-      "source": "node_2_default_output",
-      "target": "node_3_default_input",
       "label": null,
       "packing": null,
       "data": null,
-      "content_type": "object"
+      "content_type": "conversation_state"
+    },
+    {
+      "id": "arrow_2",
+      "source": "node_2_condfalse_output",
+      "target": "node_1_default_input",
+      "label": null,
+      "packing": null,
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "conversation_state"
+    },
+    {
+      "id": "arrow_3",
+      "source": "node_2_condtrue_output",
+      "target": "node_4_default_input",
+      "label": null,
+      "packing": null,
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "conversation_state"
     },
     {
       "id": "arrow_4",
-      "source": "node_2_default_output",
-      "target": "node_4_default_input",
-      "label": "sample_test_data",
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_5",
       "source": "node_4_default_output",
-      "target": "node_5_default_input",
-      "label": "generated_diagram",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_6",
-      "source": "node_5_default_output",
-      "target": "node_6_default_input",
-      "label": "diagram_output",
+      "target": "node_3_default_input",
+      "label": null,
       "packing": null,
       "data": null,
       "content_type": "raw_text"
@@ -170,37 +148,13 @@
   ],
   "persons": [
     {
-      "id": "prompt_engineer",
-      "label": "prompt_engineer",
+      "id": "person 1",
+      "label": "person 1",
       "llm_config": {
         "service": "openai",
         "model": "gpt-5-nano-2025-08-07",
         "api_key_id": "APIKEY_52609F",
-        "system_prompt": "You are an expert prompt engineer specializing in creating effective prompts for DiPeO diagram generation.\nYou analyze requirements and create clear, detailed prompts that result in high-quality, executable diagrams.\nFocus on clarity, specificity, and actionable instructions.\n",
-        "prompt_file": null
-      },
-      "type": "person"
-    },
-    {
-      "id": "diagram_designer",
-      "label": "diagram_designer",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": "You are an expert DiPeO diagram designer. You create well-structured light format diagrams\nthat follow best practices for modularity, error handling, and performance.\nAlways ensure proper node positioning with x-coordinates incrementing by 200-300 for readability.\nIMPORTANT: Never use 'empty' content_type - always use 'raw_text', 'object', or 'conversation_state'.\n",
-        "prompt_file": null
-      },
-      "type": "person"
-    },
-    {
-      "id": "test_data_creator",
-      "label": "test_data_creator",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": "You are a test data generation expert. You create realistic, well-structured test data\nin various formats (CSV, JSON, etc.) that can be used to test the generated diagrams.\nAlways ensure the data is meaningful and follows best practices for testing.\n",
+        "system_prompt": null,
         "prompt_file": null
       },
       "type": "person"
@@ -214,6 +168,14 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_1_first_input",
+      "node_id": "node_1",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -232,14 +194,6 @@
       "position": "right"
     },
     {
-      "id": "node_2_first_input",
-      "node_id": "node_2",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
       "id": "node_2_default_input",
       "node_id": "node_2",
       "label": "default",
@@ -248,11 +202,19 @@
       "position": "left"
     },
     {
-      "id": "node_2_default_output",
+      "id": "node_2_condtrue_output",
       "node_id": "node_2",
-      "label": "default",
+      "label": "condtrue",
       "direction": "output",
-      "data_type": "any",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_2_condfalse_output",
+      "node_id": "node_2",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
       "position": "right"
     },
     {
@@ -262,14 +224,6 @@
       "direction": "input",
       "data_type": "any",
       "position": "left"
-    },
-    {
-      "id": "node_3_default_output",
-      "node_id": "node_3",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
     },
     {
       "id": "node_4_first_input",
@@ -294,38 +248,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_5_default_input",
-      "node_id": "node_5",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_5_default_output",
-      "node_id": "node_5",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_6_default_input",
-      "node_id": "node_6",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_6_default_output",
-      "node_id": "node_6",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
     }
   ],
   "metadata": {
@@ -333,8 +255,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-16T11:21:27.185Z",
-    "modified": "2025-08-16T11:21:27.185Z",
+    "created": "2025-08-16T11:43:20.549Z",
+    "modified": "2025-08-16T11:43:20.549Z",
     "version": "1.0.0",
     "id": null
   }

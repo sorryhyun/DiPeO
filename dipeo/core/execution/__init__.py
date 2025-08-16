@@ -33,7 +33,8 @@ from dipeo.core.execution.node_strategy import (
 from dipeo.core.ports.diagram_compiler import DiagramCompiler
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableEdgeV2, ExecutableNode, NodeOutputProtocolV2, StandardNodeOutput
 from dipeo.core.execution.execution_context import ExecutionContext
-from dipeo.core.execution.runtime_resolver import RuntimeResolver, TransformationRule
+from dipeo.core.execution.runtime_resolver_v2 import RuntimeResolverV2
+# TransformationRule was only in the old runtime_resolver, no longer needed
 from dipeo.core.execution.dynamic_order_calculator import DynamicOrderCalculator
 from dipeo.core.execution.execution_state_manager import ExecutionStateManager
 from dipeo.diagram_generated.generated_nodes import (
@@ -102,8 +103,7 @@ __all__ = [
     # Protocols and base classes
     "DiagramCompiler",
     "ExecutionContext",
-    "RuntimeResolver",
-    "TransformationRule",
+    "RuntimeResolverV2",
     "DynamicOrderCalculator",
     "ExecutionStateManager",
 ]

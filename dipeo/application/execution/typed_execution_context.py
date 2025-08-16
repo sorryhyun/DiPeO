@@ -18,7 +18,7 @@ from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
 from dipeo.core.execution import ExecutionContext as ExecutionContextProtocol
 from dipeo.core.execution.execution_tracker import CompletionStatus, ExecutionTracker
 from dipeo.core.execution.envelope import Envelope
-from dipeo.core.execution.runtime_resolver import RuntimeResolver
+from dipeo.core.execution.runtime_resolver_v2 import RuntimeResolverV2
 from dipeo.diagram_generated import (
     ExecutionState,
     Status,
@@ -71,7 +71,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     # Dependencies
     service_registry: Optional["ServiceRegistry"] = None
-    runtime_resolver: Optional[RuntimeResolver] = None
+    runtime_resolver: Optional[RuntimeResolverV2] = None
     event_bus: Optional[EventEmitter] = None
     container: Optional["Container"] = None
     
@@ -466,7 +466,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         execution_state: ExecutionState,
         diagram: ExecutableDiagram,
         service_registry: Optional["ServiceRegistry"] = None,
-        runtime_resolver: Optional[RuntimeResolver] = None,
+        runtime_resolver: Optional[RuntimeResolverV2] = None,
         event_bus: Optional[EventEmitter] = None,
         container: Optional["Container"] = None
     ) -> "TypedExecutionContext":
