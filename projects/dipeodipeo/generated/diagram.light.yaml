@@ -1,385 +1,162 @@
 version: light
-name: data_processor_pipeline_dipeo
-description: A robust, reusable data processor pipeline from ingestion to output, including validation, transformation, routing,
-  error handling, and observability.
+name: data_processor_pipeline
+description: Ingest CSV data, validate, process, and output results with error handling. All processing uses code_job nodes;
+  file I/O uses db nodes; branching via condition node with explicit _condtrue/_condfalse handles.
 nodes:
-- label: ObjectiveInput
+- label: Start
   type: start
   position:
-    x: 0
-    y: 0
+    x: 100
+    y: 200
   props:
-    trigger_mode: manual
-    custom_data:
-      user_prompt: create data processor diagram
-    output_data_structure:
-      type: object
-- label: DefineDataConfig
+    flipped: false
+    trigger_mode: none
+- label: Load Input Data
+  type: db
+  position:
+    x: 350
+    y: 200
+  props:
+    flipped: false
+    sub_type: file
+    operation: read
+    glob: false
+    format: text
+- label: Parse CSV
   type: code_job
   position:
-    x: 260
-    y: 0
+    x: 600
+    y: 200
   props:
+    flipped: false
     language: python
     code: |
-      import json
-
-      # Sample, compact DataSource and DataSink artifacts (small, concrete examples)
-      data_sources = [
-          {"id": "source_csv_1", "type": "csv", "location": "./data/input.csv", "schema": {"fields": {"id": "int", "name": "str", "value": "float", "timestamp": "str"}}},
-          {"id": "source_api_1", "type": "api", "endpoint": "https://api.example.com/data", "schema": {"fields": {"id": "int", "category": "str", "amount": "float", "ts": "str"}}},
-          {"id": "source_kafka_1", "type": "kafka", "topic": "events", "bootstrap_servers": ["localhost:9092"], "schema": {"fields": {"id": "str", "payload": "dict"}}}
-      ]
-
-      data_sinks = [
-          {"id": "sink_dw", "type": "parquet_store", "destination": "./warehouse/parquet/", "schema": {"fields": {"id": "int", "name": "str", "value": "float", "timestamp": "str"}}},
-          {"id": "sink_blob", "type": "filesystem", "destination": "./lake/csv/", "schema": {"fields": {"id": "int", "name": "str", "value": "float", "timestamp": "str"}}}
-      ]
-
-      transformation_plan = {"steps": ["clean_nulls", "normalize_fields", "enrich_with_metadata", "deduplicate"]}
-
-      config = {
-          "data_sources": data_sources,
-          "data_sinks": data_sinks,
-          "transformation_plan": transformation_plan,
-          "retry_policy": {"max_retries": 3, "backoff_seconds": 5}
-      }
-
-      print(json.dumps({"data_config": config}))
+      import csv
+      from io import StringIO
+      csv_text = csv_content
+      reader = csv.DictReader(StringIO(csv_text))
+      records = list(reader)
     timeout: 60
-- label: ParallelOrchestrator
+- label: Validate Records
   type: code_job
   position:
-    x: 520
-    y: 0
+    x: 850
+    y: 200
   props:
+    flipped: false
     language: python
     code: |
-      import json, sys, asyncio
-
-      # Optional parallel orchestration for independent sources with deterministic ordering
-
-      def main():
-          s = sys.stdin.read()
-          payload = json.loads(s) if s else {}
-          data_config = payload.get('data_config', {})
-          sources = data_config.get('data_sources', [])
-          order = sorted([src.get('id') for src in sources])  # deterministic ordering by id
-          print(json.dumps({"load_plan": {"order": order}}))
-
-      if __name__ == '__main__':
-          main()
+      records = records
+      valid = []
+      invalid = []
+      for r in records:
+        if r.get('record_id') and r.get('record_type'):
+          valid.append(r)
+        else:
+          invalid.append(r)
+      validation_results = {"valid": valid, "invalid": invalid, "is_valid": len(invalid) == 0}
     timeout: 60
-- label: LoadData
-  type: code_job
-  position:
-    x: 780
-    y: 0
-  props:
-    language: python
-    code: |
-      import json, sys
-
-      payload = json.loads(sys.stdin.read()) if sys.stdin and sys.stdin.readable() else {}
-      data_config = payload.get('data_config', {})
-      load_plan = payload.get('load_plan', {})
-      order = load_plan.get('order', [])
-
-      sources = {src['id']: src for src in data_config.get('data_sources', [])}
-      loaded = []
-      for sid in order:
-          src = sources.get(sid)
-          if not src:
-              continue
-          stype = src.get('type')
-          if stype == 'csv':
-              recs = [{"id": 1, "name": "Alice", "value": 10.0, "timestamp": "2025-01-01T00:00:00Z"}]
-          elif stype == 'api':
-              recs = [{"id": 101, "category": "A", "amount": 3.14, "ts": "2025-01-01T00:01:00Z"}]
-          elif stype == 'kafka':
-              recs = [{"id": "ev1", "payload": {"k": 1}}]
-          else:
-              recs = []
-          loaded.append({"source_id": sid, "source_type": stype, "records": recs, "record_count": len(recs)})
-
-      print(json.dumps({"loaded_data": loaded}))
-    timeout: 60
-- label: ValidateData
-  type: code_job
-  position:
-    x: 1040
-    y: 0
-  props:
-    language: python
-    code: |
-      import json, sys
-      s = sys.stdin.read()
-      payload = json.loads(s) if s else {}
-      loaded = payload.get('loaded_data', [])
-      required = {'id','timestamp','value'}
-      valid = True
-      errors = []
-      for src in loaded:
-          for rec in src.get('records', []):
-              missing = [f for f in required if f not in rec]
-              if missing:
-                  valid = False
-                  errors.append({"source_id": src.get('source_id'), "missing_fields": missing, "record": rec})
-                  break
-          if not valid:
-              break
-      print(json.dumps({"validation_result": {"valid": valid, "errors": errors}}))
-    timeout: 60
-- label: QualityGate
+- label: Check Data Valid
   type: condition
   position:
-    x: 1280
-    y: 0
+    x: 1100
+    y: 200
   props:
+    flipped: false
     condition_type: custom
-    expression: validation_result.get('valid', False)
-    node_indices:
-    - TransformData
-    - Remediation
-- label: TransformData
+    expression: validation_results.get('is_valid', False)
+- label: Process Valid
   type: code_job
   position:
-    x: 1520
-    y: 0
-  props:
-    language: python
-    code: |
-      import json, sys
-      s = sys.stdin.read()
-      payload = json.loads(s) if s else {}
-      loaded = payload.get('loaded_data', [])
-      transformed = []
-      for src in loaded:
-          for rec in src.get('records', []):
-              r = dict(rec)
-              for k, v in list(r.items()):
-                  if isinstance(v, str) and v.replace('.', '', 1).isdigit():
-                      r[k] = float(v) if '.' in v else int(v)
-              transformed.append({"source_id": src.get('source_id'), "record": r})
-      transformation_plan = payload.get('transformation_plan', {"steps": ["clean_nulls","normalize_fields"]})
-      print(json.dumps({"transformed_data": transformed, "transformation_plan": transformation_plan}))
-    timeout: 60
-- label: RouteData
-  type: code_job
-  position:
-    x: 1800
-    y: 0
-  props:
-    language: python
-    code: |
-      import json, sys
-      s = sys.stdin.read()
-      payload = json.loads(s) if s else {}
-      transformed = payload.get('transformed_data', [])
-      routing_result = {"valid": transformed, "invalid": []}
-      # Pass sinks along for downstream save (simplified for demonstration)
-      routing_result["data_sinks"] = payload.get('transformation_plan', {})
-      print(json.dumps({"routing_result": routing_result, "data_config": payload.get('data_config', {})}))
-    timeout: 60
-- label: SaveData
-  type: code_job
-  position:
-    x: 2060
-    y: 0
-  props:
-    language: python
-    code: |
-      import json, os, csv, sys
-      s = sys.stdin.read()
-      payload = json.loads(s) if s else {}
-      routing = payload.get('routing_result', {})
-      transformed = routing.get('valid', [])
-      data_sinks = payload.get('data_config', {}).get('data_sinks', [])
-      save_results = []
-      for sink in data_sinks:
-          dest = sink.get('destination', './outputs')
-          os.makedirs(dest, exist_ok=True)
-          path = os.path.join(dest, sink.get('id', 'sink') + ".csv")
-          with open(path, 'w', encoding='utf-8', newline='') as f:
-              writer = csv.writer(f)
-              writer.writerow(['source_id','record_id','timestamp','value'])
-              for rec_item in transformed:
-                  rec = rec_item.get('record', {})
-                  writer.writerow([rec_item.get('source_id'), rec.get('id'), rec.get('timestamp', ''), rec.get('value', '')])
-          size = os.path.getsize(path)
-          save_results.append({"sink_id": sink.get('id'), "path": path, "size_bytes": size, "status": "written"})
-      print(json.dumps({"save_results": save_results, "routing_result": {"valid": transformed, "invalid": []}}))
-    timeout: 60
-- label: Observability
-  type: code_job
-  position:
-    x: 2320
-    y: 0
-  props:
-    language: python
-    code: |
-      import json, sys
-      s = sys.stdin.read()
-      payload = json.loads(s) if s else {}
-      save_results = payload.get('save_results', [])
-      pipeline_run = {
-          'id': 'run_001',
-          'status': 'success',
-          'metrics': {"records_processed": sum(len(r) for r in save_results) if save_results else 0},
-          'logs': ["pipeline execution completed", f"sinks={len(save_results)}"]
-      }
-      print(json.dumps({'pipeline_run': pipeline_run}))
-    timeout: 60
-- label: FinalOutput
-  type: user_response
-  position:
-    x: 2580
-    y: 0
-  props:
-    prompt: Final Results:\n- Data ingested from configured sources.\n- Validation performed; if valid, transformation applied.\n-
-      Data saved to sinks.\n- Observability emitted (PipelineRun).\n- If remediation occurred, see remediation paths.
-    timeout: 0
-- label: Remediation
-  type: code_job
-  position:
-    x: 0
+    x: 1350
     y: 200
   props:
+    flipped: false
     language: python
     code: |
-      import json, sys
-      s = sys.stdin.read()
-      payload = json.loads(s) if s else {}
-      remediation_plan = {
-          'action': 'retry',
-          'reason': 'validation_failed_non_fatal',
-          'retry_count': 0,
-          'max_retries': 3
-      }
-      print(json.dumps({'remediation_plan': remediation_plan}))
+      validation_results = validation_results
+      valid = validation_results.get('valid', [])
+      invalid = validation_results.get('invalid', [])
+      processed = [{"record_id": r.get("record_id"), "status": "valid"} for r in valid]
+      result = {"processed_records": processed, "validation_results": validation_results, "valid_count": len(valid), "invalid_count": len(invalid)}
     timeout: 60
-- label: RemediationDecision
-  type: condition
-  position:
-    x: 360
-    y: 200
-  props:
-    condition_type: custom
-    expression: remediation_plan.get('action')
-    node_indices:
-    - LoadData
-    - DeadLetter
-    - HumanReview
-- label: DeadLetter
+- label: Prepare Final Output
   type: code_job
   position:
-    x: 720
+    x: 1600
     y: 200
   props:
+    flipped: false
     language: python
     code: |
-      import json, os, sys
-      s = sys.stdin.read()
-      payload = json.loads(s) if s else {}
-      path = './dlq/failed_records.json'
-      os.makedirs('./dlq', exist_ok=True)
-      with open(path, 'w', encoding='utf-8') as f:
-          f.write(json.dumps({'failed_batch': payload}))
-      print(json.dumps({'dead_letter_path': path}))
+      processed = result.get('processed_records', [])
+      final_output = {"record_count": len(processed), "records": processed}
     timeout: 60
-- label: HumanReview
-  type: person_job
-  position:
-    x: 720
-    y: 400
-  props:
-    person: data_governance_policy
-    first_only_prompt: Review remediation decisions for retention and governance gates.
-    default_prompt: Please assess remediation plan and approve retry or escalate.
-    max_iteration: 1.0
-    memory_profile: MINIMAL
-- label: RemediationNotes
-  type: start
-  position:
-    x: 0
-    y: 400
-  props:
-    trigger_mode: manual
-    output_data_structure:
-      type: object
-- label: RemediationEnd
+- label: Save Processed Output
   type: endpoint
   position:
-    x: 0
-    y: 520
+    x: 1850
+    y: 200
   props:
-    save_to_file: false
+    flipped: false
+    save_to_file: true
+    file_name: outputs/processed_data.json
+- label: Log Validation Errors
+  type: code_job
+  position:
+    x: 1350
+    y: 400
+  props:
+    flipped: false
+    language: python
+    code: |
+      validation_results = validation_results
+      error_report = {"error": "Validation failed", "valid_count": len(validation_results.get('valid', [])), "invalid_count": len(validation_results.get('invalid', []))}
+      result = error_report
+    timeout: 60
+- label: Save Validation Errors
+  type: endpoint
+  position:
+    x: 1850
+    y: 400
+  props:
+    flipped: false
+    save_to_file: true
+    file_name: logs/validation_errors.json
 connections:
-- from: ObjectiveInput
-  to: DefineDataConfig
-  label: prompt_raw
+- from: Start
+  to: Load Input Data
+  label: start_to_load
   content_type: raw_text
-- from: DefineDataConfig
-  to: ParallelOrchestrator
-  label: data_config
-  content_type: object
-- from: ParallelOrchestrator
-  to: LoadData
-  label: load_plan
-  content_type: object
-- from: LoadData
-  to: ValidateData
-  label: loaded_data
-  content_type: object
-- from: ValidateData
-  to: QualityGate
-  label: validation_result
-  content_type: object
-- from: QualityGate
-  to: TransformData
-  label: 'true'
+- from: Load Input Data
+  to: Parse CSV
+  label: csv_content
   content_type: raw_text
-- from: QualityGate
-  to: Remediation
-  label: 'false'
-  content_type: raw_text
-- from: TransformData
-  to: RouteData
-  label: transformed_data
+- from: Parse CSV
+  to: Validate Records
+  label: records
   content_type: object
-- from: RouteData
-  to: SaveData
-  label: routing_result
+- from: Validate Records
+  to: Check Data Valid
+  label: validation_results
   content_type: object
-- from: SaveData
-  to: Observability
-  label: save_results
+- from: Check Data Valid_condtrue
+  to: Process Valid
+  label: validation_results
   content_type: object
-- from: Observability
-  to: FinalOutput
-  label: pipeline_run
+- from: Check Data Valid_condfalse
+  to: Log Validation Errors
+  label: validation_results
   content_type: object
-- from: Remediation
-  to: RemediationDecision
-  label: remediation
+- from: Process Valid
+  to: Prepare Final Output
+  label: result
   content_type: object
-- from: RemediationDecision
-  to: LoadData
-  label: retry
-  content_type: raw_text
-- from: RemediationDecision
-  to: DeadLetter
-  label: dead_letter
-  content_type: raw_text
-- from: RemediationDecision
-  to: HumanReview
-  label: human_review
+- from: Prepare Final Output
+  to: Save Processed Output
+  label: final_output
   content_type: object
-- from: HumanReview
-  to: LoadData
-  label: governance_done
+- from: Log Validation Errors
+  to: Save Validation Errors
+  label: error_report
   content_type: object
-- from: DeadLetter
-  to: FinalOutput
-  label: dlq_complete
-  content_type: raw_text

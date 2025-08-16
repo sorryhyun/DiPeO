@@ -1,6 +1,5 @@
 # DiPeO (Diagrammed People & Organizations) – Architecture & Flow
 
-*(Refactor branch)*
 
 DiPeO is an open-source platform that lets developers **design, run and monitor multi-agent AI workflows** as diagrams instead of raw code.
 The refactor branch reorganises the project into a single **monorepo** and introduces a simpler, container-based dependency-injection system, an end-to-end code-generation pipeline, and a richer memory model for agent conversations.
@@ -71,19 +70,113 @@ All three share a single **ServiceRegistry**, making service resolution explicit
 
 ---
 
-## 6. Execution flow (simplified)
+## 6. Node Handler System
+
+DiPeO uses a type-safe, handler-based architecture for executing different node types:
+
+### Handler Organization
+
+```text
+dipeo/application/execution/handlers/
+├── __init__.py              # Auto-registration imports
+├── auto_register.py         # Dynamic handler discovery
+├── base.py                  # TypedNodeHandler protocol
+├── simple handlers/         # Single-file handlers
+│   ├── start.py
+│   ├── endpoint.py
+│   └── condition.py
+└── complex handlers/        # Package-based handlers
+    ├── person_job/
+    │   ├── __init__.py      # Main handler
+    │   └── single_executor.py
+    └── code_job/
+        ├── __init__.py      # Main handler
+        └── executors/       # Language-specific executors
+            ├── python_executor.py
+            └── typescript_executor.py
+```
+
+### Handler Interface
+
+All handlers implement the `TypedNodeHandler` protocol:
+
+```python
+@register_handler
+class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
+    def prepare_inputs(self, inputs: dict, request: ExecutionRequest) -> dict
+        # Transform raw inputs into handler-specific format
+    
+    async def run(self, inputs: dict, request: ExecutionRequest) -> Any
+        # Execute the node's business logic
+    
+    def serialize_output(self, result: Any, request: ExecutionRequest) -> Envelope
+        # Convert result to standardized Envelope format
+    
+    async def on_error(self, request: ExecutionRequest, error: Exception) -> Optional[Envelope]
+        # Handle errors gracefully
+    
+    def post_execute(self, request: ExecutionRequest, output: Envelope) -> Envelope
+        # Post-processing hook (logging, metrics, etc.)
+```
+
+### Auto-Registration
+
+Handlers are automatically discovered and registered at startup:
+- `@register_handler` decorator marks handler classes
+- `auto_register.py` scans the handlers directory
+- No manual registration needed - just add new handler files
+- Supports both single-file handlers and handler packages
+
+### Handler Execution Flow
+
+1. **TypedExecutionEngine** determines which nodes are ready to execute
+2. **RuntimeResolver** resolves inputs from upstream nodes (as Envelopes)
+3. Handler's `prepare_inputs()` transforms Envelope inputs into required format
+4. Handler's `run()` executes the node logic (may delegate to infrastructure services)
+5. Handler's `serialize_output()` wraps result in an Envelope
+6. **AsyncEventBus** emits NODE_COMPLETED event
+7. Output Envelope becomes available for downstream nodes
+
+### Envelope System
+
+Envelopes are typed data containers that flow between nodes:
+- **Structure**: `{body, content_type, produced_by, trace_id, metadata}`
+- **Content Types**: `raw_text`, `object` (JSON), `conversation_state`, `error`
+- **Purpose**: Type-safe data passing with provenance tracking
+- **Factory**: `EnvelopeFactory.text()`, `.json()`, `.error()`, `.conversation()`
+
+### Key Handler Examples
+
+- **PersonJobHandler**: Manages LLM conversations, delegates to infrastructure LLM service
+- **CodeJobHandler**: Executes code in different languages via language-specific executors
+- **ConditionHandler**: Evaluates expressions and routes execution flow
+- **DBHandler**: Performs database operations (read/write)
+- **TemplateJobHandler**: Renders Jinja2 templates with custom filters
+
+### Separation of Concerns
+
+Handlers follow clean architecture principles:
+- **Domain logic** stays in the domain layer (conversation management, memory)
+- **Infrastructure concerns** delegated to services (LLM APIs, file I/O, external APIs)
+- **Application layer** orchestrates between domain and infrastructure
+- Handlers never directly call external services - always through injected dependencies
+
+## 7. Execution flow (simplified)
 
 ```mermaid
 sequenceDiagram
   participant UI
   participant Backend
   participant ExecutionEngine
+  participant Handler
   participant LLMService
   UI->>Backend: runDiagram(id) via GraphQL
   Backend->>ExecutionEngine: start()
   loop async steps
-    ExecutionEngine->>LLMService: complete()
-    LLMService-->>ExecutionEngine: result
+    ExecutionEngine->>Handler: execute(node)
+    Handler->>LLMService: complete() [if LLM node]
+    LLMService-->>Handler: result
+    Handler-->>ExecutionEngine: output envelope
     ExecutionEngine-->>Backend: event emitted
     Backend-->>UI: GraphQL subscription update
   end
@@ -93,21 +186,21 @@ sequenceDiagram
 
 ---
 
-## 7. Tech-stack cheat-sheet
+## 8. Tech-stack cheat-sheet
 
-| Area             | Tools / libs                                                                                                           |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Languages**    | TypeScript 5 (pnpm + Vite) • Python 3.13                                                                               |
-| **Front-end**    | React 19, @xyflow/react, Apollo Client, GraphQL-WS, TRPC, TanStack Query, Zustand, TailwindCSS, Zod                    |
-| **Back-end**     | FastAPI, Strawberry GraphQL, Hypercorn, Pydantic v2, Tenacity (retry), AsyncEventBus, Redis (optional for multi-worker)     |
-| **DI / IoC**     | Custom service-registry pattern (core / infra / app containers)                                                        |
-| **LLM adapters** | OpenAI, Anthropic, Gemini (extensible)                                                                                 |
-| **Tooling**      | Ruff, Mypy, Makefile helpers                                                                                           |
-| **CI / tests**   | Pytest, Vitest, GitHub Actions (lint, type-check, e2e)                                                                 |
+| Area             | Tools / libs                                                                                                               |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Languages**    | TypeScript 5 (pnpm + Vite) • Python 3.13                                                                                   |
+| **Front-end**    | React 19, @xyflow/react, Apollo Client, GraphQL-WS, TRPC, TanStack Query, Zustand, TailwindCSS, Zod                        |
+| **Back-end**     | FastAPI, Strawberry GraphQL, Hypercorn, Pydantic v2, Tenacity (retry), AsyncEventBus, Redis (optional for multi-worker)   |
+| **DI / IoC**     | Custom service-registry pattern (core / infra / app containers)                                                            |
+| **LLM adapters** | OpenAI, Anthropic, Gemini (extensible)                                                                                     |
+| **Tooling**      | Ruff, Mypy, Makefile helpers                                                                                               |
+| **CI / tests**   | Pytest, Vitest, GitHub Actions (lint, type-check, e2e)                                                                     |
 
 ---
 
-## 8. Running & deploying
+## 9. Running & deploying
 
 ### Local development
 
@@ -133,7 +226,7 @@ For standalone Windows installations, use PyInstaller to create `.exe` files fro
 
 ---
 
-## 9. Event-Driven Architecture
+## 10. Event-Driven Architecture
 
 The system uses a fully event-driven architecture for execution and monitoring:
 
@@ -148,12 +241,3 @@ This architecture enables:
 - True parallel execution without contention
 - Clean separation of concerns via event decoupling
 - Asynchronous state persistence
-
-## 10. Why the refactor matters 🌟
-
-* **Single service registry** → no hidden globals, easier tests.
-* **Unified code-gen** → one source of truth for types across TS & Python.
-* **Memory filters** → flexible multi-agent patterns without per-agent silos.
-* **Three-container DI** → swap infra (LLM, storage) without touching domain logic.
-* **Event-driven design** → True parallel execution without global locks.
-* **Monorepo discipline** → atomic changes across web, server, and CLI.

@@ -2,7 +2,25 @@
 
 ## Overview
 
-DiPeO uses GraphQL subscriptions exclusively for real-time updates. The previous SSE (Server-Sent Events) and WebSocket implementations have been removed. GraphQL subscriptions handle all real-time communication through a unified transport mechanism. This guide explains how to add new subscriptions and maintain the subscription system.
+DiPeO uses GraphQL subscriptions exclusively for real-time updates. GraphQL subscriptions handle all real-time communication through a unified WebSocket transport mechanism. This guide explains the subscription system architecture and how to add new subscriptions.
+
+### Available Subscriptions
+
+1. **execution_updates**: Main subscription for execution lifecycle events
+   - Handles all execution-related events (start, complete, fail, logs, etc.)
+   - Used by frontend monitoring and logging components
+
+2. **node_updates**: Node-specific status updates
+   - Tracks individual node state changes and progress
+   - Optional filtering by node_id
+
+3. **interactive_prompts**: User interaction requests
+   - Handles prompts requiring user input during execution
+   - Used by UserResponseNode and interactive workflows
+
+4. **execution_logs**: Dedicated log streaming
+   - Filters specifically for EXECUTION_LOG events
+   - Used by log viewing components
 
 ## Architecture
 
@@ -12,19 +30,26 @@ DiPeO uses GraphQL subscriptions exclusively for real-time updates. The previous
    - Defines GraphQL subscription endpoints
    - Connects to MessageRouter for event distribution
    - Serializes data for JSON compatibility
+   - Currently implements 4 subscriptions: `execution_updates`, `node_updates`, `interactive_prompts`, `execution_logs`
 
 2. **Event System** (`/dipeo/diagram_generated/enums.py`)
    - EventType enum defines all available event types
-   - Events are emitted by observers and handlers
+   - Events are emitted through the AsyncEventBus
+   - Events include: `EXECUTION_STARTED`, `NODE_COMPLETED`, `NODE_STATUS_CHANGED`, `EXECUTION_LOG`, etc.
 
-3. **Message Router** (`/dipeo/infrastructure/adapters/messaging/`)
-   - Broadcasts events to all connected subscribers
+3. **Message Router** (`/dipeo/infrastructure/adapters/messaging/message_router.py`)
+   - Central message distribution hub
    - Manages connection lifecycle
-   - Buffers events for late subscribers
+   - Features:
+     - Event buffering (last 50 events per execution, 5-minute TTL)
+     - Event batching for performance (configurable interval and size)
+     - Connection health monitoring
+     - Backpressure handling with bounded queues
 
 4. **Frontend Hooks** (`/apps/web/src/domain/execution/hooks/`)
    - React hooks that subscribe to GraphQL subscriptions
    - Process incoming events and update UI state
+   - Example: `useExecutionLogStream` for log streaming
 
 ## Adding a New Subscription
 
@@ -98,21 +123,44 @@ async def your_new_subscription(
         raise
 ```
 
-### Step 3: Update Frontend Query Generator
+### Step 3: Add Subscription to Query Definitions
 
-Add subscription to query generator:
-```python
-# /files/codegen/code/frontend/queries/executions_queries.py
-# In generate() method, add:
-queries.append("""subscription YourNewSubscription($executionId: ID!) {
-  your_new_subscription(execution_id: $executionId)
-}""")
+Add subscription to the appropriate query definition file:
+```typescript
+// /dipeo/models/src/frontend/query-definitions/executions.ts
+// Add to executionQueries.queries array:
+{
+  name: 'YourNewSubscription',
+  type: QueryOperationType.SUBSCRIPTION,
+  variables: [
+    { name: 'execution_id', type: 'ID', required: true }
+  ],
+  fields: [
+    {
+      name: 'your_new_subscription',
+      args: [
+        { name: 'execution_id', value: 'execution_id', isVariable: true }
+      ],
+      fields: [
+        { name: 'field1' },
+        { name: 'field2' },
+        // ... subscription fields
+      ]
+    }
+  ]
+}
 ```
 
 Regenerate frontend queries:
 ```bash
+# Build TypeScript models
+cd dipeo/models && pnpm build
+
+# Run code generation
 dipeo run codegen/diagrams/generate_all --light --debug
 make apply-syntax-only
+
+# Update GraphQL schema and TypeScript types
 make graphql-schema
 ```
 
@@ -147,31 +195,33 @@ export function useYourNewSubscription(executionIdParam: ReturnType<typeof execu
 
 ### Step 5: Emit Events
 
-Emit events from observers or handlers:
+Emit events using the AsyncEventBus:
 ```python
-# In any observer or handler
-await self.message_router.broadcast_to_execution(
-    execution_id,
-    {
-        "type": EventType.YOUR_NEW_EVENT.value,
-        "execution_id": execution_id,
-        "data": {
-            # Your event data
-        },
-        "timestamp": datetime.utcnow().isoformat(),
+# In any handler or service
+from dipeo.core.events import AsyncEventBus, Event
+
+event_bus = AsyncEventBus.get_instance()
+await event_bus.emit(Event(
+    type=EventType.YOUR_NEW_EVENT,
+    execution_id=execution_id,
+    data={
+        # Your event data
     }
-)
+))
 ```
 
-## Example: ExecutionLogs Implementation
+The MessageRouter automatically picks up these events and distributes them to subscribed connections.
 
-The ExecutionLogs subscription was implemented following these steps:
+## Example: ExecutionUpdates Implementation
 
-1. **Event Type**: Added `EXECUTION_LOG` to EventType enum
-2. **GraphQL Subscription**: Created `execution_logs` subscription
-3. **Frontend Query**: Added to executions_queries.py generator
-4. **React Hook**: Created `useExecutionLogStream` hook
-5. **Event Emission**: UnifiedEventObserver emits EXECUTION_LOG events
+The ExecutionUpdates subscription demonstrates the complete implementation pattern:
+
+1. **Event Types**: Multiple event types are handled - `EXECUTION_STARTED`, `NODE_COMPLETED`, `EXECUTION_LOG`, etc.
+2. **GraphQL Subscription**: `execution_updates` in `/dipeo/application/graphql/schema/subscriptions.py`
+3. **Frontend Query Definition**: Defined in `/dipeo/models/src/frontend/query-definitions/executions.ts`
+4. **Generated Query**: Created in `/apps/web/src/__generated__/queries/all-queries.ts`
+5. **React Hook**: `useExecutionLogStream` uses `useExecutionUpdatesSubscription` 
+6. **Event Emission**: AsyncEventBus emits events that MessageRouter distributes
 
 ## Best Practices
 
@@ -185,21 +235,37 @@ The ExecutionLogs subscription was implemented following these steps:
 
 ### Backend Testing
 ```python
-# Test event emission
-await message_router.broadcast_to_execution(exec_id, test_event)
+# Test event emission via AsyncEventBus
+from dipeo.core.events import AsyncEventBus, Event
+from dipeo.diagram_generated.enums import EventType
 
-# Verify subscription receives event
-# Check logs for connection registration
+event_bus = AsyncEventBus.get_instance()
+await event_bus.emit(Event(
+    type=EventType.EXECUTION_LOG,
+    execution_id="test-exec-id",
+    data={"message": "Test log", "level": "INFO"}
+))
+
+# Verify in logs that MessageRouter distributes the event
 ```
 
 ### Frontend Testing
 ```bash
-# Run dev server with debug mode
-pnpm dev
+# Run dev server with GraphQL playground
+make dev-all
 
-# Open browser DevTools
-# Check Network tab for WebSocket connections
-# Monitor GraphQL subscription messages
+# Open GraphQL playground at http://localhost:8000/graphql
+# Test subscription directly:
+subscription {
+  execution_updates(execution_id: "your-exec-id") {
+    execution_id
+    event_type
+    data
+    timestamp
+  }
+}
+
+# Monitor WebSocket frames in browser DevTools Network tab
 ```
 
 ### CLI Testing
@@ -207,8 +273,9 @@ pnpm dev
 # Run diagram with debug flag
 dipeo run [diagram] --debug
 
-# Check logs for event emissions
-# Monitor execution in web UI at http://localhost:3000/?monitor=true
+# Monitor execution in web UI
+# Open http://localhost:3000/?monitor=true
+# Check console logs for subscription events
 ```
 
 ## Common Issues
@@ -228,20 +295,31 @@ dipeo run [diagram] --debug
 - Check for unclosed connections
 - Monitor queue sizes
 
-## Migration from SSE/WebSocket
+## Architecture Notes
 
-The system migrated from SSE and WebSocket to GraphQL subscriptions for:
-- Unified transport mechanism (single protocol for all real-time updates)
-- Better type safety with generated types
-- Improved error handling and reconnection logic
-- Simplified client code (no need for multiple transport implementations)
-- Reduced complexity in the infrastructure layer
+### Current Implementation
+The system uses GraphQL subscriptions exclusively for real-time updates:
+- **Transport**: GraphQL WebSocket transport via Apollo Client
+- **Backend**: Strawberry GraphQL with async generators
+- **Message Router**: Central hub for event distribution with batching and buffering
+- **Type Safety**: Generated TypeScript types from GraphQL schema
 
-All SSE endpoints and direct WebSocket connections have been removed and replaced with GraphQL subscriptions. The system now uses only GraphQL's built-in WebSocket transport for subscriptions.
+### Multi-Worker Support
+For production deployments with multiple workers:
+- Redis is required for GraphQL subscriptions to work across workers
+- Without Redis, subscriptions only work with single worker deployments
+- Configuration: Set `REDIS_URL` environment variable for multi-worker support
+
+### Event System Integration
+- Events are emitted via `AsyncEventBus` 
+- `MessageRouter` subscribes to events and distributes to GraphQL connections
+- Event batching improves performance for high-frequency updates
+- Bounded queues prevent memory issues with backpressure handling
 
 ## Related Documentation
 
-- [DiPeO Application Layer](../../dipeo/application/CLAUDE.md)
-- [Infrastructure Events](../dipeo/infrastructure/events/CLAUDE.md)
-- [Frontend Architecture](../../apps/web/CLAUDE.md)
-- [Code Generation](../files/codegen/CLAUDE.md)
+- [DiPeO Application Layer](../../dipeo/application/CLAUDE.md) - GraphQL schema and resolver implementation
+- [Infrastructure Layer](../../dipeo/infrastructure/CLAUDE.md) - MessageRouter and event system details
+- [Frontend Architecture](../../apps/web/CLAUDE.md) - Frontend subscription hooks and state management
+- [Code Generation](../../projects/codegen/CLAUDE.md) - How queries and subscriptions are generated
+- [DiPeO Models](../../dipeo/models/CLAUDE.md) - TypeScript query definitions source

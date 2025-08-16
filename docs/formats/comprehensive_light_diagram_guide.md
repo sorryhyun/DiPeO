@@ -1,5 +1,14 @@
 # Comprehensive DiPeO Light Diagram Guide
 
+> **Last Updated**: January 2025
+> 
+> **Recent Updates**:
+> - Added missing node types: `HOOK`, `INTEGRATED_API`, `JSON_SCHEMA_VALIDATOR`, `TYPESCRIPT_AST`, `PERSON_BATCH_JOB`
+> - Documented `CUSTOM` memory profile for person_job nodes
+> - Clarified field mapping for backward compatibility (`source_details` ⟷ `file`, `language` ⟷ `code_type`)
+> - Updated default model references to `gpt-5-nano-2025-08-07`
+> - Added memory_settings view options documentation
+
 ## Table of Contents
 
 1. [Introduction](#introduction)
@@ -37,7 +46,7 @@ version: light  # Required version identifier
 persons:
   Agent Name:
     service: openai
-    model: gpt-4.1-nano
+    model: gpt-5-nano-2025-08-07
     api_key_id: APIKEY_XXXXX
     system_prompt: Optional system prompt
 
@@ -56,6 +65,18 @@ connections:
     content_type: raw_text  # Data transformation type
     label: variable_name    # Variable name in target node
 ```
+
+### Field Compatibility and Mapping
+
+DiPeO provides backward compatibility through automatic field mapping:
+
+| Node Type | Alternative Fields | Notes |
+|-----------|-------------------|-------|
+| `code_job` | `language` ⟷ `code_type` | Both work interchangeably |
+| `db` | `file` ⟷ `source_details` | Both work for file paths |
+| `person_job` | Memory profiles: `FULL`, `FOCUSED`, `MINIMAL`, `GOLDFISH`, `CUSTOM` | `CUSTOM` requires `memory_settings` |
+
+These mappings ensure existing diagrams continue to work while supporting newer field names.
 
 ### Connection Syntax
 
@@ -133,8 +154,9 @@ Executes prompts with LLM agents, supporting iteration and memory management.
     tools:                          # Optional LLM tools
       - type: web_search_preview
         enabled: true
-    memory_settings:                # Advanced memory control
-      view: conversation_pairs
+    memory_settings:                # Advanced memory control (with CUSTOM profile)
+      view: conversation_pairs       # Options: all_involved, sent_by_me, sent_to_me, 
+                                     # system_and_me, conversation_pairs, all_messages
       max_messages: 20
       preserve_system: true
 ```
@@ -144,6 +166,7 @@ Executes prompts with LLM agents, supporting iteration and memory management.
 - `FOCUSED`: Recent 20 conversation pairs (default for analysis)
 - `MINIMAL`: System + recent 5 messages
 - `GOLDFISH`: Only last 2 messages, no system preservation
+- `CUSTOM`: User-defined memory settings via `memory_settings` property
 
 **Prompt Templates:**
 - `first_only_prompt`: Used only on first iteration
@@ -243,6 +266,10 @@ def validate_data(raw_data, **kwargs):
 - **TypeScript**: Node.js runtime with TypeScript compilation
 - **Bash/Shell**: System commands with proper escaping
 
+**Property Names:**
+- Both `language` and `code_type` properties work interchangeably for specifying the language
+- Example: `language: python` or `code_type: python` both work
+
 **Important Notes:**
 - Variables from connections are available by their label names
 - Use `result =` or `return` to pass data to next nodes
@@ -292,7 +319,7 @@ File system operations for reading/writing data.
   props:
     operation: read
     sub_type: file
-    source_details: files/config/settings.json
+    source_details: files/config/settings.json  # Note: 'source_details' is mapped to 'file' internally
 
 # Read multiple files
 - label: Load All Configs
@@ -305,6 +332,15 @@ File system operations for reading/writing data.
       - files/config/main.json
       - files/config/override.json
       - files/config/secrets.json
+
+# Alternative syntax using 'file' property (both work)
+- label: Load Config Alt
+  type: db
+  position: {x: 200, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: files/config/settings.json  # 'file' also works directly
 
 # Read files using glob patterns
 - label: Load JSON Files with Glob
@@ -321,6 +357,8 @@ File system operations for reading/writing data.
       - "logs/2025-*.log"     # Date-pattern logs
       - "temp/**/*.csv"       # Recursive CSV files
 ```
+
+**Note:** Both `source_details` and `file` properties work interchangeably - they are mapped internally for backward compatibility.
 
 **Glob Pattern Support:**
 - Set `glob: true` to enable pattern expansion
@@ -447,6 +485,131 @@ Interactive user input during execution.
     validation_type: text  # or number, boolean
 ```
 
+### 11. HOOK Node
+
+Execute external hooks like shell commands, webhooks, Python scripts, or file operations.
+
+```yaml
+# Shell command hook
+- label: Run Script
+  type: hook
+  position: {x: 400, y: 200}
+  props:
+    hook_type: shell
+    config:
+      command: "python scripts/process.py {{input_file}}"
+      timeout: 60
+
+# Webhook hook
+- label: Send Notification
+  type: hook
+  position: {x: 400, y: 300}
+  props:
+    hook_type: webhook
+    config:
+      url: "https://hooks.slack.com/services/xxx"
+      method: POST
+      headers:
+        Content-Type: application/json
+      body:
+        text: "Processing completed for {{task_id}}"
+
+# Python script hook
+- label: Custom Processing
+  type: hook
+  position: {x: 400, y: 400}
+  props:
+    hook_type: python
+    config:
+      script: "scripts/custom_processor.py"
+      function: "process_data"
+      args:
+        data: "{{input_data}}"
+```
+
+### 12. INTEGRATED_API Node
+
+Execute operations on various API providers (Notion, Slack, GitHub, etc.).
+
+```yaml
+- label: Create Notion Page
+  type: integrated_api
+  position: {x: 400, y: 200}
+  props:
+    provider: notion
+    operation: create_page
+    config:
+      database_id: "{{notion_database_id}}"
+      properties:
+        title: "{{page_title}}"
+        status: "In Progress"
+    api_key_id: APIKEY_NOTION_XXX
+
+- label: Send Slack Message
+  type: integrated_api
+  position: {x: 400, y: 300}
+  props:
+    provider: slack
+    operation: post_message
+    config:
+      channel: "#general"
+      text: "Build completed: {{build_status}}"
+    api_key_id: APIKEY_SLACK_XXX
+```
+
+### 13. JSON_SCHEMA_VALIDATOR Node
+
+Validate JSON data against a schema.
+
+```yaml
+- label: Validate Config
+  type: json_schema_validator
+  position: {x: 400, y: 200}
+  props:
+    schema:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: number
+          minimum: 0
+      required: ["name", "age"]
+    strict: true  # Fail on validation errors
+```
+
+### 14. TYPESCRIPT_AST Node
+
+Parse and analyze TypeScript code using Abstract Syntax Tree.
+
+```yaml
+- label: Parse TypeScript
+  type: typescript_ast
+  position: {x: 400, y: 200}
+  props:
+    source_file: "src/components/Button.tsx"
+    extract:
+      - interfaces
+      - functions
+      - exports
+```
+
+### 15. PERSON_BATCH_JOB Node
+
+Process multiple items through the same person configuration in batch.
+
+```yaml
+- label: Batch Analysis
+  type: person_batch_job
+  position: {x: 400, y: 200}
+  props:
+    person: Analyst
+    batch_input_key: items
+    batch_parallel: true
+    default_prompt: "Analyze this item: {{item}}"
+    max_iteration: 1
+```
+
 ## Data Flow and Variable Resolution
 
 ### Connection Labels Are Critical
@@ -552,17 +715,17 @@ connections:
 persons:
   Proposer:
     service: openai
-    model: gpt-4.1-nano
+    model: gpt-5-nano-2025-08-07
     system_prompt: You propose innovative solutions
     
   Critic:
     service: openai
-    model: gpt-4.1-nano
+    model: gpt-5-nano-2025-08-07
     system_prompt: You critically evaluate proposals
     
   Synthesizer:
     service: openai
-    model: gpt-4.1-nano
+    model: gpt-5-nano-2025-08-07
     system_prompt: You synthesize different viewpoints
 
 nodes:

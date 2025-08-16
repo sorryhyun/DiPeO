@@ -12,7 +12,7 @@
 
 ### Hmm, so can I tweak it?
 
-![image info](/docs/pics/img.png)
+<center><img src="/docs/pics/img.png" width="50%" alt=""></center>
 
 * Definitely, you can just run `make dev-web` and tweak it in `localhost:3000`
 * The whole procedure works inside your computer. Nothing is in cloud or somewhere in network.
@@ -88,7 +88,7 @@ make dev-all
 * Yes, here is the documentary in detail.
   - [Full Documentation Index](docs/index.md) - Complete list of guides and technical documentation
   - [User Guide](docs/README.md) - Getting started with DiPeO diagram editor
-
+  - We are developing some interesting projects using `dipeo` itself. Take a look at [projects](docs/projects)
 
 
 > DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI‑powered agent workflows through an intuitive visual programming environment. The repository is composed of a feature-based React **frontend** (apps/web/), a domain-driven FastAPI **backend** (apps/server/), and a CLI **tool** (apps/cli/) that work together to deliver real‑time, multi‑LLM automation at scale.
@@ -99,7 +99,7 @@ make dev-all
 2. diagram의 yaml 형태 표현 및 실행 tool 제공
 3. 다이어그램 엔드포인트를 활용한 A2A canvas 제공 (구현 예정)
 
-For motivations, guide, details in Korean, read [Korean docs](docs/korean/index.md)
+For motivations, guide, details in Korean, read [Korean docs](docs/index.md)
 
 ### Code Generation (For Development)
 
@@ -151,11 +151,6 @@ dipeo ask --to "build data pipeline" --and-run --debug --timeout=120 --run-timeo
 ```
 
 **Note**: The `dipeo ask` command uses AI to generate DiPeO diagrams from your natural language description. Generation typically takes 150-250 seconds due to multiple LLM calls, even if it's using gpt-5-nano. Use `--timeout 120` for complex requests.
-
-### Documentation
-- [Full Documentation Index](docs/index.md) - Complete list of guides and technical documentation
-- [User Guide](docs/README.md) - Getting started with DiPeO diagram editor
-- We are developing some interesting projects using `dipeo` itself. Take a look at []()
 
 ## Requirements
 - Node.js 22+ with pnpm 10+
