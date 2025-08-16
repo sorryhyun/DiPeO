@@ -414,14 +414,20 @@ class GenericHTTPProvider(BaseApiProvider):
         if status_code not in success_codes:
             # Extract error message if configured
             error_msg = f"Request failed with status {status_code}"
-            if op_config.response and op_config.response.error_json_pointer:
+            error_detail = None
+            if op_config.response and op_config.response.error_json_pointer and data:
                 try:
-                    error_msg = jsonpointer.resolve_pointer(
+                    error_detail = jsonpointer.resolve_pointer(
                         data,
                         op_config.response.error_json_pointer
                     )
+                    error_msg = f"{error_msg}: {error_detail}"
                 except Exception:
                     pass
+            
+            # Include full response for debugging if no specific error found
+            if not error_detail and data:
+                error_msg = f"{error_msg}. Response: {data}"
             
             raise ServiceError(error_msg)
         

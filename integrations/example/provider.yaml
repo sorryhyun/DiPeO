@@ -44,7 +44,7 @@ operations:
     description: Get a resource by ID
     response:
       success_codes: [200]
-      json_pointer: "$.data"
+      json_pointer: "/data"
     timeout_override: 10.0
 
   # POST operation with body
@@ -63,7 +63,7 @@ operations:
         X-Request-ID: "{{config.request_id | default('auto')}}"
     response:
       success_codes: [201]
-      json_pointer: "$"
+      json_pointer: ""
     required_scopes: [write]
 
   # Operation with query parameters
@@ -78,12 +78,12 @@ operations:
         filter: "{{config.filter}}"
     response:
       success_codes: [200]
-      json_pointer: "$.items"
+      json_pointer: "/items"
     pagination:
       type: page_number
       page_param: page
       limit_param: limit
-      has_more_path: "$.has_more"
+      has_more_path: "/has_more"
       default_limit: 10
 
   # PUT operation with path parameters
@@ -100,7 +100,7 @@ operations:
         }
     response:
       success_codes: [200, 204]
-      json_pointer: "$"
+      json_pointer: ""
     required_scopes: [write]
 
   # DELETE operation

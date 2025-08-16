@@ -6,10 +6,7 @@ from pathlib import Path
 
 from dipeo.core import BaseService, ServiceError
 from dipeo.core.ports import IntegratedApiServicePort, ApiProviderPort, APIKeyPort
-from dipeo.diagram_generated.enums import APIServiceType
 
-from .providers.notion_provider import NotionProvider
-from .providers.slack_provider import SlackProvider
 from .registry import ProviderRegistry
 from .generic_provider import GenericHTTPProvider
 
@@ -36,9 +33,6 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
         # Initialize the provider registry
         await self.provider_registry.initialize()
 
-        # Register default providers
-        await self._register_default_providers()
-
         # Load manifest-based providers if configured
         await self._load_manifest_providers()
 
@@ -47,29 +41,6 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
 
         self._initialized = True
 
-    async def _register_default_providers(self) -> None:
-        """Register the default set of API providers."""
-        # Register Notion provider
-        notion_provider = NotionProvider()
-        await self.provider_registry.register(
-            APIServiceType.NOTION.value, 
-            notion_provider,
-            metadata={"type": "builtin", "version": "1.0.0"}
-        )
-
-        # Register Slack provider
-        slack_provider = SlackProvider(api_service=self._api_service)
-        await self.provider_registry.register(
-            APIServiceType.SLACK.value, 
-            slack_provider,
-            metadata={"type": "builtin", "version": "1.0.0"}
-        )
-
-        # Additional providers can be registered here as they're implemented
-        # Examples:
-        # github_provider = GitHubProvider(api_service=self._api_service)
-        # await self.provider_registry.register(APIServiceType.GITHUB.value, github_provider)
-    
     async def _load_manifest_providers(self) -> None:
         """Load manifest-based providers from the filesystem."""
         # Look for provider manifests in standard locations

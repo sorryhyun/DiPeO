@@ -1,0 +1,279 @@
+# Notion Provider Manifest  
+# Hybrid approach: Basic operations via manifest, complex logic via hooks
+
+name: notion
+version: 1.0.0
+description: Notion API integration for page and database management
+base_url: https://api.notion.com/v1
+
+# Authentication
+auth:
+  strategy: oauth2_bearer
+  header: Authorization
+  format: "Bearer {{api_key}}"
+  scopes:
+    - read_content
+    - insert_content
+    - update_content
+
+# Additional required headers for Notion API
+default_headers:
+  Notion-Version: "2022-06-28"
+  Content-Type: application/json
+
+# Retry policy
+retry_policy:
+  strategy: exponential_backoff
+  max_retries: 3
+  base_delay_ms: 500
+  max_delay_ms: 10000
+  retry_on_status: [429, 500, 502, 503, 504]
+
+# Rate limiting (Notion's default limits)
+rate_limit:
+  algorithm: token_bucket
+  capacity: 3  # Notion allows 3 requests per second
+  refill_per_sec: 3.0
+
+# Default configuration
+default_timeout: 30.0
+
+# Hook module for complex operations
+hooks_module: hooks.py
+
+# Operations
+operations:
+  read_page:
+    method: GET
+    path: "/pages/{{resource_id}}"
+    description: Retrieve a Notion page by ID
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    timeout_override: 10.0
+
+  create_page:
+    method: POST
+    path: /pages
+    description: Create a new Notion page
+    request:
+      body_template: |
+        {
+          "parent": {{config.parent | tojson}},
+          "properties": {{config.properties | tojson}}
+          {%- if config.children %},
+          "children": {{config.children | tojson}}
+          {%- endif %}
+          {%- if config.icon %},
+          "icon": {{config.icon | tojson}}
+          {%- endif %}
+          {%- if config.cover %},
+          "cover": {{config.cover | tojson}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [insert_content]
+
+  update_page:
+    method: PATCH
+    path: "/pages/{{resource_id}}"
+    description: Update page properties
+    request:
+      body_template: |
+        {
+          "properties": {{config.properties | tojson}}
+          {%- if config.archived is defined %},
+          "archived": {{config.archived | lower}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [update_content]
+
+  append_blocks:
+    method: PATCH
+    path: "/blocks/{{resource_id}}/children"
+    description: Append blocks to a page
+    request:
+      body_template: |
+        {
+          "children": {{config.blocks | tojson}}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [update_content]
+
+  delete_page:
+    method: PATCH
+    path: "/pages/{{resource_id}}"
+    description: Archive (soft delete) a Notion page
+    request:
+      body_template: |
+        {
+          "archived": true
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [update_content]
+
+  query_database:
+    method: POST
+    path: "/databases/{{resource_id}}/query"
+    description: Query a Notion database with filters and sorts
+    request:
+      body_template: |
+        {
+          {%- if config.filter %}
+          "filter": {{config.filter | tojson}},
+          {%- endif %}
+          {%- if config.sorts %}
+          "sorts": {{config.sorts | tojson}},
+          {%- endif %}
+          "page_size": {{config.page_size | default(100)}}
+          {%- if config.start_cursor %},
+          "start_cursor": "{{config.start_cursor}}"
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    pagination:
+      type: cursor
+      cursor_param: start_cursor
+      cursor_path: "/next_cursor"
+      has_more_path: "/has_more"
+      items_path: "/results"
+      default_limit: 100
+    required_scopes: [read_content]
+
+  create_database:
+    method: POST
+    path: /databases
+    description: Create a new Notion database
+    request:
+      body_template: |
+        {
+          "parent": {{config.parent | tojson}},
+          "title": {{config.title | tojson}},
+          "properties": {{config.properties | tojson}}
+          {%- if config.is_inline is defined %},
+          "is_inline": {{config.is_inline | lower}}
+          {%- endif %}
+          {%- if config.description %},
+          "description": {{config.description | tojson}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [insert_content]
+
+  update_database:
+    method: PATCH
+    path: "/databases/{{resource_id}}"
+    description: Update database properties or schema
+    request:
+      body_template: |
+        {
+          {%- set ns = namespace(first=false) %}
+          {%- if config.title %}
+          {%- if ns.first %},{%- endif %}
+          "title": {{config.title | tojson}}
+          {%- set ns.first = true %}
+          {%- endif %}
+          {%- if config.description %}
+          {%- if ns.first %},{%- endif %}
+          "description": {{config.description | tojson}}
+          {%- set ns.first = true %}
+          {%- endif %}
+          {%- if config.properties %}
+          {%- if ns.first %},{%- endif %}
+          "properties": {{config.properties | tojson}}
+          {%- set ns.first = true %}
+          {%- endif %}
+          {%- if config.archived is defined %}
+          {%- if ns.first %},{%- endif %}
+          "archived": {{config.archived | lower}}
+          {%- set ns.first = true %}
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [update_content]
+
+  list_blocks:
+    method: GET
+    path: "/blocks/{{resource_id}}/children"
+    description: List all blocks in a page
+    request:
+      query_params_template:
+        page_size: "{{config.page_size | default(50)}}"
+        start_cursor: "{% if config.start_cursor %}{{config.start_cursor}}{% endif %}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    pagination:
+      type: cursor
+      cursor_param: start_cursor
+      cursor_path: "/next_cursor"
+      has_more_path: "/has_more"
+      items_path: "/results"
+      default_limit: 50
+    required_scopes: [read_content]
+
+# Webhook events (Notion doesn't have native webhooks yet, but preparing for future)
+webhook_events:
+  - name: page.created
+    description: A new page was created
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "event": {"type": "string"},
+          "page_id": {"type": "string"},
+          "workspace_id": {"type": "string"},
+          "created_time": {"type": "string", "format": "date-time"}
+        }
+      }
+  
+  - name: page.updated
+    description: A page was updated
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "event": {"type": "string"},
+          "page_id": {"type": "string"},
+          "workspace_id": {"type": "string"},
+          "last_edited_time": {"type": "string", "format": "date-time"}
+        }
+      }
+
+# Additional metadata
+metadata:
+  documentation_url: https://developers.notion.com/reference
+  support_email: developers@makenotion.com
+  tags:
+    - knowledge-base
+    - documentation
+    - database
+    - collaboration
+  notes: |
+    This is a manifest-based migration of the original NotionProvider.
+    Complex operations like text extraction from blocks can be handled via hooks.
+    The native pagination is handled by the manifest pagination configuration.
