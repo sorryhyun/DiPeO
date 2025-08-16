@@ -11,7 +11,7 @@ from .application_container import ApplicationContainer
 from pathlib import Path
 from typing import Any
 
-from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
     API_KEY_STORAGE,

@@ -29,6 +29,14 @@ export enum APIServiceType {
   JIRA = 'jira'
 }
 
+export enum IntegrationProvider {
+  NOTION = 'notion',
+  SLACK = 'slack',
+  GITHUB = 'github',
+  JIRA = 'jira',
+  GOOGLE_SEARCH = 'google_search'
+}
+
 export enum ToolType {
   WEB_SEARCH = 'web_search',
   WEB_SEARCH_PREVIEW = 'web_search_preview',

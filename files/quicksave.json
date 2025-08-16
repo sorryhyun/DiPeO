@@ -1,386 +1,112 @@
 {
   "nodes": [
     {
-      "id": "node_0",
-      "type": "start",
+      "id": "node_qbmjl4fk",
+      "type": "integrated_api",
       "position": {
-        "x": 100,
-        "y": 200
+        "x": 230,
+        "y": 350
       },
       "data": {
-        "flipped": false,
-        "trigger_mode": "none",
-        "custom_data": {},
-        "output_data_structure": {},
-        "label": "start"
+        "provider": "notion",
+        "operation": "",
+        "label": "integrated_api"
       }
     },
     {
-      "id": "node_1",
-      "type": "db",
+      "id": "node_u8u2qq6r",
+      "type": "api_job",
       "position": {
-        "x": 350,
-        "y": 200
+        "x": 240,
+        "y": 490
       },
       "data": {
-        "flipped": false,
-        "sub_type": "file",
-        "operation": "read",
-        "glob": false,
-        "format": "text",
-        "label": "load input data"
+        "url": "",
+        "method": "POST",
+        "auth_type": "bearer",
+        "label": "api_job"
       }
     },
     {
-      "id": "node_2",
-      "type": "code_job",
+      "id": "node_5iysafio",
+      "type": "integrated_api",
       "position": {
-        "x": 600,
-        "y": 200
+        "x": 300,
+        "y": 120
       },
       "data": {
-        "flipped": false,
-        "language": "python",
-        "code": "import csv\nfrom io import StringIO\ncsv_text = csv_content\nreader = csv.DictReader(StringIO(csv_text))\nrecords = list(reader)\n",
-        "timeout": 60,
-        "label": "parse csv"
-      }
-    },
-    {
-      "id": "node_3",
-      "type": "code_job",
-      "position": {
-        "x": 850,
-        "y": 200
-      },
-      "data": {
-        "flipped": false,
-        "language": "python",
-        "code": "records = records\nvalid = []\ninvalid = []\nfor r in records:\n  if r.get('record_id') and r.get('record_type'):\n    valid.append(r)\n  else:\n    invalid.append(r)\nvalidation_results = {\"valid\": valid, \"invalid\": invalid, \"is_valid\": len(invalid) == 0}\n",
-        "timeout": 60,
-        "label": "validate records"
-      }
-    },
-    {
-      "id": "node_4",
-      "type": "condition",
-      "position": {
-        "x": 1100,
-        "y": 200
-      },
-      "data": {
-        "flipped": false,
-        "condition_type": "custom",
-        "expression": "validation_results.get('is_valid', False)",
-        "label": "check data valid"
-      }
-    },
-    {
-      "id": "node_5",
-      "type": "code_job",
-      "position": {
-        "x": 1350,
-        "y": 200
-      },
-      "data": {
-        "flipped": false,
-        "language": "python",
-        "code": "validation_results = validation_results\nvalid = validation_results.get('valid', [])\ninvalid = validation_results.get('invalid', [])\nprocessed = [{\"record_id\": r.get(\"record_id\"), \"status\": \"valid\"} for r in valid]\nresult = {\"processed_records\": processed, \"validation_results\": validation_results, \"valid_count\": len(valid), \"invalid_count\": len(invalid)}\n",
-        "timeout": 60,
-        "label": "process valid"
-      }
-    },
-    {
-      "id": "node_6",
-      "type": "code_job",
-      "position": {
-        "x": 1600,
-        "y": 200
-      },
-      "data": {
-        "flipped": false,
-        "language": "python",
-        "code": "processed = result.get('processed_records', [])\nfinal_output = {\"record_count\": len(processed), \"records\": processed}\n",
-        "timeout": 60,
-        "label": "prepare final output"
-      }
-    },
-    {
-      "id": "node_7",
-      "type": "endpoint",
-      "position": {
-        "x": 1850,
-        "y": 200
-      },
-      "data": {
-        "flipped": false,
-        "save_to_file": true,
-        "file_name": "outputs/processed_data.json",
-        "label": "save processed output"
-      }
-    },
-    {
-      "id": "node_8",
-      "type": "code_job",
-      "position": {
-        "x": 1350,
-        "y": 400
-      },
-      "data": {
-        "flipped": false,
-        "language": "python",
-        "code": "validation_results = validation_results\nerror_report = {\"error\": \"Validation failed\", \"valid_count\": len(validation_results.get('valid', [])), \"invalid_count\": len(validation_results.get('invalid', []))}\nresult = error_report\n",
-        "timeout": 60,
-        "label": "log validation errors"
-      }
-    },
-    {
-      "id": "node_9",
-      "type": "endpoint",
-      "position": {
-        "x": 1850,
-        "y": 400
-      },
-      "data": {
-        "flipped": false,
-        "save_to_file": true,
-        "file_name": "logs/validation_errors.json",
-        "label": "save validation errors"
+        "provider": null,
+        "operation": "",
+        "label": "integrated_api"
       }
     }
   ],
-  "arrows": [
-    {
-      "id": "arrow_0",
-      "source": "node_0_default_output",
-      "target": "node_1_default_input",
-      "label": "start_to_load",
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_1",
-      "source": "node_1_default_output",
-      "target": "node_2_default_input",
-      "label": "csv_content",
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_2",
-      "source": "node_2_default_output",
-      "target": "node_3_default_input",
-      "label": "records",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_3",
-      "source": "node_3_default_output",
-      "target": "node_4_default_input",
-      "label": "validation_results",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_4",
-      "source": "node_4_condtrue_output",
-      "target": "node_5_default_input",
-      "label": "validation_results",
-      "packing": null,
-      "data": {
-        "branch": "true"
-      },
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_5",
-      "source": "node_4_condfalse_output",
-      "target": "node_8_default_input",
-      "label": "validation_results",
-      "packing": null,
-      "data": {
-        "branch": "false"
-      },
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_6",
-      "source": "node_5_default_output",
-      "target": "node_6_default_input",
-      "label": "result",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_7",
-      "source": "node_6_default_output",
-      "target": "node_7_default_input",
-      "label": "final_output",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_8",
-      "source": "node_8_default_output",
-      "target": "node_9_default_input",
-      "label": "error_report",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    }
-  ],
+  "arrows": [],
   "persons": [],
   "handles": [
     {
-      "id": "node_0_default_output",
-      "node_id": "node_0",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_1_default_input",
-      "node_id": "node_1",
+      "id": "node_qbmjl4fk_default_input",
+      "node_id": "node_qbmjl4fk",
       "label": "default",
       "direction": "input",
       "data_type": "any",
       "position": "left"
     },
     {
-      "id": "node_1_default_output",
-      "node_id": "node_1",
+      "id": "node_qbmjl4fk_default_output",
+      "node_id": "node_qbmjl4fk",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_2_default_input",
-      "node_id": "node_2",
+      "id": "node_qbmjl4fk_error_output",
+      "node_id": "node_qbmjl4fk",
+      "label": "error",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_u8u2qq6r_default_input",
+      "node_id": "node_u8u2qq6r",
       "label": "default",
       "direction": "input",
       "data_type": "any",
       "position": "left"
     },
     {
-      "id": "node_2_default_output",
-      "node_id": "node_2",
+      "id": "node_u8u2qq6r_default_output",
+      "node_id": "node_u8u2qq6r",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_3_default_input",
-      "node_id": "node_3",
+      "id": "node_5iysafio_default_input",
+      "node_id": "node_5iysafio",
       "label": "default",
       "direction": "input",
       "data_type": "any",
       "position": "left"
     },
     {
-      "id": "node_3_default_output",
-      "node_id": "node_3",
+      "id": "node_5iysafio_default_output",
+      "node_id": "node_5iysafio",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_4_default_input",
-      "node_id": "node_4",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_4_condtrue_output",
-      "node_id": "node_4",
-      "label": "condtrue",
-      "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_4_condfalse_output",
-      "node_id": "node_4",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_5_default_input",
-      "node_id": "node_5",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_5_default_output",
-      "node_id": "node_5",
-      "label": "default",
+      "id": "node_5iysafio_error_output",
+      "node_id": "node_5iysafio",
+      "label": "error",
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_6_default_input",
-      "node_id": "node_6",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_6_default_output",
-      "node_id": "node_6",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_7_default_input",
-      "node_id": "node_7",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_8_default_input",
-      "node_id": "node_8",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_8_default_output",
-      "node_id": "node_8",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_9_default_input",
-      "node_id": "node_9",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     }
   ],
   "metadata": {
@@ -388,8 +114,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-16T03:29:33.421Z",
-    "modified": "2025-08-16T03:29:33.421Z",
+    "created": "2025-08-16T09:48:48.155Z",
+    "modified": "2025-08-16T09:48:48.155Z",
     "version": "1.0.0",
     "id": null
   }

@@ -22,7 +22,7 @@ if sys.platform == "win32":
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
 
-from .commands import AskCommand, ConvertCommand, MetricsCommand, RunCommand, UtilsCommand
+from .commands import AskCommand, ConvertCommand, IntegrationsCommand, MetricsCommand, RunCommand, UtilsCommand
 from .commands.base import DiagramLoader
 from .server_manager import ServerManager
 
@@ -47,6 +47,7 @@ class DiPeOCLI:
         self.convert_command = ConvertCommand()
         self.metrics_command = MetricsCommand(self.server)
         self.utils_command = UtilsCommand()
+        self.integrations_command = IntegrationsCommand(self.server)
 
     def ask(
         self,
@@ -127,6 +128,10 @@ class DiPeOCLI:
             optimizations_only=optimizations_only,
             output_json=output_json,
         )
+
+    def integrations(self, action: str, **kwargs):
+        """Manage integrations."""
+        return self.integrations_command.execute(action, **kwargs)
 
     # Compatibility methods for backward compatibility
     def resolve_diagram_path(self, diagram: str, format_type: str | None = None) -> str:
@@ -276,6 +281,34 @@ def main():
         help="Output as JSON"
     )
 
+    # Integrations command
+    integrations_parser = subparsers.add_parser("integrations", help="Manage API integrations")
+    integrations_subparsers = integrations_parser.add_subparsers(dest="integrations_action", help="Integration commands")
+    
+    # Init subcommand
+    init_parser = integrations_subparsers.add_parser("init", help="Initialize integrations workspace")
+    init_parser.add_argument("--path", type=str, help="Path to initialize (default: ./integrations)")
+    
+    # Validate subcommand
+    validate_parser = integrations_subparsers.add_parser("validate", help="Validate provider manifests")
+    validate_parser.add_argument("--path", type=str, help="Path to integrations directory")
+    validate_parser.add_argument("--provider", type=str, help="Validate specific provider only")
+    
+    # OpenAPI import subcommand
+    openapi_parser = integrations_subparsers.add_parser("openapi-import", help="Import OpenAPI specification")
+    openapi_parser.add_argument("openapi_path", help="Path to OpenAPI spec file")
+    openapi_parser.add_argument("--name", required=True, help="Provider name")
+    openapi_parser.add_argument("--output", type=str, help="Output directory")
+    openapi_parser.add_argument("--base-url", type=str, help="Override base URL")
+    
+    # Test subcommand
+    test_parser = integrations_subparsers.add_parser("test", help="Test integration provider")
+    test_parser.add_argument("provider", help="Provider name to test")
+    test_parser.add_argument("--operation", type=str, help="Specific operation to test")
+    test_parser.add_argument("--config", type=str, help="Test configuration JSON")
+    test_parser.add_argument("--record", action="store_true", help="Record test for replay")
+    test_parser.add_argument("--replay", action="store_true", help="Replay recorded test")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -361,6 +394,32 @@ def main():
                 optimizations_only=args.optimizations,
                 output_json=args.json
             )
+        elif args.command == "integrations":
+            if not args.integrations_action:
+                integrations_parser.print_help()
+                sys.exit(0)
+            
+            # Build kwargs based on action
+            kwargs = {}
+            if args.integrations_action == "init":
+                kwargs["path"] = getattr(args, "path", None)
+            elif args.integrations_action == "validate":
+                kwargs["path"] = getattr(args, "path", None)
+                kwargs["provider"] = getattr(args, "provider", None)
+            elif args.integrations_action == "openapi-import":
+                kwargs["openapi_path"] = args.openapi_path
+                kwargs["name"] = args.name
+                kwargs["output"] = getattr(args, "output", None)
+                kwargs["base_url"] = getattr(args, "base_url", None)
+            elif args.integrations_action == "test":
+                kwargs["provider"] = args.provider
+                kwargs["operation"] = getattr(args, "operation", None)
+                kwargs["config"] = getattr(args, "config", None)
+                kwargs["record"] = getattr(args, "record", False)
+                kwargs["replay"] = getattr(args, "replay", False)
+            
+            success = cli.integrations(args.integrations_action, **kwargs)
+            sys.exit(0 if success else 1)
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")
