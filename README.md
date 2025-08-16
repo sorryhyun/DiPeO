@@ -2,7 +2,7 @@
 
 > Start with `dipeo ask "the command you want to ask" --and-run`
 
-![Demo Video](./docs/pics/abcdef.mp4)
+[![Watch Demo](./docs/pics/img_1.png)](./docs/pics/abcdef.mp4)
 
 * This will generate diagram and run it as you want to create.
 
