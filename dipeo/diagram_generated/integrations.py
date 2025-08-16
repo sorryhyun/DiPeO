@@ -29,111 +29,6 @@ else:
 
 
 
-# Integration interfaces (converted to Pydantic models)
-
-class ToolConfig(BaseModel):
-    """ToolConfig model"""
-    
-    type: ToolType
-    
-    enabled: Optional[bool] = Field(default=None)
-    
-    config: Optional[Dict[str, Any]] = Field(default=None)
-    
-
-    class Config:
-        extra = "forbid"
-        validate_assignment = True
-
-
-class WebSearchResult(BaseModel):
-    """WebSearchResult model"""
-    
-    url: str
-    
-    title: str
-    
-    snippet: str
-    
-    score: Optional[float] = Field(default=None)
-    
-
-    class Config:
-        extra = "forbid"
-        validate_assignment = True
-
-
-class ImageGenerationResult(BaseModel):
-    """ImageGenerationResult model"""
-    
-    image_data: str
-    
-    format: str
-    
-    width: Optional[float] = Field(default=None)
-    
-    height: Optional[float] = Field(default=None)
-    
-
-    class Config:
-        extra = "forbid"
-        validate_assignment = True
-
-
-class ToolOutput(BaseModel):
-    """ToolOutput model"""
-    
-    type: ToolType
-    
-    result: Union[List[WebSearchResult], ImageGenerationResult, Any]
-    
-    raw_response: Optional[Any] = Field(default=None)
-    
-
-    class Config:
-        extra = "forbid"
-        validate_assignment = True
-
-
-class ChatResult(BaseModel):
-    """ChatResult model"""
-    
-    text: str
-    
-    token_usage: Optional[Union[TokenUsage, None]] = Field(default=None)
-    
-    raw_response: Optional[Union[Any, None]] = Field(default=None)
-    
-    tool_outputs: Optional[Union[List[ToolOutput], None]] = Field(default=None)
-    
-
-    class Config:
-        extra = "forbid"
-        validate_assignment = True
-
-
-class LLMRequestOptions(BaseModel):
-    """LLMRequestOptions model"""
-    
-    temperature: Optional[float] = Field(default=None)
-    
-    max_tokens: Optional[float] = Field(default=None)
-    
-    top_p: Optional[float] = Field(default=None)
-    
-    n: Optional[float] = Field(default=None)
-    
-    tools: Optional[List[ToolConfig]] = Field(default=None)
-    
-    response_format: Optional[Any] = Field(default=None)
-    
-
-    class Config:
-        extra = "forbid"
-        validate_assignment = True
-
-
-
 
 # Export all integration types
 __all__ = [
@@ -145,21 +40,6 @@ __all__ = [
     
     "ToolType",
     
-    
-    
-    # Integration interfaces
-    
-    "ToolConfig",
-    
-    "WebSearchResult",
-    
-    "ImageGenerationResult",
-    
-    "ToolOutput",
-    
-    "ChatResult",
-    
-    "LLMRequestOptions",
     
     
 ]

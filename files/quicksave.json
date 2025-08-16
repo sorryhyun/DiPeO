@@ -1,42 +1,15 @@
 {
   "nodes": [
     {
-      "id": "node_qbmjl4fk",
+      "id": "node_4ech5wqp",
       "type": "integrated_api",
       "position": {
-        "x": 230,
-        "y": 350
+        "x": 160,
+        "y": 360
       },
       "data": {
         "provider": "notion",
-        "operation": "",
-        "label": "integrated_api"
-      }
-    },
-    {
-      "id": "node_u8u2qq6r",
-      "type": "api_job",
-      "position": {
-        "x": 240,
-        "y": 490
-      },
-      "data": {
-        "url": "",
-        "method": "POST",
-        "auth_type": "bearer",
-        "label": "api_job"
-      }
-    },
-    {
-      "id": "node_5iysafio",
-      "type": "integrated_api",
-      "position": {
-        "x": 300,
-        "y": 120
-      },
-      "data": {
-        "provider": null,
-        "operation": "",
+        "operation": "read_page",
         "label": "integrated_api"
       }
     }
@@ -45,64 +18,24 @@
   "persons": [],
   "handles": [
     {
-      "id": "node_qbmjl4fk_default_input",
-      "node_id": "node_qbmjl4fk",
+      "id": "node_4ech5wqp_default_input",
+      "node_id": "node_4ech5wqp",
       "label": "default",
       "direction": "input",
       "data_type": "any",
       "position": "left"
     },
     {
-      "id": "node_qbmjl4fk_default_output",
-      "node_id": "node_qbmjl4fk",
+      "id": "node_4ech5wqp_default_output",
+      "node_id": "node_4ech5wqp",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_qbmjl4fk_error_output",
-      "node_id": "node_qbmjl4fk",
-      "label": "error",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_u8u2qq6r_default_input",
-      "node_id": "node_u8u2qq6r",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_u8u2qq6r_default_output",
-      "node_id": "node_u8u2qq6r",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_5iysafio_default_input",
-      "node_id": "node_5iysafio",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_5iysafio_default_output",
-      "node_id": "node_5iysafio",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_5iysafio_error_output",
-      "node_id": "node_5iysafio",
+      "id": "node_4ech5wqp_error_output",
+      "node_id": "node_4ech5wqp",
       "label": "error",
       "direction": "output",
       "data_type": "any",
@@ -114,8 +47,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-16T09:48:48.155Z",
-    "modified": "2025-08-16T09:48:48.155Z",
+    "created": "2025-08-16T11:09:28.840Z",
+    "modified": "2025-08-16T11:09:28.840Z",
     "version": "1.0.0",
     "id": null
   }

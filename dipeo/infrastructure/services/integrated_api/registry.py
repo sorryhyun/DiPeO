@@ -35,7 +35,6 @@ class ProviderRegistry:
         async with self._initialization_lock:
             if self._initialized:
                 return
-            logger.info("Initializing ProviderRegistry")
             self._initialized = True
     
     async def register(
@@ -63,11 +62,7 @@ class ProviderRegistry:
         
         self._providers[name] = provider_instance
         self._provider_metadata[name] = metadata or {}
-        
-        logger.info(
-            f"Registered provider '{name}' with operations: "
-            f"{provider_instance.supported_operations}"
-        )
+
     
     async def load_entrypoints(self, group: str = "dipeo.integrations") -> None:
         """Auto-discover and load providers from Python package entry points.
@@ -75,8 +70,7 @@ class ProviderRegistry:
         Args:
             group: Entry point group name
         """
-        logger.info(f"Loading providers from entry points: {group}")
-        
+
         try:
             # Get all entry points in the group
             entry_points = importlib.metadata.entry_points()
@@ -101,9 +95,7 @@ class ProviderRegistry:
                         await load_func(self)
                     else:
                         load_func(self)
-                        
-                    logger.info(f"Successfully loaded provider from entry point: {ep.name}")
-                    
+
                 except Exception as e:
                     logger.error(f"Failed to load entry point {ep.name}: {e}")
                     
@@ -120,22 +112,30 @@ class ProviderRegistry:
         
         logger.info(f"Loading provider manifests from: {path_pattern}")
         
-        # Handle both relative and absolute paths
-        base_path = Path(path_pattern)
-        if base_path.is_absolute():
-            search_path = base_path
-        else:
-            # Make relative to current working directory
-            search_path = Path.cwd() / base_path
+        # Convert to Path and handle glob patterns
+        pattern_path = Path(path_pattern)
         
-        # Find all matching manifest files
-        if '*' in str(search_path):
-            # It's a glob pattern
-            manifest_files = list(Path(search_path.parts[0]).glob('/'.join(search_path.parts[1:])))
+        # Determine base directory and pattern
+        if pattern_path.is_absolute():
+            # For absolute paths with glob patterns, split into base and pattern
+            parts = pattern_path.parts
+            base_idx = 0
+            for i, part in enumerate(parts):
+                if '*' in part or '?' in part:
+                    base_idx = i
+                    break
+            
+            if base_idx > 0:
+                base_dir = Path(*parts[:base_idx])
+                pattern = '/'.join(parts[base_idx:])
+                manifest_files = list(base_dir.glob(pattern))
+            else:
+                # No glob pattern in absolute path
+                manifest_files = [pattern_path] if pattern_path.exists() else []
         else:
-            # Direct path
-            manifest_files = [search_path] if search_path.exists() else []
-        
+            # Relative pattern - use current working directory
+            manifest_files = list(Path.cwd().glob(path_pattern))
+
         for manifest_file in manifest_files:
             try:
                 await self._load_single_manifest(manifest_file)
@@ -149,9 +149,7 @@ class ProviderRegistry:
             manifest_path: Path to the manifest file
         """
         from .generic_provider import GenericHTTPProvider
-        
-        logger.debug(f"Loading manifest: {manifest_path}")
-        
+
         # Load manifest content
         with open(manifest_path, 'r') as f:
             if manifest_path.suffix in ['.yaml', '.yml']:
@@ -169,15 +167,20 @@ class ProviderRegistry:
         provider = GenericHTTPProvider(manifest, manifest_path.parent)
         
         # Register the provider
+        # Extract description from top-level and add as displayName for UI
+        metadata = {
+            'version': manifest.get('version', '1.0.0'),
+            'manifest_path': str(manifest_path),
+            'type': 'manifest',
+            'description': manifest.get('description', ''),
+            'displayName': manifest.get('description', manifest['name']),  # Use description as display name
+            **manifest.get('metadata', {})
+        }
+        
         await self.register(
             name=manifest['name'],
             provider_instance=provider,
-            metadata={
-                'version': manifest.get('version', '1.0.0'),
-                'manifest_path': str(manifest_path),
-                'type': 'manifest',
-                **manifest.get('metadata', {})
-            }
+            metadata=metadata
         )
         
         logger.info(f"Loaded manifest provider: {manifest['name']} from {manifest_path}")
@@ -260,7 +263,6 @@ class ProviderRegistry:
             
             del self._providers[name]
             self._provider_metadata.pop(name, None)
-            logger.info(f"Removed provider: {name}")
             return True
         
         return False
@@ -290,7 +292,6 @@ class ProviderRegistry:
         # Reload from manifest
         try:
             await self._load_single_manifest(Path(manifest_path))
-            logger.info(f"Successfully reloaded provider: {name}")
             return True
         except Exception as e:
             logger.error(f"Failed to reload provider {name}: {e}")

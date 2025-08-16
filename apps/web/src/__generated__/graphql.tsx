@@ -1109,6 +1109,18 @@ export type ExecutionUpdatesSubscriptionVariables = Exact<{
 
 export type ExecutionUpdatesSubscription = { __typename?: 'Subscription', execution_updates: { __typename?: 'ExecutionUpdate', execution_id: string, event_type: string, data: any, timestamp: string } };
 
+export type ProvidersQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ProvidersQuery = { __typename?: 'Query', providers: Array<{ __typename?: 'ProviderType', name: string, metadata: { __typename?: 'ProviderMetadataType', description?: string | null } }> };
+
+export type ProviderOpsQueryVariables = Exact<{
+  provider: Scalars['String']['input'];
+}>;
+
+
+export type ProviderOpsQuery = { __typename?: 'Query', provider_operations: Array<{ __typename?: 'OperationType', name: string, description?: string | null }> };
+
 export type ActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -2887,6 +2899,89 @@ export function useExecutionUpdatesSubscription(baseOptions: Apollo.Subscription
       }
 export type ExecutionUpdatesSubscriptionHookResult = ReturnType<typeof useExecutionUpdatesSubscription>;
 export type ExecutionUpdatesSubscriptionResult = Apollo.SubscriptionResult<ExecutionUpdatesSubscription>;
+export const ProvidersDocument = gql`
+    query Providers {
+  providers {
+    name
+    metadata {
+      description
+    }
+  }
+}
+    `;
+
+/**
+ * __useProvidersQuery__
+ *
+ * To run a query within a React component, call `useProvidersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useProvidersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useProvidersQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useProvidersQuery(baseOptions?: Apollo.QueryHookOptions<ProvidersQuery, ProvidersQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ProvidersQuery, ProvidersQueryVariables>(ProvidersDocument, options);
+      }
+export function useProvidersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProvidersQuery, ProvidersQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ProvidersQuery, ProvidersQueryVariables>(ProvidersDocument, options);
+        }
+export function useProvidersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ProvidersQuery, ProvidersQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ProvidersQuery, ProvidersQueryVariables>(ProvidersDocument, options);
+        }
+export type ProvidersQueryHookResult = ReturnType<typeof useProvidersQuery>;
+export type ProvidersLazyQueryHookResult = ReturnType<typeof useProvidersLazyQuery>;
+export type ProvidersSuspenseQueryHookResult = ReturnType<typeof useProvidersSuspenseQuery>;
+export type ProvidersQueryResult = Apollo.QueryResult<ProvidersQuery, ProvidersQueryVariables>;
+export const ProviderOpsDocument = gql`
+    query ProviderOps($provider: String!) {
+  provider_operations(provider: $provider) {
+    name
+    description
+  }
+}
+    `;
+
+/**
+ * __useProviderOpsQuery__
+ *
+ * To run a query within a React component, call `useProviderOpsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useProviderOpsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useProviderOpsQuery({
+ *   variables: {
+ *      provider: // value for 'provider'
+ *   },
+ * });
+ */
+export function useProviderOpsQuery(baseOptions: Apollo.QueryHookOptions<ProviderOpsQuery, ProviderOpsQueryVariables> & ({ variables: ProviderOpsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ProviderOpsQuery, ProviderOpsQueryVariables>(ProviderOpsDocument, options);
+      }
+export function useProviderOpsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProviderOpsQuery, ProviderOpsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ProviderOpsQuery, ProviderOpsQueryVariables>(ProviderOpsDocument, options);
+        }
+export function useProviderOpsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ProviderOpsQuery, ProviderOpsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ProviderOpsQuery, ProviderOpsQueryVariables>(ProviderOpsDocument, options);
+        }
+export type ProviderOpsQueryHookResult = ReturnType<typeof useProviderOpsQuery>;
+export type ProviderOpsLazyQueryHookResult = ReturnType<typeof useProviderOpsLazyQuery>;
+export type ProviderOpsSuspenseQueryHookResult = ReturnType<typeof useProviderOpsSuspenseQuery>;
+export type ProviderOpsQueryResult = Apollo.QueryResult<ProviderOpsQuery, ProviderOpsQueryVariables>;
 export const ActiveCliSessionDocument = gql`
     query ActiveCliSession {
   active_cli_session {

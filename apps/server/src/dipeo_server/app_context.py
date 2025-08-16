@@ -95,12 +95,21 @@ async def create_server_container() -> Container:
     from dipeo.infrastructure.services.integrated_api.registry import ProviderRegistry
     provider_registry = ProviderRegistry()
     
+    # Initialize the registry first
+    await provider_registry.initialize()
+    
     # Load providers from manifests
     try:
-        import glob
-        manifest_pattern = str(BASE_DIR / "integrations" / "*" / "provider.yaml")
-        for manifest_path in glob.glob(manifest_pattern):
-            await provider_registry.load_manifest(manifest_path)
+        # Load all provider manifests - use BASE_DIR to ensure correct path
+        await provider_registry.load_manifests(str(BASE_DIR / "integrations/**/provider.yaml"))
+        await provider_registry.load_manifests(str(BASE_DIR / "integrations/**/provider.yml"))
+        await provider_registry.load_manifests(str(BASE_DIR / "integrations/**/provider.json"))
+        
+        # Log what was loaded
+        import logging
+        logger = logging.getLogger(__name__)
+        loaded_providers = provider_registry.list_providers()
+        logger.info(f"Loaded {len(loaded_providers)} providers: {loaded_providers}")
     except Exception as e:
         # Log but don't fail if no providers found
         import logging

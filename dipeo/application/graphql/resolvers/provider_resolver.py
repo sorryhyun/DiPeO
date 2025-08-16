@@ -5,7 +5,7 @@ from typing import List, Optional, Any
 import time
 
 from dipeo.application.registry import ServiceRegistry
-from dipeo.application.registry.keys import INTEGRATED_API_SERVICE, API_KEY_SERVICE
+from dipeo.application.registry.keys import INTEGRATED_API_SERVICE, API_KEY_SERVICE, PROVIDER_REGISTRY
 from dipeo.core import ServiceError
 from dipeo.infrastructure.services.integrated_api.registry import ProviderRegistry
 from dipeo.infrastructure.services.integrated_api.generic_provider import GenericHTTPProvider
@@ -46,19 +46,29 @@ class ProviderResolver:
             Provider registry instance
         """
         if not self._provider_registry:
-            # Get the integrated API service
-            integrated_api = await self.registry.resolve(INTEGRATED_API_SERVICE)
+            # Try to get the provider registry directly
+            provider_registry = self.registry.get(PROVIDER_REGISTRY)
             
-            # Check if it has a registry attribute
-            if hasattr(integrated_api, 'provider_registry'):
-                self._provider_registry = integrated_api.provider_registry
+            if provider_registry:
+                self._provider_registry = provider_registry
             else:
-                # Create a new registry if not available
-                self._provider_registry = ProviderRegistry()
-                await self._provider_registry.initialize()
+                # Fallback: try to get from integrated API service
+                integrated_api = self.registry.resolve(INTEGRATED_API_SERVICE)
                 
-                # Attach to integrated API service for future use
-                integrated_api.provider_registry = self._provider_registry
+                # Initialize the service if it has an initialize method
+                if hasattr(integrated_api, 'initialize') and not getattr(integrated_api, '_initialized', False):
+                    await integrated_api.initialize()
+                
+                # Check if it has a registry attribute
+                if hasattr(integrated_api, 'provider_registry'):
+                    self._provider_registry = integrated_api.provider_registry
+                else:
+                    # Create a new registry if not available
+                    self._provider_registry = ProviderRegistry()
+                    await self._provider_registry.initialize()
+                    
+                    # Attach to integrated API service for future use
+                    integrated_api.provider_registry = self._provider_registry
         
         return self._provider_registry
     
@@ -214,12 +224,12 @@ class ProviderResolver:
         Returns:
             Operation result
         """
-        integrated_api = await self.registry.resolve(INTEGRATED_API_SERVICE)
+        integrated_api = self.registry.resolve(INTEGRATED_API_SERVICE)
         
         # Resolve API key if provided
         api_key = None
         if input.api_key_id:
-            api_key_service = await self.registry.resolve(API_KEY_SERVICE)
+            api_key_service = self.registry.resolve(API_KEY_SERVICE)
             key_data = api_key_service.get_api_key(str(input.api_key_id))
             if key_data:
                 api_key = key_data.get('key')
@@ -255,7 +265,7 @@ class ProviderResolver:
         try:
             if input.dry_run:
                 # Just validate the configuration
-                integrated_api = await self.registry.resolve(INTEGRATED_API_SERVICE)
+                integrated_api = self.registry.resolve(INTEGRATED_API_SERVICE)
                 is_valid = await integrated_api.validate_operation(
                     provider=input.provider,
                     operation=input.operation,

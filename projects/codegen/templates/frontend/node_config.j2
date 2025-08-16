@@ -2,6 +2,12 @@
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { {{ nodeTypeCamel }}Fields } from '../fields/{{ nodeTypePascal }}Fields';
+{%- if nodeType == 'integrated_api' %}
+import { mergeFieldConfigs } from '@/domain/diagram/config/nodes/fieldOverrides';
+
+// Apply field overrides to get dynamic options
+const fieldsWithOverrides = mergeFieldConfigs('integrated_api');
+{%- endif %}
 
 export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
   label: '{{ displayName }}',
@@ -48,7 +54,11 @@ export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
 {%- endif %}
 {%- endfor %}
   },
+{%- if nodeType == 'integrated_api' %}
+  customFields: fieldsWithOverrides,
+{%- else %}
   customFields: {{ nodeTypeCamel }}Fields,
+{%- endif %}
 {%- if primaryDisplayField %}
   primaryDisplayField: '{{ primaryDisplayField }}',
 {%- endif %}

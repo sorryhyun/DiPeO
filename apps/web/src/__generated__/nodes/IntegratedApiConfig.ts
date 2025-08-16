@@ -10,6 +10,10 @@
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { integratedApiFields } from '../fields/IntegratedApiFields';
+import { mergeFieldConfigs } from '@/domain/diagram/config/nodes/fieldOverrides';
+
+// Apply field overrides to get dynamic options
+const fieldsWithOverrides = mergeFieldConfigs('integrated_api');
 
 export const integratedApiConfig: UnifiedNodeConfig = {
   label: 'Integrated API',
@@ -28,7 +32,7 @@ export const integratedApiConfig: UnifiedNodeConfig = {
   },
   defaults: {
   },
-  customFields: integratedApiFields,
+  customFields: fieldsWithOverrides,
   primaryDisplayField: 'provider',
 };
 

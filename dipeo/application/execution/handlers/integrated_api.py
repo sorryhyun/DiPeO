@@ -115,6 +115,28 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         provider_key = api_key_service.get_api_key(provider_summary["id"])
         api_key = provider_key["key"]
         
+        # Validate provider/operation dynamically via registry
+        config = node.config or {}
+        try:
+            is_valid = await integrated_api_service.validate_operation(
+                provider=provider,
+                operation=operation,
+                config=config
+            )
+        except Exception as e:
+            return EnvelopeFactory.error(
+                f"Validation error for provider '{provider}' op '{operation}': {e}",
+                error_type="ValueError",
+                produced_by=str(node.id)
+            )
+        
+        if not is_valid:
+            return EnvelopeFactory.error(
+                f"Unsupported provider/operation or invalid config: {provider}.{operation}",
+                error_type="ValueError",
+                produced_by=str(node.id)
+            )
+        
         # Store services and API key in instance variables for execute_request
         self._current_integrated_api_service = integrated_api_service
         self._current_api_key_service = api_key_service

@@ -183,6 +183,16 @@ class NodeMetrics(BaseModel):
     dependencies: Optional[List[str]] = Field(default=None)
 
 
+class Bottleneck(BaseModel):
+    """Bottleneck model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    node_id: str
+    node_type: str
+    duration_ms: float
+    percentage: float
+
+
 class ExecutionMetrics(BaseModel):
     """ExecutionMetrics model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -194,7 +204,7 @@ class ExecutionMetrics(BaseModel):
     node_metrics: Dict[str, NodeMetrics]
     critical_path: Optional[List[str]] = Field(default=None)
     parallelizable_groups: Optional[List[List[str]]] = Field(default=None)
-    bottlenecks: Optional[List[Dict[str, Any]]] = Field(default=None)
+    bottlenecks: Optional[List[Bottleneck]] = Field(default=None)
 
 
 class EnvelopeMeta(BaseModel):
@@ -648,6 +658,9 @@ def is_node_state(obj: Any) -> bool:
 def is_node_metrics(obj: Any) -> bool:
     """Check if object is a NodeMetrics."""
     return isinstance(obj, NodeMetrics)
+def is_bottleneck(obj: Any) -> bool:
+    """Check if object is a Bottleneck."""
+    return isinstance(obj, Bottleneck)
 def is_execution_metrics(obj: Any) -> bool:
     """Check if object is a ExecutionMetrics."""
     return isinstance(obj, ExecutionMetrics)

@@ -1,6 +1,28 @@
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 import { getGeneratedFields } from '@/__generated__/fields';
 import { createZodFieldValidator } from '@/__generated__/schemas';
+import { apolloClient } from '@/lib/graphql/client';
+import { gql } from '@apollo/client';
+
+const Q_PROVIDERS = gql`
+  query Providers { 
+    providers { 
+      name 
+      metadata { 
+        description
+      } 
+    } 
+  }
+`;
+
+const Q_PROVIDER_OPS = gql`
+  query ProviderOps($provider: String!) {
+    provider_operations(provider: $provider) { 
+      name 
+      description
+    }
+  }
+`;
 
 /**
  * Field override configuration for specific node types
@@ -178,6 +200,64 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
         defaultValue: 5
       }
     }
+  },
+  
+  integrated_api: {
+    fieldOverrides: {
+      provider: {
+        type: 'select',  // Explicitly set type to select
+        // OptionsConfig supports async functions returning {value,label}[]
+        options: async () => {
+          try {
+            const { data } = await apolloClient.query({ 
+              query: Q_PROVIDERS, 
+              fetchPolicy: 'network-only' 
+            });
+            
+            const providers = (data?.providers ?? []).map((p: any) => ({
+              value: p.name,
+              label: p.metadata?.description || p.name,
+            }));
+            
+            return providers;
+          } catch (error) {
+            console.error('[IntegratedAPI] Error fetching providers:', error);
+            // Return empty array on error to prevent UI breaking
+            return [];
+          }
+        },
+      },
+      operation: {
+        type: 'select',  // Explicitly set type to select
+        dependsOn: ['provider'],
+        options: async (form) => {
+          try {
+            const provider = (form as any)?.provider;
+            
+            if (!provider) {
+              return [];
+            }
+            
+            const { data } = await apolloClient.query({ 
+              query: Q_PROVIDER_OPS, 
+              variables: { provider }, 
+              fetchPolicy: 'network-only' 
+            });
+            
+            const operations = (data?.provider_operations ?? []).map((op: any) => ({ 
+              value: op.name, 
+              label: op.description || op.name 
+            }));
+            
+            return operations;
+          } catch (error) {
+            console.error('[IntegratedAPI] Error fetching operations:', error);
+            // Return empty array on error to prevent UI breaking
+            return [];
+          }
+        },
+      },
+    },
   }
 };
 

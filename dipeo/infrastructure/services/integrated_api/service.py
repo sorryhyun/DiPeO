@@ -45,14 +45,14 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
         """Load manifest-based providers from the filesystem."""
         # Look for provider manifests in standard locations
         manifest_locations = [
-            Path("integrations/**/provider.yaml"),
-            Path("integrations/**/provider.yml"),
-            Path("integrations/**/provider.json"),
+            "integrations/**/provider.yaml",
+            "integrations/**/provider.yml",
+            "integrations/**/provider.json",
         ]
         
         for pattern in manifest_locations:
             try:
-                await self.provider_registry.load_manifests(str(pattern))
+                await self.provider_registry.load_manifests(pattern)
             except Exception as e:
                 logger.debug(f"No manifests found at {pattern}: {e}")
     
