@@ -17,6 +17,8 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    permissions:
+      contents: write  # Required for creating releases
     
     env:
       DIPEO_BASE_DIR: ${{ github.workspace }}
@@ -71,13 +73,8 @@ jobs:
           
           Write-Host "Installing Python dependencies with uv..."
           
-          # Install all dependencies from requirements.txt
+          # Install all dependencies from requirements.txt (includes editable installs)
           uv pip sync requirements.txt
-          
-          # Explicitly install local packages as editable installs to ensure proper setup
-          uv pip install -e ./dipeo
-          uv pip install -e ./apps/server
-          uv pip install -e ./apps/cli
           
           # Install development dependencies
           uv pip install "ruff>=0.8.0" mypy pytest-asyncio pytest-cov isort black import-linter
@@ -135,9 +132,12 @@ jobs:
           # Activate venv
           & .\.venv\Scripts\Activate.ps1
           
-          # Set PYTHONPATH to include the project root
+          # Set environment variables for proper module resolution
           $env:PYTHONPATH = "${{ github.workspace }}"
+          $env:VIRTUAL_ENV = "${{ github.workspace }}\.venv"
+          $env:PATH = "${{ github.workspace }}\.venv\Scripts;$env:PATH"
           Write-Host "PYTHONPATH set to: $env:PYTHONPATH"
+          Write-Host "VIRTUAL_ENV set to: $env:VIRTUAL_ENV"
           
           Write-Host "Running unified diagram-based code generation..."
           
@@ -154,6 +154,8 @@ jobs:
           # Export GraphQL schema
           Write-Host "Exporting GraphQL schema from application layer..."
           $env:PYTHONPATH = "${{ github.workspace }}"
+          $env:VIRTUAL_ENV = "${{ github.workspace }}\.venv"
+          $env:PATH = "${{ github.workspace }}\.venv\Scripts;$env:PATH"
           python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
           Write-Host "GraphQL schema exported to apps/server/schema.graphql"
           
@@ -169,6 +171,11 @@ jobs:
         run: |
           # Activate venv
           & ..\..\.venv\Scripts\Activate.ps1
+          
+          # Set environment variables for proper module resolution
+          $env:PYTHONPATH = "${{ github.workspace }}"
+          $env:VIRTUAL_ENV = "${{ github.workspace }}\.venv"
+          $env:PATH = "${{ github.workspace }}\.venv\Scripts;$env:PATH"
           
           # Build with PyInstaller
           pyinstaller --clean dipeo-server-correct.spec
