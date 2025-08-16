@@ -1,6 +1,7 @@
 """Server management for DiPeO CLI."""
 
 import subprocess
+import sys
 import time
 from typing import Any
 
@@ -45,10 +46,18 @@ class ServerManager:
             "DIPEO_BASE_DIR": str(
                 BASE_DIR
             ),  # Ensure server uses correct base directory
+            # Ensure PYTHONPATH includes the project root for module imports
+            "PYTHONPATH": str(BASE_DIR) + (
+                ";" + subprocess.os.environ.get("PYTHONPATH", "") 
+                if sys.platform == "win32" and subprocess.os.environ.get("PYTHONPATH")
+                else ":" + subprocess.os.environ.get("PYTHONPATH", "") 
+                if subprocess.os.environ.get("PYTHONPATH")
+                else ""
+            ),
         }
 
         self.process = subprocess.Popen(
-            ["python", "main.py"],
+            [sys.executable, "main.py"],
             cwd=server_path,
             env=env,
             stdout=None,  # Inherit parent's stdout to allow redirection

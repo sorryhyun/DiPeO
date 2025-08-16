@@ -17,6 +17,8 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    permissions:
+      contents: write  # Required for creating releases
     
     env:
       DIPEO_BASE_DIR: ${{ github.workspace }}
@@ -71,13 +73,8 @@ jobs:
           
           Write-Host "Installing Python dependencies with uv..."
           
-          # Install all dependencies from requirements.txt
+          # Install all dependencies from requirements.txt (includes editable installs)
           uv pip sync requirements.txt
-          
-          # Explicitly install local packages as editable installs to ensure proper setup
-          uv pip install -e ./dipeo
-          uv pip install -e ./apps/server
-          uv pip install -e ./apps/cli
           
           # Install development dependencies
           uv pip install "ruff>=0.8.0" mypy pytest-asyncio pytest-cov isort black import-linter
