@@ -89,20 +89,23 @@ PREPARE_DIAGRAM_USE_CASE = ServiceKey["PrepareDiagramForExecutionUseCase"]("prep
 DATABASE = ServiceKey["DatabasePort"]("database")
 NOTION_CLIENT = ServiceKey["NotionClientPort"]("notion_client")
 
-# Validator Services (to be removed in later phases)
-API_VALIDATOR = ServiceKey["APIValidator"]("api_validator")
-FILE_VALIDATOR = ServiceKey["FileValidator"]("file_validator")
-DIAGRAM_VALIDATOR = ServiceKey["DiagramValidator"]("diagram_validator")
-DATA_VALIDATOR = ServiceKey["DataValidator"]("data_validator")
-NOTION_VALIDATOR = ServiceKey["NotionValidator"]("notion_validator")
-LLM_VALIDATOR = ServiceKey["LLMValidator"]("llm_validator")
-EXECUTION_VALIDATOR = ServiceKey["ExecutionValidator"]("execution_validator")
+# Validator Services
+DIAGRAM_VALIDATOR = ServiceKey["DiagramValidator"]("diagram_validator")  # Active
+
+# DEPRECATED: These validators are unused and will be removed
+# TODO: Remove these in the next major refactor
+# API_VALIDATOR = ServiceKey["APIValidator"]("api_validator")  # Implemented but unused
+# FILE_VALIDATOR = ServiceKey["FileValidator"]("file_validator")  # Implemented but unused
+# DATA_VALIDATOR = ServiceKey["DataValidator"]("data_validator")  # Implemented but unused
+# EXECUTION_VALIDATOR = ServiceKey["ExecutionValidator"]("execution_validator")  # Implemented but unused
+# NOTION_VALIDATOR = ServiceKey["NotionValidator"]("notion_validator")  # Not implemented
+# LLM_VALIDATOR = ServiceKey["LLMValidator"]("llm_validator")  # Not implemented
 
 # Business Logic Services
 API_BUSINESS_LOGIC = ServiceKey["APIBusinessLogic"]("api_business_logic")
 FILE_BUSINESS_LOGIC = ServiceKey["FileBusinessLogic"]("file_business_logic")
 DIAGRAM_STATISTICS_SERVICE = ServiceKey["DiagramStatisticsService"]("diagram_statistics")
-DIAGRAM_FORMAT_SERVICE = ServiceKey["DiagramFormatDetector"]("diagram_format")
+DIAGRAM_FORMAT_SERVICE = ServiceKey["DiagramFormatDetector"]("diagram_format_service")
 LLM_DOMAIN_SERVICE = ServiceKey["LLMDomainService"]("llm_domain_service")
 
 # Additional Services (newly added for migration)
@@ -162,14 +165,15 @@ __all__ = [
     "DATABASE",
     "NOTION_CLIENT",
     
-    # Validators (deprecated)
-    "API_VALIDATOR",
-    "FILE_VALIDATOR",
+    # Validators
     "DIAGRAM_VALIDATOR",
-    "DATA_VALIDATOR",
-    "NOTION_VALIDATOR",
-    "LLM_VALIDATOR",
-    "EXECUTION_VALIDATOR",
+    # Deprecated - to be removed
+    # "API_VALIDATOR",
+    # "FILE_VALIDATOR",
+    # "DATA_VALIDATOR",
+    # "EXECUTION_VALIDATOR",
+    # "NOTION_VALIDATOR",
+    # "LLM_VALIDATOR",
     
     # Business Logic
     "API_BUSINESS_LOGIC",

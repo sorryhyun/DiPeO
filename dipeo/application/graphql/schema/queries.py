@@ -16,6 +16,7 @@ from dipeo.application.registry.keys import (
     STATE_STORE,
     CONVERSATION_SERVICE,
     CLI_SESSION_SERVICE,
+    DIAGRAM_CONVERTER,
 )
 from dipeo.core.constants import FILES_DIR
 from dipeo.diagram_generated import LLMService, NodeType
@@ -264,9 +265,8 @@ def create_query_type(registry: ServiceRegistry) -> type:
         
         @strawberry.field
         async def supported_formats(self) -> List[DiagramFormatInfo]:
-            from dipeo.infrastructure.services.diagram import converter_registry
-            
-            formats = converter_registry.list_formats()
+            converter = registry.resolve(DIAGRAM_CONVERTER)
+            formats = converter.list_formats()
             return [
                 DiagramFormatInfo(
                     format=fmt["id"],
