@@ -22,7 +22,7 @@ if sys.platform == "win32":
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
 
-from .commands import ConvertCommand, MetricsCommand, RunCommand, UtilsCommand
+from .commands import AskCommand, ConvertCommand, MetricsCommand, RunCommand, UtilsCommand
 from .commands.base import DiagramLoader
 from .server_manager import ServerManager
 
@@ -42,10 +42,30 @@ class DiPeOCLI:
         self.server = ServerManager()
 
         # Initialize command handlers
+        self.ask_command = AskCommand(self.server)
         self.run_command = RunCommand(self.server)
         self.convert_command = ConvertCommand()
         self.metrics_command = MetricsCommand(self.server)
         self.utils_command = UtilsCommand()
+
+    def ask(
+        self,
+        request: str,
+        and_run: bool = False,
+        debug: bool = False,
+        timeout: int = 90,
+        run_timeout: int = 300,
+        no_browser: bool = True,
+    ):
+        """Generate a diagram from natural language and optionally run it."""
+        return self.ask_command.execute(
+            request=request,
+            and_run=and_run,
+            debug=debug,
+            timeout=timeout,
+            run_timeout=run_timeout,
+            no_browser=no_browser,
+        )
 
     def run(
         self,
@@ -124,6 +144,38 @@ def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="DiPeO CLI - Simplified Interface")
     subparsers = parser.add_subparsers(dest="command", help="Commands")
+
+    # Ask command
+    ask_parser = subparsers.add_parser("ask", help="Generate diagram from natural language")
+    ask_parser.add_argument(
+        "--to",
+        type=str,
+        required=True,
+        help="Natural language description of what to create",
+    )
+    ask_parser.add_argument(
+        "--and-run",
+        action="store_true",
+        help="Automatically run the generated diagram",
+    )
+    ask_parser.add_argument("--debug", action="store_true", help="Enable debug output")
+    ask_parser.add_argument(
+        "--timeout",
+        type=int,
+        default=90,
+        help="Generation timeout in seconds (default: 90)",
+    )
+    ask_parser.add_argument(
+        "--run-timeout",
+        type=int,
+        default=300,
+        help="Execution timeout for generated diagram in seconds (default: 300)",
+    )
+    ask_parser.add_argument(
+        "--browser",
+        action="store_true",
+        help="Open browser when running generated diagram",
+    )
 
     # Run command
     run_parser = subparsers.add_parser("run", help="Execute a diagram")
@@ -233,7 +285,17 @@ def main():
     cli = DiPeOCLI()
 
     try:
-        if args.command == "run":
+        if args.command == "ask":
+            success = cli.ask(
+                request=args.to,
+                and_run=args.and_run,
+                debug=args.debug,
+                timeout=args.timeout,
+                run_timeout=args.run_timeout,
+                no_browser=not args.browser,  # Invert logic
+            )
+            sys.exit(0 if success else 1)
+        elif args.command == "run":
             # Determine format type
             format_type = None
             if args.light:

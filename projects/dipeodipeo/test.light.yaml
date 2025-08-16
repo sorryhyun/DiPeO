@@ -38,13 +38,21 @@ nodes:
     position: {x: 100, y: 200}
     
   - label: load_request
-    type: db
+    type: code_job
     position: {x: 300, y: 200}
     props:
-      operation: read
-      sub_type: file
-      source_details: projects/dipeodipeo/request.txt
-      format: text
+      language: python
+      code: |
+        def main(user_requirements=None, workflow_description=None):
+            # If input variables are provided, use them
+            if user_requirements:
+                return user_requirements
+            # Otherwise, read from file
+            try:
+                with open('projects/dipeodipeo/request.txt', 'r') as f:
+                    return f.read().strip()
+            except FileNotFoundError:
+                return "Create a simple data processing diagram"
 
   - label: generate_prompt
     type: person_job
@@ -69,7 +77,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      format: text
+      format: csv
       source_details: projects/dipeodipeo/generated/test_data.csv
 
   - label: generate_diagram
@@ -100,9 +108,9 @@ nodes:
 
 
 connections:
-  - {from: start, to: load_request}
+  - {from: start, to: load_request, content_type: object}
   - {from: load_request, to: generate_prompt, label: user_requirements, content_type: raw_text}
-  - {from: load_request, to: generate_test_data, label: workflow_description, content_type: raw_text}
+  - {from: load_request, to: generate_test_data, label: workflow_description, content_type: object}
   - {from: generate_prompt, to: generate_diagram, label: generated_prompt, content_type: raw_text}
   - {from: generate_test_data, to: save_test_data, content_type: object}
   - {from: generate_diagram, to: format_yaml, label: generated_diagram, content_type: object}

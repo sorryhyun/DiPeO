@@ -1,208 +1,385 @@
 version: light
-name: csv_data_processing_pipeline
-description: 'Create a DiPeO diagram that implements a Python-based data processing pipeline: load CSVs from a directory,
-  validate, process files in parallel (async), aggregate, and save to JSON. Includes explicit error handling and performance
-  considerations.'
+name: data_processor_pipeline_dipeo
+description: A robust, reusable data processor pipeline from ingestion to output, including validation, transformation, routing,
+  error handling, and observability.
 nodes:
-- label: start
+- label: ObjectiveInput
   type: start
   position:
     x: 0
     y: 0
   props:
-    flipped: false
     trigger_mode: manual
     custom_data:
-      directory_path: /path/to/csv_dir
-      output_path: ./output/results.json
-- label: list_csv_files
+      user_prompt: create data processor diagram
+    output_data_structure:
+      type: object
+- label: DefineDataConfig
   type: code_job
   position:
-    x: 300
+    x: 260
     y: 0
   props:
-    flipped: false
     language: python
     code: |
       import json
-      from pathlib import Path
 
-      def main(directory_path: str):
-          errors = []
-          file_paths = []
-          p = Path(directory_path)
-          if not p.exists():
-              return { 'file_paths': [], 'errors': [ f"Directory not found: {directory_path}" ] }
-          if not p.is_dir():
-              return { 'file_paths': [], 'errors': [ f"Path is not a directory: {directory_path}" ] }
-          files = sorted([ str(fp) for fp in p.glob('*.csv') if fp.is_file() ])
-          return { 'file_paths': files, 'errors': [] }
-    timeout: 120
-- label: process_files_in_parallel
+      # Sample, compact DataSource and DataSink artifacts (small, concrete examples)
+      data_sources = [
+          {"id": "source_csv_1", "type": "csv", "location": "./data/input.csv", "schema": {"fields": {"id": "int", "name": "str", "value": "float", "timestamp": "str"}}},
+          {"id": "source_api_1", "type": "api", "endpoint": "https://api.example.com/data", "schema": {"fields": {"id": "int", "category": "str", "amount": "float", "ts": "str"}}},
+          {"id": "source_kafka_1", "type": "kafka", "topic": "events", "bootstrap_servers": ["localhost:9092"], "schema": {"fields": {"id": "str", "payload": "dict"}}}
+      ]
+
+      data_sinks = [
+          {"id": "sink_dw", "type": "parquet_store", "destination": "./warehouse/parquet/", "schema": {"fields": {"id": "int", "name": "str", "value": "float", "timestamp": "str"}}},
+          {"id": "sink_blob", "type": "filesystem", "destination": "./lake/csv/", "schema": {"fields": {"id": "int", "name": "str", "value": "float", "timestamp": "str"}}}
+      ]
+
+      transformation_plan = {"steps": ["clean_nulls", "normalize_fields", "enrich_with_metadata", "deduplicate"]}
+
+      config = {
+          "data_sources": data_sources,
+          "data_sinks": data_sinks,
+          "transformation_plan": transformation_plan,
+          "retry_policy": {"max_retries": 3, "backoff_seconds": 5}
+      }
+
+      print(json.dumps({"data_config": config}))
+    timeout: 60
+- label: ParallelOrchestrator
   type: code_job
   position:
-    x: 600
+    x: 520
     y: 0
   props:
-    flipped: false
     language: python
     code: |
-      import asyncio
-      import pandas as pd
-      from datetime import datetime
+      import json, sys, asyncio
 
-      async def process_single_file(filepath):
-          try:
-              df = pd.read_csv(filepath)
-          except Exception as e:
-              return { 'file': filepath, 'status': 'error', 'metrics': None, 'errors': [f"Load error: {str(e)}"] }
+      # Optional parallel orchestration for independent sources with deterministic ordering
 
-          required = ['id','value','timestamp','category']
-          missing = [c for c in required if c not in df.columns]
-          if missing:
-              return { 'file': filepath, 'status': 'invalid', 'metrics': None, 'errors': [f"Missing columns: {missing}"] }
-
-          if df[required].isnull().any().any():
-              return { 'file': filepath, 'status': 'invalid', 'metrics': None, 'errors': ['Null values in essential columns'] }
-
-          vals = pd.to_numeric(df['value'], errors='coerce')
-          if vals.isnull().any():
-              return { 'file': filepath, 'status': 'invalid', 'metrics': None, 'errors': ["Non-numeric values in 'value'"] }
-
-          try:
-              pd.to_datetime(df['timestamp'], errors='raise')
-          except Exception as e:
-              return { 'file': filepath, 'status': 'invalid', 'metrics': None, 'errors': ["Invalid timestamp values"] }
-
-          sum_v = float(vals.sum())
-          count = int(vals.count())
-          mean = float(vals.mean()) if count > 0 else None
-
-          return { 'file': filepath, 'status': 'valid', 'metrics': { 'sum': sum_v, 'count': count, 'mean': mean }, 'errors': [] }
-
-      async def main(input_obj):
-          if isinstance(input_obj, dict) and 'file_paths' in input_obj:
-              paths = input_obj['file_paths']
-          else:
-              paths = input_obj if isinstance(input_obj, list) else []
-          start_time = datetime.utcnow().isoformat()
-          per_file_results = []
-
-          sem = asyncio.Semaphore(min(32, max(1, len(paths)//2 if paths else 1)))
-
-          async def sem_process(p):
-              async with sem:
-                  return await process_single_file(p)
-
-          tasks = [asyncio.create_task(sem_process(p)) for p in paths]
-          if tasks:
-              per_file_results = await asyncio.gather(*tasks)
-          end_time = datetime.utcnow().isoformat()
-          return { 'start_time': start_time, 'end_time': end_time, 'per_file_results': per_file_results }
-    timeout: 300
-- label: aggregate_results
-  type: code_job
-  position:
-    x: 900
-    y: 0
-  props:
-    flipped: false
-    language: python
-    code: |
-      def main(input_obj):
-          if isinstance(input_obj, dict):
-              start_time = input_obj.get('start_time')
-              end_time = input_obj.get('end_time')
-              per_files = input_obj.get('per_file_results', [])
-          else:
-              per_files = input_obj
-              start_time = end_time = None
-
-          total_files = len(per_files)
-          valid_files = sum(1 for f in per_files if isinstance(f, dict) and f.get('status') == 'valid')
-          invalid_files = sum(1 for f in per_files if isinstance(f, dict) and f.get('status') == 'invalid')
-          error_files = sum(1 for f in per_files if isinstance(f, dict) and f.get('status') == 'error')
-
-          total_sum = 0.0
-          total_count = 0
-          for f in per_files:
-              if isinstance(f, dict) and f.get('status') == 'valid' and isinstance(f.get('metrics'), dict):
-                  total_sum += float(f['metrics'].get('sum', 0.0))
-                  total_count += int(f['metrics'].get('count', 0))
-
-          mean_value = float(total_sum) / float(total_count) if total_count > 0 else None
-
-          aggregated = {
-              'summary': {
-                  'total_files': total_files,
-                  'valid_files': valid_files,
-                  'invalid_files': invalid_files,
-                  'error_files': error_files,
-                  'start_time': start_time,
-                  'end_time': end_time
-              },
-              'per_file': per_files,
-              'aggregated': {
-                  'total_sum': total_sum,
-                  'total_count': total_count,
-                  'mean_value': mean_value
-              }
-          }
-          return aggregated
-    timeout: 120
-- label: provide_output_path
-  type: code_job
-  position:
-    x: 1050
-    y: 0
-  props:
-    flipped: false
-    language: python
-    code: |
       def main():
-          # Provide a sensible default path; can be overridden by a separate input in the diagram
-          return { 'output_path': './output/results.json' }
+          s = sys.stdin.read()
+          payload = json.loads(s) if s else {}
+          data_config = payload.get('data_config', {})
+          sources = data_config.get('data_sources', [])
+          order = sorted([src.get('id') for src in sources])  # deterministic ordering by id
+          print(json.dumps({"load_plan": {"order": order}}))
+
+      if __name__ == '__main__':
+          main()
     timeout: 60
-- label: save_results_json
+- label: LoadData
   type: code_job
   position:
-    x: 1200
+    x: 780
     y: 0
   props:
-    flipped: false
     language: python
     code: |
-      import json
-      from pathlib import Path
+      import json, sys
 
-      def main(aggregated_result, output_path):
-          try:
-              path = Path(output_path)
-              path.parent.mkdir(parents=True, exist_ok=True)
-              with path.open('w', encoding='utf-8') as f:
-                  json.dump(aggregated_result, f, indent=2)
-              return { 'status': 'success', 'path': str(path) }
-          except Exception as e:
-              return { 'status': 'error', 'errors': [str(e)] }
+      payload = json.loads(sys.stdin.read()) if sys.stdin and sys.stdin.readable() else {}
+      data_config = payload.get('data_config', {})
+      load_plan = payload.get('load_plan', {})
+      order = load_plan.get('order', [])
+
+      sources = {src['id']: src for src in data_config.get('data_sources', [])}
+      loaded = []
+      for sid in order:
+          src = sources.get(sid)
+          if not src:
+              continue
+          stype = src.get('type')
+          if stype == 'csv':
+              recs = [{"id": 1, "name": "Alice", "value": 10.0, "timestamp": "2025-01-01T00:00:00Z"}]
+          elif stype == 'api':
+              recs = [{"id": 101, "category": "A", "amount": 3.14, "ts": "2025-01-01T00:01:00Z"}]
+          elif stype == 'kafka':
+              recs = [{"id": "ev1", "payload": {"k": 1}}]
+          else:
+              recs = []
+          loaded.append({"source_id": sid, "source_type": stype, "records": recs, "record_count": len(recs)})
+
+      print(json.dumps({"loaded_data": loaded}))
     timeout: 60
+- label: ValidateData
+  type: code_job
+  position:
+    x: 1040
+    y: 0
+  props:
+    language: python
+    code: |
+      import json, sys
+      s = sys.stdin.read()
+      payload = json.loads(s) if s else {}
+      loaded = payload.get('loaded_data', [])
+      required = {'id','timestamp','value'}
+      valid = True
+      errors = []
+      for src in loaded:
+          for rec in src.get('records', []):
+              missing = [f for f in required if f not in rec]
+              if missing:
+                  valid = False
+                  errors.append({"source_id": src.get('source_id'), "missing_fields": missing, "record": rec})
+                  break
+          if not valid:
+              break
+      print(json.dumps({"validation_result": {"valid": valid, "errors": errors}}))
+    timeout: 60
+- label: QualityGate
+  type: condition
+  position:
+    x: 1280
+    y: 0
+  props:
+    condition_type: custom
+    expression: validation_result.get('valid', False)
+    node_indices:
+    - TransformData
+    - Remediation
+- label: TransformData
+  type: code_job
+  position:
+    x: 1520
+    y: 0
+  props:
+    language: python
+    code: |
+      import json, sys
+      s = sys.stdin.read()
+      payload = json.loads(s) if s else {}
+      loaded = payload.get('loaded_data', [])
+      transformed = []
+      for src in loaded:
+          for rec in src.get('records', []):
+              r = dict(rec)
+              for k, v in list(r.items()):
+                  if isinstance(v, str) and v.replace('.', '', 1).isdigit():
+                      r[k] = float(v) if '.' in v else int(v)
+              transformed.append({"source_id": src.get('source_id'), "record": r})
+      transformation_plan = payload.get('transformation_plan', {"steps": ["clean_nulls","normalize_fields"]})
+      print(json.dumps({"transformed_data": transformed, "transformation_plan": transformation_plan}))
+    timeout: 60
+- label: RouteData
+  type: code_job
+  position:
+    x: 1800
+    y: 0
+  props:
+    language: python
+    code: |
+      import json, sys
+      s = sys.stdin.read()
+      payload = json.loads(s) if s else {}
+      transformed = payload.get('transformed_data', [])
+      routing_result = {"valid": transformed, "invalid": []}
+      # Pass sinks along for downstream save (simplified for demonstration)
+      routing_result["data_sinks"] = payload.get('transformation_plan', {})
+      print(json.dumps({"routing_result": routing_result, "data_config": payload.get('data_config', {})}))
+    timeout: 60
+- label: SaveData
+  type: code_job
+  position:
+    x: 2060
+    y: 0
+  props:
+    language: python
+    code: |
+      import json, os, csv, sys
+      s = sys.stdin.read()
+      payload = json.loads(s) if s else {}
+      routing = payload.get('routing_result', {})
+      transformed = routing.get('valid', [])
+      data_sinks = payload.get('data_config', {}).get('data_sinks', [])
+      save_results = []
+      for sink in data_sinks:
+          dest = sink.get('destination', './outputs')
+          os.makedirs(dest, exist_ok=True)
+          path = os.path.join(dest, sink.get('id', 'sink') + ".csv")
+          with open(path, 'w', encoding='utf-8', newline='') as f:
+              writer = csv.writer(f)
+              writer.writerow(['source_id','record_id','timestamp','value'])
+              for rec_item in transformed:
+                  rec = rec_item.get('record', {})
+                  writer.writerow([rec_item.get('source_id'), rec.get('id'), rec.get('timestamp', ''), rec.get('value', '')])
+          size = os.path.getsize(path)
+          save_results.append({"sink_id": sink.get('id'), "path": path, "size_bytes": size, "status": "written"})
+      print(json.dumps({"save_results": save_results, "routing_result": {"valid": transformed, "invalid": []}}))
+    timeout: 60
+- label: Observability
+  type: code_job
+  position:
+    x: 2320
+    y: 0
+  props:
+    language: python
+    code: |
+      import json, sys
+      s = sys.stdin.read()
+      payload = json.loads(s) if s else {}
+      save_results = payload.get('save_results', [])
+      pipeline_run = {
+          'id': 'run_001',
+          'status': 'success',
+          'metrics': {"records_processed": sum(len(r) for r in save_results) if save_results else 0},
+          'logs': ["pipeline execution completed", f"sinks={len(save_results)}"]
+      }
+      print(json.dumps({'pipeline_run': pipeline_run}))
+    timeout: 60
+- label: FinalOutput
+  type: user_response
+  position:
+    x: 2580
+    y: 0
+  props:
+    prompt: Final Results:\n- Data ingested from configured sources.\n- Validation performed; if valid, transformation applied.\n-
+      Data saved to sinks.\n- Observability emitted (PipelineRun).\n- If remediation occurred, see remediation paths.
+    timeout: 0
+- label: Remediation
+  type: code_job
+  position:
+    x: 0
+    y: 200
+  props:
+    language: python
+    code: |
+      import json, sys
+      s = sys.stdin.read()
+      payload = json.loads(s) if s else {}
+      remediation_plan = {
+          'action': 'retry',
+          'reason': 'validation_failed_non_fatal',
+          'retry_count': 0,
+          'max_retries': 3
+      }
+      print(json.dumps({'remediation_plan': remediation_plan}))
+    timeout: 60
+- label: RemediationDecision
+  type: condition
+  position:
+    x: 360
+    y: 200
+  props:
+    condition_type: custom
+    expression: remediation_plan.get('action')
+    node_indices:
+    - LoadData
+    - DeadLetter
+    - HumanReview
+- label: DeadLetter
+  type: code_job
+  position:
+    x: 720
+    y: 200
+  props:
+    language: python
+    code: |
+      import json, os, sys
+      s = sys.stdin.read()
+      payload = json.loads(s) if s else {}
+      path = './dlq/failed_records.json'
+      os.makedirs('./dlq', exist_ok=True)
+      with open(path, 'w', encoding='utf-8') as f:
+          f.write(json.dumps({'failed_batch': payload}))
+      print(json.dumps({'dead_letter_path': path}))
+    timeout: 60
+- label: HumanReview
+  type: person_job
+  position:
+    x: 720
+    y: 400
+  props:
+    person: data_governance_policy
+    first_only_prompt: Review remediation decisions for retention and governance gates.
+    default_prompt: Please assess remediation plan and approve retry or escalate.
+    max_iteration: 1.0
+    memory_profile: MINIMAL
+- label: RemediationNotes
+  type: start
+  position:
+    x: 0
+    y: 400
+  props:
+    trigger_mode: manual
+    output_data_structure:
+      type: object
+- label: RemediationEnd
+  type: endpoint
+  position:
+    x: 0
+    y: 520
+  props:
+    save_to_file: false
 connections:
-- from: start
-  to: list_csv_files
-  label: directory_path
+- from: ObjectiveInput
+  to: DefineDataConfig
+  label: prompt_raw
   content_type: raw_text
-- from: list_csv_files
-  to: process_files_in_parallel
-  label: file_paths
+- from: DefineDataConfig
+  to: ParallelOrchestrator
+  label: data_config
   content_type: object
-- from: process_files_in_parallel
-  to: aggregate_results
-  label: per_file_results
+- from: ParallelOrchestrator
+  to: LoadData
+  label: load_plan
   content_type: object
-- from: aggregate_results
-  to: save_results_json
-  label: aggregated_result
+- from: LoadData
+  to: ValidateData
+  label: loaded_data
   content_type: object
-- from: provide_output_path
-  to: save_results_json
-  label: output_path
+- from: ValidateData
+  to: QualityGate
+  label: validation_result
+  content_type: object
+- from: QualityGate
+  to: TransformData
+  label: 'true'
+  content_type: raw_text
+- from: QualityGate
+  to: Remediation
+  label: 'false'
+  content_type: raw_text
+- from: TransformData
+  to: RouteData
+  label: transformed_data
+  content_type: object
+- from: RouteData
+  to: SaveData
+  label: routing_result
+  content_type: object
+- from: SaveData
+  to: Observability
+  label: save_results
+  content_type: object
+- from: Observability
+  to: FinalOutput
+  label: pipeline_run
+  content_type: object
+- from: Remediation
+  to: RemediationDecision
+  label: remediation
+  content_type: object
+- from: RemediationDecision
+  to: LoadData
+  label: retry
+  content_type: raw_text
+- from: RemediationDecision
+  to: DeadLetter
+  label: dead_letter
+  content_type: raw_text
+- from: RemediationDecision
+  to: HumanReview
+  label: human_review
+  content_type: object
+- from: HumanReview
+  to: LoadData
+  label: governance_done
+  content_type: object
+- from: DeadLetter
+  to: FinalOutput
+  label: dlq_complete
   content_type: raw_text

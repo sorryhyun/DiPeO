@@ -1,5 +1,10 @@
 # DiPeO, Diagrammed People (agents) & Organizations (agent system)
+
+> Start with `dipeo ask "the command you want to ask" --and-run`
+
 ![image info](/docs/actual_screenshot.png)
+
+
 
 DiPeO(daɪpiːɔː) is a **monorepo** for building, executing, and monitoring AI‑powered agent workflows through an intuitive visual programming environment. The repository is composed of a feature-based React **frontend** (apps/web/), a domain-driven FastAPI **backend** (apps/server/), and a CLI **tool** (apps/cli/) that work together to deliver real‑time, multi‑LLM automation at scale.
 
@@ -53,12 +58,28 @@ read [example](files/diagrams/examples/simple_iter_ollama.light.yaml)
 
 
 ### `dipeo` - Run Diagrams with CLI
+
+#### Run existing diagrams
 ```bash
 # run diagram with automatically running server
 dipeo run diagrams/examples/simple_iter --debug --light --timeout=10
 # or, feed actual directory
 dipeo run files/diagrams/examples/simple_iter.light.yaml --light --debug
 ```
+
+#### Generate diagrams from natural language
+```bash
+# Generate a diagram from natural language request
+dipeo ask --to "create csv preprocessor" --timeout=90
+
+# Generate and immediately run the created diagram
+dipeo ask --to "create csv preprocessor" --and-run --timeout=90
+
+# With additional options
+dipeo ask --to "build data pipeline" --and-run --debug --timeout=120 --run-timeout=300
+```
+
+**Note**: The `dipeo ask` command uses AI to generate DiPeO diagrams from your natural language description. Generation typically takes 60-90 seconds due to multiple LLM calls. Use `--timeout 120` for complex requests.
 
 ### Documentation
 - [Full Documentation Index](docs/index.md) - Complete list of guides and technical documentation

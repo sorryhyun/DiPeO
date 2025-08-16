@@ -104,6 +104,9 @@ class DiagramService(BaseService, DiagramPort):
         if "files" in path.parts:
             idx = path.parts.index("files")
             rel_path = Path(*path.parts[idx+1:])
+        elif "projects" in path.parts:
+            idx = path.parts.index("projects")
+            rel_path = Path("projects", *path.parts[idx+1:])
         else:
             rel_path = path
         
@@ -142,7 +145,7 @@ class DiagramService(BaseService, DiagramPort):
             extensions = [".native.json", ".light.yaml", ".readable.yaml"]
         
         try:
-            def scan_directory(dir_path: Path) -> None:
+            def scan_directory(dir_path: Path, base_for_relative: Path) -> None:
                 try:
                     items = self.filesystem.listdir(dir_path)
                 except Exception:
@@ -153,7 +156,9 @@ class DiagramService(BaseService, DiagramPort):
                         for ext in extensions:
                             if str(item).endswith(ext):
                                 stat = self.filesystem.stat(item)
-                                rel_path = item.relative_to(self.base_path)
+                                # Calculate relative path from the root (parent of files/projects)
+                                root_base = self.base_path.parent
+                                rel_path = item.relative_to(root_base)
                                 diagram_id = str(rel_path).replace('\\', '/')
                                 
                                 diagrams.append(DiagramInfo(
@@ -166,9 +171,16 @@ class DiagramService(BaseService, DiagramPort):
                                 ))
                                 break
                     elif item.is_dir():
-                        scan_directory(item)
+                        scan_directory(item, base_for_relative)
             
-            scan_directory(self.base_path)
+            # Scan both files/ and projects/ directories
+            scan_directory(self.base_path, self.base_path)
+            
+            # Also scan projects/ directory if it exists
+            projects_path = self.base_path.parent / "projects"
+            if self.filesystem.exists(projects_path):
+                scan_directory(projects_path, projects_path)
+                
         except Exception as e:
             raise StorageError(f"Failed to list diagrams: {e}")
         
@@ -329,28 +341,56 @@ class DiagramService(BaseService, DiagramPort):
         supported_extensions = [".native.json", ".light.yaml", ".light.yml", 
                               ".readable.yaml", ".readable.yml", ".json", ".yaml", ".yml"]
         
+        # List of directories to search in order
+        search_dirs = [self.base_path]  # files/ directory
+        projects_path = self.base_path.parent / "projects"
+        if self.filesystem.exists(projects_path):
+            search_dirs.append(projects_path)
+        
+        # If diagram_id starts with "projects/" or "files/", use it directly
+        if diagram_id.startswith("projects/") or diagram_id.startswith("files/"):
+            root_base = self.base_path.parent
+            full_path = root_base / diagram_id
+            if self.filesystem.exists(full_path):
+                return full_path
+            # Also try with extensions
+            for ext in supported_extensions:
+                if not diagram_id.endswith(ext):
+                    test_path = root_base / f"{diagram_id}{ext}"
+                    if self.filesystem.exists(test_path):
+                        return test_path
+        
         # Check if diagram_id already has an extension
         for ext in supported_extensions:
             if diagram_id.endswith(ext):
-                path = self.base_path / diagram_id
-                if self.filesystem.exists(path):
-                    return path
-                return path
+                for search_dir in search_dirs:
+                    path = search_dir / diagram_id
+                    if self.filesystem.exists(path):
+                        return path
+                # Return first search dir path if none exist (for creation)
+                return search_dirs[0] / diagram_id
         
         # If format is specified, use it
         if format:
             format_enum = self._format_string_to_enum(format)
             extension = self.format_detector.get_file_extension(format_enum)
-            return self.base_path / f"{diagram_id}{extension}"
+            # Check all search dirs
+            for search_dir in search_dirs:
+                path = search_dir / f"{diagram_id}{extension}"
+                if self.filesystem.exists(path):
+                    return path
+            # Return first search dir path if none exist (for creation)
+            return search_dirs[0] / f"{diagram_id}{extension}"
         
         # Try to find existing file with various extensions
         patterns = self.format_detector.construct_search_patterns(diagram_id)
         for pattern in patterns:
-            path = self.base_path / pattern
-            if self.filesystem.exists(path):
-                return path
+            for search_dir in search_dirs:
+                path = search_dir / pattern
+                if self.filesystem.exists(path):
+                    return path
         
-        # Default to native format
+        # Default to native format in files/ directory
         return self.base_path / f"{diagram_id}.native.json"
     
     def _detect_format_from_path(self, path: Path) -> str:

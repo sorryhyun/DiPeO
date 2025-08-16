@@ -1,1 +1,675 @@
-"{'id': 'resp_689ea06eb7b88199985413584514f68a0442ee41dac2014e', 'created_at': 1755226222.0, 'error': None, 'incomplete_details': None, 'instructions': None, 'metadata': {}, 'model': 'gpt-5-nano-2025-08-07', 'object': 'response', 'output': [{'id': 'rs_689ea06f45b0819994eb95f450ef2a410442ee41dac2014e', 'summary': [], 'type': 'reasoning', 'encrypted_content': None, 'status': None}, {'id': 'msg_689ea09ed2c481999935384f77cbbf990442ee41dac2014e', 'content': [{'annotations': [], 'text': '{\\n  \"test_data\": {\\n    \"specification\": {\\n      \"format\": \"csv\",\\n      \"num_rows\": 30,\\n      \"fields\": [\\n        {\\n          \"name\": \"transaction_id\",\\n          \"type\": \"string\",\\n          \"nullable\": false,\\n          \"unique\": true,\\n          \"min_value\": null,\\n          \"max_value\": null,\\n          \"pattern\": null,\\n          \"choices\": null,\\n          \"description\": \"Unique identifier for each transaction\"\\n        },\\n        {\\n          \"name\": \"amount\",\\n          \"type\": \"float\",\\n          \"nullable\": false,\\n          \"unique\": false,\\n          \"min_value\": 0.0,\\n          \"max_value\": null,\\n          \"pattern\": null,\\n          \"choices\": null,\\n          \"description\": \"Transaction amount in given currency\"\\n        },\\n        {\\n          \"name\": \"currency\",\\n          \"type\": \"string\",\\n          \"nullable\": false,\\n          \"unique\": false,\\n          \"min_value\": null,\\n          \"max_value\": null,\\n          \"pattern\": null,\\n          \"choices\": null,\\n          \"description\": \"ISO currency code\"\\n        },\\n        {\\n          \"name\": \"status\",\\n          \"type\": \"string\",\\n          \"nullable\": false,\\n          \"unique\": false,\\n          \"min_value\": null,\\n          \"max_value\": null,\\n          \"pattern\": null,\\n          \"choices\": [\"pending\",\"completed\",\"failed\",\"refunded\"],\\n          \"description\": \"Transaction status\"\\n        },\\n        {\\n          \"name\": \"timestamp\",\\n          \"type\": \"datetime\",\\n          \"nullable\": false,\\n          \"unique\": false,\\n          \"min_value\": null,\\n          \"max_value\": null,\\n          \"pattern\": null,\\n          \"choices\": null,\\n          \"description\": \"Timestamp in UTC (ISO 8601)\"\\n        },\\n        {\\n          \"name\": \"user_id\",\\n          \"type\": \"string\",\\n          \"nullable\": true,\\n          \"unique\": false,\\n          \"min_value\": null,\\n          \"max_value\": null,\\n          \"pattern\": null,\\n          \"choices\": null,\\n          \"description\": \"Optional reference to user\"\\n        }\\n      ],\\n      \"include_headers\": true,\\n      \"description\": \"Test data for a data pipeline that loads CSV files, validates format, processes in parallel, aggregates results, and exports to JSON. Includes normal, edge, and error cases to exercise filtering, aggregation, and transformation steps.\"\\n    },\\n    \"csv_content\": \"transaction_id,amount,currency,status,timestamp,user_id\\\\nT-10001,25.50,USD,completed,2024-01-15T10:15:30Z,U1001\\\\nT-10002,13.20,USD,pending,2024-01-16T09:00:00Z,U1002\\\\nT-10003,89.99,EUR,completed,2024-01-17T11:25:45Z,U1003\\\\nT-10004,0.99,USD,completed,2024-01-18T14:05:05Z,U1004\\\\nT-10005,12.00,GBP,refunded,2024-01-19T16:40:00Z,U1005\\\\nT-10006,5.55,USD,pending,2024-01-20T08:20:15Z,U1001\\\\nT-10007,300.00,CAD,completed,2024-01-21T12:00:00Z,U1002\\\\nT-10008,7.70,CHF,completed,2024-01-22T18:30:30Z,U1003\\\\nT-10009,49.99,USD,completed,2024-01-23T20:21:10Z,U1004\\\\nT-10010,9.99,EUR,pending,2024-01-24T09:45:55Z,U1005\\\\nT-10011,120.00,USD,completed,2024-01-25T10:10:10Z,U1001\\\\nT-10012,4.25,USD,completed,2024-01-26T16:50:40Z,U1002\\\\nT-10013,0.50,USD,completed,2024-01-27T07:07:07Z,U1003\\\\nT-10014,75.75,AUD,completed,2024-01-28T13:13:13Z,U1004\\\\nT-10015,15.15,JPY,completed,2024-01-29T22:22:22Z,U1005\\\\nT-10016,2.00,USD,completed,2024-01-30T03:03:03Z,U1001\\\\nT-10017,999.95,USD,completed,2024-01-31T23:59:59Z,U1002\\\\nT-10018,55.55,EUR,completed,2024-02-01T11:11:11Z,U1003\\\\nT-10019,8.80,USD,pending,2024-02-02T02:02:02Z,U1004\\\\nT-10020,65.00,GBP,completed,2024-02-03T03:03:03Z,U1005\\\\nT-10021,0.75,USD,completed,2024-02-04T04:04:04Z,U1001\\\\nT-20001,0.01,USD,completed,2020-01-01T00:00:01Z,U1004\\\\nT-20002,9999.99,USD,completed,2020-12-31T23:59:59Z,U1002\\\\nT-20003,50.00,EUR,pending,2019-06-15T08:30:00Z,U1003\\\\nT-20004,0.00,USD,pending,2023-01-15T12:00:00Z,U1005\\\\nT-20005,12.75,GBP,refunded,2022-08-09T17:45:12Z,\\\\nT-20006,123.45,AUD,completed,2024-02-29T12:00:00Z,U1001\\\\nT-20007,0.01,EUR,completed,2023-11-11T10:10:10Z,U1002\\\\nT-30001,-45.00,USD,failed,2024-05-22T09:15:00Z,U1001\\\\nT-30002,60.00,XXX,pending,2024-05-23T11:00:00Z,U1005\",\\n    \"row_count\": 30,\\n    \"field_count\": 6\\n  },\\n  \"summary\": \"30 transaction records designed to validate CSV loading, data format validation, parallel processing, aggregation, and JSON export. Includes 21 normal rows, 6 edge cases (extreme values, nulls, boundary timestamps), and 3 error cases (missing id, negative amount, invalid currency) to exercise all workflow paths.\"\\n}', 'type': 'output_text', 'logprobs': [], 'parsed': {'test_data': {'specification': {'format': <DataType.CSV: 'csv'>, 'num_rows': 30, 'fields': [{'name': 'transaction_id', 'type': 'string', 'nullable': False, 'unique': True, 'min_value': None, 'max_value': None, 'pattern': None, 'choices': None, 'description': 'Unique identifier for each transaction'}, {'name': 'amount', 'type': 'float', 'nullable': False, 'unique': False, 'min_value': 0.0, 'max_value': None, 'pattern': None, 'choices': None, 'description': 'Transaction amount in given currency'}, {'name': 'currency', 'type': 'string', 'nullable': False, 'unique': False, 'min_value': None, 'max_value': None, 'pattern': None, 'choices': None, 'description': 'ISO currency code'}, {'name': 'status', 'type': 'string', 'nullable': False, 'unique': False, 'min_value': None, 'max_value': None, 'pattern': None, 'choices': ['pending', 'completed', 'failed', 'refunded'], 'description': 'Transaction status'}, {'name': 'timestamp', 'type': 'datetime', 'nullable': False, 'unique': False, 'min_value': None, 'max_value': None, 'pattern': None, 'choices': None, 'description': 'Timestamp in UTC (ISO 8601)'}, {'name': 'user_id', 'type': 'string', 'nullable': True, 'unique': False, 'min_value': None, 'max_value': None, 'pattern': None, 'choices': None, 'description': 'Optional reference to user'}], 'include_headers': True, 'description': 'Test data for a data pipeline that loads CSV files, validates format, processes in parallel, aggregates results, and exports to JSON. Includes normal, edge, and error cases to exercise filtering, aggregation, and transformation steps.'}, 'csv_content': 'transaction_id,amount,currency,status,timestamp,user_id\\nT-10001,25.50,USD,completed,2024-01-15T10:15:30Z,U1001\\nT-10002,13.20,USD,pending,2024-01-16T09:00:00Z,U1002\\nT-10003,89.99,EUR,completed,2024-01-17T11:25:45Z,U1003\\nT-10004,0.99,USD,completed,2024-01-18T14:05:05Z,U1004\\nT-10005,12.00,GBP,refunded,2024-01-19T16:40:00Z,U1005\\nT-10006,5.55,USD,pending,2024-01-20T08:20:15Z,U1001\\nT-10007,300.00,CAD,completed,2024-01-21T12:00:00Z,U1002\\nT-10008,7.70,CHF,completed,2024-01-22T18:30:30Z,U1003\\nT-10009,49.99,USD,completed,2024-01-23T20:21:10Z,U1004\\nT-10010,9.99,EUR,pending,2024-01-24T09:45:55Z,U1005\\nT-10011,120.00,USD,completed,2024-01-25T10:10:10Z,U1001\\nT-10012,4.25,USD,completed,2024-01-26T16:50:40Z,U1002\\nT-10013,0.50,USD,completed,2024-01-27T07:07:07Z,U1003\\nT-10014,75.75,AUD,completed,2024-01-28T13:13:13Z,U1004\\nT-10015,15.15,JPY,completed,2024-01-29T22:22:22Z,U1005\\nT-10016,2.00,USD,completed,2024-01-30T03:03:03Z,U1001\\nT-10017,999.95,USD,completed,2024-01-31T23:59:59Z,U1002\\nT-10018,55.55,EUR,completed,2024-02-01T11:11:11Z,U1003\\nT-10019,8.80,USD,pending,2024-02-02T02:02:02Z,U1004\\nT-10020,65.00,GBP,completed,2024-02-03T03:03:03Z,U1005\\nT-10021,0.75,USD,completed,2024-02-04T04:04:04Z,U1001\\nT-20001,0.01,USD,completed,2020-01-01T00:00:01Z,U1004\\nT-20002,9999.99,USD,completed,2020-12-31T23:59:59Z,U1002\\nT-20003,50.00,EUR,pending,2019-06-15T08:30:00Z,U1003\\nT-20004,0.00,USD,pending,2023-01-15T12:00:00Z,U1005\\nT-20005,12.75,GBP,refunded,2022-08-09T17:45:12Z,\\nT-20006,123.45,AUD,completed,2024-02-29T12:00:00Z,U1001\\nT-20007,0.01,EUR,completed,2023-11-11T10:10:10Z,U1002\\nT-30001,-45.00,USD,failed,2024-05-22T09:15:00Z,U1001\\nT-30002,60.00,XXX,pending,2024-05-23T11:00:00Z,U1005', 'row_count': 30, 'field_count': 6}, 'summary': '30 transaction records designed to validate CSV loading, data format validation, parallel processing, aggregation, and JSON export. Includes 21 normal rows, 6 edge cases (extreme values, nulls, boundary timestamps), and 3 error cases (missing id, negative amount, invalid currency) to exercise all workflow paths.'}}], 'role': 'assistant', 'status': 'completed', 'type': 'message'}], 'parallel_tool_calls': True, 'temperature': 1.0, 'tool_choice': 'auto', 'tools': [], 'top_p': 1.0, 'background': False, 'max_output_tokens': None, 'previous_response_id': None, 'prompt': None, 'reasoning': {'effort': 'medium', 'generate_summary': None, 'summary': None}, 'service_tier': 'default', 'status': 'completed', 'text': {'format': {'name': 'Response', 'schema_': {'$defs': {'DataType': {'description': 'Supported data types for test data generation.', 'enum': ['csv', 'json', 'yaml'], 'title': 'DataType', 'type': 'string'}, 'FieldDefinition': {'additionalProperties': False, 'description': 'Definition of a field in the test data.', 'properties': {'name': {'description': 'Field name', 'title': 'Name', 'type': 'string'}, 'type': {'description': 'Data type of the field', 'enum': ['string', 'integer', 'float', 'boolean', 'date', 'datetime', 'email', 'url', 'uuid'], 'title': 'Type', 'type': 'string'}, 'nullable': {'default': False, 'description': 'Whether the field can have null values', 'title': 'Nullable', 'type': 'boolean'}, 'unique': {'default': False, 'description': 'Whether values should be unique', 'title': 'Unique', 'type': 'boolean'}, 'min_value': {'anyOf': [{'type': 'number'}, {'type': 'null'}], 'description': 'Minimum value for numeric fields', 'title': 'Min Value'}, 'max_value': {'anyOf': [{'type': 'number'}, {'type': 'null'}], 'description': 'Maximum value for numeric fields', 'title': 'Max Value'}, 'pattern': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'description': 'Regex pattern for string fields', 'title': 'Pattern'}, 'choices': {'anyOf': [{'items': {'anyOf': [{'type': 'string'}, {'type': 'integer'}, {'type': 'number'}, {'type': 'boolean'}]}, 'type': 'array'}, {'type': 'null'}], 'description': 'List of possible values (strings, numbers, or booleans)', 'title': 'Choices'}, 'description': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'description': 'Field description for context', 'title': 'Description'}}, 'required': ['name', 'type', 'nullable', 'unique', 'min_value', 'max_value', 'pattern', 'choices', 'description'], 'title': 'FieldDefinition', 'type': 'object'}, 'GeneratedTestData': {'additionalProperties': False, 'description': 'Generated test data with metadata.', 'properties': {'specification': {'description': 'The specification used to generate this data', 'additionalProperties': False, 'properties': {'format': {'default': 'csv', 'description': 'Output format for the test data', 'enum': ['csv', 'json', 'yaml'], 'title': 'DataType', 'type': 'string'}, 'num_rows': {'default': 10, 'description': 'Number of rows to generate', 'maximum': 100, 'minimum': 1, 'title': 'Num Rows', 'type': 'integer'}, 'fields': {'description': 'Field definitions for the test data', 'items': {'$ref': '#/$defs/FieldDefinition'}, 'title': 'Fields', 'type': 'array'}, 'include_headers': {'default': True, 'description': 'Whether to include headers in CSV output', 'title': 'Include Headers', 'type': 'boolean'}, 'description': {'description': 'Description of what this test data represents', 'title': 'Description', 'type': 'string'}}, 'required': ['format', 'num_rows', 'fields', 'include_headers', 'description'], 'title': 'TestDataSpecification', 'type': 'object'}, 'csv_content': {'description': 'CSV formatted content ready to save', 'title': 'Csv Content', 'type': 'string'}, 'row_count': {'description': 'Number of data rows generated', 'title': 'Row Count', 'type': 'integer'}, 'field_count': {'description': 'Number of fields per row', 'title': 'Field Count', 'type': 'integer'}}, 'required': ['specification', 'csv_content', 'row_count', 'field_count'], 'title': 'GeneratedTestData', 'type': 'object'}, 'TestDataSpecification': {'additionalProperties': False, 'description': 'Specification for generating test data.', 'properties': {'format': {'default': 'csv', 'description': 'Output format for the test data', 'enum': ['csv', 'json', 'yaml'], 'title': 'DataType', 'type': 'string'}, 'num_rows': {'default': 10, 'description': 'Number of rows to generate', 'maximum': 100, 'minimum': 1, 'title': 'Num Rows', 'type': 'integer'}, 'fields': {'description': 'Field definitions for the test data', 'items': {'$ref': '#/$defs/FieldDefinition'}, 'title': 'Fields', 'type': 'array'}, 'include_headers': {'default': True, 'description': 'Whether to include headers in CSV output', 'title': 'Include Headers', 'type': 'boolean'}, 'description': {'description': 'Description of what this test data represents', 'title': 'Description', 'type': 'string'}}, 'required': ['format', 'num_rows', 'fields', 'include_headers', 'description'], 'title': 'TestDataSpecification', 'type': 'object'}}, 'additionalProperties': False, 'description': 'Response containing the generated test data.', 'properties': {'test_data': {'description': 'The generated test data with CSV content', 'additionalProperties': False, 'properties': {'specification': {'description': 'The specification used to generate this data', 'additionalProperties': False, 'properties': {'format': {'default': 'csv', 'description': 'Output format for the test data', 'enum': ['csv', 'json', 'yaml'], 'title': 'DataType', 'type': 'string'}, 'num_rows': {'default': 10, 'description': 'Number of rows to generate', 'maximum': 100, 'minimum': 1, 'title': 'Num Rows', 'type': 'integer'}, 'fields': {'description': 'Field definitions for the test data', 'items': {'$ref': '#/$defs/FieldDefinition'}, 'title': 'Fields', 'type': 'array'}, 'include_headers': {'default': True, 'description': 'Whether to include headers in CSV output', 'title': 'Include Headers', 'type': 'boolean'}, 'description': {'description': 'Description of what this test data represents', 'title': 'Description', 'type': 'string'}}, 'required': ['format', 'num_rows', 'fields', 'include_headers', 'description'], 'title': 'TestDataSpecification', 'type': 'object'}, 'csv_content': {'description': 'CSV formatted content ready to save', 'title': 'Csv Content', 'type': 'string'}, 'row_count': {'description': 'Number of data rows generated', 'title': 'Row Count', 'type': 'integer'}, 'field_count': {'description': 'Number of fields per row', 'title': 'Field Count', 'type': 'integer'}}, 'required': ['specification', 'csv_content', 'row_count', 'field_count'], 'title': 'GeneratedTestData', 'type': 'object'}, 'summary': {'description': 'Brief summary of what was generated', 'title': 'Summary', 'type': 'string'}}, 'required': ['test_data', 'summary'], 'title': 'Response', 'type': 'object'}, 'type': 'json_schema', 'description': None, 'strict': True}, 'verbosity': 'medium'}, 'truncation': 'disabled', 'usage': {'input_tokens': 1525, 'input_tokens_details': {'cached_tokens': 0}, 'output_tokens': 12337, 'output_tokens_details': {'reasoning_tokens': 10816}, 'total_tokens': 13862}, 'user': None, 'max_tool_calls': None, 'prompt_cache_key': None, 'safety_identifier': None, 'store': True, 'top_logprobs': 0}"
+{
+  "id": "resp_689fe4e42940819bb95eb4e7ace2509f0be73fe8d5c6cfc2",
+  "created_at": 1755309284.0,
+  "error": null,
+  "incomplete_details": null,
+  "instructions": null,
+  "metadata": {},
+  "model": "gpt-5-nano-2025-08-07",
+  "object": "response",
+  "output": [
+    {
+      "id": "rs_689fe4e6a384819bb5b95c6ae35ce7830be73fe8d5c6cfc2",
+      "summary": [],
+      "type": "reasoning",
+      "encrypted_content": null,
+      "status": null
+    },
+    {
+      "id": "msg_689fe51b5870819b958d8dd7e3e567b80be73fe8d5c6cfc2",
+      "content": [
+        {
+          "annotations": [],
+          "text": "{\"test_data\": {\"specification\": {\"format\": \"csv\", \"num_rows\": 26, \"fields\": [{\"name\": \"record_id\", \"type\": \"string\", \"nullable\": false, \"unique\": true, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Unique row identifier\"}, {\"name\": \"source_system\", \"type\": \"string\", \"nullable\": false, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": [\"payments_api\", \"web_portal\", \"mobile_app\", \"etl_job\"], \"description\": \"Originating data source in the pipeline\"}, {\"name\": \"user_id\", \"type\": \"integer\", \"nullable\": true, \"unique\": false, \"min_value\": 100.0, \"max_value\": 999.0, \"pattern\": null, \"choices\": null, \"description\": \"User identifier; may be NULL\"}, {\"name\": \"user_name\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"User display name\"}, {\"name\": \"email\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"User email address\"}, {\"name\": \"product_id\", \"type\": \"string\", \"nullable\": false, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Product identifier\"}, {\"name\": \"product_name\", \"type\": \"string\", \"nullable\": false, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Product name; may include commas requiring quotes\"}, {\"name\": \"category\", \"type\": \"string\", \"nullable\": false, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": [\"electronics\", \"home\", \"tools\", \"office\", \"kitchen\", \"accessories\"], \"description\": \"Product category\"}, {\"name\": \"price\", \"type\": \"float\", \"nullable\": false, \"unique\": false, \"min_value\": 0.0, \"max_value\": 999.99, \"pattern\": null, \"choices\": null, \"description\": \"Unit price\"}, {\"name\": \"quantity\", \"type\": \"integer\", \"nullable\": false, \"unique\": false, \"min_value\": 0.0, \"max_value\": 100.0, \"pattern\": null, \"choices\": null, \"description\": \"Quantity purchased\"}, {\"name\": \"transaction_id\", \"type\": \"string\", \"nullable\": false, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Transaction identifier\"}, {\"name\": \"amount\", \"type\": \"float\", \"nullable\": false, \"unique\": false, \"min_value\": 0.0, \"max_value\": 99999.0, \"pattern\": null, \"choices\": null, \"description\": \"Total amount for line item\"}, {\"name\": \"currency\", \"type\": \"string\", \"nullable\": false, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": [\"USD\", \"EUR\", \"GBP\", \"JPY\"], \"description\": \"Currency code\"}, {\"name\": \"timestamp\", \"type\": \"datetime\", \"nullable\": false, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Event timestamp in ISO 8601 UTC\"}, {\"name\": \"status\", \"type\": \"string\", \"nullable\": false, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": [\"completed\", \"pending\", \"failed\", \"refunded\"], \"description\": \"Transaction status\"}, {\"name\": \"location\", \"type\": \"string\", \"nullable\": true, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Geographic location of purchase\"}, {\"name\": \"is_error\", \"type\": \"boolean\", \"nullable\": false, \"unique\": false, \"min_value\": null, \"max_value\": null, \"pattern\": null, \"choices\": null, \"description\": \"Indicates processing error in the row\"}], \"include_headers\": true, \"description\": \"Dataset for a multi-source data processor diagram with users, products, transactions, and system events to test filtering, aggregation, and transformation paths.\"}, \"csv_content\": \"record_id,source_system,user_id,user_name,email,product_id,product_name,category,price,quantity,transaction_id,amount,currency,timestamp,status,location,is_error\\nR2001,payments_api,101,Alice Smith,alice@example.com,P-3001,\\\"Widget Pro, Plus\\\",electronics,19.99,2,T-300001,39.98,USD,2024-07-12T10:23:11Z,completed,New York,false\\nR2002,web_portal,102,Bob Chen,bob@example.com,P-3002,Gadget Mini,electronics,9.99,1,T-300002,9.99,USD,2024-07-12T10:24:03Z,completed,Los Angeles,false\\nR2003,mobile_app,103,Carol Diaz,carol@example.co,P-3003,\\\"Widget Pro\\\",electronics,29.99,3,T-300003,89.97,USD,2024-07-12T10:25:50Z,completed,Chicago,false\\nR2004,etl_job,104,Derek Yu,derek@example.org,P-3004,\\\"Toolset, Deluxe\\\",tools,49.99,0,T-300004,0.00,USD,2024-07-12T10:26:12Z,pending,Seattle,false\\nR2005,payments_api,105,Ella Martinez,ella@example.net,P-3005,Screwdriver,tools,7.50,5,T-300005,37.50,USD,2024-07-12T10:27:03Z,completed,Boston,false\\nR2006,web_portal,106,Frank Liu,frank@example.com,P-3006,Hammer Pro,tools,12.00,2,T-300006,24.00,USD,2024-07-12T10:28:11Z,completed,Denver,false\\nR2007,mobile_app,107,Grace Lee,grace@example.com,P-3007,Drill Set,tools,59.99,1,T-300007,59.99,USD,2024-07-12T10:29:45Z,failed,Seattle,true\\nR2008,etl_job,108,Hank Yu,hank@example.com,P-3008,\\\"Desk Organizer, Large\\\",office,14.99,4,T-300008,59.96,USD,2024-07-12T10:30:01Z,completed,New York,false\\nR2009,payments_api,109,Irene Park,irene@example.com,P-3009,Monitor 27 inch,electronics,-199.99,1,T-300009,-199.99,USD,2024-07-12T10:31:03Z,failed,Seattle,true\\nR2010,web_portal,110,John Doe,john@example.com,P-3010,Keyboard Set,accessories,49.99,2,T-300010,99.98,USD,2024-07-12T10:32:50Z,pending,San Francisco,false\\nR2011,mobile_app,111,Alice Johnson,alice.j@example.net,P-3011,Mouse Wireless,electronics,24.99,1,T-300011,24.99,USD,2024-07-12T10:33:30Z,completed,Austin,false\\nR2012,etl_job,112,Ben Carter,NULL,P-3012,USB-C Cable,accessories,6.99,3,T-300012,20.97,USD,2024-07-12T10:34:10Z,completed,New York,false\\nR2013,payments_api,113,Cara Singh,cara@example.com,P-3013,Power Bank,electronics,25.00,0,T-300013,0.00,USD,2024-07-12T10:35:20Z,pending,Denver,false\\nR2014,web_portal,114,David Park,davidp@example.com,P-3014,\\\"Cable Pro, 3m\\\",accessories,4.50,6,T-300014,27.00,USD,2024-07-12T10:36:25Z,completed,Miami,false\\nR2015,mobile_app,115,Lina Rossi,lina.rossi@example.com,P-3015,Smart Light,home,15.99,4,T-300015,63.96,USD,2024-07-12T10:37:02Z,completed,Milan,false\\nR2016,payments_api,116,Marco Silva,marco@example.com,P-3016,Smart Thermostat,home,129.99,1,T-300016,129.99,USD,2024-07-12T10:37:55Z,completed,Lisbon,false\\nR2017,web_portal,117,Nina Patel,nina@example.co,P-3017,Vacuum Cleaner,home,89.99,2,T-300017,179.98,USD,2024-07-12T10:38:40Z,completed,New Delhi,false\\nR2018,mobile_app,118,Omar Faris,omar@example.com,P-3018,Air Purifier,home,99.99,1,T-300018,99.99,USD,2024-07-12T10:39:11Z,refunded,Dubai,false\\nR2019,etl_job,119,Priya Singh,priya@example.com,P-3019,\\\"Blender, 700W\\\",kitchen,59.99,2,T-300019,119.98,USD,2024-07-12T10:40:01Z,completed,Toronto,false\\nR2020,payments_api,120,Quentin Blake,NULL,P-3020,Coffee Maker,kitchen,79.99,1,T-300020,79.99,USD,2024-07-12T10:41:15Z,pending,Vancouver,false\\nR2021,web_portal,121,Rita Chen,rita@example.com,P-3021,Espresso Grinder,kitchen,149.99,1,T-300021,149.99,USD,2024-07-12T10:42:02Z,completed,San Jose,false\\nR2022,mobile_app,122,Samir Khan,samir@example.com,P-3022,\\\"Mixer, 5 Speed\\\",kitchen,39.99,3,T-300022,119.97,USD,2024-07-12T10:42:55Z,completed,Chicago,false\\nR2023,etl_job,123,,,\",\"row_count\" \t: 0, \"field_count\": 17}, \"summary\": \"26 rows total, including normal, edge, and error cases to exercise filtering, aggregation, and transformation paths for a data processor diagram.\"}",
+          "type": "output_text",
+          "logprobs": [],
+          "parsed": {
+            "test_data": {
+              "specification": {
+                "format": "csv",
+                "num_rows": 26,
+                "fields": [
+                  {
+                    "name": "record_id",
+                    "type": "string",
+                    "nullable": false,
+                    "unique": true,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Unique row identifier"
+                  },
+                  {
+                    "name": "source_system",
+                    "type": "string",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": [
+                      "payments_api",
+                      "web_portal",
+                      "mobile_app",
+                      "etl_job"
+                    ],
+                    "description": "Originating data source in the pipeline"
+                  },
+                  {
+                    "name": "user_id",
+                    "type": "integer",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": 100.0,
+                    "max_value": 999.0,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "User identifier; may be NULL"
+                  },
+                  {
+                    "name": "user_name",
+                    "type": "string",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "User display name"
+                  },
+                  {
+                    "name": "email",
+                    "type": "string",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "User email address"
+                  },
+                  {
+                    "name": "product_id",
+                    "type": "string",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Product identifier"
+                  },
+                  {
+                    "name": "product_name",
+                    "type": "string",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Product name; may include commas requiring quotes"
+                  },
+                  {
+                    "name": "category",
+                    "type": "string",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": [
+                      "electronics",
+                      "home",
+                      "tools",
+                      "office",
+                      "kitchen",
+                      "accessories"
+                    ],
+                    "description": "Product category"
+                  },
+                  {
+                    "name": "price",
+                    "type": "float",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": 0.0,
+                    "max_value": 999.99,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Unit price"
+                  },
+                  {
+                    "name": "quantity",
+                    "type": "integer",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": 0.0,
+                    "max_value": 100.0,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Quantity purchased"
+                  },
+                  {
+                    "name": "transaction_id",
+                    "type": "string",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Transaction identifier"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "float",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": 0.0,
+                    "max_value": 99999.0,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Total amount for line item"
+                  },
+                  {
+                    "name": "currency",
+                    "type": "string",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": [
+                      "USD",
+                      "EUR",
+                      "GBP",
+                      "JPY"
+                    ],
+                    "description": "Currency code"
+                  },
+                  {
+                    "name": "timestamp",
+                    "type": "datetime",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Event timestamp in ISO 8601 UTC"
+                  },
+                  {
+                    "name": "status",
+                    "type": "string",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": [
+                      "completed",
+                      "pending",
+                      "failed",
+                      "refunded"
+                    ],
+                    "description": "Transaction status"
+                  },
+                  {
+                    "name": "location",
+                    "type": "string",
+                    "nullable": true,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Geographic location of purchase"
+                  },
+                  {
+                    "name": "is_error",
+                    "type": "boolean",
+                    "nullable": false,
+                    "unique": false,
+                    "min_value": null,
+                    "max_value": null,
+                    "pattern": null,
+                    "choices": null,
+                    "description": "Indicates processing error in the row"
+                  }
+                ],
+                "include_headers": true,
+                "description": "Dataset for a multi-source data processor diagram with users, products, transactions, and system events to test filtering, aggregation, and transformation paths."
+              },
+              "csv_content": "record_id,source_system,user_id,user_name,email,product_id,product_name,category,price,quantity,transaction_id,amount,currency,timestamp,status,location,is_error\nR2001,payments_api,101,Alice Smith,alice@example.com,P-3001,\"Widget Pro, Plus\",electronics,19.99,2,T-300001,39.98,USD,2024-07-12T10:23:11Z,completed,New York,false\nR2002,web_portal,102,Bob Chen,bob@example.com,P-3002,Gadget Mini,electronics,9.99,1,T-300002,9.99,USD,2024-07-12T10:24:03Z,completed,Los Angeles,false\nR2003,mobile_app,103,Carol Diaz,carol@example.co,P-3003,\"Widget Pro\",electronics,29.99,3,T-300003,89.97,USD,2024-07-12T10:25:50Z,completed,Chicago,false\nR2004,etl_job,104,Derek Yu,derek@example.org,P-3004,\"Toolset, Deluxe\",tools,49.99,0,T-300004,0.00,USD,2024-07-12T10:26:12Z,pending,Seattle,false\nR2005,payments_api,105,Ella Martinez,ella@example.net,P-3005,Screwdriver,tools,7.50,5,T-300005,37.50,USD,2024-07-12T10:27:03Z,completed,Boston,false\nR2006,web_portal,106,Frank Liu,frank@example.com,P-3006,Hammer Pro,tools,12.00,2,T-300006,24.00,USD,2024-07-12T10:28:11Z,completed,Denver,false\nR2007,mobile_app,107,Grace Lee,grace@example.com,P-3007,Drill Set,tools,59.99,1,T-300007,59.99,USD,2024-07-12T10:29:45Z,failed,Seattle,true\nR2008,etl_job,108,Hank Yu,hank@example.com,P-3008,\"Desk Organizer, Large\",office,14.99,4,T-300008,59.96,USD,2024-07-12T10:30:01Z,completed,New York,false\nR2009,payments_api,109,Irene Park,irene@example.com,P-3009,Monitor 27 inch,electronics,-199.99,1,T-300009,-199.99,USD,2024-07-12T10:31:03Z,failed,Seattle,true\nR2010,web_portal,110,John Doe,john@example.com,P-3010,Keyboard Set,accessories,49.99,2,T-300010,99.98,USD,2024-07-12T10:32:50Z,pending,San Francisco,false\nR2011,mobile_app,111,Alice Johnson,alice.j@example.net,P-3011,Mouse Wireless,electronics,24.99,1,T-300011,24.99,USD,2024-07-12T10:33:30Z,completed,Austin,false\nR2012,etl_job,112,Ben Carter,NULL,P-3012,USB-C Cable,accessories,6.99,3,T-300012,20.97,USD,2024-07-12T10:34:10Z,completed,New York,false\nR2013,payments_api,113,Cara Singh,cara@example.com,P-3013,Power Bank,electronics,25.00,0,T-300013,0.00,USD,2024-07-12T10:35:20Z,pending,Denver,false\nR2014,web_portal,114,David Park,davidp@example.com,P-3014,\"Cable Pro, 3m\",accessories,4.50,6,T-300014,27.00,USD,2024-07-12T10:36:25Z,completed,Miami,false\nR2015,mobile_app,115,Lina Rossi,lina.rossi@example.com,P-3015,Smart Light,home,15.99,4,T-300015,63.96,USD,2024-07-12T10:37:02Z,completed,Milan,false\nR2016,payments_api,116,Marco Silva,marco@example.com,P-3016,Smart Thermostat,home,129.99,1,T-300016,129.99,USD,2024-07-12T10:37:55Z,completed,Lisbon,false\nR2017,web_portal,117,Nina Patel,nina@example.co,P-3017,Vacuum Cleaner,home,89.99,2,T-300017,179.98,USD,2024-07-12T10:38:40Z,completed,New Delhi,false\nR2018,mobile_app,118,Omar Faris,omar@example.com,P-3018,Air Purifier,home,99.99,1,T-300018,99.99,USD,2024-07-12T10:39:11Z,refunded,Dubai,false\nR2019,etl_job,119,Priya Singh,priya@example.com,P-3019,\"Blender, 700W\",kitchen,59.99,2,T-300019,119.98,USD,2024-07-12T10:40:01Z,completed,Toronto,false\nR2020,payments_api,120,Quentin Blake,NULL,P-3020,Coffee Maker,kitchen,79.99,1,T-300020,79.99,USD,2024-07-12T10:41:15Z,pending,Vancouver,false\nR2021,web_portal,121,Rita Chen,rita@example.com,P-3021,Espresso Grinder,kitchen,149.99,1,T-300021,149.99,USD,2024-07-12T10:42:02Z,completed,San Jose,false\nR2022,mobile_app,122,Samir Khan,samir@example.com,P-3022,\"Mixer, 5 Speed\",kitchen,39.99,3,T-300022,119.97,USD,2024-07-12T10:42:55Z,completed,Chicago,false\nR2023,etl_job,123,,,",
+              "row_count": 0,
+              "field_count": 17
+            },
+            "summary": "26 rows total, including normal, edge, and error cases to exercise filtering, aggregation, and transformation paths for a data processor diagram."
+          }
+        }
+      ],
+      "role": "assistant",
+      "status": "completed",
+      "type": "message"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "temperature": 1.0,
+  "tool_choice": "auto",
+  "tools": [],
+  "top_p": 1.0,
+  "background": false,
+  "max_output_tokens": null,
+  "previous_response_id": null,
+  "prompt": null,
+  "reasoning": {
+    "effort": "medium",
+    "generate_summary": null,
+    "summary": null
+  },
+  "service_tier": "default",
+  "status": "completed",
+  "text": {
+    "format": {
+      "name": "Response",
+      "schema_": {
+        "$defs": {
+          "DataType": {
+            "description": "Supported data types for test data generation.",
+            "enum": [
+              "csv",
+              "json",
+              "yaml"
+            ],
+            "title": "DataType",
+            "type": "string"
+          },
+          "FieldDefinition": {
+            "additionalProperties": false,
+            "description": "Definition of a field in the test data.",
+            "properties": {
+              "name": {
+                "description": "Field name",
+                "title": "Name",
+                "type": "string"
+              },
+              "type": {
+                "description": "Data type of the field",
+                "enum": [
+                  "string",
+                  "integer",
+                  "float",
+                  "boolean",
+                  "date",
+                  "datetime",
+                  "email",
+                  "url",
+                  "uuid"
+                ],
+                "title": "Type",
+                "type": "string"
+              },
+              "nullable": {
+                "default": false,
+                "description": "Whether the field can have null values",
+                "title": "Nullable",
+                "type": "boolean"
+              },
+              "unique": {
+                "default": false,
+                "description": "Whether values should be unique",
+                "title": "Unique",
+                "type": "boolean"
+              },
+              "min_value": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Minimum value for numeric fields",
+                "title": "Min Value"
+              },
+              "max_value": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Maximum value for numeric fields",
+                "title": "Max Value"
+              },
+              "pattern": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Regex pattern for string fields",
+                "title": "Pattern"
+              },
+              "choices": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "List of possible values (strings, numbers, or booleans)",
+                "title": "Choices"
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Field description for context",
+                "title": "Description"
+              }
+            },
+            "required": [
+              "name",
+              "type",
+              "nullable",
+              "unique",
+              "min_value",
+              "max_value",
+              "pattern",
+              "choices",
+              "description"
+            ],
+            "title": "FieldDefinition",
+            "type": "object"
+          },
+          "GeneratedTestData": {
+            "additionalProperties": false,
+            "description": "Generated test data with metadata.",
+            "properties": {
+              "specification": {
+                "description": "The specification used to generate this data",
+                "additionalProperties": false,
+                "properties": {
+                  "format": {
+                    "default": "csv",
+                    "description": "Output format for the test data",
+                    "enum": [
+                      "csv",
+                      "json",
+                      "yaml"
+                    ],
+                    "title": "DataType",
+                    "type": "string"
+                  },
+                  "num_rows": {
+                    "default": 10,
+                    "description": "Number of rows to generate",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "title": "Num Rows",
+                    "type": "integer"
+                  },
+                  "fields": {
+                    "description": "Field definitions for the test data",
+                    "items": {
+                      "$ref": "#/$defs/FieldDefinition"
+                    },
+                    "title": "Fields",
+                    "type": "array"
+                  },
+                  "include_headers": {
+                    "default": true,
+                    "description": "Whether to include headers in CSV output",
+                    "title": "Include Headers",
+                    "type": "boolean"
+                  },
+                  "description": {
+                    "description": "Description of what this test data represents",
+                    "title": "Description",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "format",
+                  "num_rows",
+                  "fields",
+                  "include_headers",
+                  "description"
+                ],
+                "title": "TestDataSpecification",
+                "type": "object"
+              },
+              "csv_content": {
+                "description": "CSV formatted content ready to save",
+                "title": "Csv Content",
+                "type": "string"
+              },
+              "row_count": {
+                "description": "Number of data rows generated",
+                "title": "Row Count",
+                "type": "integer"
+              },
+              "field_count": {
+                "description": "Number of fields per row",
+                "title": "Field Count",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "specification",
+              "csv_content",
+              "row_count",
+              "field_count"
+            ],
+            "title": "GeneratedTestData",
+            "type": "object"
+          },
+          "TestDataSpecification": {
+            "additionalProperties": false,
+            "description": "Specification for generating test data.",
+            "properties": {
+              "format": {
+                "default": "csv",
+                "description": "Output format for the test data",
+                "enum": [
+                  "csv",
+                  "json",
+                  "yaml"
+                ],
+                "title": "DataType",
+                "type": "string"
+              },
+              "num_rows": {
+                "default": 10,
+                "description": "Number of rows to generate",
+                "maximum": 100,
+                "minimum": 1,
+                "title": "Num Rows",
+                "type": "integer"
+              },
+              "fields": {
+                "description": "Field definitions for the test data",
+                "items": {
+                  "$ref": "#/$defs/FieldDefinition"
+                },
+                "title": "Fields",
+                "type": "array"
+              },
+              "include_headers": {
+                "default": true,
+                "description": "Whether to include headers in CSV output",
+                "title": "Include Headers",
+                "type": "boolean"
+              },
+              "description": {
+                "description": "Description of what this test data represents",
+                "title": "Description",
+                "type": "string"
+              }
+            },
+            "required": [
+              "format",
+              "num_rows",
+              "fields",
+              "include_headers",
+              "description"
+            ],
+            "title": "TestDataSpecification",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response containing the generated test data.",
+        "properties": {
+          "test_data": {
+            "description": "The generated test data with CSV content",
+            "additionalProperties": false,
+            "properties": {
+              "specification": {
+                "description": "The specification used to generate this data",
+                "additionalProperties": false,
+                "properties": {
+                  "format": {
+                    "default": "csv",
+                    "description": "Output format for the test data",
+                    "enum": [
+                      "csv",
+                      "json",
+                      "yaml"
+                    ],
+                    "title": "DataType",
+                    "type": "string"
+                  },
+                  "num_rows": {
+                    "default": 10,
+                    "description": "Number of rows to generate",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "title": "Num Rows",
+                    "type": "integer"
+                  },
+                  "fields": {
+                    "description": "Field definitions for the test data",
+                    "items": {
+                      "$ref": "#/$defs/FieldDefinition"
+                    },
+                    "title": "Fields",
+                    "type": "array"
+                  },
+                  "include_headers": {
+                    "default": true,
+                    "description": "Whether to include headers in CSV output",
+                    "title": "Include Headers",
+                    "type": "boolean"
+                  },
+                  "description": {
+                    "description": "Description of what this test data represents",
+                    "title": "Description",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "format",
+                  "num_rows",
+                  "fields",
+                  "include_headers",
+                  "description"
+                ],
+                "title": "TestDataSpecification",
+                "type": "object"
+              },
+              "csv_content": {
+                "description": "CSV formatted content ready to save",
+                "title": "Csv Content",
+                "type": "string"
+              },
+              "row_count": {
+                "description": "Number of data rows generated",
+                "title": "Row Count",
+                "type": "integer"
+              },
+              "field_count": {
+                "description": "Number of fields per row",
+                "title": "Field Count",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "specification",
+              "csv_content",
+              "row_count",
+              "field_count"
+            ],
+            "title": "GeneratedTestData",
+            "type": "object"
+          },
+          "summary": {
+            "description": "Brief summary of what was generated",
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "test_data",
+          "summary"
+        ],
+        "title": "Response",
+        "type": "object"
+      },
+      "type": "json_schema",
+      "description": null,
+      "strict": true
+    },
+    "verbosity": "medium"
+  },
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 10883,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 12789,
+    "output_tokens_details": {
+      "reasoning_tokens": 10240
+    },
+    "total_tokens": 23672
+  },
+  "user": null,
+  "max_tool_calls": null,
+  "prompt_cache_key": null,
+  "safety_identifier": null,
+  "store": true,
+  "top_logprobs": 0
+}

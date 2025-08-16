@@ -5,7 +5,8 @@ import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
  * Hook to handle monitor mode based on URL parameters
  * 
  * Behavior:
- * - ?monitor=true - Opens monitor board (with run picker and multi-execution view)
+ * - ?monitor=true - Opens simple single execution monitor mode
+ * - ?monitor=board - Opens monitor board (with run picker and multi-execution view)
  * - No monitor param - Normal diagram editing mode
  */
 export function useMonitorBoardMode() {
@@ -14,27 +15,38 @@ export function useMonitorBoardMode() {
   const activeCanvas = useUnifiedStore((state) => state.activeCanvas);
 
   // Parse URL to determine mode
-  const { isMonitorMode, executionIds } = useMemo(() => {
+  const { isMonitorMode, isBoardMode, executionIds } = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const monitorParam = params.get('monitor');
     const idsParam = params.get('ids');
     
-    if (monitorParam !== 'true') {
-      return { isMonitorMode: false, executionIds: [] };
+    if (!monitorParam) {
+      return { isMonitorMode: false, isBoardMode: false, executionIds: [] };
     }
     
     const ids = idsParam ? idsParam.split(',').filter(Boolean) : [];
-    return { isMonitorMode: true, executionIds: ids };
+    
+    if (monitorParam === 'board') {
+      return { isMonitorMode: true, isBoardMode: true, executionIds: ids };
+    } else if (monitorParam === 'true') {
+      return { isMonitorMode: true, isBoardMode: false, executionIds: [] };
+    }
+    
+    return { isMonitorMode: false, isBoardMode: false, executionIds: [] };
   }, []);
 
-  // Always show board when monitor=true
-  const shouldShowBoard = isMonitorMode;
-  const shouldShowSingleExecution = false; // Never use single execution mode
+  // Show board only when explicitly requested with monitor=board
+  const shouldShowBoard = isBoardMode;
+  const shouldShowSingleExecution = isMonitorMode && !isBoardMode; // Use single execution for monitor=true
 
   useEffect(() => {
     if (shouldShowBoard) {
       // Monitor board mode
       setActiveCanvas('monitor');
+      setMonitorMode(true);
+    } else if (shouldShowSingleExecution) {
+      // Simple single execution monitor mode
+      setActiveCanvas('execution');
       setMonitorMode(true);
     } else {
       // Default mode - diagram editing
@@ -43,7 +55,7 @@ export function useMonitorBoardMode() {
         setMonitorMode(false);
       }
     }
-  }, [shouldShowBoard, setActiveCanvas, setMonitorMode, activeCanvas]);
+  }, [shouldShowBoard, shouldShowSingleExecution, setActiveCanvas, setMonitorMode, activeCanvas]);
 
   return {
     isMonitorBoard: shouldShowBoard,
