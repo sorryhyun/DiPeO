@@ -4,94 +4,135 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 330,
+        "x": 50,
         "y": 200
       },
       "data": {
-        "trigger_mode": "manual",
-        "custom_data": {},
+        "custom_data": {
+          "message": "Starting model generation using enhanced template_job with foreach"
+        },
         "output_data_structure": {},
         "label": "start"
       }
     },
     {
       "id": "node_1",
-      "type": "person_job",
+      "type": "sub_diagram",
       "position": {
-        "x": 632,
-        "y": 231
+        "x": 200,
+        "y": 200
       },
       "data": {
-        "default_prompt": "say hi",
-        "max_iteration": 3,
-        "memory_profile": "FULL",
-        "person": "person 1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "label": "printer",
-        "first_only_prompt": ""
+        "diagram_name": "projects/codegen/diagrams/shared/parse_typescript_batch_direct",
+        "diagram_format": "light",
+        "passInputData": false,
+        "ignoreIfSub": true,
+        "label": "parse all typescript"
       }
     },
     {
       "id": "node_2",
-      "type": "condition",
+      "type": "db",
       "position": {
-        "x": 620,
-        "y": 425
+        "x": 350,
+        "y": 200
       },
       "data": {
-        "condition_type": "detect_max_iterations",
-        "flipped": [
-          true,
-          true
+        "operation": "read",
+        "sub_type": "file",
+        "format": "json",
+        "glob": true,
+        "file": [
+          "temp/specifications/nodes/*.spec.ts.json"
         ],
-        "label": "condition"
+        "label": "discover node specs"
       }
     },
     {
       "id": "node_3",
-      "type": "endpoint",
+      "type": "code_job",
       "position": {
-        "x": 0,
-        "y": 437
+        "x": 500,
+        "y": 200
       },
       "data": {
-        "file_format": "txt",
-        "save_to_file": true,
-        "flipped": [
-          true,
-          false
-        ],
-        "file_name": "files/results/total.txt",
-        "label": "endpoint"
+        "language": "python",
+        "code": "# Extract all node specifications from parsed files\nspecs = []\n# inputs.get('default') contains the glob results\nnode_files = inputs.get('default', {})\n\nfor filepath, ast_data in node_files.items():\n    # Each file should have constants with node specs\n    for const in (ast_data.get('constants') or []):\n        value = const.get('value')\n        if isinstance(value, dict) and 'nodeType' in value:\n            specs.append(value)\n\n# Use result = {} pattern for code_job output\nresult = {'specs': specs}\n",
+        "label": "extract specifications"
       }
     },
     {
       "id": "node_4",
-      "type": "person_job",
+      "type": "template_job",
       "position": {
-        "x": 311,
-        "y": 443
+        "x": 700,
+        "y": 200
       },
       "data": {
-        "default_prompt": "How many times did you respond?",
-        "flipped": [
-          true,
-          false
-        ],
-        "max_iteration": 1,
-        "memory_profile": "FULL",
-        "person": "person 1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
+        "engine": "jinja2",
+        "template_path": "projects/codegen/templates/backend/pydantic_model_simple.j2",
+        "foreach": {
+          "items": "specs",
+          "as": "spec",
+          "output_path": "dipeo/diagram_generated_staged/models/{spec.nodeTypeSnake}_model.py"
         },
-        "label": "ask",
-        "first_only_prompt": ""
+        "label": "generate backend models"
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "template_job",
+      "position": {
+        "x": 900,
+        "y": 200
+      },
+      "data": {
+        "engine": "jinja2",
+        "template_path": "projects/codegen/templates/models/enums_simple.j2",
+        "output_path": "dipeo/diagram_generated_staged/enums.py",
+        "variables": {
+          "specs": "{specs}"
+        },
+        "label": "generate enums"
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "code_job",
+      "position": {
+        "x": 1100,
+        "y": 200
+      },
+      "data": {
+        "language": "python",
+        "code": "# Prepare context for __init__.py generation\nmodel_names = []\nfor spec in specs:\n    model_names.append({\n        'module': spec['nodeTypeSnake'] + '_model',\n        'class': spec['nodeTypePascal'] + 'NodeData'\n    })\n# Use result = {} pattern for code_job output\nresult = {'model_imports': model_names}\n",
+        "label": "prepare init context"
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "template_job",
+      "position": {
+        "x": 1300,
+        "y": 200
+      },
+      "data": {
+        "engine": "jinja2",
+        "template_content": "# Auto-generated __init__.py for models package\n\n{% for model in model_imports %}\nfrom .{{ model.module }} import {{ model.class }}\n{% endfor %}\n\n__all__ = [\n{% for model in model_imports %}\n    \"{{ model.class }}\",\n{% endfor %}\n]\n",
+        "output_path": "dipeo/diagram_generated_staged/models/__init__.py",
+        "label": "generate models init"
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "endpoint",
+      "position": {
+        "x": 1500,
+        "y": 200
+      },
+      "data": {
+        "save_to_file": false,
+        "label": "end"
       }
     }
   ],
@@ -112,54 +153,82 @@
       "label": null,
       "packing": null,
       "data": null,
-      "content_type": "conversation_state"
+      "content_type": "object"
     },
     {
       "id": "arrow_2",
-      "source": "node_2_condfalse_output",
-      "target": "node_1_default_input",
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
       "label": null,
       "packing": null,
-      "data": {
-        "branch": "false"
-      },
-      "content_type": "conversation_state"
+      "data": null,
+      "content_type": "object"
     },
     {
       "id": "arrow_3",
-      "source": "node_2_condtrue_output",
+      "source": "node_3_default_output",
       "target": "node_4_default_input",
       "label": null,
       "packing": null,
-      "data": {
-        "branch": "true"
-      },
-      "content_type": "conversation_state"
+      "data": null,
+      "content_type": "object"
     },
     {
       "id": "arrow_4",
+      "source": "node_3_default_output",
+      "target": "node_5_default_input",
+      "label": "specs",
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_3_default_output",
+      "target": "node_6_default_input",
+      "label": "specs",
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_6_default_output",
+      "target": "node_7_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_7",
       "source": "node_4_default_output",
-      "target": "node_3_default_input",
+      "target": "node_8_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_5_default_output",
+      "target": "node_8_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_9",
+      "source": "node_7_default_output",
+      "target": "node_8_default_input",
       "label": null,
       "packing": null,
       "data": null,
       "content_type": "raw_text"
     }
   ],
-  "persons": [
-    {
-      "id": "person 1",
-      "label": "person 1",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": null,
-        "prompt_file": null
-      },
-      "type": "person"
-    }
-  ],
+  "persons": [],
   "handles": [
     {
       "id": "node_0_default_output",
@@ -168,14 +237,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_1_first_input",
-      "node_id": "node_1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -202,19 +263,11 @@
       "position": "left"
     },
     {
-      "id": "node_2_condtrue_output",
+      "id": "node_2_default_output",
       "node_id": "node_2",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_2_condfalse_output",
-      "node_id": "node_2",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
@@ -226,12 +279,12 @@
       "position": "left"
     },
     {
-      "id": "node_4_first_input",
-      "node_id": "node_4",
-      "label": "first",
-      "direction": "input",
+      "id": "node_3_default_output",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "output",
       "data_type": "any",
-      "position": "left"
+      "position": "right"
     },
     {
       "id": "node_4_default_input",
@@ -248,6 +301,62 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_output",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_default_output",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
@@ -255,8 +364,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-16T11:43:20.549Z",
-    "modified": "2025-08-16T11:43:20.549Z",
+    "created": "2025-08-16T12:12:40.925Z",
+    "modified": "2025-08-16T12:12:40.925Z",
     "version": "1.0.0",
     "id": null
   }
