@@ -2,13 +2,16 @@
 
 import logging
 from typing import Any, Optional
+from pathlib import Path
 
 from dipeo.core import BaseService, ServiceError
-from dipeo.core.ports import IntegratedApiServicePort, ApiProviderPort
+from dipeo.core.ports import IntegratedApiServicePort, ApiProviderPort, APIKeyPort
 from dipeo.diagram_generated.enums import APIServiceType
 
 from .providers.notion_provider import NotionProvider
 from .providers.slack_provider import SlackProvider
+from .registry import ProviderRegistry
+from .generic_provider import GenericHTTPProvider
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +19,11 @@ logger = logging.getLogger(__name__)
 class IntegratedApiService(BaseService, IntegratedApiServicePort):
     """Service that manages multiple API providers through a unified interface."""
 
-    def __init__(self, api_service=None):
+    def __init__(self, api_service=None, api_key_port: Optional[APIKeyPort] = None):
         super().__init__()
-        self._providers: dict[str, ApiProviderPort] = {}
         self._api_service = api_service  # For providers that need APIService
+        self._api_key_port = api_key_port  # For resolving API keys
+        self.provider_registry = ProviderRegistry()
         self._initialized = False
 
     async def initialize(self) -> None:
@@ -29,8 +33,17 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
 
         logger.info("Initializing IntegratedApiService")
 
+        # Initialize the provider registry
+        await self.provider_registry.initialize()
+
         # Register default providers
         await self._register_default_providers()
+
+        # Load manifest-based providers if configured
+        await self._load_manifest_providers()
+
+        # Load providers from entry points
+        await self._load_entrypoint_providers()
 
         self._initialized = True
 
@@ -38,27 +51,54 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
         """Register the default set of API providers."""
         # Register Notion provider
         notion_provider = NotionProvider()
-        await self.register_provider(APIServiceType.NOTION.value, notion_provider)
+        await self.provider_registry.register(
+            APIServiceType.NOTION.value, 
+            notion_provider,
+            metadata={"type": "builtin", "version": "1.0.0"}
+        )
 
         # Register Slack provider
         slack_provider = SlackProvider(api_service=self._api_service)
-        await self.register_provider(APIServiceType.SLACK.value, slack_provider)
+        await self.provider_registry.register(
+            APIServiceType.SLACK.value, 
+            slack_provider,
+            metadata={"type": "builtin", "version": "1.0.0"}
+        )
 
         # Additional providers can be registered here as they're implemented
         # Examples:
         # github_provider = GitHubProvider(api_service=self._api_service)
-        # await self.register_provider(APIServiceType.GITHUB.value, github_provider)
+        # await self.provider_registry.register(APIServiceType.GITHUB.value, github_provider)
+    
+    async def _load_manifest_providers(self) -> None:
+        """Load manifest-based providers from the filesystem."""
+        # Look for provider manifests in standard locations
+        manifest_locations = [
+            Path("integrations/**/provider.yaml"),
+            Path("integrations/**/provider.yml"),
+            Path("integrations/**/provider.json"),
+        ]
+        
+        for pattern in manifest_locations:
+            try:
+                await self.provider_registry.load_manifests(str(pattern))
+            except Exception as e:
+                logger.debug(f"No manifests found at {pattern}: {e}")
+    
+    async def _load_entrypoint_providers(self) -> None:
+        """Load providers from Python package entry points."""
+        try:
+            await self.provider_registry.load_entrypoints("dipeo.integrations")
+        except Exception as e:
+            logger.debug(f"No entry point providers found: {e}")
 
     async def register_provider(self, provider_name: str, provider_instance: ApiProviderPort) -> None:
-        """Register a new API provider."""
-        if provider_name in self._providers:
-            logger.warning(f"Provider '{provider_name}' already registered, overwriting")
-
-        # Initialize the provider
-        await provider_instance.initialize()
-
-        self._providers[provider_name] = provider_instance
-        logger.info(f"Registered provider '{provider_name}' with operations: {provider_instance.supported_operations}")
+        """Register a new API provider.
+        
+        This method is kept for backward compatibility.
+        New code should use provider_registry.register() directly.
+        """
+        await self.provider_registry.register(provider_name, provider_instance)
 
     async def execute_operation(
         self,
@@ -75,10 +115,10 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
         if not self._initialized:
             await self.initialize()
 
-        # Get the provider
-        provider_instance = self._providers.get(provider)
+        # Get the provider from registry
+        provider_instance = self.provider_registry.get_provider(provider)
         if not provider_instance:
-            available_providers = ", ".join(self._providers.keys())
+            available_providers = ", ".join(self.provider_registry.list_providers())
             raise ValueError(
                 f"Provider '{provider}' not registered. "
                 f"Available providers: {available_providers}"
@@ -91,6 +131,13 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
                 f"Operation '{operation}' not supported by provider '{provider}'. "
                 f"Supported operations: {supported_ops}"
             )
+
+        # For GenericHTTPProvider, ensure it has access to APIService and APIKeyPort
+        if isinstance(provider_instance, GenericHTTPProvider):
+            if not provider_instance.api_service:
+                provider_instance.api_service = self._api_service
+            if not provider_instance.api_key_port:
+                provider_instance.api_key_port = self._api_key_port
 
         # Execute the operation with retry logic
         last_error = None
@@ -123,11 +170,11 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
 
     def get_supported_providers(self) -> list[str]:
         """Get list of currently registered providers."""
-        return list(self._providers.keys())
+        return self.provider_registry.list_providers()
 
     def get_provider_operations(self, provider: str) -> list[str]:
         """Get supported operations for a specific provider."""
-        provider_instance = self._providers.get(provider)
+        provider_instance = self.provider_registry.get_provider(provider)
         if not provider_instance:
             raise ValueError(f"Provider '{provider}' not registered")
 
@@ -141,7 +188,7 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
     ) -> bool:
         """Validate if an operation is supported and properly configured."""
         # Check if provider exists
-        provider_instance = self._providers.get(provider)
+        provider_instance = self.provider_registry.get_provider(provider)
         if not provider_instance:
             return False
 

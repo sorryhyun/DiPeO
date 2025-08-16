@@ -44,9 +44,16 @@ from ..types.domain_types import (
 )
 
 from ..resolvers import DiagramResolver, ExecutionResolver, PersonResolver
+from ..resolvers.provider_resolver import ProviderResolver
 from ..types.inputs import DiagramFilterInput, ExecutionFilterInput
 from ..types.results import DiagramFormatInfo
 from ..types.cli_session import CliSession
+from ..types.provider_types import (
+    ProviderType,
+    OperationType,
+    OperationSchemaType,
+    ProviderStatisticsType
+)
 
 # Version constant - should be imported from shared location
 DIAGRAM_VERSION = "1.0.0"
@@ -59,6 +66,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
     diagram_resolver = DiagramResolver(registry)
     execution_resolver = ExecutionResolver(registry)
     person_resolver = PersonResolver(registry)
+    provider_resolver = ProviderResolver(registry)
     
     @strawberry.type
     class Query:
@@ -116,6 +124,33 @@ def create_query_type(registry: ServiceRegistry) -> type:
         ) -> List[str]:
             api_key_id_typed = ApiKeyID(str(api_key_id))
             return await person_resolver.get_available_models(service, api_key_id_typed)
+        
+        @strawberry.field
+        async def providers(self) -> List[ProviderType]:
+            """List all registered API providers."""
+            return await provider_resolver.list_providers()
+        
+        @strawberry.field
+        async def provider(self, name: str) -> Optional[ProviderType]:
+            """Get a specific API provider by name."""
+            return await provider_resolver.get_provider(name)
+        
+        @strawberry.field
+        async def provider_operations(self, provider: str) -> List[OperationType]:
+            """Get operations for a specific provider."""
+            return await provider_resolver.get_provider_operations(provider)
+        
+        @strawberry.field
+        async def operation_schema(
+            self, provider: str, operation: str
+        ) -> Optional[OperationSchemaType]:
+            """Get schema for a specific operation."""
+            return await provider_resolver.get_operation_schema(provider, operation)
+        
+        @strawberry.field
+        async def provider_statistics(self) -> ProviderStatisticsType:
+            """Get statistics about registered providers."""
+            return await provider_resolver.get_provider_statistics()
         
         @strawberry.field
         async def system_info(self) -> JSONScalar:
