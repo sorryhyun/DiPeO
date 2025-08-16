@@ -32,12 +32,13 @@ if TYPE_CHECKING:
         BlobStoreAdapter,
         ArtifactStoreAdapter,
     )
-    from dipeo.infrastructure.services.diagram import DiagramService, DiagramConverterService
+    from dipeo.infrastructure.services.diagram import DiagramService
     from dipeo.domain.db.services import DBOperationsDomainService
     from dipeo.core.execution import ExecutionContext
     from dipeo.domain.diagram.models import ExecutableDiagram
     from dipeo.application.services.cli_session_service import CliSessionService
     from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase
+    from dipeo.application.execution.handler_factory import HandlerRegistry
     from typing import Any, Dict
 
 
@@ -63,8 +64,6 @@ TEMPLATE_PROCESSOR = ServiceKey["TemplateProcessorPort"]("template_processor")
 # Domain Services
 DB_OPERATIONS_SERVICE = ServiceKey["DBOperationsDomainService"]("db_operations_service")
 DIAGRAM_CONVERTER = ServiceKey["DiagramConverter"]("diagram_converter")
-DIAGRAM_CONVERTER_SERVICE = ServiceKey["DiagramConverterService"]("diagram_converter")
-DIAGRAM_SERVICE_NEW = ServiceKey["DiagramService"]("diagram_service")
 
 # External Integration Services
 API_SERVICE = ServiceKey["APIService"]("api_service")
@@ -81,7 +80,7 @@ CURRENT_NODE_INFO = ServiceKey["Dict[str, Any]"]("current_node_info")
 NODE_EXEC_COUNTS = ServiceKey["Dict[str, int]"]("node_exec_counts")
 
 # Diagram Services
-DIAGRAM_SERVICE = ServiceKey["DiagramPort"]("diagram_service")
+DIAGRAM_SERVICE = ServiceKey["DiagramService"]("diagram_service")
 EXECUTION_SERVICE = ServiceKey["ExecutionService"]("execution_service")
 COMPILATION_SERVICE = ServiceKey["CompilationService"]("compilation_service")
 PREPARE_DIAGRAM_USE_CASE = ServiceKey["PrepareDiagramForExecutionUseCase"]("prepare_diagram_use_case")
@@ -104,10 +103,15 @@ API_BUSINESS_LOGIC = ServiceKey["APIBusinessLogic"]("api_business_logic")
 FILE_BUSINESS_LOGIC = ServiceKey["FileBusinessLogic"]("file_business_logic")
 DIAGRAM_STATISTICS_SERVICE = ServiceKey["DiagramStatisticsService"]("diagram_statistics")
 DIAGRAM_FORMAT_SERVICE = ServiceKey["DiagramFormatDetector"]("diagram_format")
-LLM_DOMAIN_SERVICE = ServiceKey["LLMDomainService"]("llm")
+LLM_DOMAIN_SERVICE = ServiceKey["LLMDomainService"]("llm_domain_service")
 
 # Additional Services (newly added for migration)
 CLI_SESSION_SERVICE = ServiceKey["CliSessionService"]("cli_session_service")
+
+# Registry Services
+NODE_REGISTRY = ServiceKey["HandlerRegistry"]("node_registry")
+DOMAIN_SERVICE_REGISTRY = ServiceKey["Any"]("domain_service_registry")  # Currently unused
+API_KEY_STORAGE = ServiceKey["Any"]("api_key_storage")  # Currently unused
 
 
 __all__ = [
@@ -133,8 +137,6 @@ __all__ = [
     # Domain
     "DB_OPERATIONS_SERVICE",
     "DIAGRAM_CONVERTER",
-    "DIAGRAM_CONVERTER_SERVICE",
-    "DIAGRAM_SERVICE_NEW",
     
     # External Integration
     "API_SERVICE",
@@ -178,4 +180,9 @@ __all__ = [
     
     # Additional Services
     "CLI_SESSION_SERVICE",
+    
+    # Registry Services
+    "NODE_REGISTRY",
+    "DOMAIN_SERVICE_REGISTRY",
+    "API_KEY_STORAGE",
 ]

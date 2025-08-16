@@ -11,7 +11,7 @@ from dipeo.diagram_generated.enums import Status
 from dipeo.application.registry import (
     STATE_STORE,
     MESSAGE_ROUTER,
-    DIAGRAM_SERVICE_NEW,
+    DIAGRAM_SERVICE,
     API_KEY_SERVICE,
     CONVERSATION_SERVICE,
     CONVERSATION_MANAGER,
@@ -46,7 +46,7 @@ class ExecuteDiagramUseCase(BaseService):
         
         self.state_store = state_store or service_registry.resolve(STATE_STORE)
         self.message_router = message_router or service_registry.resolve(MESSAGE_ROUTER)
-        self.diagram_service = diagram_service or service_registry.resolve(DIAGRAM_SERVICE_NEW)
+        self.diagram_service = diagram_service or service_registry.resolve(DIAGRAM_SERVICE)
         
         if not self.state_store:
             raise ValueError("state_store is required but not found in service registry")

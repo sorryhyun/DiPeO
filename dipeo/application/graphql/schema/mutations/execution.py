@@ -7,7 +7,7 @@ from typing import AsyncGenerator, Dict, Any
 import strawberry
 
 from dipeo.application.registry import ServiceRegistry, ServiceKey
-from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
+from dipeo.application.registry.keys import DIAGRAM_SERVICE
 from dipeo.application.execution import ExecuteDiagramUseCase
 from dipeo.core.ports import StateStorePort, MessageRouterPort
 from dipeo.diagram_generated.enums import Status, EventType
@@ -36,7 +36,7 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 # Get required services
                 state_store = registry.resolve(STATE_STORE)
                 message_router = registry.resolve(MESSAGE_ROUTER)
-                integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
+                integrated_service = registry.resolve(DIAGRAM_SERVICE)
                 
                 # Get diagram data - must be DomainDiagram for type safety
                 from dipeo.diagram_generated import DomainDiagram

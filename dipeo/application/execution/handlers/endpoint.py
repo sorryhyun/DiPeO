@@ -107,7 +107,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     def validate(self, request: ExecutionRequest[EndpointNode]) -> Optional[str]:
         node = request.node
         if node.save_to_file:
-            if not request.get_service("filesystem_adapter") and not self.filesystem_adapter:
+            if not request.get_service(FILESYSTEM_ADAPTER) and not self.filesystem_adapter:
                 return "Filesystem adapter is required when save_to_file is enabled"
         
         return None

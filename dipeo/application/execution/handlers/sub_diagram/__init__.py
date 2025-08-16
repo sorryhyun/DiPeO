@@ -105,7 +105,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         # Configure services for executors on first execution
         if not self._services_configured:
             from dipeo.application.registry import (
-                DIAGRAM_SERVICE_NEW,
+                DIAGRAM_SERVICE,
                 MESSAGE_ROUTER,
                 PREPARE_DIAGRAM_USE_CASE,
                 STATE_STORE,
@@ -113,7 +113,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             state_store = request.services.resolve(STATE_STORE)
             message_router = request.services.resolve(MESSAGE_ROUTER)
-            diagram_service = request.services.resolve(DIAGRAM_SERVICE_NEW)
+            diagram_service = request.services.resolve(DIAGRAM_SERVICE)
             prepare_use_case = request.services.resolve(PREPARE_DIAGRAM_USE_CASE)
             
             # Validate required services

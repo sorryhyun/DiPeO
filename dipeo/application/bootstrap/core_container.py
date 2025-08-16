@@ -1,19 +1,19 @@
-from dipeo.application.registry import ServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
+    API_KEY_STORAGE,
     DIAGRAM_VALIDATOR,
+    DOMAIN_SERVICE_REGISTRY,
     EXECUTION_SERVICE,
+    FILESYSTEM_ADAPTER,
     LLM_SERVICE,
     MESSAGE_ROUTER,
+    NODE_REGISTRY,
     PERSON_MANAGER,
     PROMPT_BUILDER,
     STATE_STORE,
     TEMPLATE_PROCESSOR,
 )
-NODE_REGISTRY = ServiceKey("node_registry")
-DOMAIN_SERVICE_REGISTRY = ServiceKey("domain_service_registry")
-FILESYSTEM_ADAPTER = ServiceKey("filesystem_adapter")
-API_KEY_STORAGE = ServiceKey("api_key_storage")
 from dipeo.core.config import Config
 
 

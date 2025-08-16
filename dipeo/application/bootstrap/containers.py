@@ -11,16 +11,15 @@ from .application_container import ApplicationContainer
 from pathlib import Path
 from typing import Any
 
-from dipeo.application.registry import ServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
+    API_KEY_STORAGE,
+    DOMAIN_SERVICE_REGISTRY,
+    FILESYSTEM_ADAPTER,
+    NODE_REGISTRY,
+    TEMPLATE_PROCESSOR,
 )
-
-TEMPLATE_PROCESSOR = ServiceKey("template_processor")
-NODE_REGISTRY = ServiceKey("node_registry")
-DOMAIN_SERVICE_REGISTRY = ServiceKey("domain_service_registry")
-FILESYSTEM_ADAPTER = ServiceKey("filesystem_adapter")
-API_KEY_STORAGE = ServiceKey("api_key_storage")
 from dipeo.core.config import Config
 
 class Container:
@@ -56,8 +55,8 @@ class Container:
         if diagram_converter and hasattr(diagram_converter, 'initialize'):
             await diagram_converter.initialize()
         
-        from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
-        diagram_service = self.registry.resolve(DIAGRAM_SERVICE_NEW)
+        from dipeo.application.registry.keys import DIAGRAM_SERVICE
+        diagram_service = self.registry.resolve(DIAGRAM_SERVICE)
         if diagram_service and hasattr(diagram_service, 'initialize'):
             await diagram_service.initialize()
     

@@ -5,7 +5,7 @@ import logging
 from typing import Optional, List
 
 from dipeo.application.registry import ServiceRegistry, ServiceKey
-from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
+from dipeo.application.registry.keys import DIAGRAM_SERVICE
 from dipeo.application.registry.keys import API_KEY_SERVICE, LLM_SERVICE, PERSON_MANAGER
 from dipeo.diagram_generated.domain_models import (
     PersonID, ApiKeyID,
@@ -32,7 +32,7 @@ class PersonResolver:
         """Get a single person by ID."""
         try:
             # Get integrated diagram service to find person in diagrams
-            integrated_service = self.registry.resolve(DIAGRAM_SERVICE_NEW)
+            integrated_service = self.registry.resolve(DIAGRAM_SERVICE)
             if not integrated_service:
                 logger.warning("Integrated diagram service not available")
                 return None
@@ -77,7 +77,7 @@ class PersonResolver:
         """List all persons."""
         try:
             # Get integrated diagram service to find persons in diagrams
-            integrated_service = self.registry.resolve(DIAGRAM_SERVICE_NEW)
+            integrated_service = self.registry.resolve(DIAGRAM_SERVICE)
             if not integrated_service:
                 logger.warning("Integrated diagram service not available")
                 return []

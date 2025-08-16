@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.registry.keys import AST_PARSER
 from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
 from dipeo.core.execution.envelope import Envelope, get_envelope_factory
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
@@ -79,7 +80,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         self._current_debug = False  # Will be set based on context if needed
         
         # Check parser service availability
-        parser_service = request.get_service("ast_parser")
+        parser_service = request.get_service(AST_PARSER)
         if not parser_service:
             factory = get_envelope_factory()
             return factory.error(
@@ -103,7 +104,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         logger = logging.getLogger(__name__)
         
         # Get TypeScript parser from services using DI pattern
-        parser_service = request.get_service("ast_parser")
+        parser_service = request.get_service(AST_PARSER)
         
         # Check if batch mode is enabled
         batch_mode = getattr(node, 'batch', False)
