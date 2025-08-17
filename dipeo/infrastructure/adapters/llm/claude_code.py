@@ -38,7 +38,7 @@ class ClaudeCodeAdapter(BaseLLMAdapter):
         return False
     
     @asynccontextmanager
-    async def _create_claude_code_client(self, system_prompt: str | None = None, max_turns: int = 2):
+    async def _create_claude_code_client(self, system_prompt: str | None = None, max_turns: int = 1):
         """Create Claude Code SDK client with async context manager."""
         try:
             from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
@@ -54,7 +54,6 @@ class ClaudeCodeAdapter(BaseLLMAdapter):
             options_dict["max_turns"] = max_turns
             
         options = ClaudeCodeOptions(**options_dict)
-        print(options)
         # Create and yield client
         async with ClaudeSDKClient(options=options) as client:
             yield client
@@ -76,7 +75,7 @@ class ClaudeCodeAdapter(BaseLLMAdapter):
             
         # Extract Claude Code specific options
         claude_code_options = {
-            "max_turns": kwargs.get("max_turns", 2),
+            "max_turns": kwargs.get("max_turns", 1),
         }
         
         return system_prompt, user_messages, claude_code_options
@@ -152,9 +151,8 @@ class ClaudeCodeAdapter(BaseLLMAdapter):
             try:
                 async with self._create_claude_code_client(
                     system_prompt=system_prompt,
-                    max_turns=claude_options.get("max_turns", 5)
+                    max_turns=claude_options.get("max_turns", 1)
                 ) as client:
-                    print(system_prompt)
                     text, token_usage = await self._stream_response_to_text(client, query)
                     return ChatResult(
                         text=text,
@@ -218,7 +216,7 @@ class ClaudeCodeAdapter(BaseLLMAdapter):
         try:
             async with self._create_claude_code_client(
                 system_prompt=system_prompt,
-                max_turns=claude_options.get("max_turns", 5)
+                max_turns=claude_options.get("max_turns", 1)
             ) as client:
                 # Send the query
                 await client.query(query)

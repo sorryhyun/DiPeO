@@ -2,9 +2,9 @@ version: light
 
 persons:
   Section Planner:
-    service: claude-code
-    model: claude-code
-    api_key_id: APIKEY_CLAUDE
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
     system_prompt: |
       You are a senior product/front-end architect. Given app requirements, split work into sections
       (pages, features, or components) that can be developed independently. Each section should be

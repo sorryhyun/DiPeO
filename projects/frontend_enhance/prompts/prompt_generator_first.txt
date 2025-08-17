@@ -6,12 +6,17 @@ Generate a detailed, clear, and effective prompt that will guide an AI to genera
 3. Include relevant examples where helpful
 4. Define clear constraints and requirements
 5. Be production-ready for immediate use
+
+CRITICAL: Your generated prompt MUST include explicit instructions that the AI should return ONLY the code files in the specified format, with NO conversational text, explanations, or commentary.
+
 ===
 
 Each file must be formatted as follow:
 ```filename
 (code)
 ```
+
+IMPORTANT: The generated prompt must explicitly instruct the AI to return ONLY code in this format, with NO additional text.
 
 ===
 

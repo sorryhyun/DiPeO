@@ -5,9 +5,10 @@
       "type": "start",
       "position": {
         "x": 60,
-        "y": 240
+        "y": 200
       },
       "data": {
+        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {},
         "label": "start"
@@ -17,122 +18,108 @@
       "id": "node_1",
       "type": "db",
       "position": {
-        "x": 260,
-        "y": 240
+        "x": 220,
+        "y": 200
       },
       "data": {
         "operation": "read",
         "sub_type": "file",
-        "format": "json",
-        "file": "projects/frontend_enhance/generated/sections_data.json",
-        "label": "load sections data"
-      }
-    },
-    {
-      "id": "node_2",
-      "type": "db",
-      "position": {
-        "x": 260,
-        "y": 360
-      },
-      "data": {
-        "operation": "read",
-        "sub_type": "file",
-        "format": "json",
         "file": "projects/frontend_enhance/frontend_enhance_config.json",
         "label": "load config"
       }
     },
     {
-      "id": "node_3",
-      "type": "code_job",
+      "id": "node_2",
+      "type": "person_job",
       "position": {
-        "x": 520,
-        "y": 240
+        "x": 460,
+        "y": 200
       },
       "data": {
-        "language": "python",
-        "code": "batch_index = item.get('index', 0)\nsections_data = sections_data['sections']\n\n# Select the section for this batch index\nif batch_index >= len(sections_data):\n  raise ValueError(f\"Batch index {batch_index} out of range for {len(sections_data)} sections\")\n\nsec = sections_data[batch_index]\n\nprint(f\"Processing section {batch_index}: {sec.get('title', 'Unknown')}\")\n\n# Extract prompt context from the structured section\nprompt_ctx = sec.get(\"prompt_context\", {})\n\n# Convert prompt_requirements to a single string for easier use\nprompt_reqs = config.get(\"prompt_requirements\", [])\nprompt_requirements_text = \"\\n\".join(f\"- {req}\" for req in prompt_reqs)\n\nresult = {\n  \"section\": sec,\n  \"section_id\": sec[\"id\"],\n  \"section_title\": sec[\"title\"],\n  \"section_description\": sec[\"description\"],\n  \"acceptance_criteria\": sec[\"acceptance\"],\n  \"component_type\": prompt_ctx.get(\"component_type\", \"component\"),\n  \"data_model\": prompt_ctx.get(\"data_model\", \"\"),\n  \"interactions\": prompt_ctx.get(\"interactions\", []),\n  \"styling_approach\": prompt_ctx.get(\"styling_approach\", \"tailwind\"),\n  \"target_score\": config.get(\"target_score\", 85),\n  \"prompt_requirements\": prompt_requirements_text,  # Now a string\n  \"framework\": config.get(\"framework\", \"react\"),\n  \"app_type\": config.get(\"app_type\", \"dashboard\"),\n  \"batch_index\": batch_index,\n  \"total_sections\": len(sections_data),\n}\n",
-        "label": "prepare context"
+        "person": "Section Planner",
+        "max_iteration": 1,
+        "memory_profile": "MINIMAL",
+        "text_format_file": "projects/frontend_enhance/section_models.py",
+        "default_prompt": "Analyze the requirements and split into independent sections for development:\nApp config: {{config}}      \nCreate a structured response with sections that can be implemented in parallel.\n",
+        "memory_settings": {
+          "view": "system_and_me",
+          "max_messages": 5,
+          "preserve_system": true
+        },
+        "label": "understand requirements",
+        "first_only_prompt": ""
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "db",
+      "position": {
+        "x": 720,
+        "y": 200
+      },
+      "data": {
+        "operation": "write",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/generated/sections_data.json",
+        "label": "save sections data"
       }
     },
     {
       "id": "node_4",
-      "type": "person_job",
+      "type": "code_job",
       "position": {
-        "x": 780,
-        "y": 240
+        "x": 980,
+        "y": 200
       },
       "data": {
-        "person": "Prompt Designer",
-        "first_prompt_file": "projects/frontend_enhance/prompts/prompt_generator_first.txt",
-        "prompt_file": "projects/frontend_enhance/prompts/prompt_generator.txt",
-        "max_iteration": 1,
-        "memory_profile": "ONLY_I_SENT",
-        "label": "generate prompt",
-        "first_only_prompt": ""
+        "language": "python",
+        "code": "result = {\n  \"section_count\": len(sections['sections']),\n  \"indices\": [{'index': i} for i in range(len(sections['sections']))]\n}\n",
+        "label": "prepare batch indices"
       }
     },
     {
       "id": "node_5",
-      "type": "person_job",
+      "type": "sub_diagram",
       "position": {
-        "x": 1080,
-        "y": 240
+        "x": 1260,
+        "y": 200
       },
       "data": {
-        "person": "Frontend Generator",
-        "max_iteration": 1,
-        "memory_profile": "FOCUSED",
-        "default_prompt": "{{generated_prompt}}",
-        "memory_settings": {
-          "view": "conversation_pairs",
-          "max_messages": 20,
-          "preserve_system": true
-        },
-        "label": "generate frontend code",
-        "first_only_prompt": ""
+        "diagram_name": "projects/frontend_enhance/section_implementor",
+        "diagram_format": "light",
+        "passInputData": true,
+        "batch": true,
+        "batch_input_key": "indices",
+        "batch_parallel": true,
+        "label": "implement sections"
       }
     },
     {
       "id": "node_6",
       "type": "code_job",
       "position": {
-        "x": 1340,
-        "y": 240
+        "x": 1540,
+        "y": 200
       },
       "data": {
         "language": "python",
-        "code": "import json\nimport os\nfrom pathlib import Path\n\n# Extract the generated code from the correct variable name\nbatch_index = context_data.get(\"batch_index\")\nsection_id = context_data.get(\"section_id\")\n\nresult = {\n  \"section_id\": section_id,\n  \"batch_index\": batch_index,\n  \"code_content\": str(generated_code),\n}\n",
-        "label": "save generated code"
+        "code": "import statistics\nscores = [it.get(\"score\", 0) for it in batch_results]\nok = all(s >= target_score for s in scores)\nresult = {\n  \"sections_done\": len(scores),\n  \"scores\": scores,\n  \"min_score\": min(scores) if scores else 0,\n  \"avg_score\": round(statistics.mean(scores), 2) if scores else 0,\n  \"target\": target_score,\n  \"success\": ok,\n}\n",
+        "label": "aggregate results"
       }
     },
     {
       "id": "node_7",
-      "type": "db",
-      "position": {
-        "x": 1480,
-        "y": 360
-      },
-      "data": {
-        "operation": "write",
-        "sub_type": "file",
-        "format": "json",
-        "file": "projects/frontend_enhance/generated/section_{batch_index}_{section_id}.json",
-        "label": "write result"
-      }
-    },
-    {
-      "id": "node_8",
       "type": "endpoint",
       "position": {
-        "x": 1600,
-        "y": 240
+        "x": 1820,
+        "y": 200
       },
       "data": {
         "file_format": "json",
-        "save_to_file": false,
-        "label": "end"
+        "save_to_file": true,
+        "file_name": "projects/frontend_enhance/generated/results.multi_section.json",
+        "label": "save summary"
       }
     }
   ],
@@ -144,102 +131,66 @@
       "label": null,
       "packing": null,
       "data": null,
-      "content_type": "object"
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_1",
-      "source": "node_0_default_output",
-      "target": "node_2_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_2",
-      "source": "node_0_default_output",
-      "target": "node_3_default_input",
-      "label": "item",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_3",
       "source": "node_1_default_output",
-      "target": "node_3_default_input",
-      "label": "sections_data",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_4",
-      "source": "node_2_default_output",
-      "target": "node_3_default_input",
+      "target": "node_2_default_input",
       "label": "config",
       "packing": null,
       "data": null,
       "content_type": "object"
     },
     {
-      "id": "arrow_5",
-      "source": "node_3_default_output",
-      "target": "node_4_default_input",
+      "id": "arrow_2",
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
       "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_3",
+      "source": "node_2_default_output",
+      "target": "node_4_default_input",
+      "label": "sections",
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_4_default_output",
+      "target": "node_5_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_5_default_output",
+      "target": "node_6_default_input",
+      "label": "batch_results",
       "packing": null,
       "data": null,
       "content_type": "object"
     },
     {
       "id": "arrow_6",
-      "source": "node_4_default_output",
-      "target": "node_5_default_input",
-      "label": "generated_prompt",
+      "source": "node_1_default_output",
+      "target": "node_6_default_input",
+      "label": "target_score",
       "packing": null,
       "data": null,
-      "content_type": "raw_text"
+      "content_type": "object"
     },
     {
       "id": "arrow_7",
-      "source": "node_5_default_output",
-      "target": "node_6_default_input",
-      "label": "generated_code",
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_8",
-      "source": "node_4_default_output",
-      "target": "node_6_default_input",
-      "label": "prompt_text",
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_9",
-      "source": "node_3_default_output",
-      "target": "node_6_default_input",
-      "label": "context_data",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_10",
       "source": "node_6_default_output",
       "target": "node_7_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_11",
-      "source": "node_7_default_output",
-      "target": "node_8_default_input",
       "label": null,
       "packing": null,
       "data": null,
@@ -248,25 +199,13 @@
   ],
   "persons": [
     {
-      "id": "Prompt Designer",
-      "label": "prompt designer",
+      "id": "Section Planner",
+      "label": "section planner",
       "llm_config": {
-        "service": "claude-code",
-        "model": "claude-code",
-        "api_key_id": "APIKEY_CLAUDE",
-        "system_prompt": "You are an expert in prompt engineering for code generation. Create clear, comprehensive prompts for frontend code generation.\n",
-        "prompt_file": null
-      },
-      "type": "person"
-    },
-    {
-      "id": "Frontend Generator",
-      "label": "frontend generator",
-      "llm_config": {
-        "service": "claude-code",
-        "model": "claude-code",
-        "api_key_id": "APIKEY_CLAUDE",
-        "system_prompt": "You are an expert React/TypeScript engineer. Generate production-ready code only. Do not try to examine current file system, but follow the order you got as prompt. Return the response at once, not step by step.\n",
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are a senior product/front-end architect. Given app requirements, split work into sections\n(pages, features, or components) that can be developed independently. Each section should be\na cohesive unit of functionality. Follow the Pydantic schema strictly.\n",
         "prompt_file": null
       },
       "type": "person"
@@ -296,6 +235,14 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_2_first_input",
+      "node_id": "node_2",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_2_default_input",
@@ -330,14 +277,6 @@
       "position": "right"
     },
     {
-      "id": "node_4_first_input",
-      "node_id": "node_4",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
       "id": "node_4_default_input",
       "node_id": "node_4",
       "label": "default",
@@ -352,14 +291,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_5_first_input",
-      "node_id": "node_5",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_5_default_input",
@@ -400,22 +331,6 @@
       "direction": "input",
       "data_type": "any",
       "position": "left"
-    },
-    {
-      "id": "node_7_default_output",
-      "node_id": "node_7",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_8_default_input",
-      "node_id": "node_8",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     }
   ],
   "metadata": {
@@ -423,8 +338,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-17T06:50:40.363Z",
-    "modified": "2025-08-17T06:50:40.363Z",
+    "created": "2025-08-17T07:51:17.118Z",
+    "modified": "2025-08-17T07:51:17.118Z",
     "version": "1.0.0",
     "id": null
   }

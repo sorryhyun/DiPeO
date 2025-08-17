@@ -115,8 +115,21 @@ make apply-syntax-only  # Apply staged changes
 make graphql-schema  # Update GraphQL types
 ```
 
-## ollama supports
-- Now we support ollama. All you have to do is add random api key to the file and write the diagram as:
+## Claude code & ollama supports
+
+- Now we support Claude code SDK. All you have to do is adding random api key to the file and write the diagram as:
+
+```yaml
+persons:
+  Frontend Generator:
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: |
+      You are an expert React/TypeScript engineer. 
+```
+
+- We also support ollama.
 ```yaml
 persons:
   person 1:
@@ -126,8 +139,9 @@ persons:
 ```
 read [example](files/diagrams/examples/simple_iter_ollama.light.yaml)
 
-## Integrated API supports
 - We support Notion, custom LLM with curl, ... etc, any API services
+- Since we use schema-driven integrations, it's quite easy to add new external API feature.
+  - read `integrations/`
 
 
 ### `dipeo` - Run Diagrams with CLI
@@ -159,4 +173,4 @@ dipeo ask --to "build data pipeline" --and-run --debug --timeout=120 --run-timeo
 - Python 3.13+
 
 ### Release Notes
-* **0.4.0:** Diagram generation with `dipeo ask` command
+* **0.4.2:** Claude code support

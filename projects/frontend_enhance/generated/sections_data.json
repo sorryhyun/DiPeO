@@ -1,265 +1,221 @@
 {
   "sections": [
     {
-      "id": "design-system",
-      "title": "Design System & Tailwind Configuration",
-      "description": "Establish a cohesive design system, including color tokens, typography scales, components catalog, and a Tailwind-based configuration with dark mode, container queries, and accessibility-friendly defaults.",
+      "id": "component-requirements",
+      "title": "Component Requirements",
+      "description": "Define core dashboard UI components, their prop contracts, and reusable patterns. Establish clear boundaries between presentational and container logic, and extract reusable hooks, compound components, and utility components to maximize reusability.",
       "acceptance": [
-        "Tailwind configured with a token-based design system",
-        "Themeable dark mode support and color tokens",
-        "Typography scale defined and responsive typography integrated",
-        "Reusable components catalog (Button, Input, Card, Table, ChartContainer)",
-        "Type-safe design tokens and token usage through TS types",
-        "Documentation scaffold for design system usage"
+        "Core component primitives and prop interfaces identified for dashboards (cards, panels, charts, nav items, forms, modals, etc.)",
+        "Separation of presentational vs container logic with clearly defined data flow",
+        "Reusable custom hooks and compound components extracted and documented",
+        "Type-safe component APIs using TypeScript generics and discriminated unions for UI states",
+        "Conventions for accessibility (ARIA labeling, keyboard navigation) embedded in component contracts",
+        "Folder structure and naming conventions defined for scalability",
+        "Design-system tokens consumed by components and demonstrated in examples"
       ],
       "prompt_context": {
-        "component_type": "design-system",
-        "data_model": "dashboard",
+        "component_type": "component",
+        "data_model": "Frontend UI components library and data contracts",
         "interactions": [
-          "define tokens",
-          "build token-driven components",
-          "export tokens to TS and CSS utility usage",
-          "document design-system guidelines"
+          "define interfaces",
+          "compose components",
+          "refactor into presentational/container patterns"
         ],
         "styling_approach": "tailwind",
-        "dependencies": []
+        "dependencies": [
+          "technical-specifications",
+          "design-system-integration"
+        ]
       },
       "priority": 1
     },
     {
-      "id": "core-layout-navigation",
-      "title": "Core Layout & Responsive Navigation",
-      "description": "Implement the main dashboard layout: responsive header, collapsible sidebar, main content area, and routing container with accessible keyboard navigation and dark mode integration.",
+      "id": "technical-specifications",
+      "title": "Technical Specifications",
+      "description": "Provide the technical blueprint for the React dashboard, including architecture, patterns, data fetching, type strategy, and deployment considerations. Ensure readiness for React 18+ features and SSR/SSG planning.",
       "acceptance": [
-        "Responsive header and collapsible sidebar with accessible focus management",
-        "Proper layout container with consistent spacing and typography",
-        "Keyboard navigation and ARIA roles for navigation regions",
-        "Dark mode toggle integrated with design system tokens",
-        "Layout components designed for reuse across pages"
+        "Adopt React 18+ features (Suspense, Error Boundaries, concurrent features) and clear guidance on their usage",
+        "Strong TypeScript guidance: generics, discriminated unions, and strict type safety across components/hooks",
+        "Defined architecture: file structure, module boundaries, and separation of concerns",
+        "Data fetching pattern using React Query or SWR with loading, error, and success states",
+        "Code splitting strategy using React.lazy and dynamic imports",
+        "Environment/config handling and feature flags guidance",
+        "Server Components readiness considerations and SSR/SSG alignment plan"
       ],
       "prompt_context": {
-        "component_type": "layout",
-        "data_model": "dashboard",
+        "component_type": "technical-spec",
+        "data_model": "Frontend architecture contracts and API payload types",
         "interactions": [
-          "view",
-          "render",
-          "resize",
-          "toggle sidebar",
-          "toggle theme"
+          "define patterns",
+          "specify types",
+          "outline SSR/SSG readiness"
         ],
         "styling_approach": "tailwind",
         "dependencies": [
-          "design-system"
+          "component-requirements",
+          "design-system-integration",
+          "state-management"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "design-system-integration",
+      "title": "Design System Integration",
+      "description": "Align components with a Tailwind-based design system: tokens for color/typography/spacing, component API conventions, accessibility patterns, and responsive design enhancements (container queries, fluid typography).",
+      "acceptance": [
+        "Tailwind design tokens wired into components (colors, typography, spacing, radii)",
+        "Shared design system catalog and token-driven API for components",
+        "Reusable, accessible UI primitives documented for consumption by dashboards",
+        "Container queries and responsive typography integrated in the design system",
+        "Guidance on style encapsulation while leveraging Tailwind (and optional CSS modules or CSS-in-JS if used)"
+      ],
+      "prompt_context": {
+        "component_type": "design-system",
+        "data_model": "Design tokens and UI primitives",
+        "interactions": [
+          "define tokens",
+          "consume design system in components",
+          "document design-system usage"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "technical-specifications"
         ]
       },
       "priority": 2
     },
     {
-      "id": "auth-ui",
-      "title": "User Authentication UI & Protected Routes",
-      "description": "Provide login/registration UI, session handling, and protected routes with token refresh patterns to secure the dashboard.",
+      "id": "state-management",
+      "title": "State Management",
+      "description": "Define state ownership, global vs local state, context usage, and reducer patterns. Establish data flow rules and integrate with server state management where applicable.",
       "acceptance": [
-        "Login and Registration forms with real-time validation feedback",
-        "Token storage and refresh mechanism with secure handling",
-        "ProtectedRoute wrapper enforcing authentication for dashboard pages",
-        "Redirect to login on unauthenticated access and preserve intended destination",
-        "Error boundaries for authentication-related failures"
-      ],
-      "prompt_context": {
-        "component_type": "auth",
-        "data_model": "dashboard",
-        "interactions": [
-          "login",
-          "register",
-          "token refresh",
-          "protected routes"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "design-system",
-          "core-layout-navigation"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "charts-module",
-      "title": "Data Visualization Charts",
-      "description": "Encapsulated chart components with responsive behavior, data adapters, and readiness for Suspense-based data loading and error handling.",
-      "acceptance": [
-        "Reusable chart components with data adapters",
-        "Responsive charts that adapt to container size",
-        "Suspense boundaries and graceful loading states",
-        "Type-safe chart data models and generics",
-        "Performance-conscious rendering with memoization"
-      ],
-      "prompt_context": {
-        "component_type": "chart",
-        "data_model": "dashboard",
-        "interactions": [
-          "render charts",
-          "update data",
-          "hover/tooltips",
-          "time-range selection"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "design-system",
-          "state-fetching"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "real-time-manager",
-      "title": "Real-time Updates & WebSocket Manager",
-      "description": "Centralized WebSocket manager to handle connections, subscriptions, reconnection, and cleanups for live dashboard features.",
-      "acceptance": [
-        "WebSocket lifecycle with connect, reconnect, disconnect",
-        "Subscription management per feature/component",
-        "Graceful cleanup on unmount and error handling with backoff",
-        "Integrates with UI data flows and optimistic updates where appropriate"
-      ],
-      "prompt_context": {
-        "component_type": "service",
-        "data_model": "dashboard",
-        "interactions": [
-          "connect",
-          "subscribe",
-          "receive",
-          "reconnect",
-          "cleanup"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "design-system"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "virtualized-list",
-      "title": "Data List with Virtualization & Infinite Scrolling",
-      "description": "Render large datasets efficiently using data virtualization and implement infinite scrolling with loading states and keyboard accessibility.",
-      "acceptance": [
-        "Virtualized list rendering for large datasets",
-        "Infinite scrolling with on-demand data loading",
-        "Accessible keyboard navigation and ARIA roles",
-        "Smooth scrolling performance with memoization where possible"
-      ],
-      "prompt_context": {
-        "component_type": "list",
-        "data_model": "dashboard",
-        "interactions": [
-          "scroll",
-          "fetch-more",
-          "refresh"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "design-system",
-          "state-fetching"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "state-fetching",
-      "title": "State Management & Data Fetching Patterns",
-      "description": "Establish a scalable state management approach using Context + Reducer patterns and integrate with React Query/SWR for data fetching, caching, and optimistic updates.",
-      "acceptance": [
-        "Global state via Context + Reducer with well-typed actions",
-        "Data fetching layer using React Query or SWR with caching and retries",
-        "Optimistic UI updates where appropriate",
-        "Strong type-safety with generics and discriminated unions"
+        "Clear delineation of local, global, and server state with ownership rules",
+        "Context API with well-typed slices and reducers (prefer discriminated unions)",
+        "Custom hooks to access and mutate state with minimal prop drilling",
+        "Guidance for lifting state and composing stateful components",
+        "Server state management patterns using React Query/SWR with caching and invalidation strategies"
       ],
       "prompt_context": {
         "component_type": "state-management",
-        "data_model": "dashboard",
+        "data_model": "UI state contracts and data-fetching contracts",
         "interactions": [
-          "provide",
-          "consume",
-          "update"
+          "lift state",
+          "provide context",
+          "define reducers"
         ],
-        "styling_approach": "tailwind",
+        "styling_approach": null,
         "dependencies": [
-          "design-system",
-          "charts-module"
+          "component-requirements",
+          "technical-specifications",
+          "performance-considerations"
         ]
       },
       "priority": 2
     },
     {
-      "id": "offline-caching",
-      "title": "Offline Support & Caching",
-      "description": "Implement offline functionality using service workers and localStorage fallbacks, ensuring data is cached and synchronized when back online.",
+      "id": "error-handling",
+      "title": "Error Handling",
+      "description": "Implement robust error handling strategies, including error boundaries, fallback UIs, and recovery workflows with logging and user-friendly messages.",
       "acceptance": [
-        "Service worker registration with basic caching strategy",
-        "Local storage fallback for essential UI state",
-        "Queue actions while offline and synchronize on reconnect",
-        "Graceful degradation when offline"
+        "React Error Boundaries with well-designed fallback UIs and recovery paths",
+        "Centralized error logging/reporting hooks and integration points",
+        "User-friendly error messages with ARIA attributes for accessibility",
+        "Test coverage for error scenarios and boundary behavior"
       ],
       "prompt_context": {
-        "component_type": "service",
-        "data_model": "dashboard",
+        "component_type": "error-handling",
+        "data_model": "Error states across components",
         "interactions": [
-          "register",
-          "cache",
-          "sync"
+          "catch-errors",
+          "render-fallback",
+          "log-errors"
         ],
-        "styling_approach": "tailwind",
+        "styling_approach": null,
         "dependencies": [
-          "design-system"
+          "technical-specifications",
+          "testing-guidelines"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "performance-considerations",
+      "title": "Performance Considerations",
+      "description": "Outline performance-oriented practices to optimize Core Web Vitals, including code-splitting, memoization, virtualization, and caching strategies.",
+      "acceptance": [
+        "Code-splitting with React.lazy and dynamic imports for large dashboards",
+        "Memoization: React.memo, useMemo, useCallback to minimize re-renders",
+        "Virtualization for large lists and supportive infinite scrolling patterns",
+        "IntersectionObserver-driven lazy loading and scroll-triggered animations",
+        "Data caching and optimistic UI updates with proper invalidation",
+        "Guidance on asset optimization and responsive image handling"
+      ],
+      "prompt_context": {
+        "component_type": "performance-optimization",
+        "data_model": "Performance metrics and bundle size targets",
+        "interactions": [
+          "analyze",
+          "instrument",
+          "optimize"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "technical-specifications",
+          "testing-guidelines"
         ]
       },
       "priority": 3
     },
     {
-      "id": "testing-guidelines",
-      "title": "Testing Guidelines & QA",
-      "description": "Provide testing scaffolding and guidelines for unit and integration tests using React Testing Library, with patterns for end-to-end tests as applicable.",
-      "acceptance": [
-        "Project scaffolding for RTL tests with sample tests",
-        "Guidelines for unit, integration, and e2e testing patterns",
-        "Test coverage goals and reporting hooks",
-        "Type-safe test data and mocks"
-      ],
-      "prompt_context": {
-        "component_type": "testing",
-        "data_model": "dashboard",
-        "interactions": [
-          "unit-test",
-          "integration-test"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "design-system"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "accessibility",
+      "id": "accessibility-requirements",
       "title": "Accessibility Requirements",
-      "description": "Ensure WCAG 2.1 AA compliance across the dashboard with proper ARIA labels, keyboard navigation, color contrast, and screen reader support.",
+      "description": "Ensure WCAG 2.1 AA compliance through semantic HTML, ARIA labeling, keyboard navigation, and screen reader support across components.",
       "acceptance": [
-        "All interactive components have ARIA labels and roles",
-        "Keyboard navigation is fully supported",
-        "Color contrast meets WCAG AA guidelines",
-        "Assistive technologies can access essential page regions"
+        "WCAG 2.1 AA conformance support in all interactive components",
+        "Accessible name/role/state semantics with proper ARIA attributes",
+        "Keyboard-only navigation, focus management, and skip links",
+        "Screen reader-friendly labels and announcements for dynamic changes",
+        "Accessibility testing guidance and checks embedded in development process"
       ],
       "prompt_context": {
         "component_type": "accessibility",
-        "data_model": "dashboard",
+        "data_model": "Accessible UI contracts",
         "interactions": [
-          "aria-labels",
-          "keyboard-navigation",
-          "screen-reader-support",
-          "focus-management"
+          "audit",
+          "implement ARIA",
+          "validate accessibility"
         ],
-        "styling_approach": "tailwind",
+        "styling_approach": null,
         "dependencies": [
-          "design-system"
+          "design-system-integration",
+          "testing-guidelines"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "testing-guidelines",
+      "title": "Testing Guidelines",
+      "description": "Define testing strategy, tooling, and coverage targets for components, hooks, and integration flows. Include RTL-oriented tests, accessibility checks, and CI integration.",
+      "acceptance": [
+        "Unit tests for components and hooks using React Testing Library",
+        "Integration tests for key state flows and data fetching",
+        "Defined test coverage targets and mocking strategies",
+        "Accessibility tests and automated checks incorporated into CI",
+        "Clear guidance for test data, fixtures, and environment setup"
+      ],
+      "prompt_context": {
+        "component_type": "testing",
+        "data_model": "Test contracts for UI components and hooks",
+        "interactions": [
+          "define test strategy",
+          "write sample tests"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "technical-specifications",
+          "accessibility-requirements"
         ]
       },
       "priority": 2

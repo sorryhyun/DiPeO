@@ -12,7 +12,11 @@ persons:
     model: claude-code
     api_key_id: APIKEY_CLAUDE
     system_prompt: |
-      You are an expert React/TypeScript engineer. Generate production-ready code only. Do not try to examine current file system, but follow the order you got as prompt. Return the response at once, not step by step.
+      You are an expert React/TypeScript engineer. 
+      
+      CRITICAL: Return ONLY the raw code files in the exact format specified in the prompt. Do NOT include any conversational text, explanations, or commentary. Do NOT say "I'll implement..." or similar phrases.
+      
+      Generate production-ready code only. Follow the exact format requested in the prompt. Return the complete response immediately without step-by-step explanations.
 
 nodes:
   - label: Start
@@ -97,6 +101,7 @@ nodes:
       max_iteration: 1
       memory_profile: FOCUSED
       default_prompt: "{{generated_prompt}}"
+      max_turns: 1
 
   - label: Save Generated Code
     type: code_job
@@ -115,7 +120,8 @@ nodes:
         result = {
           "section_id": section_id,
           "batch_index": batch_index,
-          "code_content": str(generated_code),
+          "prompt_text": prompt_text,
+          "code_content": generated_code,
         }
 
   - label: Write Result
@@ -125,7 +131,7 @@ nodes:
       operation: write
       sub_type: file
       format: json
-      source_details: "projects/frontend_enhance/generated/section_{batch_index}_{section_id}.json"
+      source_details: "projects/frontend_enhance/generated/section_{default.batch_index}_{default.section_id}.json"
 
   - label: End
     type: endpoint
@@ -142,7 +148,7 @@ connections:
   - {from: Load Config, to: Prepare Context, label: config, content_type: object}
   - {from: Prepare Context, to: Generate Prompt, content_type: object}
   - {from: Generate Prompt, to: Generate Frontend Code, content_type: raw_text, label: generated_prompt}
-  - {from: Generate Frontend Code, to: Save Generated Code, label: generated_code, content_type: raw_text}
+  - {from: Generate Frontend Code, to: Save Generated Code, label: generated_code, content_type: object}
   - {from: Generate Prompt, to: Save Generated Code, label: prompt_text, content_type: raw_text}
   - {from: Prepare Context, to: Save Generated Code, label: context_data, content_type: object}
   - {from: Save Generated Code, to: Write Result, content_type: object }
