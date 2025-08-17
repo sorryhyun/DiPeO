@@ -13,12 +13,10 @@ if TYPE_CHECKING:
     from dipeo.domain.integrations import ApiInvoker, ApiProvider, ApiProviderRegistry
     from dipeo.domain.llm import LLMClient, LLMService, MemoryService
     from dipeo.domain.messaging import DomainEventBus, MessageBus
-    from dipeo.domain.ports import (
+    from dipeo.domain.storage import (
         ArtifactStorePort,
         BlobStorePort,
-        DiagramStoragePort,
         FileSystemPort,
-        StoragePort,
     )
 
 
@@ -41,9 +39,7 @@ MEMORY_SERVICE = ServiceKey["MemoryService"]("memory_service")
 API_PROVIDER_REGISTRY = ServiceKey["ApiProviderRegistry"]("api_provider_registry")
 API_INVOKER = ServiceKey["ApiInvoker"]("api_invoker")
 
-# Storage Tokens (existing domain ports)
-STORAGE_PORT = ServiceKey["StoragePort"]("storage_port")
-DIAGRAM_STORAGE = ServiceKey["DiagramStoragePort"]("diagram_storage")
+# Storage Tokens (domain ports)
 FILE_SYSTEM = ServiceKey["FileSystemPort"]("file_system")
 ARTIFACT_STORE = ServiceKey["ArtifactStorePort"]("artifact_store")
 BLOB_STORAGE = ServiceKey["BlobStorePort"]("blob_storage")

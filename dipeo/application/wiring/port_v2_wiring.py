@@ -1,6 +1,7 @@
 """Application wiring for V2 domain ports with feature flag support."""
 
 import os
+from pathlib import Path
 from typing import Any, Optional
 
 from dipeo.application.registry import ServiceRegistry
@@ -190,6 +191,52 @@ def wire_api_services(registry: ServiceRegistry) -> None:
         registry.register("integrated_api_service", api_service)
 
 
+def wire_storage_services(registry: ServiceRegistry) -> None:
+    """Wire storage services based on feature flags."""
+    
+    if is_v2_enabled("storage"):
+        # Use V2 domain ports
+        from dipeo.application.registry.registry_tokens import (
+            BLOB_STORAGE,
+            FILE_SYSTEM,
+            ARTIFACT_STORE,
+        )
+        from dipeo.infrastructure.adapters.storage import (
+            LocalBlobAdapter,
+            LocalFileSystemAdapter,
+            ArtifactStoreAdapter,
+        )
+        
+        # Choose storage backend based on config
+        storage_backend = os.getenv("DIPEO_STORAGE_BACKEND", "local").lower()
+        
+        if storage_backend == "s3":
+            from dipeo.infrastructure.adapters.storage import S3Adapter
+            bucket = os.getenv("DIPEO_S3_BUCKET", "dipeo-storage")
+            region = os.getenv("DIPEO_S3_REGION", "us-east-1")
+            blob_store = S3Adapter(bucket=bucket, region=region)
+        else:
+            # Default to local storage
+            base_dir = os.getenv("DIPEO_BASE_DIR", str(Path.cwd()))
+            storage_path = Path(base_dir) / "storage"
+            blob_store = LocalBlobAdapter(base_path=storage_path)
+            
+        # File system adapter
+        filesystem = LocalFileSystemAdapter(base_path=Path.cwd())
+        
+        # Artifact store built on blob store
+        artifact_store = ArtifactStoreAdapter(blob_store=blob_store)
+        
+        registry.register(BLOB_STORAGE, blob_store)
+        registry.register(FILE_SYSTEM, filesystem)
+        registry.register(ARTIFACT_STORE, artifact_store)
+    else:
+        # Use V1 core ports (existing behavior)
+        from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+        filesystem = LocalFileSystemAdapter(base_path=Path.cwd())
+        registry.register("filesystem_adapter", filesystem)
+
+
 def wire_all_v2_services(
     registry: ServiceRegistry,
     redis_client: Optional[Any] = None,
@@ -207,6 +254,7 @@ def wire_all_v2_services(
     wire_messaging_services(registry)
     wire_llm_services(registry, api_key_service)
     wire_api_services(registry)
+    wire_storage_services(registry)
     
     # Log configuration
     import logging
@@ -221,6 +269,8 @@ def wire_all_v2_services(
         v2_services.append("llm")
     if is_v2_enabled("api"):
         v2_services.append("api")
+    if is_v2_enabled("storage"):
+        v2_services.append("storage")
     
     if v2_services:
         logger.info(f"V2 ports enabled for: {', '.join(v2_services)}")
@@ -235,5 +285,6 @@ def get_feature_flag_status() -> dict[str, bool]:
         "messaging": is_v2_enabled("messaging"),
         "llm": is_v2_enabled("llm"),
         "api": is_v2_enabled("api"),
+        "storage": is_v2_enabled("storage"),
         "global": is_v2_enabled("_global"),
     }

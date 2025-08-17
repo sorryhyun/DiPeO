@@ -7,7 +7,7 @@ from typing import BinaryIO
 from pathlib import Path
 from datetime import datetime, timezone
 
-from dipeo.domain.ports.storage import (
+from dipeo.domain.storage import (
     ArtifactStorePort, 
     BlobStorePort,
     Artifact, 
