@@ -10,7 +10,7 @@ from typing import (
 logger = logging.getLogger(__name__)
 
 from dipeo.diagram_generated import DiagramFormat, DomainDiagram
-from dipeo.domain.ports.storage import DiagramInfo
+from dipeo.domain.storage import DiagramInfo
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 
 

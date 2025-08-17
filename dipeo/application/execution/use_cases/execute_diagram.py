@@ -246,15 +246,15 @@ class ExecuteDiagramUseCase(BaseService):
             )
         else:
             # Fallback to inline implementation if service not available
-            from dipeo.application.registry import COMPILATION_SERVICE
+            from dipeo.application.registry.registry_tokens import DIAGRAM_COMPILER
             
             # Already have a DomainDiagram, just compile it
             domain_diagram = diagram
             
             # Compile to ExecutableDiagram
-            compiler = self.service_registry.resolve(COMPILATION_SERVICE)
+            compiler = self.service_registry.resolve(DIAGRAM_COMPILER)
             if not compiler:
-                raise RuntimeError("CompilationService not found in registry")
+                raise RuntimeError("DiagramCompiler not found in registry")
             
             executable_diagram = compiler.compile(domain_diagram)
             

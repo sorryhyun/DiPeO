@@ -42,17 +42,11 @@ class ApplicationContainer:
         self._setup_application_services()
 
     def _setup_application_services(self):
-        from dipeo.infrastructure.services.diagram import DiagramConverterService, CompilationService
+        # Use the wiring system for diagram services
+        from dipeo.application.wiring.diagram_wiring import wire_all_diagram_services
         
-        self.registry.register(
-            DIAGRAM_CONVERTER,
-            DiagramConverterService()
-        )
-        
-        self.registry.register(
-            COMPILATION_SERVICE,
-            CompilationService()
-        )
+        # This will wire compiler, serializer, and diagram port based on feature flags
+        wire_all_diagram_services(self.registry)
         
         self._setup_app_services()
 
@@ -62,8 +56,8 @@ class ApplicationContainer:
         
         file_system = self.registry.resolve(FILESYSTEM_ADAPTER)
         if not file_system:
-            from dipeo.infrastructure.adapters.storage import FilesystemAdapter
-            file_system = FilesystemAdapter()
+            from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+            file_system = LocalFileSystemAdapter()
         
         self.registry.register(
             DB_OPERATIONS_SERVICE,
@@ -129,22 +123,12 @@ class ApplicationContainer:
         from dipeo.application.services.cli_session_service import CliSessionService
         self.registry.register(CLI_SESSION_SERVICE, CliSessionService())
 
-        from dipeo.infrastructure.services.diagram import DiagramService
-        from pathlib import Path
-        from dipeo.core.config import Config
-        
-        filesystem = self.registry.resolve(FILESYSTEM_ADAPTER)
-        converter = self.registry.resolve(DIAGRAM_CONVERTER)
-        config = Config()
-        base_path = Path(config.base_dir) / "files"
-        
-        # Create and register as a singleton instead of lambda
-        diagram_service = DiagramService(
-            filesystem=filesystem,
-            base_path=base_path,
-            converter=converter
-        )
-        self.registry.register(DIAGRAM_SERVICE, diagram_service)
+        # DiagramService is already wired by wire_all_diagram_services
+        # Just register it with the old key for backward compatibility
+        from dipeo.application.registry.registry_tokens import DIAGRAM_PORT
+        diagram_service = self.registry.resolve(DIAGRAM_PORT)
+        if diagram_service:
+            self.registry.register(DIAGRAM_SERVICE, diagram_service)
         from dipeo.application.execution.use_cases import ExecuteDiagramUseCase, PrepareDiagramForExecutionUseCase
         self.registry.register(
             EXECUTION_SERVICE,

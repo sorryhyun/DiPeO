@@ -1,12 +1,24 @@
 """Core input resolution interfaces.
 
+DEPRECATED: This module is kept for backward compatibility.
+Use dipeo.domain.resolution.interfaces instead.
+
 This module provides the core types and abstractions for compile-time and runtime
 input resolution, enabling clean separation between static analysis and dynamic execution.
 """
 
 from typing import Any
+import warnings
 from dipeo.diagram_generated import DomainArrow, DomainNode, NodeID
 from dipeo.diagram_generated.enums import NodeType
+
+# Emit deprecation warning
+warnings.warn(
+    "dipeo.core.resolution.interfaces is deprecated. "
+    "Use dipeo.domain.resolution.interfaces instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 class Connection:

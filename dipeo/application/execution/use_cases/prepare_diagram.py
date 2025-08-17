@@ -106,14 +106,13 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         # Try to get compiler from service registry if available
         compiler = None
         if self.service_registry:
-            from dipeo.application.registry import COMPILATION_SERVICE
-            compiler = self.service_registry.resolve(COMPILATION_SERVICE)
+            from dipeo.application.registry.registry_tokens import DIAGRAM_COMPILER
+            compiler = self.service_registry.resolve(DIAGRAM_COMPILER)
         
-        # Fallback to creating compiler directly if not in registry
+        # Fallback to creating compiler adapter directly if not in registry
         if not compiler:
-            from dipeo.infrastructure.services.diagram.compilation_service import CompilationService
-            compiler = CompilationService()
-            await compiler.initialize()
+            from dipeo.infrastructure.adapters.diagram import StandardCompilerAdapter
+            compiler = StandardCompilerAdapter(use_interface_based=True)
         
         executable_diagram = compiler.compile(domain_diagram)
         # Add API keys to metadata

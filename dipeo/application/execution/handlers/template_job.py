@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional, Any
 from importlib import import_module
 
 from pydantic import BaseModel
-from dipeo.domain.ports.storage import FileSystemPort
+from dipeo.domain.storage import FileSystemPort
 
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest

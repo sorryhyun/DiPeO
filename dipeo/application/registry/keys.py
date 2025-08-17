@@ -27,7 +27,7 @@ if TYPE_CHECKING:
         NodeOutputRepository,
         PersonRepository,
     )
-    from dipeo.domain.ports.storage import FileSystemPort
+    from dipeo.domain.storage import FileSystemPort
     from dipeo.domain.ports.template import TemplateProcessorPort
     from dipeo.core.events import EventEmitter
     from dipeo.application.services import (

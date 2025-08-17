@@ -1,5 +1,8 @@
 """Diagram storage serialization port definitions.
 
+DEPRECATED: This module is kept for backward compatibility.
+Use dipeo.domain.diagram.ports instead.
+
 This module defines interfaces for serializing DomainDiagram models to/from
 string formats (JSON, YAML) for file storage purposes only.
 
@@ -8,9 +11,16 @@ Note: GraphQL and internal APIs should use DomainDiagram directly without serial
 
 from abc import ABC, abstractmethod
 from typing import Any, TYPE_CHECKING
+import warnings
 
 if TYPE_CHECKING:
     from dipeo.diagram_generated import DomainDiagram
+
+# Import from new location for backward compatibility
+from dipeo.domain.diagram.ports import (
+    DiagramStorageSerializer as _DomainDiagramStorageSerializer,
+    FormatStrategy as _DomainFormatStrategy,
+)
 
 
 class DiagramStorageSerializer(ABC):

@@ -3,15 +3,18 @@
 import logging
 from pathlib import Path
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from dipeo.core import BaseService, StorageError
 from dipeo.core.ports.diagram_port import DiagramPort
-from dipeo.domain.ports.storage import DiagramInfo, FileSystemPort
+from dipeo.domain.storage import DiagramInfo, FileSystemPort
 from dipeo.domain.diagram.services import DiagramFormatDetector
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated import DiagramFormat, DomainDiagram
-from .converter_service import DiagramConverterService
-from .compilation_service import CompilationService
+
+if TYPE_CHECKING:
+    from dipeo.domain.diagram.ports import DiagramCompiler, DiagramStorageSerializer
+    from .converter_service import DiagramConverterService
 
 logger = logging.getLogger(__name__)
 
@@ -26,20 +29,42 @@ class DiagramService(BaseService, DiagramPort):
     - Compilation (compile to ExecutableDiagram)
     - Query operations (exists, list)
     - Direct filesystem storage operations
+    
+    Supports both V1 (direct service usage) and V2 (port-based) architectures.
     """
     
     def __init__(
         self,
         filesystem: FileSystemPort,
         base_path: str | Path,
-        converter: DiagramConverterService | None = None,
-        compiler: CompilationService | None = None
+        converter: "DiagramConverterService | DiagramStorageSerializer | None" = None,
+        compiler: "DiagramCompiler | None" = None
     ):
         super().__init__()
         self.filesystem = filesystem
         self.base_path = Path(base_path)
-        self.converter = converter or DiagramConverterService()
-        self.compiler = compiler or CompilationService()
+        
+        # Handle both V1 services and V2 adapters
+        if converter is None:
+            # Default to V1 service for backward compatibility
+            from .converter_service import DiagramConverterService
+            self.converter = DiagramConverterService()
+            self._using_v2_converter = False
+        else:
+            self.converter = converter
+            # Check if it's a V2 adapter by checking for the port method
+            self._using_v2_converter = hasattr(converter, 'serialize_for_storage')
+        
+        if compiler is None:
+            # Default to adapter for compilation
+            from dipeo.infrastructure.adapters.diagram import StandardCompilerAdapter
+            self.compiler = StandardCompilerAdapter(use_interface_based=True)
+            self._using_v2_compiler = True
+        else:
+            self.compiler = compiler
+            # V2 compiler has compile() method that takes DomainDiagram directly
+            self._using_v2_compiler = not hasattr(compiler, 'compile_with_diagnostics')
+        
         self.format_detector = DiagramFormatDetector()
         self._initialized = False
     
@@ -52,27 +77,60 @@ class DiagramService(BaseService, DiagramPort):
         except Exception as e:
             raise StorageError(f"Failed to initialize diagram storage: {e}")
             
-        await self.converter.initialize()
-        await self.compiler.initialize()
+        # Only initialize if it's a V1 service with initialize method
+        if hasattr(self.converter, 'initialize'):
+            await self.converter.initialize()
+        if hasattr(self.compiler, 'initialize'):
+            await self.compiler.initialize()
         
         self._initialized = True
 
     
     def detect_format(self, content: str) -> DiagramFormat:
         """Detect the format of diagram content."""
-        format_id = self.converter.detect_format(content)
-        if not format_id:
-            raise ValueError("Unable to detect diagram format")
-        
-        return self._format_string_to_enum(format_id)
+        if self._using_v2_converter:
+            # V2 doesn't have detect_format, use format detector directly
+            import json
+            import yaml
+            try:
+                data = json.loads(content)
+                if "nodes" in data and "arrows" in data:
+                    return DiagramFormat.NATIVE
+            except json.JSONDecodeError:
+                try:
+                    data = yaml.safe_load(content)
+                    if data and isinstance(data, dict):
+                        if "format" in data and data["format"] == "light":
+                            return DiagramFormat.LIGHT
+                        elif "version" in data and data["version"] == "readable":
+                            return DiagramFormat.READABLE
+                except yaml.YAMLError:
+                    pass
+            return DiagramFormat.NATIVE  # Default
+        else:
+            # V1 has detect_format method
+            format_id = self.converter.detect_format(content)
+            if not format_id:
+                raise ValueError("Unable to detect diagram format")
+            return self._format_string_to_enum(format_id)
     
     def serialize(self, diagram: DomainDiagram, format_type: str) -> str:
         """Serialize a DomainDiagram to string."""
-        return self.converter.serialize_for_storage(diagram, format_type)
+        if self._using_v2_converter:
+            # V2 uses serialize_for_storage
+            return self.converter.serialize_for_storage(diagram, format_type)
+        else:
+            # V1 uses serialize_for_storage (same method name)
+            return self.converter.serialize_for_storage(diagram, format_type)
     
     def deserialize(self, content: str, format_type: str | None = None) -> DomainDiagram:
         """Deserialize string content to DomainDiagram."""
-        return self.converter.deserialize_from_storage(content, format_type)
+        if self._using_v2_converter:
+            # V2 uses deserialize_from_storage
+            return self.converter.deserialize_from_storage(content, format_type)
+        else:
+            # V1 uses deserialize_from_storage (same method name)
+            return self.converter.deserialize_from_storage(content, format_type)
 
     
     async def load_from_file(self, file_path: str) -> DomainDiagram:

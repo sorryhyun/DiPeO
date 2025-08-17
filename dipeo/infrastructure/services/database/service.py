@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from dipeo.domain.ports.storage import FileSystemPort
+from dipeo.domain.storage import FileSystemPort
 from dipeo.domain.db.services import DBOperationsDomainService as DomainDBService
 from dipeo.domain.validators import DataValidator
 

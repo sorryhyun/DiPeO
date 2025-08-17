@@ -256,6 +256,10 @@ def wire_all_v2_services(
     wire_api_services(registry)
     wire_storage_services(registry)
     
+    # Wire diagram services
+    from dipeo.application.wiring.diagram_wiring import wire_diagram_services
+    wire_diagram_services(registry)
+    
     # Log configuration
     import logging
     logger = logging.getLogger(__name__)
@@ -280,11 +284,16 @@ def wire_all_v2_services(
 
 def get_feature_flag_status() -> dict[str, bool]:
     """Get the status of all V2 feature flags."""
+    from dipeo.application.wiring.diagram_wiring import is_diagram_v2_enabled
+    
     return {
         "state": is_v2_enabled("state"),
         "messaging": is_v2_enabled("messaging"),
         "llm": is_v2_enabled("llm"),
         "api": is_v2_enabled("api"),
         "storage": is_v2_enabled("storage"),
+        "diagram_compiler": is_diagram_v2_enabled("compiler"),
+        "diagram_serializer": is_diagram_v2_enabled("serializer"),
+        "diagram_resolution": is_diagram_v2_enabled("resolution"),
         "global": is_v2_enabled("_global"),
     }

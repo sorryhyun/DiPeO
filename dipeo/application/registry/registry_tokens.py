@@ -18,6 +18,16 @@ if TYPE_CHECKING:
         BlobStorePort,
         FileSystemPort,
     )
+    from dipeo.domain.diagram.ports import (
+        DiagramCompiler,
+        DiagramStorageSerializer,
+        DiagramPort,
+    )
+    from dipeo.domain.resolution.interfaces import (
+        CompileTimeResolverV2,
+        RuntimeInputResolverV2,
+        TransformationEngineV2,
+    )
 
 
 # Execution State Tokens
@@ -46,7 +56,13 @@ BLOB_STORAGE = ServiceKey["BlobStorePort"]("blob_storage")
 
 # Diagram Processing Tokens
 DIAGRAM_COMPILER = ServiceKey["DiagramCompiler"]("diagram_compiler")
-DIAGRAM_CONVERTER = ServiceKey["DiagramConverter"]("diagram_converter")
+DIAGRAM_SERIALIZER = ServiceKey["DiagramStorageSerializer"]("diagram_serializer")
+DIAGRAM_PORT = ServiceKey["DiagramPort"]("diagram_port")
+
+# Resolution Tokens
+COMPILE_TIME_RESOLVER = ServiceKey["CompileTimeResolverV2"]("compile_time_resolver")
+RUNTIME_RESOLVER = ServiceKey["RuntimeInputResolverV2"]("runtime_resolver")
+TRANSFORMATION_ENGINE = ServiceKey["TransformationEngineV2"]("transformation_engine")
 
 # AST Parser Token
 AST_PARSER = ServiceKey["AstParser"]("ast_parser")
