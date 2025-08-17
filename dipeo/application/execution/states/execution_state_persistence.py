@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from dipeo.core.execution.execution_tracker import CompletionStatus
-from dipeo.core.execution.envelope import deserialize_protocol, serialize_protocol
+from dipeo.domain.execution.envelope import deserialize_protocol, serialize_protocol
 from dipeo.diagram_generated import (
     ExecutionState,
     Status,

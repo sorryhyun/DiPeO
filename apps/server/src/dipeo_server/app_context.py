@@ -90,12 +90,31 @@ async def create_server_container() -> Container:
         event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
         container.registry.register(EVENT_BUS, event_bus)
 
-    # Create event-based state store (no global lock)
-    from dipeo.infrastructure.state import EventBasedStateStore
-
-    state_store = EventBasedStateStore()
-    await state_store.initialize()
-    container.registry.register(STATE_STORE, state_store)
+    # Check if V2 state is enabled
+    if is_v2_enabled("state"):
+        # Use V2 domain ports wiring
+        from dipeo.application.wiring.port_v2_wiring import wire_state_services
+        from dipeo.application.registry.registry_tokens import STATE_REPOSITORY, STATE_SERVICE, STATE_CACHE
+        
+        # Wire V2 state services (includes repository, service, and cache)
+        wire_state_services(container.registry, redis_client=None)  # No Redis for now
+        
+        # Get the state repository for state manager
+        state_store = container.registry.resolve(STATE_REPOSITORY)
+        
+        # Initialize if needed
+        if hasattr(state_store, 'initialize'):
+            await state_store.initialize()
+            
+        # Also register as STATE_STORE for backward compatibility
+        container.registry.register(STATE_STORE, state_store)
+    else:
+        # Use V1 direct creation
+        from dipeo.infrastructure.state import EventBasedStateStore
+        
+        state_store = EventBasedStateStore()
+        await state_store.initialize()
+        container.registry.register(STATE_STORE, state_store)
 
     # Create state manager as separate service
     from dipeo.infrastructure.state import AsyncStateManager

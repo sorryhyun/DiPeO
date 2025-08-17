@@ -283,7 +283,7 @@ class TypedExecutionEngine:
         context: TypedExecutionContext
     ) -> dict[str, Any]:
         """Handle PersonJobNode that has reached max iterations."""
-        from dipeo.core.execution.envelope import EnvelopeFactory
+        from dipeo.domain.execution.envelope import EnvelopeFactory
         from dipeo.diagram_generated.enums import Status
         
         node_id = node.id

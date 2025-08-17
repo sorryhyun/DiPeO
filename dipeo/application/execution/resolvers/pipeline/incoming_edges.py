@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from dipeo.core.execution.envelope import Envelope
-from dipeo.core.resolution import StandardNodeOutput
+from dipeo.domain.execution.envelope import Envelope
+from dipeo.domain.diagram.models.executable_diagram import StandardNodeOutput
 from .base import PipelineStage, PipelineContext
 
 

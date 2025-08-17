@@ -8,7 +8,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import AST_PARSER
 from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
-from dipeo.core.execution.envelope import Envelope, get_envelope_factory
+from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 
 if TYPE_CHECKING:

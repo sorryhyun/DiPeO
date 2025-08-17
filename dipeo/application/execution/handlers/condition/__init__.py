@@ -12,7 +12,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import DIAGRAM
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.condition_model import ConditionNodeData
 
 from .evaluators import (
@@ -175,7 +175,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         meta = {k: v for k, v in result.items() if k != "result"}
         
         # Create Envelope directly for proper branch routing
-        from dipeo.core.execution.envelope import Envelope
+        from dipeo.domain.execution.envelope import Envelope
         
         output = Envelope(
             content_type="condition_result",  # Special content type for conditions

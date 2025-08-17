@@ -9,7 +9,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import EXECUTION_CONTEXT
 from dipeo.diagram_generated.generated_nodes import UserResponseNode, NodeType
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
 
 if TYPE_CHECKING:

@@ -9,7 +9,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import API_SERVICE
 from dipeo.diagram_generated.generated_nodes import ApiJobNode, NodeType
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData, HttpMethod
 
 if TYPE_CHECKING:

@@ -157,7 +157,7 @@ class PersonJobNodeStrategy(BaseNodeTypeStrategy):
     
     @property
     def node_type(self) -> NodeType:
-        return NodeType.PersonJob
+        return NodeType.PERSON_JOB
     
     def get_default_input_name(self, node: DomainNode) -> str | None:
         """PersonJob nodes use 'instructions' as the default input."""
@@ -191,7 +191,7 @@ class ConditionNodeStrategy(BaseNodeTypeStrategy):
     
     @property
     def node_type(self) -> NodeType:
-        return NodeType.Condition
+        return NodeType.CONDITION
     
     def validate_input(
         self,
@@ -210,7 +210,7 @@ class CollectNodeStrategy(BaseNodeTypeStrategy):
     
     @property
     def node_type(self) -> NodeType:
-        return NodeType.Collect
+        return NodeType.COLLECT
     
     def should_use_first_available(self, node: DomainNode) -> bool:
         """Collect nodes gather all available inputs."""
@@ -228,7 +228,7 @@ def create_default_strategy_registry() -> NodeTypeStrategyRegistry:
     # Register specific strategies
     registry.register(PersonJobNodeStrategy())
     registry.register(ConditionNodeStrategy())
-    registry.register(CollectNodeStrategy())
+    # registry.register(CollectNodeStrategy())  # No COLLECT node type in current enum
     
     # Set a default strategy for unregistered types
     class DefaultStrategy(BaseNodeTypeStrategy):

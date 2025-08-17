@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from dipeo.core.execution.execution_context import ExecutionContext
-from dipeo.core.execution.envelope import Envelope
+from dipeo.domain.execution.envelope import Envelope
 from dipeo.core.execution.resolution_error import ResolutionError
 from dipeo.domain.diagram.models.executable_diagram import (
     ExecutableNode,
@@ -116,7 +116,7 @@ class InputResolutionPipeline:
                 envelopes[key] = value
             else:
                 # Create envelope from value
-                from dipeo.core.execution.envelope import EnvelopeFactory
+                from dipeo.domain.execution.envelope import EnvelopeFactory
                 from uuid import uuid4
                 
                 trace_id = getattr(context, 'execution_id', str(uuid4()))

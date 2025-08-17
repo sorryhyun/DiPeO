@@ -13,7 +13,7 @@ from typing import Any, Optional
 from uuid import uuid4
 
 from dipeo.core.constants import STATE_DB_PATH
-from dipeo.core.execution.envelope import serialize_protocol
+from dipeo.domain.execution.envelope import serialize_protocol
 from dipeo.application.migration.compat_imports import StateStorePort
 from dipeo.diagram_generated import (
     DiagramID,
@@ -428,7 +428,7 @@ class EventBasedStateStore(StateStorePort):
             # Already serialized Envelope, use as-is
             serialized_output = output
         else:
-            from dipeo.core.execution.envelope import EnvelopeFactory
+            from dipeo.domain.execution.envelope import EnvelopeFactory
             from dipeo.diagram_generated import NodeID
             
             # Create an envelope for outputs that don't have the protocol interface

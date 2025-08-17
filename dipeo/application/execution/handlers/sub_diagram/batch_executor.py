@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 
 from .base_executor import BaseSubDiagramExecutor

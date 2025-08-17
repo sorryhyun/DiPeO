@@ -149,7 +149,7 @@ class StandardTransformationEngineAdapter(TransformationEngine):
     
     def _initialize_engine(self):
         """Initialize the underlying engine."""
-        from dipeo.core.resolution.transformation_engine import (
+        from dipeo.domain.resolution.transformation_engine import (
             StandardTransformationEngine
         )
         self._engine = StandardTransformationEngine()

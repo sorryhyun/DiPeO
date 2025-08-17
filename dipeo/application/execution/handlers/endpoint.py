@@ -10,7 +10,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import EndpointNode, NodeType
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
 if TYPE_CHECKING:

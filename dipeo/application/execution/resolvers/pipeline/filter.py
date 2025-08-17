@@ -3,7 +3,7 @@
 from typing import Any
 
 from dipeo.diagram_generated import NodeType
-from dipeo.core.resolution import NodeStrategyFactory
+from dipeo.core.resolution.node_strategies import NodeStrategyFactory
 from .base import PipelineStage, PipelineContext
 
 
@@ -63,7 +63,7 @@ class FilterStage(PipelineStage):
             return True  # No value yet, can't filter
         
         # If value is an Envelope with iteration metadata
-        from dipeo.core.execution.envelope import Envelope
+        from dipeo.domain.execution.envelope import Envelope
         if isinstance(value, Envelope):
             # Check iteration match
             if 'iteration' in value.meta:

@@ -17,7 +17,7 @@ from dipeo.application.execution.states.execution_state_persistence import Execu
 from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
 from dipeo.core.execution import ExecutionContext as ExecutionContextProtocol
 from dipeo.core.execution.execution_tracker import CompletionStatus, ExecutionTracker
-from dipeo.core.execution.envelope import Envelope
+from dipeo.domain.execution.envelope import Envelope
 from dipeo.core.execution.runtime_resolver_v2 import RuntimeResolverV2
 from dipeo.diagram_generated import (
     ExecutionState,
@@ -210,7 +210,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
             output = self._tracker.get_last_output(node_id)
 
             # Handle Envelope with condition result
-            from dipeo.core.execution.envelope import Envelope
+            from dipeo.domain.execution.envelope import Envelope
             if isinstance(output, Envelope):
                 # Extract branch from envelope metadata
                 if output.content_type == "condition_result":

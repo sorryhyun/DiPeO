@@ -8,7 +8,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.domain.conversation import Person
 from dipeo.domain.conversation.memory_profiles import MemoryProfile, MemoryProfileFactory
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.domain_models import Message, PersonID
 
 from .prompt_resolver import PromptFileResolver

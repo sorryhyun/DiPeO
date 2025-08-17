@@ -16,7 +16,7 @@ from dipeo.core.execution.execution_tracker import (
     NodeExecutionRecord,
     NodeRuntimeState,
 )
-from dipeo.core.execution.envelope import (
+from dipeo.domain.execution.envelope import (
     Envelope,
     EnvelopeFactory,
     serialize_protocol,
