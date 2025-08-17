@@ -573,6 +573,39 @@ class TypeScriptToPythonFilters:
         return ' '.join(word.title() for word in s2.split('_'))
     
     @classmethod
+    def ts_consts(cls, ast_cache: dict, name: str) -> Any:
+        """Extract a constant value from TypeScript AST cache by name."""
+        for filepath, ast_data in (ast_cache or {}).items():
+            for const in (ast_data.get('constants') or []):
+                if const.get('name') == name:
+                    return const.get('value')
+        return None
+    
+    @classmethod
+    def ts_iface(cls, ast_cache: dict, name: str) -> Optional[dict]:
+        """Extract an interface from TypeScript AST cache by name."""
+        for filepath, ast_data in (ast_cache or {}).items():
+            for iface in (ast_data.get('interfaces') or []):
+                if iface.get('name') == name:
+                    return iface
+        return None
+    
+    @classmethod
+    def ts_specs(cls, ast_cache: dict) -> List[dict]:
+        """Extract all node specifications from TypeScript AST cache.
+        
+        Looks for constants that have a 'nodeType' field, which indicates
+        they are node specification objects.
+        """
+        specs = []
+        for filepath, ast_data in (ast_cache or {}).items():
+            for const in (ast_data.get('constants') or []):
+                value = const.get('value')
+                if isinstance(value, dict) and 'nodeType' in value:
+                    specs.append(value)
+        return specs
+    
+    @classmethod
     def get_all_filters(cls) -> dict:
         """Get all filter methods as a dictionary."""
         return {
@@ -590,6 +623,10 @@ class TypeScriptToPythonFilters:
             'zod_schema': cls.zod_schema,
             'escape_js': cls.escape_js,
             'humanize': cls.humanize,
+            # TypeScript AST filters
+            'ts_consts': cls.ts_consts,
+            'ts_iface': cls.ts_iface,
+            'ts_specs': cls.ts_specs,
             # Aliases
             'to_py': cls.ts_to_python_type,
         }
