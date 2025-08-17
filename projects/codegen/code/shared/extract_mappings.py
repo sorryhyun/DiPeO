@@ -258,6 +258,9 @@ def main(inputs: dict) -> dict:
             if mappings:
                 mappings['node_interface_map'] = node_interface_map
                 print(f"Final node_interface_map has {len(mappings.get('node_interface_map', {}))} entries")
+                # Debug: Print first few entries
+                for i, (k, v) in enumerate(list(node_interface_map.items())[:3]):
+                    print(f"[DEBUG extract_mappings]   {k} -> {v}")
                 return mappings
             else:
                 # If no mappings found, return with NODE_INTERFACE_MAP

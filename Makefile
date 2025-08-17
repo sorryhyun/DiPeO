@@ -69,7 +69,7 @@ install-dev: install
 # Primary code generation command (SAFE - stages changes for review)
 codegen:
 	@echo "Starting code generation..."
-	dipeo run projects/codegen/diagrams/generate_all --light --timeout=30
+	dipeo run projects/codegen/diagrams/generate_all --light --debug --timeout=30
 	@echo "✓ Code generation complete. Next: make diff-staged → make apply-syntax-only → make graphql-schema"
 
 # Automatic code generation with auto-apply (DANGEROUS - use with caution!)

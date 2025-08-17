@@ -194,7 +194,10 @@ def extract_field_configs_core(ast_data: dict, mappings: dict) -> dict:
             'fields': fields
         })
     
-    # print(f"Generated field configs for {len(node_configs)} node types")
+    print(f"Generated field configs for {len(node_configs)} node types")
+    # Debug: Print first few node configs
+    for i, nc in enumerate(node_configs[:3]):
+        print(f"[DEBUG extract_field_configs_core] node {i}: nodeType='{nc['nodeType']}', fields={len(nc['fields'])}")
     
     return {
         'node_configs': node_configs,
@@ -217,6 +220,14 @@ def extract_field_configs(inputs: dict) -> dict:
     
     # Get mappings if provided
     mappings = inputs.get('mappings', {})
+    
+    # Debug: Print what we received
+    print(f"[DEBUG] Received mappings keys: {list(mappings.keys())}")
+    if 'node_interface_map' in mappings:
+        print(f"[DEBUG] node_interface_map has {len(mappings['node_interface_map'])} entries")
+        # Print first few entries to debug
+        for i, (k, v) in enumerate(list(mappings['node_interface_map'].items())[:3]):
+            print(f"[DEBUG]   {k} -> {v}")
     
     # Collect all interfaces and enums from glob results
     all_interfaces = []
