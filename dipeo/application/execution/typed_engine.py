@@ -56,7 +56,7 @@ class TypedExecutionEngine:
         self._scheduler: NodeScheduler | None = None
         
         if observers and not event_bus:
-            from dipeo.infrastructure.events.observer_adapter import create_event_bus_with_observers
+            from dipeo.infrastructure.adapters.events.legacy.observer_consumer_adapter import create_event_bus_with_observers
             self.event_bus = create_event_bus_with_observers(observers)
             self._managed_event_bus = True
         else:

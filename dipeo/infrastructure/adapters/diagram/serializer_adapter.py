@@ -25,13 +25,25 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
     def __init__(self):
         """Initialize the serializer adapter."""
         self._converter = None
+        self._initialized = False
         self._initialize_converter()
     
     def _initialize_converter(self):
         """Initialize the underlying converter implementation."""
         from dipeo.infrastructure.services.diagram import DiagramConverterService
         self._converter = DiagramConverterService()
-        logger.info("Initialized DiagramConverterService")
+        logger.info("Created DiagramConverterService")
+    
+    async def initialize(self):
+        """Initialize the adapter and underlying converter."""
+        if self._initialized:
+            return
+        
+        if self._converter and hasattr(self._converter, 'initialize'):
+            await self._converter.initialize()
+        
+        self._initialized = True
+        logger.info("Initialized UnifiedSerializerAdapter")
     
     def serialize_for_storage(self, diagram: "DomainDiagram", format: str) -> str:
         """Serialize a DomainDiagram to string for file storage.
@@ -46,19 +58,11 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
         if not self._converter:
             raise RuntimeError("Converter not initialized")
         
-        logger.debug(f"Serializing diagram {diagram.id} to {format} format")
+        # Note: The converter will check its own initialization state
+        logger.debug(f"Serializing diagram {diagram.id if hasattr(diagram, 'id') else 'unknown'} to {format} format")
         
-        # Map format names to converter method
-        if format in ["json", "native"]:
-            return self._converter.serialize_native(diagram)
-        elif format == "yaml":
-            return self._converter.serialize_native_yaml(diagram) 
-        elif format == "light":
-            return self._converter.serialize_light(diagram)
-        elif format == "readable":
-            return self._converter.serialize_readable(diagram)
-        else:
-            raise ValueError(f"Unsupported format: {format}")
+        # Use the converter's serialize_for_storage method
+        return self._converter.serialize_for_storage(diagram, format)
     
     def deserialize_from_storage(self, content: str, format: str | None = None) -> "DomainDiagram":
         """Deserialize file content to DomainDiagram.
@@ -76,7 +80,7 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
         logger.debug(f"Deserializing content with format hint: {format}")
         
         # Let the converter auto-detect if no format specified
-        return self._converter.deserialize(content, format_hint=format)
+        return self._converter.deserialize_from_storage(content, format)
 
 
 class FormatStrategyAdapter(DiagramStorageSerializer):

@@ -36,13 +36,59 @@ async def create_server_container() -> Container:
         INTEGRATED_API_SERVICE,
     )
     from dipeo.infrastructure.config import get_settings
-    from dipeo.infrastructure.adapters.events import AsyncEventBus
-
-    # Create event bus with configuration
-
+    from dipeo.application.wiring.port_v2_wiring import is_v2_enabled
+    
     settings = get_settings()
-    event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
-    container.registry.register(EVENT_BUS, event_bus)
+    
+    # Check if V2 messaging is enabled
+    if is_v2_enabled("messaging"):
+        # Use V2 domain ports wiring
+        from dipeo.application.wiring.port_v2_wiring import wire_messaging_services
+        from dipeo.application.registry.registry_tokens import MESSAGE_BUS
+        
+        # Wire V2 messaging services (includes MessageBus and optionally DomainEventBus)
+        wire_messaging_services(container.registry)
+        
+        # Get the message bus from V2 wiring
+        if container.registry.has(MESSAGE_BUS):
+            message_router = container.registry.resolve(MESSAGE_BUS)
+            # Also register as MESSAGE_ROUTER for backward compatibility
+            container.registry.register(MESSAGE_ROUTER, message_router)
+        else:
+            # Fallback to direct creation if wiring failed
+            from dipeo.infrastructure.adapters.messaging import MessageRouter
+            message_router = MessageRouter()
+            container.registry.register(MESSAGE_ROUTER, message_router)
+    else:
+        # Use V1 direct creation
+        from dipeo.infrastructure.adapters.messaging import MessageRouter
+        message_router = MessageRouter()
+        container.registry.register(MESSAGE_ROUTER, message_router)
+    
+    # Check if V2 events are enabled
+    if is_v2_enabled("events"):
+        # Use V2 domain events wiring
+        from dipeo.application.wiring.port_v2_wiring import wire_event_services
+        from dipeo.application.registry.registry_tokens import DOMAIN_EVENT_BUS
+        
+        # Wire V2 event services
+        wire_event_services(container.registry)
+        
+        # Get the domain event bus from V2 wiring
+        if container.registry.has(DOMAIN_EVENT_BUS):
+            # V2 uses domain event bus through adapters
+            from dipeo.application.registry import ServiceKey
+            event_bus = container.registry.resolve(ServiceKey("execution_observer"))  # ObserverToEventAdapter
+        else:
+            # Fallback to AsyncEventBus
+            from dipeo.infrastructure.adapters.events import AsyncEventBus
+            event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
+            container.registry.register(EVENT_BUS, event_bus)
+    else:
+        # Use V1 direct creation
+        from dipeo.infrastructure.adapters.events import AsyncEventBus
+        event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
+        container.registry.register(EVENT_BUS, event_bus)
 
     # Create event-based state store (no global lock)
     from dipeo.infrastructure.state import EventBasedStateStore
@@ -56,40 +102,48 @@ async def create_server_container() -> Container:
 
     state_manager = AsyncStateManager(state_store)
 
-    # Subscribe state manager to relevant events
-    event_bus.subscribe(EventType.EXECUTION_STARTED, state_manager)
-    event_bus.subscribe(EventType.NODE_STARTED, state_manager)
-    event_bus.subscribe(EventType.NODE_COMPLETED, state_manager)
-    event_bus.subscribe(EventType.NODE_FAILED, state_manager)
-    event_bus.subscribe(EventType.EXECUTION_COMPLETED, state_manager)
-
-    # Create message router for real-time updates
-    from dipeo.infrastructure.adapters.messaging import MessageRouter
-    message_router = MessageRouter()
-    container.registry.register(MESSAGE_ROUTER, message_router)
+    # Subscribe state manager to relevant events (works with both V1 and V2)
+    if hasattr(event_bus, 'subscribe'):
+        event_bus.subscribe(EventType.EXECUTION_STARTED, state_manager)
+        event_bus.subscribe(EventType.NODE_STARTED, state_manager)
+        event_bus.subscribe(EventType.NODE_COMPLETED, state_manager)
+        event_bus.subscribe(EventType.NODE_FAILED, state_manager)
+        event_bus.subscribe(EventType.EXECUTION_COMPLETED, state_manager)
 
     # Create streaming monitor for real-time UI updates
     from dipeo.infrastructure.monitoring import StreamingMonitor
     streaming_monitor = StreamingMonitor(message_router, queue_size=settings.monitoring_queue_size)
 
-    # Subscribe streaming monitor to all events
-    event_bus.subscribe(EventType.EXECUTION_STARTED, streaming_monitor)
-    event_bus.subscribe(EventType.NODE_STARTED, streaming_monitor)
-    event_bus.subscribe(EventType.NODE_COMPLETED, streaming_monitor)
-    event_bus.subscribe(EventType.NODE_FAILED, streaming_monitor)
-    event_bus.subscribe(EventType.EXECUTION_COMPLETED, streaming_monitor)
-    event_bus.subscribe(EventType.METRICS_COLLECTED, streaming_monitor)
+    # Subscribe streaming monitor to all events (works with both V1 and V2)
+    if hasattr(event_bus, 'subscribe'):
+        event_bus.subscribe(EventType.EXECUTION_STARTED, streaming_monitor)
+        event_bus.subscribe(EventType.NODE_STARTED, streaming_monitor)
+        event_bus.subscribe(EventType.NODE_COMPLETED, streaming_monitor)
+        event_bus.subscribe(EventType.NODE_FAILED, streaming_monitor)
+        event_bus.subscribe(EventType.EXECUTION_COMPLETED, streaming_monitor)
+        event_bus.subscribe(EventType.METRICS_COLLECTED, streaming_monitor)
 
     # Create metrics observer for performance analysis
     from dipeo.application.execution.observers import MetricsObserver
-    metrics_observer = MetricsObserver(event_bus=event_bus)
+    
+    # For V2, we might need to get the actual event bus from the registry
+    actual_event_bus = event_bus
+    if is_v2_enabled("events") and container.registry.has(EVENT_BUS):
+        # Try to get the actual AsyncEventBus if it's registered
+        try:
+            actual_event_bus = container.registry.resolve(EVENT_BUS)
+        except:
+            pass  # Use the adapter if resolution fails
+    
+    metrics_observer = MetricsObserver(event_bus=actual_event_bus)
 
-    # Subscribe metrics observer to execution events
-    event_bus.subscribe(EventType.EXECUTION_STARTED, metrics_observer)
-    event_bus.subscribe(EventType.NODE_STARTED, metrics_observer)
-    event_bus.subscribe(EventType.NODE_COMPLETED, metrics_observer)
-    event_bus.subscribe(EventType.NODE_FAILED, metrics_observer)
-    event_bus.subscribe(EventType.EXECUTION_COMPLETED, metrics_observer)
+    # Subscribe metrics observer to execution events (works with both V1 and V2)
+    if hasattr(event_bus, 'subscribe'):
+        event_bus.subscribe(EventType.EXECUTION_STARTED, metrics_observer)
+        event_bus.subscribe(EventType.NODE_STARTED, metrics_observer)
+        event_bus.subscribe(EventType.NODE_COMPLETED, metrics_observer)
+        event_bus.subscribe(EventType.NODE_FAILED, metrics_observer)
+        event_bus.subscribe(EventType.EXECUTION_COMPLETED, metrics_observer)
 
     # Initialize provider registry for webhook integration
     from dipeo.infrastructure.services.integrated_api.registry import ProviderRegistry
@@ -117,14 +171,19 @@ async def create_server_container() -> Container:
     
     container.registry.register(PROVIDER_REGISTRY, provider_registry)
     
-    # Subscribe webhook events to streaming monitor
-    event_bus.subscribe(EventType.WEBHOOK_RECEIVED, streaming_monitor)
+    # Subscribe webhook events to streaming monitor (works with both V1 and V2)
+    if hasattr(event_bus, 'subscribe'):
+        event_bus.subscribe(EventType.WEBHOOK_RECEIVED, streaming_monitor)
 
-    # Start services
-    await event_bus.start()
-    await state_manager.start()
-    await streaming_monitor.start()
-    await metrics_observer.start()
+    # Start services (check for start method for compatibility)
+    if hasattr(event_bus, 'start'):
+        await event_bus.start()
+    if hasattr(state_manager, 'start'):
+        await state_manager.start()
+    if hasattr(streaming_monitor, 'start'):
+        await streaming_monitor.start()
+    if hasattr(metrics_observer, 'start'):
+        await metrics_observer.start()
 
 
     # Register CLI session service if not already registered

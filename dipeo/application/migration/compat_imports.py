@@ -84,7 +84,7 @@ else:
 
 # Event/Observer Ports
 if _is_v2_enabled("events"):
-    from dipeo.domain.events.ports import DomainEventBus
+    from dipeo.domain.messaging.ports import DomainEventBus
     # Avoid circular import - just use the core observer for now
     from dipeo.core.ports import ExecutionObserver  # type: ignore
 else:

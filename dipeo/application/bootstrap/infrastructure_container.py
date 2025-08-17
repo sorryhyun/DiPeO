@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any
+import os
 
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
@@ -38,9 +39,25 @@ class InfrastructureContainer:
         self._setup_adapters()
 
     def _setup_adapters(self):
-        self._setup_storage_adapters()
-        self._setup_llm_adapter()
+        # Check if V2 ports are enabled and use appropriate wiring
+        from dipeo.application.wiring.port_v2_wiring import is_v2_enabled
+        
+        if is_v2_enabled("storage"):
+            self._setup_storage_v2()
+        else:
+            self._setup_storage_adapters()
+            
+        if is_v2_enabled("llm"):
+            self._setup_llm_v2()
+        else:
+            self._setup_llm_adapter()
+            
+        # Setup API and other infrastructure services
         self._setup_infrastructure_services()
+        
+        # Override with V2 API if enabled
+        if is_v2_enabled("api"):
+            self._setup_api_v2()
 
     def _setup_storage_adapters(self):
         from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
@@ -121,3 +138,60 @@ class InfrastructureContainer:
             AST_PARSER,
             parser_service
         )
+    
+    def _setup_storage_v2(self):
+        """Setup storage services using V2 domain ports."""
+        from dipeo.application.wiring.port_v2_wiring import wire_storage_services
+        
+        # First setup API key service (needed by other services)
+        from dipeo.application.services.apikey_service import APIKeyService
+        api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
+        self.registry.register(
+            API_KEY_SERVICE,
+            APIKeyService(file_path=api_key_path)
+        )
+        
+        # Wire V2 storage services
+        wire_storage_services(self.registry)
+        
+        # Also keep filesystem adapter for backward compatibility
+        from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+        filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.base_dir))
+        self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
+    
+    def _setup_llm_v2(self):
+        """Setup LLM services using V2 domain ports."""
+        from dipeo.application.wiring.port_v2_wiring import wire_llm_services
+        
+        # Ensure API key service exists
+        if not self.registry.has(API_KEY_SERVICE):
+            from dipeo.application.services.apikey_service import APIKeyService
+            api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
+            self.registry.register(
+                API_KEY_SERVICE,
+                APIKeyService(file_path=api_key_path)
+            )
+        
+        api_key_service = self.registry.resolve(API_KEY_SERVICE)
+        
+        # Wire V2 LLM services
+        wire_llm_services(self.registry, api_key_service)
+        
+        # Also register as old LLM_SERVICE key for backward compatibility
+        from dipeo.application.registry.registry_tokens import LLM_SERVICE as LLM_SERVICE_V2
+        if self.registry.has(LLM_SERVICE_V2):
+            llm_service = self.registry.resolve(LLM_SERVICE_V2)
+            self.registry.register(LLM_SERVICE, llm_service)
+    
+    def _setup_api_v2(self):
+        """Setup API services using V2 domain ports."""
+        from dipeo.application.wiring.port_v2_wiring import wire_api_services
+        
+        # Wire V2 API services
+        wire_api_services(self.registry)
+        
+        # Override the old INTEGRATED_API_SERVICE with V2 version for backward compatibility
+        from dipeo.application.registry.registry_tokens import API_INVOKER
+        if self.registry.has(API_INVOKER):
+            api_invoker = self.registry.resolve(API_INVOKER)
+            self.registry.register(INTEGRATED_API_SERVICE, api_invoker)

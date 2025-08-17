@@ -260,8 +260,11 @@ def wire_event_services(registry: ServiceRegistry) -> None:
         observer_adapter = ObserverToEventAdapter(domain_event_bus)
         
         # Register services
-        registry.register("domain_event_bus", domain_event_bus)
-        registry.register("execution_observer", observer_adapter)
+        registry.register(DOMAIN_EVENT_BUS, domain_event_bus)
+        
+        # Also register as string key for backward compatibility
+        from dipeo.application.registry import ServiceKey
+        registry.register(ServiceKey("execution_observer"), observer_adapter)
         
         # Log migration status
         import logging

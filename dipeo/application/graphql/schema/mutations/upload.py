@@ -196,8 +196,8 @@ def create_upload_mutations(registry: ServiceRegistry) -> type:
                     await converter_registry.initialize()
                 
                 # Convert diagram using deserialize then serialize
-                diagram = converter_registry.deserialize(content, from_format_str)
-                converted_content = converter_registry.serialize(diagram, to_format_str)
+                diagram = converter_registry.deserialize_from_storage(content, from_format_str)
+                converted_content = converter_registry.serialize_for_storage(diagram, to_format_str)
                 
                 return DiagramConvertResult(
                     success=True,
