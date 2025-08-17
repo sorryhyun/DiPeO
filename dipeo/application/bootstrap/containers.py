@@ -12,7 +12,7 @@ from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
 )
-from dipeo.core.bak.config import Config
+from dipeo.domain.config import Config
 
 class Container:
     """Main container orchestrating the 2-container architecture."""

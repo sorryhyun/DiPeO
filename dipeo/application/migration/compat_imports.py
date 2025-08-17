@@ -99,7 +99,7 @@ from dipeo.core.bak.ports import APIKeyPort  # type: ignore
 # Diagram Ports (still in core for now)
 from dipeo.domain.diagram.ports import (  # type: ignore
     DiagramCompiler,
-    DiagramConverter,
+    DiagramPort,
     FormatStrategy,
     DiagramStorageSerializer,
 )
@@ -131,7 +131,7 @@ __all__ = [
     # Core (unchanged)
     "APIKeyPort",
     "DiagramCompiler",
-    "DiagramConverter",
+    "DiagramPort",
     "FormatStrategy",
     "DiagramStorageSerializer",
 ]

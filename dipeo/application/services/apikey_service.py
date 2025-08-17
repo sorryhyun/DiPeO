@@ -4,7 +4,7 @@ import json
 import logging
 from pathlib import Path
 
-from dipeo.core import APIKeyError, BaseService
+from dipeo.domain.base import APIKeyError, BaseService
 from dipeo.application.migration.compat_imports import APIKeyPort
 
 
