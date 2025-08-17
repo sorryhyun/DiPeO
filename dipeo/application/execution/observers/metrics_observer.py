@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
-from dipeo.core.events import EventConsumer, EventEmitter, EventType, ExecutionEvent
+from dipeo.core.bak.events import EventConsumer, EventEmitter, EventType, ExecutionEvent
 
 logger = logging.getLogger(__name__)
 

@@ -19,8 +19,8 @@ from dipeo.application.registry import (
 )
 
 if TYPE_CHECKING:
-    from dipeo.core.ports.message_router import MessageRouterPort
-    from dipeo.core.ports.state_store import StateStorePort
+    from dipeo.core.bak.ports.message_router import MessageRouterPort
+    from dipeo.core.bak.ports.state_store import StateStorePort
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
     from dipeo.infrastructure.services.diagram import DiagramService
     from dipeo.diagram_generated import DomainDiagram
@@ -117,7 +117,7 @@ class ExecuteDiagramUseCase(BaseService):
             # Subscribe unified observer to event bus using adapter
             if engine_observers:
                 from dipeo.infrastructure.adapters.events.legacy import ObserverToEventConsumerAdapter
-                from dipeo.core.events import EventType
+                from dipeo.core.bak.events import EventType
                 
                 for observer in engine_observers:
                     adapter = ObserverToEventConsumerAdapter(observer)

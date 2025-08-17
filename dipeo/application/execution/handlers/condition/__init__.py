@@ -23,7 +23,7 @@ from .evaluators import (
 )
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_context import ExecutionContext
+    from dipeo.core.bak.execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 

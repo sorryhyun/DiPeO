@@ -14,7 +14,7 @@ from dipeo.application.registry.keys import (
     STATE_STORE,
     TEMPLATE_PROCESSOR,
 )
-from dipeo.core.config import Config
+from dipeo.core.bak.config import Config
 
 
 class CoreContainer:

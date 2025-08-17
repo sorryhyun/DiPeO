@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any
 
-from dipeo.core.base.exceptions import ValidationError
+from dipeo.domain.base.exceptions import ValidationError
 from dipeo.domain.validators.base_validator import BaseValidator, ValidationResult, ValidationWarning
 
 

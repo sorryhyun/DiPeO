@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Protocol
 
-from dipeo.core.base.exceptions import ValidationError
+from dipeo.domain.base.exceptions import ValidationError
 
 
 class Severity(Enum):

@@ -1,4 +1,4 @@
-"""Base module for DiPeO core abstractions."""
+"""Base module for DiPeO domain abstractions."""
 
 from .exceptions import (
     ERROR_CODE_MAP,
@@ -16,6 +16,7 @@ from .exceptions import (
     MaxIterationsError,
     NodeExecutionError,
     ServiceError,
+    StorageError,
     TimeoutError,
     ValidationError,
     get_exception_by_code,
@@ -44,6 +45,8 @@ __all__ = [
     "LLMServiceError",
     # File errors
     "FileOperationError",
+    # Storage errors
+    "StorageError",
     # Diagram errors
     "DiagramError",
     "DiagramNotFoundError",

@@ -4,7 +4,7 @@ import asyncio
 import logging
 from typing import Any
 
-from dipeo.core.events import EventConsumer, EventType, ExecutionEvent
+from dipeo.core.bak.events import EventConsumer, EventType, ExecutionEvent
 from dipeo.application.migration.compat_imports import MessageRouterPort
 
 logger = logging.getLogger(__name__)

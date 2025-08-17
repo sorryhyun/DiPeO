@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any, Optional
 
-from dipeo.core import ServiceError, ValidationError
+from dipeo.domain.base.exceptions import ServiceError, ValidationError
 from dipeo.domain.api.value_objects import RetryPolicy, RetryStrategy
 from dipeo.domain.ports.template import TemplateProcessorPort
 from dipeo.diagram_generated.enums import HttpMethod

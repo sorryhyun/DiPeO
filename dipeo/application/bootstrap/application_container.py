@@ -50,6 +50,29 @@ class ApplicationContainer:
         self._setup_app_services()
 
     def _setup_app_services(self):
+        # Register domain services
+        from dipeo.domain.validators import DiagramValidator
+        self.registry.register(
+            DIAGRAM_VALIDATOR,
+            lambda: DiagramValidator(
+                api_key_service=self.registry.resolve(API_KEY_SERVICE)
+            )
+        )
+        
+        from dipeo.application.utils import PromptBuilder
+        self.registry.register(
+            PROMPT_BUILDER,
+            lambda: PromptBuilder(
+                template_processor=self.registry.resolve(TEMPLATE_PROCESSOR)
+            )
+        )
+        
+        from dipeo.application import get_global_registry
+        self.registry.register(
+            NODE_REGISTRY,
+            get_global_registry()
+        )
+        
         from dipeo.infrastructure.services.database.service import DBOperationsDomainService
         from dipeo.domain.validators import DataValidator
         

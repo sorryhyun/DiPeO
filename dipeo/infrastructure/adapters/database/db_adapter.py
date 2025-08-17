@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from dipeo.core import ValidationError
+from dipeo.domain.base.exceptions import ValidationError
 from dipeo.domain.storage import FileSystemPort
 from dipeo.domain.db.services import DBOperationsDomainService
 from dipeo.domain.validators import DataValidator

@@ -134,8 +134,8 @@ class APIKeyService(BaseService, APIKeyPort):
 
 import uuid
 
-from dipeo.core import ValidationError
-from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.domain.base.exceptions import ValidationError
+from dipeo.domain.constants import VALID_LLM_SERVICES, normalize_service_name
 from dipeo.diagram_generated import APIServiceType
 
 VALID_SERVICES = VALID_LLM_SERVICES | {APIServiceType.NOTION.value}

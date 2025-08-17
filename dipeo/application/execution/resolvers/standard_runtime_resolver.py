@@ -8,8 +8,8 @@ from typing import Any
 import asyncio
 import concurrent.futures
 
-from dipeo.core.execution.runtime_resolver_v2 import RuntimeResolverV2
-from dipeo.core.execution.execution_context import ExecutionContext
+from dipeo.core.bak.execution.runtime_resolver_v2 import RuntimeResolverV2
+from dipeo.domain.execution.execution_context import ExecutionContext
 from dipeo.domain.execution.envelope import Envelope
 from dipeo.domain.diagram.models.executable_diagram import (
     ExecutableEdgeV2,

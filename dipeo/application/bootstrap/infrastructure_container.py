@@ -23,7 +23,7 @@ from dipeo.application.registry.keys import (
     STATE_STORE,
     TEMPLATE_PROCESSOR,
 )
-from dipeo.core.config import Config
+from dipeo.core.bak.config import Config
 
 
 class InfrastructureContainer:
@@ -91,6 +91,13 @@ class InfrastructureContainer:
         )
 
     def _setup_infrastructure_services(self):
+        # Register template processor service
+        from dipeo.infrastructure.services.template.simple_processor import SimpleTemplateProcessor
+        self.registry.register(
+            TEMPLATE_PROCESSOR,
+            SimpleTemplateProcessor()
+        )
+        
         self.registry.register(
             STATE_STORE,
             None

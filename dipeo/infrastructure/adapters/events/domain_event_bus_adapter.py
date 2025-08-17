@@ -14,7 +14,7 @@ from dipeo.domain.events import (
     EventPriority,
 )
 from dipeo.infrastructure.adapters.events.legacy import AsyncEventBus
-from dipeo.core.events import ExecutionEvent, EventType as CoreEventType
+from dipeo.core.bak.events import ExecutionEvent, EventType as CoreEventType
 
 logger = logging.getLogger(__name__)
 

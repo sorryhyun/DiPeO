@@ -6,7 +6,7 @@ import time
 from typing import Any
 
 import requests
-from dipeo.core.constants import BASE_DIR
+from dipeo.domain.constants import BASE_DIR
 
 
 class ServerManager:

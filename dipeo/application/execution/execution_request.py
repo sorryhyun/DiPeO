@@ -7,7 +7,7 @@ from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.diagram_generated import Status
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_context import ExecutionContext
+    from dipeo.core.bak.execution.execution_context import ExecutionContext
     from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceRegistry
 

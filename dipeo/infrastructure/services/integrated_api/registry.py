@@ -10,7 +10,7 @@ import yaml
 import json
 
 from dipeo.application.migration.compat_imports import ApiProviderPort
-from dipeo.core import ServiceError
+from dipeo.domain.base.exceptions import ServiceError
 
 logger = logging.getLogger(__name__)
 

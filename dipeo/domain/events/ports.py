@@ -138,3 +138,17 @@ class EventStore(Protocol):
     ) -> list[DomainEvent]:
         """Replay events within a time range."""
         ...
+
+
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Protocol
+from .contracts import ExecutionEvent
+
+
+class EventEmitter(Protocol):
+    async def emit(self, event: ExecutionEvent) -> None: ...
+
+
+class EventConsumer(Protocol):
+    async def consume(self, event: ExecutionEvent) -> None: ...

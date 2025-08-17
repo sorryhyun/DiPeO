@@ -13,7 +13,7 @@ from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData, HttpMethod
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_context import ExecutionContext
+    from dipeo.core.bak.execution.execution_context import ExecutionContext
 
 
 @register_handler

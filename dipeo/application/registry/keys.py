@@ -7,7 +7,7 @@ from .service_registry import ServiceKey
 
 # Type imports for service keys
 if TYPE_CHECKING:
-    from dipeo.core.ports import (
+    from dipeo.core.bak.ports import (
         LLMServicePort,
         StateStorePort,
         FileServicePort,
@@ -16,9 +16,9 @@ if TYPE_CHECKING:
         ExecutionObserver,
         APIKeyPort,
         DiagramPort,
-        ASTParserPort,
         IntegratedApiServicePort,
     )
+    from dipeo.domain.parsers.ports import ASTParserPort
     from dipeo.domain.ports import (
         APIKeyRepository,
         ConversationRepository,
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     )
     from dipeo.domain.storage import FileSystemPort
     from dipeo.domain.ports.template import TemplateProcessorPort
-    from dipeo.core.events import EventEmitter
+    from dipeo.core.bak.events import EventEmitter
     from dipeo.application.services import (
         ConversationManagerImpl,
         PromptBuilder,
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     )
     from dipeo.infrastructure.services.diagram import DiagramService
     from dipeo.domain.db.services import DBOperationsDomainService
-    from dipeo.core.execution import ExecutionContext
+    from dipeo.core.bak.execution import ExecutionContext
     from dipeo.domain.diagram.models import ExecutableDiagram
     from dipeo.application.services.cli_session_service import CliSessionService
     from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase

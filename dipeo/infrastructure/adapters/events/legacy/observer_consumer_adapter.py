@@ -3,7 +3,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-from dipeo.core.events import EventConsumer, EventType, ExecutionEvent
+from dipeo.domain.events import EventConsumer, EventType, ExecutionEvent
 from dipeo.application.migration.compat_imports import ExecutionObserver
 from dipeo.diagram_generated.enums import Status
 

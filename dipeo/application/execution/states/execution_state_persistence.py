@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from dipeo.core.execution.execution_tracker import CompletionStatus
+from dipeo.domain.execution.execution_tracker import CompletionStatus
 from dipeo.domain.execution.envelope import deserialize_protocol, serialize_protocol
 from dipeo.diagram_generated import (
     ExecutionState,
@@ -14,7 +14,7 @@ from dipeo.diagram_generated import (
 )
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_tracker import ExecutionTracker
+    from dipeo.domain.execution.execution_tracker import ExecutionTracker
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 
 

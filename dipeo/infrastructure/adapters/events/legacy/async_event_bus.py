@@ -9,8 +9,7 @@ import asyncio
 import logging
 from collections import defaultdict
 
-from dipeo.core.events import EventConsumer, EventEmitter, EventType, ExecutionEvent
-
+from dipeo.domain.events import EventConsumer, EventEmitter, EventType, ExecutionEvent
 logger = logging.getLogger(__name__)
 
 

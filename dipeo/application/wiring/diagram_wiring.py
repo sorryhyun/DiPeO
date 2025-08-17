@@ -192,7 +192,7 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
         registry: Service registry to register diagram port with
     """
     from dipeo.infrastructure.services.diagram import DiagramService
-    from dipeo.core.config import Config
+    from dipeo.core.bak.config import Config
     from pathlib import Path
     
     # Get filesystem adapter (should already be wired)

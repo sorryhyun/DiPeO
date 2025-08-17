@@ -6,7 +6,7 @@ from typing import Any
 
 import aiohttp
 
-from dipeo.core import ServiceError
+from dipeo.domain.base.exceptions import ServiceError
 from dipeo.application.migration.compat_imports import FileServicePort
 from dipeo.domain.api.services import APIBusinessLogic
 

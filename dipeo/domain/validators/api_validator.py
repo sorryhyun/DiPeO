@@ -6,8 +6,8 @@ import uuid
 from typing import Any
 from urllib.parse import urlparse
 
-from dipeo.core.base.exceptions import ValidationError
-from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.domain.base.exceptions import ValidationError
+from dipeo.domain.constants import VALID_LLM_SERVICES, normalize_service_name
 from dipeo.diagram_generated import APIServiceType
 from dipeo.domain.validators.base_validator import BaseValidator, ValidationResult, ValidationWarning
 

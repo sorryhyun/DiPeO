@@ -12,7 +12,7 @@ from dipeo.diagram_generated.models.start_model import StartNodeData, HookTrigge
 from dipeo.application.registry import STATE_STORE
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_context import ExecutionContext
+    from dipeo.core.bak.execution.execution_context import ExecutionContext
 
 
 @register_handler

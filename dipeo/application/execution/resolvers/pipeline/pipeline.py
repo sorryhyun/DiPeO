@@ -3,9 +3,9 @@
 import logging
 from typing import Any
 
-from dipeo.core.execution.execution_context import ExecutionContext
+from dipeo.core.bak.execution.execution_context import ExecutionContext
 from dipeo.domain.execution.envelope import Envelope
-from dipeo.core.execution.resolution_error import ResolutionError
+from dipeo.core.bak.execution.resolution_error import ResolutionError
 from dipeo.domain.diagram.models.executable_diagram import (
     ExecutableNode,
     ExecutableDiagram
@@ -80,7 +80,7 @@ class InputResolutionPipeline:
         except Exception as e:
             # Wrap unexpected errors in ResolutionError
             log.error(f"Unexpected error in resolution pipeline for node {node.id}: {e}")
-            from dipeo.core.execution.resolution_error import InputResolutionError
+            from dipeo.core.bak.execution.resolution_error import InputResolutionError
             raise InputResolutionError(
                 f"Failed to resolve inputs: {str(e)}",
                 node_id=str(node.id)

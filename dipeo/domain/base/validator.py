@@ -1,4 +1,4 @@
-"""Base validator for the core layer."""
+"""Base validator for the domain layer."""
 
 import os
 from pathlib import Path

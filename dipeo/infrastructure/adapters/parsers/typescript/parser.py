@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from dipeo.core.base.exceptions import ServiceError
+from dipeo.domain.base.exceptions import ServiceError
 
 from ..resource_locator import ParserResourceLocator
 from .platform_utils import get_tsx_command, setup_github_actions_env

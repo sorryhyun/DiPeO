@@ -19,7 +19,7 @@ from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
 from dipeo.domain.ports.template import TemplateProcessorPort
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_context import ExecutionContext
+    from dipeo.core.bak.execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 

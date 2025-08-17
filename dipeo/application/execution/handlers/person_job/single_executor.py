@@ -16,7 +16,7 @@ from .text_format_handler import TextFormatHandler
 from .conversation_handler import ConversationHandler
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_context import ExecutionContext
+    from dipeo.core.bak.execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@
 from typing import Any
 
 from dipeo.diagram_generated import NodeType
-from dipeo.core.resolution.node_strategies import NodeStrategyFactory
+from dipeo.core.bak.resolution.node_strategies import NodeStrategyFactory
 from .base import PipelineStage, PipelineContext
 
 

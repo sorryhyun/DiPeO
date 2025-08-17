@@ -26,7 +26,7 @@ if _is_v2_enabled("state"):
         ExecutionCachePort as StateCachePort,
     )
 else:
-    from dipeo.core.ports import StateStorePort  # type: ignore
+    from dipeo.domain.ports import StateStorePort  # type: ignore
     StateServicePort = StateStorePort  # Legacy doesn't have separate service
     StateCachePort = StateStorePort  # Legacy doesn't have cache
 
@@ -37,7 +37,7 @@ if _is_v2_enabled("messaging"):
         MessageBus as MessageRouterPort,
     )
 else:
-    from dipeo.core.ports import MessageRouterPort  # type: ignore
+    from dipeo.domain.ports import MessageRouterPort  # type: ignore
 
 
 # LLM Ports
@@ -48,7 +48,7 @@ if _is_v2_enabled("llm"):
         MemoryService as MemoryServicePort,
     )
 else:
-    from dipeo.core.ports import LLMServicePort  # type: ignore
+    from dipeo.domain.ports import LLMServicePort  # type: ignore
     LLMClientPort = LLMServicePort  # Legacy doesn't separate client/service
     MemoryServicePort = None  # Legacy doesn't have memory service
 
@@ -61,7 +61,7 @@ if _is_v2_enabled("api"):
         ApiProviderRegistry as ApiProviderRegistryPort,
     )
 else:
-    from dipeo.core.ports import (  # type: ignore
+    from dipeo.domain.ports import (  # type: ignore
         IntegratedApiServicePort,
         ApiProviderPort,
     )
@@ -77,7 +77,7 @@ if _is_v2_enabled("storage"):
     # DiagramStoragePort doesn't exist yet in domain
     DiagramStoragePort = FileServicePort
 else:
-    from dipeo.core.ports import FileServicePort  # type: ignore
+    from dipeo.core.bak.ports import FileServicePort  # type: ignore
     DiagramStoragePort = FileServicePort  # Legacy doesn't separate
     FileSystemPort = FileServicePort  # Legacy doesn't separate
 
@@ -86,18 +86,18 @@ else:
 if _is_v2_enabled("events"):
     from dipeo.domain.messaging.ports import DomainEventBus
     # Avoid circular import - just use the core observer for now
-    from dipeo.core.ports import ExecutionObserver  # type: ignore
+    from dipeo.core.bak.ports import ExecutionObserver  # type: ignore
 else:
-    from dipeo.core.ports import ExecutionObserver  # type: ignore
+    from dipeo.core.bak.ports import ExecutionObserver  # type: ignore
     DomainEventBus = None  # Legacy doesn't have event bus
 
 
 # API Key Port (still in core for now)
-from dipeo.core.ports import APIKeyPort  # type: ignore
+from dipeo.core.bak.ports import APIKeyPort  # type: ignore
 
 
 # Diagram Ports (still in core for now)
-from dipeo.core.ports import (  # type: ignore
+from dipeo.domain.diagram.ports import (  # type: ignore
     DiagramCompiler,
     DiagramConverter,
     FormatStrategy,

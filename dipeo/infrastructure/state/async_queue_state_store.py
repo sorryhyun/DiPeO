@@ -15,7 +15,7 @@ from uuid import uuid4
 
 import aiosqlite
 
-from dipeo.core.constants import STATE_DB_PATH
+from dipeo.domain.constants import STATE_DB_PATH
 from dipeo.domain.execution.envelope import serialize_protocol
 from dipeo.application.migration.compat_imports import StateStorePort
 from dipeo.diagram_generated import (

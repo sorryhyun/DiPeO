@@ -44,7 +44,7 @@ class ConvertCommand:
             # Import required modules
             from dipeo.infrastructure.services.diagram import DiagramService
             from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
-            from dipeo.core.config import Config
+            from dipeo.core.bak.config import Config
 
             # Create diagram service
             config = Config()

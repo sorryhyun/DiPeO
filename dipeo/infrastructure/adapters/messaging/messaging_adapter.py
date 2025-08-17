@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from dipeo.core.events import EventType, ExecutionEvent
+from dipeo.core.bak.events import EventType, ExecutionEvent
 from dipeo.application.migration.compat_imports import MessageRouterPort
 from dipeo.domain.messaging import DomainEventBus, MessageBus
 from dipeo.domain.messaging.events import DomainEvent

@@ -18,7 +18,7 @@ from enum import Enum, auto
 from typing import Any, Dict, List, Literal, Optional, Union, NewType
 from pydantic import BaseModel, Field, ConfigDict
 
-from dipeo.core.type_defs import JsonValue, JsonDict, JsonList, JsonPrimitive
+from dipeo.domain.type_defs import JsonValue, JsonDict, JsonList, JsonPrimitive
 from .enums import *
 from .integrations import *
 

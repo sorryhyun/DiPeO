@@ -7,7 +7,7 @@ from .handler_factory import (
 )
 from .handler_base import TypedNodeHandler
 from dipeo.diagram_generated import ExecutionOptions
-from dipeo.core.execution.execution_context import ExecutionContext
+from dipeo.domain.execution.execution_context import ExecutionContext
 from .typed_engine import TypedExecutionEngine
 from .use_cases import ExecuteDiagramUseCase
 

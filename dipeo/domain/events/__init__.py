@@ -16,13 +16,15 @@ from .contracts import (
     WebhookReceivedEvent,
     ExecutionLogEvent,
 )
-from .ports import DomainEventBus, EventHandler, EventSubscription
+from .ports import DomainEventBus, EventHandler, EventSubscription, EventEmitter, EventConsumer
 from .types import EventType, EventPriority, EventVersion
 
 __all__ = [
     # Contracts
     "DomainEvent",
     "ExecutionEvent",
+    "EventEmitter",
+    "EventConsumer",
     "NodeEvent",
     "ExecutionStartedEvent",
     "ExecutionCompletedEvent",

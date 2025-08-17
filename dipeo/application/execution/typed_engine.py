@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.scheduler import NodeScheduler
 from dipeo.application.execution.typed_execution_context import TypedExecutionContext
-from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
-from dipeo.core.execution.runtime_resolver_v2 import RuntimeResolverV2
+from dipeo.domain.events import EventEmitter, EventType, ExecutionEvent
+from dipeo.domain.resolution import RuntimeInputResolverV2
 from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution import DomainDynamicOrderCalculator
@@ -43,7 +43,7 @@ class TypedExecutionEngine:
     def __init__(
         self, 
         service_registry: "ServiceRegistry",
-        runtime_resolver: RuntimeResolverV2,
+        runtime_resolver: RuntimeInputResolverV2,
         order_calculator: Any | None = None,
         event_bus: EventEmitter | None = None,
         observers: list["ExecutionObserver"] | None = None

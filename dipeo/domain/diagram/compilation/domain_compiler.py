@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any
 
-from dipeo.core.ports.diagram_compiler import DiagramCompiler
+from dipeo.core.bak.ports.diagram_compiler import DiagramCompiler
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableEdgeV2
 from dipeo.diagram_generated import DomainDiagram, NodeID, NodeType
 from dipeo.diagram_generated.generated_nodes import ExecutableNode
@@ -50,7 +50,7 @@ class CompilationError:
     
     def to_validation_error(self):
         """Convert to ValidationError for compatibility."""
-        from dipeo.core.base.exceptions import ValidationError
+        from dipeo.domain.base.exceptions import ValidationError
         field_name = self.field_name
         if not field_name:
             if self.node_id:

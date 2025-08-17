@@ -9,7 +9,7 @@ from jinja2 import Template, Environment, meta
 import jsonpointer
 import importlib.util
 
-from dipeo.core import ServiceError
+from dipeo.domain.base.exceptions import ServiceError
 from dipeo.application.migration.compat_imports import ApiProviderPort, APIKeyPort
 from dipeo.infrastructure.services.integrated_api.providers.base_provider import BaseApiProvider
 from dipeo.infrastructure.services.integrated_api.manifest_schema import (

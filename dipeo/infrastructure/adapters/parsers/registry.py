@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Callable, Dict, Type
 
-from dipeo.core.ports.ast_parser_port import ASTParserPort
+from dipeo.domain.parsers.ports import ASTParserPort
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-"""Base exception classes for DiPeO core."""
+"""Base exception classes for DiPeO domain."""
 
 from typing import Any
 

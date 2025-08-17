@@ -6,7 +6,7 @@ import time
 
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import INTEGRATED_API_SERVICE, API_KEY_SERVICE, PROVIDER_REGISTRY
-from dipeo.core import ServiceError
+from dipeo.domain.base.exceptions import ServiceError
 from dipeo.infrastructure.services.integrated_api.registry import ProviderRegistry
 from dipeo.infrastructure.services.integrated_api.generic_provider import GenericHTTPProvider
 

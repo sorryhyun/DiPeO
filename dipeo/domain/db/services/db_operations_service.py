@@ -3,7 +3,7 @@
 import json
 from typing import Any
 
-from dipeo.core import ValidationError
+from dipeo.domain.base.exceptions import ValidationError
 
 
 class DBOperationsDomainService:

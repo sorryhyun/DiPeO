@@ -13,14 +13,14 @@ from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER, EVENT_BUS
-from dipeo.core.base.exceptions import InvalidDiagramError, NodeExecutionError
+from dipeo.domain.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.diagram_generated.generated_nodes import HookNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.hook_model import HookNodeData, HookType
-from dipeo.core.events import EventConsumer, ExecutionEvent
+from dipeo.core.bak.events import EventConsumer, ExecutionEvent
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_context import ExecutionContext
+    from dipeo.core.bak.execution.execution_context import ExecutionContext
 
 
 @register_handler
