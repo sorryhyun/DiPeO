@@ -7,8 +7,7 @@ if TYPE_CHECKING:
         DiagramID,
         ExecutionID,
         ExecutionState,
-        ExecutionStatus,
-        NodeExecutionStatus,
+        Status,
         TokenUsage,
     )
 
@@ -35,7 +34,7 @@ class ExecutionStateRepository(Protocol):
         ...
 
     async def update_status(
-        self, execution_id: str, status: "ExecutionStatus", error: Optional[str] = None
+        self, execution_id: str, status: "Status", error: Optional[str] = None
     ) -> None:
         """Update execution status."""
         ...
@@ -61,7 +60,7 @@ class ExecutionStateRepository(Protocol):
         self,
         execution_id: str,
         node_id: str,
-        status: "NodeExecutionStatus",
+        status: "Status",
         error: Optional[str] = None,
     ) -> None:
         """Update status for a specific node."""
@@ -70,7 +69,7 @@ class ExecutionStateRepository(Protocol):
     async def list_executions(
         self,
         diagram_id: Optional["DiagramID"] = None,
-        status: Optional["ExecutionStatus"] = None,
+        status: Optional["Status"] = None,
         limit: int = 100,
         offset: int = 0,
     ) -> list["ExecutionState"]:
@@ -98,7 +97,7 @@ class ExecutionStateService(Protocol):
     async def finish_execution(
         self,
         execution_id: str,
-        status: "ExecutionStatus",
+        status: "Status",
         error: Optional[str] = None,
     ) -> None:
         """Finish an execution with final status."""
@@ -109,7 +108,7 @@ class ExecutionStateService(Protocol):
         execution_id: str,
         node_id: str,
         output: Any,
-        status: "NodeExecutionStatus",
+        status: "Status",
         is_exception: bool = False,
         token_usage: Optional["TokenUsage"] = None,
         error: Optional[str] = None,
