@@ -10,7 +10,7 @@ import strawberry
 
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import MESSAGE_ROUTER, STATE_STORE
-from dipeo.core.ports import MessageRouterPort, StateStorePort
+from dipeo.application.migration.compat_imports import MessageRouterPort, StateStorePort
 from strawberry.scalars import JSON as JSONScalar
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import EventType

@@ -1,3 +1,10 @@
+"""Legacy AsyncEventBus implementation for backward compatibility.
+
+This module contains the original event bus implementation that uses
+the core events system. It's being kept for backward compatibility
+during the migration to domain events.
+"""
+
 import asyncio
 import logging
 from collections import defaultdict
@@ -8,6 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncEventBus(EventEmitter):
+    """Legacy event bus implementation using core events.
+    
+    This class is being phased out in favor of the domain event bus.
+    It's kept for backward compatibility during the migration.
+    """
+    
     def __init__(self, queue_size: int = 1000):
         self._subscribers: dict[EventType, set[EventConsumer]] = defaultdict(set)
         self._queues: dict[EventConsumer, asyncio.Queue] = {}

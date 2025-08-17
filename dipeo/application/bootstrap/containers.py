@@ -45,15 +45,15 @@ class Container:
         if api_key_service and hasattr(api_key_service, 'initialize'):
             await api_key_service.initialize()
         
-        from dipeo.application.registry.keys import COMPILATION_SERVICE
-        compilation_service = self.registry.resolve(COMPILATION_SERVICE)
-        if compilation_service and hasattr(compilation_service, 'initialize'):
-            await compilation_service.initialize()
+        from dipeo.application.registry.registry_tokens import DIAGRAM_COMPILER
+        compiler = self.registry.resolve(DIAGRAM_COMPILER)
+        if compiler and hasattr(compiler, 'initialize'):
+            await compiler.initialize()
         
-        from dipeo.application.registry.keys import DIAGRAM_CONVERTER
-        diagram_converter = self.registry.resolve(DIAGRAM_CONVERTER)
-        if diagram_converter and hasattr(diagram_converter, 'initialize'):
-            await diagram_converter.initialize()
+        from dipeo.application.registry.registry_tokens import DIAGRAM_SERIALIZER
+        diagram_serializer = self.registry.resolve(DIAGRAM_SERIALIZER)
+        if diagram_serializer and hasattr(diagram_serializer, 'initialize'):
+            await diagram_serializer.initialize()
         
         from dipeo.application.registry.keys import DIAGRAM_SERVICE
         diagram_service = self.registry.resolve(DIAGRAM_SERVICE)

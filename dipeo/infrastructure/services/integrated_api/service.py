@@ -5,7 +5,7 @@ from typing import Any, Optional
 from pathlib import Path
 
 from dipeo.core import BaseService, ServiceError
-from dipeo.core.ports import IntegratedApiServicePort, ApiProviderPort, APIKeyPort
+from dipeo.application.migration.compat_imports import IntegratedApiServicePort, ApiProviderPort, APIKeyPort
 
 from .registry import ProviderRegistry
 from .generic_provider import GenericHTTPProvider

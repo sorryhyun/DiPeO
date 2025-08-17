@@ -20,12 +20,12 @@ from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution import DomainDynamicOrderCalculator
 from dipeo.infrastructure.config import get_settings
-from dipeo.infrastructure.events import NullEventBus
+from dipeo.infrastructure.adapters.events import NullEventBus
 
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceRegistry
-    from dipeo.core.ports import ExecutionObserver
+    from dipeo.application.migration.compat_imports import ExecutionObserver
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@
 
 from typing import Any, Optional
 
-from dipeo.core.ports import StateStorePort
+from dipeo.application.migration.compat_imports import StateStorePort
 from dipeo.diagram_generated import (
     DiagramID,
     ExecutionID,

@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-from dipeo.core.ports.file_service import FileServicePort
+from dipeo.application.migration.compat_imports import FileServicePort
 from dipeo.domain.storage import BlobStorage, FileSystemPort
 
 

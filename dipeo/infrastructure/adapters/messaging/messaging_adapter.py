@@ -4,11 +4,11 @@ from collections.abc import Callable
 from typing import Any
 
 from dipeo.core.events import EventType, ExecutionEvent
-from dipeo.core.ports import MessageRouterPort
+from dipeo.application.migration.compat_imports import MessageRouterPort
 from dipeo.domain.messaging import DomainEventBus, MessageBus
 from dipeo.domain.messaging.events import DomainEvent
 from dipeo.infrastructure.adapters.messaging import MessageRouter
-from dipeo.infrastructure.events import AsyncEventBus
+from dipeo.infrastructure.adapters.events import AsyncEventBus
 
 
 class MessageBusAdapter(MessageBus):

@@ -7,7 +7,7 @@ from typing import Any
 import aiohttp
 
 from dipeo.core import ServiceError
-from dipeo.core.ports import FileServicePort
+from dipeo.application.migration.compat_imports import FileServicePort
 from dipeo.domain.api.services import APIBusinessLogic
 
 log = logging.getLogger(__name__)

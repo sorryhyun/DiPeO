@@ -4,9 +4,10 @@ import logging
 from typing import TYPE_CHECKING
 
 from dipeo.core.events import EventConsumer, EventType, ExecutionEvent
-from dipeo.core.ports import ExecutionObserver
+from dipeo.application.migration.compat_imports import ExecutionObserver
 from dipeo.diagram_generated.enums import Status
-from dipeo.infrastructure.events import AsyncEventBus
+
+from .async_event_bus import AsyncEventBus
 
 if TYPE_CHECKING:
     from dipeo.diagram_generated import NodeState

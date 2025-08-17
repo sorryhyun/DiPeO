@@ -36,7 +36,7 @@ async def create_server_container() -> Container:
         INTEGRATED_API_SERVICE,
     )
     from dipeo.infrastructure.config import get_settings
-    from dipeo.infrastructure.events import AsyncEventBus
+    from dipeo.infrastructure.adapters.events import AsyncEventBus
 
     # Create event bus with configuration
 

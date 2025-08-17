@@ -10,7 +10,6 @@ from dipeo.application.registry.keys import (
     AST_PARSER,
     BLOB_STORE,
     CLI_SESSION_SERVICE,
-    COMPILATION_SERVICE,
     CONVERSATION_MANAGER,
     DB_OPERATIONS_SERVICE,
     DIAGRAM_CONVERTER,

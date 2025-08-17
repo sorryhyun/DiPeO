@@ -116,7 +116,7 @@ class ExecuteDiagramUseCase(BaseService):
             
             # Subscribe unified observer to event bus using adapter
             if engine_observers:
-                from dipeo.infrastructure.events.observer_adapter import ObserverToEventConsumerAdapter
+                from dipeo.infrastructure.adapters.events.legacy import ObserverToEventConsumerAdapter
                 from dipeo.core.events import EventType
                 
                 for observer in engine_observers:

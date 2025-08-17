@@ -2,7 +2,7 @@
 
 from typing import Any, Optional
 
-from dipeo.core.ports import LLMServicePort
+from dipeo.application.migration.compat_imports import LLMServicePort
 from dipeo.diagram_generated import ChatResult, Message, PersonLLMConfig, TokenUsage
 from dipeo.diagram_generated.domain_models import PersonID
 from dipeo.domain.llm import LLMClient, LLMService, MemoryService

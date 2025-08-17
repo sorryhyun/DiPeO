@@ -15,7 +15,7 @@ from tenacity import (
 
 from dipeo.core import APIKeyError, BaseService, LLMServiceError
 from dipeo.core.constants import VALID_LLM_SERVICES, normalize_service_name
-from dipeo.core.ports import LLMServicePort
+from dipeo.application.migration.compat_imports import LLMServicePort
 from dipeo.core.ports.apikey_port import APIKeyPort
 from dipeo.domain.llm import LLMDomainService
 from dipeo.infrastructure.config import get_settings

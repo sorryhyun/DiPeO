@@ -2,7 +2,7 @@
 
 from typing import Any, Optional
 
-from dipeo.core.ports import IntegratedApiServicePort
+from dipeo.application.migration.compat_imports import IntegratedApiServicePort
 from dipeo.domain.integrations import ApiInvoker, ApiProvider, ApiProviderRegistry
 from dipeo.infrastructure.services.integrated_api.service import IntegratedApiService
 

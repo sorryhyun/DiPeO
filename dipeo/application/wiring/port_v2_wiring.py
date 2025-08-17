@@ -1,5 +1,6 @@
 """Application wiring for V2 domain ports with feature flag support."""
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, Optional
@@ -20,6 +21,8 @@ from dipeo.application.registry.registry_tokens import (
     STATE_SERVICE,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def is_v2_enabled(service_name: str) -> bool:
     """Check if V2 is enabled for a specific service via feature flags."""
@@ -39,6 +42,7 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
     """Wire state management services based on feature flags."""
     
     if is_v2_enabled("state"):
+        logger.info("🔄 Wiring V2 state services with domain ports")
         # Use V2 domain ports
         from dipeo.infrastructure.adapters.state import (
             StateRepositoryAdapter,
@@ -66,13 +70,27 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
             service = StateServiceAdapter(repository)
             cache = StateCacheAdapter(store)
         
+        # Add metrics tracking
+        from dipeo.application.migration.port_metrics import add_metrics_to_port
+        repository = add_metrics_to_port(repository, "StateRepository", is_v2=True)
+        service = add_metrics_to_port(service, "StateService", is_v2=True)
+        cache = add_metrics_to_port(cache, "StateCache", is_v2=True)
+        
         registry.register(STATE_REPOSITORY, repository)
         registry.register(STATE_SERVICE, service)
         registry.register(STATE_CACHE, cache)
+        
+        logger.info(f"✅ V2 state services wired: backend={use_redis and 'redis' or 'memory'}")
     else:
+        logger.info("📦 Using V1 state services (core/ports)")
         # Use V1 core ports (existing behavior)
         from dipeo.infrastructure.state import EventBasedStateStore
         store = EventBasedStateStore()
+        
+        # Add metrics tracking for V1
+        from dipeo.application.migration.port_metrics import add_metrics_to_port
+        store = add_metrics_to_port(store, "StateStore", is_v2=False)
+        
         # Register as core port (not domain port)
         registry.register("state_store", store)
 
@@ -82,27 +100,46 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
     
     if is_v2_enabled("messaging"):
         # Use V2 domain ports
-        from dipeo.infrastructure.adapters.messaging.messaging_adapter import (
-            MessageBusAdapter,
-            DomainEventBusAdapter,
-        )
+        from dipeo.infrastructure.adapters.messaging.messaging_adapter import MessageBusAdapter
         from dipeo.infrastructure.adapters.messaging import MessageRouter
-        from dipeo.infrastructure.events import AsyncEventBus
+        from dipeo.infrastructure.adapters.events import AsyncEventBus
         
-        # Create underlying infrastructure
+        # Choose event bus implementation based on config
+        event_bus_backend = os.getenv("DIPEO_EVENT_BUS_BACKEND", "adapter").lower()
+        
+        if event_bus_backend == "in_memory":
+            # Use pure in-memory implementation
+            from dipeo.infrastructure.adapters.events import InMemoryEventBus
+            domain_event_bus = InMemoryEventBus(
+                max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
+                enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
+            )
+        elif event_bus_backend == "redis":
+            # Use Redis implementation (future)
+            from dipeo.infrastructure.adapters.events import RedisEventBus
+            try:
+                domain_event_bus = RedisEventBus(
+                    redis_url=os.getenv("DIPEO_REDIS_URL", "redis://localhost:6379")
+                )
+            except NotImplementedError:
+                # Fallback to adapter if Redis not implemented
+                from dipeo.infrastructure.adapters.events import DomainEventBusAdapter
+                domain_event_bus = DomainEventBusAdapter(AsyncEventBus())
+        else:
+            # Use adapter that bridges with existing AsyncEventBus
+            from dipeo.infrastructure.adapters.events import DomainEventBusAdapter
+            domain_event_bus = DomainEventBusAdapter(AsyncEventBus())
+        
+        # Create message router
         router = MessageRouter()
-        event_bus = AsyncEventBus()
-        
-        # Wrap with domain adapters
         message_bus = MessageBusAdapter(router)
-        domain_event_bus = DomainEventBusAdapter(event_bus)
         
         registry.register(MESSAGE_BUS, message_bus)
         registry.register(DOMAIN_EVENT_BUS, domain_event_bus)
     else:
         # Use V1 core ports
         from dipeo.infrastructure.adapters.messaging import MessageRouter
-        from dipeo.infrastructure.events import AsyncEventBus
+        from dipeo.infrastructure.adapters.events import AsyncEventBus
         
         registry.register("message_router", MessageRouter())
         registry.register("event_bus", AsyncEventBus())
@@ -191,6 +228,51 @@ def wire_api_services(registry: ServiceRegistry) -> None:
         registry.register("integrated_api_service", api_service)
 
 
+def wire_event_services(registry: ServiceRegistry) -> None:
+    """Wire event services for observer migration based on feature flags."""
+    
+    if is_v2_enabled("events"):
+        # Use V2 domain events
+        from dipeo.infrastructure.adapters.events import (
+            DomainEventBusAdapter,
+            InMemoryEventBus,
+            ObserverToEventAdapter,
+            AsyncEventBus,
+        )
+        
+        # Get or create domain event bus
+        if registry.has(DOMAIN_EVENT_BUS):
+            domain_event_bus = registry.resolve(DOMAIN_EVENT_BUS)
+        else:
+            # Create based on backend config
+            event_bus_backend = os.getenv("DIPEO_EVENT_BUS_BACKEND", "adapter").lower()
+            
+            if event_bus_backend == "in_memory":
+                domain_event_bus = InMemoryEventBus(
+                    max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
+                    enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
+                )
+            else:
+                # Default to adapter bridging with AsyncEventBus
+                domain_event_bus = DomainEventBusAdapter(AsyncEventBus())
+        
+        # Create observer adapter for backward compatibility
+        observer_adapter = ObserverToEventAdapter(domain_event_bus)
+        
+        # Register services
+        registry.register("domain_event_bus", domain_event_bus)
+        registry.register("execution_observer", observer_adapter)
+        
+        # Log migration status
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Events/Observers migration: Using V2 domain events with observer adapter")
+    else:
+        # Use V1 observer pattern (existing behavior)
+        # No additional registration needed as observers are created per execution
+        pass
+
+
 def wire_storage_services(registry: ServiceRegistry) -> None:
     """Wire storage services based on feature flags."""
     
@@ -252,6 +334,7 @@ def wire_all_v2_services(
     # Wire each service group
     wire_state_services(registry, redis_client)
     wire_messaging_services(registry)
+    wire_event_services(registry)  # Wire event/observer services
     wire_llm_services(registry, api_key_service)
     wire_api_services(registry)
     wire_storage_services(registry)
@@ -269,6 +352,8 @@ def wire_all_v2_services(
         v2_services.append("state")
     if is_v2_enabled("messaging"):
         v2_services.append("messaging")
+    if is_v2_enabled("events"):
+        v2_services.append("events")
     if is_v2_enabled("llm"):
         v2_services.append("llm")
     if is_v2_enabled("api"):
@@ -289,6 +374,7 @@ def get_feature_flag_status() -> dict[str, bool]:
     return {
         "state": is_v2_enabled("state"),
         "messaging": is_v2_enabled("messaging"),
+        "events": is_v2_enabled("events"),
         "llm": is_v2_enabled("llm"),
         "api": is_v2_enabled("api"),
         "storage": is_v2_enabled("storage"),
