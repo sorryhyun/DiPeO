@@ -1,11 +1,26 @@
-"""Integrated API Service port interface."""
+"""Integrated API Service port interface.
 
-from typing import Any, Protocol, runtime_checkable, Optional
+DEPRECATED: This module re-exports domain types for backward compatibility.
+Use dipeo.domain.integrations directly for new code.
+"""
+
+import warnings
+from typing import Any, Optional, Protocol, runtime_checkable
+
+# Re-export domain types
+from dipeo.domain.integrations import ApiInvoker, ApiProvider, ApiProviderRegistry
+
+warnings.warn(
+    "dipeo.core.ports.integrated_api_service is deprecated. "
+    "Use dipeo.domain.integrations instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 @runtime_checkable
 class IntegratedApiServicePort(Protocol):
-    """Port interface for integrated API service supporting multiple providers."""
+    """Legacy integrated API service port - wraps new domain ApiInvoker for backward compatibility."""
 
     async def register_provider(self, provider_name: str, provider_instance: Any) -> None:
         """Register a new API provider.
@@ -20,9 +35,9 @@ class IntegratedApiServicePort(Protocol):
         self,
         provider: str,
         operation: str,
-        config: dict[str, Any] | None = None,
-        resource_id: str | None = None,
-        api_key: str | None = None,
+        config: Optional[dict[str, Any]] = None,
+        resource_id: Optional[str] = None,
+        api_key: Optional[str] = None,
         timeout: float = 30.0,
         max_retries: int = 3
     ) -> dict[str, Any]:
@@ -72,7 +87,7 @@ class IntegratedApiServicePort(Protocol):
         self,
         provider: str,
         operation: str,
-        config: dict[str, Any] | None = None
+        config: Optional[dict[str, Any]] = None
     ) -> bool:
         """Validate if an operation is supported and properly configured.
         
@@ -89,7 +104,7 @@ class IntegratedApiServicePort(Protocol):
 
 @runtime_checkable
 class ApiProviderPort(Protocol):
-    """Port interface for individual API providers."""
+    """Legacy API provider port - wraps new domain ApiProvider for backward compatibility."""
 
     @property
     def provider_name(self) -> str:
@@ -104,9 +119,9 @@ class ApiProviderPort(Protocol):
     async def execute(
         self,
         operation: str,
-        config: dict[str, Any] | None = None,
-        resource_id: str | None = None,
-        api_key: str | None = None,
+        config: Optional[dict[str, Any]] = None,
+        resource_id: Optional[str] = None,
+        api_key: Optional[str] = None,
         timeout: float = 30.0
     ) -> dict[str, Any]:
         """Execute a specific operation.
@@ -130,7 +145,7 @@ class ApiProviderPort(Protocol):
     async def validate_config(
         self,
         operation: str,
-        config: dict[str, Any] | None = None
+        config: Optional[dict[str, Any]] = None
     ) -> bool:
         """Validate operation configuration.
         
@@ -142,3 +157,13 @@ class ApiProviderPort(Protocol):
             True if valid, False otherwise
         """
         ...
+
+
+# Export domain types for backward compatibility
+__all__ = [
+    "IntegratedApiServicePort",
+    "ApiProviderPort",
+    "ApiProviderRegistry",
+    "ApiInvoker",
+    "ApiProvider",
+]

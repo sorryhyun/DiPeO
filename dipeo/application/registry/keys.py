@@ -19,6 +19,14 @@ if TYPE_CHECKING:
         ASTParserPort,
         IntegratedApiServicePort,
     )
+    from dipeo.domain.ports import (
+        APIKeyRepository,
+        ConversationRepository,
+        DiagramRepository,
+        ExecutionRepository,
+        NodeOutputRepository,
+        PersonRepository,
+    )
     from dipeo.domain.ports.storage import FileSystemPort
     from dipeo.domain.ports.template import TemplateProcessorPort
     from dipeo.core.events import EventEmitter
@@ -112,6 +120,14 @@ LLM_DOMAIN_SERVICE = ServiceKey["LLMDomainService"]("llm_domain_service")
 # Additional Services (newly added for migration)
 CLI_SESSION_SERVICE = ServiceKey["CliSessionService"]("cli_session_service")
 
+# Repository Services
+API_KEY_REPOSITORY = ServiceKey["APIKeyRepository"]("api_key_repository")
+CONVERSATION_REPOSITORY = ServiceKey["ConversationRepository"]("conversation_repository")
+DIAGRAM_REPOSITORY = ServiceKey["DiagramRepository"]("diagram_repository")
+EXECUTION_REPOSITORY = ServiceKey["ExecutionRepository"]("execution_repository")
+NODE_OUTPUT_REPOSITORY = ServiceKey["NodeOutputRepository"]("node_output_repository")
+PERSON_REPOSITORY = ServiceKey["PersonRepository"]("person_repository")
+
 # Registry Services
 NODE_REGISTRY = ServiceKey["HandlerRegistry"]("node_registry")
 DOMAIN_SERVICE_REGISTRY = ServiceKey["Any"]("domain_service_registry")  # Currently unused
@@ -186,6 +202,14 @@ __all__ = [
     
     # Additional Services
     "CLI_SESSION_SERVICE",
+    
+    # Repository Services
+    "API_KEY_REPOSITORY",
+    "CONVERSATION_REPOSITORY",
+    "DIAGRAM_REPOSITORY",
+    "EXECUTION_REPOSITORY",
+    "NODE_OUTPUT_REPOSITORY",
+    "PERSON_REPOSITORY",
     
     # Registry Services
     "NODE_REGISTRY",

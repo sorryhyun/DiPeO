@@ -11,6 +11,7 @@ from .storage import (
     ArtifactRef,
     ArtifactStorePort,
     BlobStorePort,
+    DiagramInfo,
     FileInfo,
     FileSystemPort,
 )
@@ -21,9 +22,10 @@ __all__ = [
     "FileSystemPort", 
     "ArtifactStorePort",
     "FileInfo",
+    "DiagramInfo",
     "Artifact",
     "ArtifactRef",
     # Repository ports
-    "PersonRepository",
     "ConversationRepository",
+    "PersonRepository",
 ]

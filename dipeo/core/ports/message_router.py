@@ -1,11 +1,27 @@
-"""Messaging port for domain layer."""
+"""Messaging port for domain layer.
 
+DEPRECATED: This module re-exports domain types for backward compatibility.
+Use dipeo.domain.messaging directly for new code.
+"""
+
+import warnings
 from collections.abc import Callable
 from typing import Protocol, runtime_checkable
+
+# Re-export domain types
+from dipeo.domain.messaging import DomainEventBus, MessageBus
+
+warnings.warn(
+    "dipeo.core.ports.message_router is deprecated. "
+    "Use dipeo.domain.messaging instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 @runtime_checkable
 class MessageRouterPort(Protocol):
+    """Legacy message router port - wraps new domain MessageBus for backward compatibility."""
 
     async def initialize(self) -> None:
         ...
@@ -37,3 +53,11 @@ class MessageRouterPort(Protocol):
 
     def get_stats(self) -> dict:
         ...
+
+
+# Export domain types for backward compatibility
+__all__ = [
+    "MessageRouterPort",
+    "MessageBus",
+    "DomainEventBus",
+]

@@ -1,6 +1,18 @@
-"""State storage port for domain layer."""
+"""State storage port for domain layer.
 
+DEPRECATED: This module re-exports domain types for backward compatibility.
+Use dipeo.domain.execution.state directly for new code.
+"""
+
+import warnings
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+# Re-export domain types
+from dipeo.domain.execution.state import (
+    ExecutionCachePort,
+    ExecutionStateRepository,
+    ExecutionStateService,
+)
 
 if TYPE_CHECKING:
     from dipeo.diagram_generated import (
@@ -12,9 +24,17 @@ if TYPE_CHECKING:
         TokenUsage,
     )
 
+warnings.warn(
+    "dipeo.core.ports.state_store is deprecated. "
+    "Use dipeo.domain.execution.state instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 
 @runtime_checkable
 class StateStorePort(Protocol):
+    """Legacy state store port - wraps new domain interfaces for backward compatibility."""
 
     async def initialize(self) -> None:
         ...
@@ -112,3 +132,12 @@ class StateStorePort(Protocol):
     async def persist_final_state(self, state: "ExecutionState") -> None:
         """Persist final state from cache to database."""
         ...
+
+
+# Export domain types for backward compatibility
+__all__ = [
+    "StateStorePort",
+    "ExecutionStateRepository",
+    "ExecutionStateService",
+    "ExecutionCachePort",
+]
