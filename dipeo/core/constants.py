@@ -34,6 +34,7 @@ EVENTS_DB_PATH: Path = DATA_DIR / "dipeo_events.db"
 VALID_LLM_SERVICES = {
     "openai",
     "anthropic",
+    "claude-code",
     "gemini",
     "google",
     "ollama",
@@ -78,6 +79,8 @@ def normalize_service_name(service: str) -> str:
     # Service aliases
     aliases = {
         "claude": "anthropic",
+        "claude-sdk": "claude-code",
+        "claude_code": "claude-code",
         "chatgpt": "openai",
         "gpt": "openai",
         "gpt-4": "openai",

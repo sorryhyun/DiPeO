@@ -70,11 +70,18 @@ class PromptFileResolver:
         """Resolve the full path to a prompt file.
         
         Tries in order:
-        1. Relative to diagram directory (diagram_dir/prompts/filename)
-        2. Global prompts directory (DIPEO_BASE_DIR/files/prompts/filename)
+        1. If path starts with 'projects/' or 'files/', treat as relative to base directory
+        2. Relative to diagram directory (diagram_dir/prompts/filename)
+        3. Global prompts directory (DIPEO_BASE_DIR/files/prompts/filename)
         """
+        # Check if path is already relative to base directory
+        if prompt_filename.startswith(('projects/', 'files/')):
+            base_relative_path = Path(self._base_dir) / prompt_filename
+            if self.filesystem.exists(base_relative_path):
+                return base_relative_path
+        
         if self._diagram_source_path:
-            # First try relative to diagram directory
+            # Try relative to diagram directory
             local_path = self._diagram_source_path / 'prompts' / prompt_filename
             if self.filesystem.exists(local_path):
                 return local_path

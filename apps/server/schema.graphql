@@ -318,6 +318,7 @@ scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads
 enum LLMService {
   OPENAI
   ANTHROPIC
+  CLAUDE_CODE
   GOOGLE
   GEMINI
   BEDROCK

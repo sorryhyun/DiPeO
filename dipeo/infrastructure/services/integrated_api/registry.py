@@ -109,9 +109,7 @@ class ProviderRegistry:
             path_pattern: Glob pattern for manifest files (e.g., './integrations/**/provider.yaml')
         """
         from .generic_provider import GenericHTTPProvider
-        
-        logger.info(f"Loading provider manifests from: {path_pattern}")
-        
+
         # Convert to Path and handle glob patterns
         pattern_path = Path(path_pattern)
         
@@ -182,9 +180,7 @@ class ProviderRegistry:
             provider_instance=provider,
             metadata=metadata
         )
-        
-        logger.info(f"Loaded manifest provider: {manifest['name']} from {manifest_path}")
-    
+
     def get_provider(self, name: str) -> Optional[ApiProviderPort]:
         """Get a provider by name.
         

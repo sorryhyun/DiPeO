@@ -79,6 +79,9 @@ class TransformStage(PipelineStage):
         if isinstance(value, StandardNodeOutput):
             output_key = edge.source_output or "default"
             
+            # Check if this is structured output that should be preserved
+            is_structured = value.metadata.get("is_structured", False)
+            
             # Extract the actual value based on output key
             if not isinstance(value.value, dict):
                 # Non-dict values are wrapped
@@ -90,14 +93,15 @@ class TransformStage(PipelineStage):
                 actual_value = output_dict[output_key]
             elif output_key == "default":
                 # Special handling for default output
-                if len(output_dict) == 1:
-                    # If requesting default and only one output, use it
-                    actual_value = next(iter(output_dict.values()))
+                if is_structured:
+                    # For structured outputs, always preserve the full structure
+                    actual_value = value.value
                 elif "default" in output_dict:
                     # Use explicit default key
                     actual_value = output_dict["default"]
                 else:
-                    # For multi-output cases, use the entire dict
+                    # For all other cases (including single-key dicts), preserve the entire dict
+                    # This prevents auto-extraction of single-key dictionaries
                     actual_value = output_dict
             else:
                 # No matching output

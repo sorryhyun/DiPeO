@@ -158,7 +158,7 @@ def validate_api_key_format(key: str, service: str) -> None:
     
     # Ollama doesn't need real API keys - accept 'ollama' as a placeholder
     if service == APIServiceType.OLLAMA.value:
-        if key.lower() in ['ollama', 'local', 'none']:
+        if key.lower() in ['ollama', 'local', 'none', 'claude-code']:
             return  # Accept common placeholders for Ollama
         # Also accept any non-empty string for Ollama
         return

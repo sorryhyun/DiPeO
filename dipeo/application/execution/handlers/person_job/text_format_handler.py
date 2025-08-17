@@ -115,27 +115,56 @@ class TextFormatHandler:
         if not has_text_format:
             return None
         
-        if not (hasattr(result, 'raw_response') and result.raw_response):
-            return None
-        
-        raw_data = result.raw_response
-        
-        # Convert Pydantic model to dict if needed
-        if hasattr(raw_data, 'model_dump'):
-            return raw_data.model_dump()
-        elif hasattr(raw_data, 'dict'):
-            return raw_data.dict()
-        
-        # If it's still not a dict, try to parse the text as JSON
-        if not isinstance(raw_data, dict) and hasattr(result, 'text') and result.text:
+        # First try to parse from the text field if it contains JSON
+        # This is because the OpenAI adapter converts Pydantic models to JSON strings
+        if hasattr(result, 'text') and result.text:
             import json
             try:
-                return json.loads(result.text)
+                # Try to parse the text as JSON first
+                parsed = json.loads(result.text)
+                if isinstance(parsed, dict):
+                    logger.debug(f"Successfully parsed structured output from text field")
+                    return parsed
             except (json.JSONDecodeError, TypeError):
-                # Fall back to wrapping in dict
-                return {"response": result.text}
+                # Not valid JSON, continue to other methods
+                pass
         
-        if isinstance(raw_data, dict):
-            return raw_data
+        # Check raw_response for parsed output
+        if hasattr(result, 'raw_response') and result.raw_response:
+            raw_data = result.raw_response
+            
+            # Check if raw_response has parsed or output_parsed attributes (OpenAI response)
+            if hasattr(raw_data, 'parsed') and raw_data.parsed:
+                # This is a parsed Pydantic model from OpenAI
+                if hasattr(raw_data.parsed, 'model_dump'):
+                    return raw_data.parsed.model_dump()
+                elif hasattr(raw_data.parsed, 'dict'):
+                    return raw_data.parsed.dict()
+                elif isinstance(raw_data.parsed, dict):
+                    return raw_data.parsed
+                    
+            if hasattr(raw_data, 'output_parsed') and raw_data.output_parsed:
+                # Alternative attribute name for parsed output
+                if hasattr(raw_data.output_parsed, 'model_dump'):
+                    return raw_data.output_parsed.model_dump()
+                elif hasattr(raw_data.output_parsed, 'dict'):
+                    return raw_data.output_parsed.dict()
+                elif isinstance(raw_data.output_parsed, dict):
+                    return raw_data.output_parsed
+            
+            # Check if raw_data itself is a Pydantic model
+            if hasattr(raw_data, 'model_dump'):
+                return raw_data.model_dump()
+            elif hasattr(raw_data, 'dict'):
+                return raw_data.dict()
+            
+            # If raw_data is already a dict
+            if isinstance(raw_data, dict):
+                return raw_data
+        
+        # Fall back to wrapping text in dict if nothing else worked
+        if hasattr(result, 'text') and result.text:
+            logger.warning("Could not extract structured data, wrapping text in response dict")
+            return {"response": result.text}
         
         return None

@@ -1,0 +1,149 @@
+version: light
+
+persons:
+  Prompt Designer:
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: |
+      You are an expert in prompt engineering for code generation. Create clear, comprehensive prompts for frontend code generation.
+  Frontend Generator:
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: |
+      You are an expert React/TypeScript engineer. Generate production-ready code only. Do not try to examine current file system, but follow the order you got as prompt. Return the response at once, not step by step.
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 60, y: 240}
+
+  - label: Load Sections Data
+    type: db
+    position: {x: 260, y: 240}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_enhance/generated/sections_data.json
+
+  - label: Load Config
+    type: db
+    position: {x: 260, y: 360}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_enhance/frontend_enhance_config.json
+
+  - label: Prepare Context
+    type: code_job
+    position: {x: 520, y: 240}
+    props:
+      language: python
+      code: |
+        batch_index = item.get('index', 0)
+        sections_data = sections_data['sections']
+
+        # Select the section for this batch index
+        if batch_index >= len(sections_data):
+          raise ValueError(f"Batch index {batch_index} out of range for {len(sections_data)} sections")
+        
+        sec = sections_data[batch_index]
+        
+        print(f"Processing section {batch_index}: {sec.get('title', 'Unknown')}")
+        
+        # Extract prompt context from the structured section
+        prompt_ctx = sec.get("prompt_context", {})
+        
+        # Convert prompt_requirements to a single string for easier use
+        prompt_reqs = config.get("prompt_requirements", [])
+        prompt_requirements_text = "\n".join(f"- {req}" for req in prompt_reqs)
+        
+        result = {
+          "section": sec,
+          "section_id": sec["id"],
+          "section_title": sec["title"],
+          "section_description": sec["description"],
+          "acceptance_criteria": sec["acceptance"],
+          "component_type": prompt_ctx.get("component_type", "component"),
+          "data_model": prompt_ctx.get("data_model", ""),
+          "interactions": prompt_ctx.get("interactions", []),
+          "styling_approach": prompt_ctx.get("styling_approach", "tailwind"),
+          "target_score": config.get("target_score", 85),
+          "prompt_requirements": prompt_requirements_text,  # Now a string
+          "framework": config.get("framework", "react"),
+          "app_type": config.get("app_type", "dashboard"),
+          "batch_index": batch_index,
+          "total_sections": len(sections_data),
+        }
+
+  - label: Generate Prompt
+    type: person_job
+    position: {x: 780, y: 240}
+    props:
+      person: Prompt Designer
+      first_prompt_file: projects/frontend_enhance/prompts/prompt_generator_first.txt
+      prompt_file: projects/frontend_enhance/prompts/prompt_generator.txt
+      max_iteration: 1
+      memory_profile: ONLY_I_SENT
+
+  - label: Generate Frontend Code
+    type: person_job
+    position: {x: 1080, y: 240}
+    props:
+      person: Frontend Generator
+      max_iteration: 1
+      memory_profile: FOCUSED
+      default_prompt: "{{generated_prompt}}"
+
+  - label: Save Generated Code
+    type: code_job
+    position: {x: 1340, y: 240}
+    props:
+      language: python
+      code: |
+        import json
+        import os
+        from pathlib import Path
+        
+        # Extract the generated code from the correct variable name
+        batch_index = context_data.get("batch_index")
+        section_id = context_data.get("section_id")
+        
+        result = {
+          "section_id": section_id,
+          "batch_index": batch_index,
+          "code_content": str(generated_code),
+        }
+
+  - label: Write Result
+    type: db
+    position: {x: 1480, y: 360}
+    props:
+      operation: write
+      sub_type: file
+      format: json
+      source_details: "projects/frontend_enhance/generated/section_{batch_index}_{section_id}.json"
+
+  - label: End
+    type: endpoint
+    position: {x: 1600, y: 240}
+    props:
+      file_format: json
+      save_to_file: false
+
+connections:
+  - {from: Start, to: Load Sections Data, content_type: object}
+  - {from: Start, to: Load Config, content_type: object}
+  - {from: Start, to: Prepare Context, label: item, content_type: object}
+  - {from: Load Sections Data, to: Prepare Context, label: sections_data, content_type: object}
+  - {from: Load Config, to: Prepare Context, label: config, content_type: object}
+  - {from: Prepare Context, to: Generate Prompt, content_type: object}
+  - {from: Generate Prompt, to: Generate Frontend Code, content_type: raw_text, label: generated_prompt}
+  - {from: Generate Frontend Code, to: Save Generated Code, label: generated_code, content_type: raw_text}
+  - {from: Generate Prompt, to: Save Generated Code, label: prompt_text, content_type: raw_text}
+  - {from: Prepare Context, to: Save Generated Code, label: context_data, content_type: object}
+  - {from: Save Generated Code, to: Write Result, content_type: object }
+  - {from: Write Result, to: End, content_type: object}

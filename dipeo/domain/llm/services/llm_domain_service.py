@@ -39,6 +39,10 @@ class LLMDomainService:
         "gemini-2.5-pro": TokenLimits(context_window=2097152, max_output_tokens=8192),  # 2M context
         "gemini-2.5-flash": TokenLimits(context_window=1048576, max_output_tokens=8192),
         "gemini-2.5-flash-lite": TokenLimits(context_window=1048576, max_output_tokens=8192),
+        
+        # Claude Code models
+        "claude-code": TokenLimits(context_window=200000, max_output_tokens=32768),
+        "claude-code-sdk": TokenLimits(context_window=200000, max_output_tokens=32768),
     }
     
     # Provider-specific validation rules
@@ -62,6 +66,11 @@ class LLMDomainService:
             "allowed_params": ["temperature", "max_tokens", "top_p", "top_k", "seed", "num_predict"],
             "temperature_range": (0, 2),
             "requires_api_key": False,  # Ollama doesn't require API keys
+        },
+        "claude-code": {
+            "allowed_params": ["temperature", "max_tokens", "max_turns", "system_prompt"],
+            "temperature_range": (0, 1),
+            "requires_api_key": True,
         },
     }
     

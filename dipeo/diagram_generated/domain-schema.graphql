@@ -128,6 +128,7 @@ enum EventType {
 enum LLMService {
   OPENAI
   ANTHROPIC
+  CLAUDE_CODE
   GOOGLE
   GEMINI
   BEDROCK

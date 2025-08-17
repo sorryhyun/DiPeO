@@ -11,6 +11,9 @@ def create_adapter(
     if provider in ["anthropic", "claude"]:
         from ...adapters.llm.claude import ClaudeAdapter
         return ClaudeAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
+    if provider == "claude-code":
+        from ...adapters.llm.claude_code import ClaudeCodeAdapter
+        return ClaudeCodeAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
     if provider in ["openai", "chatgpt"]:
         from ...adapters.llm.openai import ChatGPTAdapter
         return ChatGPTAdapter(model_name=model_name, api_key=api_key, base_url=base_url)

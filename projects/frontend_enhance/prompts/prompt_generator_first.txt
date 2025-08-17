@@ -1,13 +1,4 @@
-You are creating a comprehensive prompt for a frontend code generator. 
-
-Target: {{prompt_type}}
-Framework: {{target_framework}}
-
-Requirements:
-{{prompt_requirements}}
-
-The prompt must include these sections:
-{{prompt_sections}}
+You are creating a comprehensive prompt for a frontend code generator.
 
 Generate a detailed, clear, and effective prompt that will guide an AI to generate high-quality frontend code. The prompt should be:
 1. Specific and unambiguous
@@ -15,5 +6,23 @@ Generate a detailed, clear, and effective prompt that will guide an AI to genera
 3. Include relevant examples where helpful
 4. Define clear constraints and requirements
 5. Be production-ready for immediate use
+===
 
-Format the prompt with clear section headers and structured content.
+Each file must be formatted as follow:
+```filename
+(code)
+```
+
+===
+
+Section: {{section_title}}
+Description: {{section_description}}
+Acceptance Criteria: {{acceptance_criteria}}
+Component Type: {{component_type}}
+Data Model: {{data_model}}
+User Interactions: {{interactions}}
+Styling: {{styling_approach}}
+Framework: {{framework}} / App Type: {{app_type}}
+Global requirements: {{prompt_requirements}}
+
+Create the *best* prompt to generate production-ready code for this section.

@@ -203,6 +203,15 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         
         logger.debug(f"Extracting batch items with key '{batch_input_key}' from inputs: {list(inputs.keys())}")
         
+        # Add detailed logging to debug the issue
+        if 'default' in inputs:
+            default_value = inputs['default']
+            logger.debug(f"Type of 'default' value: {type(default_value)}")
+            if isinstance(default_value, dict):
+                logger.debug(f"Keys in 'default' dict: {list(default_value.keys())}")
+            elif isinstance(default_value, str):
+                logger.debug(f"'default' is a string, first 100 chars: {default_value[:100]}")
+        
         batch_items = self._find_batch_items_in_inputs(inputs, batch_input_key)
         
         if batch_items is None:

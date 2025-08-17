@@ -138,6 +138,8 @@ class LLMService(str, Enum):
     
     ANTHROPIC = "anthropic"
     
+    CLAUDE_CODE = "claude-code"
+    
     GOOGLE = "google"
     
     GEMINI = "gemini"
@@ -170,7 +172,9 @@ class APIServiceType(str, Enum):
     DEEPSEEK = "deepseek"
     
     OLLAMA = "ollama"
-    
+
+    CLAUDE_CODE = "claude-code"
+
     NOTION = "notion"
     
     GOOGLE_SEARCH = "google_search"

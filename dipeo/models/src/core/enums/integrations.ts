@@ -5,6 +5,7 @@
 export enum LLMService {
   OPENAI = 'openai',
   ANTHROPIC = 'anthropic',
+  CLAUDE_CODE = 'claude-code',
   GOOGLE = 'google',
   GEMINI = 'gemini',
   BEDROCK = 'bedrock',

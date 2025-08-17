@@ -51,7 +51,11 @@ class IncomingEdgesStage(PipelineStage):
                 return StandardNodeOutput.from_value(str(source_output.body))
             elif source_output.content_type == "object":
                 # Object content - return as-is (dict, list, or pydantic model)
-                return StandardNodeOutput.from_value(source_output.body)
+                output = StandardNodeOutput.from_value(source_output.body)
+                # Preserve structured flag if present
+                if source_output.meta.get("is_structured"):
+                    output.metadata["is_structured"] = True
+                return output
             elif source_output.content_type == "conversation_state":
                 # Conversation state - return structured payload
                 return StandardNodeOutput.from_value(source_output.body)

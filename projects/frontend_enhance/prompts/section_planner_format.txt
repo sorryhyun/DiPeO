@@ -1,0 +1,44 @@
+Return a JSON array of sections for the application. Each section should be an independent feature or page that can be developed separately.
+
+OUTPUT FORMAT (strict JSON, no commentary):
+[
+  {
+    "id": "task-list",
+    "title": "Task List Component",
+    "description": "Display all tasks with status indicators and actions",
+    "acceptance": [
+      "Shows all tasks in a clean list format",
+      "Each task displays title, status, and actions",
+      "Supports marking tasks as complete",
+      "Has delete functionality"
+    ],
+    "prompt_context": {
+      "component_type": "list",
+      "data_model": "task",
+      "interactions": ["view", "update", "delete"]
+    }
+  },
+  {
+    "id": "add-task",
+    "title": "Add Task Form",
+    "description": "Form to create new tasks",
+    "acceptance": [
+      "Input field for task title",
+      "Optional description field",
+      "Submit button",
+      "Form validation"
+    ],
+    "prompt_context": {
+      "component_type": "form",
+      "data_model": "task",
+      "interactions": ["create"]
+    }
+  }
+]
+
+REQUIREMENTS:
+- Each section must have a unique kebab-case id
+- Title should be descriptive and specific
+- Description should explain the section's purpose
+- Acceptance criteria should be measurable
+- Include relevant prompt_context for code generation

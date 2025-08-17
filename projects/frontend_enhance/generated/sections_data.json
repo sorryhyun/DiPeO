@@ -1,0 +1,268 @@
+{
+  "sections": [
+    {
+      "id": "design-system",
+      "title": "Design System & Tailwind Configuration",
+      "description": "Establish a cohesive design system, including color tokens, typography scales, components catalog, and a Tailwind-based configuration with dark mode, container queries, and accessibility-friendly defaults.",
+      "acceptance": [
+        "Tailwind configured with a token-based design system",
+        "Themeable dark mode support and color tokens",
+        "Typography scale defined and responsive typography integrated",
+        "Reusable components catalog (Button, Input, Card, Table, ChartContainer)",
+        "Type-safe design tokens and token usage through TS types",
+        "Documentation scaffold for design system usage"
+      ],
+      "prompt_context": {
+        "component_type": "design-system",
+        "data_model": "dashboard",
+        "interactions": [
+          "define tokens",
+          "build token-driven components",
+          "export tokens to TS and CSS utility usage",
+          "document design-system guidelines"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": []
+      },
+      "priority": 1
+    },
+    {
+      "id": "core-layout-navigation",
+      "title": "Core Layout & Responsive Navigation",
+      "description": "Implement the main dashboard layout: responsive header, collapsible sidebar, main content area, and routing container with accessible keyboard navigation and dark mode integration.",
+      "acceptance": [
+        "Responsive header and collapsible sidebar with accessible focus management",
+        "Proper layout container with consistent spacing and typography",
+        "Keyboard navigation and ARIA roles for navigation regions",
+        "Dark mode toggle integrated with design system tokens",
+        "Layout components designed for reuse across pages"
+      ],
+      "prompt_context": {
+        "component_type": "layout",
+        "data_model": "dashboard",
+        "interactions": [
+          "view",
+          "render",
+          "resize",
+          "toggle sidebar",
+          "toggle theme"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "design-system"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "auth-ui",
+      "title": "User Authentication UI & Protected Routes",
+      "description": "Provide login/registration UI, session handling, and protected routes with token refresh patterns to secure the dashboard.",
+      "acceptance": [
+        "Login and Registration forms with real-time validation feedback",
+        "Token storage and refresh mechanism with secure handling",
+        "ProtectedRoute wrapper enforcing authentication for dashboard pages",
+        "Redirect to login on unauthenticated access and preserve intended destination",
+        "Error boundaries for authentication-related failures"
+      ],
+      "prompt_context": {
+        "component_type": "auth",
+        "data_model": "dashboard",
+        "interactions": [
+          "login",
+          "register",
+          "token refresh",
+          "protected routes"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "design-system",
+          "core-layout-navigation"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "charts-module",
+      "title": "Data Visualization Charts",
+      "description": "Encapsulated chart components with responsive behavior, data adapters, and readiness for Suspense-based data loading and error handling.",
+      "acceptance": [
+        "Reusable chart components with data adapters",
+        "Responsive charts that adapt to container size",
+        "Suspense boundaries and graceful loading states",
+        "Type-safe chart data models and generics",
+        "Performance-conscious rendering with memoization"
+      ],
+      "prompt_context": {
+        "component_type": "chart",
+        "data_model": "dashboard",
+        "interactions": [
+          "render charts",
+          "update data",
+          "hover/tooltips",
+          "time-range selection"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "design-system",
+          "state-fetching"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "real-time-manager",
+      "title": "Real-time Updates & WebSocket Manager",
+      "description": "Centralized WebSocket manager to handle connections, subscriptions, reconnection, and cleanups for live dashboard features.",
+      "acceptance": [
+        "WebSocket lifecycle with connect, reconnect, disconnect",
+        "Subscription management per feature/component",
+        "Graceful cleanup on unmount and error handling with backoff",
+        "Integrates with UI data flows and optimistic updates where appropriate"
+      ],
+      "prompt_context": {
+        "component_type": "service",
+        "data_model": "dashboard",
+        "interactions": [
+          "connect",
+          "subscribe",
+          "receive",
+          "reconnect",
+          "cleanup"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "design-system"
+        ]
+      },
+      "priority": 3
+    },
+    {
+      "id": "virtualized-list",
+      "title": "Data List with Virtualization & Infinite Scrolling",
+      "description": "Render large datasets efficiently using data virtualization and implement infinite scrolling with loading states and keyboard accessibility.",
+      "acceptance": [
+        "Virtualized list rendering for large datasets",
+        "Infinite scrolling with on-demand data loading",
+        "Accessible keyboard navigation and ARIA roles",
+        "Smooth scrolling performance with memoization where possible"
+      ],
+      "prompt_context": {
+        "component_type": "list",
+        "data_model": "dashboard",
+        "interactions": [
+          "scroll",
+          "fetch-more",
+          "refresh"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "design-system",
+          "state-fetching"
+        ]
+      },
+      "priority": 3
+    },
+    {
+      "id": "state-fetching",
+      "title": "State Management & Data Fetching Patterns",
+      "description": "Establish a scalable state management approach using Context + Reducer patterns and integrate with React Query/SWR for data fetching, caching, and optimistic updates.",
+      "acceptance": [
+        "Global state via Context + Reducer with well-typed actions",
+        "Data fetching layer using React Query or SWR with caching and retries",
+        "Optimistic UI updates where appropriate",
+        "Strong type-safety with generics and discriminated unions"
+      ],
+      "prompt_context": {
+        "component_type": "state-management",
+        "data_model": "dashboard",
+        "interactions": [
+          "provide",
+          "consume",
+          "update"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "design-system",
+          "charts-module"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "offline-caching",
+      "title": "Offline Support & Caching",
+      "description": "Implement offline functionality using service workers and localStorage fallbacks, ensuring data is cached and synchronized when back online.",
+      "acceptance": [
+        "Service worker registration with basic caching strategy",
+        "Local storage fallback for essential UI state",
+        "Queue actions while offline and synchronize on reconnect",
+        "Graceful degradation when offline"
+      ],
+      "prompt_context": {
+        "component_type": "service",
+        "data_model": "dashboard",
+        "interactions": [
+          "register",
+          "cache",
+          "sync"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "design-system"
+        ]
+      },
+      "priority": 3
+    },
+    {
+      "id": "testing-guidelines",
+      "title": "Testing Guidelines & QA",
+      "description": "Provide testing scaffolding and guidelines for unit and integration tests using React Testing Library, with patterns for end-to-end tests as applicable.",
+      "acceptance": [
+        "Project scaffolding for RTL tests with sample tests",
+        "Guidelines for unit, integration, and e2e testing patterns",
+        "Test coverage goals and reporting hooks",
+        "Type-safe test data and mocks"
+      ],
+      "prompt_context": {
+        "component_type": "testing",
+        "data_model": "dashboard",
+        "interactions": [
+          "unit-test",
+          "integration-test"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "design-system"
+        ]
+      },
+      "priority": 3
+    },
+    {
+      "id": "accessibility",
+      "title": "Accessibility Requirements",
+      "description": "Ensure WCAG 2.1 AA compliance across the dashboard with proper ARIA labels, keyboard navigation, color contrast, and screen reader support.",
+      "acceptance": [
+        "All interactive components have ARIA labels and roles",
+        "Keyboard navigation is fully supported",
+        "Color contrast meets WCAG AA guidelines",
+        "Assistive technologies can access essential page regions"
+      ],
+      "prompt_context": {
+        "component_type": "accessibility",
+        "data_model": "dashboard",
+        "interactions": [
+          "aria-labels",
+          "keyboard-navigation",
+          "screen-reader-support",
+          "focus-management"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "design-system"
+        ]
+      },
+      "priority": 2
+    }
+  ]
+}

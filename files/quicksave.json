@@ -4,133 +4,133 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 50,
-        "y": 200
+        "x": 60,
+        "y": 240
       },
       "data": {
-        "custom_data": {
-          "message": "Starting model generation using enhanced template_job with foreach"
-        },
+        "custom_data": {},
         "output_data_structure": {},
         "label": "start"
       }
     },
     {
       "id": "node_1",
-      "type": "sub_diagram",
+      "type": "db",
       "position": {
-        "x": 200,
-        "y": 200
+        "x": 260,
+        "y": 240
       },
       "data": {
-        "diagram_name": "projects/codegen/diagrams/shared/parse_typescript_batch_direct",
-        "diagram_format": "light",
-        "passInputData": false,
-        "ignoreIfSub": true,
-        "label": "parse all typescript"
+        "operation": "read",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/generated/sections_data.json",
+        "label": "load sections data"
       }
     },
     {
       "id": "node_2",
       "type": "db",
       "position": {
-        "x": 350,
-        "y": 200
+        "x": 260,
+        "y": 360
       },
       "data": {
         "operation": "read",
         "sub_type": "file",
         "format": "json",
-        "glob": true,
-        "file": [
-          "temp/specifications/nodes/*.spec.ts.json"
-        ],
-        "label": "discover node specs"
+        "file": "projects/frontend_enhance/frontend_enhance_config.json",
+        "label": "load config"
       }
     },
     {
       "id": "node_3",
       "type": "code_job",
       "position": {
-        "x": 500,
-        "y": 200
+        "x": 520,
+        "y": 240
       },
       "data": {
         "language": "python",
-        "code": "# Extract all node specifications from parsed files\nspecs = []\n# inputs.get('default') contains the glob results\nnode_files = inputs.get('default', {})\n\nfor filepath, ast_data in node_files.items():\n    # Each file should have constants with node specs\n    for const in (ast_data.get('constants') or []):\n        value = const.get('value')\n        if isinstance(value, dict) and 'nodeType' in value:\n            specs.append(value)\n\n# Use result = {} pattern for code_job output\nresult = {'specs': specs}\n",
-        "label": "extract specifications"
+        "code": "batch_index = item.get('index', 0)\nsections_data = sections_data['sections']\n\n# Select the section for this batch index\nif batch_index >= len(sections_data):\n  raise ValueError(f\"Batch index {batch_index} out of range for {len(sections_data)} sections\")\n\nsec = sections_data[batch_index]\n\nprint(f\"Processing section {batch_index}: {sec.get('title', 'Unknown')}\")\n\n# Extract prompt context from the structured section\nprompt_ctx = sec.get(\"prompt_context\", {})\n\n# Convert prompt_requirements to a single string for easier use\nprompt_reqs = config.get(\"prompt_requirements\", [])\nprompt_requirements_text = \"\\n\".join(f\"- {req}\" for req in prompt_reqs)\n\nresult = {\n  \"section\": sec,\n  \"section_id\": sec[\"id\"],\n  \"section_title\": sec[\"title\"],\n  \"section_description\": sec[\"description\"],\n  \"acceptance_criteria\": sec[\"acceptance\"],\n  \"component_type\": prompt_ctx.get(\"component_type\", \"component\"),\n  \"data_model\": prompt_ctx.get(\"data_model\", \"\"),\n  \"interactions\": prompt_ctx.get(\"interactions\", []),\n  \"styling_approach\": prompt_ctx.get(\"styling_approach\", \"tailwind\"),\n  \"target_score\": config.get(\"target_score\", 85),\n  \"prompt_requirements\": prompt_requirements_text,  # Now a string\n  \"framework\": config.get(\"framework\", \"react\"),\n  \"app_type\": config.get(\"app_type\", \"dashboard\"),\n  \"batch_index\": batch_index,\n  \"total_sections\": len(sections_data),\n}\n",
+        "label": "prepare context"
       }
     },
     {
       "id": "node_4",
-      "type": "template_job",
+      "type": "person_job",
       "position": {
-        "x": 700,
-        "y": 200
+        "x": 780,
+        "y": 240
       },
       "data": {
-        "engine": "jinja2",
-        "template_path": "projects/codegen/templates/backend/pydantic_model_simple.j2",
-        "foreach": {
-          "items": "specs",
-          "as": "spec",
-          "output_path": "dipeo/diagram_generated_staged/models/{spec.nodeTypeSnake}_model.py"
-        },
-        "label": "generate backend models"
+        "person": "Prompt Designer",
+        "first_prompt_file": "projects/frontend_enhance/prompts/prompt_generator_first.txt",
+        "prompt_file": "projects/frontend_enhance/prompts/prompt_generator.txt",
+        "max_iteration": 1,
+        "memory_profile": "ONLY_I_SENT",
+        "label": "generate prompt",
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_5",
-      "type": "template_job",
+      "type": "person_job",
       "position": {
-        "x": 900,
-        "y": 200
+        "x": 1080,
+        "y": 240
       },
       "data": {
-        "engine": "jinja2",
-        "template_path": "projects/codegen/templates/models/enums_simple.j2",
-        "output_path": "dipeo/diagram_generated_staged/enums.py",
-        "variables": {
-          "specs": "{specs}"
+        "person": "Frontend Generator",
+        "max_iteration": 1,
+        "memory_profile": "FOCUSED",
+        "default_prompt": "{{generated_prompt}}",
+        "memory_settings": {
+          "view": "conversation_pairs",
+          "max_messages": 20,
+          "preserve_system": true
         },
-        "label": "generate enums"
+        "label": "generate frontend code",
+        "first_only_prompt": ""
       }
     },
     {
       "id": "node_6",
       "type": "code_job",
       "position": {
-        "x": 1100,
-        "y": 200
+        "x": 1340,
+        "y": 240
       },
       "data": {
         "language": "python",
-        "code": "# Prepare context for __init__.py generation\nmodel_names = []\nfor spec in specs:\n    model_names.append({\n        'module': spec['nodeTypeSnake'] + '_model',\n        'class': spec['nodeTypePascal'] + 'NodeData'\n    })\n# Use result = {} pattern for code_job output\nresult = {'model_imports': model_names}\n",
-        "label": "prepare init context"
+        "code": "import json\nimport os\nfrom pathlib import Path\n\n# Extract the generated code from the correct variable name\nbatch_index = context_data.get(\"batch_index\")\nsection_id = context_data.get(\"section_id\")\n\nresult = {\n  \"section_id\": section_id,\n  \"batch_index\": batch_index,\n  \"code_content\": str(generated_code),\n}\n",
+        "label": "save generated code"
       }
     },
     {
       "id": "node_7",
-      "type": "template_job",
+      "type": "db",
       "position": {
-        "x": 1300,
-        "y": 200
+        "x": 1480,
+        "y": 360
       },
       "data": {
-        "engine": "jinja2",
-        "template_content": "# Auto-generated __init__.py for models package\n\n{% for model in model_imports %}\nfrom .{{ model.module }} import {{ model.class }}\n{% endfor %}\n\n__all__ = [\n{% for model in model_imports %}\n    \"{{ model.class }}\",\n{% endfor %}\n]\n",
-        "output_path": "dipeo/diagram_generated_staged/models/__init__.py",
-        "label": "generate models init"
+        "operation": "write",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/generated/section_{batch_index}_{section_id}.json",
+        "label": "write result"
       }
     },
     {
       "id": "node_8",
       "type": "endpoint",
       "position": {
-        "x": 1500,
-        "y": 200
+        "x": 1600,
+        "y": 240
       },
       "data": {
+        "file_format": "json",
         "save_to_file": false,
         "label": "end"
       }
@@ -144,11 +144,11 @@
       "label": null,
       "packing": null,
       "data": null,
-      "content_type": "raw_text"
+      "content_type": "object"
     },
     {
       "id": "arrow_1",
-      "source": "node_1_default_output",
+      "source": "node_0_default_output",
       "target": "node_2_default_input",
       "label": null,
       "packing": null,
@@ -157,15 +157,33 @@
     },
     {
       "id": "arrow_2",
-      "source": "node_2_default_output",
+      "source": "node_0_default_output",
       "target": "node_3_default_input",
-      "label": null,
+      "label": "item",
       "packing": null,
       "data": null,
       "content_type": "object"
     },
     {
       "id": "arrow_3",
+      "source": "node_1_default_output",
+      "target": "node_3_default_input",
+      "label": "sections_data",
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
+      "label": "config",
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_5",
       "source": "node_3_default_output",
       "target": "node_4_default_input",
       "label": null,
@@ -174,25 +192,43 @@
       "content_type": "object"
     },
     {
-      "id": "arrow_4",
-      "source": "node_3_default_output",
+      "id": "arrow_6",
+      "source": "node_4_default_output",
       "target": "node_5_default_input",
-      "label": "specs",
+      "label": "generated_prompt",
       "packing": null,
       "data": null,
-      "content_type": "object"
+      "content_type": "raw_text"
     },
     {
-      "id": "arrow_5",
+      "id": "arrow_7",
+      "source": "node_5_default_output",
+      "target": "node_6_default_input",
+      "label": "generated_code",
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_4_default_output",
+      "target": "node_6_default_input",
+      "label": "prompt_text",
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_9",
       "source": "node_3_default_output",
       "target": "node_6_default_input",
-      "label": "specs",
+      "label": "context_data",
       "packing": null,
       "data": null,
       "content_type": "object"
     },
     {
-      "id": "arrow_6",
+      "id": "arrow_10",
       "source": "node_6_default_output",
       "target": "node_7_default_input",
       "label": null,
@@ -201,34 +237,41 @@
       "content_type": "object"
     },
     {
-      "id": "arrow_7",
-      "source": "node_4_default_output",
-      "target": "node_8_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_8",
-      "source": "node_5_default_output",
-      "target": "node_8_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_9",
+      "id": "arrow_11",
       "source": "node_7_default_output",
       "target": "node_8_default_input",
       "label": null,
       "packing": null,
       "data": null,
-      "content_type": "raw_text"
+      "content_type": "object"
     }
   ],
-  "persons": [],
+  "persons": [
+    {
+      "id": "Prompt Designer",
+      "label": "prompt designer",
+      "llm_config": {
+        "service": "claude-code",
+        "model": "claude-code",
+        "api_key_id": "APIKEY_CLAUDE",
+        "system_prompt": "You are an expert in prompt engineering for code generation. Create clear, comprehensive prompts for frontend code generation.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "Frontend Generator",
+      "label": "frontend generator",
+      "llm_config": {
+        "service": "claude-code",
+        "model": "claude-code",
+        "api_key_id": "APIKEY_CLAUDE",
+        "system_prompt": "You are an expert React/TypeScript engineer. Generate production-ready code only. Do not try to examine current file system, but follow the order you got as prompt. Return the response at once, not step by step.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    }
+  ],
   "handles": [
     {
       "id": "node_0_default_output",
@@ -287,6 +330,14 @@
       "position": "right"
     },
     {
+      "id": "node_4_first_input",
+      "node_id": "node_4",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
       "id": "node_4_default_input",
       "node_id": "node_4",
       "label": "default",
@@ -301,6 +352,14 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_5_first_input",
+      "node_id": "node_5",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_5_default_input",
@@ -364,8 +423,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-16T12:12:40.925Z",
-    "modified": "2025-08-16T12:12:40.925Z",
+    "created": "2025-08-17T06:50:40.363Z",
+    "modified": "2025-08-17T06:50:40.363Z",
     "version": "1.0.0",
     "id": null
   }

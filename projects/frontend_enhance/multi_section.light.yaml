@@ -1,0 +1,107 @@
+version: light
+
+persons:
+  Section Planner:
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: |
+      You are a senior product/front-end architect. Given app requirements, split work into sections
+      (pages, features, or components) that can be developed independently. Each section should be
+      a cohesive unit of functionality. Follow the Pydantic schema strictly.
+
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 60, y: 200}
+    props:
+      trigger_mode: manual
+        
+  - label: Load Config
+    type: db
+    position: {x: 220, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: projects/frontend_enhance/frontend_enhance_config.json
+
+  - label: Understand Requirements
+    type: person_job
+    position: {x: 460, y: 200}
+    props:
+      person: Section Planner
+      max_iteration: 1
+      memory_profile: MINIMAL
+      text_format_file: projects/frontend_enhance/section_models.py
+      default_prompt: |
+        Analyze the requirements and split into independent sections for development:
+        App config: {{config}}      
+        Create a structured response with sections that can be implemented in parallel.
+
+  - label: Save Sections Data
+    type: db
+    position: {x: 720, y: 200}
+    props:
+      operation: write
+      sub_type: file
+      format: json
+      source_details: projects/frontend_enhance/generated/sections_data.json
+
+  - label: Prepare Batch Indices
+    type: code_job
+    position: {x: 980, y: 200}
+    props:
+      language: python
+      code: |
+        result = {
+          "section_count": len(sections['sections']),
+          "indices": [{'index': i} for i in range(len(sections['sections']))]
+        }
+
+  - label: Implement Sections
+    type: sub_diagram
+    position: {x: 1260, y: 200}
+    props:
+      diagram_name: projects/frontend_enhance/section_implementor
+      diagram_format: light
+      passInputData: true
+      batch: true
+      batch_input_key: indices
+      batch_parallel: true
+
+  - label: Aggregate Results
+    type: code_job
+    position: {x: 1540, y: 200}
+    props:
+      language: python
+      code: |
+        import statistics
+        scores = [it.get("score", 0) for it in batch_results]
+        ok = all(s >= target_score for s in scores)
+        result = {
+          "sections_done": len(scores),
+          "scores": scores,
+          "min_score": min(scores) if scores else 0,
+          "avg_score": round(statistics.mean(scores), 2) if scores else 0,
+          "target": target_score,
+          "success": ok,
+        }
+
+  - label: Save Summary
+    type: endpoint
+    position: {x: 1820, y: 200}
+    props:
+      file_format: json
+      save_to_file: true
+      file_path: projects/frontend_enhance/generated/results.multi_section.json
+
+connections:
+  - {from: Start, to: Load Config}
+  - {from: Load Config, to: Understand Requirements, label: config, content_type: object}
+  - {from: Understand Requirements, to: Save Sections Data, content_type: object}
+  - {from: Understand Requirements, to: Prepare Batch Indices, label: sections, content_type: object}
+  - {from: Prepare Batch Indices, to: Implement Sections, content_type: object}
+  - {from: Implement Sections, to: Aggregate Results, label: batch_results, content_type: object}
+  - {from: Load Config, to: Aggregate Results, label: target_score, content_type: object}
+  - {from: Aggregate Results, to: Save Summary, content_type: object}
