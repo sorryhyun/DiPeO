@@ -160,12 +160,24 @@ class ValidatingCompilerAdapter(DiagramCompiler):
             raise ValueError("Diagram contains duplicate node IDs")
         
         # Validate arrows reference existing nodes
+        from dipeo.domain.diagram.handle import extract_node_id_from_handle
+        
         node_id_set = set(node_ids)
         for arrow in domain_diagram.arrows:
-            if arrow.source not in node_id_set:
-                raise ValueError(f"Arrow references non-existent source node: {arrow.source}")
-            if arrow.target not in node_id_set:
-                raise ValueError(f"Arrow references non-existent target node: {arrow.target}")
+            # Extract node IDs from handle IDs
+            source_node_id = extract_node_id_from_handle(arrow.source)
+            target_node_id = extract_node_id_from_handle(arrow.target)
+            
+            # If extraction failed, treat as direct node ID (for backward compatibility)
+            if source_node_id is None:
+                source_node_id = arrow.source
+            if target_node_id is None:
+                target_node_id = arrow.target
+            
+            if source_node_id not in node_id_set:
+                raise ValueError(f"Arrow references non-existent source node: {source_node_id} (from handle: {arrow.source})")
+            if target_node_id not in node_id_set:
+                raise ValueError(f"Arrow references non-existent target node: {target_node_id} (from handle: {arrow.target})")
         
         diagram_id = domain_diagram.metadata.id if domain_diagram.metadata and hasattr(domain_diagram.metadata, 'id') else "unknown"
         logger.debug(f"Diagram validation passed for {diagram_id}")

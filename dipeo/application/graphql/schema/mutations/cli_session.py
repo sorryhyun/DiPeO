@@ -38,6 +38,10 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
                         diagram_service = registry.get(DIAGRAM_SERVICE)
                         
                         if diagram_service:
+                            # Initialize diagram service if needed
+                            if hasattr(diagram_service, 'initialize'):
+                                await diagram_service.initialize()
+                            
                             # Use the provided path to load the diagram
                             
                             # Load the diagram using the service

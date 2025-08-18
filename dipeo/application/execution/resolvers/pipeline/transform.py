@@ -4,7 +4,7 @@ from typing import Any
 import json
 
 from dipeo.domain.diagram.models.executable_diagram import StandardNodeOutput
-from .transformation_engine import StandardTransformationEngine
+from dipeo.domain.diagram.resolution.transformation_engine import StandardTransformationEngine
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from .errors import TransformationError, SpreadCollisionError
 from .base import PipelineStage, PipelineContext

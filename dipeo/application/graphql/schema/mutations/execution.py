@@ -34,6 +34,10 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 message_router = registry.resolve(MESSAGE_ROUTER)
                 integrated_service = registry.resolve(DIAGRAM_SERVICE)
                 
+                # Initialize diagram service if needed
+                if integrated_service and hasattr(integrated_service, 'initialize'):
+                    await integrated_service.initialize()
+                
                 # Get diagram data - must be DomainDiagram for type safety
                 from dipeo.diagram_generated import DomainDiagram
                 

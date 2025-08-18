@@ -30,18 +30,20 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
     
     def _initialize_converter(self):
         """Initialize the underlying converter implementation."""
-        from dipeo.infrastructure.services.diagram import DiagramConverterService
+        from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
         self._converter = DiagramConverterService()
-        logger.info("Created DiagramConverterService")
+        # Synchronously initialize the converter strategies
+        self._converter._register_default_strategies()
+        self._converter._initialized = True
+        logger.info("Created and initialized DiagramConverterService")
     
     async def initialize(self):
         """Initialize the adapter and underlying converter."""
         if self._initialized:
             return
         
-        if self._converter and hasattr(self._converter, 'initialize'):
-            await self._converter.initialize()
-        
+        # Converter is already initialized in _initialize_converter
+        # Just mark the adapter as initialized
         self._initialized = True
         logger.info("Initialized UnifiedSerializerAdapter")
     
