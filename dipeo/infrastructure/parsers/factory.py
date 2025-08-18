@@ -3,7 +3,7 @@
 from typing import Any, Optional
 
 from dipeo.domain.base.exceptions import ServiceError
-from dipeo.domain.parsers.ports import ASTParserPort
+from dipeo.domain.ports.parsers import ASTParserPort
 from dipeo.infrastructure.config.parser_config import ParserConfig
 
 from .registry import ParserRegistry

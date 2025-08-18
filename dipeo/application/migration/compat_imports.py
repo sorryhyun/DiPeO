@@ -53,7 +53,7 @@ from dipeo.application.execution.observer_protocol import ExecutionObserver
 
 
 # API Key Port
-from dipeo.application.ports.apikey_port import APIKeyPort
+from dipeo.domain.ports.apikey import APIKeyPort
 
 
 # Diagram Ports (still in core for now)

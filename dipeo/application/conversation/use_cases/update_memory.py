@@ -2,7 +2,8 @@
 
 from typing import Optional, Any
 
-from dipeo.domain.conversation import Person, PersonManager, MemoryView
+from dipeo.domain.conversation import Person, PersonManager
+from dipeo.diagram_generated import MemoryView
 from dipeo.domain.ports.person_repository import PersonRepository
 
 

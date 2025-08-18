@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from dipeo.domain.base import BaseService
-from dipeo.domain.parsers.ports import ASTParserPort
+from dipeo.domain.ports.parsers import ASTParserPort
 from dipeo.infrastructure.parsers.factory import ParserFactory
 from dipeo.infrastructure.config.parser_config import ParserConfig
 

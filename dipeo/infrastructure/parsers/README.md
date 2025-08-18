@@ -15,7 +15,7 @@ Parsers are injected through dependency injection and implement the `ASTParserPo
 
 Example:
 ```python
-from dipeo.domain.parsers.ports import ASTParserPort
+from dipeo.domain.ports.parsers import ASTParserPort
 
 class MyHandler:
     def __init__(self, parser: ASTParserPort):

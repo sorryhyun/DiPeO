@@ -127,7 +127,7 @@ class InfrastructureContainer:
         )
 
         from dipeo.infrastructure.services.integrated_api import IntegratedApiService
-        from dipeo.infrastructure.integrations.adapters.api_service import ApiService as APIService
+        from dipeo.infrastructure.integrations.adapters.api_service import APIService
         from dipeo.domain.integrations.api_services import APIBusinessLogic
         from dipeo.infrastructure.services.template.simple_processor import SimpleTemplateProcessor
         

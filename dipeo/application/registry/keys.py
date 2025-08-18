@@ -18,7 +18,7 @@ if TYPE_CHECKING:
         DiagramPort,
         IntegratedApiServicePort,
     )
-    from dipeo.domain.parsers.ports import ASTParserPort
+    from dipeo.domain.ports.parsers import ASTParserPort
     from dipeo.domain.ports import (
         APIKeyRepository,
         ConversationRepository,
