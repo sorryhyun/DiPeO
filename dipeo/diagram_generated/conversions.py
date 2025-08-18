@@ -23,21 +23,6 @@ HandleID = NewType('HandleID', str)
 # ---------------------------------------------------------------------------
 
 NODE_TYPE_MAP: Dict[str, NodeType] = {
-    "code_job": NodeType.CODE_JOB,
-    "api_job": NodeType.API_JOB,
-    "person_job": NodeType.PERSON_JOB,
-    "person_batch_job": NodeType.PERSON_BATCH_JOB,
-    "condition": NodeType.CONDITION,
-    "user_response": NodeType.USER_RESPONSE,
-    "start": NodeType.START,
-    "endpoint": NodeType.ENDPOINT,
-    "db": NodeType.DB,
-    "hook": NodeType.HOOK,
-    "template_job": NodeType.TEMPLATE_JOB,
-    "json_schema_validator": NodeType.JSON_SCHEMA_VALIDATOR,
-    "typescript_ast": NodeType.TYPESCRIPT_AST,
-    "sub_diagram": NodeType.SUB_DIAGRAM,
-    "integrated_api": NodeType.INTEGRATED_API,
 }
 
 NODE_TYPE_REVERSE_MAP: Dict[NodeType, str] = {v: k for k, v in NODE_TYPE_MAP.items()}

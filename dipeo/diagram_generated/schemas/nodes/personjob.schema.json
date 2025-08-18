@@ -2,18 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonJobNodeData",
   "definitions": {
-    "MemoryView": {
-      "description": "Memory management enumerations",
-      "enum": [
-        "all_involved",
-        "sent_by_me",
-        "sent_to_me",
-        "system_and_me",
-        "conversation_pairs",
-        "all_messages"
-      ],
-      "type": "string"
-    },
     "MemorySettings": {
       "additionalProperties": false,
       "properties": {
@@ -35,18 +23,17 @@
       ],
       "type": "object"
     },
-    "PersonID": {
-      "additionalProperties": false,
-      "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "__brand"
+    "MemoryView": {
+      "description": "Memory management enumerations",
+      "enum": [
+        "all_involved",
+        "sent_by_me",
+        "sent_to_me",
+        "system_and_me",
+        "conversation_pairs",
+        "all_messages"
       ],
-      "type": "object"
+      "type": "string"
     },
     "PersonJobNodeData": {
       "additionalProperties": false,
@@ -142,6 +129,19 @@
         "first_only_prompt",
         "label",
         "max_iteration"
+      ],
+      "type": "object"
+    },
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
       ],
       "type": "object"
     }

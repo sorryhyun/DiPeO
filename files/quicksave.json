@@ -4,94 +4,312 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 330,
-        "y": 200
+        "x": 50,
+        "y": 400
       },
       "data": {
-        "trigger_mode": "manual",
-        "custom_data": {},
+        "custom_data": {
+          "message": "Starting complete code generation from TypeScript sources"
+        },
         "output_data_structure": {},
         "label": "start"
       }
     },
     {
       "id": "node_1",
-      "type": "person_job",
+      "type": "sub_diagram",
       "position": {
-        "x": 632,
-        "y": 231
+        "x": 200,
+        "y": 400
       },
       "data": {
-        "default_prompt": "say hi",
-        "max_iteration": 3,
-        "memory_profile": "FULL",
-        "person": "person 1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "label": "printer",
-        "first_only_prompt": ""
+        "diagram_name": "projects/codegen/diagrams/shared/parse_typescript_batch_direct",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "parse all typescript"
       }
     },
     {
       "id": "node_2",
-      "type": "condition",
+      "type": "sub_diagram",
       "position": {
-        "x": 620,
-        "y": 425
+        "x": 400,
+        "y": 100
       },
       "data": {
-        "condition_type": "detect_max_iterations",
-        "flipped": [
-          true,
-          true
-        ],
-        "label": "condition"
+        "diagram_name": "projects/codegen/diagrams/models/generate_python_models_dynamic",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate python models"
       }
     },
     {
       "id": "node_3",
-      "type": "endpoint",
+      "type": "sub_diagram",
       "position": {
-        "x": 0,
-        "y": 437
+        "x": 400,
+        "y": 150
       },
       "data": {
-        "file_format": "txt",
-        "save_to_file": true,
-        "flipped": [
-          true,
-          false
-        ],
-        "file_name": "files/results/total.txt",
-        "label": "endpoint"
+        "diagram_name": "projects/codegen/diagrams/models/generate_enums",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate enums"
       }
     },
     {
       "id": "node_4",
-      "type": "person_job",
+      "type": "sub_diagram",
       "position": {
-        "x": 311,
-        "y": 443
+        "x": 400,
+        "y": 200
       },
       "data": {
-        "default_prompt": "How many times did you respond?",
-        "flipped": [
-          true,
-          false
+        "diagram_name": "projects/codegen/diagrams/models/generate_integrations",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate integrations"
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 250
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_conversions",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate conversions"
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 300
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_backend_models",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate backend models"
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 350
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_graphql_schema_template_dynamic",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate graphql schema"
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 400
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_static_nodes",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate static nodes"
+      }
+    },
+    {
+      "id": "node_9",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 450
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_strawberry_types_v2_dynamic",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate strawberry types"
+      }
+    },
+    {
+      "id": "node_10",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 500
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_strawberry_mutations_v2",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate strawberry mutations"
+      }
+    },
+    {
+      "id": "node_11",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 550
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_validation_models",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate validation models"
+      }
+    },
+    {
+      "id": "node_12",
+      "type": "code_job",
+      "position": {
+        "x": 400,
+        "y": 600
+      },
+      "data": {
+        "language": "python",
+        "filePath": "projects/codegen/code/models/generate_typescript_indexes.py",
+        "functionName": "main",
+        "label": "generate typescript indexes"
+      }
+    },
+    {
+      "id": "node_13",
+      "type": "db",
+      "position": {
+        "x": 400,
+        "y": 700
+      },
+      "data": {
+        "operation": "read",
+        "sub_type": "file",
+        "format": "json",
+        "glob": true,
+        "file": [
+          "temp/specifications/nodes/*.spec.ts.json"
         ],
-        "max_iteration": 1,
-        "memory_profile": "FULL",
-        "person": "person 1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "label": "ask",
-        "first_only_prompt": ""
+        "label": "discover node specs"
+      }
+    },
+    {
+      "id": "node_14",
+      "type": "code_job",
+      "position": {
+        "x": 600,
+        "y": 700
+      },
+      "data": {
+        "language": "python",
+        "filePath": "projects/codegen/code/shared/simplified_extractors.py",
+        "functionName": "prepare_node_list_for_batch",
+        "label": "prepare node list"
+      }
+    },
+    {
+      "id": "node_15",
+      "type": "sub_diagram",
+      "position": {
+        "x": 800,
+        "y": 700
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/frontend/generate_frontend_single",
+        "diagram_format": "light",
+        "batch": true,
+        "batch_input_key": "default",
+        "batch_parallel": true,
+        "label": "batch generate frontend"
+      }
+    },
+    {
+      "id": "node_16",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 750
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/frontend/generate_frontend_registry",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate frontend registry"
+      }
+    },
+    {
+      "id": "node_17",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 800
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/frontend/generate_graphql_queries",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate graphql queries"
+      }
+    },
+    {
+      "id": "node_18",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 850
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/frontend/generate_zod_schemas_v2",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate zod schemas"
+      }
+    },
+    {
+      "id": "node_19",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 900
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/frontend/generate_field_configs_v2",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate field configs"
+      }
+    },
+    {
+      "id": "node_20",
+      "type": "code_job",
+      "position": {
+        "x": 1000,
+        "y": 400
+      },
+      "data": {
+        "language": "python",
+        "code": "# Summary - prints removed to reduce verbosity\nresult = {\n    'status': 'success',\n    'message': 'All code generation completed successfully',\n    'summary': {\n        'typescript_parsing': 'completed',\n        'domain_models': 'generated (11 artifact types)',\n        'frontend_components': 'generated',\n        'output_location': 'dipeo/diagram_generated_staged/'\n    }\n}\n",
+        "label": "summarize results"
+      }
+    },
+    {
+      "id": "node_21",
+      "type": "endpoint",
+      "position": {
+        "x": 1200,
+        "y": 400
+      },
+      "data": {
+        "save_to_file": false,
+        "label": "end"
       }
     }
   ],
@@ -112,54 +330,316 @@
       "label": null,
       "packing": null,
       "data": null,
-      "content_type": "conversation_state"
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_2",
-      "source": "node_2_condfalse_output",
-      "target": "node_1_default_input",
+      "source": "node_1_default_output",
+      "target": "node_3_default_input",
       "label": null,
       "packing": null,
-      "data": {
-        "branch": "false"
-      },
-      "content_type": "conversation_state"
+      "data": null,
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_3",
-      "source": "node_2_condtrue_output",
+      "source": "node_1_default_output",
       "target": "node_4_default_input",
       "label": null,
       "packing": null,
-      "data": {
-        "branch": "true"
-      },
-      "content_type": "conversation_state"
+      "data": null,
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_4",
+      "source": "node_1_default_output",
+      "target": "node_5_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_1_default_output",
+      "target": "node_6_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_1_default_output",
+      "target": "node_7_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_1_default_output",
+      "target": "node_8_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_1_default_output",
+      "target": "node_9_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_9",
+      "source": "node_1_default_output",
+      "target": "node_10_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_10",
+      "source": "node_1_default_output",
+      "target": "node_11_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_11",
+      "source": "node_1_default_output",
+      "target": "node_12_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_12",
+      "source": "node_1_default_output",
+      "target": "node_13_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_13",
+      "source": "node_1_default_output",
+      "target": "node_16_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_14",
+      "source": "node_1_default_output",
+      "target": "node_17_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_15",
+      "source": "node_1_default_output",
+      "target": "node_18_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_16",
+      "source": "node_1_default_output",
+      "target": "node_19_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_17",
+      "source": "node_13_default_output",
+      "target": "node_14_default_input",
+      "label": "default",
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_18",
+      "source": "node_14_default_output",
+      "target": "node_15_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_19",
+      "source": "node_2_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_20",
+      "source": "node_3_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_21",
       "source": "node_4_default_output",
-      "target": "node_3_default_input",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_22",
+      "source": "node_5_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_23",
+      "source": "node_6_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_24",
+      "source": "node_7_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_25",
+      "source": "node_8_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_26",
+      "source": "node_9_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_27",
+      "source": "node_10_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_28",
+      "source": "node_11_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_29",
+      "source": "node_12_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_30",
+      "source": "node_15_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_31",
+      "source": "node_16_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_32",
+      "source": "node_17_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_33",
+      "source": "node_18_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_34",
+      "source": "node_19_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_35",
+      "source": "node_20_default_output",
+      "target": "node_21_default_input",
       "label": null,
       "packing": null,
       "data": null,
       "content_type": "raw_text"
     }
   ],
-  "persons": [
-    {
-      "id": "person 1",
-      "label": "person 1",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": null,
-        "prompt_file": null
-      },
-      "type": "person"
-    }
-  ],
+  "persons": [],
   "handles": [
     {
       "id": "node_0_default_output",
@@ -168,14 +648,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_1_first_input",
-      "node_id": "node_1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -202,19 +674,11 @@
       "position": "left"
     },
     {
-      "id": "node_2_condtrue_output",
+      "id": "node_2_default_output",
       "node_id": "node_2",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_2_condfalse_output",
-      "node_id": "node_2",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
@@ -226,12 +690,12 @@
       "position": "left"
     },
     {
-      "id": "node_4_first_input",
-      "node_id": "node_4",
-      "label": "first",
-      "direction": "input",
+      "id": "node_3_default_output",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "output",
       "data_type": "any",
-      "position": "left"
+      "position": "right"
     },
     {
       "id": "node_4_default_input",
@@ -248,16 +712,280 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_output",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_default_output",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8_default_output",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_9_default_input",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_9_default_output",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_10_default_input",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_10_default_output",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_11_default_input",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_11_default_output",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_12_default_input",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_12_default_output",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_13_default_input",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_13_default_output",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_14_default_input",
+      "node_id": "node_14",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_14_default_output",
+      "node_id": "node_14",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_15_default_input",
+      "node_id": "node_15",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_15_default_output",
+      "node_id": "node_15",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_16_default_input",
+      "node_id": "node_16",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_16_default_output",
+      "node_id": "node_16",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_17_default_input",
+      "node_id": "node_17",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_17_default_output",
+      "node_id": "node_17",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_18_default_input",
+      "node_id": "node_18",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_18_default_output",
+      "node_id": "node_18",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_19_default_input",
+      "node_id": "node_19",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_19_default_output",
+      "node_id": "node_19",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_20_default_input",
+      "node_id": "node_20",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_20_default_output",
+      "node_id": "node_20",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_21_default_input",
+      "node_id": "node_21",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
-    "name": "/home/soryhyun/DiPeO/files/diagrams/examples/simple_iter.light.yaml",
+    "name": "/home/soryhyun/DiPeO/projects/codegen/diagrams/generate_all.light.yaml",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-18T13:58:34.174Z",
-    "modified": "2025-08-18T13:58:34.174Z",
+    "created": "2025-08-18T14:56:41.716Z",
+    "modified": "2025-08-18T14:56:41.716Z",
     "version": "1.0.0",
-    "id": "/home/soryhyun/DiPeO/files/diagrams/examples/simple_iter.light.yaml"
+    "id": "/home/soryhyun/DiPeO/projects/codegen/diagrams/generate_all.light.yaml"
   }
 }

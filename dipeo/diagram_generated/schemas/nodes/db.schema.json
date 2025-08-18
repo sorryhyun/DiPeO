@@ -12,10 +12,6 @@
       ],
       "type": "string"
     },
-    "JsonDict": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "DBNodeData": {
       "additionalProperties": false,
       "description": "Configuration data for DB nodes that handle file system operations",
@@ -78,6 +74,10 @@
         "operation",
         "sub_type"
       ],
+      "type": "object"
+    },
+    "JsonDict": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

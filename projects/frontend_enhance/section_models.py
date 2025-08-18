@@ -7,6 +7,29 @@ from typing import List, Dict, Optional, Any
 from pydantic import BaseModel, Field, ConfigDict
 
 
+class Architecture(BaseModel):
+    """Overall application architecture and design patterns."""
+    model_config = ConfigDict(extra='forbid')
+    
+    overview: str = Field(
+        description="High-level architecture description explaining how all sections fit together"
+    )
+    patterns: List[str] = Field(
+        min_items=2,
+        max_items=8,
+        description="Key architectural patterns and principles (e.g., 'Container/Presentational', 'Atomic Design', 'Domain-driven layers')"
+    )
+    data_flow: str = Field(
+        description="How data flows through the application (state management, API calls, caching)"
+    )
+    folder_structure: str = Field(
+        description="Recommended folder/file organization for scalability"
+    )
+    tech_stack: Dict[str, str] = Field(
+        description="Core technologies and their purpose (e.g., {'state': 'Zustand', 'api': 'React Query', 'forms': 'React Hook Form'})"
+    )
+
+
 class PromptContext(BaseModel):
     """Context information to guide prompt generation for a section."""
     model_config = ConfigDict(extra='forbid')
@@ -51,6 +74,15 @@ class Section(BaseModel):
         max_items=8,
         description="Measurable acceptance criteria for this section"
     )
+    implementation_steps: List[str] = Field(
+        min_items=3,
+        max_items=10,
+        description="Concrete implementation steps in order (e.g., '1. Define TypeScript interfaces', '2. Create base component', '3. Add state management')"
+    )
+    integration_points: List[str] = Field(
+        default_factory=list,
+        description="How this section integrates with others (e.g., 'Emits task-updated event', 'Consumes user context', 'Provides TaskAPI service')"
+    )
     prompt_context: PromptContext = Field(
         description="Context to guide code generation for this section"
     )
@@ -63,9 +95,12 @@ class Section(BaseModel):
 
 
 class Response(BaseModel):
-    """Response containing the list of sections to implement."""
+    """Response containing the architecture and list of sections to implement."""
     model_config = ConfigDict(extra='forbid')
     
+    architecture: Architecture = Field(
+        description="Overall application architecture and how sections fit together"
+    )
     sections: List[Section] = Field(
         min_items=1,
         max_items=10,
@@ -75,6 +110,20 @@ class Response(BaseModel):
 
 # Example usage for LLM understanding
 EXAMPLE_RESPONSE = Response(
+    architecture=Architecture(
+        overview="A modular task management dashboard built with React 18+ and TypeScript. Features are split into independent sections that communicate through a centralized state store and event bus. Each section follows container/presentational pattern with clear separation of concerns.",
+        patterns=["Container/Presentational Components", "Atomic Design", "Domain-driven layers", "Event-driven communication"],
+        data_flow="Global state managed by Zustand, server state via React Query with optimistic updates. Components emit domain events that trigger state updates. API calls are centralized in service layers with proper error handling.",
+        folder_structure="src/features/{section}/ containing components/, hooks/, services/, types/, and utils/. Shared code in src/shared/ with common components, hooks, and utilities.",
+        tech_stack={
+            "state": "Zustand",
+            "api": "React Query",
+            "forms": "React Hook Form",
+            "validation": "Zod",
+            "styling": "Tailwind CSS",
+            "testing": "React Testing Library"
+        }
+    ),
     sections=[
         Section(
             id="task-list",
@@ -85,6 +134,19 @@ EXAMPLE_RESPONSE = Response(
                 "Each task displays title, status, and actions",
                 "Supports marking tasks as complete",
                 "Has delete functionality"
+            ],
+            implementation_steps=[
+                "Define TypeScript interfaces for Task and TaskList props",
+                "Create TaskItem presentational component with Tailwind styling",
+                "Build TaskList container with React Query integration",
+                "Add optimistic updates for task mutations",
+                "Implement error boundaries and loading states",
+                "Write unit tests for components and hooks"
+            ],
+            integration_points=[
+                "Emits 'task-updated' and 'task-deleted' events",
+                "Consumes TaskAPI service for data operations",
+                "Updates global task count in app header"
             ],
             prompt_context=PromptContext(
                 component_type="list",
@@ -103,6 +165,18 @@ EXAMPLE_RESPONSE = Response(
                 "Optional description field",
                 "Submit button with loading state",
                 "Form validation and error display"
+            ],
+            implementation_steps=[
+                "Define form schema with Zod validation",
+                "Create form component with React Hook Form",
+                "Integrate with TaskAPI service for submission",
+                "Add loading and error states",
+                "Implement success feedback with toast notifications"
+            ],
+            integration_points=[
+                "Emits 'task-created' event on successful submission",
+                "Triggers task-list refetch via React Query",
+                "Resets form on successful submission"
             ],
             prompt_context=PromptContext(
                 component_type="form",

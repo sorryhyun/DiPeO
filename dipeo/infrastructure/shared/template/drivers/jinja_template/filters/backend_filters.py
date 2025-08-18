@@ -193,23 +193,14 @@ class BackendFilters:
         """Calculate imports for static node implementation."""
         imports = [
             "from typing import Dict, Any, List, Optional",
-            "from dipeo.core.models import BaseNode",
-            "from dipeo.core.handlers import BaseNodeHandler",
+            "from dipeo.application.execution.handler_base import TypedNodeHandler",
+            "from dipeo.diagram_generated.generated_nodes import *",
+            "from dipeo.application.registry.keys import LLM_SERVICE, CODE_EXECUTOR, HTTP_CLIENT, FILESYSTEM_ADAPTER",
             "from dipeo.domain.base.exceptions import ValidationError, ExecutionError",
         ]
         
-        # Add type-specific imports
-        node_type = spec_data.get('nodeType', '')
-        if node_type == 'person_job':
-            imports.append("from dipeo.core.services import LLMService")
-        elif node_type == 'code_job':
-            imports.append("from dipeo.core.services import CodeExecutor")
-        elif node_type == 'api_job':
-            imports.append("from dipeo.core.services import HTTPClient")
-        elif node_type == 'db':
-            imports.append("from dipeo.core.services import DatabaseService")
-        elif node_type == 'template_job':
-            imports.append("from dipeo.infrastructure.shared.template.drivers.jinja_template import TemplateService")
+        # Note: Services are now accessed via DI container at runtime
+        # No need for type-specific imports - use request.services[KEY] pattern
         
         return sorted(list(set(imports)))
     
@@ -219,7 +210,7 @@ class BackendFilters:
         logic_map = {
             'person_job': [
                 "# Execute LLM call",
-                "llm_service = self.container.get('llm_service')",
+                "llm_service = request.services[LLM_SERVICE]",
                 "response = await llm_service.generate(",
                 "    prompt=node.props.get('default_prompt', ''),",
                 "    model=node.props.get('model'),",
@@ -229,7 +220,7 @@ class BackendFilters:
             ],
             'code_job': [
                 "# Execute code",
-                "code_executor = self.container.get('code_executor')",
+                "code_executor = request.services[CODE_EXECUTOR]",
                 "result = await code_executor.execute(",
                 "    code=node.props.get('code', ''),",
                 "    language=node.props.get('code_type', 'python'),",
@@ -239,7 +230,7 @@ class BackendFilters:
             ],
             'api_job': [
                 "# Make API request",
-                "http_client = self.container.get('http_client')",
+                "http_client = request.services[HTTP_CLIENT]",
                 "response = await http_client.request(",
                 "    method=node.props.get('method', 'GET'),",
                 "    url=node.props.get('url'),",
@@ -262,7 +253,7 @@ class BackendFilters:
             ],
             'template_job': [
                 "# Render template",
-                "template_service = self.container.get('template_service')",
+                "template_service = request.services.get('template_service')",
                 "result = await template_service.render(",
                 "    engine=node.props.get('engine', 'jinja2'),",
                 "    template_path=node.props.get('template_path'),",

@@ -1,14 +1,24 @@
 """Adapters that bridge existing messaging infrastructure to new domain ports."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
-from dipeo.domain.events import EventType, ExecutionEvent
+from dipeo.domain.events import EventType
 from dipeo.domain.events.ports import MessageBus as MessageRouterPort
 from dipeo.domain.events import DomainEventBus, MessageBus
 from dipeo.domain.events.contracts import DomainEvent
 from dipeo.infrastructure.execution.messaging import MessageRouter
 from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus
+
+
+@dataclass
+class SimpleExecutionEvent:
+    """Simple execution event for AsyncEventBus compatibility."""
+    type: EventType
+    execution_id: str
+    timestamp: float
+    data: dict[str, Any]
 
 
 class MessageBusAdapter(MessageBus):
@@ -22,6 +32,42 @@ class MessageBusAdapter(MessageBus):
 
     async def cleanup(self) -> None:
         await self._router.cleanup()
+    
+    async def emit(self, event: DomainEvent | SimpleExecutionEvent) -> None:
+        """Emit an execution event by broadcasting to the execution."""
+        # Handle both domain and simple execution event types
+        if isinstance(event, DomainEvent):
+            # Convert DomainEvent to message dict
+            message = {
+                "type": event.event_type.value if hasattr(event, 'event_type') else "EXECUTION_UPDATE",
+                "execution_id": getattr(event, 'execution_id', ''),
+                "timestamp": event.timestamp.timestamp() if hasattr(event.timestamp, 'timestamp') else event.timestamp,
+                "event_id": getattr(event, 'event_id', None),
+                "data": {
+                    "node_id": getattr(event, 'node_id', None),
+                    "node_type": getattr(event, 'node_type', None),
+                    "status": getattr(event, 'status', None),
+                    "error": getattr(event, 'error', None),
+                    "output": getattr(event, 'output', None),
+                    "metrics": getattr(event, 'metrics', None),
+                    **getattr(event, 'metadata', {})
+                }
+            }
+            # Remove None values from data
+            message["data"] = {k: v for k, v in message["data"].items() if v is not None}
+            execution_id = message["execution_id"]
+        else:
+            # Original ExecutionEvent handling
+            message = {
+                "type": event.type.value,
+                "execution_id": event.execution_id,
+                "timestamp": event.timestamp,
+                "data": event.data or {}
+            }
+            execution_id = event.execution_id
+            
+        # Broadcast to all connections watching this execution
+        await self._router.broadcast_to_execution(execution_id, message)
 
     async def register_connection(self, connection_id: str, handler: Callable) -> None:
         await self._router.register_connection(connection_id, handler)
@@ -63,18 +109,48 @@ class DomainEventBusAdapter(DomainEventBus):
 
     async def publish(self, event: DomainEvent) -> None:
         """Publish a domain event by converting it to core ExecutionEvent."""
-        # Map domain events to core event types
+        # Map domain events to core event types - comprehensive mapping
         event_type_map = {
+            # Execution lifecycle events
+            "ExecutionStartedEvent": EventType.EXECUTION_STARTED,
+            "ExecutionCompletedEvent": EventType.EXECUTION_COMPLETED,
+            "ExecutionErrorEvent": EventType.EXECUTION_ERROR,
+            "ExecutionStatusChangedEvent": EventType.EXECUTION_STATUS_CHANGED,
+            
+            # Node lifecycle events
+            "NodeStartedEvent": EventType.NODE_STARTED,
+            "NodeCompletedEvent": EventType.NODE_COMPLETED,
+            "NodeErrorEvent": EventType.NODE_ERROR,
+            "NodeOutputEvent": EventType.NODE_OUTPUT,
+            "NodeStatusChangedEvent": EventType.NODE_STATUS_CHANGED,
+            "NodeProgressEvent": EventType.NODE_PROGRESS,
+            
+            # Metrics and monitoring
+            "MetricsCollectedEvent": EventType.METRICS_COLLECTED,
+            "OptimizationSuggestedEvent": EventType.OPTIMIZATION_SUGGESTED,
+            
+            # External integrations
+            "WebhookReceivedEvent": EventType.WEBHOOK_RECEIVED,
+            
+            # Interactive events
+            "InteractivePromptEvent": EventType.INTERACTIVE_PROMPT,
+            "InteractiveResponseEvent": EventType.INTERACTIVE_RESPONSE,
+            
+            # Logging and updates
+            "ExecutionLogEvent": EventType.EXECUTION_LOG,
+            "ExecutionUpdateEvent": EventType.EXECUTION_UPDATE,
+            
+            # Legacy/compatibility mappings
             "ExecutionStarted": EventType.EXECUTION_STARTED,
             "ExecutionCompleted": EventType.EXECUTION_COMPLETED,
-            "ExecutionUpdated": EventType.EXECUTION_COMPLETED,  # Map to closest available
+            "ExecutionUpdated": EventType.EXECUTION_UPDATE,
             "NodeExecutionStarted": EventType.NODE_STARTED,
             "NodeExecutionCompleted": EventType.NODE_COMPLETED,
-            "NodeOutputAppended": EventType.NODE_COMPLETED,  # Map to closest available
+            "NodeOutputAppended": EventType.NODE_OUTPUT,
         }
         
         event_class_name = event.__class__.__name__
-        core_event_type = event_type_map.get(event_class_name, EventType.EXECUTION_STARTED)
+        core_event_type = event_type_map.get(event_class_name, EventType.EXECUTION_UPDATE)
         
         # Create ExecutionEvent from domain event
         # Try to get execution_id from either 'execution_id' or 'aggregate_id' (base DomainEvent)
@@ -87,7 +163,8 @@ class DomainEventBusAdapter(DomainEventBus):
         else:
             timestamp = time.time()
         
-        execution_event = ExecutionEvent(
+        # Create simple ExecutionEvent for AsyncEventBus compatibility
+        execution_event = SimpleExecutionEvent(
             execution_id=execution_id,
             type=core_event_type,
             timestamp=timestamp,

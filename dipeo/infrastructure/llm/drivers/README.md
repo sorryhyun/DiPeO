@@ -1,18 +1,24 @@
-# LLM Infrastructure Services
+# LLM Infrastructure Drivers
 
 ## Overview
 
-The LLM infrastructure services layer provides a clean abstraction for interacting with various Large Language Model providers (OpenAI, Anthropic, Google, Ollama) while maintaining separation of concerns between domain logic and infrastructure details.
+The LLM infrastructure drivers layer provides a clean abstraction for interacting with various Large Language Model providers (OpenAI, Anthropic, Google, Ollama) while maintaining separation of concerns between domain logic and infrastructure details.
 
 ## Architecture
 
 ```
-dipeo/infrastructure/services/llm/
-├── service.py              # Main LLM service orchestrator
-├── system_prompt_handler.py # System prompt resolution and loading
-├── message_formatter.py     # Message formatting for providers
-├── base.py                 # Base adapter class
-└── factory.py              # Adapter factory for provider instantiation
+dipeo/infrastructure/llm/
+├── drivers/                 # LLM orchestration and utilities
+│   ├── service.py          # Main LLM service orchestrator
+│   ├── system_prompt_handler.py # System prompt resolution and loading
+│   ├── message_formatter.py     # Message formatting for providers
+│   ├── base.py             # Base adapter class
+│   └── factory.py          # Adapter factory for provider instantiation
+└── adapters/               # Provider-specific implementations
+    ├── openai.py
+    ├── claude.py
+    ├── gemini.py
+    └── ollama.py
 ```
 
 ## Core Components
@@ -90,7 +96,7 @@ result = await llm_service.complete_with_person(
 
 ## Provider Adapters
 
-Located in `dipeo/infrastructure/adapters/llm/`:
+Located in `dipeo/infrastructure/llm/adapters/`:
 
 | Provider | Adapter | Features |
 |----------|---------|----------|

@@ -6,9 +6,22 @@ persons:
     model: gpt-5-nano-2025-08-07
     api_key_id: APIKEY_52609F
     system_prompt: |
-      You are a senior product/front-end architect. Given app requirements, split work into sections
-      (pages, features, or components) that can be developed independently. Each section should be
-      a cohesive unit of functionality. Follow the Pydantic schema strictly.
+      You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.
+      
+      Your task is to:
+      1. FIRST define the overall application architecture that will guide all sections
+      2. THEN split the work into independent sections that fit within this architecture
+      3. For EACH section, provide concrete implementation steps and integration points
+      
+      Focus on:
+      - Clear architectural patterns and principles
+      - How data flows through the application
+      - Specific, actionable implementation steps (not vague descriptions)
+      - How sections communicate and integrate with each other
+      - Modern React 18+ best practices and TypeScript patterns
+      
+      Each section should be a cohesive unit that can be developed independently but integrates smoothly.
+      Follow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.
 
 
 nodes:
@@ -35,9 +48,25 @@ nodes:
       memory_profile: MINIMAL
       text_format_file: projects/frontend_enhance/section_models.py
       default_prompt: |
-        Analyze the requirements and split into independent sections for development:
-        App config: {{config}}      
-        Create a structured response with sections that can be implemented in parallel.
+        Analyze the requirements and create a comprehensive development plan:
+        
+        App config: {{config}}
+        
+        Your response MUST include:
+        1. An overall architecture that defines:
+           - How all sections work together as a cohesive system
+           - Core architectural patterns and principles
+           - Data flow and state management strategy
+           - Folder structure and tech stack decisions
+        
+        2. Independent sections that each include:
+           - Clear acceptance criteria
+           - Specific implementation steps (3-10 concrete steps)
+           - Integration points showing how this section connects with others
+           - Proper dependencies and priority
+        
+        Think like you're planning a real production React application.
+        Ensure sections can be developed in parallel but integrate seamlessly.
 
   - label: Save Sections Data
     type: db

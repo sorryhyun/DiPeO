@@ -45,6 +45,10 @@ class NodeFieldMapper:
         elif node_type == NodeType.DB.value:
             if "source_details" in props and "file" not in props:
                 props["file"] = props.pop("source_details")
+        elif node_type == NodeType.JSON_SCHEMA_VALIDATOR.value:
+            # Map 'strict' to 'strict_mode' for backward compatibility
+            if "strict" in props and "strict_mode" not in props:
+                props["strict_mode"] = props.pop("strict")
         elif node_type == NodeType.PERSON_JOB.value:
             if "memory_config" in props:
                 props.pop("memory_config")
@@ -92,6 +96,10 @@ class NodeFieldMapper:
             # Keep functionName as is - it's a new field
         elif node_type == NodeType.DB.value and "file" in props:
             props["source_details"] = props.pop("file")
+        elif node_type == NodeType.JSON_SCHEMA_VALIDATOR.value:
+            # Map 'strict_mode' back to 'strict' for export compatibility
+            if "strict_mode" in props and "strict" not in props:
+                props["strict"] = props["strict_mode"]
         elif node_type == NodeType.PERSON_JOB.value:
             if "memory_config" in props:
                 props.pop("memory_config")
