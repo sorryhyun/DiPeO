@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from dipeo.application.execution.scheduler import NodeScheduler
 from dipeo.application.execution.typed_execution_context import TypedExecutionContext
 from dipeo.domain.events import EventEmitter, EventType, ExecutionEvent
-from dipeo.domain.resolution import RuntimeInputResolverV2
+from dipeo.domain.diagram.resolution import RuntimeInputResolverV2
 from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution import DomainDynamicOrderCalculator

@@ -1,5 +1,5 @@
-"""Database domain services."""
+"""Backward compatibility re-export for db.services module."""
 
-from .db_operations_service import DBOperationsDomainService
+from dipeo.domain.integrations.db_services import DBOperationsDomainService
 
 __all__ = ["DBOperationsDomainService"]

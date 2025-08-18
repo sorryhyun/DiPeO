@@ -123,7 +123,7 @@ class InfrastructureContainer:
 
         from dipeo.infrastructure.services.integrated_api import IntegratedApiService
         from dipeo.infrastructure.adapters.http.api_service import APIService
-        from dipeo.domain.api.services import APIBusinessLogic
+        from dipeo.domain.integrations.api_services import APIBusinessLogic
         from dipeo.infrastructure.services.template.simple_processor import SimpleTemplateProcessor
         
         template_processor = SimpleTemplateProcessor()

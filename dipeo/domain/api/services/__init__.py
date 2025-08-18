@@ -1,7 +1,5 @@
-"""API domain services."""
+"""Backward compatibility re-export for api.services module."""
 
-from .api_business_logic import APIBusinessLogic
+from dipeo.domain.integrations.api_services import APIBusinessLogic
 
-__all__ = [
-    "APIBusinessLogic",
-]
+__all__ = ["APIBusinessLogic"]

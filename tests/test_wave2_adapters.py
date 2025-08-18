@@ -136,7 +136,7 @@ async def test_messaging_adapters(registry: ServiceRegistry) -> bool:
             print(f"✓ Received {len(received_messages)} messages")
         
         # Test event bus
-        from dipeo.domain.messaging.events import ExecutionStarted
+        from dipeo.domain.events.contracts import ExecutionStartedEvent as ExecutionStarted
         from datetime import datetime
         import uuid
         

@@ -41,7 +41,7 @@ if TYPE_CHECKING:
         ArtifactStoreAdapter,
     )
     from dipeo.infrastructure.services.diagram import DiagramService
-    from dipeo.domain.db.services import DBOperationsDomainService
+    from dipeo.domain.integrations.db_services import DBOperationsDomainService
     from dipeo.domain.execution.execution_context import ExecutionContext
     from dipeo.domain.diagram.models import ExecutableDiagram
     from dipeo.application.services.cli_session_service import CliSessionService

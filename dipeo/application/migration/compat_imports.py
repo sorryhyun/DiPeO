@@ -16,7 +16,7 @@ from dipeo.domain.execution.state.ports import (
 
 
 # Messaging Ports
-from dipeo.domain.messaging.ports import (
+from dipeo.domain.events.ports import (
     MessageBus as MessageRouterPort,
 )
 
@@ -38,7 +38,7 @@ from dipeo.domain.integrations.ports import (
 
 
 # Storage Ports
-from dipeo.domain.storage.ports import (
+from dipeo.domain.ports.storage import (
     BlobStorePort as FileServicePort,  # Map BlobStore to FileService
     FileSystemPort,
 )
@@ -47,7 +47,7 @@ DiagramStoragePort = FileServicePort
 
 
 # Event/Observer Ports
-from dipeo.domain.messaging.ports import DomainEventBus
+from dipeo.domain.events.ports import DomainEventBus
 # ExecutionObserver defined in application layer
 from dipeo.application.execution.observer_protocol import ExecutionObserver
 

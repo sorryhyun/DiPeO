@@ -3,7 +3,7 @@
 from typing import Any
 
 from dipeo.domain.base.exceptions import ValidationError
-from dipeo.domain.validators.base_validator import BaseValidator, ValidationResult, ValidationWarning
+from dipeo.domain.base.validator import BaseValidator, ValidationResult, ValidationWarning
 from dipeo.diagram_generated import DomainDiagram
 from dipeo.domain.diagram.validation import validate_diagram as validate_via_compiler
 

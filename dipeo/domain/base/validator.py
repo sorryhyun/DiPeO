@@ -1,87 +1,90 @@
-"""Base validator for the domain layer."""
+"""Base validation framework for the domain layer."""
 
-import os
-from pathlib import Path
-from typing import Any
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Protocol
 
-from .exceptions import ValidationError
+from dipeo.domain.base.exceptions import ValidationError
+
+
+class Severity(Enum):
+    """Validation issue severity levels."""
+    ERROR = "error"
+    WARNING = "warning"
+    INFO = "info"
+
+
+@dataclass
+class ValidationWarning:
+    """Represents a validation warning."""
+    message: str
+    field_name: str | None = None
+    details: dict[str, Any] = field(default_factory=dict)
+    severity: Severity = Severity.WARNING
+
+
+@dataclass
+class ValidationResult:
+    """Result of a validation operation."""
+    errors: list[ValidationError] = field(default_factory=list)
+    warnings: list[ValidationWarning] = field(default_factory=list)
+    
+    @property
+    def is_valid(self) -> bool:
+        """Check if validation passed (no errors)."""
+        return len(self.errors) == 0
+    
+    @property
+    def has_warnings(self) -> bool:
+        """Check if there are any warnings."""
+        return len(self.warnings) > 0
+    
+    def add_error(self, error: ValidationError) -> None:
+        """Add an error to the result."""
+        self.errors.append(error)
+    
+    def add_warning(self, warning: ValidationWarning) -> None:
+        """Add a warning to the result."""
+        self.warnings.append(warning)
+    
+    def merge(self, other: "ValidationResult") -> None:
+        """Merge another validation result into this one."""
+        self.errors.extend(other.errors)
+        self.warnings.extend(other.warnings)
+
+
+class Validator(Protocol):
+    """Protocol for all validators."""
+    
+    def validate(self, target: Any) -> ValidationResult:
+        """Validate the target and return a result."""
+        ...
+
+
+class CompositeValidator:
+    """Validator that runs multiple validators."""
+    
+    def __init__(self, validators: list[Validator]):
+        self.validators = validators
+    
+    def validate(self, target: Any) -> ValidationResult:
+        """Run all validators and merge results."""
+        result = ValidationResult()
+        for validator in self.validators:
+            validator_result = validator.validate(target)
+            result.merge(validator_result)
+        return result
 
 
 class BaseValidator:
+    """Base class for validators with common functionality."""
     
-    def validate_required_fields(
-        self, data: dict[str, Any], required_fields: list[str]
-    ) -> None:
-        errors = []
-
-        for field in required_fields:
-            value = data.get(field)
-            if value is None:
-                errors.append(f"Required field '{field}' is missing")
-            elif isinstance(value, str) and not value.strip():
-                errors.append(f"Required field '{field}' is empty")
-
-        if errors:
-            raise ValidationError(
-                "Validation failed: " + "; ".join(errors),
-                details={"errors": errors, "fields": required_fields}
-            )
-
-    def validate_operation(self, operation: str, allowed_operations: list[str]) -> None:
-        if operation not in allowed_operations:
-            raise ValidationError(
-                f"Operation '{operation}' is not allowed. Must be one of: {', '.join(allowed_operations)}",
-                details={"operation": operation, "allowed": allowed_operations}
-            )
-
-    def validate_file_exists(self, file_path: str) -> None:
-        path = Path(file_path)
-        if not path.exists():
-            raise ValidationError(
-                f"File '{file_path}' does not exist",
-                details={"file_path": file_path}
-            )
-
-    def validate_file_writable(self, file_path: str) -> None:
-        path = Path(file_path)
-        parent = path.parent
-
-        if not parent.exists():
-            try:
-                parent.mkdir(parents=True, exist_ok=True)
-            except Exception as e:
-                raise ValidationError(
-                    f"Cannot create directory for file '{file_path}': {e!s}",
-                    details={"file_path": file_path, "error": str(e)}
-                )
-        if not os.access(parent, os.W_OK):
-            raise ValidationError(
-                f"No write permission for directory '{parent}'",
-                details={"directory": str(parent)}
-            )
-
-    def validate_input_value(
-        self, value: Any, expected_type: type | None = None, context: str = ""
-    ) -> Any:
-        if value is None:
-            raise ValidationError(
-                f"Input value cannot be None{' for ' + context if context else ''}",
-                details={"context": context}
-            )
-
-        if expected_type and not isinstance(value, expected_type):
-            raise ValidationError(
-                f"Expected {expected_type.__name__} but got {type(value).__name__}{' for ' + context if context else ''}",
-                details={"expected": expected_type.__name__, "actual": type(value).__name__, "context": context}
-            )
-
-        return value
-
-    def validate_batch_size(
-        self, batch_size: int, min_size: int = 1, max_size: int = 1000
-    ) -> None:
-        if batch_size < min_size or batch_size > max_size:
-            raise ValidationError(
-                f"Batch size {batch_size} is out of range [{min_size}, {max_size}]",
-                details={"batch_size": batch_size, "min": min_size, "max": max_size}
-            )
+    def validate(self, target: Any) -> ValidationResult:
+        """Validate the target."""
+        result = ValidationResult()
+        self._perform_validation(target, result)
+        return result
+    
+    def _perform_validation(self, target: Any, result: ValidationResult) -> None:
+        """Override this method to implement validation logic."""
+        raise NotImplementedError("Subclasses must implement _perform_validation")

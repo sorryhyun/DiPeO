@@ -1,7 +1,5 @@
-"""API domain value objects."""
-from .retry_policy import RetryPolicy, RetryStrategy
+"""Backward compatibility re-export for api.value_objects module."""
 
-__all__ = [
-    "RetryPolicy",
-    "RetryStrategy",
-]
+from dipeo.domain.integrations.api_value_objects import RetryPolicy, RetryStrategy
+
+__all__ = ["RetryPolicy", "RetryStrategy"]

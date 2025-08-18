@@ -1,21 +1,31 @@
-"""Domain storage services and ports."""
+"""Domain storage services and ports.
 
-from .ports import (
+Re-exports storage ports from the main ports module for backward compatibility.
+"""
+
+from ..ports.storage import (
     Artifact,
     ArtifactRef,
     ArtifactStorePort,
     BlobStorePort,
-    DiagramInfo,
     FileInfo,
     FileSystemPort,
 )
+
+# DiagramInfo is likely in diagram.ports
+try:
+    from ..diagram.ports import DiagramInfo
+except ImportError:
+    DiagramInfo = None
 
 __all__ = [
     "BlobStorePort",
     "FileSystemPort",
     "ArtifactStorePort",
     "FileInfo",
-    "DiagramInfo",
     "Artifact",
     "ArtifactRef",
 ]
+
+if DiagramInfo is not None:
+    __all__.append("DiagramInfo")

@@ -16,7 +16,7 @@ from .contracts import (
     WebhookReceivedEvent,
     ExecutionLogEvent,
 )
-from .ports import DomainEventBus, EventHandler, EventSubscription, EventEmitter, EventConsumer
+from .ports import DomainEventBus, EventHandler, EventSubscription, EventEmitter, EventConsumer, MessageBus
 from .types import EventType, EventPriority, EventVersion
 
 __all__ = [
@@ -41,6 +41,7 @@ __all__ = [
     "DomainEventBus",
     "EventHandler",
     "EventSubscription",
+    "MessageBus",
     # Types
     "EventType",
     "EventPriority",

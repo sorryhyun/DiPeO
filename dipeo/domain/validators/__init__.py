@@ -1,7 +1,10 @@
-"""Domain validators for DiPeO."""
+"""Domain validators for DiPeO.
 
-from .api_validator import APIValidator
-from .base_validator import (
+Re-exports validators from their new bounded context locations for backward compatibility.
+"""
+
+from ..integrations.validators.api_validator import APIValidator
+from ..base.validator import (
     BaseValidator,
     CompositeValidator,
     Severity,
@@ -9,10 +12,10 @@ from .base_validator import (
     ValidationWarning,
     Validator,
 )
-from .data_validator import DataValidator
-from .diagram_validator import DiagramValidator
-from .execution_validator import ExecutionValidator
-from .file_validator import FileValidator, PathValidator
+from ..integrations.validators.data_validator import DataValidator
+from ..diagram.validation.diagram_validator import DiagramValidator
+from ..execution.validation.execution_validator import ExecutionValidator
+from ..integrations.validators.file_validator import FileValidator, PathValidator
 
 __all__ = [
     "APIValidator",

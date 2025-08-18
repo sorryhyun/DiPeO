@@ -11,7 +11,7 @@ from dipeo.infrastructure.services.integrated_api.service import IntegratedApiSe
 from dipeo.infrastructure.services.integrated_api.registry import ProviderRegistry
 from dipeo.application.services.apikey_service import APIKeyService
 from dipeo.infrastructure.adapters.http.api_service import APIService
-from dipeo.domain.api.services import APIBusinessLogic
+from dipeo.domain.integrations.api_services import APIBusinessLogic
 
 
 async def test_notion_manifest():

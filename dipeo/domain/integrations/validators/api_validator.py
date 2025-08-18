@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 from dipeo.domain.base.exceptions import ValidationError
 from dipeo.domain.constants import VALID_LLM_SERVICES, normalize_service_name
 from dipeo.diagram_generated import APIServiceType
-from dipeo.domain.validators.base_validator import BaseValidator, ValidationResult, ValidationWarning
+from dipeo.domain.base.validator import BaseValidator, ValidationResult, ValidationWarning
 
 VALID_SERVICES = VALID_LLM_SERVICES | {APIServiceType.NOTION.value}
 

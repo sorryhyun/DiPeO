@@ -4,7 +4,7 @@ This module provides the domain-owned contracts and abstractions for
 resolving inputs during diagram compilation and execution.
 """
 
-from dipeo.domain.resolution.interfaces import (
+from .interfaces import (
     Connection,
     TransformRules,
     CompileTimeResolver,
@@ -15,7 +15,7 @@ from dipeo.domain.resolution.interfaces import (
     TransformationEngineV2,
 )
 
-from dipeo.domain.resolution.node_strategies import (
+from .node_strategies import (
     NodeTypeStrategy,
     NodeTypeStrategyRegistry,
     BaseNodeTypeStrategy,
@@ -25,7 +25,7 @@ from dipeo.domain.resolution.node_strategies import (
     create_default_strategy_registry,
 )
 
-from dipeo.domain.resolution.data_structures import (
+from .data_structures import (
     InputResolutionContext,
     TransformationContext,
     ValidationResult,

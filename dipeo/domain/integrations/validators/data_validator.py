@@ -3,7 +3,7 @@
 from typing import Any
 
 from dipeo.domain.base.exceptions import ValidationError
-from dipeo.domain.validators.base_validator import BaseValidator, ValidationResult, ValidationWarning, Severity
+from dipeo.domain.base.validator import BaseValidator, ValidationResult, ValidationWarning, Severity
 
 
 class DataValidator(BaseValidator):

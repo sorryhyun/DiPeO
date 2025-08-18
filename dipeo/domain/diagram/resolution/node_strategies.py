@@ -8,7 +8,7 @@ from typing import Any, Protocol
 from abc import ABC, abstractmethod
 from dipeo.diagram_generated import DomainNode, NodeID
 from dipeo.diagram_generated.enums import NodeType, ContentType
-from dipeo.domain.resolution.interfaces import Connection, TransformRules
+from .interfaces import Connection, TransformRules
 
 
 # ============================================================================

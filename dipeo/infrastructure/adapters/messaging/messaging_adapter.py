@@ -5,8 +5,8 @@ from typing import Any
 
 from dipeo.domain.events import EventType, ExecutionEvent
 from dipeo.application.migration.compat_imports import MessageRouterPort
-from dipeo.domain.messaging import DomainEventBus, MessageBus
-from dipeo.domain.messaging.events import DomainEvent
+from dipeo.domain.events import DomainEventBus, MessageBus
+from dipeo.domain.events.contracts import DomainEvent
 from dipeo.infrastructure.adapters.messaging import MessageRouter
 from dipeo.infrastructure.adapters.events import AsyncEventBus
 

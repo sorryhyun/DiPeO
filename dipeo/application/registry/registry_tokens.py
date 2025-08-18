@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     )
     from dipeo.domain.integrations import ApiInvoker, ApiProvider, ApiProviderRegistry
     from dipeo.domain.llm import LLMClient, LLMService, MemoryService
-    from dipeo.domain.messaging import DomainEventBus, MessageBus
+    from dipeo.domain.events import DomainEventBus, MessageBus
     from dipeo.domain.storage import (
         ArtifactStorePort,
         BlobStorePort,
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
         DiagramStorageSerializer,
         DiagramPort,
     )
-    from dipeo.domain.resolution.interfaces import (
+    from dipeo.domain.diagram.resolution.interfaces import (
         CompileTimeResolverV2,
         RuntimeInputResolverV2,
         TransformationEngineV2,

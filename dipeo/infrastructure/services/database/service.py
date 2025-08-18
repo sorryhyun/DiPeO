@@ -3,7 +3,7 @@
 from typing import Any
 
 from dipeo.domain.storage import FileSystemPort
-from dipeo.domain.db.services import DBOperationsDomainService as DomainDBService
+from dipeo.domain.integrations.db_services import DBOperationsDomainService as DomainDBService
 from dipeo.domain.validators import DataValidator
 
 from dipeo.infrastructure.adapters.database import DBOperationsAdapter

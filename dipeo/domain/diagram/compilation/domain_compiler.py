@@ -61,7 +61,7 @@ class CompilationError:
     
     def to_validation_warning(self):
         """Convert to ValidationWarning for compatibility."""
-        from dipeo.domain.validators.base_validator import ValidationWarning
+        from dipeo.domain.base.validator import ValidationWarning
         field_name = self.field_name
         if not field_name:
             if self.node_id:

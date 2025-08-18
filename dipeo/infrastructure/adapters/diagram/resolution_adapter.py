@@ -7,7 +7,7 @@ the new domain ports.
 import logging
 from typing import Any, TYPE_CHECKING
 
-from dipeo.domain.resolution.interfaces import (
+from dipeo.domain.diagram.resolution.interfaces import (
     CompileTimeResolver,
     RuntimeInputResolver,
     TransformationEngine,
@@ -149,7 +149,7 @@ class StandardTransformationEngineAdapter(TransformationEngine):
     
     def _initialize_engine(self):
         """Initialize the underlying engine."""
-        from dipeo.domain.resolution.transformation_engine import (
+        from dipeo.domain.diagram.resolution.transformation_engine import (
             StandardTransformationEngine
         )
         self._engine = StandardTransformationEngine()

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from dipeo.domain.base.exceptions import ValidationError
-from dipeo.domain.validators.base_validator import BaseValidator, ValidationResult, ValidationWarning
+from dipeo.domain.base.validator import BaseValidator, ValidationResult, ValidationWarning
 
 
 class FileValidator(BaseValidator):
