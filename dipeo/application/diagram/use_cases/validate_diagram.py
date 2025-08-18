@@ -87,7 +87,7 @@ class ValidateDiagramUseCase:
         Returns:
             Tuple of (is_valid, errors, warnings)
         """
-        from dipeo.domain.execution.rules import NodeConnectionRules
+        from dipeo.domain.execution import NodeConnectionRules
         
         errors = []
         warnings = []

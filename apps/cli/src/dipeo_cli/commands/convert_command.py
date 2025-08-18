@@ -42,7 +42,7 @@ class ConvertCommand:
         # Use the diagram service for format conversion
         try:
             # Import required modules
-            from dipeo.infrastructure.services.diagram import DiagramService
+            from dipeo.infrastructure.diagram.drivers.diagram_service import DiagramService
             from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
             from dipeo.domain.config import Config
 

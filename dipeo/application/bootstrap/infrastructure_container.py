@@ -74,7 +74,7 @@ class InfrastructureContainer:
         )
 
     def _setup_llm_adapter(self):
-        from dipeo.infrastructure.services.llm.service import LLMInfraService
+        from dipeo.infrastructure.llm.drivers.service import LLMInfraService
         from dipeo.domain.llm import LLMDomainService
 
         api_key_service = self.registry.resolve(API_KEY_SERVICE)
@@ -89,7 +89,7 @@ class InfrastructureContainer:
 
     def _setup_infrastructure_services(self):
         # Register template processor service
-        from dipeo.infrastructure.services.template.simple_processor import SimpleTemplateProcessor
+        from dipeo.infrastructure.shared.template.drivers.simple_processor import SimpleTemplateProcessor
         self.registry.register(
             TEMPLATE_PROCESSOR,
             SimpleTemplateProcessor()
@@ -118,10 +118,10 @@ class InfrastructureContainer:
             None
         )
 
-        from dipeo.infrastructure.services.integrated_api import IntegratedApiService
+        from dipeo.infrastructure.integrations.drivers.integrated_api import IntegratedApiService
         from dipeo.infrastructure.integrations.adapters.api_service import APIService
         from dipeo.domain.integrations.api_services import APIBusinessLogic
-        from dipeo.infrastructure.services.template.simple_processor import SimpleTemplateProcessor
+        from dipeo.infrastructure.shared.template.drivers.simple_processor import SimpleTemplateProcessor
         
         template_processor = SimpleTemplateProcessor()
         api_business_logic = APIBusinessLogic(template_processor=template_processor)
@@ -132,7 +132,7 @@ class InfrastructureContainer:
             integrated_api_service
         )
 
-        from dipeo.infrastructure.services.parser import get_parser_service
+        from dipeo.infrastructure.diagram.drivers.parser_service import get_parser_service
         parser_service = get_parser_service(
             default_language="typescript",
             project_root=Path(self.config.base_dir),

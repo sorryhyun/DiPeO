@@ -8,7 +8,7 @@ from jinja2 import Template
 
 from dipeo.domain.ports.apikey import APIKeyPort
 from dipeo.domain.base.exceptions import ServiceError
-from dipeo.infrastructure.services.integrated_api.manifest_schema import AuthConfig, AuthStrategy
+from dipeo.infrastructure.integrations.drivers.integrated_api.manifest_schema import AuthConfig, AuthStrategy
 
 logger = logging.getLogger(__name__)
 

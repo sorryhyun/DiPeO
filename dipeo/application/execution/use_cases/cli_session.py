@@ -8,7 +8,7 @@ import logging
 import yaml
 from dataclasses import dataclass
 
-from dipeo.infrastructure.services.diagram.converter_service import DiagramConverterService
+from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
 
 
 @dataclass

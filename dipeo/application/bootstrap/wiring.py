@@ -129,7 +129,7 @@ def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) ->
             api_key_service = EnvironmentAPIKeyService()
     
     # Create LLM infrastructure service
-    from dipeo.infrastructure.services.llm import LLMInfraService
+    from dipeo.infrastructure.llm.drivers.service import LLMInfraService
     llm_infra = LLMInfraService(api_key_service)
     
     # Wrap with domain adapters
@@ -158,7 +158,7 @@ def wire_api_services(registry: ServiceRegistry) -> None:
         ApiProviderRegistryAdapter,
         ApiInvokerAdapter,
     )
-    from dipeo.infrastructure.services.integrated_api.service import IntegratedApiService
+    from dipeo.infrastructure.integrations.drivers.integrated_api.service import IntegratedApiService
     
     # Create underlying service
     api_service = IntegratedApiService()

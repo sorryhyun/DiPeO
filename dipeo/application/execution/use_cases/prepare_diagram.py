@@ -12,7 +12,7 @@ from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 
 if TYPE_CHECKING:
     from dipeo.application.registry import ServiceRegistry
-    from dipeo.infrastructure.services.diagram import DiagramService
+    from dipeo.infrastructure.diagram.drivers.diagram_service import DiagramService
 
 # Compiler imported inline where used
 

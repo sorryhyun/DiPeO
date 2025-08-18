@@ -229,7 +229,7 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
     Args:
         registry: Service registry to register diagram port with
     """
-    from dipeo.infrastructure.services.diagram import DiagramService
+    from dipeo.infrastructure.diagram.drivers.diagram_service import DiagramService
     from dipeo.domain.config import Config
     from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
     

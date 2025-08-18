@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 import click
 import yaml
 from dipeo.domain.constants import FILES_DIR, PROJECTS_DIR
-from dipeo.infrastructure.services.integrated_api.manifest_schema import ProviderManifest
+from dipeo.infrastructure.integrations.drivers.integrated_api.manifest_schema import ProviderManifest
 from pydantic import ValidationError
 
 
@@ -286,7 +286,7 @@ This directory contains API integration manifests for DiPeO.
     ) -> bool:
         """Test an integration provider."""
         import asyncio
-        from dipeo.infrastructure.services.integrated_api.registry import ProviderRegistry
+        from dipeo.infrastructure.integrations.drivers.integrated_api.registry import ProviderRegistry
         
         try:
             # Initialize provider registry

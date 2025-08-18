@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from dipeo.domain.events.ports import MessageBus as MessageRouterPort
     from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-    from dipeo.infrastructure.services.diagram import DiagramService
+    from dipeo.infrastructure.diagram.drivers.diagram_service import DiagramService
     from dipeo.diagram_generated import DomainDiagram
 
     from ...registry import ServiceRegistry

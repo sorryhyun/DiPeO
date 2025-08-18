@@ -185,7 +185,7 @@ def create_upload_mutations(registry: ServiceRegistry) -> type:
         ) -> DiagramConvertResult:
             """Convert diagram between formats."""
             try:
-                from dipeo.infrastructure.services.diagram import converter_registry
+                from dipeo.infrastructure.diagram.drivers import converter_registry
                 
                 # Convert GraphQL enums to Python enum values (strings)
                 from_format_str = from_format.to_python_enum().value

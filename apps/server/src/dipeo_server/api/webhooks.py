@@ -10,7 +10,7 @@ from typing import Any, Optional
 
 from dipeo.domain.events import EventType, ExecutionEvent
 from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus
-from dipeo.infrastructure.services.integrated_api.registry import ProviderRegistry
+from dipeo.infrastructure.integrations.drivers.integrated_api.registry import ProviderRegistry
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 

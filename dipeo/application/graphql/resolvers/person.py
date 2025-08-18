@@ -15,7 +15,7 @@ from dipeo.diagram_generated.domain_models import (
 )
 from dipeo.domain.conversation import PersonManager
 from dipeo.domain.ports.apikey import APIKeyPort
-from dipeo.infrastructure.services.llm import LLMInfraService
+from dipeo.infrastructure.llm.drivers.service import LLMInfraService
 
 from ..types.inputs import PersonLLMConfigInput
 

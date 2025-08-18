@@ -12,8 +12,8 @@ import importlib.util
 from dipeo.domain.base.exceptions import ServiceError
 from dipeo.domain.integrations.ports import ApiProvider as ApiProviderPort
 from dipeo.domain.ports.apikey import APIKeyPort
-from dipeo.infrastructure.services.integrated_api.providers.base_provider import BaseApiProvider
-from dipeo.infrastructure.services.integrated_api.manifest_schema import (
+from dipeo.infrastructure.integrations.drivers.integrated_api.providers.base_provider import BaseApiProvider
+from dipeo.infrastructure.integrations.drivers.integrated_api.manifest_schema import (
     ProviderManifest,
     validate_manifest,
     AuthStrategy,
@@ -21,8 +21,8 @@ from dipeo.infrastructure.services.integrated_api.manifest_schema import (
     RateLimitAlgorithm,
     PaginationType
 )
-from dipeo.infrastructure.services.integrated_api.auth_strategies import AuthStrategyFactory
-from dipeo.infrastructure.services.integrated_api.rate_limiter import RateLimiter
+from dipeo.infrastructure.integrations.drivers.integrated_api.auth_strategies import AuthStrategyFactory
+from dipeo.infrastructure.integrations.drivers.integrated_api.rate_limiter import RateLimiter
 from dipeo.infrastructure.integrations.adapters.api_service import APIService
 
 logger = logging.getLogger(__name__)

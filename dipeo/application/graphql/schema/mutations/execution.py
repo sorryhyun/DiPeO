@@ -56,7 +56,7 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                         # Fallback: get dict and convert
                         diagram_dict = await integrated_service.get_diagram(input.diagram_id)
                         # Convert dict to DomainDiagram
-                        from dipeo.infrastructure.services.diagram import DiagramConverterService
+                        from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
                         converter = DiagramConverterService()
                         await converter.initialize()
                         import json
@@ -64,7 +64,7 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                         domain_diagram = converter.deserialize_from_storage(json_content, "native")
                 elif input.diagram_data:
                     # Direct dict provided - need to convert to DomainDiagram
-                    from dipeo.infrastructure.services.diagram import DiagramConverterService
+                    from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
                     converter = DiagramConverterService()
                     await converter.initialize()
                     

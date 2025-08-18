@@ -6,7 +6,7 @@ import time
 from typing import Optional
 from collections import defaultdict, deque
 
-from dipeo.infrastructure.services.integrated_api.manifest_schema import (
+from dipeo.infrastructure.integrations.drivers.integrated_api.manifest_schema import (
     RateLimitConfig,
     RateLimitAlgorithm
 )

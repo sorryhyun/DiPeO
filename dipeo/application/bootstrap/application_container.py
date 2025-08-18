@@ -89,7 +89,7 @@ class ApplicationContainer:
             get_global_registry()
         )
         
-        from dipeo.infrastructure.services.database.service import DBOperationsDomainService
+        from dipeo.infrastructure.shared.database.service import DBOperationsDomainService
         from dipeo.domain.integrations.validators import DataValidator
         
         file_system = self.registry.resolve(FILESYSTEM_ADAPTER)

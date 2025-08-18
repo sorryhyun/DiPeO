@@ -137,7 +137,7 @@ async def create_server_container() -> Container:
         event_bus.subscribe(EventType.EXECUTION_COMPLETED, metrics_observer)
 
     # Initialize provider registry for webhook integration
-    from dipeo.infrastructure.services.integrated_api.registry import ProviderRegistry
+    from dipeo.infrastructure.integrations.drivers.integrated_api.registry import ProviderRegistry
     provider_registry = ProviderRegistry()
     
     # Initialize the registry first
