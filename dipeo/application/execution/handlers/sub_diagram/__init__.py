@@ -183,13 +183,10 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         
         # Route to appropriate executor
         if getattr(node, 'batch', False):
-            logger.info(f"Executing SubDiagramNode {node.id} in batch mode")
             result = await self.batch_executor.execute(request)
         elif getattr(node, 'use_standard_execution', False):
-            logger.info(f"Executing SubDiagramNode {node.id} in standard mode")
             result = await self.single_executor.execute(request)
         else:
-            logger.debug(f"Executing SubDiagramNode {node.id} in lightweight mode")
             result = await self.lightweight_executor.execute(request)
         
         return result
@@ -268,8 +265,5 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 batch_info = output.value if hasattr(output, 'value') else {}
                 total = batch_info.get('total_items', 0)
                 successful = batch_info.get('successful', 0)
-                logger.debug(f"Batch sub-diagram completed: {successful}/{total} successful")
-            else:
-                logger.debug(f"Sub-diagram completed for {request.node.diagram_name or 'inline diagram'}")
-        
+
         return output

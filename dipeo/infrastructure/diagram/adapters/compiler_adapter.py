@@ -41,8 +41,7 @@ class StandardCompilerAdapter(DiagramCompiler):
         from dipeo.domain.diagram.compilation import DomainDiagramCompiler
         
         self._compiler = DomainDiagramCompiler()
-        logger.info("Using DomainDiagramCompiler")
-    
+
     def compile(self, domain_diagram: "DomainDiagram") -> "ExecutableDiagram":
         """Compile domain diagram to executable form.
         
@@ -55,10 +54,7 @@ class StandardCompilerAdapter(DiagramCompiler):
         if not self._compiler:
             raise RuntimeError("Compiler not initialized")
         
-        logger.debug(f"Compiling diagram with {len(domain_diagram.nodes)} nodes")
         result = self._compiler.compile(domain_diagram)
-        logger.debug(f"Compilation complete, execution order: {result.execution_order}")
-        
         return result
 
 
@@ -106,7 +102,6 @@ class CachingCompilerAdapter(DiagramCompiler):
         # Check cache
         if cache_key in self._cache:
             diagram_id = domain_diagram.metadata.id if domain_diagram.metadata and hasattr(domain_diagram.metadata, 'id') else "unknown"
-            logger.debug(f"Cache hit for diagram {diagram_id}")
             # Update access order for LRU
             self._access_order.remove(cache_key)
             self._access_order.append(cache_key)
@@ -114,7 +109,6 @@ class CachingCompilerAdapter(DiagramCompiler):
         
         # Compile and cache
         diagram_id = domain_diagram.metadata.id if domain_diagram.metadata and hasattr(domain_diagram.metadata, 'id') else "unknown"
-        logger.debug(f"Cache miss for diagram {diagram_id}, compiling")
         result = self.base_compiler.compile(domain_diagram)
         
         # Add to cache with LRU eviction
@@ -125,8 +119,7 @@ class CachingCompilerAdapter(DiagramCompiler):
         if len(self._cache) > self.cache_size:
             oldest_key = self._access_order.pop(0)
             del self._cache[oldest_key]
-            logger.debug(f"Evicted {oldest_key} from cache")
-        
+
         return result
 
 

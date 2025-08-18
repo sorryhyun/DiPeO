@@ -35,8 +35,7 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
         # Synchronously initialize the converter strategies
         self._converter._register_default_strategies()
         self._converter._initialized = True
-        logger.info("Created and initialized DiagramConverterService")
-    
+
     async def initialize(self):
         """Initialize the adapter and underlying converter."""
         if self._initialized:
@@ -45,8 +44,7 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
         # Converter is already initialized in _initialize_converter
         # Just mark the adapter as initialized
         self._initialized = True
-        logger.info("Initialized UnifiedSerializerAdapter")
-    
+
     def serialize_for_storage(self, diagram: "DomainDiagram", format: str) -> str:
         """Serialize a DomainDiagram to string for file storage.
         
@@ -61,8 +59,6 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
             raise RuntimeError("Converter not initialized")
         
         # Note: The converter will check its own initialization state
-        logger.debug(f"Serializing diagram {diagram.id if hasattr(diagram, 'id') else 'unknown'} to {format} format")
-        
         # Use the converter's serialize_for_storage method
         return self._converter.serialize_for_storage(diagram, format)
     
@@ -78,9 +74,7 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
         """
         if not self._converter:
             raise RuntimeError("Converter not initialized")
-        
-        logger.debug(f"Deserializing content with format hint: {format}")
-        
+
         # Let the converter auto-detect if no format specified
         return self._converter.deserialize_from_storage(content, format)
 
@@ -100,9 +94,7 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
     def _initialize_strategies(self):
         """Initialize format strategies."""
         # Use the converter service for now as strategies don't exist yet
-        # This is a placeholder implementation
-        logger.info("Format strategies not implemented yet, using placeholder")
-    
+
     def register_strategy(self, format_id: str, strategy: FormatStrategy):
         """Register a new format strategy.
         
@@ -111,8 +103,7 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
             strategy: The strategy implementation
         """
         self._strategies[format_id] = strategy
-        logger.debug(f"Registered strategy for format: {format_id}")
-    
+
     def serialize_for_storage(self, diagram: "DomainDiagram", format: str) -> str:
         """Serialize using the appropriate format strategy.
         
@@ -127,7 +118,6 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
         if not strategy:
             raise ValueError(f"No strategy registered for format: {format}")
         
-        logger.debug(f"Serializing with {format} strategy")
         return strategy.serialize_from_domain(diagram)
     
     def deserialize_from_storage(self, content: str, format: str | None = None) -> "DomainDiagram":
@@ -148,8 +138,6 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
             return strategy.deserialize_to_domain(content)
         
         # Auto-detect format
-        logger.debug("Auto-detecting format from content")
-        
         # Try to parse as JSON/YAML first to get structure
         import json
         import yaml
@@ -174,7 +162,6 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
                     if confidence > best_confidence:
                         best_confidence = confidence
                         best_strategy = strategy
-                        logger.debug(f"Format {format_id} confidence: {confidence}")
                 except Exception as e:
                     logger.debug(f"Error checking {format_id} format: {e}")
             
@@ -228,7 +215,6 @@ class CachingSerializerAdapter(DiagramStorageSerializer):
         cache_key = self._get_serialize_key(diagram, format)
         
         if cache_key in self._serialize_cache:
-            logger.debug(f"Serialization cache hit for {cache_key}")
             return self._serialize_cache[cache_key]
         
         result = self.base_serializer.serialize_for_storage(diagram, format)
@@ -247,7 +233,6 @@ class CachingSerializerAdapter(DiagramStorageSerializer):
         cache_key = self._get_deserialize_key(content, format)
         
         if cache_key in self._deserialize_cache:
-            logger.debug(f"Deserialization cache hit for {cache_key}")
             return self._deserialize_cache[cache_key]
         
         result = self.base_serializer.deserialize_from_storage(content, format)

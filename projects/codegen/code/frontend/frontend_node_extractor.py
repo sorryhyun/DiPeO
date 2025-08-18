@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Any
 from projects.codegen.code.shared.typescript_spec_parser import extract_spec_from_ast
-from dipeo.infrastructure.services.jinja_template.filters.base_filters import BaseFilters
+from dipeo.infrastructure.shared.template.drivers.jinja_template.filters.base_filters import BaseFilters
 
 
 def extract_frontend_node_data(ast_data: dict, node_type: str) -> dict:

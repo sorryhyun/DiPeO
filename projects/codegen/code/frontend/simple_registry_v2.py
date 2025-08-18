@@ -2,7 +2,7 @@
 Handles glob results directly without intermediate extraction.
 """
 from typing import Dict, Any, List
-from dipeo.infrastructure.services.jinja_template.filters.base_filters import BaseFilters
+from dipeo.infrastructure.shared.template.drivers.jinja_template.filters.base_filters import BaseFilters
 
 
 def extract_node_types_from_glob(glob_results: Dict[str, Any]) -> List[str]:
