@@ -57,7 +57,7 @@ def wire_diagram_compiler(registry: ServiceRegistry) -> None:
     """
     if is_diagram_v2_enabled("compiler"):
         # Use V2 domain port implementation
-        from dipeo.infrastructure.adapters.diagram import (
+        from dipeo.infrastructure.diagram.adapters import (
             StandardCompilerAdapter,
             CachingCompilerAdapter,
             ValidatingCompilerAdapter,
@@ -102,7 +102,7 @@ def wire_diagram_serializer(registry: ServiceRegistry) -> None:
     """
     if is_diagram_v2_enabled("serializer"):
         # Use V2 domain port implementation
-        from dipeo.infrastructure.adapters.diagram import (
+        from dipeo.infrastructure.diagram.adapters import (
             UnifiedSerializerAdapter,
             FormatStrategyAdapter,
             CachingSerializerAdapter,
@@ -144,7 +144,7 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
     """
     if is_diagram_v2_enabled("resolution"):
         # Use V2 domain port implementations
-        from dipeo.infrastructure.adapters.diagram import (
+        from dipeo.infrastructure.diagram.adapters import (
             StandardCompileTimeResolverAdapter,
             StandardRuntimeResolverAdapter,
             StandardTransformationEngineAdapter,
@@ -200,7 +200,7 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
     filesystem = registry.resolve(FILESYSTEM_ADAPTER)
     if not filesystem:
         # Fallback to creating one
-        from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+        from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
         filesystem = LocalFileSystemAdapter()
     
     # Determine base path

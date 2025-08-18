@@ -10,7 +10,7 @@ from dipeo.diagram_generated import (
     TokenUsage,
 )
 
-from ...services.llm.base import BaseLLMAdapter
+from ..drivers.base import BaseLLMAdapter
 
 logger = logging.getLogger(__name__)
 

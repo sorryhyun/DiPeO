@@ -6,7 +6,7 @@ from dipeo.application.migration.compat_imports import LLMServicePort
 from dipeo.diagram_generated import ChatResult, Message, PersonLLMConfig, TokenUsage
 from dipeo.diagram_generated.domain_models import PersonID
 from dipeo.domain.llm import LLMClient, LLMService, MemoryService
-from dipeo.infrastructure.services.llm import LLMInfraService
+from dipeo.infrastructure.llm.drivers.service import LLMInfraService
 
 
 class LLMClientAdapter(LLMClient):
@@ -17,7 +17,7 @@ class LLMClientAdapter(LLMClient):
         if not self._service:
             # Initialize with minimal dependencies for standalone use
             from dipeo.application.migration.compat_imports import APIKeyPort
-            from dipeo.infrastructure.services.keys.environment_service import EnvironmentAPIKeyService
+            from dipeo.infrastructure.shared.keys.drivers.environment_service import EnvironmentAPIKeyService
             api_key_service = EnvironmentAPIKeyService()
             self._service = LLMInfraService(api_key_service)
 
@@ -105,7 +105,7 @@ class LLMServiceAdapter(LLMService):
     def __init__(self, llm_service: LLMServicePort | None = None):
         self._service = llm_service
         if not self._service:
-            from dipeo.infrastructure.services.keys.environment_service import EnvironmentAPIKeyService
+            from dipeo.infrastructure.shared.keys.drivers.environment_service import EnvironmentAPIKeyService
             api_key_service = EnvironmentAPIKeyService()
             self._service = LLMInfraService(api_key_service)
 

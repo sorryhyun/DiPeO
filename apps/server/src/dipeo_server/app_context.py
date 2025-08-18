@@ -56,12 +56,12 @@ async def create_server_container() -> Container:
             container.registry.register(MESSAGE_ROUTER, message_router)
         else:
             # Fallback to direct creation if wiring failed
-            from dipeo.infrastructure.adapters.messaging import MessageRouter
+            from dipeo.infrastructure.execution.messaging import MessageRouter
             message_router = MessageRouter()
             container.registry.register(MESSAGE_ROUTER, message_router)
     else:
         # Use V1 direct creation
-        from dipeo.infrastructure.adapters.messaging import MessageRouter
+        from dipeo.infrastructure.execution.messaging import MessageRouter
         message_router = MessageRouter()
         container.registry.register(MESSAGE_ROUTER, message_router)
     
@@ -81,12 +81,12 @@ async def create_server_container() -> Container:
             event_bus = container.registry.resolve(ServiceKey("execution_observer"))  # ObserverToEventAdapter
         else:
             # Fallback to AsyncEventBus
-            from dipeo.infrastructure.adapters.events import AsyncEventBus
+            from dipeo.infrastructure.events.adapters import AsyncEventBus
             event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
             container.registry.register(EVENT_BUS, event_bus)
     else:
         # Use V1 direct creation
-        from dipeo.infrastructure.adapters.events import AsyncEventBus
+        from dipeo.infrastructure.events.adapters import AsyncEventBus
         event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
         container.registry.register(EVENT_BUS, event_bus)
 

@@ -27,13 +27,13 @@ if TYPE_CHECKING:
         NodeOutputRepository,
         PersonRepository,
     )
-    from dipeo.domain.storage import FileSystemPort
+    from dipeo.domain.ports.storage import FileSystemPort
     from dipeo.domain.ports.template import TemplateProcessorPort
     from dipeo.domain.events import EventEmitter
     from dipeo.application.utils import PromptBuilder
     from dipeo.application.execution.handlers.condition.evaluators.expression_evaluator import ConditionEvaluator
-    from dipeo.infrastructure.adapters.storage import (
-        BlobStoreAdapter,
+    from dipeo.infrastructure.shared.adapters import (
+        LocalBlobAdapter as BlobStoreAdapter,
         ArtifactStoreAdapter,
     )
     from dipeo.infrastructure.services.diagram import DiagramService

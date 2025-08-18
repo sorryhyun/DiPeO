@@ -10,7 +10,7 @@ from pathlib import Path
 from dipeo.infrastructure.services.integrated_api.service import IntegratedApiService
 from dipeo.infrastructure.services.integrated_api.registry import ProviderRegistry
 from dipeo.application.integrations.use_cases import APIKeyService
-from dipeo.infrastructure.adapters.http.api_service import APIService
+from dipeo.infrastructure.integrations.adapters.api_service import APIService
 from dipeo.domain.integrations.api_services import APIBusinessLogic
 
 

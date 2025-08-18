@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from dipeo.domain.integrations import ApiInvoker, ApiProvider, ApiProviderRegistry
     from dipeo.domain.llm import LLMClient, LLMService, MemoryService
     from dipeo.domain.events import DomainEventBus, MessageBus
-    from dipeo.domain.storage import (
+    from dipeo.domain.ports.storage import (
         ArtifactStorePort,
         BlobStorePort,
         FileSystemPort,

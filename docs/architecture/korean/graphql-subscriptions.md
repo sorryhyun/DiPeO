@@ -211,7 +211,7 @@ export function useYourNewSubscription(executionIdParam: ReturnType<typeof execu
 `AsyncEventBus`를 사용하여 이벤트 발행:
 ```python
 # In any handler or service
-from dipeo.infrastructure.adapters.events.legacy import AsyncEventBus, Event
+from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus, Event
 
 event_bus = AsyncEventBus.get_instance()
 await event_bus.emit(Event(
@@ -250,7 +250,7 @@ MessageRouter는 이러한 이벤트를 자동으로 감지하고 구독된 연�
 
 ```python
 # Test event emission via AsyncEventBus
-from dipeo.infrastructure.adapters.events.legacy import AsyncEventBus, Event
+from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus, Event
 from dipeo.diagram_generated.enums import EventType
 
 event_bus = AsyncEventBus.get_instance()

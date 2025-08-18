@@ -7,8 +7,8 @@ This document shows how to add support for a new programming language using the 
 ### Option 1: Using the @parser_plugin Decorator
 
 ```python
-# dipeo/infrastructure/adapters/parsers/python/parser.py
-from dipeo.infrastructure.adapters.parsers import parser_plugin
+# dipeo/infrastructure/parsers/python/parser.py
+from dipeo.infrastructure.parsers import parser_plugin
 from dipeo.domain.parsers.ports import ASTParserPort
 
 @parser_plugin("python")
@@ -36,7 +36,7 @@ class PythonParser:
 
 ```python
 # In your initialization code
-from dipeo.infrastructure.adapters.parsers import ParserRegistry
+from dipeo.infrastructure.parsers import ParserRegistry
 from my_parsers import RustParser
 
 # Register at runtime
@@ -58,7 +58,7 @@ For parsers that should be part of the core DiPeO distribution:
 
 1. **Add parser script to resource locator:**
 ```python
-# dipeo/infrastructure/adapters/parsers/resource_locator.py
+# dipeo/infrastructure/parsers/resource_locator.py
 PARSER_SCRIPTS = {
     "typescript": "typescript/ts_ast_extractor.ts",
     "python": "python/py_ast_extractor.py",  # Add this
@@ -68,7 +68,7 @@ PARSER_SCRIPTS = {
 
 2. **Update the factory:**
 ```python
-# dipeo/infrastructure/adapters/parsers/factory.py
+# dipeo/infrastructure/parsers/factory.py
 elif language == "python":
     from .python.parser import PythonParser
     return PythonParser(
@@ -118,7 +118,7 @@ result = await service.parse_file(
 
 ```python
 import pytest
-from dipeo.infrastructure.adapters.parsers import ParserRegistry
+from dipeo.infrastructure.parsers import ParserRegistry
 
 @pytest.fixture
 def mock_parser():

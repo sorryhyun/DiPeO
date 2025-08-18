@@ -19,7 +19,7 @@ def get_infrastructure_type_transformer():
         if base_dir not in sys.path:
             sys.path.append(base_dir)
         
-        from dipeo.infrastructure.adapters.parsers.typescript.type_transformer import map_ts_type_to_python
+        from dipeo.infrastructure.parsers.typescript.type_transformer import map_ts_type_to_python
         return map_ts_type_to_python
     except ImportError:
         return None

@@ -54,14 +54,23 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
         use_redis = os.getenv("DIPEO_STATE_BACKEND", "memory").lower() == "redis"
         
         if use_redis and redis_client:
-            from dipeo.infrastructure.adapters.state.redis_state_adapter import (
-                RedisStateRepository,
-                RedisStateService,
-                RedisStateCache,
+            # TODO: Redis state adapters need to be reimplemented in new architecture
+            # from dipeo.infrastructure.execution.adapters.state_adapter import (
+            #     StateRepositoryAdapter,
+            #     StateServiceAdapter,
+            #     StateCacheAdapter,
+            # )
+            # For now, fall back to in-memory adapters
+            from dipeo.infrastructure.execution.adapters.state_adapter import (
+                StateRepositoryAdapter,
+                StateServiceAdapter,
+                StateCacheAdapter,
             )
-            repository = RedisStateRepository(redis_client)
-            service = RedisStateService(repository)
-            cache = RedisStateCache(redis_client, repository)
+            # TODO: Implement Redis-backed state adapters
+            # For now, use default in-memory implementation
+            repository = StateRepositoryAdapter()
+            service = StateServiceAdapter(repository)
+            cache = StateCacheAdapter()
         else:
             # Use existing EventBasedStateStore via adapters
             from dipeo.infrastructure.state import EventBasedStateStore
@@ -150,7 +159,7 @@ def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) ->
     
     if is_v2_enabled("llm"):
         # Use V2 domain ports
-        from dipeo.infrastructure.adapters.llm.llm_adapter import (
+        from dipeo.infrastructure.llm.adapters.llm_adapter import (
             LLMClientAdapter,
             LLMServiceAdapter,
             InMemoryMemoryService,
@@ -202,7 +211,7 @@ def wire_api_services(registry: ServiceRegistry) -> None:
     
     if is_v2_enabled("api"):
         # Use V2 domain ports
-        from dipeo.infrastructure.adapters.api.api_adapter import (
+        from dipeo.infrastructure.integrations.adapters.api_adapter import (
             ApiProviderRegistryAdapter,
             ApiInvokerAdapter,
             SimpleApiProvider,
@@ -233,7 +242,7 @@ def wire_event_services(registry: ServiceRegistry) -> None:
     
     if is_v2_enabled("events"):
         # Use V2 domain events
-        from dipeo.infrastructure.adapters.events import (
+        from dipeo.infrastructure.events.adapters import (
             DomainEventBusAdapter,
             InMemoryEventBus,
             ObserverToEventAdapter,
@@ -286,7 +295,7 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
             FILE_SYSTEM,
             ARTIFACT_STORE,
         )
-        from dipeo.infrastructure.adapters.storage import (
+        from dipeo.infrastructure.shared.adapters import (
             LocalBlobAdapter,
             LocalFileSystemAdapter,
             ArtifactStoreAdapter,
@@ -296,7 +305,7 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
         storage_backend = os.getenv("DIPEO_STORAGE_BACKEND", "local").lower()
         
         if storage_backend == "s3":
-            from dipeo.infrastructure.adapters.storage import S3Adapter
+            from dipeo.infrastructure.shared.adapters import S3Adapter
             bucket = os.getenv("DIPEO_S3_BUCKET", "dipeo-storage")
             region = os.getenv("DIPEO_S3_REGION", "us-east-1")
             blob_store = S3Adapter(bucket=bucket, region=region)
@@ -317,7 +326,7 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
         registry.register(ARTIFACT_STORE, artifact_store)
     else:
         # Use V1 core ports (existing behavior)
-        from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+        from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
         filesystem = LocalFileSystemAdapter(base_path=Path.cwd())
         registry.register("filesystem_adapter", filesystem)
 

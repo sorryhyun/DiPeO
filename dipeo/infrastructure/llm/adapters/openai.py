@@ -15,7 +15,7 @@ from dipeo.diagram_generated import (
     WebSearchResult,
 )
 
-from ...services.llm.base import BaseLLMAdapter
+from ..drivers.base import BaseLLMAdapter
 
 logger = logging.getLogger(__name__)
 

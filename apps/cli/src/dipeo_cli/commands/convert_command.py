@@ -43,7 +43,7 @@ class ConvertCommand:
         try:
             # Import required modules
             from dipeo.infrastructure.services.diagram import DiagramService
-            from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+            from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
             from dipeo.domain.config import Config
 
             # Create diagram service

@@ -10,7 +10,7 @@ from ollama import ResponseError
 
 from dipeo.diagram_generated import ChatResult, LLMRequestOptions, TokenUsage
 
-from ...services.llm.base import BaseLLMAdapter
+from ..drivers.base import BaseLLMAdapter
 
 logger = logging.getLogger(__name__)
 

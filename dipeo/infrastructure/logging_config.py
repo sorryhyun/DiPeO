@@ -137,7 +137,7 @@ def suppress_noisy_loggers(log_level: str = "INFO"):
             "dipeo.application.execution.observers.unified_event_observer",
             "dipeo.infrastructure.events.observer_adapter",
             "dipeo.infrastructure.utils.single_flight_cache",
-            "dipeo.infrastructure.adapters.llm.openai",
+            "dipeo.infrastructure.llm.adapters.openai",
             "dipeo.application.execution.states.node_readiness_checker",
             "dipeo.application.execution.handlers.person_job.single_executor",
             "dipeo.application.execution.handlers.condition.evaluators",

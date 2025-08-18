@@ -7,7 +7,7 @@ from typing import Optional, TYPE_CHECKING
 from dipeo.application.integrations.use_cases import APIKeyService as APIKeyDomainService
 from dipeo.domain.base import BaseService
 from dipeo.domain.diagram.models import ExecutableDiagram
-from dipeo.domain.validators import DiagramValidator
+from dipeo.domain.diagram.validation.diagram_validator import DiagramValidator
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 
 if TYPE_CHECKING:
@@ -111,7 +111,7 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         
         # Fallback to creating compiler adapter directly if not in registry
         if not compiler:
-            from dipeo.infrastructure.adapters.diagram import StandardCompilerAdapter
+            from dipeo.infrastructure.diagram.adapters import StandardCompilerAdapter
             compiler = StandardCompilerAdapter(use_interface_based=True)
         
         executable_diagram = compiler.compile(domain_diagram)

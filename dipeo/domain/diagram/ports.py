@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 if TYPE_CHECKING:
     from dipeo.diagram_generated import DomainDiagram, DiagramFormat
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-    from dipeo.domain.storage import DiagramInfo
+    from dipeo.domain.ports.storage import DiagramInfo
 
 
 # ============================================================================

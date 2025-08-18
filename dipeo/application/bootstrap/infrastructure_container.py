@@ -65,7 +65,7 @@ class InfrastructureContainer:
             self._setup_api_v2()
 
     def _setup_storage_adapters(self):
-        from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+        from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
 
         filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.base_dir))
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
@@ -113,7 +113,7 @@ class InfrastructureContainer:
             None
         )
 
-        from dipeo.infrastructure.adapters.storage import LocalBlobAdapter
+        from dipeo.infrastructure.shared.adapters import LocalBlobAdapter
         self.registry.register(
             BLOB_STORE,
             LocalBlobAdapter(
@@ -167,7 +167,7 @@ class InfrastructureContainer:
         wire_storage_services(self.registry)
         
         # Also keep filesystem adapter for backward compatibility
-        from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+        from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
         filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.base_dir))
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
     

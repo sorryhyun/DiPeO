@@ -14,7 +14,7 @@ from jinja2 import Template, StrictUndefined
 # Import type transformer from infrastructure
 import sys
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
-from dipeo.infrastructure.adapters.parsers.typescript.type_transformer import map_ts_type_to_python
+from dipeo.infrastructure.parsers.typescript.type_transformer import map_ts_type_to_python
 
 
 # ============================================================================

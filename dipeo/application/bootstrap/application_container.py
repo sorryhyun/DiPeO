@@ -67,7 +67,7 @@ class ApplicationContainer:
 
     def _setup_app_services(self):
         # Register domain services
-        from dipeo.domain.validators import DiagramValidator
+        from dipeo.domain.diagram.validation.diagram_validator import DiagramValidator
         self.registry.register(
             DIAGRAM_VALIDATOR,
             lambda: DiagramValidator(
@@ -90,11 +90,11 @@ class ApplicationContainer:
         )
         
         from dipeo.infrastructure.services.database.service import DBOperationsDomainService
-        from dipeo.domain.validators import DataValidator
+        from dipeo.domain.integrations.validators import DataValidator
         
         file_system = self.registry.resolve(FILESYSTEM_ADAPTER)
         if not file_system:
-            from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+            from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
             file_system = LocalFileSystemAdapter()
         
         self.registry.register(

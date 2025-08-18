@@ -157,7 +157,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
     async def _compile_diagram_fallback(self, diagram_data: Any) -> "ExecutableDiagram":
         """Fallback diagram compilation using adapter."""
         from dipeo.diagram_generated import DomainDiagram
-        from dipeo.infrastructure.adapters.diagram import StandardCompilerAdapter
+        from dipeo.infrastructure.diagram.adapters import StandardCompilerAdapter
         
         # Check if already a DomainDiagram
         if isinstance(diagram_data, DomainDiagram):
