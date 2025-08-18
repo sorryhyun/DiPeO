@@ -110,14 +110,14 @@ async def create_server_container() -> Container:
         container.registry.register(STATE_STORE, state_store)
     else:
         # Use V1 direct creation
-        from dipeo.infrastructure.state import EventBasedStateStore
+        from dipeo.infrastructure.execution.state import EventBasedStateStore
         
         state_store = EventBasedStateStore()
         await state_store.initialize()
         container.registry.register(STATE_STORE, state_store)
 
     # Create state manager as separate service
-    from dipeo.infrastructure.state import AsyncStateManager
+    from dipeo.infrastructure.execution.state import AsyncStateManager
 
     state_manager = AsyncStateManager(state_store)
 
@@ -130,7 +130,7 @@ async def create_server_container() -> Container:
         event_bus.subscribe(EventType.EXECUTION_COMPLETED, state_manager)
 
     # Create streaming monitor for real-time UI updates
-    from dipeo.infrastructure.monitoring import StreamingMonitor
+    from dipeo.infrastructure.execution.monitoring import StreamingMonitor
     streaming_monitor = StreamingMonitor(message_router, queue_size=settings.monitoring_queue_size)
 
     # Subscribe streaming monitor to all events (works with both V1 and V2)

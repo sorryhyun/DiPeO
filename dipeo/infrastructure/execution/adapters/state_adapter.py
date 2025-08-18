@@ -15,7 +15,7 @@ from dipeo.domain.execution.state import (
     ExecutionStateRepository,
     ExecutionStateService,
 )
-from dipeo.infrastructure.state import EventBasedStateStore
+from dipeo.infrastructure.execution.state import EventBasedStateStore
 
 
 class StateRepositoryAdapter(ExecutionStateRepository):

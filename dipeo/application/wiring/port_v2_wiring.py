@@ -73,7 +73,7 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
             cache = StateCacheAdapter()
         else:
             # Use existing EventBasedStateStore via adapters
-            from dipeo.infrastructure.state import EventBasedStateStore
+            from dipeo.infrastructure.execution.state import EventBasedStateStore
             store = EventBasedStateStore()
             repository = StateRepositoryAdapter(store)
             service = StateServiceAdapter(repository)
@@ -93,7 +93,7 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
     else:
         logger.info("📦 Using V1 state services (core/ports)")
         # Use V1 core ports (existing behavior)
-        from dipeo.infrastructure.state import EventBasedStateStore
+        from dipeo.infrastructure.execution.state import EventBasedStateStore
         store = EventBasedStateStore()
         
         # Add metrics tracking for V1

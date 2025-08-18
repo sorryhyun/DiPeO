@@ -210,7 +210,7 @@ class InfrastructureContainer:
     
     def _setup_repositories(self):
         """Setup repository implementations (now in infrastructure layer)."""
-        from dipeo.infrastructure.conversation.adapters import (
+        from dipeo.infrastructure.repositories.conversation import (
             InMemoryConversationRepository,
             InMemoryPersonRepository
         )

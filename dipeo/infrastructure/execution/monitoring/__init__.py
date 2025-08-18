@@ -1,4 +1,4 @@
-"""Monitoring infrastructure for real-time execution tracking."""
+"""Execution monitoring infrastructure."""
 
 from .streaming_monitor import StreamingMonitor
 

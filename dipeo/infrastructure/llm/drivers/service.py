@@ -18,7 +18,7 @@ from dipeo.domain.constants import VALID_LLM_SERVICES, normalize_service_name
 from dipeo.application.migration.compat_imports import LLMServicePort, APIKeyPort
 from dipeo.domain.llm import LLMDomainService
 from dipeo.infrastructure.config import get_settings
-from dipeo.infrastructure.utils.single_flight_cache import SingleFlightCache
+from dipeo.infrastructure.shared.drivers.utils import SingleFlightCache
 from dipeo.diagram_generated import ChatResult, PersonLLMConfig, Message
 from dipeo.diagram_generated.domain_models import PersonID
 

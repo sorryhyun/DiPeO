@@ -7,8 +7,8 @@ from dipeo.application.registry.service_registry import ServiceRegistry, Service
 
 if TYPE_CHECKING:
     from dipeo.domain.conversation import PersonManager, ConversationManager
-    from dipeo.infrastructure.conversation.adapters.in_memory import InMemoryConversationRepository
-    from dipeo.infrastructure.conversation.adapters.in_memory_person import InMemoryPersonRepository
+    from dipeo.infrastructure.repositories.conversation import InMemoryConversationRepository
+    from dipeo.infrastructure.repositories.conversation import InMemoryPersonRepository
     from dipeo.application.conversation.use_cases import ManageConversationUseCase, UpdateMemoryUseCase
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def wire_conversation(registry: ServiceRegistry) -> None:
     logger.info("🔧 Wiring conversation bounded context")
     
     # Wire conversation repository (from infrastructure)
-    from dipeo.infrastructure.conversation.adapters.in_memory import InMemoryConversationRepository
+    from dipeo.infrastructure.repositories.conversation import InMemoryConversationRepository
     
     def create_conversation_repository() -> InMemoryConversationRepository:
         """Factory for conversation repository."""
@@ -43,7 +43,7 @@ def wire_conversation(registry: ServiceRegistry) -> None:
     registry.register(CONVERSATION_REPOSITORY_KEY, create_conversation_repository)
     
     # Wire person repository (from infrastructure)
-    from dipeo.infrastructure.conversation.adapters.in_memory_person import InMemoryPersonRepository
+    from dipeo.infrastructure.repositories.conversation import InMemoryPersonRepository
     
     def create_person_repository() -> InMemoryPersonRepository:
         """Factory for person repository."""
