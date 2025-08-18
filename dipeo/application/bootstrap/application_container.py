@@ -90,41 +90,16 @@ class ApplicationContainer:
         )
 
 
-        # Setup repositories
-        from dipeo.application.repositories import (
-            # InMemoryAPIKeyRepository,
-            InMemoryConversationRepository,
-            # InMemoryDiagramRepository,
-            # InMemoryExecutionRepository,
-            # InMemoryNodeOutputRepository,
-            InMemoryPersonRepository,
-        )
+        # Setup repositories - now handled by InfrastructureContainer
         from dipeo.application.services.execution_orchestrator import ExecutionOrchestrator
-        
-        # Create repository instances
-        # api_key_repository = InMemoryAPIKeyRepository()
-        conversation_repository = InMemoryConversationRepository()
-        # diagram_repository = InMemoryDiagramRepository()
-        # execution_repository = InMemoryExecutionRepository()
-        # node_output_repository = InMemoryNodeOutputRepository()
-        person_repository = InMemoryPersonRepository()
-        
-        # Register repositories with service registry for access
         from dipeo.application.registry.keys import (
-            API_KEY_REPOSITORY,
             CONVERSATION_REPOSITORY,
-            DIAGRAM_REPOSITORY,
-            EXECUTION_REPOSITORY,
-            NODE_OUTPUT_REPOSITORY,
             PERSON_REPOSITORY,
         )
         
-        # self.registry.register(API_KEY_REPOSITORY, api_key_repository)
-        self.registry.register(CONVERSATION_REPOSITORY, conversation_repository)
-        # self.registry.register(DIAGRAM_REPOSITORY, diagram_repository)
-        # self.registry.register(EXECUTION_REPOSITORY, execution_repository)
-        # self.registry.register(NODE_OUTPUT_REPOSITORY, node_output_repository)
-        self.registry.register(PERSON_REPOSITORY, person_repository)
+        # Get repositories from registry (registered by InfrastructureContainer)
+        conversation_repository = self.registry.resolve(CONVERSATION_REPOSITORY)
+        person_repository = self.registry.resolve(PERSON_REPOSITORY)
         
         # Create orchestrator that coordinates between repositories
         orchestrator = ExecutionOrchestrator(

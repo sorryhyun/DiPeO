@@ -10,6 +10,7 @@ from dipeo.application.registry.keys import (
     ARTIFACT_STORE,
     AST_PARSER,
     BLOB_STORE,
+    CONVERSATION_REPOSITORY,
     DIAGRAM_VALIDATOR,
     DOMAIN_SERVICE_REGISTRY,
     EXECUTION_SERVICE,
@@ -19,6 +20,7 @@ from dipeo.application.registry.keys import (
     MESSAGE_ROUTER,
     NODE_REGISTRY,
     PERSON_MANAGER,
+    PERSON_REPOSITORY,
     PROMPT_BUILDER,
     STATE_STORE,
     TEMPLATE_PROCESSOR,
@@ -54,6 +56,9 @@ class InfrastructureContainer:
             
         # Setup API and other infrastructure services
         self._setup_infrastructure_services()
+        
+        # Setup repositories
+        self._setup_repositories()
         
         # Override with V2 API if enabled
         if is_v2_enabled("api"):
@@ -202,3 +207,18 @@ class InfrastructureContainer:
         if self.registry.has(API_INVOKER):
             api_invoker = self.registry.resolve(API_INVOKER)
             self.registry.register(INTEGRATED_API_SERVICE, api_invoker)
+    
+    def _setup_repositories(self):
+        """Setup repository implementations (now in infrastructure layer)."""
+        from dipeo.infrastructure.conversation.adapters import (
+            InMemoryConversationRepository,
+            InMemoryPersonRepository
+        )
+        
+        # Create and register repository instances
+        conversation_repository = InMemoryConversationRepository()
+        person_repository = InMemoryPersonRepository()
+        
+        # Register repositories for application layer to use
+        self.registry.register(CONVERSATION_REPOSITORY, conversation_repository)
+        self.registry.register(PERSON_REPOSITORY, person_repository)

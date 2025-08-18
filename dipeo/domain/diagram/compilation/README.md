@@ -534,6 +534,7 @@ def test_full_compilation():
 
 **Internal:**
 - `dipeo.domain.diagram.models` - Domain diagram models
+- `dipeo.domain.diagram.resolution` - Input resolution system (moved from domain root)
 - `dipeo.diagram_generated` - Generated node types
 - `dipeo.domain.execution` - Execution rules
 
