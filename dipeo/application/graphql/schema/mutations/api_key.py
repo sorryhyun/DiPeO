@@ -6,7 +6,7 @@ import strawberry
 
 from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry.keys import API_KEY_SERVICE, LLM_SERVICE
-from dipeo.application.migration.compat_imports import APIKeyPort
+from dipeo.domain.ports.apikey import APIKeyPort
 from dipeo.diagram_generated import DomainApiKey
 from dipeo.diagram_generated.domain_models import ApiKeyID
 

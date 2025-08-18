@@ -41,18 +41,11 @@ class InfrastructureContainer:
         self._setup_adapters()
 
     def _setup_adapters(self):
-        # Check if V2 ports are enabled and use appropriate wiring
-        from dipeo.application.wiring.port_v2_wiring import is_v2_enabled
-        
-        if is_v2_enabled("storage"):
-            self._setup_storage_v2()
-        else:
-            self._setup_storage_adapters()
+        # Setup storage
+        self._setup_storage_v2()
             
-        if is_v2_enabled("llm"):
-            self._setup_llm_v2()
-        else:
-            self._setup_llm_adapter()
+        # Setup LLM
+        self._setup_llm_v2()
             
         # Setup API and other infrastructure services
         self._setup_infrastructure_services()
@@ -60,9 +53,8 @@ class InfrastructureContainer:
         # Setup repositories
         self._setup_repositories()
         
-        # Override with V2 API if enabled
-        if is_v2_enabled("api"):
-            self._setup_api_v2()
+        # Setup API
+        self._setup_api_v2()
 
     def _setup_storage_adapters(self):
         from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
@@ -152,8 +144,8 @@ class InfrastructureContainer:
         )
     
     def _setup_storage_v2(self):
-        """Setup storage services using V2 domain ports."""
-        from dipeo.application.wiring.port_v2_wiring import wire_storage_services
+        """Setup storage services using domain ports."""
+        from dipeo.application.bootstrap.wiring import wire_storage_services
         
         # First setup API key service (needed by other services)
         from dipeo.application.integrations.use_cases import APIKeyService
@@ -172,8 +164,8 @@ class InfrastructureContainer:
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
     
     def _setup_llm_v2(self):
-        """Setup LLM services using V2 domain ports."""
-        from dipeo.application.wiring.port_v2_wiring import wire_llm_services
+        """Setup LLM services using domain ports."""
+        from dipeo.application.bootstrap.wiring import wire_llm_services
         
         # Ensure API key service exists
         if not self.registry.has(API_KEY_SERVICE):
@@ -196,8 +188,8 @@ class InfrastructureContainer:
             self.registry.register(LLM_SERVICE, llm_service)
     
     def _setup_api_v2(self):
-        """Setup API services using V2 domain ports."""
-        from dipeo.application.wiring.port_v2_wiring import wire_api_services
+        """Setup API services using domain ports."""
+        from dipeo.application.bootstrap.wiring import wire_api_services
         
         # Wire V2 API services
         wire_api_services(self.registry)

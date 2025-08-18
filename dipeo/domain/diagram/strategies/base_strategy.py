@@ -8,7 +8,7 @@ from typing import Any
 
 from dipeo.diagram_generated import DomainDiagram
 
-from dipeo.application.migration.compat_imports import FormatStrategy
+from dipeo.domain.diagram.ports import FormatStrategy
 from dipeo.domain.diagram.utils import (
     extract_common_arrows,
     PersonExtractor,

@@ -7,7 +7,7 @@ from collections import defaultdict
 from typing import Any
 
 from dipeo.domain.events import EventConsumer, EventType, ExecutionEvent
-from dipeo.application.migration.compat_imports import StateStorePort
+from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
 from dipeo.diagram_generated import Status
 from .execution_state_cache import ExecutionStateCache
 

@@ -4,7 +4,7 @@ import os
 
 from dipeo.domain.base import APIKeyError, BaseService, ValidationError
 from dipeo.domain.constants import VALID_LLM_SERVICES, normalize_service_name
-from dipeo.application.migration.compat_imports import APIKeyPort
+from dipeo.domain.ports.apikey import APIKeyPort
 
 
 class EnvironmentAPIKeyService(BaseService, APIKeyPort):

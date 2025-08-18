@@ -20,7 +20,7 @@ from dipeo.application.registry.registry_tokens import (
     API_PROVIDER_REGISTRY,
     API_INVOKER,
 )
-from dipeo.application.wiring.port_v2_wiring import (
+from dipeo.application.bootstrap.wiring import (
     wire_all_v2_services,
     get_feature_flag_status,
 )

@@ -9,7 +9,8 @@ import strawberry
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_SERVICE, STATE_STORE, MESSAGE_ROUTER
 from dipeo.application.execution import ExecuteDiagramUseCase
-from dipeo.application.migration.compat_imports import StateStorePort, MessageRouterPort
+from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
+from dipeo.domain.events.ports import MessageBus as MessageRouterPort
 from dipeo.diagram_generated.enums import Status, EventType
 
 from ...types.inputs import (

@@ -5,7 +5,7 @@ from abc import abstractmethod
 from typing import Any, Optional
 
 from dipeo.domain.base import BaseService, ServiceError
-from dipeo.application.migration.compat_imports import ApiProviderPort
+from dipeo.domain.integrations.ports import ApiProvider as ApiProviderPort
 
 logger = logging.getLogger(__name__)
 

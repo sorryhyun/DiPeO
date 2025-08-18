@@ -4,7 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from dipeo.domain.events import EventConsumer, EventType, ExecutionEvent
-from dipeo.application.migration.compat_imports import ExecutionObserver
+from dipeo.application.execution.observer_protocol import ExecutionObserver
 from dipeo.diagram_generated.enums import Status
 
 from .async_event_bus import AsyncEventBus

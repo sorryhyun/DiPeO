@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 from jinja2 import Template
 
-from dipeo.application.migration.compat_imports import APIKeyPort
+from dipeo.domain.ports.apikey import APIKeyPort
 from dipeo.domain.base.exceptions import ServiceError
 from dipeo.infrastructure.services.integrated_api.manifest_schema import AuthConfig, AuthStrategy
 

@@ -25,7 +25,7 @@ from dipeo.infrastructure.events.adapters.legacy import NullEventBus
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceRegistry
-    from dipeo.application.migration.compat_imports import ExecutionObserver
+    from dipeo.application.execution.observer_protocol import ExecutionObserver
 
 logger = logging.getLogger(__name__)
 

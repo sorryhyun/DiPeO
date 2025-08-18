@@ -36,85 +36,57 @@ async def create_server_container() -> Container:
         INTEGRATED_API_SERVICE,
     )
     from dipeo.infrastructure.config import get_settings
-    from dipeo.application.wiring.port_v2_wiring import is_v2_enabled
+    from dipeo.application.bootstrap.wiring import wire_messaging_services
     
     settings = get_settings()
     
-    # Check if V2 messaging is enabled
-    if is_v2_enabled("messaging"):
-        # Use V2 domain ports wiring
-        from dipeo.application.wiring.port_v2_wiring import wire_messaging_services
-        from dipeo.application.registry.registry_tokens import MESSAGE_BUS
-        
-        # Wire V2 messaging services (includes MessageBus and optionally DomainEventBus)
-        wire_messaging_services(container.registry)
-        
-        # Get the message bus from V2 wiring
-        if container.registry.has(MESSAGE_BUS):
-            message_router = container.registry.resolve(MESSAGE_BUS)
-            # Also register as MESSAGE_ROUTER for backward compatibility
-            container.registry.register(MESSAGE_ROUTER, message_router)
-        else:
-            # Fallback to direct creation if wiring failed
-            from dipeo.infrastructure.execution.messaging import MessageRouter
-            message_router = MessageRouter()
-            container.registry.register(MESSAGE_ROUTER, message_router)
+    # Wire messaging services
+    wire_messaging_services(container.registry)
+    from dipeo.application.registry.registry_tokens import MESSAGE_BUS
+    
+    # Get the message bus from wiring
+    if container.registry.has(MESSAGE_BUS):
+        message_router = container.registry.resolve(MESSAGE_BUS)
+        # Also register as MESSAGE_ROUTER for backward compatibility
+        container.registry.register(MESSAGE_ROUTER, message_router)
     else:
-        # Use V1 direct creation
+        # Fallback to direct creation if wiring failed
         from dipeo.infrastructure.execution.messaging import MessageRouter
         message_router = MessageRouter()
         container.registry.register(MESSAGE_ROUTER, message_router)
     
-    # Check if V2 events are enabled
-    if is_v2_enabled("events"):
-        # Use V2 domain events wiring
-        from dipeo.application.wiring.port_v2_wiring import wire_event_services
-        from dipeo.application.registry.registry_tokens import DOMAIN_EVENT_BUS
-        
-        # Wire V2 event services
-        wire_event_services(container.registry)
-        
-        # Get the domain event bus from V2 wiring
-        if container.registry.has(DOMAIN_EVENT_BUS):
-            # V2 uses domain event bus through adapters
-            from dipeo.application.registry import ServiceKey
-            event_bus = container.registry.resolve(ServiceKey("execution_observer"))  # ObserverToEventAdapter
-        else:
-            # Fallback to AsyncEventBus
-            from dipeo.infrastructure.events.adapters import AsyncEventBus
-            event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
-            container.registry.register(EVENT_BUS, event_bus)
+    # Wire event services
+    from dipeo.application.bootstrap.wiring import wire_event_services
+    from dipeo.application.registry.registry_tokens import DOMAIN_EVENT_BUS
+    
+    wire_event_services(container.registry)
+    
+    # Get the domain event bus from wiring
+    if container.registry.has(DOMAIN_EVENT_BUS):
+        # Uses domain event bus through adapters
+        from dipeo.application.registry import ServiceKey
+        event_bus = container.registry.resolve(ServiceKey("execution_observer"))  # ObserverToEventAdapter
     else:
-        # Use V1 direct creation
+        # Fallback to AsyncEventBus
         from dipeo.infrastructure.events.adapters import AsyncEventBus
         event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
         container.registry.register(EVENT_BUS, event_bus)
 
-    # Check if V2 state is enabled
-    if is_v2_enabled("state"):
-        # Use V2 domain ports wiring
-        from dipeo.application.wiring.port_v2_wiring import wire_state_services
-        from dipeo.application.registry.registry_tokens import STATE_REPOSITORY, STATE_SERVICE, STATE_CACHE
-        
-        # Wire V2 state services (includes repository, service, and cache)
-        wire_state_services(container.registry, redis_client=None)  # No Redis for now
-        
-        # Get the state repository for state manager
-        state_store = container.registry.resolve(STATE_REPOSITORY)
-        
-        # Initialize if needed
-        if hasattr(state_store, 'initialize'):
-            await state_store.initialize()
-            
-        # Also register as STATE_STORE for backward compatibility
-        container.registry.register(STATE_STORE, state_store)
-    else:
-        # Use V1 direct creation
-        from dipeo.infrastructure.execution.state import EventBasedStateStore
-        
-        state_store = EventBasedStateStore()
+    # Wire state services
+    from dipeo.application.bootstrap.wiring import wire_state_services
+    from dipeo.application.registry.registry_tokens import STATE_REPOSITORY, STATE_SERVICE, STATE_CACHE
+    
+    wire_state_services(container.registry, redis_client=None)  # No Redis for now
+    
+    # Get the state repository for state manager
+    state_store = container.registry.resolve(STATE_REPOSITORY)
+    
+    # Initialize if needed
+    if hasattr(state_store, 'initialize'):
         await state_store.initialize()
-        container.registry.register(STATE_STORE, state_store)
+        
+    # Also register as STATE_STORE for backward compatibility
+    container.registry.register(STATE_STORE, state_store)
 
     # Create state manager as separate service
     from dipeo.infrastructure.execution.state import AsyncStateManager
@@ -145,9 +117,9 @@ async def create_server_container() -> Container:
     # Create metrics observer for performance analysis
     from dipeo.application.execution.observers import MetricsObserver
     
-    # For V2, we might need to get the actual event bus from the registry
+    # Get the actual event bus from the registry if available
     actual_event_bus = event_bus
-    if is_v2_enabled("events") and container.registry.has(EVENT_BUS):
+    if container.registry.has(EVENT_BUS):
         # Try to get the actual AsyncEventBus if it's registered
         try:
             actual_event_bus = container.registry.resolve(EVENT_BUS)

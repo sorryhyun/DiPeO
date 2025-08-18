@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from dipeo.domain.events import EventConsumer, EventType, ExecutionEvent
-from dipeo.application.migration.compat_imports import MessageRouterPort
+from dipeo.domain.events.ports import MessageBus as MessageRouterPort
 
 logger = logging.getLogger(__name__)
 

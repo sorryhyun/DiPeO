@@ -4,7 +4,8 @@ import logging
 from typing import Dict
 
 from dipeo.domain.base import BaseService
-from dipeo.application.migration.compat_imports import DiagramStorageSerializer, FormatStrategy
+from dipeo.domain.diagram.ports import DiagramStorageSerializer
+from dipeo.domain.diagram.ports import FormatStrategy
 from dipeo.domain.diagram.strategies import (
     LightYamlStrategy,
     NativeJsonStrategy,

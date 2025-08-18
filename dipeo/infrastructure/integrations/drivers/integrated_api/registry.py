@@ -9,7 +9,7 @@ import importlib.metadata
 import yaml
 import json
 
-from dipeo.application.migration.compat_imports import ApiProviderPort
+from dipeo.domain.integrations.ports import ApiProvider as ApiProviderPort
 from dipeo.domain.base.exceptions import ServiceError
 
 logger = logging.getLogger(__name__)

@@ -10,7 +10,8 @@ import jsonpointer
 import importlib.util
 
 from dipeo.domain.base.exceptions import ServiceError
-from dipeo.application.migration.compat_imports import ApiProviderPort, APIKeyPort
+from dipeo.domain.integrations.ports import ApiProvider as ApiProviderPort
+from dipeo.domain.ports.apikey import APIKeyPort
 from dipeo.infrastructure.services.integrated_api.providers.base_provider import BaseApiProvider
 from dipeo.infrastructure.services.integrated_api.manifest_schema import (
     ProviderManifest,

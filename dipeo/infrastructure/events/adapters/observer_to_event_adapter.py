@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from dipeo.application.migration.compat_imports import ExecutionObserver
+from dipeo.application.execution.observer_protocol import ExecutionObserver
 from dipeo.diagram_generated import NodeState
 from dipeo.domain.events import (
     DomainEventBus,

@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from dipeo.application.migration.compat_imports import MessageRouterPort
+from dipeo.domain.events.ports import MessageBus as MessageRouterPort
 from dipeo.infrastructure.config import get_settings
 
 logger = logging.getLogger(__name__)

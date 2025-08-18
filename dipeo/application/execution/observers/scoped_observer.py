@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List
 import logging
 
-from dipeo.application.migration.compat_imports import ExecutionObserver
+from dipeo.application.execution.observer_protocol import ExecutionObserver
 from dipeo.diagram_generated import NodeState
 
 logger = logging.getLogger(__name__)

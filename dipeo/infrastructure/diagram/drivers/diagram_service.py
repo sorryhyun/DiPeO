@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from dipeo.domain.base import BaseService, StorageError
-from dipeo.application.migration.compat_imports import DiagramPort
+from dipeo.domain.diagram.ports import DiagramPort
 from dipeo.domain.ports.storage import DiagramInfo, FileSystemPort
 from dipeo.domain.diagram.services import DiagramFormatDetector
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram

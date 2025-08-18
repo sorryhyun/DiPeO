@@ -6,7 +6,7 @@ from typing import Optional, List
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import STATE_STORE
 from dipeo.diagram_generated.domain_models import ExecutionID, ExecutionState
-from dipeo.application.migration.compat_imports import StateStorePort
+from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
 
 from ..types.inputs import ExecutionFilterInput
 

@@ -68,7 +68,7 @@ except ImportError as e:
 
 # For convenience, re-export commonly used items from diagram ports
 try:
-    from .application.migration.compat_imports import DiagramConverter, FormatStrategy
+    from .domain.diagram.ports import DiagramStorageSerializer as DiagramConverter, FormatStrategy
     
     _imported_modules.extend([
         "DiagramConverter", "FormatStrategy"

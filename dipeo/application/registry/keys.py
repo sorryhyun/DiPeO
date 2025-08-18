@@ -7,17 +7,15 @@ from .service_registry import ServiceKey
 
 # Type imports for service keys
 if TYPE_CHECKING:
-    from dipeo.application.compat_imports import (
-        LLMServicePort,
-        StateStorePort,
-        FileServicePort,
-        MessageRouterPort,
-        DiagramConverter,
-        ExecutionObserver,
-        APIKeyPort,
-        DiagramPort,
-        IntegratedApiServicePort,
-    )
+    from dipeo.domain.llm.ports import LLMService as LLMServicePort
+    from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
+    from dipeo.domain.ports.storage import BlobStorePort as FileServicePort
+    from dipeo.domain.events.ports import MessageBus as MessageRouterPort
+    from dipeo.application.execution.observer_protocol import ExecutionObserver
+    from dipeo.domain.ports.apikey import APIKeyPort
+    from dipeo.domain.diagram.ports import DiagramPort
+    from dipeo.domain.integrations.ports import ApiInvoker as IntegratedApiServicePort
+    from dipeo.domain.diagram.ports import DiagramStorageSerializer as DiagramConverter
     from dipeo.domain.ports.parsers import ASTParserPort
     from dipeo.domain.ports import (
         APIKeyRepository,

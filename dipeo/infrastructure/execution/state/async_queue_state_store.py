@@ -17,7 +17,7 @@ import aiosqlite
 
 from dipeo.domain.constants import STATE_DB_PATH
 from dipeo.domain.execution.envelope import serialize_protocol
-from dipeo.application.migration.compat_imports import StateStorePort
+from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
 from dipeo.diagram_generated import (
     DiagramID,
     ExecutionID,
