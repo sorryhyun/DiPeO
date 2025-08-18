@@ -9,7 +9,7 @@ This document shows how to add support for a new programming language using the 
 ```python
 # dipeo/infrastructure/adapters/parsers/python/parser.py
 from dipeo.infrastructure.adapters.parsers import parser_plugin
-from dipeo.core.ports.ast_parser_port import ASTParserPort
+from dipeo.domain.parsers.ports import ASTParserPort
 
 @parser_plugin("python")
 class PythonParser:

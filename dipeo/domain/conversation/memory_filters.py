@@ -1,19 +1,8 @@
 """Memory filter system for managing different views of the global conversation."""
 
-from enum import Enum
 from typing import Protocol
 
-from dipeo.diagram_generated import Message, PersonID
-
-
-class MemoryView(Enum):
-    
-    ALL_INVOLVED = "all_involved"
-    SENT_BY_ME = "sent_by_me"
-    SENT_TO_ME = "sent_to_me"
-    SYSTEM_AND_ME = "system_and_me"
-    CONVERSATION_PAIRS = "conversation_pairs"
-    ALL_MESSAGES = "all_messages"
+from dipeo.diagram_generated import Message, PersonID, MemoryView
 
 
 class MemoryFilter(Protocol):

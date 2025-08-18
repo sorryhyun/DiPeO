@@ -236,7 +236,7 @@ The ExecutionUpdates subscription demonstrates the complete implementation patte
 ### Backend Testing
 ```python
 # Test event emission via AsyncEventBus
-from dipeo.core.events import AsyncEventBus, Event
+from dipeo.infrastructure.adapters.events.legacy import AsyncEventBus, Event
 from dipeo.diagram_generated.enums import EventType
 
 event_bus = AsyncEventBus.get_instance()

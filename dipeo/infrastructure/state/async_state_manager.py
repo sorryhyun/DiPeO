@@ -140,7 +140,7 @@ class AsyncStateManager(EventConsumer):
         for event in events_by_type.get(EventType.NODE_COMPLETED, []):
             await self._handle_node_completed(execution_id, event)
         
-        for event in events_by_type.get(EventType.NODE_FAILED, []):
+        for event in events_by_type.get(EventType.NODE_ERROR, []):
             await self._handle_node_failed(execution_id, event)
         
         # Process metrics collection

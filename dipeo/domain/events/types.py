@@ -1,33 +1,11 @@
 """Event type definitions and enums."""
 
-from enum import Enum, auto
+from enum import Enum
 
+# Re-export generated EventType as the single source of truth
+from dipeo.diagram_generated.enums import EventType
 
-class EventType(Enum):
-    """Types of domain events."""
-    
-    # Execution lifecycle
-    EXECUTION_STARTED = auto()
-    EXECUTION_COMPLETED = auto()
-    EXECUTION_ERROR = auto()
-    EXECUTION_STATUS_CHANGED = auto()
-    
-    # Node lifecycle
-    NODE_STARTED = auto()
-    NODE_COMPLETED = auto()
-    NODE_ERROR = auto()
-    NODE_OUTPUT = auto()
-    NODE_STATUS_CHANGED = auto()
-    
-    # Metrics and monitoring
-    METRICS_COLLECTED = auto()
-    OPTIMIZATION_SUGGESTED = auto()
-    
-    # External integrations
-    WEBHOOK_RECEIVED = auto()
-    
-    # Logging
-    EXECUTION_LOG = auto()
+__all__ = ["EventType", "EventPriority", "EventVersion"]
 
 
 class EventPriority(Enum):

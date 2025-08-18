@@ -7,7 +7,7 @@ from .service_registry import ServiceKey
 
 # Type imports for service keys
 if TYPE_CHECKING:
-    from dipeo.core.bak.ports import (
+    from dipeo.application.compat_imports import (
         LLMServicePort,
         StateStorePort,
         FileServicePort,
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     )
     from dipeo.infrastructure.services.diagram import DiagramService
     from dipeo.domain.db.services import DBOperationsDomainService
-    from dipeo.core.bak.execution import ExecutionContext
+    from dipeo.domain.execution.execution_context import ExecutionContext
     from dipeo.domain.diagram.models import ExecutableDiagram
     from dipeo.application.services.cli_session_service import CliSessionService
     from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase

@@ -27,7 +27,7 @@ def compile_pydantic_model(code_str: str) -> Type[BaseModel] | None:
             auto_imports = """from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Union
 from enum import Enum
-from dipeo.core.type_defs import JsonValue, JsonDict, JsonList, SimpleJsonValue
+from dipeo.domain.type_defs import JsonValue, JsonDict, JsonList, SimpleJsonValue
 
 """
             code_str = auto_imports + code_str
@@ -47,10 +47,10 @@ from dipeo.core.type_defs import JsonValue, JsonDict, JsonList, SimpleJsonValue
             'float': float,
             'bool': bool,
             # Import JsonValue types from type_defs
-            'JsonValue': __import__('dipeo.core.type_defs', fromlist=['JsonValue']).JsonValue,
-            'JsonDict': __import__('dipeo.core.type_defs', fromlist=['JsonDict']).JsonDict,
-            'JsonList': __import__('dipeo.core.type_defs', fromlist=['JsonList']).JsonList,
-            'SimpleJsonValue': __import__('dipeo.core.type_defs', fromlist=['SimpleJsonValue']).SimpleJsonValue,
+            'JsonValue': __import__('dipeo.domain.type_defs', fromlist=['JsonValue']).JsonValue,
+            'JsonDict': __import__('dipeo.domain.type_defs', fromlist=['JsonDict']).JsonDict,
+            'JsonList': __import__('dipeo.domain.type_defs', fromlist=['JsonList']).JsonList,
+            'SimpleJsonValue': __import__('dipeo.domain.type_defs', fromlist=['SimpleJsonValue']).SimpleJsonValue,
         }
         
         # Parse the code to find class definitions

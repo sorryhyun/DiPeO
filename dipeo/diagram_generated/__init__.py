@@ -29,7 +29,6 @@ from .domain_models import (
     PersonID,
     DiagramID,
     ExecutionID,
-    ArrowID,
     # Domain models
     Vec2,
     DomainHandle,
@@ -84,7 +83,6 @@ __all__ = [
     "HandleID",
     "ApiKeyID",
     "PersonID",
-    "ArrowID",
     "DiagramID",
     "ExecutionID",
     # Enums

@@ -478,8 +478,6 @@ class TemplateJobNode(BaseExecutableNode):
     output_path: Optional[str] = None
     variables: Optional[JsonDict] = None
     engine: Optional[TemplateEngine] = None
-    foreach: Optional[Dict[str, Any]] = None  # Foreach configuration
-    preprocessor: Optional[Dict[str, Any]] = None  # Preprocessor configuration
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -494,8 +492,6 @@ class TemplateJobNode(BaseExecutableNode):
         data["output_path"] = self.output_path
         data["variables"] = self.variables
         data["engine"] = self.engine
-        data["foreach"] = self.foreach
-        data["preprocessor"] = self.preprocessor
         return data
 
 

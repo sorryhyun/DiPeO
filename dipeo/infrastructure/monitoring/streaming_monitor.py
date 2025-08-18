@@ -113,8 +113,9 @@ class StreamingMonitor(EventConsumer):
                 "event_type": "EXECUTION_STATUS_CHANGED",
                 "data": {
                     "status": "STARTED",
-                    "diagramId": event.data.get("diagram_id"),
-                    "diagramName": event.data.get("diagram_name"),
+                    "diagramId": getattr(event, 'diagram_id', None),
+                    "diagramName": getattr(event, 'diagram_name', None),
+                    "variables": getattr(event, 'variables', {}),
                 }
             }
         
@@ -123,32 +124,39 @@ class StreamingMonitor(EventConsumer):
                 **base_event,
                 "event_type": "NODE_STATUS_CHANGED",
                 "data": {
-                    "node_id": event.data.get("node_id"),
+                    "node_id": getattr(event, 'node_id', None),
                     "status": "RUNNING",
-                    "node_type": event.data.get("node_type"),
+                    "node_type": getattr(event, 'node_type', None),
+                    "inputs": getattr(event, 'inputs', None),
+                    "iteration": getattr(event, 'iteration', None),
                 }
             }
         
         elif event_type == EventType.NODE_COMPLETED:
+            node_state = getattr(event, 'state', None)
             return {
                 **base_event,
                 "event_type": "NODE_STATUS_CHANGED",
                 "data": {
-                    "node_id": event.data.get("node_id"),
+                    "node_id": getattr(event, 'node_id', None),
                     "status": "COMPLETED",
-                    "output": self._sanitize_output(event.data.get("output")),
-                    "metrics": event.data.get("metrics", {}),
+                    "output": self._sanitize_output(node_state.output if node_state else None),
+                    "metrics": {
+                        "duration_ms": getattr(event, 'duration_ms', None),
+                        "token_usage": node_state.token_usage if node_state and node_state.token_usage else None,
+                    },
                 }
             }
         
-        elif event_type == EventType.NODE_ERROR or event_type == EventType.NODE_FAILED:
+        elif event_type == EventType.NODE_ERROR:
+            node_state = getattr(event, 'state', None) if hasattr(event, 'state') else None
             return {
                 **base_event,
                 "event_type": "NODE_STATUS_CHANGED",
                 "data": {
-                    "node_id": event.data.get("node_id"),
+                    "node_id": getattr(event, 'node_id', None),
                     "status": "FAILED",
-                    "error": event.data.get("error"),
+                    "error": getattr(event, 'error', None) or (node_state.error if node_state else None),
                 }
             }
         
@@ -157,23 +165,27 @@ class StreamingMonitor(EventConsumer):
                 **base_event,
                 "event_type": "EXECUTION_STATUS_CHANGED",
                 "data": {
-                    "status": self._map_completion_status(event.data.get("status")),
-                    "error": event.data.get("error"),
-                    "summary": event.data.get("summary", {}),
+                    "status": self._map_completion_status(getattr(event, 'status', None)),
+                    "error": getattr(event, 'error', None),
+                    "summary": {
+                        "total_duration_ms": getattr(event, 'total_duration_ms', None),
+                        "total_tokens_used": getattr(event, 'total_tokens_used', None),
+                        "node_count": getattr(event, 'node_count', None),
+                    },
                 }
             }
         
         elif event_type == EventType.METRICS_COLLECTED:
             return {
                 **base_event,
-                "metrics": event.data.get("metrics", {}),
+                "metrics": getattr(event, 'metrics', {}),
             }
         
         else:
             # Unknown event type, pass through
             return {
                 **base_event,
-                "data": event.data,
+                "data": getattr(event, '__dict__', {}),
             }
     
     @staticmethod
@@ -232,7 +244,7 @@ class StreamingMonitor(EventConsumer):
             return "running"
         elif event_type == EventType.NODE_COMPLETED:
             return "completed"
-        elif event_type == EventType.NODE_FAILED:
+        elif event_type == EventType.NODE_ERROR:
             return "failed"
         elif event_type == EventType.EXECUTION_COMPLETED:
             return "completed"

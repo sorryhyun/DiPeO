@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `dipeo/infrastructure/adapters` module contains **concrete implementations** of the port interfaces defined in `dipeo/core/ports`. Following the **Hexagonal Architecture** (Ports and Adapters) pattern, these adapters handle all external I/O operations, third-party integrations, and infrastructure concerns while keeping the core domain independent of implementation details.
+The `dipeo/infrastructure/adapters` module contains **concrete implementations** of the port interfaces defined in `dipeo/application/ports` and domain-specific port files. Following the **Hexagonal Architecture** (Ports and Adapters) pattern, these adapters handle all external I/O operations, third-party integrations, and infrastructure concerns while keeping the domain independent of implementation details.
 
 ## Architecture
 
@@ -10,8 +10,8 @@ The `dipeo/infrastructure/adapters` module contains **concrete implementations**
 
 ```
 ┌─────────────────────────────────────┐
-│         Core Domain                 │
-│    (Defines Port Interfaces)        │
+│     Domain & Application Layers     │
+│    (Define Port Interfaces)         │
 │  ┌─────────────────────────────┐   │
 │  │   Uses: LLMServicePort      │   │
 │  │         StateStorePort       │   │
@@ -381,7 +381,7 @@ def test_execution():
 
 ```python
 # dipeo/infrastructure/adapters/new_service/my_adapter.py
-from dipeo.core.ports import MyServicePort
+from dipeo.application.ports import MyServicePort  # or from dipeo.domain.your_domain.ports
 
 class MyAdapter(MyServicePort):
     """Concrete implementation of MyServicePort"""
@@ -664,8 +664,9 @@ async def with_rate_limit(self):
 ## Dependencies
 
 **Internal:**
-- `dipeo.core.ports` - Port interface definitions
-- `dipeo.core` - Base services and exceptions
+- `dipeo.application.ports` - Application-level port interfaces
+- `dipeo.domain.*/ports` - Domain-specific port interfaces
+- `dipeo.domain.base.exceptions` - Base exceptions
 - `dipeo.infrastructure.config` - Configuration management
 
 **External:**

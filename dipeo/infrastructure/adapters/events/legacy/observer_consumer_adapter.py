@@ -59,7 +59,7 @@ class ObserverToEventConsumerAdapter(EventConsumer):
                         state=node_state
                     )
             
-            elif event_type == EventType.NODE_ERROR or event_type == EventType.NODE_FAILED:
+            elif event_type == EventType.NODE_ERROR:
                 node_id = event_data.get("node_id") or getattr(event, 'node_id', None)
                 error = event_data.get("error") or getattr(event, 'error', "Unknown error")
                 if node_id:

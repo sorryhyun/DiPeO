@@ -113,18 +113,42 @@ class Status(str, Enum):
 class EventType(str, Enum):
     """EventType enum values"""
     
+    # Execution lifecycle
+    EXECUTION_STARTED = "EXECUTION_STARTED"
+    
+    EXECUTION_COMPLETED = "EXECUTION_COMPLETED"
+    
+    EXECUTION_ERROR = "EXECUTION_ERROR"
+    
     EXECUTION_STATUS_CHANGED = "EXECUTION_STATUS_CHANGED"
+    
+    # Node lifecycle  
+    NODE_STARTED = "NODE_STARTED"
+    
+    NODE_COMPLETED = "NODE_COMPLETED"
+    
+    NODE_ERROR = "NODE_ERROR"
+    
+    NODE_OUTPUT = "NODE_OUTPUT"
     
     NODE_STATUS_CHANGED = "NODE_STATUS_CHANGED"
     
     NODE_PROGRESS = "NODE_PROGRESS"
     
+    # Metrics and monitoring
+    METRICS_COLLECTED = "METRICS_COLLECTED"
+    
+    OPTIMIZATION_SUGGESTED = "OPTIMIZATION_SUGGESTED"
+    
+    # External integrations
+    WEBHOOK_RECEIVED = "WEBHOOK_RECEIVED"
+    
+    # Interactive
     INTERACTIVE_PROMPT = "INTERACTIVE_PROMPT"
     
     INTERACTIVE_RESPONSE = "INTERACTIVE_RESPONSE"
     
-    EXECUTION_ERROR = "EXECUTION_ERROR"
-    
+    # Logging and updates
     EXECUTION_UPDATE = "EXECUTION_UPDATE"
     
     EXECUTION_LOG = "EXECUTION_LOG"
@@ -137,8 +161,6 @@ class LLMService(str, Enum):
     OPENAI = "openai"
     
     ANTHROPIC = "anthropic"
-    
-    CLAUDE_CODE = "claude-code"
     
     GOOGLE = "google"
     
@@ -172,9 +194,7 @@ class APIServiceType(str, Enum):
     DEEPSEEK = "deepseek"
     
     OLLAMA = "ollama"
-
-    CLAUDE_CODE = "claude-code"
-
+    
     NOTION = "notion"
     
     GOOGLE_SEARCH = "google_search"

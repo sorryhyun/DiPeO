@@ -19,8 +19,7 @@ from dipeo.application.registry import (
 )
 
 if TYPE_CHECKING:
-    from dipeo.core.bak.ports.message_router import MessageRouterPort
-    from dipeo.core.bak.ports.state_store import StateStorePort
+    from dipeo.application.compat_imports import MessageRouterPort, StateStorePort
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
     from dipeo.infrastructure.services.diagram import DiagramService
     from dipeo.diagram_generated import DomainDiagram
