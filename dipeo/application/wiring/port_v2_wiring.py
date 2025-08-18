@@ -44,7 +44,7 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
     if is_v2_enabled("state"):
         logger.info("🔄 Wiring V2 state services with domain ports")
         # Use V2 domain ports
-        from dipeo.infrastructure.adapters.state import (
+        from dipeo.infrastructure.execution.adapters import (
             StateRepositoryAdapter,
             StateServiceAdapter,
             StateCacheAdapter,
@@ -100,34 +100,34 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
     
     if is_v2_enabled("messaging"):
         # Use V2 domain ports
-        from dipeo.infrastructure.adapters.messaging.messaging_adapter import MessageBusAdapter
-        from dipeo.infrastructure.adapters.messaging import MessageRouter
-        from dipeo.infrastructure.adapters.events import AsyncEventBus
+        from dipeo.infrastructure.execution.messaging.messaging_adapter import MessageBusAdapter
+        from dipeo.infrastructure.execution.messaging import MessageRouter
+        from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus
         
         # Choose event bus implementation based on config
         event_bus_backend = os.getenv("DIPEO_EVENT_BUS_BACKEND", "adapter").lower()
         
         if event_bus_backend == "in_memory":
             # Use pure in-memory implementation
-            from dipeo.infrastructure.adapters.events import InMemoryEventBus
+            from dipeo.infrastructure.events.adapters import InMemoryEventBus
             domain_event_bus = InMemoryEventBus(
                 max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
                 enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
             )
         elif event_bus_backend == "redis":
             # Use Redis implementation (future)
-            from dipeo.infrastructure.adapters.events import RedisEventBus
+            from dipeo.infrastructure.events.adapters import RedisEventBus
             try:
                 domain_event_bus = RedisEventBus(
                     redis_url=os.getenv("DIPEO_REDIS_URL", "redis://localhost:6379")
                 )
             except NotImplementedError:
                 # Fallback to adapter if Redis not implemented
-                from dipeo.infrastructure.adapters.events import DomainEventBusAdapter
+                from dipeo.infrastructure.events.adapters import DomainEventBusAdapter
                 domain_event_bus = DomainEventBusAdapter(AsyncEventBus())
         else:
             # Use adapter that bridges with existing AsyncEventBus
-            from dipeo.infrastructure.adapters.events import DomainEventBusAdapter
+            from dipeo.infrastructure.events.adapters import DomainEventBusAdapter
             domain_event_bus = DomainEventBusAdapter(AsyncEventBus())
         
         # Create message router
@@ -138,8 +138,8 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
         registry.register(DOMAIN_EVENT_BUS, domain_event_bus)
     else:
         # Use V1 core ports
-        from dipeo.infrastructure.adapters.messaging import MessageRouter
-        from dipeo.infrastructure.adapters.events import AsyncEventBus
+        from dipeo.infrastructure.execution.messaging import MessageRouter
+        from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus
         
         registry.register("message_router", MessageRouter())
         registry.register("event_bus", AsyncEventBus())

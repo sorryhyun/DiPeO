@@ -206,7 +206,7 @@ async def create_server_container() -> Container:
 
 
     # Register CLI session service if not already registered
-    from dipeo.application.services.cli_session_service import CliSessionService
+    from dipeo.application.execution.use_cases import CliSessionService
 
     if not container.registry.has(CLI_SESSION_SERVICE):
         container.registry.register(CLI_SESSION_SERVICE, CliSessionService())

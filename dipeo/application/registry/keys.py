@@ -30,12 +30,8 @@ if TYPE_CHECKING:
     from dipeo.domain.storage import FileSystemPort
     from dipeo.domain.ports.template import TemplateProcessorPort
     from dipeo.domain.events import EventEmitter
-    from dipeo.application.services import (
-        ConversationManagerImpl,
-        PromptBuilder,
-        ConditionEvaluator,
-        PersonManagerImpl,
-    )
+    from dipeo.application.utils import PromptBuilder
+    from dipeo.application.execution.handlers.condition.evaluators.expression_evaluator import ConditionEvaluator
     from dipeo.infrastructure.adapters.storage import (
         BlobStoreAdapter,
         ArtifactStoreAdapter,
@@ -44,7 +40,7 @@ if TYPE_CHECKING:
     from dipeo.domain.integrations.db_services import DBOperationsDomainService
     from dipeo.domain.execution.execution_context import ExecutionContext
     from dipeo.domain.diagram.models import ExecutableDiagram
-    from dipeo.application.services.cli_session_service import CliSessionService
+    from dipeo.application.execution.use_cases import CliSessionService
     from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase
     from dipeo.application.execution.handler_factory import HandlerRegistry
     from typing import Any, Dict

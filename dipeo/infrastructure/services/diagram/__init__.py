@@ -1,13 +1,11 @@
-"""Diagram services for format conversion and storage orchestration."""
+"""Backward compatibility for diagram services - DEPRECATED."""
 
-from .converter_service import DiagramConverterService
-from .diagram_service import DiagramService
+import warnings
 
-# Create a singleton converter for backward compatibility
-converter_registry = DiagramConverterService()
+warnings.warn(
+    "Import from dipeo.infrastructure.diagram.drivers instead of dipeo.infrastructure.services.diagram",
+    DeprecationWarning,
+    stacklevel=2
+)
 
-__all__ = [
-    "DiagramConverterService",
-    "DiagramService",
-    "converter_registry",
-]
+from dipeo.infrastructure.diagram.drivers import *

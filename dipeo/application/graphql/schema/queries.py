@@ -378,7 +378,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
             if not cli_session_service:
                 return None
             
-            from dipeo.application.services.cli_session_service import CliSessionService
+            from dipeo.application.execution.use_cases import CliSessionService
             if isinstance(cli_session_service, CliSessionService):
                 session_data = await cli_session_service.get_active_session()
                 if session_data:

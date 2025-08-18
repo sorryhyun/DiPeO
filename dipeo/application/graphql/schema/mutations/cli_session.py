@@ -5,7 +5,7 @@ from typing import Optional
 import logging
 
 from dipeo.application.registry import ServiceRegistry, CLI_SESSION_SERVICE
-from dipeo.application.services.cli_session_service import CliSessionService
+from dipeo.application.execution.use_cases import CliSessionService
 from ...types.inputs import RegisterCliSessionInput, UnregisterCliSessionInput
 from ...types.results import CliSessionResult
 

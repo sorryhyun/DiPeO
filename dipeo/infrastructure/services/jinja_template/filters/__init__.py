@@ -1,24 +1,11 @@
-"""Template filters package for DiPeO template service.
+"""Backward compatibility for jinja_template filters - DEPRECATED."""
 
-This package organizes template filters by category, making it easy to:
-- Add new filter collections
-- Compose filter sets for specific use cases
-- Maintain and test filters independently
-"""
+import warnings
 
-from .base_filters import BaseFilters
-from .typescript_filters import TypeScriptToPythonFilters
-from .backend_filters import BackendFilters
-from .graphql_filters import TypeScriptToGraphQLFilters
-from .registry import FilterRegistry, FilterInfo, create_filter_registry, filter_registry
+warnings.warn(
+    "Import from dipeo.infrastructure.shared.template.drivers.jinja_template.filters instead",
+    DeprecationWarning,
+    stacklevel=2
+)
 
-__all__ = [
-    'BaseFilters',
-    'TypeScriptToPythonFilters',
-    'BackendFilters',
-    'TypeScriptToGraphQLFilters',
-    'FilterRegistry',
-    'FilterInfo',
-    'create_filter_registry',
-    'filter_registry',
-]
+from dipeo.infrastructure.shared.template.drivers.jinja_template.filters import *

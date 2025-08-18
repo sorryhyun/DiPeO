@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dipeo.application.migration.compat_imports import FileServicePort
-from dipeo.domain.storage import BlobStorage, FileSystemPort
+from dipeo.domain.ports.storage import BlobStorePort as BlobStorage, FileSystemPort
 
 
 class FileServiceAdapter(FileServicePort):

@@ -14,7 +14,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated import ExecutionID, ExecutionState, NodeState, Status, TokenUsage
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
-from dipeo.infrastructure.adapters.events import NullEventBus
+from dipeo.infrastructure.events.adapters.legacy import NullEventBus
 
 from .base_executor import BaseSubDiagramExecutor
 

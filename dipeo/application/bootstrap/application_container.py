@@ -41,13 +41,29 @@ class ApplicationContainer:
         self._setup_application_services()
 
     def _setup_application_services(self):
-        # Use the wiring system for diagram services
-        from dipeo.application.wiring.diagram_wiring import wire_all_diagram_services
+        # Use per-context wiring modules
+        self._wire_bounded_contexts()
         
-        # This will wire compiler, serializer, and diagram port based on feature flags
-        wire_all_diagram_services(self.registry)
-        
+        # Wire remaining services that haven't been migrated yet
         self._setup_app_services()
+    
+    def _wire_bounded_contexts(self):
+        """Wire all bounded contexts using their respective wiring modules."""
+        # Wire execution context
+        from dipeo.application.execution.wiring import wire_execution
+        wire_execution(self.registry)
+        
+        # Wire conversation context
+        from dipeo.application.conversation.wiring import wire_conversation
+        wire_conversation(self.registry)
+        
+        # Wire diagram context
+        from dipeo.application.diagram.wiring import wire_diagram
+        wire_diagram(self.registry)
+        
+        # Wire integrations context
+        from dipeo.application.integrations.wiring import wire_integrations
+        wire_integrations(self.registry)
 
     def _setup_app_services(self):
         # Register domain services
@@ -91,7 +107,7 @@ class ApplicationContainer:
 
 
         # Setup repositories - now handled by InfrastructureContainer
-        from dipeo.application.services.execution_orchestrator import ExecutionOrchestrator
+        from dipeo.application.execution.orchestrators import ExecutionOrchestrator
         from dipeo.application.registry.keys import (
             CONVERSATION_REPOSITORY,
             PERSON_REPOSITORY,
@@ -117,7 +133,7 @@ class ApplicationContainer:
         # This maintains compatibility while we migrate
         self.registry.register(PERSON_MANAGER, orchestrator)
         
-        from dipeo.application.services.cli_session_service import CliSessionService
+        from dipeo.application.execution.use_cases import CliSessionService
         self.registry.register(CLI_SESSION_SERVICE, CliSessionService())
 
         # DiagramService is already wired by wire_all_diagram_services

@@ -69,7 +69,7 @@ class InfrastructureContainer:
 
         filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.base_dir))
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
-        from dipeo.application.services.apikey_service import APIKeyService
+        from dipeo.application.integrations.use_cases import APIKeyService
         api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
         self.registry.register(
             API_KEY_SERVICE,
@@ -127,7 +127,7 @@ class InfrastructureContainer:
         )
 
         from dipeo.infrastructure.services.integrated_api import IntegratedApiService
-        from dipeo.infrastructure.adapters.http.api_service import APIService
+        from dipeo.infrastructure.integrations.adapters.api_service import ApiService as APIService
         from dipeo.domain.integrations.api_services import APIBusinessLogic
         from dipeo.infrastructure.services.template.simple_processor import SimpleTemplateProcessor
         
@@ -156,7 +156,7 @@ class InfrastructureContainer:
         from dipeo.application.wiring.port_v2_wiring import wire_storage_services
         
         # First setup API key service (needed by other services)
-        from dipeo.application.services.apikey_service import APIKeyService
+        from dipeo.application.integrations.use_cases import APIKeyService
         api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
         self.registry.register(
             API_KEY_SERVICE,
@@ -177,7 +177,7 @@ class InfrastructureContainer:
         
         # Ensure API key service exists
         if not self.registry.has(API_KEY_SERVICE):
-            from dipeo.application.services.apikey_service import APIKeyService
+            from dipeo.application.integrations.use_cases import APIKeyService
             api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
             self.registry.register(
                 API_KEY_SERVICE,

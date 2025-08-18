@@ -15,7 +15,7 @@ warnings.warn(
 )
 
 # Re-export from new location for backward compatibility
-from dipeo.infrastructure.adapters.events.legacy import (
+from dipeo.infrastructure.events.adapters.legacy import (
     AsyncEventBus,
     NullEventBus,
     ObserverToEventConsumerAdapter,

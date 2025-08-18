@@ -4,19 +4,19 @@ This module provides adapters that implement domain ports using
 existing infrastructure implementations.
 """
 
-from dipeo.infrastructure.adapters.diagram.compiler_adapter import (
+from .compiler_adapter import (
     StandardCompilerAdapter,
     CachingCompilerAdapter,
     ValidatingCompilerAdapter,
 )
 
-from dipeo.infrastructure.adapters.diagram.serializer_adapter import (
+from .serializer_adapter import (
     UnifiedSerializerAdapter,
     FormatStrategyAdapter,
     CachingSerializerAdapter,
 )
 
-from dipeo.infrastructure.adapters.diagram.resolution_adapter import (
+from .resolution_adapter import (
     StandardCompileTimeResolverAdapter,
     StandardRuntimeResolverAdapter,
     StandardTransformationEngineAdapter,

@@ -1,7 +1,11 @@
-"""State management infrastructure."""
+"""Backward compatibility for state infrastructure - DEPRECATED."""
 
-from .async_state_manager import AsyncStateManager
-from .event_based_state_store import EventBasedStateStore
-from .execution_state_cache import ExecutionCache, ExecutionStateCache
+import warnings
 
-__all__ = ["AsyncStateManager", "EventBasedStateStore", "ExecutionStateCache", "ExecutionCache"]
+warnings.warn(
+    "Import from dipeo.infrastructure.execution.state instead of dipeo.infrastructure.state",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+from dipeo.infrastructure.execution.state import *
