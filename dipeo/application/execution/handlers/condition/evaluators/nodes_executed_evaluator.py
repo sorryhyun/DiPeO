@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from .expression_evaluator import ConditionEvaluator as EvaluationService
-from dipeo.core.bak.execution.execution_context import ExecutionContext
+from dipeo.domain.execution.execution_context import ExecutionContext
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode
 

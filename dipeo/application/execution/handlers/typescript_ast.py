@@ -12,7 +12,7 @@ from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 
 if TYPE_CHECKING:
-    from dipeo.core.bak.execution.execution_context import ExecutionContext
+    from dipeo.domain.execution.execution_context import ExecutionContext
 
 
 @register_handler

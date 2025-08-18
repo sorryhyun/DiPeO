@@ -3,7 +3,7 @@
 import logging
 from typing import Dict
 
-from dipeo.core import BaseService
+from dipeo.domain.base import BaseService
 from dipeo.application.migration.compat_imports import DiagramStorageSerializer, FormatStrategy
 from dipeo.domain.diagram.strategies import (
     LightYamlStrategy,

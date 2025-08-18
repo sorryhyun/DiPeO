@@ -3,8 +3,8 @@
 import asyncio
 
 from dipeo.application.bootstrap import Container
-from dipeo.core.bak.config import Config, LLMConfig, StorageConfig
-from dipeo.core.bak.events import EventType
+from dipeo.domain.config import Config, LLMConfig, StorageConfig
+from dipeo.domain.events import EventType
 
 from dipeo_server.shared.constants import BASE_DIR
 
@@ -126,7 +126,7 @@ async def create_server_container() -> Container:
         event_bus.subscribe(EventType.EXECUTION_STARTED, state_manager)
         event_bus.subscribe(EventType.NODE_STARTED, state_manager)
         event_bus.subscribe(EventType.NODE_COMPLETED, state_manager)
-        event_bus.subscribe(EventType.NODE_FAILED, state_manager)
+        event_bus.subscribe(EventType.NODE_ERROR, state_manager)
         event_bus.subscribe(EventType.EXECUTION_COMPLETED, state_manager)
 
     # Create streaming monitor for real-time UI updates
@@ -138,7 +138,7 @@ async def create_server_container() -> Container:
         event_bus.subscribe(EventType.EXECUTION_STARTED, streaming_monitor)
         event_bus.subscribe(EventType.NODE_STARTED, streaming_monitor)
         event_bus.subscribe(EventType.NODE_COMPLETED, streaming_monitor)
-        event_bus.subscribe(EventType.NODE_FAILED, streaming_monitor)
+        event_bus.subscribe(EventType.NODE_ERROR, streaming_monitor)
         event_bus.subscribe(EventType.EXECUTION_COMPLETED, streaming_monitor)
         event_bus.subscribe(EventType.METRICS_COLLECTED, streaming_monitor)
 
@@ -161,7 +161,7 @@ async def create_server_container() -> Container:
         event_bus.subscribe(EventType.EXECUTION_STARTED, metrics_observer)
         event_bus.subscribe(EventType.NODE_STARTED, metrics_observer)
         event_bus.subscribe(EventType.NODE_COMPLETED, metrics_observer)
-        event_bus.subscribe(EventType.NODE_FAILED, metrics_observer)
+        event_bus.subscribe(EventType.NODE_ERROR, metrics_observer)
         event_bus.subscribe(EventType.EXECUTION_COMPLETED, metrics_observer)
 
     # Initialize provider registry for webhook integration

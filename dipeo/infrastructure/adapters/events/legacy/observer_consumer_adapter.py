@@ -28,14 +28,18 @@ class ObserverToEventConsumerAdapter(EventConsumer):
     async def consume(self, event: ExecutionEvent) -> None:
         """Convert events to observer method calls."""
         try:
-            if event.type == EventType.EXECUTION_STARTED:
+            # Handle both old and new event formats
+            event_type = getattr(event, 'event_type', getattr(event, 'type', None))
+            event_data = getattr(event, 'data', {}) if hasattr(event, 'data') else {}
+            
+            if event_type == EventType.EXECUTION_STARTED:
                 await self.observer.on_execution_start(
                     execution_id=event.execution_id,
-                    diagram_id=event.data.get("diagram_id")
+                    diagram_id=event_data.get("diagram_id") or getattr(event, 'diagram_id', None)
                 )
             
-            elif event.type == EventType.NODE_STARTED:
-                node_id = event.data.get("node_id")
+            elif event_type == EventType.NODE_STARTED:
+                node_id = event_data.get("node_id") or getattr(event, 'node_id', None)
                 # logger.debug(f"[ObserverAdapter] NODE_STARTED event received for node {node_id}")
                 if node_id:
                     # logger.debug(f"[ObserverAdapter] Calling observer.on_node_start for node {node_id}")
@@ -44,10 +48,10 @@ class ObserverToEventConsumerAdapter(EventConsumer):
                         node_id=node_id
                     )
             
-            elif event.type == EventType.NODE_COMPLETED:
-                # Extract node state from event data
-                node_state = event.data.get("node_state")
-                node_id = event.data.get("node_id")
+            elif event_type == EventType.NODE_COMPLETED:
+                # Extract node state from event data or direct attribute
+                node_state = event_data.get("node_state") or event_data.get("state") or getattr(event, 'state', None)
+                node_id = event_data.get("node_id") or getattr(event, 'node_id', None)
                 if node_state and node_id:
                     await self.observer.on_node_complete(
                         execution_id=event.execution_id,
@@ -55,21 +59,24 @@ class ObserverToEventConsumerAdapter(EventConsumer):
                         state=node_state
                     )
             
-            elif event.type == EventType.NODE_FAILED:
-                node_id = event.data.get("node_id")
+            elif event_type == EventType.NODE_ERROR or event_type == EventType.NODE_FAILED:
+                node_id = event_data.get("node_id") or getattr(event, 'node_id', None)
+                error = event_data.get("error") or getattr(event, 'error', "Unknown error")
                 if node_id:
                     await self.observer.on_node_error(
                         execution_id=event.execution_id,
                         node_id=node_id,
-                        error=event.data.get("error", "Unknown error")
+                        error=error
                     )
             
-            elif event.type == EventType.EXECUTION_COMPLETED:
+            elif event_type == EventType.EXECUTION_COMPLETED:
                 # Check if it's an error completion
-                if event.data.get("status") == Status.FAILED:
+                status = event_data.get("status") or getattr(event, 'status', None)
+                if status == Status.FAILED:
+                    error = event_data.get("error") or getattr(event, 'error', "Unknown error")
                     await self.observer.on_execution_error(
                         execution_id=event.execution_id,
-                        error=event.data.get("error", "Unknown error")
+                        error=error
                     )
                 else:
                     await self.observer.on_execution_complete(

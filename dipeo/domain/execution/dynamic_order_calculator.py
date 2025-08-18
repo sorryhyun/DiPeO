@@ -4,7 +4,7 @@ This calculator determines node execution order based on runtime context,
 handling loops, conditionals, and dynamic dependencies.
 """
 
-from typing import Any, Optional, Protocol
+from typing import Any, Optional
 from collections import defaultdict
 
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
@@ -13,7 +13,7 @@ from dipeo.diagram_generated import NodeID, NodeState, Status, NodeType
 from dipeo.diagram_generated.generated_nodes import ConditionNode
 
 
-class DomainDynamicOrderCalculator(Protocol):
+class DomainDynamicOrderCalculator:
     """Domain implementation of dynamic order calculation.
     
     This calculator considers:

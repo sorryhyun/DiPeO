@@ -168,9 +168,8 @@ class TypedExecutionEngine:
             
             if context:
                 await context.emit_event(
-                    EventType.EXECUTION_COMPLETED,
+                    EventType.EXECUTION_ERROR,
                     {
-                        "status": Status.FAILED,
                         "error": str(e),
                         "error_type": type(e).__name__
                     }
@@ -422,7 +421,7 @@ class TypedExecutionEngine:
             "node_name": getattr(node, 'name', str(node.id)),
             "status": node_state.status.value if node_state else "unknown",
             "output": self._serialize_output(output),
-            "node_state": node_state,
+            "state": node_state,  # Changed from node_state to state
             "metrics": {
                 "duration_ms": duration_ms,
                 "start_time": start_time,
@@ -450,7 +449,7 @@ class TypedExecutionEngine:
         
         # Emit node failed event
         await context.emit_event(
-            EventType.NODE_FAILED,
+            EventType.NODE_ERROR,
             {
                 "node_id": str(node.id),
                 "node_type": node.type,

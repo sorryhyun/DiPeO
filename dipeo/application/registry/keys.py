@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     )
     from dipeo.domain.storage import FileSystemPort
     from dipeo.domain.ports.template import TemplateProcessorPort
-    from dipeo.core.bak.events import EventEmitter
+    from dipeo.domain.events import EventEmitter
     from dipeo.application.services import (
         ConversationManagerImpl,
         PromptBuilder,

@@ -6,7 +6,7 @@ from typing import AsyncIterator, BinaryIO
 from datetime import datetime, timezone
 
 from dipeo.domain.storage import BlobStorePort
-from dipeo.core import BaseService, StorageError
+from dipeo.domain.base import BaseService, StorageError
 
 logger = logging.getLogger(__name__)
 

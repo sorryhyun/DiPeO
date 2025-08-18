@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from typing import Any
 
-from dipeo.core.bak.events import EventConsumer, EventType, ExecutionEvent
+from dipeo.domain.events import EventConsumer, EventType, ExecutionEvent
 from dipeo.application.migration.compat_imports import StateStorePort
 from dipeo.diagram_generated import Status
 from .execution_state_cache import ExecutionStateCache
@@ -57,8 +57,11 @@ class AsyncStateManager(EventConsumer):
         """Process events asynchronously."""
         execution_id = event.execution_id
         
+        # Handle both old and new event formats
+        event_type = getattr(event, 'event_type', getattr(event, 'type', None))
+        
         # Critical events should be persisted immediately
-        if event.type == EventType.EXECUTION_COMPLETED:
+        if event_type == EventType.EXECUTION_COMPLETED:
             # Persist critical events immediately without buffering
             try:
                 await self._persist_events(execution_id, [event])
@@ -122,7 +125,9 @@ class AsyncStateManager(EventConsumer):
         # Group events by type for efficient processing
         events_by_type = defaultdict(list)
         for event in events:
-            events_by_type[event.type].append(event)
+            # Handle both old and new event formats
+            event_type = getattr(event, 'event_type', getattr(event, 'type', None))
+            events_by_type[event_type].append(event)
         
         # Process execution lifecycle events
         if EventType.EXECUTION_STARTED in events_by_type:
@@ -150,9 +155,15 @@ class AsyncStateManager(EventConsumer):
         self, execution_id: str, event: ExecutionEvent
     ) -> None:
         """Handle execution started event."""
-        data = event.data
-        diagram_id = data.get("diagram_id")
-        variables = data.get("variables", {})
+        # Handle both old and new event formats
+        if hasattr(event, 'data'):
+            data = event.data
+            diagram_id = data.get("diagram_id")
+            variables = data.get("variables", {})
+        else:
+            # New domain event format - direct attributes
+            diagram_id = getattr(event, 'diagram_id', None)
+            variables = getattr(event, 'variables', {})
         
         # Create execution in cache first for fast access
         cache = await self._execution_cache.get_cache(execution_id)
@@ -177,7 +188,8 @@ class AsyncStateManager(EventConsumer):
         self, execution_id: str, event: ExecutionEvent
     ) -> None:
         """Handle node started event."""
-        node_id = event.data.get("node_id")
+        # Handle both old and new event formats
+        node_id = getattr(event, 'node_id', None) or (event.data.get("node_id") if hasattr(event, 'data') else None)
         if not node_id:
             return
         
@@ -191,7 +203,17 @@ class AsyncStateManager(EventConsumer):
         self, execution_id: str, event: ExecutionEvent
     ) -> None:
         """Handle node completed event."""
-        data = event.data
+        # Handle both old and new event formats
+        if hasattr(event, 'data'):
+            data = event.data
+        else:
+            # Create data dict from event attributes
+            data = {
+                'node_id': getattr(event, 'node_id', None),
+                'state': getattr(event, 'state', None),
+                'output': getattr(event, 'output', None),
+                'metrics': getattr(event, 'metrics', {}),
+            }
         node_id = data.get("node_id")
         if not node_id:
             return
@@ -226,7 +248,15 @@ class AsyncStateManager(EventConsumer):
         self, execution_id: str, event: ExecutionEvent
     ) -> None:
         """Handle node failed event."""
-        data = event.data
+        # Handle both old and new event formats
+        if hasattr(event, 'data'):
+            data = event.data
+        else:
+            # Create data dict from event attributes
+            data = {
+                'node_id': getattr(event, 'node_id', None),
+                'error': getattr(event, 'error', None),
+            }
         node_id = data.get("node_id")
         if not node_id:
             return
@@ -253,7 +283,14 @@ class AsyncStateManager(EventConsumer):
         self, execution_id: str, event: ExecutionEvent
     ) -> None:
         """Handle metrics collected event."""
-        data = event.data
+        # Handle both old and new event formats
+        if hasattr(event, 'data'):
+            data = event.data
+        else:
+            # Create data dict from event attributes
+            data = {
+                'metrics': getattr(event, 'metrics', {}),
+            }
         metrics = data.get("metrics")
         
         if metrics:
@@ -268,7 +305,16 @@ class AsyncStateManager(EventConsumer):
         self, execution_id: str, event: ExecutionEvent
     ) -> None:
         """Handle execution completed event."""
-        data = event.data
+        # Handle both old and new event formats
+        if hasattr(event, 'data'):
+            data = event.data
+        else:
+            # Create data dict from event attributes
+            data = {
+                'status': getattr(event, 'status', None),
+                'error': getattr(event, 'error', None),
+                'summary': getattr(event, 'summary', {}),
+            }
         status = data.get("status", Status.COMPLETED)
         error = data.get("error")
         

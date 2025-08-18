@@ -17,10 +17,10 @@ from dipeo.domain.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.diagram_generated.generated_nodes import HookNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.hook_model import HookNodeData, HookType
-from dipeo.core.bak.events import EventConsumer, ExecutionEvent
+from dipeo.domain.events import EventConsumer, ExecutionEvent
 
 if TYPE_CHECKING:
-    from dipeo.core.bak.execution.execution_context import ExecutionContext
+    from dipeo.domain.execution.execution_context import ExecutionContext
 
 
 @register_handler

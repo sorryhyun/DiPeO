@@ -5,8 +5,8 @@ from pathlib import Path
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from dipeo.core import BaseService, StorageError
-from dipeo.core.bak.ports.diagram_port import DiagramPort
+from dipeo.domain.base import BaseService, StorageError
+from dipeo.application.migration.compat_imports import DiagramPort
 from dipeo.domain.storage import DiagramInfo, FileSystemPort
 from dipeo.domain.diagram.services import DiagramFormatDetector
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram

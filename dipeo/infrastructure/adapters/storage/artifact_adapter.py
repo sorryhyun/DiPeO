@@ -13,7 +13,7 @@ from dipeo.domain.storage import (
     Artifact, 
     ArtifactRef
 )
-from dipeo.core import BaseService, StorageError
+from dipeo.domain.base import BaseService, StorageError
 
 logger = logging.getLogger(__name__)
 

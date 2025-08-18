@@ -195,7 +195,7 @@ class BackendFilters:
             "from typing import Dict, Any, List, Optional",
             "from dipeo.core.models import BaseNode",
             "from dipeo.core.handlers import BaseNodeHandler",
-            "from dipeo.core.exceptions import ValidationError, ExecutionError",
+            "from dipeo.domain.base.exceptions import ValidationError, ExecutionError",
         ]
         
         # Add type-specific imports

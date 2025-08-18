@@ -8,7 +8,7 @@ import logging
 import time
 from typing import Any, Optional
 
-from dipeo.core.bak.events import EventType, ExecutionEvent
+from dipeo.domain.events import EventType, ExecutionEvent
 from dipeo.infrastructure.adapters.events.legacy import AsyncEventBus
 from dipeo.infrastructure.services.integrated_api.registry import ProviderRegistry
 from fastapi import APIRouter, HTTPException, Request, Response, status

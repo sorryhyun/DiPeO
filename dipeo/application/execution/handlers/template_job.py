@@ -19,7 +19,7 @@ from dipeo.infrastructure.services.jinja_template.template_integration import ge
 from dipeo.domain.ports.template import TemplateProcessorPort
 
 if TYPE_CHECKING:
-    from dipeo.core.bak.execution.execution_context import ExecutionContext
+    from dipeo.domain.execution.execution_context import ExecutionContext
 
 logger = logging.getLogger(__name__)
 

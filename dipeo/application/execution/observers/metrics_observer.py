@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
-from dipeo.core.bak.events import EventConsumer, EventEmitter, EventType, ExecutionEvent
+from dipeo.domain.events import EventConsumer, EventEmitter, EventType, ExecutionEvent
 
 logger = logging.getLogger(__name__)
 
@@ -101,15 +101,18 @@ class MetricsObserver(EventConsumer):
     async def consume(self, event: ExecutionEvent) -> None:
         """Process execution events to collect metrics."""
         try:
-            if event.type == EventType.EXECUTION_STARTED:
+            # Handle both old and new event formats
+            event_type = getattr(event, 'event_type', getattr(event, 'type', None))
+            
+            if event_type == EventType.EXECUTION_STARTED:
                 await self._handle_execution_started(event)
-            elif event.type == EventType.NODE_STARTED:
+            elif event_type == EventType.NODE_STARTED:
                 await self._handle_node_started(event)
-            elif event.type == EventType.NODE_COMPLETED:
+            elif event_type == EventType.NODE_COMPLETED:
                 await self._handle_node_completed(event)
-            elif event.type == EventType.NODE_FAILED:
+            elif event_type == EventType.NODE_ERROR or event_type == EventType.NODE_FAILED:
                 await self._handle_node_failed(event)
-            elif event.type == EventType.EXECUTION_COMPLETED:
+            elif event_type == EventType.EXECUTION_COMPLETED:
                 await self._handle_execution_completed(event)
         except Exception as e:
             logger.error(f"Error processing event: {e}", exc_info=True)

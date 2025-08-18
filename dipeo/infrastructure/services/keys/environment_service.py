@@ -2,9 +2,9 @@
 
 import os
 
-from dipeo.core import APIKeyError, BaseService, ValidationError
+from dipeo.domain.base import APIKeyError, BaseService, ValidationError
 from dipeo.domain.constants import VALID_LLM_SERVICES, normalize_service_name
-from dipeo.core.bak.ports.apikey_port import APIKeyPort
+from dipeo.application.migration.compat_imports import APIKeyPort
 
 
 class EnvironmentAPIKeyService(BaseService, APIKeyPort):

@@ -4,7 +4,7 @@ import logging
 from typing import Any, Optional
 from pathlib import Path
 
-from dipeo.core import BaseService, ServiceError
+from dipeo.domain.base import BaseService, ServiceError
 from dipeo.application.migration.compat_imports import IntegratedApiServicePort, ApiProviderPort, APIKeyPort
 
 from .registry import ProviderRegistry

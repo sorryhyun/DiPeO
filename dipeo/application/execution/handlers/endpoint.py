@@ -14,7 +14,7 @@ from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
 if TYPE_CHECKING:
-    from dipeo.core.bak.execution.execution_context import ExecutionContext
+    from dipeo.domain.execution.execution_context import ExecutionContext
     from dipeo.domain.storage import FileSystemPort
 
 

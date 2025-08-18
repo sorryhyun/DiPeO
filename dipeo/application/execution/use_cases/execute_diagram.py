@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator, Callable
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.core import BaseService
+from dipeo.domain.base import BaseService
 from dipeo.diagram_generated.enums import Status
 from dipeo.application.registry import (
     STATE_STORE,
@@ -117,7 +117,7 @@ class ExecuteDiagramUseCase(BaseService):
             # Subscribe unified observer to event bus using adapter
             if engine_observers:
                 from dipeo.infrastructure.adapters.events.legacy import ObserverToEventConsumerAdapter
-                from dipeo.core.bak.events import EventType
+                from dipeo.domain.events import EventType
                 
                 for observer in engine_observers:
                     adapter = ObserverToEventConsumerAdapter(observer)
@@ -125,7 +125,7 @@ class ExecuteDiagramUseCase(BaseService):
                     event_bus.subscribe(EventType.EXECUTION_STARTED, adapter)
                     event_bus.subscribe(EventType.NODE_STARTED, adapter)
                     event_bus.subscribe(EventType.NODE_COMPLETED, adapter)
-                    event_bus.subscribe(EventType.NODE_FAILED, adapter)
+                    event_bus.subscribe(EventType.NODE_ERROR, adapter)
                     event_bus.subscribe(EventType.EXECUTION_COMPLETED, adapter)
                     # logger.debug(f"[ExecuteDiagram] Subscribed observer to event bus")
         else:

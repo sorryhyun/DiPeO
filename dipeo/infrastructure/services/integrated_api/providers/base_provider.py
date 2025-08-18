@@ -4,8 +4,8 @@ import logging
 from abc import abstractmethod
 from typing import Any, Optional
 
-from dipeo.core import BaseService, ServiceError
-from dipeo.core.bak.ports import ApiProviderPort
+from dipeo.domain.base import BaseService, ServiceError
+from dipeo.application.migration.compat_imports import ApiProviderPort
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from dipeo.core import BaseService
+from dipeo.domain.base import BaseService
 from dipeo.domain.parsers.ports import ASTParserPort
 from dipeo.infrastructure.adapters.parsers.factory import ParserFactory
 from dipeo.infrastructure.config.parser_config import ParserConfig

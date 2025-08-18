@@ -41,7 +41,13 @@ class AsyncEventBus(EventEmitter):
     
     async def emit(self, event: ExecutionEvent) -> None:
         """Fire-and-forget emission"""
-        subscribers = self._subscribers.get(event.type, set())
+        # Handle both old and new event formats
+        event_type = getattr(event, 'event_type', getattr(event, 'type', None))
+        if not event_type:
+            logger.warning(f"Event missing type field: {event}")
+            return
+            
+        subscribers = self._subscribers.get(event_type, set())
         
         for consumer in subscribers:
             try:
@@ -50,7 +56,7 @@ class AsyncEventBus(EventEmitter):
             except asyncio.QueueFull:
                 logger.warning(
                     f"Queue full for consumer {consumer.__class__.__name__}, "
-                    f"dropping event {event.type.value} for execution {event.execution_id}"
+                    f"dropping event {event_type.value} for execution {event.execution_id}"
                 )
     
     async def _consume_loop(self, consumer: EventConsumer) -> None:

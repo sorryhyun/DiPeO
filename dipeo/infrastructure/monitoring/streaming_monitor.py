@@ -4,7 +4,7 @@ import asyncio
 import logging
 from typing import Any
 
-from dipeo.core.bak.events import EventConsumer, EventType, ExecutionEvent
+from dipeo.domain.events import EventConsumer, EventType, ExecutionEvent
 from dipeo.application.migration.compat_imports import MessageRouterPort
 
 logger = logging.getLogger(__name__)
@@ -47,8 +47,11 @@ class StreamingMonitor(EventConsumer):
     
     async def consume(self, event: ExecutionEvent) -> None:
         """Consume events asynchronously without blocking execution."""
+        # Handle both old and new event formats
+        event_type = getattr(event, 'event_type', getattr(event, 'type', None))
+        
         # Critical events should be processed immediately
-        if event.type == EventType.EXECUTION_COMPLETED:
+        if event_type == EventType.EXECUTION_COMPLETED:
             # Process critical events immediately without queueing
             await self._handle_event(event)
             return
@@ -94,14 +97,17 @@ class StreamingMonitor(EventConsumer):
     
     def _transform_for_ui(self, event: ExecutionEvent) -> dict[str, Any]:
         """Convert internal events to UI-friendly format."""
+        # Handle both old and new event formats
+        event_type = getattr(event, 'event_type', getattr(event, 'type', None))
+        
         base_event = {
-            "type": event.type.value,
+            "type": event_type.value if event_type else "unknown",
             "executionId": event.execution_id,
-            "timestamp": event.timestamp,
+            "timestamp": getattr(event, 'timestamp', None),
         }
         
         # Add type-specific fields
-        if event.type == EventType.EXECUTION_STARTED:
+        if event_type == EventType.EXECUTION_STARTED:
             return {
                 **base_event,
                 "event_type": "EXECUTION_STATUS_CHANGED",
@@ -112,7 +118,7 @@ class StreamingMonitor(EventConsumer):
                 }
             }
         
-        elif event.type == EventType.NODE_STARTED:
+        elif event_type == EventType.NODE_STARTED:
             return {
                 **base_event,
                 "event_type": "NODE_STATUS_CHANGED",
@@ -123,7 +129,7 @@ class StreamingMonitor(EventConsumer):
                 }
             }
         
-        elif event.type == EventType.NODE_COMPLETED:
+        elif event_type == EventType.NODE_COMPLETED:
             return {
                 **base_event,
                 "event_type": "NODE_STATUS_CHANGED",
@@ -135,7 +141,7 @@ class StreamingMonitor(EventConsumer):
                 }
             }
         
-        elif event.type == EventType.NODE_FAILED:
+        elif event_type == EventType.NODE_ERROR or event_type == EventType.NODE_FAILED:
             return {
                 **base_event,
                 "event_type": "NODE_STATUS_CHANGED",
@@ -146,7 +152,7 @@ class StreamingMonitor(EventConsumer):
                 }
             }
         
-        elif event.type == EventType.EXECUTION_COMPLETED:
+        elif event_type == EventType.EXECUTION_COMPLETED:
             return {
                 **base_event,
                 "event_type": "EXECUTION_STATUS_CHANGED",
@@ -157,7 +163,7 @@ class StreamingMonitor(EventConsumer):
                 }
             }
         
-        elif event.type == EventType.METRICS_COLLECTED:
+        elif event_type == EventType.METRICS_COLLECTED:
             return {
                 **base_event,
                 "metrics": event.data.get("metrics", {}),

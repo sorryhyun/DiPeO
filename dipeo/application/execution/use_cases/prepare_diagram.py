@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from typing import Optional, TYPE_CHECKING
 
 from dipeo.application.services.apikey_service import APIKeyService as APIKeyDomainService
-from dipeo.core import BaseService
+from dipeo.domain.base import BaseService
 from dipeo.domain.diagram.models import ExecutableDiagram
 from dipeo.domain.validators import DiagramValidator
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
