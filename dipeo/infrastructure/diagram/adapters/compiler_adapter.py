@@ -153,7 +153,7 @@ class ValidatingCompilerAdapter(DiagramCompiler):
             raise ValueError("Diagram contains duplicate node IDs")
         
         # Validate arrows reference existing nodes
-        from dipeo.domain.diagram.handle import extract_node_id_from_handle
+        from dipeo.domain.diagram.utils import extract_node_id_from_handle
         
         node_id_set = set(node_ids)
         for arrow in domain_diagram.arrows:

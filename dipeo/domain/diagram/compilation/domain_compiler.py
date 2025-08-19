@@ -265,7 +265,7 @@ class DomainDiagramCompiler(DiagramCompiler):
         outgoing_handles = {node.id: [] for node in context.nodes_list}
         
         for arrow in context.arrows_list:
-            from dipeo.domain.diagram.handle import parse_handle_id_safe
+            from dipeo.domain.diagram.utils import parse_handle_id_safe
             source_parsed = parse_handle_id_safe(arrow.source)
             target_parsed = parse_handle_id_safe(arrow.target)
             

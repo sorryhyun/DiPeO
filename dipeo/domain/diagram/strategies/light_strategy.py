@@ -17,7 +17,7 @@ from dipeo.diagram_generated import (
     DataType
 )
 from dipeo.diagram_generated import MemoryView
-from dipeo.domain.diagram.handle import (
+from dipeo.domain.diagram.utils import (
     create_handle_id,
     parse_handle_id
 )

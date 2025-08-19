@@ -13,6 +13,15 @@ from .graph_utils import (
     find_orphan_nodes,
     is_dag,
 )
+from .handle_utils import (
+    HandleReference,
+    ParsedHandle,
+    create_handle_id,
+    extract_node_id_from_handle,
+    is_valid_handle_id,
+    parse_handle_id,
+    parse_handle_id_safe,
+)
 from .shared_components import (
     build_node,
     extract_common_arrows,
@@ -39,6 +48,14 @@ __all__ = [
     "count_node_connections",
     "find_orphan_nodes",
     "is_dag",
+    # handle_utils
+    "HandleReference",
+    "ParsedHandle",
+    "create_handle_id",
+    "extract_node_id_from_handle",
+    "is_valid_handle_id",
+    "parse_handle_id",
+    "parse_handle_id_safe",
     # shared_components
     "build_node",
     "extract_common_arrows",

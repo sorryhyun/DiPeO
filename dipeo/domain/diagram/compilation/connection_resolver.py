@@ -7,7 +7,7 @@ Validation logic has been moved to the shared validation utilities.
 from dataclasses import dataclass
 
 from dipeo.diagram_generated import DomainArrow, DomainNode, HandleLabel, NodeID
-from dipeo.domain.diagram.handle import parse_handle_id_safe
+from dipeo.domain.diagram.utils import parse_handle_id_safe
 
 
 @dataclass

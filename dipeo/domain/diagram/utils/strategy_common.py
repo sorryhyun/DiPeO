@@ -13,7 +13,7 @@ from dipeo.diagram_generated import (
     ContentType,
     NodeType,
 )
-from dipeo.domain.diagram.handle import create_handle_id
+from .handle_utils import create_handle_id
 from dipeo.diagram_generated import MemoryView
 
 log = logging.getLogger(__name__)

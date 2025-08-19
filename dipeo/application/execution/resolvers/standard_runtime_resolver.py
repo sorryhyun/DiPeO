@@ -6,7 +6,6 @@ using a composable pipeline architecture with focused stages.
 
 from typing import Any
 
-from .runtime_resolver_protocol import RuntimeResolverV2
 from dipeo.domain.execution.execution_context import ExecutionContext
 from dipeo.domain.execution.envelope import Envelope
 from dipeo.domain.diagram.models.executable_diagram import (
@@ -18,7 +17,7 @@ from dipeo.domain.diagram.models.executable_diagram import (
 from dipeo.domain.execution.resolution import resolve_inputs
 
 
-class StandardRuntimeResolver(RuntimeResolverV2):
+class StandardRuntimeResolver:
     """Standard implementation of runtime input resolution.
     
     Delegates to a composable pipeline that splits concerns into focused stages:

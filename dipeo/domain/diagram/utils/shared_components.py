@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from dipeo.diagram_generated import DataType, HandleDirection, HandleLabel, NodeID, NodeType
-from dipeo.domain.diagram.handle import create_handle_id
+from .handle_utils import create_handle_id
 
 log = logging.getLogger(__name__)
 
