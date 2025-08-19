@@ -8,8 +8,8 @@ import logging
 import time
 from typing import Any, Optional
 
-from dipeo.domain.events import EventType, ExecutionEvent
-from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus
+from dipeo.domain.events import EventType, DomainEvent, EventScope, WebhookReceivedPayload
+from dipeo.infrastructure.execution.messaging import InMemoryEventBus
 from dipeo.infrastructure.integrations.drivers.integrated_api.registry import ProviderRegistry
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -19,35 +19,35 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 
-class WebhookEvent(ExecutionEvent):
-    """Extended execution event for webhook triggers."""
+def create_webhook_event(
+    provider: str,
+    event_name: str,
+    payload: dict[str, Any],
+    headers: dict[str, str],
+    execution_id: Optional[str] = None
+) -> DomainEvent:
+    """Create a webhook received domain event."""
+    exec_id = execution_id or f"webhook-{provider}-{int(time.time())}"
     
-    def __init__(
-        self,
-        provider: str,
-        event_name: str,
-        payload: dict[str, Any],
-        headers: dict[str, str],
-        execution_id: Optional[str] = None
-    ):
-        super().__init__(
-            type=EventType.WEBHOOK_RECEIVED,
-            execution_id=execution_id or f"webhook-{provider}-{int(time.time())}",
-            timestamp=time.time(),
-            data={
-                "provider": provider,
+    return DomainEvent(
+        type=EventType.WEBHOOK_RECEIVED,
+        scope=EventScope(execution_id=exec_id),
+        payload=WebhookReceivedPayload(
+            webhook_id=f"{provider}-{event_name}-{int(time.time())}",
+            source=provider,
+            payload={
                 "event_name": event_name,
-                "payload": payload,
-                "headers": headers,
-                "source": "webhook"
-            }
+                **payload
+            },
+            headers=headers
         )
+    )
 
 
 class WebhookProcessor:
     """Process and validate incoming webhooks."""
     
-    def __init__(self, registry: ProviderRegistry, event_bus: AsyncEventBus):
+    def __init__(self, registry: ProviderRegistry, event_bus: InMemoryEventBus):
         self.registry = registry
         self.event_bus = event_bus
     
@@ -189,7 +189,7 @@ class WebhookProcessor:
         event_name = self._extract_event_name(provider_name, headers, raw_payload)
         
         # Create webhook event
-        webhook_event = WebhookEvent(
+        webhook_event = create_webhook_event(
             provider=provider_name,
             event_name=event_name,
             payload=normalized_payload,
@@ -203,7 +203,7 @@ class WebhookProcessor:
             "status": "processed",
             "provider": provider_name,
             "event": event_name,
-            "execution_id": webhook_event.execution_id
+            "execution_id": webhook_event.scope.execution_id
         }
     
     def _extract_event_name(

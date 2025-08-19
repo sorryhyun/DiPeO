@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 
 from dipeo.domain.base import APIKeyError, BaseService
-from dipeo.domain.ports.apikey import APIKeyPort
+from dipeo.domain.integrations.ports import APIKeyPort
 
 
 class APIKeyService(BaseService, APIKeyPort):

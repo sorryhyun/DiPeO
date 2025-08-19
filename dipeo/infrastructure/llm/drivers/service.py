@@ -16,9 +16,9 @@ from tenacity import (
 from dipeo.domain.base import APIKeyError, BaseService, LLMServiceError
 from dipeo.domain.constants import VALID_LLM_SERVICES, normalize_service_name
 from dipeo.domain.llm.ports import LLMService as LLMServicePort
-from dipeo.domain.ports.apikey import APIKeyPort
+from dipeo.domain.integrations.ports import APIKeyPort
 from dipeo.domain.llm import LLMDomainService
-from dipeo.infrastructure.config import get_settings
+from dipeo.config import get_settings
 from dipeo.infrastructure.shared.drivers.utils import SingleFlightCache
 from dipeo.diagram_generated import ChatResult, PersonLLMConfig, Message
 from dipeo.diagram_generated.domain_models import PersonID

@@ -134,7 +134,7 @@ class ApplicationContainer:
 
         # DiagramService is already wired by wire_all_diagram_services
         # Just register it with the old key for backward compatibility
-        from dipeo.application.registry.registry_tokens import DIAGRAM_PORT
+        from dipeo.application.registry.keys import DIAGRAM_PORT
         diagram_service = self.registry.resolve(DIAGRAM_PORT)
         if diagram_service:
             self.registry.register(DIAGRAM_SERVICE, diagram_service)

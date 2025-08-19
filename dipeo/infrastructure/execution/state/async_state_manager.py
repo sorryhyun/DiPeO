@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from typing import Any
 
-from dipeo.domain.events import EventConsumer, EventType, ExecutionEvent
+from dipeo.domain.events import EventConsumer, EventType, DomainEvent
 from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
 from dipeo.diagram_generated import Status
 from .execution_state_cache import ExecutionStateCache
@@ -53,12 +53,10 @@ class AsyncStateManager(EventConsumer):
         # Stop execution cache
         await self._execution_cache.stop()
     
-    async def consume(self, event: ExecutionEvent) -> None:
+    async def consume(self, event: DomainEvent) -> None:
         """Process events asynchronously."""
-        execution_id = event.execution_id
-        
-        # Handle both old and new event formats
-        event_type = getattr(event, 'event_type', getattr(event, 'type', None))
+        execution_id = event.scope.execution_id
+        event_type = event.type
         
         # Critical events should be persisted immediately
         if event_type == EventType.EXECUTION_COMPLETED:
@@ -119,15 +117,13 @@ class AsyncStateManager(EventConsumer):
             }
     
     async def _persist_events(
-        self, execution_id: str, events: list[ExecutionEvent]
+        self, execution_id: str, events: list[DomainEvent]
     ) -> None:
         """Persist a batch of events for an execution."""
         # Group events by type for efficient processing
         events_by_type = defaultdict(list)
         for event in events:
-            # Handle both old and new event formats
-            event_type = getattr(event, 'event_type', getattr(event, 'type', None))
-            events_by_type[event_type].append(event)
+            events_by_type[event.type].append(event)
         
         # Process execution lifecycle events
         if EventType.EXECUTION_STARTED in events_by_type:
@@ -152,18 +148,13 @@ class AsyncStateManager(EventConsumer):
             await self._handle_execution_completed(execution_id, events_by_type[EventType.EXECUTION_COMPLETED][-1])
     
     async def _handle_execution_started(
-        self, execution_id: str, event: ExecutionEvent
+        self, execution_id: str, event: DomainEvent
     ) -> None:
         """Handle execution started event."""
-        # Handle both old and new event formats
-        if hasattr(event, 'data'):
-            data = event.data
-            diagram_id = data.get("diagram_id")
-            variables = data.get("variables", {})
-        else:
-            # New domain event format - direct attributes
-            diagram_id = getattr(event, 'diagram_id', None)
-            variables = getattr(event, 'variables', {})
+        # Access payload data from DomainEvent
+        payload = event.payload
+        diagram_id = getattr(payload, 'diagram_id', None) if payload else None
+        variables = getattr(payload, 'variables', {}) if payload else {}
         
         # Create execution in cache first for fast access
         cache = await self._execution_cache.get_cache(execution_id)
@@ -185,11 +176,11 @@ class AsyncStateManager(EventConsumer):
         )
     
     async def _handle_node_started(
-        self, execution_id: str, event: ExecutionEvent
+        self, execution_id: str, event: DomainEvent
     ) -> None:
         """Handle node started event."""
-        # Handle both old and new event formats
-        node_id = getattr(event, 'node_id', None) or (event.data.get("node_id") if hasattr(event, 'data') else None)
+        # Get node_id from scope
+        node_id = event.scope.node_id
         if not node_id:
             return
         
@@ -200,21 +191,20 @@ class AsyncStateManager(EventConsumer):
         )
     
     async def _handle_node_completed(
-        self, execution_id: str, event: ExecutionEvent
+        self, execution_id: str, event: DomainEvent
     ) -> None:
         """Handle node completed event."""
-        # Handle both old and new event formats
-        if hasattr(event, 'data'):
-            data = event.data
-        else:
-            # Create data dict from event attributes
-            data = {
-                'node_id': getattr(event, 'node_id', None),
-                'state': getattr(event, 'state', None),
-                'output': getattr(event, 'output', None),
-                'metrics': getattr(event, 'metrics', {}),
-            }
-        node_id = data.get("node_id")
+        # Get node_id from scope and data from payload
+        node_id = event.scope.node_id
+        payload = event.payload
+        
+        # Build data dict from payload
+        data = {
+            'node_id': node_id,
+            'state': getattr(payload, 'state', None) if payload else None,
+            'output': getattr(payload, 'output', None) if payload else None,
+            'metrics': {'token_usage': getattr(payload, 'token_usage', None)} if payload and hasattr(payload, 'token_usage') else {},
+        }
         if not node_id:
             return
         
@@ -245,19 +235,17 @@ class AsyncStateManager(EventConsumer):
         )
     
     async def _handle_node_failed(
-        self, execution_id: str, event: ExecutionEvent
+        self, execution_id: str, event: DomainEvent
     ) -> None:
         """Handle node failed event."""
-        # Handle both old and new event formats
-        if hasattr(event, 'data'):
-            data = event.data
-        else:
-            # Create data dict from event attributes
-            data = {
-                'node_id': getattr(event, 'node_id', None),
-                'error': getattr(event, 'error', None),
-            }
-        node_id = data.get("node_id")
+        # Get node_id from scope and error from payload
+        node_id = event.scope.node_id
+        payload = event.payload
+        
+        data = {
+            'node_id': node_id,
+            'error': getattr(payload, 'error_message', 'Unknown error') if payload else 'Unknown error',
+        }
         if not node_id:
             return
         
@@ -280,18 +268,12 @@ class AsyncStateManager(EventConsumer):
         )
     
     async def _handle_metrics_collected(
-        self, execution_id: str, event: ExecutionEvent
+        self, execution_id: str, event: DomainEvent
     ) -> None:
         """Handle metrics collected event."""
-        # Handle both old and new event formats
-        if hasattr(event, 'data'):
-            data = event.data
-        else:
-            # Create data dict from event attributes
-            data = {
-                'metrics': getattr(event, 'metrics', {}),
-            }
-        metrics = data.get("metrics")
+        # Get metrics from payload
+        payload = event.payload
+        metrics = getattr(payload, 'metrics', {}) if payload else {}
         
         if metrics:
             # Update execution metrics in state store
@@ -302,21 +284,16 @@ class AsyncStateManager(EventConsumer):
             logger.debug(f"Saved metrics for execution {execution_id}")
     
     async def _handle_execution_completed(
-        self, execution_id: str, event: ExecutionEvent
+        self, execution_id: str, event: DomainEvent
     ) -> None:
         """Handle execution completed event."""
-        # Handle both old and new event formats
-        if hasattr(event, 'data'):
-            data = event.data
-        else:
-            # Create data dict from event attributes
-            data = {
-                'status': getattr(event, 'status', None),
-                'error': getattr(event, 'error', None),
-                'summary': getattr(event, 'summary', {}),
-            }
-        status = data.get("status", Status.COMPLETED)
-        error = data.get("error")
+        # Get data from payload
+        payload = event.payload
+        status = getattr(payload, 'status', Status.COMPLETED) if payload else Status.COMPLETED
+        # ExecutionCompletedPayload doesn't have error field, check ExecutionErrorPayload
+        error = None
+        if event.type == EventType.EXECUTION_ERROR and payload:
+            error = getattr(payload, 'error_message', None)
         
         # Update execution status
         await self.state_store.update_status(

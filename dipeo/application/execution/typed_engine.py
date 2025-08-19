@@ -14,12 +14,12 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.scheduler import NodeScheduler
 from dipeo.application.execution.typed_execution_context import TypedExecutionContext
-from dipeo.domain.events import EventEmitter, EventType, ExecutionEvent
+from dipeo.domain.events import EventEmitter, EventType, DomainEvent
 from dipeo.domain.diagram.resolution import RuntimeInputResolverV2
 from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution import DomainDynamicOrderCalculator
-from dipeo.infrastructure.config import get_settings
+from dipeo.config import get_settings
 
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
@@ -55,17 +55,25 @@ class TypedExecutionEngine:
         self._scheduler: NodeScheduler | None = None
         
         if observers and not event_bus:
-            from dipeo.infrastructure.events.adapters.legacy.observer_consumer_adapter import create_event_bus_with_observers
-            self.event_bus = create_event_bus_with_observers(observers)
+            from dipeo.infrastructure.execution.messaging import InMemoryEventBus, ObserverToEventAdapter
+            from dipeo.domain.events import EventType
+            # Create in-memory event bus and register observers
+            self.event_bus = InMemoryEventBus()
+            # Store adapters for later async subscription
+            self._observer_adapters = []
+            for observer in observers:
+                adapter = ObserverToEventAdapter(observer)
+                self._observer_adapters.append(adapter)
             self._managed_event_bus = True
         else:
             # Use provided event bus or create async event bus
             if not event_bus:
-                from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus
-                self.event_bus = AsyncEventBus()
+                from dipeo.infrastructure.execution.messaging import InMemoryEventBus
+                self.event_bus = InMemoryEventBus()
                 self._managed_event_bus = True
             else:
                 self.event_bus = event_bus
+            self._observer_adapters = []  # Initialize empty list to avoid AttributeError
     
     async def execute(
         self,
@@ -80,6 +88,16 @@ class TypedExecutionEngine:
         # Start event bus if we're managing it
         if self._managed_event_bus:
             await self.event_bus.start()
+            # Subscribe observer adapters if we have them
+            if hasattr(self, '_observer_adapters'):
+                from dipeo.domain.events import EventType
+                for adapter in self._observer_adapters:
+                    await self.event_bus.subscribe(EventType.EXECUTION_STARTED, adapter)
+                    await self.event_bus.subscribe(EventType.NODE_STARTED, adapter)
+                    await self.event_bus.subscribe(EventType.NODE_COMPLETED, adapter)
+                    await self.event_bus.subscribe(EventType.NODE_ERROR, adapter)
+                    await self.event_bus.subscribe(EventType.EXECUTION_COMPLETED, adapter)
+                    await self.event_bus.subscribe(EventType.EXECUTION_UPDATE, adapter)
         
         context = None
         try:
@@ -123,8 +141,9 @@ class TypedExecutionEngine:
                 ready_nodes = await self._scheduler.get_ready_nodes(context)
                 
                 if not ready_nodes:
-                    # No nodes ready, wait briefly
-                    await asyncio.sleep(self._settings.node_ready_poll_interval)
+                    # No nodes ready, wait briefly (using a reasonable default)
+                    poll_interval = getattr(self._settings.execution, 'node_ready_poll_interval', 0.01)
+                    await asyncio.sleep(poll_interval)
                     continue
                 
                 step_count += 1

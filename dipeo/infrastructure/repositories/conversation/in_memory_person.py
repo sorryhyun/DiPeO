@@ -1,8 +1,10 @@
 """In-memory implementation of PersonRepository."""
 
-from dipeo.diagram_generated import LLMService, PersonID, PersonLLMConfig
+from typing import Any, Optional
+
+from dipeo.diagram_generated import ApiKeyID, LLMService, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
-from dipeo.domain.ports import PersonRepository
+from dipeo.domain.conversation.ports import PersonRepository
 
 
 class InMemoryPersonRepository(PersonRepository):
@@ -43,8 +45,7 @@ class InMemoryPersonRepository(PersonRepository):
         person = Person(
             id=person_id,
             name=name,
-            llm_config=llm_config,
-            conversation_manager=None  # Will be set by orchestrator
+            llm_config=llm_config
         )
         self.save(person)
         return person
@@ -72,3 +73,62 @@ class InMemoryPersonRepository(PersonRepository):
     def clear(self) -> None:
         """Clear all persons."""
         self._persons.clear()
+    
+    def get_or_create(
+        self,
+        person_id: PersonID,
+        name: Optional[str] = None,
+        llm_config: Optional[PersonLLMConfig] = None
+    ) -> Person:
+        """Get existing person or create new one with defaults.
+        
+        Args:
+            person_id: The person identifier
+            name: Optional name (defaults to person_id string)
+            llm_config: Optional LLM configuration (defaults to gpt-5-nano)
+            
+        Returns:
+            The retrieved or created Person instance
+        """
+        if self.exists(person_id):
+            return self.get(person_id)
+        
+        # Create with defaults if not provided
+        if not llm_config:
+            llm_config = PersonLLMConfig(
+                service=LLMService("openai"),
+                model="gpt-5-nano-2025-08-07",
+                api_key_id=ApiKeyID("default")
+            )
+        
+        return self.create(
+            person_id=person_id,
+            name=name or str(person_id),
+            llm_config=llm_config
+        )
+    
+    def register_person(self, person_id: str, config: dict[str, Any]) -> None:
+        """Register a new person with the given configuration.
+        
+        This method exists for backward compatibility with existing code.
+        
+        Args:
+            person_id: String identifier for the person
+            config: Dictionary with 'name', 'service', 'model', 'api_key_id', 'system_prompt'
+        """
+        person_id_obj = PersonID(person_id)
+        
+        if not self.exists(person_id_obj):
+            api_key_id_value = config.get('api_key_id', 'default')
+            llm_config = PersonLLMConfig(
+                service=LLMService(config.get('service', 'openai')),
+                model=config.get('model', 'gpt-5-nano-2025-08-07'),
+                api_key_id=ApiKeyID(api_key_id_value),
+                system_prompt=config.get('system_prompt', '')
+            )
+            
+            self.create(
+                person_id=person_id_obj,
+                name=config.get('name', person_id),
+                llm_config=llm_config
+            )

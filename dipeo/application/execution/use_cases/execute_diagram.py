@@ -93,9 +93,15 @@ class ExecuteDiagramUseCase(BaseService):
             engine_observers = []
             # Don't log for each batch item to reduce noise
         else:
+            # Create event bus adapter for the observer
+            from dipeo.infrastructure.execution.messaging import (
+                MessageRouterEventBusAdapter
+            )
+            event_bus_adapter = MessageRouterEventBusAdapter(self.message_router)
+            
             # Create unified observer for real-time updates (normal mode)
             unified_observer = UnifiedEventObserver(
-                message_router=self.message_router,
+                event_bus=event_bus_adapter,
                 execution_runtime=typed_diagram,
                 capture_logs=True,  # Always enable log capture
                 propagate_to_sub=False  # Don't track sub-diagram nodes by default
@@ -116,7 +122,7 @@ class ExecuteDiagramUseCase(BaseService):
             
             # Subscribe unified observer to event bus using adapter
             if engine_observers:
-                from dipeo.infrastructure.events.adapters.legacy import ObserverToEventConsumerAdapter
+                from dipeo.infrastructure.execution.messaging import ObserverToEventAdapter as ObserverToEventConsumerAdapter
                 from dipeo.domain.events import EventType
                 
                 for observer in engine_observers:
@@ -246,7 +252,7 @@ class ExecuteDiagramUseCase(BaseService):
             )
         else:
             # Fallback to inline implementation if service not available
-            from dipeo.application.registry.registry_tokens import DIAGRAM_COMPILER
+            from dipeo.application.registry.keys import DIAGRAM_COMPILER
             
             # Already have a DomainDiagram, just compile it
             domain_diagram = diagram

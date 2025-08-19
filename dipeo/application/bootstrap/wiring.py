@@ -74,34 +74,31 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
     """Wire messaging services."""
     
     from dipeo.infrastructure.execution.messaging.messaging_adapter import MessageBusAdapter
-    from dipeo.infrastructure.execution.messaging import MessageRouter
-    from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus
+    from dipeo.infrastructure.execution.messaging import MessageRouter, InMemoryEventBus
     
     # Choose event bus implementation based on config
     event_bus_backend = os.getenv("DIPEO_EVENT_BUS_BACKEND", "adapter").lower()
     
     if event_bus_backend == "in_memory":
         # Use pure in-memory implementation
-        from dipeo.infrastructure.events.adapters import InMemoryEventBus
+        from dipeo.infrastructure.execution.messaging import InMemoryEventBus
         domain_event_bus = InMemoryEventBus(
             max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
             enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
         )
     elif event_bus_backend == "redis":
-        # Use Redis implementation (future)
-        from dipeo.infrastructure.events.adapters import RedisEventBus
-        try:
-            domain_event_bus = RedisEventBus(
-                redis_url=os.getenv("DIPEO_REDIS_URL", "redis://localhost:6379")
-            )
-        except NotImplementedError:
-            # Fallback to adapter if Redis not implemented
-            from dipeo.infrastructure.events.adapters import DomainEventBusAdapter
-            domain_event_bus = DomainEventBusAdapter(AsyncEventBus())
+        # Redis not yet implemented, use in-memory fallback
+        logger.info("Redis event bus not yet implemented, using in-memory fallback")
+        domain_event_bus = InMemoryEventBus(
+            max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
+            enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
+        )
     else:
-        # Use adapter that bridges with existing AsyncEventBus
-        from dipeo.infrastructure.events.adapters import DomainEventBusAdapter
-        domain_event_bus = DomainEventBusAdapter(AsyncEventBus())
+        # Default to in-memory implementation
+        domain_event_bus = InMemoryEventBus(
+            max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
+            enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
+        )
     
     # Create message router
     router = MessageRouter()
@@ -204,11 +201,9 @@ def wire_api_services(registry: ServiceRegistry) -> None:
 def wire_event_services(registry: ServiceRegistry) -> None:
     """Wire event services for observer migration."""
     
-    from dipeo.infrastructure.events.adapters import (
-        DomainEventBusAdapter,
+    from dipeo.infrastructure.execution.messaging import (
         InMemoryEventBus,
         ObserverToEventAdapter,
-        AsyncEventBus,
     )
     
     # Get or create domain event bus
@@ -224,8 +219,11 @@ def wire_event_services(registry: ServiceRegistry) -> None:
                 enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
             )
         else:
-            # Default to adapter bridging with AsyncEventBus
-            domain_event_bus = DomainEventBusAdapter(AsyncEventBus())
+            # Default to in-memory implementation
+            domain_event_bus = InMemoryEventBus(
+                max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
+                enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
+            )
     
     # Create observer adapter for backward compatibility
     observer_adapter = ObserverToEventAdapter(domain_event_bus)
@@ -258,13 +256,17 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
         region = os.getenv("DIPEO_S3_REGION", "us-east-1")
         blob_store = S3Adapter(bucket=bucket, region=region)
     else:
-        # Default to local storage
-        base_dir = os.getenv("DIPEO_BASE_DIR", str(Path.cwd()))
-        storage_path = Path(base_dir) / "storage"
+        # Default to local storage using config
+        from dipeo.config import get_settings
+        settings = get_settings()
+        base_dir = Path(settings.storage.base_dir).resolve()
+        storage_path = base_dir / "storage"
         blob_store = LocalBlobAdapter(base_path=storage_path)
         
-    # File system adapter
-    filesystem = LocalFileSystemAdapter(base_path=Path.cwd())
+    # File system adapter - use config base_dir
+    from dipeo.config import get_settings
+    settings = get_settings()
+    filesystem = LocalFileSystemAdapter(base_path=Path(settings.storage.base_dir).resolve())
     
     # Artifact store built on blob store
     artifact_store = ArtifactStoreAdapter(blob_store=blob_store)

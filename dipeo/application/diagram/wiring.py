@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from dipeo.application.registry.service_registry import ServiceRegistry, ServiceKey
-from dipeo.application.registry.registry_tokens import (
+from dipeo.application.registry.keys import (
     DIAGRAM_COMPILER,
     DIAGRAM_SERIALIZER,
     COMPILE_TIME_RESOLVER,
@@ -68,7 +68,7 @@ def wire_diagram(registry: ServiceRegistry) -> None:
 
 def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
     """Wire diagram-specific use cases."""
-    from dipeo.application.registry.registry_tokens import (
+    from dipeo.application.registry.keys import (
         DIAGRAM_COMPILER,
         DIAGRAM_SERIALIZER,
     )
@@ -230,19 +230,19 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
         registry: Service registry to register diagram port with
     """
     from dipeo.infrastructure.diagram.drivers.diagram_service import DiagramService
-    from dipeo.domain.config import Config
+    from dipeo.config import get_settings
     from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
     
     # Get filesystem adapter (should already be wired)
+    # Determine base path using unified config - ensure it's absolute
+    settings = get_settings()
+    base_path = (Path(settings.storage.base_dir) / settings.storage.data_dir).resolve()
+    
     filesystem = registry.resolve(FILESYSTEM_ADAPTER)
     if not filesystem:
-        # Fallback to creating one
+        # Fallback to creating one with the correct base_dir from config
         from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
-        filesystem = LocalFileSystemAdapter()
-    
-    # Determine base path
-    config = Config()
-    base_path = Path(config.base_dir) / "files"
+        filesystem = LocalFileSystemAdapter(base_path=Path(settings.storage.base_dir).resolve())
     
     # Resolve dependencies from registry
     compiler = registry.resolve(DIAGRAM_COMPILER)

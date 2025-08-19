@@ -16,7 +16,7 @@ from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.infrastructure.shared.template.drivers.jinja_template.template_integration import get_enhanced_template_service
-from dipeo.domain.ports.template import TemplateProcessorPort
+from dipeo.domain.diagram.ports import TemplateProcessorPort
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext

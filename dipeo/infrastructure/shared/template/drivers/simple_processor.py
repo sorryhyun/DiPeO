@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 from typing import Any
 
-from dipeo.domain.ports.template import TemplateResult, TemplateProcessorPort
+from dipeo.domain.diagram.ports import TemplateResult, TemplateProcessorPort
 
 
 class SimpleTemplateProcessor(TemplateProcessorPort):

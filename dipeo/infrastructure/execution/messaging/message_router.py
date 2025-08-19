@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from dipeo.domain.events.ports import MessageBus as MessageRouterPort
-from dipeo.infrastructure.config import get_settings
+from dipeo.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -45,22 +45,22 @@ class MessageRouter(MessageRouterPort):
         self.connection_health: dict[str, ConnectionHealth] = {}
         self._message_queue_size: dict[str, int] = {}
         self._queue_lock = threading.Lock()
-        self.max_queue_size = 100
+        # Load configuration
+        settings = get_settings()
+        self.max_queue_size = settings.messaging.max_queue_size
         
         # Event buffering for late connections
         self._event_buffer: dict[str, list[dict]] = {}
-        self._buffer_max_size = 50  # Keep last 50 events per execution
-        self._buffer_ttl_seconds = 300  # Keep events for 5 minutes
+        self._buffer_max_size = settings.messaging.buffer_max_per_exec
+        self._buffer_ttl_seconds = settings.messaging.buffer_ttl_s
         
         # Event batching for performance
         self._batch_queue: dict[str, list[dict]] = {}
         self._batch_tasks: dict[str, asyncio.Task | None] = {}
         
-        # Load configuration
-        settings = get_settings()
-        self._batch_broadcast_warning_threshold = settings.batch_broadcast_warning_threshold
-        self._batch_interval = settings.batch_interval
-        self._batch_max_size = settings.batch_max_size
+        self._batch_broadcast_warning_threshold = settings.messaging.broadcast_warning_threshold_s
+        self._batch_interval = settings.messaging.batch_interval_ms / 1000.0  # Convert to seconds
+        self._batch_max_size = settings.messaging.batch_max
 
     async def initialize(self) -> None:
         if self._initialized:

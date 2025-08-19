@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
-from dipeo.domain.events import EventEmitter, EventType, ExecutionEvent
+from dipeo.domain.events import EventEmitter, EventType, DomainEvent
 from dipeo.domain.execution.execution_context import ExecutionContext as ExecutionContextProtocol
 from dipeo.domain.execution.execution_tracker import CompletionStatus, ExecutionTracker
 from dipeo.domain.execution.envelope import Envelope
@@ -409,75 +409,108 @@ class TypedExecutionContext(ExecutionContextProtocol):
         if not self.event_bus:
             return
         
-        # Import event classes
+        # Import factory functions and classes
         from dipeo.domain.events import (
-            ExecutionStartedEvent,
-            ExecutionCompletedEvent,
-            ExecutionErrorEvent,
-            NodeStartedEvent,
-            NodeCompletedEvent,
-            NodeErrorEvent,
-            NodeOutputEvent
+            execution_started,
+            execution_completed,
+            execution_error,
+            node_started,
+            node_completed,
+            node_error,
+            DomainEvent,
+            EventScope,
+            NodeOutputPayload
         )
         
-        # Map event types to event classes and their allowed fields
-        event_configs = {
-            EventType.EXECUTION_STARTED: (ExecutionStartedEvent, {
-                'variables', 'parent_execution_id', 'initiated_by', 'diagram_id'
-            }),
-            EventType.EXECUTION_COMPLETED: (ExecutionCompletedEvent, {
-                'status', 'total_duration_ms', 'total_tokens_used', 'node_count', 'diagram_id'
-            }),
-            EventType.EXECUTION_ERROR: (ExecutionErrorEvent, {
-                'error', 'error_type', 'stack_trace', 'failed_node_id', 'diagram_id'
-            }),
-            EventType.NODE_STARTED: (NodeStartedEvent, {
-                'node_id', 'node_type', 'inputs', 'iteration', 'diagram_id'
-            }),
-            EventType.NODE_COMPLETED: (NodeCompletedEvent, {
-                'node_id', 'node_type', 'state', 'duration_ms', 'token_usage', 
-                'output_summary', 'diagram_id'
-            }),
-            EventType.NODE_ERROR: (NodeErrorEvent, {
-                'node_id', 'node_type', 'error', 'error_type', 'retryable', 
-                'retry_count', 'max_retries', 'diagram_id'
-            }),
-            EventType.NODE_OUTPUT: (NodeOutputEvent, {
-                'node_id', 'node_type', 'output', 'is_partial', 'sequence_number', 'diagram_id'
-            })
-        }
-        
-        
-        # Get the event configuration
-        config = event_configs.get(event_type)
-        if not config:
-            # For unmapped events, don't emit (or could log a warning)
-            return
-        
-        event_class, allowed_fields = config
-        
-        # Process incoming data
         processed_data = data or {}
         
-        # Handle field mapping
-        if 'diagram_name' in processed_data:
-            # Map diagram_name to diagram_id if needed
-            processed_data['diagram_id'] = processed_data.get('diagram_id', processed_data.pop('diagram_name'))
+        # Create the appropriate event based on type
+        event = None
         
-        # Filter to only allowed fields
-        event_data = {
-            'execution_id': self.execution_id,
-            'timestamp': time.time()
-        }
+        if event_type == EventType.EXECUTION_STARTED:
+            event = execution_started(
+                execution_id=self.execution_id,
+                variables=processed_data.get('variables', {}),
+                initiated_by=processed_data.get('initiated_by'),
+                diagram_id=processed_data.get('diagram_id')
+            )
         
-        for field in allowed_fields:
-            if field in processed_data:
-                event_data[field] = processed_data[field]
+        elif event_type == EventType.EXECUTION_COMPLETED:
+            event = execution_completed(
+                execution_id=self.execution_id,
+                status=processed_data.get('status'),
+                total_duration_ms=processed_data.get('total_duration_ms'),
+                total_tokens_used=processed_data.get('total_tokens_used'),
+                node_count=processed_data.get('node_count')
+            )
         
-        # Create the specific event instance
-        event = event_class(**event_data)
+        elif event_type == EventType.EXECUTION_ERROR:
+            event = execution_error(
+                execution_id=self.execution_id,
+                error_message=processed_data.get('error', 'Unknown error'),
+                error_type=processed_data.get('error_type'),
+                stack_trace=processed_data.get('stack_trace'),
+                failed_node_id=processed_data.get('failed_node_id')
+            )
         
-        await self.event_bus.emit(event)
+        elif event_type == EventType.NODE_STARTED:
+            node_id = processed_data.get('node_id')
+            if node_id:
+                event = node_started(
+                    execution_id=self.execution_id,
+                    node_id=node_id,
+                    state=processed_data.get('state'),
+                    node_type=processed_data.get('node_type'),
+                    inputs=processed_data.get('inputs'),
+                    iteration=processed_data.get('iteration')
+                )
+        
+        elif event_type == EventType.NODE_COMPLETED:
+            node_id = processed_data.get('node_id')
+            if node_id:
+                event = node_completed(
+                    execution_id=self.execution_id,
+                    node_id=node_id,
+                    state=processed_data.get('state'),
+                    output=processed_data.get('output'),
+                    duration_ms=processed_data.get('metrics', {}).get('duration_ms') if processed_data.get('metrics') else None,
+                    token_usage=processed_data.get('metrics', {}).get('token_usage') if processed_data.get('metrics') else None,
+                    output_summary=processed_data.get('output_summary')
+                )
+        
+        elif event_type == EventType.NODE_ERROR:
+            node_id = processed_data.get('node_id')
+            if node_id:
+                event = node_error(
+                    execution_id=self.execution_id,
+                    node_id=node_id,
+                    state=processed_data.get('state'),
+                    error_message=processed_data.get('error', 'Unknown error'),
+                    error_type=processed_data.get('error_type'),
+                    retryable=processed_data.get('retryable', False),
+                    retry_count=processed_data.get('retry_count', 0),
+                    max_retries=processed_data.get('max_retries', 3)
+                )
+        
+        elif event_type == EventType.NODE_OUTPUT:
+            node_id = processed_data.get('node_id')
+            if node_id:
+                # NODE_OUTPUT needs manual creation as there's no factory function
+                event = DomainEvent(
+                    type=EventType.NODE_OUTPUT,
+                    scope=EventScope(
+                        execution_id=self.execution_id,
+                        node_id=node_id
+                    ),
+                    payload=NodeOutputPayload(
+                        output=processed_data.get('output'),
+                        is_partial=processed_data.get('is_partial', False),
+                        sequence_number=processed_data.get('sequence_number')
+                    )
+                )
+        
+        if event:
+            await self.event_bus.emit(event)
     
     # ========== Service Access ==========
     

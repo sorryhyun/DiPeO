@@ -18,12 +18,12 @@ if TYPE_CHECKING:
     from dipeo.domain.events.ports import MessageBus as MessageRouterPort
     from dipeo.domain.events import DomainEventBus, MessageBus
     from dipeo.application.execution.observer_protocol import ExecutionObserver
-    from dipeo.domain.ports.apikey import APIKeyPort
+    from dipeo.domain.integrations.ports import APIKeyPort
     from dipeo.domain.diagram.ports import DiagramPort, DiagramCompiler, DiagramStorageSerializer
     from dipeo.domain.integrations.ports import ApiInvoker as IntegratedApiServicePort
     from dipeo.domain.integrations import ApiInvoker, ApiProvider, ApiProviderRegistry
     from dipeo.domain.diagram.ports import DiagramStorageSerializer as DiagramConverter
-    from dipeo.domain.ports.parsers import ASTParserPort
+    from dipeo.domain.integrations.ports import ASTParserPort
     from dipeo.domain.ports import (
         APIKeyRepository,
         ConversationRepository,
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
         PersonRepository,
     )
     from dipeo.domain.ports.storage import FileSystemPort, ArtifactStorePort
-    from dipeo.domain.ports.template import TemplateProcessorPort
+    from dipeo.domain.diagram.ports import TemplateProcessorPort
     from dipeo.domain.events import EventEmitter
     from dipeo.domain.llm import LLMClient, LLMService, MemoryService
     from dipeo.domain.diagram.resolution.interfaces import (

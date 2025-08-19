@@ -17,7 +17,7 @@ from dipeo.domain.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.diagram_generated.generated_nodes import HookNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.hook_model import HookNodeData, HookType
-from dipeo.domain.events import EventConsumer, ExecutionEvent
+from dipeo.domain.events import EventConsumer, DomainEvent
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -317,11 +317,11 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         event_received = asyncio.Event()
         
         class WebhookEventConsumer(EventConsumer):
-            async def consume(self, event: ExecutionEvent) -> None:
+            async def consume(self, event: DomainEvent) -> None:
                 nonlocal received_event
                 
                 # Check if this is a webhook event for our provider
-                event_data = event.data
+                event_data = event.payload
                 if event_data.get("source") != "webhook":
                     return
                 

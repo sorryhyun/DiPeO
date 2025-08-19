@@ -25,7 +25,7 @@ from dipeo.application.registry.keys import (
     STATE_STORE,
     TEMPLATE_PROCESSOR,
 )
-from dipeo.domain.config import Config
+from dipeo.config import AppSettings
 
 
 class InfrastructureContainer:
@@ -35,7 +35,7 @@ class InfrastructureContainer:
     and infrastructure concerns. Configured based on environment.
     """
 
-    def __init__(self, registry: ServiceRegistry, config: Config):
+    def __init__(self, registry: ServiceRegistry, config: AppSettings):
         self.registry = registry
         self.config = config
         self._setup_adapters()
@@ -58,11 +58,14 @@ class InfrastructureContainer:
 
     def _setup_storage_adapters(self):
         from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
-
-        filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.base_dir))
+        
+        # Use absolute path from config
+        base_dir = Path(self.config.storage.base_dir).resolve()
+        
+        filesystem_adapter = LocalFileSystemAdapter(base_path=base_dir)
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
         from dipeo.infrastructure.shared.keys.drivers import APIKeyService
-        api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
+        api_key_path = Path(self.config.storage.base_dir) / self.config.storage.data_dir / "apikeys.json"
         self.registry.register(
             API_KEY_SERVICE,
             APIKeyService(file_path=api_key_path)
@@ -109,7 +112,7 @@ class InfrastructureContainer:
         self.registry.register(
             BLOB_STORE,
             LocalBlobAdapter(
-                base_path=str(Path(self.config.base_dir) / "blobs")
+                base_path=str(Path(self.config.storage.base_dir) / "blobs")
             )
         )
 
@@ -137,7 +140,7 @@ class InfrastructureContainer:
         logger = logging.getLogger(__name__)
         parser_service = get_parser_service(
             default_language="typescript",
-            project_root=Path(self.config.base_dir),
+            project_root=Path(self.config.storage.base_dir),
             cache_enabled=True
         )
         logger.info(f"Registering AST_PARSER with service: {parser_service}")
@@ -153,7 +156,7 @@ class InfrastructureContainer:
         
         # First setup API key service (needed by other services)
         from dipeo.infrastructure.shared.keys.drivers import APIKeyService
-        api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
+        api_key_path = Path(self.config.storage.base_dir) / self.config.storage.data_dir / "apikeys.json"
         self.registry.register(
             API_KEY_SERVICE,
             APIKeyService(file_path=api_key_path)
@@ -162,9 +165,10 @@ class InfrastructureContainer:
         # Wire V2 storage services
         wire_storage_services(self.registry)
         
-        # Also keep filesystem adapter for backward compatibility
+        # Override the filesystem adapter with the correct base path from config
         from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
-        filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.base_dir))
+        base_dir = Path(self.config.storage.base_dir).resolve()
+        filesystem_adapter = LocalFileSystemAdapter(base_path=base_dir)
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
     
     def _setup_llm_v2(self):
@@ -174,7 +178,7 @@ class InfrastructureContainer:
         # Ensure API key service exists
         if not self.registry.has(API_KEY_SERVICE):
             from dipeo.infrastructure.shared.keys.drivers import APIKeyService
-            api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
+            api_key_path = Path(self.config.storage.base_dir) / self.config.storage.data_dir / "apikeys.json"
             self.registry.register(
                 API_KEY_SERVICE,
                 APIKeyService(file_path=api_key_path)
@@ -186,7 +190,7 @@ class InfrastructureContainer:
         wire_llm_services(self.registry, api_key_service)
         
         # Also register as old LLM_SERVICE key for backward compatibility
-        from dipeo.application.registry.registry_tokens import LLM_SERVICE as LLM_SERVICE_V2
+        from dipeo.application.registry.keys import LLM_SERVICE as LLM_SERVICE_V2
         if self.registry.has(LLM_SERVICE_V2):
             llm_service = self.registry.resolve(LLM_SERVICE_V2)
             self.registry.register(LLM_SERVICE, llm_service)
@@ -199,7 +203,7 @@ class InfrastructureContainer:
         wire_api_services(self.registry)
         
         # Override the old INTEGRATED_API_SERVICE with V2 version for backward compatibility
-        from dipeo.application.registry.registry_tokens import API_INVOKER
+        from dipeo.application.registry.keys import API_INVOKER
         if self.registry.has(API_INVOKER):
             api_invoker = self.registry.resolve(API_INVOKER)
             self.registry.register(INTEGRATED_API_SERVICE, api_invoker)

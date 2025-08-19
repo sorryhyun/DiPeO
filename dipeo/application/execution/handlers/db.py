@@ -16,7 +16,7 @@ from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
 from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
-from dipeo.domain.ports.template import TemplateProcessorPort
+from dipeo.domain.diagram.ports import TemplateProcessorPort
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext

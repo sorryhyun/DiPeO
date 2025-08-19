@@ -4,19 +4,17 @@ import logging
 from typing import Any, Optional
 
 from dipeo.diagram_generated import ApiKeyID, LLMService, Message, PersonID, PersonLLMConfig
-from dipeo.domain.conversation import Person
-from dipeo.domain.conversation.conversation_manager import ConversationManager
-from dipeo.domain.ports import ConversationRepository, PersonRepository
+from dipeo.domain.conversation import Conversation, Person
+from dipeo.domain.conversation.ports import ConversationRepository, PersonRepository
 
 logger = logging.getLogger(__name__)
 
 
-class ExecutionOrchestrator(ConversationManager):
+class ExecutionOrchestrator:
     """Orchestrates person and conversation management during execution.
     
     This service coordinates between PersonRepository and ConversationRepository,
     ensuring proper wiring and interaction between persons and conversations.
-    It implements ConversationManager for backward compatibility during migration.
     """
     
     def __init__(
@@ -37,52 +35,15 @@ class ExecutionOrchestrator(ConversationManager):
         name: Optional[str] = None,
         llm_config: Optional[PersonLLMConfig] = None
     ) -> Person:
-        """Get existing person or create new one with proper wiring."""
-        if self._person_repo.exists(person_id):
-            person = self._person_repo.get(person_id)
-        else:
-            if not llm_config:
-                # Default LLM config if not provided
-                llm_config = PersonLLMConfig(
-                    service=LLMService("openai"),
-                    model="gpt-5-nano-2025-08-07",
-                    api_key_id=ApiKeyID("default")
-                )
-            
-            person = self._person_repo.create(
-                person_id=person_id,
-                name=name or str(person_id),
-                llm_config=llm_config
-            )
-        
-        # Wire up the conversation manager
-        person._conversation_manager = self
-        return person
+        """Get existing person or create new one."""
+        return self._person_repo.get_or_create(person_id, name, llm_config)
     
     def register_person(self, person_id: str, config: dict[str, Any]) -> None:
         """Register a new person with the given configuration.
         
         This method exists for backward compatibility with existing code.
         """
-        person_id_obj = PersonID(person_id)
-        
-        if not self._person_repo.exists(person_id_obj):
-            api_key_id_value = config.get('api_key_id', 'default')
-            llm_config = PersonLLMConfig(
-                service=LLMService(config.get('service', 'openai')),
-                model=config.get('model', 'gpt-5-nano-2025-08-07'),
-                api_key_id=ApiKeyID(api_key_id_value),
-                system_prompt=config.get('system_prompt', '')  # Include system_prompt from config
-            )
-            
-            person = self._person_repo.create(
-                person_id=person_id_obj,
-                name=config.get('name', person_id),
-                llm_config=llm_config
-            )
-            
-            # Wire up the conversation manager
-            person._conversation_manager = self
+        self._person_repo.register_person(person_id, config)
     
     def get_person(self, person_id: PersonID) -> Person:
         """Get a person by ID."""
@@ -107,10 +68,10 @@ class ExecutionOrchestrator(ConversationManager):
         """Add a message to the global conversation and log it."""
         self._current_execution_id = execution_id
         
-        # Add to global conversation
-        self._conversation_repo.add_message(message)
+        # Add to global conversation with metadata
+        self._conversation_repo.add_message(message, execution_id, node_id)
         
-        # Log for persistence/debugging
+        # Log for persistence/debugging (kept for backward compatibility)
         if execution_id not in self._execution_logs:
             self._execution_logs[execution_id] = []
         
@@ -134,24 +95,13 @@ class ExecutionOrchestrator(ConversationManager):
         if not self._person_repo.exists(person_id_obj):
             return []
         
-        person = self._person_repo.get(person_id_obj)
-        history = []
+        # Use repository's conversation history method
+        history = self._conversation_repo.get_conversation_history(person_id_obj)
         
-        # Get messages from person's filtered view
-        for msg in person.get_messages():
-            role = "assistant" if msg.from_person_id == person_id else "user"
-            if msg.from_person_id == "system":
-                role = "system"
-            
-            history.append({
-                "role": role,
-                "content": msg.content,
-                "from_person_id": str(msg.from_person_id),
-                "to_person_id": str(msg.to_person_id),
-                "execution_id": self._current_execution_id,
-                "timestamp": msg.timestamp,
-                "node_id": msg.metadata.get("node_id") if msg.metadata else None
-            })
+        # Add execution context if available
+        if self._current_execution_id:
+            for entry in history:
+                entry["execution_id"] = self._current_execution_id
         
         return history
     
@@ -175,21 +125,10 @@ class ExecutionOrchestrator(ConversationManager):
         This is used for GOLDFISH memory profile to ensure complete memory reset
         between diagram executions.
         """
-        # Get current conversation
-        conversation = self._conversation_repo.get_global_conversation()
+        # Delegate to repository
+        self._conversation_repo.clear_person_messages(person_id)
         
-        # Filter out messages involving this person
-        filtered_messages = [
-            msg for msg in conversation.messages
-            if msg.from_person_id != person_id and msg.to_person_id != person_id
-        ]
-        
-        # Clear and rebuild conversation with filtered messages
-        conversation.clear()
-        for msg in filtered_messages:
-            conversation.add_message(msg)
-        
-        # Also clear from execution logs
+        # Also clear from execution logs (kept for backward compatibility)
         if self._current_execution_id and self._current_execution_id in self._execution_logs:
             self._execution_logs[self._current_execution_id] = [
                 log for log in self._execution_logs[self._current_execution_id]
@@ -199,10 +138,9 @@ class ExecutionOrchestrator(ConversationManager):
     # ===== Initialization =====
     
     async def initialize(self) -> None:
-        """Initialize the orchestrator and wire up existing persons."""
-        # Wire up any existing persons
-        for person in self._person_repo.get_all().values():
-            person._conversation_manager = self
+        """Initialize the orchestrator."""
+        # No need to wire up persons anymore
+        pass
     
     # ===== Helper Methods =====
     
@@ -226,3 +164,48 @@ class ExecutionOrchestrator(ConversationManager):
             person = self._person_repo.get(person_id_obj)
             return person.llm_config
         return None
+    
+    async def execute_person_completion(
+        self,
+        person: Person,
+        prompt: str,
+        llm_service: Any,  # LLMServicePort
+        execution_id: str,
+        node_id: str,
+        from_person_id: PersonID | str = "system",
+        **llm_options: Any
+    ) -> Any:  # ChatResult
+        """Execute person completion and manage conversation messages.
+        
+        This helper method encapsulates the new Person API pattern where
+        Person.complete() returns messages to be added rather than adding them directly.
+        
+        Args:
+            person: The Person instance
+            prompt: The prompt to complete
+            llm_service: The LLM service to use
+            execution_id: Execution context ID
+            node_id: Node context ID
+            from_person_id: The ID of the person sending the prompt
+            **llm_options: Additional options for the LLM
+            
+        Returns:
+            ChatResult from the LLM completion
+        """
+        # Get current conversation state
+        all_messages = self._conversation_repo.get_messages()
+        
+        # Execute completion (Person returns messages but doesn't add them)
+        result, incoming, response = await person.complete(
+            prompt=prompt,
+            all_messages=all_messages,
+            llm_service=llm_service,
+            from_person_id=from_person_id,
+            **llm_options
+        )
+        
+        # Orchestrator adds messages to conversation
+        self.add_message(incoming, execution_id, node_id)
+        self.add_message(response, execution_id, node_id)
+        
+        return result

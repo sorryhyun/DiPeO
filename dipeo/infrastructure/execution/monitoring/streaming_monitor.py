@@ -4,7 +4,7 @@ import asyncio
 import logging
 from typing import Any
 
-from dipeo.domain.events import EventConsumer, EventType, ExecutionEvent
+from dipeo.domain.events import EventConsumer, EventType, DomainEvent
 from dipeo.domain.events.ports import MessageBus as MessageRouterPort
 
 logger = logging.getLogger(__name__)
@@ -45,10 +45,9 @@ class StreamingMonitor(EventConsumer):
             except asyncio.CancelledError:
                 pass
     
-    async def consume(self, event: ExecutionEvent) -> None:
+    async def consume(self, event: DomainEvent) -> None:
         """Consume events asynchronously without blocking execution."""
-        # Handle both old and new event formats
-        event_type = getattr(event, 'event_type', getattr(event, 'type', None))
+        event_type = event.type
         
         # Critical events should be processed immediately
         if event_type == EventType.EXECUTION_COMPLETED:
@@ -61,7 +60,7 @@ class StreamingMonitor(EventConsumer):
             self._event_queue.put_nowait(event)
         except asyncio.QueueFull:
             logger.warning(
-                f"Event queue full, dropping event for execution {event.execution_id}"
+                f"Event queue full, dropping event for execution {event.scope.execution_id}"
             )
     
     async def _process_events(self) -> None:
@@ -84,26 +83,26 @@ class StreamingMonitor(EventConsumer):
             except Exception as e:
                 logger.error(f"Error processing event: {e}", exc_info=True)
     
-    async def _handle_event(self, event: ExecutionEvent) -> None:
+    async def _handle_event(self, event: DomainEvent) -> None:
         """Handle a single event."""
         # Transform event for UI
         ui_event = self._transform_for_ui(event)
         
         # Send through message router (which handles all subscriptions)
         await self.message_router.broadcast_to_execution(
-            execution_id=event.execution_id,
+            execution_id=event.scope.execution_id,
             message=ui_event
         )
     
-    def _transform_for_ui(self, event: ExecutionEvent) -> dict[str, Any]:
+    def _transform_for_ui(self, event: DomainEvent) -> dict[str, Any]:
         """Convert internal events to UI-friendly format."""
-        # Handle both old and new event formats
-        event_type = getattr(event, 'event_type', getattr(event, 'type', None))
+        event_type = event.type
+        payload = event.payload
         
         base_event = {
             "type": event_type.value if event_type else "unknown",
-            "executionId": event.execution_id,
-            "timestamp": getattr(event, 'timestamp', None),
+            "executionId": event.scope.execution_id,
+            "timestamp": event.occurred_at.timestamp() if event.occurred_at else None,
         }
         
         # Add type-specific fields
@@ -113,9 +112,9 @@ class StreamingMonitor(EventConsumer):
                 "event_type": "EXECUTION_STATUS_CHANGED",
                 "data": {
                     "status": "STARTED",
-                    "diagramId": getattr(event, 'diagram_id', None),
-                    "diagramName": getattr(event, 'diagram_name', None),
-                    "variables": getattr(event, 'variables', {}),
+                    "diagramId": getattr(payload, 'diagram_id', None) if payload else None,
+                    "diagramName": None,  # Not in ExecutionStartedPayload
+                    "variables": getattr(payload, 'variables', {}) if payload else {},
                 }
             }
         
@@ -124,39 +123,38 @@ class StreamingMonitor(EventConsumer):
                 **base_event,
                 "event_type": "NODE_STATUS_CHANGED",
                 "data": {
-                    "node_id": getattr(event, 'node_id', None),
+                    "node_id": event.scope.node_id,
                     "status": "RUNNING",
-                    "node_type": getattr(event, 'node_type', None),
-                    "inputs": getattr(event, 'inputs', None),
-                    "iteration": getattr(event, 'iteration', None),
+                    "node_type": getattr(payload, 'node_type', None) if payload else None,
+                    "inputs": getattr(payload, 'inputs', None) if payload else None,
+                    "iteration": getattr(payload, 'iteration', None) if payload else None,
                 }
             }
         
         elif event_type == EventType.NODE_COMPLETED:
-            node_state = getattr(event, 'state', None)
+            node_state = getattr(payload, 'state', None) if payload else None
             return {
                 **base_event,
                 "event_type": "NODE_STATUS_CHANGED",
                 "data": {
-                    "node_id": getattr(event, 'node_id', None),
+                    "node_id": event.scope.node_id,
                     "status": "COMPLETED",
-                    "output": self._sanitize_output(node_state.output if node_state else None),
+                    "output": self._sanitize_output(getattr(payload, 'output', None) if payload else None),
                     "metrics": {
-                        "duration_ms": getattr(event, 'duration_ms', None),
-                        "token_usage": node_state.token_usage if node_state and node_state.token_usage else None,
+                        "duration_ms": getattr(payload, 'duration_ms', None) if payload else None,
+                        "token_usage": getattr(payload, 'token_usage', None) if payload else None,
                     },
                 }
             }
         
         elif event_type == EventType.NODE_ERROR:
-            node_state = getattr(event, 'state', None) if hasattr(event, 'state') else None
             return {
                 **base_event,
                 "event_type": "NODE_STATUS_CHANGED",
                 "data": {
-                    "node_id": getattr(event, 'node_id', None),
+                    "node_id": event.scope.node_id,
                     "status": "FAILED",
-                    "error": getattr(event, 'error', None) or (node_state.error if node_state else None),
+                    "error": getattr(payload, 'error_message', None) if payload else None,
                 }
             }
         
@@ -165,12 +163,12 @@ class StreamingMonitor(EventConsumer):
                 **base_event,
                 "event_type": "EXECUTION_STATUS_CHANGED",
                 "data": {
-                    "status": self._map_completion_status(getattr(event, 'status', None)),
-                    "error": getattr(event, 'error', None),
+                    "status": self._map_completion_status(getattr(payload, 'status', None) if payload else None),
+                    "error": None,  # ExecutionCompletedPayload doesn't have error field
                     "summary": {
-                        "total_duration_ms": getattr(event, 'total_duration_ms', None),
-                        "total_tokens_used": getattr(event, 'total_tokens_used', None),
-                        "node_count": getattr(event, 'node_count', None),
+                        "total_duration_ms": getattr(payload, 'total_duration_ms', None) if payload else None,
+                        "total_tokens_used": getattr(payload, 'total_tokens_used', None) if payload else None,
+                        "node_count": getattr(payload, 'node_count', None) if payload else None,
                     },
                 }
             }
