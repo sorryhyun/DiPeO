@@ -3,7 +3,8 @@
 import logging
 from datetime import datetime
 
-from dipeo.core.ports import ExecutionObserver, MessageRouterPort
+from dipeo.application.execution.observer_protocol import ExecutionObserver
+from dipeo.domain.events.ports import MessageBus as MessageRouterPort
 from dipeo.diagram_generated import (
     EventType,
     Status,

@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from dipeo.diagram_generated import NodeID, NodeType
-from dipeo.core.execution.execution_context import ExecutionContext
-from dipeo.core.execution.envelope import Envelope
+from dipeo.domain.execution.execution_context import ExecutionContext
+from dipeo.domain.execution.envelope import Envelope
 from dipeo.domain.diagram.models.executable_diagram import (
     ExecutableEdgeV2,
     ExecutableNode,

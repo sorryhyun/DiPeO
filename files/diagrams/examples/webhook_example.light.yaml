@@ -1,0 +1,68 @@
+# Example diagram demonstrating webhook integration
+# This diagram subscribes to webhook events and processes them
+
+name: webhook_integration_example
+description: Process incoming webhooks from external providers
+
+nodes:
+  - label: start
+    type: start
+
+  - label: Subscribe to GitHub Webhook
+    type: hook
+    props:
+      hook_type: webhook
+      config:
+        subscribe_to:
+          provider: github
+          event_name: push
+          timeout: 300  # Wait up to 5 minutes for webhook
+          filters:
+            repository: "example/repo"  # Only process events for this repo
+    connections:
+      - to: Process Webhook Data
+
+  - label: Process Webhook Data
+    type: person_job
+    props:
+      person_job_config:
+        person: Assistant
+        prompt: |
+          Process the following GitHub webhook event:
+          {{webhook_payload}}
+          
+          Extract the key information:
+          - Repository name
+          - Commit message
+          - Author
+          - Changed files
+    connections:
+      - to: Send Notification
+
+  - label: Send Notification
+    type: integrated_api
+    props:
+      provider: slack
+      operation: post_message
+      config:
+        channel: "#dev-notifications"
+        text: "New push to {{repository}}: {{commit_message}}"
+    connections:
+      - to: end
+
+  - label: end
+    type: end
+
+# Alternative example using outgoing webhook
+alternative_nodes:
+  - label: Trigger External Webhook
+    type: hook
+    props:
+      hook_type: webhook
+      config:
+        url: "https://example.com/webhook"
+        method: POST
+        headers:
+          Content-Type: application/json
+          X-API-Key: "{{secrets.webhook_api_key}}"
+        timeout: 30

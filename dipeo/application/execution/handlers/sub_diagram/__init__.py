@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import NodeType, SubDiagramNode
 from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
 
@@ -105,7 +105,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         # Configure services for executors on first execution
         if not self._services_configured:
             from dipeo.application.registry import (
-                DIAGRAM_SERVICE_NEW,
+                DIAGRAM_SERVICE,
                 MESSAGE_ROUTER,
                 PREPARE_DIAGRAM_USE_CASE,
                 STATE_STORE,
@@ -113,7 +113,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             state_store = request.services.resolve(STATE_STORE)
             message_router = request.services.resolve(MESSAGE_ROUTER)
-            diagram_service = request.services.resolve(DIAGRAM_SERVICE_NEW)
+            diagram_service = request.services.resolve(DIAGRAM_SERVICE)
             prepare_use_case = request.services.resolve(PREPARE_DIAGRAM_USE_CASE)
             
             # Validate required services
@@ -183,13 +183,10 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         
         # Route to appropriate executor
         if getattr(node, 'batch', False):
-            logger.info(f"Executing SubDiagramNode {node.id} in batch mode")
             result = await self.batch_executor.execute(request)
         elif getattr(node, 'use_standard_execution', False):
-            logger.info(f"Executing SubDiagramNode {node.id} in standard mode")
             result = await self.single_executor.execute(request)
         else:
-            logger.debug(f"Executing SubDiagramNode {node.id} in lightweight mode")
             result = await self.lightweight_executor.execute(request)
         
         return result
@@ -268,8 +265,5 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 batch_info = output.value if hasattr(output, 'value') else {}
                 total = batch_info.get('total_items', 0)
                 successful = batch_info.get('successful', 0)
-                logger.debug(f"Batch sub-diagram completed: {successful}/{total} successful")
-            else:
-                logger.debug(f"Sub-diagram completed for {request.node.diagram_name or 'inline diagram'}")
-        
+
         return output

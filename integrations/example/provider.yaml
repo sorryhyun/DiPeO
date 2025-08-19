@@ -1,0 +1,150 @@
+# Example Provider Manifest
+# This demonstrates how to add a new API integration without writing code
+
+name: example_api
+version: 1.0.0
+description: Example API provider for demonstration
+base_url: https://api.example.com
+
+# Authentication configuration
+auth:
+  strategy: oauth2_bearer
+  header: Authorization
+  format: "Bearer {{secret.token}}"
+  scopes:
+    - read
+    - write
+
+# Retry policy
+retry_policy:
+  strategy: exponential_backoff
+  max_retries: 3
+  base_delay_ms: 300
+  max_delay_ms: 10000
+  retry_on_status: [429, 500, 502, 503, 504]
+
+# Rate limiting
+rate_limit:
+  algorithm: token_bucket
+  capacity: 50
+  refill_per_sec: 1.0
+
+# Default request configuration
+default_timeout: 30.0
+default_headers:
+  Accept: application/json
+  User-Agent: DiPeO/1.0
+
+# Operations
+operations:
+  # Simple GET operation
+  get_resource:
+    method: GET
+    path: "/resources/{{config.resource_id}}"
+    description: Get a resource by ID
+    response:
+      success_codes: [200]
+      json_pointer: "/data"
+    timeout_override: 10.0
+
+  # POST operation with body
+  create_resource:
+    method: POST
+    path: /resources
+    description: Create a new resource
+    request:
+      body_template: |
+        {
+          "name": "{{config.name}}",
+          "type": "{{config.type}}",
+          "metadata": {{config.metadata | tojson}}
+        }
+      headers_template:
+        X-Request-ID: "{{config.request_id | default('auto')}}"
+    response:
+      success_codes: [201]
+      json_pointer: ""
+    required_scopes: [write]
+
+  # Operation with query parameters
+  list_resources:
+    method: GET
+    path: /resources
+    description: List resources with pagination
+    request:
+      query_params_template:
+        page: "{{config.page | default(1)}}"
+        limit: "{{config.limit | default(10)}}"
+        filter: "{{config.filter}}"
+    response:
+      success_codes: [200]
+      json_pointer: "/items"
+    pagination:
+      type: page_number
+      page_param: page
+      limit_param: limit
+      has_more_path: "/has_more"
+      default_limit: 10
+
+  # PUT operation with path parameters
+  update_resource:
+    method: PUT
+    path: "/resources/{{config.resource_id}}"
+    description: Update a resource
+    request:
+      body_template: |
+        {
+          "name": "{{config.name}}",
+          "type": "{{config.type}}",
+          "updated_at": "{{config.updated_at | default(now())}}"
+        }
+    response:
+      success_codes: [200, 204]
+      json_pointer: ""
+    required_scopes: [write]
+
+  # DELETE operation
+  delete_resource:
+    method: DELETE
+    path: "/resources/{{config.resource_id}}"
+    description: Delete a resource
+    response:
+      success_codes: [204]
+    required_scopes: [write]
+    timeout_override: 5.0
+
+# Webhook events (optional)
+webhook_events:
+  - name: resource.created
+    description: Triggered when a resource is created
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "event": {"type": "string"},
+          "resource": {"type": "object"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      }
+  
+  - name: resource.updated
+    description: Triggered when a resource is updated
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "event": {"type": "string"},
+          "resource": {"type": "object"},
+          "changes": {"type": "object"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      }
+
+# Additional metadata
+metadata:
+  documentation_url: https://docs.example.com/api
+  support_email: support@example.com
+  tags:
+    - example
+    - demo
+    - rest-api

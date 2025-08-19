@@ -16,7 +16,7 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.domain.conversation import Person
 from dipeo.diagram_generated.generated_nodes import PersonJobNode, NodeType
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData
 
 from .single_executor import SinglePersonJobExecutor

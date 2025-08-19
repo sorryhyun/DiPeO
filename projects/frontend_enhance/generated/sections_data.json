@@ -1,0 +1,224 @@
+{
+  "sections": [
+    {
+      "id": "component-requirements",
+      "title": "Component Requirements",
+      "description": "Define core dashboard UI components, their prop contracts, and reusable patterns. Establish clear boundaries between presentational and container logic, and extract reusable hooks, compound components, and utility components to maximize reusability.",
+      "acceptance": [
+        "Core component primitives and prop interfaces identified for dashboards (cards, panels, charts, nav items, forms, modals, etc.)",
+        "Separation of presentational vs container logic with clearly defined data flow",
+        "Reusable custom hooks and compound components extracted and documented",
+        "Type-safe component APIs using TypeScript generics and discriminated unions for UI states",
+        "Conventions for accessibility (ARIA labeling, keyboard navigation) embedded in component contracts",
+        "Folder structure and naming conventions defined for scalability",
+        "Design-system tokens consumed by components and demonstrated in examples"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": "Frontend UI components library and data contracts",
+        "interactions": [
+          "define interfaces",
+          "compose components",
+          "refactor into presentational/container patterns"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "technical-specifications",
+          "design-system-integration"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "technical-specifications",
+      "title": "Technical Specifications",
+      "description": "Provide the technical blueprint for the React dashboard, including architecture, patterns, data fetching, type strategy, and deployment considerations. Ensure readiness for React 18+ features and SSR/SSG planning.",
+      "acceptance": [
+        "Adopt React 18+ features (Suspense, Error Boundaries, concurrent features) and clear guidance on their usage",
+        "Strong TypeScript guidance: generics, discriminated unions, and strict type safety across components/hooks",
+        "Defined architecture: file structure, module boundaries, and separation of concerns",
+        "Data fetching pattern using React Query or SWR with loading, error, and success states",
+        "Code splitting strategy using React.lazy and dynamic imports",
+        "Environment/config handling and feature flags guidance",
+        "Server Components readiness considerations and SSR/SSG alignment plan"
+      ],
+      "prompt_context": {
+        "component_type": "technical-spec",
+        "data_model": "Frontend architecture contracts and API payload types",
+        "interactions": [
+          "define patterns",
+          "specify types",
+          "outline SSR/SSG readiness"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "component-requirements",
+          "design-system-integration",
+          "state-management"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "design-system-integration",
+      "title": "Design System Integration",
+      "description": "Align components with a Tailwind-based design system: tokens for color/typography/spacing, component API conventions, accessibility patterns, and responsive design enhancements (container queries, fluid typography).",
+      "acceptance": [
+        "Tailwind design tokens wired into components (colors, typography, spacing, radii)",
+        "Shared design system catalog and token-driven API for components",
+        "Reusable, accessible UI primitives documented for consumption by dashboards",
+        "Container queries and responsive typography integrated in the design system",
+        "Guidance on style encapsulation while leveraging Tailwind (and optional CSS modules or CSS-in-JS if used)"
+      ],
+      "prompt_context": {
+        "component_type": "design-system",
+        "data_model": "Design tokens and UI primitives",
+        "interactions": [
+          "define tokens",
+          "consume design system in components",
+          "document design-system usage"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "technical-specifications"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "state-management",
+      "title": "State Management",
+      "description": "Define state ownership, global vs local state, context usage, and reducer patterns. Establish data flow rules and integrate with server state management where applicable.",
+      "acceptance": [
+        "Clear delineation of local, global, and server state with ownership rules",
+        "Context API with well-typed slices and reducers (prefer discriminated unions)",
+        "Custom hooks to access and mutate state with minimal prop drilling",
+        "Guidance for lifting state and composing stateful components",
+        "Server state management patterns using React Query/SWR with caching and invalidation strategies"
+      ],
+      "prompt_context": {
+        "component_type": "state-management",
+        "data_model": "UI state contracts and data-fetching contracts",
+        "interactions": [
+          "lift state",
+          "provide context",
+          "define reducers"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "component-requirements",
+          "technical-specifications",
+          "performance-considerations"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "error-handling",
+      "title": "Error Handling",
+      "description": "Implement robust error handling strategies, including error boundaries, fallback UIs, and recovery workflows with logging and user-friendly messages.",
+      "acceptance": [
+        "React Error Boundaries with well-designed fallback UIs and recovery paths",
+        "Centralized error logging/reporting hooks and integration points",
+        "User-friendly error messages with ARIA attributes for accessibility",
+        "Test coverage for error scenarios and boundary behavior"
+      ],
+      "prompt_context": {
+        "component_type": "error-handling",
+        "data_model": "Error states across components",
+        "interactions": [
+          "catch-errors",
+          "render-fallback",
+          "log-errors"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "technical-specifications",
+          "testing-guidelines"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "performance-considerations",
+      "title": "Performance Considerations",
+      "description": "Outline performance-oriented practices to optimize Core Web Vitals, including code-splitting, memoization, virtualization, and caching strategies.",
+      "acceptance": [
+        "Code-splitting with React.lazy and dynamic imports for large dashboards",
+        "Memoization: React.memo, useMemo, useCallback to minimize re-renders",
+        "Virtualization for large lists and supportive infinite scrolling patterns",
+        "IntersectionObserver-driven lazy loading and scroll-triggered animations",
+        "Data caching and optimistic UI updates with proper invalidation",
+        "Guidance on asset optimization and responsive image handling"
+      ],
+      "prompt_context": {
+        "component_type": "performance-optimization",
+        "data_model": "Performance metrics and bundle size targets",
+        "interactions": [
+          "analyze",
+          "instrument",
+          "optimize"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "technical-specifications",
+          "testing-guidelines"
+        ]
+      },
+      "priority": 3
+    },
+    {
+      "id": "accessibility-requirements",
+      "title": "Accessibility Requirements",
+      "description": "Ensure WCAG 2.1 AA compliance through semantic HTML, ARIA labeling, keyboard navigation, and screen reader support across components.",
+      "acceptance": [
+        "WCAG 2.1 AA conformance support in all interactive components",
+        "Accessible name/role/state semantics with proper ARIA attributes",
+        "Keyboard-only navigation, focus management, and skip links",
+        "Screen reader-friendly labels and announcements for dynamic changes",
+        "Accessibility testing guidance and checks embedded in development process"
+      ],
+      "prompt_context": {
+        "component_type": "accessibility",
+        "data_model": "Accessible UI contracts",
+        "interactions": [
+          "audit",
+          "implement ARIA",
+          "validate accessibility"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "design-system-integration",
+          "testing-guidelines"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "testing-guidelines",
+      "title": "Testing Guidelines",
+      "description": "Define testing strategy, tooling, and coverage targets for components, hooks, and integration flows. Include RTL-oriented tests, accessibility checks, and CI integration.",
+      "acceptance": [
+        "Unit tests for components and hooks using React Testing Library",
+        "Integration tests for key state flows and data fetching",
+        "Defined test coverage targets and mocking strategies",
+        "Accessibility tests and automated checks incorporated into CI",
+        "Clear guidance for test data, fixtures, and environment setup"
+      ],
+      "prompt_context": {
+        "component_type": "testing",
+        "data_model": "Test contracts for UI components and hooks",
+        "interactions": [
+          "define test strategy",
+          "write sample tests"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "technical-specifications",
+          "accessibility-requirements"
+        ]
+      },
+      "priority": 2
+    }
+  ]
+}

@@ -5,7 +5,7 @@ trace IDs, and node attribution.
 """
 
 from typing import Any
-from dipeo.core.execution.envelope import get_envelope_factory
+from dipeo.domain.execution.envelope import get_envelope_factory
 
 
 class OutputBuilder:

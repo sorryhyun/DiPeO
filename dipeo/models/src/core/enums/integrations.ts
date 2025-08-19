@@ -5,6 +5,7 @@
 export enum LLMService {
   OPENAI = 'openai',
   ANTHROPIC = 'anthropic',
+  CLAUDE_CODE = 'claude-code',
   GOOGLE = 'google',
   GEMINI = 'gemini',
   BEDROCK = 'bedrock',
@@ -13,6 +14,11 @@ export enum LLMService {
   OLLAMA = 'ollama'
 }
 
+/**
+ * APIServiceType now only includes LLM providers.
+ * External API providers (NOTION, GOOGLE_SEARCH, SLACK, etc.) are now
+ * handled dynamically through the ProviderRegistry.
+ */
 export enum APIServiceType {
   OPENAI = 'openai',
   ANTHROPIC = 'anthropic',
@@ -21,13 +27,14 @@ export enum APIServiceType {
   BEDROCK = 'bedrock',
   VERTEX = 'vertex',
   DEEPSEEK = 'deepseek',
-  OLLAMA = 'ollama',
-  NOTION = 'notion',
-  GOOGLE_SEARCH = 'google_search',
-  SLACK = 'slack',
-  GITHUB = 'github',
-  JIRA = 'jira'
+  OLLAMA = 'ollama'
 }
+
+/**
+ * @deprecated Use plain string provider ids resolved at runtime.
+ * Kept only to avoid import breakages during transition.
+ */
+export type IntegrationProvider = string;
 
 export enum ToolType {
   WEB_SEARCH = 'web_search',

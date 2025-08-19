@@ -27,7 +27,7 @@ class IntegratedApiNode:
     position: Vec2
     
     # Required node-specific fields
-    provider: Literal["notion", "slack", "github", "jira", "google_search"]
+    provider: str
     operation: str
     
     # Optional base fields

@@ -16,16 +16,6 @@ export const integratedApiFields: UnifiedFieldDefinition[] = [
     label: 'Provider',
     required: true,
     description: 'API provider to connect to',
-    options: [
-      { value: 'notion', label: 'Notion' },
-      { value: 'slack', label: 'Slack' },
-      { value: 'github', label: 'GitHub' },
-      { value: 'jira', label: 'Jira' },
-      { value: 'google_search', label: 'Google Search' },
-    ],
-    validate: (value: unknown) => {
-      return { isValid: true };
-    },
   },
   {
     name: 'operation',

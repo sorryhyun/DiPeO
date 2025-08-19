@@ -4,14 +4,13 @@
  */
 
 import { BaseNodeData } from './base.js';
-import { APIServiceType } from '../enums/integrations.js';
 import { JsonDict } from '../types/json.js';
 
 export interface IntegratedApiNodeData extends BaseNodeData {
   /**
-   * The API provider to use (e.g., notion, slack, github)
+   * Provider id from the dynamic registry (e.g., 'notion', 'slack')
    */
-  provider: APIServiceType;
+  provider: string;
   
   /**
    * The operation to perform (provider-specific)
@@ -42,11 +41,11 @@ export interface IntegratedApiNodeData extends BaseNodeData {
 }
 
 /**
- * Provider-specific operation definitions
- * These will be used for validation and UI generation
+ * @deprecated Provider operations are now dynamically loaded from the provider registry
+ * This static definition is kept only for backward compatibility during transition
  */
-export const PROVIDER_OPERATIONS: Record<APIServiceType, string[]> = {
-  [APIServiceType.NOTION]: [
+export const PROVIDER_OPERATIONS: Record<string, string[]> = {
+  'notion': [
     'create_page',
     'update_page',
     'read_page',
@@ -55,14 +54,14 @@ export const PROVIDER_OPERATIONS: Record<APIServiceType, string[]> = {
     'query_database',
     'update_database'
   ],
-  [APIServiceType.SLACK]: [
+  'slack': [
     'send_message',
     'read_channel',
     'create_channel',
     'list_channels',
     'upload_file'
   ],
-  [APIServiceType.GITHUB]: [
+  'github': [
     'create_issue',
     'update_issue',
     'list_issues',
@@ -70,23 +69,14 @@ export const PROVIDER_OPERATIONS: Record<APIServiceType, string[]> = {
     'merge_pr',
     'get_repo_info'
   ],
-  [APIServiceType.JIRA]: [
+  'jira': [
     'create_issue',
     'update_issue',
     'search_issues',
     'transition_issue',
     'add_comment'
   ],
-  // LLM providers shouldn't be used with this node
-  [APIServiceType.OPENAI]: [],
-  [APIServiceType.ANTHROPIC]: [],
-  [APIServiceType.GOOGLE]: [],
-  [APIServiceType.GEMINI]: [],
-  [APIServiceType.BEDROCK]: [],
-  [APIServiceType.VERTEX]: [],
-  [APIServiceType.DEEPSEEK]: [],
-  [APIServiceType.OLLAMA]: [],
-  [APIServiceType.GOOGLE_SEARCH]: [
+  'google_search': [
     'search'
   ]
 };

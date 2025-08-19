@@ -12,12 +12,13 @@ import strawberry
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     FILESYSTEM_ADAPTER,
-    DIAGRAM_SERVICE_NEW,
+    DIAGRAM_SERVICE,
     STATE_STORE,
     CONVERSATION_SERVICE,
     CLI_SESSION_SERVICE,
+    DIAGRAM_CONVERTER,
 )
-from dipeo.core.constants import FILES_DIR
+from dipeo.domain.constants import FILES_DIR
 from dipeo.diagram_generated import LLMService, NodeType
 from strawberry.scalars import JSON as JSONScalar
 from pathlib import Path
@@ -44,9 +45,16 @@ from ..types.domain_types import (
 )
 
 from ..resolvers import DiagramResolver, ExecutionResolver, PersonResolver
+from ..resolvers.provider_resolver import ProviderResolver
 from ..types.inputs import DiagramFilterInput, ExecutionFilterInput
 from ..types.results import DiagramFormatInfo
 from ..types.cli_session import CliSession
+from ..types.provider_types import (
+    ProviderType,
+    OperationType,
+    OperationSchemaType,
+    ProviderStatisticsType
+)
 
 # Version constant - should be imported from shared location
 DIAGRAM_VERSION = "1.0.0"
@@ -59,6 +67,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
     diagram_resolver = DiagramResolver(registry)
     execution_resolver = ExecutionResolver(registry)
     person_resolver = PersonResolver(registry)
+    provider_resolver = ProviderResolver(registry)
     
     @strawberry.type
     class Query:
@@ -118,6 +127,33 @@ def create_query_type(registry: ServiceRegistry) -> type:
             return await person_resolver.get_available_models(service, api_key_id_typed)
         
         @strawberry.field
+        async def providers(self) -> List[ProviderType]:
+            """List all registered API providers."""
+            return await provider_resolver.list_providers()
+        
+        @strawberry.field
+        async def provider(self, name: str) -> Optional[ProviderType]:
+            """Get a specific API provider by name."""
+            return await provider_resolver.get_provider(name)
+        
+        @strawberry.field
+        async def provider_operations(self, provider: str) -> List[OperationType]:
+            """Get operations for a specific provider."""
+            return await provider_resolver.get_provider_operations(provider)
+        
+        @strawberry.field
+        async def operation_schema(
+            self, provider: str, operation: str
+        ) -> Optional[OperationSchemaType]:
+            """Get schema for a specific operation."""
+            return await provider_resolver.get_operation_schema(provider, operation)
+        
+        @strawberry.field
+        async def provider_statistics(self) -> ProviderStatisticsType:
+            """Get statistics about registered providers."""
+            return await provider_resolver.get_provider_statistics()
+        
+        @strawberry.field
         async def system_info(self) -> JSONScalar:
             return {
                 "version": DIAGRAM_VERSION,
@@ -130,7 +166,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
         @strawberry.field
         async def execution_capabilities(self) -> JSONScalar:
             # Get diagram service from registry
-            integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
+            integrated_service = registry.resolve(DIAGRAM_SERVICE)
             persons_list = []
             
             if integrated_service:
@@ -229,9 +265,8 @@ def create_query_type(registry: ServiceRegistry) -> type:
         
         @strawberry.field
         async def supported_formats(self) -> List[DiagramFormatInfo]:
-            from dipeo.infrastructure.services.diagram import converter_registry
-            
-            formats = converter_registry.list_formats()
+            converter = registry.resolve(DIAGRAM_CONVERTER)
+            formats = converter.list_formats()
             return [
                 DiagramFormatInfo(
                     format=fmt["id"],
@@ -343,7 +378,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
             if not cli_session_service:
                 return None
             
-            from dipeo.application.services.cli_session_service import CliSessionService
+            from dipeo.application.execution.use_cases import CliSessionService
             if isinstance(cli_session_service, CliSessionService):
                 session_data = await cli_session_service.get_active_session()
                 if session_data:

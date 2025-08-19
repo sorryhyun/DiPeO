@@ -278,7 +278,7 @@ class HookNode(BaseExecutableNode):
 @dataclass(frozen=True)
 class IntegratedApiNode(BaseExecutableNode):
     # Required node-specific fields
-    provider: APIServiceType = field()
+    provider: str = field()
     operation: str = field()
     # Type field with default
     type: NodeType = field(default=NodeType.INTEGRATED_API, init=False)
@@ -478,6 +478,8 @@ class TemplateJobNode(BaseExecutableNode):
     output_path: Optional[str] = None
     variables: Optional[JsonDict] = None
     engine: Optional[TemplateEngine] = None
+    foreach: Optional[Dict[str, Any]] = None
+    preprocessor: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -492,6 +494,8 @@ class TemplateJobNode(BaseExecutableNode):
         data["output_path"] = self.output_path
         data["variables"] = self.variables
         data["engine"] = self.engine
+        data["foreach"] = self.foreach
+        data["preprocessor"] = self.preprocessor
         return data
 
 
@@ -797,6 +801,8 @@ def create_executable_node(
             output_path=data.get("output_path", None),
             variables=data.get("variables", None),
             engine=data.get("engine", None),
+            foreach=data.get("foreach", None),
+            preprocessor=data.get("preprocessor", None),
         )
     
 

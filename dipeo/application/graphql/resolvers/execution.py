@@ -3,16 +3,14 @@
 import logging
 from typing import Optional, List
 
-from dipeo.application.registry import ServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry.keys import STATE_STORE
 from dipeo.diagram_generated.domain_models import ExecutionID, ExecutionState
-from dipeo.core.ports import StateStorePort
+from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
 
 from ..types.inputs import ExecutionFilterInput
 
 logger = logging.getLogger(__name__)
-
-# Service keys
-STATE_STORE = ServiceKey[StateStorePort]("state_store")
 
 
 class ExecutionResolver:

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 
 from .base_executor import BaseSubDiagramExecutor
@@ -78,21 +78,13 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         
         # Get batch configuration
         batch_config = self._get_batch_configuration(node)
-        
-        logger.debug(
-            f"Batch configuration - key: {batch_config['input_key']}, "
-            f"parallel: {batch_config['parallel']}, "
-            f"max_concurrent: {batch_config['max_concurrent']}"
-        )
-        
+
         # Extract array from inputs
         batch_items = self._extract_batch_items(request.inputs, batch_config['input_key'])
 
         if not batch_items:
             return self._create_empty_batch_output(node, batch_config)
-        
-        logger.info(f"Processing batch of {len(batch_items)} items for sub-diagram {node.diagram_name or 'inline'}")
-        
+
         # Load and prepare diagram once for all batch items
         domain_diagram = await self._load_diagram(node)
         
@@ -200,8 +192,15 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         """
         if not inputs:
             return []
-        
-        logger.debug(f"Extracting batch items with key '{batch_input_key}' from inputs: {list(inputs.keys())}")
+
+        # Add detailed logging to debug the issue
+        if 'default' in inputs:
+            default_value = inputs['default']
+            logger.debug(f"Type of 'default' value: {type(default_value)}")
+            if isinstance(default_value, dict):
+                logger.debug(f"Keys in 'default' dict: {list(default_value.keys())}")
+            elif isinstance(default_value, str):
+                logger.debug(f"'default' is a string, first 100 chars: {default_value[:100]}")
         
         batch_items = self._find_batch_items_in_inputs(inputs, batch_input_key)
         
@@ -236,19 +235,16 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
             
             # Check if default contains the key
             if isinstance(default_value, dict) and batch_input_key in default_value:
-                logger.debug("Found batch items under 'default'")
                 return default_value[batch_input_key]
             
             # Check if the batch items ARE the default value
             if batch_input_key == 'default':
-                logger.debug("Batch items are the default value itself")
                 return default_value
             
             # Search nested structure
             if isinstance(default_value, dict):
                 for key, value in default_value.items():
                     if key == batch_input_key:
-                        logger.debug(f"Found batch items in default dict at key '{key}'")
                         return value
         
         return None
@@ -410,10 +406,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
             diagram_service=base_context['diagram_service'],
             container=base_context['container']
         )
-        
-        # Log batch item execution
-        logger.debug(f"Executing batch item {index + 1}/{total} for sub-diagram {node.diagram_name or 'inline'}")
-        
+
         # Execute and collect only final results
         execution_results, execution_error = await self._execute_optimized(
             execute_use_case=execute_use_case,

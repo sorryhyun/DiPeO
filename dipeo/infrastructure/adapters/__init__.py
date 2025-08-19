@@ -1,1 +1,0 @@
-"""Infrastructure adapters implementing domain ports."""

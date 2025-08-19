@@ -4,8 +4,7 @@ Temporary file to register domain types used by node data models.
 """
 
 import strawberry
-from dipeo.diagram_generated.domain_models import MemorySettings
-from dipeo.diagram_generated.integrations import ToolConfig
+from dipeo.diagram_generated.domain_models import MemorySettings, ToolConfig
 from dipeo.diagram_generated.enums import MemoryView, ToolType
 
 

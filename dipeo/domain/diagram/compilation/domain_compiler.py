@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any
 
-from dipeo.core.ports.diagram_compiler import DiagramCompiler
+from dipeo.domain.diagram.ports import DiagramCompiler
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableEdgeV2
 from dipeo.diagram_generated import DomainDiagram, NodeID, NodeType
 from dipeo.diagram_generated.generated_nodes import ExecutableNode
@@ -19,6 +19,12 @@ from dipeo.diagram_generated.generated_nodes import ExecutableNode
 from .connection_resolver import ConnectionResolver
 from .edge_builder import EdgeBuilder
 from .node_factory import NodeFactory
+from ..validation.utils import (
+    validate_arrow_handles,
+    validate_node_type_connections,
+    validate_condition_node_branches,
+    find_unreachable_nodes,
+)
 
 
 class CompilationPhase(Enum):
@@ -40,6 +46,29 @@ class CompilationError:
     arrow_id: str | None = None
     severity: str = "error"  # error, warning, info
     suggestion: str | None = None
+    field_name: str | None = None  # For specific field validation
+    
+    def to_validation_error(self):
+        """Convert to ValidationError for compatibility."""
+        from dipeo.domain.base.exceptions import ValidationError
+        field_name = self.field_name
+        if not field_name:
+            if self.node_id:
+                field_name = f"node.{self.node_id}"
+            elif self.arrow_id:
+                field_name = f"arrow.{self.arrow_id}"
+        return ValidationError(self.message, field_name=field_name)
+    
+    def to_validation_warning(self):
+        """Convert to ValidationWarning for compatibility."""
+        from dipeo.domain.base.validator import ValidationWarning
+        field_name = self.field_name
+        if not field_name:
+            if self.node_id:
+                field_name = f"node.{self.node_id}"
+            elif self.arrow_id:
+                field_name = f"arrow.{self.arrow_id}"
+        return ValidationWarning(self.message, field_name=field_name)
 
 
 @dataclass
@@ -120,8 +149,17 @@ class DomainDiagramCompiler(DiagramCompiler):
             raise RuntimeError("Compilation succeeded but no diagram was produced")
         return result.diagram
     
-    def compile_with_diagnostics(self, domain_diagram: DomainDiagram) -> CompilationResult:
-        """Compile with detailed diagnostics and error reporting."""
+    def compile_with_diagnostics(
+        self, 
+        domain_diagram: DomainDiagram, 
+        stop_after: CompilationPhase | None = None
+    ) -> CompilationResult:
+        """Compile with detailed diagnostics and error reporting.
+        
+        Args:
+            domain_diagram: The diagram to compile
+            stop_after: Optional phase to stop after (useful for validation-only)
+        """
         context = CompilationContext(domain_diagram)
         
         # Execute compilation phases
@@ -139,6 +177,9 @@ class DomainDiagramCompiler(DiagramCompiler):
                 handler(context)
                 if context.result.errors:
                     # Stop on first phase with errors
+                    break
+                if stop_after and phase == stop_after:
+                    # Stop after requested phase
                     break
             except Exception as e:
                 context.result.add_error(
@@ -163,6 +204,7 @@ class DomainDiagramCompiler(DiagramCompiler):
                 CompilationPhase.VALIDATION,
                 "Diagram must contain at least one node"
             )
+            return  # Can't continue without nodes
         
         # Check for duplicate node IDs
         node_ids = [node.id for node in context.nodes_list]
@@ -172,6 +214,8 @@ class DomainDiagramCompiler(DiagramCompiler):
                 CompilationPhase.VALIDATION,
                 f"Duplicate node IDs found: {duplicates}"
             )
+        
+        node_id_set = set(node_ids)
         
         # Validate node types
         for node in context.nodes_list:
@@ -189,6 +233,77 @@ class DomainDiagramCompiler(DiagramCompiler):
                     f"Error validating node type: {node.type} - {str(e)}",
                     node_id=node.id
                 )
+        
+        # Validate start and endpoint nodes
+        start_nodes = [n for n in context.nodes_list if n.type == NodeType.START]
+        endpoint_nodes = [n for n in context.nodes_list if n.type == NodeType.ENDPOINT]
+        
+        if not start_nodes:
+            context.result.add_error(
+                CompilationPhase.VALIDATION,
+                "Diagram must have at least one start node"
+            )
+        if not endpoint_nodes:
+            context.result.add_warning(
+                CompilationPhase.VALIDATION,
+                "Diagram has no endpoint node - outputs may not be saved"
+            )
+        
+        # Validate arrows using shared utilities
+        for arrow in context.arrows_list:
+            arrow_errors = validate_arrow_handles(arrow, node_id_set)
+            for error in arrow_errors:
+                context.result.add_error(
+                    CompilationPhase.VALIDATION,
+                    error,
+                    arrow_id=arrow.id
+                )
+        
+        # Count connections for each node
+        incoming_counts = {node.id: 0 for node in context.nodes_list}
+        outgoing_counts = {node.id: 0 for node in context.nodes_list}
+        outgoing_handles = {node.id: [] for node in context.nodes_list}
+        
+        for arrow in context.arrows_list:
+            from dipeo.domain.diagram.handle import parse_handle_id_safe
+            source_parsed = parse_handle_id_safe(arrow.source)
+            target_parsed = parse_handle_id_safe(arrow.target)
+            
+            if source_parsed and target_parsed:
+                if source_parsed.node_id in node_id_set:
+                    outgoing_counts[source_parsed.node_id] += 1
+                    if source_parsed.handle_label:
+                        outgoing_handles[source_parsed.node_id].append(source_parsed.handle_label.value)
+                if target_parsed.node_id in node_id_set:
+                    incoming_counts[target_parsed.node_id] += 1
+        
+        # Validate node type connection rules
+        for node in context.nodes_list:
+            # Check connection counts
+            conn_errors = validate_node_type_connections(
+                node,
+                incoming_counts[node.id],
+                outgoing_counts[node.id]
+            )
+            for error in conn_errors:
+                context.result.add_error(
+                    CompilationPhase.VALIDATION,
+                    error,
+                    node_id=node.id
+                )
+            
+            # Check condition node branches
+            if node.type == NodeType.CONDITION:
+                branch_warnings = validate_condition_node_branches(
+                    node,
+                    outgoing_handles[node.id]
+                )
+                for warning in branch_warnings:
+                    context.result.add_warning(
+                        CompilationPhase.VALIDATION,
+                        warning,
+                        node_id=node.id
+                    )
     
     def _node_transformation_phase(self, context: CompilationContext) -> None:
         """Phase 2: Transform domain nodes to strongly-typed executable nodes."""
@@ -257,15 +372,13 @@ class DomainDiagramCompiler(DiagramCompiler):
     
     def _optimization_phase(self, context: CompilationContext) -> None:
         """Phase 5: Optimize execution paths and detect issues."""
-        # Detect unreachable nodes
-        reachable = self._find_reachable_nodes(
-            context.start_nodes,
-            context.node_dependencies,
-            context.typed_edges
-        )
+        # Detect unreachable nodes using shared utility
+        unreachable = find_unreachable_nodes(context.nodes_list, context.arrows_list)
         
-        for node in context.typed_nodes:
-            if node.id not in reachable and node.type != NodeType.START:
+        for node_id in unreachable:
+            # Skip START nodes in unreachable check (they are entry points)
+            node = next((n for n in context.typed_nodes if n.id == node_id), None)
+            if node and node.type != NodeType.START:
                 context.result.add_warning(
                     CompilationPhase.OPTIMIZATION,
                     f"Node '{node.id}' is unreachable from any start node",
@@ -346,34 +459,6 @@ class DomainDiagramCompiler(DiagramCompiler):
         if isinstance(diagram.arrows, dict):
             return list(diagram.arrows.values())
         return diagram.arrows
-    
-    def _find_reachable_nodes(
-        self,
-        start_nodes: set[NodeID],
-        dependencies: dict[NodeID, set[NodeID]],
-        edges: list[ExecutableEdgeV2]
-    ) -> set[NodeID]:
-        """Find all nodes reachable from start nodes."""
-        reachable = set(start_nodes)
-        
-        # Build forward adjacency list
-        forward_deps = {}
-        for edge in edges:
-            if edge.source_node_id not in forward_deps:
-                forward_deps[edge.source_node_id] = set()
-            forward_deps[edge.source_node_id].add(edge.target_node_id)
-        
-        # BFS from start nodes
-        queue = list(start_nodes)
-        while queue:
-            node = queue.pop(0)
-            if node in forward_deps:
-                for target in forward_deps[node]:
-                    if target not in reachable:
-                        reachable.add(target)
-                        queue.append(target)
-        
-        return reachable
     
     def _detect_cycles(self, dependencies: dict[NodeID, set[NodeID]]) -> list[list[NodeID]]:
         """Detect cycles in the dependency graph."""

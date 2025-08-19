@@ -6,12 +6,12 @@ from collections.abc import AsyncGenerator, Callable
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.core import BaseService
+from dipeo.domain.base import BaseService
 from dipeo.diagram_generated.enums import Status
 from dipeo.application.registry import (
     STATE_STORE,
     MESSAGE_ROUTER,
-    DIAGRAM_SERVICE_NEW,
+    DIAGRAM_SERVICE,
     API_KEY_SERVICE,
     CONVERSATION_SERVICE,
     CONVERSATION_MANAGER,
@@ -19,10 +19,10 @@ from dipeo.application.registry import (
 )
 
 if TYPE_CHECKING:
-    from dipeo.core.ports.message_router import MessageRouterPort
-    from dipeo.core.ports.state_store import StateStorePort
+    from dipeo.domain.events.ports import MessageBus as MessageRouterPort
+    from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-    from dipeo.infrastructure.services.diagram import DiagramService
+    from dipeo.infrastructure.diagram.drivers.diagram_service import DiagramService
     from dipeo.diagram_generated import DomainDiagram
 
     from ...registry import ServiceRegistry
@@ -46,7 +46,7 @@ class ExecuteDiagramUseCase(BaseService):
         
         self.state_store = state_store or service_registry.resolve(STATE_STORE)
         self.message_router = message_router or service_registry.resolve(MESSAGE_ROUTER)
-        self.diagram_service = diagram_service or service_registry.resolve(DIAGRAM_SERVICE_NEW)
+        self.diagram_service = diagram_service or service_registry.resolve(DIAGRAM_SERVICE)
         
         if not self.state_store:
             raise ValueError("state_store is required but not found in service registry")
@@ -116,8 +116,8 @@ class ExecuteDiagramUseCase(BaseService):
             
             # Subscribe unified observer to event bus using adapter
             if engine_observers:
-                from dipeo.infrastructure.events.observer_adapter import ObserverToEventConsumerAdapter
-                from dipeo.core.events import EventType
+                from dipeo.infrastructure.events.adapters.legacy import ObserverToEventConsumerAdapter
+                from dipeo.domain.events import EventType
                 
                 for observer in engine_observers:
                     adapter = ObserverToEventConsumerAdapter(observer)
@@ -125,7 +125,7 @@ class ExecuteDiagramUseCase(BaseService):
                     event_bus.subscribe(EventType.EXECUTION_STARTED, adapter)
                     event_bus.subscribe(EventType.NODE_STARTED, adapter)
                     event_bus.subscribe(EventType.NODE_COMPLETED, adapter)
-                    event_bus.subscribe(EventType.NODE_FAILED, adapter)
+                    event_bus.subscribe(EventType.NODE_ERROR, adapter)
                     event_bus.subscribe(EventType.EXECUTION_COMPLETED, adapter)
                     # logger.debug(f"[ExecuteDiagram] Subscribed observer to event bus")
         else:
@@ -246,15 +246,15 @@ class ExecuteDiagramUseCase(BaseService):
             )
         else:
             # Fallback to inline implementation if service not available
-            from dipeo.application.registry import COMPILATION_SERVICE
+            from dipeo.application.registry.registry_tokens import DIAGRAM_COMPILER
             
             # Already have a DomainDiagram, just compile it
             domain_diagram = diagram
             
             # Compile to ExecutableDiagram
-            compiler = self.service_registry.resolve(COMPILATION_SERVICE)
+            compiler = self.service_registry.resolve(DIAGRAM_COMPILER)
             if not compiler:
-                raise RuntimeError("CompilationService not found in registry")
+                raise RuntimeError("DiagramCompiler not found in registry")
             
             executable_diagram = compiler.compile(domain_diagram)
             

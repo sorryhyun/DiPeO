@@ -16,17 +16,16 @@ from .schema.subscriptions import create_subscription_type
 from .types.scalars import JSONScalar
 
 # Import generated types
-# TODO: Fix dict[str, Any] field handling in generated types before enabling
+# TODO: Fix Dict field handling in generated types
 # from dipeo.diagram_generated.graphql.strawberry_nodes import (
 #     ApiJobDataType,
 #     CodeJobDataType,
 #     ConditionDataType,
-#     DbDataType,
+#     DBDataType,
 #     EndpointDataType,
 #     HookDataType,
 #     IntegratedApiDataType,
 #     JsonSchemaValidatorDataType,
-#     NotionDataType,
 #     PersonBatchJobDataType,
 #     PersonJobDataType,
 #     StartDataType,
@@ -35,7 +34,11 @@ from .types.scalars import JSONScalar
 #     TypescriptAstDataType,
 #     UserResponseDataType,
 # )
-# from dipeo.diagram_generated.graphql.node_mutations import NodeMutations
+# Note: strawberry_domain.py needs to be regenerated
+# from dipeo.diagram_generated.graphql.strawberry_domain import (
+#     MemorySettingsType,
+#     ToolConfigType,
+# )
 
 
 def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
@@ -77,8 +80,9 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
             # Register JSON scalar type
             dict: JSONScalar
         },
-        # Register all scalar types explicitly
+        # Register all scalar and generated types
         types=[
+            # Scalar types
             NodeIDScalar,
             HandleIDScalar,
             ArrowIDScalar,
@@ -88,27 +92,27 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
             ExecutionIDScalar,
             HookIDScalar,
             TaskIDScalar,
-        ],
-        # Register concrete types for interface resolution
-        # TODO: Enable when dict[str, Any] field handling is fixed in generated types
-        # types=[
-        #     ApiJobDataType,
-        #     CodeJobDataType,
-        #     ConditionDataType,
-        #     DbDataType,
-        #     EndpointDataType,
-        #     HookDataType,
-        #     IntegratedApiDataType,
-        #     JsonSchemaValidatorDataType,
-        #     NotionDataType,
-        #     PersonBatchJobDataType,
-        #     PersonJobDataType,
-        #     StartDataType,
-        #     SubDiagramDataType,
-        #     TemplateJobDataType,
-        #     TypescriptAstDataType,
-        #     UserResponseDataType,
-        # ]
+            # Generated node data types
+            # TODO: Fix Dict field handling before enabling
+            # ApiJobDataType,
+            # CodeJobDataType,
+            # ConditionDataType,
+            # DBDataType,
+            # EndpointDataType,
+            # HookDataType,
+            # IntegratedApiDataType,
+            # JsonSchemaValidatorDataType,
+            # PersonBatchJobDataType,
+            # PersonJobDataType,
+            # StartDataType,
+            # SubDiagramDataType,
+            # TemplateJobDataType,
+            # TypescriptAstDataType,
+            # UserResponseDataType,
+            # Domain types (need to be regenerated)
+            # MemorySettingsType,
+            # ToolConfigType,
+        ]
     )
     
     return schema

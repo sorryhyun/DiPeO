@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from dipeo.core.execution.envelope import Envelope
-from dipeo.core.resolution import StandardNodeOutput
+from dipeo.domain.execution.envelope import Envelope
+from dipeo.domain.diagram.models.executable_diagram import StandardNodeOutput
 from .base import PipelineStage, PipelineContext
 
 
@@ -51,7 +51,11 @@ class IncomingEdgesStage(PipelineStage):
                 return StandardNodeOutput.from_value(str(source_output.body))
             elif source_output.content_type == "object":
                 # Object content - return as-is (dict, list, or pydantic model)
-                return StandardNodeOutput.from_value(source_output.body)
+                output = StandardNodeOutput.from_value(source_output.body)
+                # Preserve structured flag if present
+                if source_output.meta.get("is_structured"):
+                    output.metadata["is_structured"] = True
+                return output
             elif source_output.content_type == "conversation_state":
                 # Conversation state - return structured payload
                 return StandardNodeOutput.from_value(source_output.body)

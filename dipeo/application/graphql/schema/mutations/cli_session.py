@@ -5,7 +5,7 @@ from typing import Optional
 import logging
 
 from dipeo.application.registry import ServiceRegistry, CLI_SESSION_SERVICE
-from dipeo.application.services.cli_session_service import CliSessionService
+from dipeo.application.execution.use_cases import CliSessionService
 from ...types.inputs import RegisterCliSessionInput, UnregisterCliSessionInput
 from ...types.results import CliSessionResult
 
@@ -34,10 +34,14 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
                     diagram_path = input.diagram_path or input.diagram_name
                     try:
                         # Load diagram from file using the diagram service
-                        from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
-                        diagram_service = registry.get(DIAGRAM_SERVICE_NEW)
+                        from dipeo.application.registry.keys import DIAGRAM_SERVICE
+                        diagram_service = registry.get(DIAGRAM_SERVICE)
                         
                         if diagram_service:
+                            # Initialize diagram service if needed
+                            if hasattr(diagram_service, 'initialize'):
+                                await diagram_service.initialize()
+                            
                             # Use the provided path to load the diagram
                             
                             # Load the diagram using the service
@@ -47,7 +51,7 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
                                 # Fallback to getting diagram dict
                                 diagram_dict = await diagram_service.get_diagram(diagram_path)
                                 # Convert to DomainDiagram
-                                from dipeo.infrastructure.services.diagram import DiagramConverterService
+                                from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
                                 converter = DiagramConverterService()
                                 await converter.initialize()
                                 import json

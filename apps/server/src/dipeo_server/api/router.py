@@ -6,6 +6,7 @@ from strawberry.fastapi import GraphQLRouter
 from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
 
 from .context import get_request_context
+from .webhooks import router as webhook_router
 
 
 def create_graphql_router(context_getter=None, container=None):
@@ -35,6 +36,9 @@ def setup_routes(app: FastAPI):
 
     graphql_router = create_graphql_router(context_getter=get_request_context)
     app.include_router(graphql_router, prefix="")
+    
+    # Include webhook router
+    app.include_router(webhook_router)
 
     # V2 GraphQL router - temporarily disabled during migration
     # v2_graphql_router = create_v2_graphql_router(context_getter=get_request_context)

@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any
 
-from dipeo.core.execution.execution_context import ExecutionContext
+from dipeo.domain.execution.execution_context import ExecutionContext
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
 from dipeo.diagram_generated.enums import Status

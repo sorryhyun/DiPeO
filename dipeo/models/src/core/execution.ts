@@ -41,6 +41,13 @@ export interface NodeMetrics {
   dependencies?: string[];
 }
 
+export interface Bottleneck {
+  node_id: string;
+  node_type: string;
+  duration_ms: number;
+  percentage: number;
+}
+
 export interface ExecutionMetrics {
   execution_id: ExecutionID;
   start_time: number;
@@ -49,12 +56,7 @@ export interface ExecutionMetrics {
   node_metrics: Record<string, NodeMetrics>;
   critical_path?: string[];
   parallelizable_groups?: string[][];
-  bottlenecks?: Array<{
-    node_id: string;
-    node_type: string;
-    duration_ms: number;
-    percentage: number;
-  }>;
+  bottlenecks?: Bottleneck[];
 }
 
 

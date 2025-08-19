@@ -8,13 +8,12 @@ from typing import Any, Optional
 from collections import defaultdict
 
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
-from dipeo.core.execution.dynamic_order_calculator import DynamicOrderCalculator as DynamicOrderCalculatorProtocol
-from dipeo.core.execution.execution_context import ExecutionContext
+from .execution_context import ExecutionContext
 from dipeo.diagram_generated import NodeID, NodeState, Status, NodeType
 from dipeo.diagram_generated.generated_nodes import ConditionNode
 
 
-class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
+class DomainDynamicOrderCalculator:
     """Domain implementation of dynamic order calculation.
     
     This calculator considers:
@@ -333,7 +332,7 @@ class DomainDynamicOrderCalculator(DynamicOrderCalculatorProtocol):
             if context:
                 output = context.get_node_output(edge.source_node_id)
                 # Check for Envelope with condition result
-                from dipeo.core.execution.envelope import Envelope
+                from dipeo.domain.execution.envelope import Envelope
                 if isinstance(output, Envelope) and output.content_type == "condition_result":
                     # Use active_branch from metadata
                     active_branch = output.meta.get("active_branch", "condfalse")

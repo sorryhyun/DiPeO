@@ -11,10 +11,10 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated import ExecutionID, ExecutionState, NodeState, Status, TokenUsage
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
-from dipeo.infrastructure.events import NullEventBus
+from dipeo.infrastructure.events.adapters.legacy import NullEventBus
 
 from .base_executor import BaseSubDiagramExecutor
 
@@ -155,9 +155,9 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
     
     
     async def _compile_diagram_fallback(self, diagram_data: Any) -> "ExecutableDiagram":
-        """Fallback diagram compilation (old implementation)."""
+        """Fallback diagram compilation using adapter."""
         from dipeo.diagram_generated import DomainDiagram
-        from dipeo.infrastructure.services.diagram.compilation_service import CompilationService
+        from dipeo.infrastructure.diagram.adapters import StandardCompilerAdapter
         
         # Check if already a DomainDiagram
         if isinstance(diagram_data, DomainDiagram):
@@ -168,9 +168,8 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         else:
             raise ValueError(f"Unsupported diagram type: {type(diagram_data)}")
         
-        # Compile to executable
-        compiler = CompilationService()
-        await compiler.initialize()
+        # Compile to executable using adapter
+        compiler = StandardCompilerAdapter(use_interface_based=True)
         executable_diagram = compiler.compile(domain_diagram)
         
         return executable_diagram

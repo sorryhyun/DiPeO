@@ -69,8 +69,23 @@ def generate_conversions_summary(node_type_map: dict) -> dict:
     }
 
 
-def generate_static_nodes_summary(static_nodes_data: dict) -> dict:
+def generate_static_nodes_summary(static_nodes_data) -> dict:
     """Generate summary for static nodes generation"""
+    # Handle both dict and JSON string inputs
+    if isinstance(static_nodes_data, str):
+        import json
+        # Debug logging to understand the input
+        # print(f"DEBUG: static_nodes_data is a string: repr={repr(static_nodes_data)}, len={len(static_nodes_data)}")
+        if static_nodes_data.strip():  # Only parse non-empty strings
+            try:
+                static_nodes_data = json.loads(static_nodes_data)
+            except json.JSONDecodeError as e:
+                # print(f"DEBUG: Failed to parse JSON: {e}")
+                # print(f"DEBUG: String content: {repr(static_nodes_data)}")
+                static_nodes_data = {}  # Default to empty dict on parse error
+        else:
+            static_nodes_data = {}  # Default to empty dict for empty strings
+    
     node_classes = static_nodes_data.get('node_classes', [])
     
     # Verbose logging removed - uncomment if needed for debugging

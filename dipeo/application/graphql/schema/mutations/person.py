@@ -5,7 +5,8 @@ from uuid import uuid4
 
 import strawberry
 
-from dipeo.application.registry import ServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry.keys import PERSON_MANAGER
 from dipeo.domain.conversation import PersonManager
 from dipeo.diagram_generated import DomainPerson
 from dipeo.diagram_generated.domain_models import PersonLLMConfig, PersonID, LLMService, ApiKeyID
@@ -14,9 +15,6 @@ from ...types.inputs import CreatePersonInput, UpdatePersonInput
 from ...types.results import PersonResult, DeleteResult
 
 logger = logging.getLogger(__name__)
-
-# Service keys
-PERSON_MANAGER = ServiceKey[PersonManager]("person_manager")
 
 
 def create_person_mutations(registry: ServiceRegistry) -> type:

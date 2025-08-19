@@ -1,0 +1,236 @@
+# Slack Provider Manifest
+# Migrated from SlackProvider Python implementation to manifest-based approach
+
+name: slack
+version: 1.0.0
+description: Slack API integration for messaging and channel management
+base_url: https://slack.com/api
+
+# Authentication
+auth:
+  strategy: oauth2_bearer
+  header: Authorization
+  format: "Bearer {{api_key}}"
+  scopes:
+    - chat:write
+    - channels:read
+    - channels:manage
+    - files:write
+
+# Retry policy
+retry_policy:
+  strategy: exponential_backoff
+  max_retries: 3
+  base_delay_ms: 300
+  max_delay_ms: 10000
+  retry_on_status: [429, 500, 502, 503, 504]
+
+# Rate limiting (Slack tier-based limits)
+rate_limit:
+  algorithm: token_bucket
+  capacity: 50  # Tier 2 default
+  refill_per_sec: 1.0
+
+# Default configuration
+default_timeout: 30.0
+default_headers:
+  Content-Type: application/json
+
+# Operations
+operations:
+  send_message:
+    method: POST
+    path: /chat.postMessage
+    description: Send a message to a Slack channel
+    request:
+      body_template: |
+        {
+          "channel": "{{resource_id or config.channel}}",
+          "text": "{{config.text}}"
+          {%- if config.blocks %},
+          "blocks": {{config.blocks | tojson}}
+          {%- endif %}
+          {%- if config.thread_ts %},
+          "thread_ts": "{{config.thread_ts}}"
+          {%- endif %}
+          {%- if config.reply_broadcast %},
+          "reply_broadcast": {{config.reply_broadcast | lower}}
+          {%- endif %}
+          {%- if config.unfurl_links is defined %},
+          "unfurl_links": {{config.unfurl_links | lower}}
+          {%- endif %}
+          {%- if config.unfurl_media is defined %},
+          "unfurl_media": {{config.unfurl_media | lower}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/error"
+      # Check for Slack's "ok" field
+      transform: |
+        {% if not response.ok %}
+          {% set _ = raise_error("Slack API error: " ~ (response.error or "Unknown error")) %}
+        {% endif %}
+        {{response | tojson}}
+    required_scopes: [chat:write]
+    timeout_override: 10.0
+
+  list_channels:
+    method: GET
+    path: /conversations.list
+    description: List public channels in a Slack workspace
+    request:
+      query_params_template:
+        types: "{{config.types | default('public_channel')}}"
+        limit: "{{config.limit | default(100)}}"
+        cursor: "{% if config.cursor %}{{config.cursor}}{% endif %}"
+        exclude_archived: "{{config.exclude_archived | default(true) | lower}}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/error"
+      transform: |
+        {% if not response.ok %}
+          {% set _ = raise_error("Slack API error: " ~ (response.error or "Unknown error")) %}
+        {% endif %}
+        {{response | tojson}}
+    pagination:
+      type: cursor
+      cursor_param: cursor
+      cursor_path: "/response_metadata/next_cursor"
+      has_more_path: "/response_metadata/next_cursor"
+      items_path: "/channels"
+    required_scopes: [channels:read]
+
+  create_channel:
+    method: POST
+    path: /conversations.create
+    description: Create a new Slack channel
+    request:
+      body_template: |
+        {
+          "name": "{{config.name}}",
+          "is_private": {{config.is_private | default(false) | lower}}
+          {%- if config.description %},
+          "description": "{{config.description}}"
+          {%- endif %}
+          {%- if config.team_id %},
+          "team_id": "{{config.team_id}}"
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/error"
+      transform: |
+        {% if not response.ok %}
+          {% set _ = raise_error("Slack API error: " ~ (response.error or "Unknown error")) %}
+        {% endif %}
+        {{response | tojson}}
+    required_scopes: [channels:manage]
+
+  read_channel:
+    method: GET
+    path: /conversations.history
+    description: Read messages from a Slack channel
+    request:
+      query_params_template:
+        channel: "{{resource_id or config.channel}}"
+        limit: "{{config.limit | default(100)}}"
+        oldest: "{% if config.oldest %}{{config.oldest}}{% endif %}"
+        latest: "{% if config.latest %}{{config.latest}}{% endif %}"
+        cursor: "{% if config.cursor %}{{config.cursor}}{% endif %}"
+        inclusive: "{{config.inclusive | default(true) | lower}}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/error"
+      transform: |
+        {% if not response.ok %}
+          {% set _ = raise_error("Slack API error: " ~ (response.error or "Unknown error")) %}
+        {% endif %}
+        {{response | tojson}}
+    pagination:
+      type: cursor
+      cursor_param: cursor
+      cursor_path: "/response_metadata/next_cursor"
+      has_more_path: "/has_more"
+      items_path: "/messages"
+    required_scopes: [channels:history]
+
+  upload_file:
+    method: POST
+    path: /files.upload
+    description: Upload a file to Slack (requires multipart/form-data)
+    request:
+      # Note: File upload requires special handling
+      # This would need a pre_request_hook for multipart encoding
+      body_template: |
+        {
+          "channels": "{{config.channels}}",
+          "filename": "{{config.filename}}",
+          "filetype": "{{config.filetype | default('auto')}}"
+          {%- if config.initial_comment %},
+          "initial_comment": "{{config.initial_comment}}"
+          {%- endif %}
+          {%- if config.thread_ts %},
+          "thread_ts": "{{config.thread_ts}}"
+          {%- endif %},
+          "content": "{{config.content}}"
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/error"
+      transform: |
+        {% if not response.ok %}
+          {% set _ = raise_error("Slack API error: " ~ (response.error or "Unknown error")) %}
+        {% endif %}
+        {{response | tojson}}
+    required_scopes: [files:write]
+    # Would need a hook for proper multipart handling
+    pre_request_hook: handle_file_upload
+
+# Webhook events
+webhook_events:
+  - name: message
+    description: New message posted to a channel
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "type": {"type": "string"},
+          "channel": {"type": "string"},
+          "user": {"type": "string"},
+          "text": {"type": "string"},
+          "ts": {"type": "string"}
+        }
+      }
+  
+  - name: app_mention
+    description: App was mentioned in a message
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "type": {"type": "string"},
+          "user": {"type": "string"},
+          "text": {"type": "string"},
+          "channel": {"type": "string"},
+          "event_ts": {"type": "string"}
+        }
+      }
+
+# Additional metadata
+metadata:
+  documentation_url: https://api.slack.com/docs
+  support_email: feedback@slack.com
+  tags:
+    - messaging
+    - collaboration
+    - communication
+  notes: |
+    This is a manifest-based migration of the original SlackProvider.
+    The upload_file operation requires a pre_request_hook for multipart encoding.
+    All other operations work directly through the manifest.

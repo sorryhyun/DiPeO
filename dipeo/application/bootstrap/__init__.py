@@ -3,7 +3,6 @@
 from .containers import (
     ApplicationContainer,
     Container,
-    CoreContainer,
     InfrastructureContainer,
     init_resources,
     shutdown_resources,
@@ -12,7 +11,6 @@ from .containers import (
 __all__ = [
     "ApplicationContainer",
     "Container",
-    "CoreContainer",
     "InfrastructureContainer",
     "init_resources",
     "shutdown_resources",

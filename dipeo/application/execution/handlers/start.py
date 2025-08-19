@@ -7,12 +7,12 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import StartNode, NodeType
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.start_model import StartNodeData, HookTriggerMode
 from dipeo.application.registry import STATE_STORE
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_context import ExecutionContext
+    from dipeo.domain.execution.execution_context import ExecutionContext
 
 
 @register_handler

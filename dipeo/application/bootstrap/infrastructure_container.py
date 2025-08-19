@@ -1,29 +1,31 @@
 from pathlib import Path
 from typing import Any
+import os
 
-from dipeo.application.registry import ServiceRegistry, ServiceKey
+from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
+    API_KEY_STORAGE,
     API_SERVICE,
     ARTIFACT_STORE,
     AST_PARSER,
     BLOB_STORE,
+    CONVERSATION_REPOSITORY,
     DIAGRAM_VALIDATOR,
+    DOMAIN_SERVICE_REGISTRY,
     EXECUTION_SERVICE,
+    FILESYSTEM_ADAPTER,
     INTEGRATED_API_SERVICE,
     LLM_SERVICE,
     MESSAGE_ROUTER,
+    NODE_REGISTRY,
     PERSON_MANAGER,
+    PERSON_REPOSITORY,
     PROMPT_BUILDER,
     STATE_STORE,
+    TEMPLATE_PROCESSOR,
 )
-
-TEMPLATE_PROCESSOR = ServiceKey("template_processor")
-NODE_REGISTRY = ServiceKey("node_registry")
-DOMAIN_SERVICE_REGISTRY = ServiceKey("domain_service_registry")
-FILESYSTEM_ADAPTER = ServiceKey("filesystem_adapter")
-API_KEY_STORAGE = ServiceKey("api_key_storage")
-from dipeo.core.config import Config
+from dipeo.domain.config import Config
 
 
 class InfrastructureContainer:
@@ -39,16 +41,27 @@ class InfrastructureContainer:
         self._setup_adapters()
 
     def _setup_adapters(self):
-        self._setup_storage_adapters()
-        self._setup_llm_adapter()
+        # Setup storage
+        self._setup_storage_v2()
+            
+        # Setup LLM
+        self._setup_llm_v2()
+            
+        # Setup API and other infrastructure services
         self._setup_infrastructure_services()
+        
+        # Setup repositories
+        self._setup_repositories()
+        
+        # Setup API
+        self._setup_api_v2()
 
     def _setup_storage_adapters(self):
-        from dipeo.infrastructure.adapters.storage import LocalFileSystemAdapter
+        from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
 
         filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.base_dir))
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
-        from dipeo.application.services.apikey_service import APIKeyService
+        from dipeo.infrastructure.shared.keys.drivers import APIKeyService
         api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
         self.registry.register(
             API_KEY_SERVICE,
@@ -61,7 +74,7 @@ class InfrastructureContainer:
         )
 
     def _setup_llm_adapter(self):
-        from dipeo.infrastructure.services.llm.service import LLMInfraService
+        from dipeo.infrastructure.llm.drivers.service import LLMInfraService
         from dipeo.domain.llm import LLMDomainService
 
         api_key_service = self.registry.resolve(API_KEY_SERVICE)
@@ -75,6 +88,13 @@ class InfrastructureContainer:
         )
 
     def _setup_infrastructure_services(self):
+        # Register template processor service
+        from dipeo.infrastructure.shared.template.drivers.simple_processor import SimpleTemplateProcessor
+        self.registry.register(
+            TEMPLATE_PROCESSOR,
+            SimpleTemplateProcessor()
+        )
+        
         self.registry.register(
             STATE_STORE,
             None
@@ -85,7 +105,7 @@ class InfrastructureContainer:
             None
         )
 
-        from dipeo.infrastructure.adapters.storage import LocalBlobAdapter
+        from dipeo.infrastructure.shared.adapters import LocalBlobAdapter
         self.registry.register(
             BLOB_STORE,
             LocalBlobAdapter(
@@ -98,10 +118,10 @@ class InfrastructureContainer:
             None
         )
 
-        from dipeo.infrastructure.services.integrated_api import IntegratedApiService
-        from dipeo.infrastructure.adapters.http.api_service import APIService
-        from dipeo.domain.api.services import APIBusinessLogic
-        from dipeo.infrastructure.services.template.simple_processor import SimpleTemplateProcessor
+        from dipeo.infrastructure.integrations.drivers.integrated_api import IntegratedApiService
+        from dipeo.infrastructure.integrations.adapters.api_service import APIService
+        from dipeo.domain.integrations.api_services import APIBusinessLogic
+        from dipeo.infrastructure.shared.template.drivers.simple_processor import SimpleTemplateProcessor
         
         template_processor = SimpleTemplateProcessor()
         api_business_logic = APIBusinessLogic(template_processor=template_processor)
@@ -112,13 +132,89 @@ class InfrastructureContainer:
             integrated_api_service
         )
 
-        from dipeo.infrastructure.services.parser import get_parser_service
+        from dipeo.infrastructure.diagram.drivers.parser_service import get_parser_service
+        import logging
+        logger = logging.getLogger(__name__)
         parser_service = get_parser_service(
             default_language="typescript",
             project_root=Path(self.config.base_dir),
             cache_enabled=True
         )
+        logger.info(f"Registering AST_PARSER with service: {parser_service}")
         self.registry.register(
             AST_PARSER,
             parser_service
         )
+        logger.info(f"AST_PARSER registered successfully")
+    
+    def _setup_storage_v2(self):
+        """Setup storage services using domain ports."""
+        from dipeo.application.bootstrap.wiring import wire_storage_services
+        
+        # First setup API key service (needed by other services)
+        from dipeo.infrastructure.shared.keys.drivers import APIKeyService
+        api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
+        self.registry.register(
+            API_KEY_SERVICE,
+            APIKeyService(file_path=api_key_path)
+        )
+        
+        # Wire V2 storage services
+        wire_storage_services(self.registry)
+        
+        # Also keep filesystem adapter for backward compatibility
+        from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
+        filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.base_dir))
+        self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
+    
+    def _setup_llm_v2(self):
+        """Setup LLM services using domain ports."""
+        from dipeo.application.bootstrap.wiring import wire_llm_services
+        
+        # Ensure API key service exists
+        if not self.registry.has(API_KEY_SERVICE):
+            from dipeo.infrastructure.shared.keys.drivers import APIKeyService
+            api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
+            self.registry.register(
+                API_KEY_SERVICE,
+                APIKeyService(file_path=api_key_path)
+            )
+        
+        api_key_service = self.registry.resolve(API_KEY_SERVICE)
+        
+        # Wire V2 LLM services
+        wire_llm_services(self.registry, api_key_service)
+        
+        # Also register as old LLM_SERVICE key for backward compatibility
+        from dipeo.application.registry.registry_tokens import LLM_SERVICE as LLM_SERVICE_V2
+        if self.registry.has(LLM_SERVICE_V2):
+            llm_service = self.registry.resolve(LLM_SERVICE_V2)
+            self.registry.register(LLM_SERVICE, llm_service)
+    
+    def _setup_api_v2(self):
+        """Setup API services using domain ports."""
+        from dipeo.application.bootstrap.wiring import wire_api_services
+        
+        # Wire V2 API services
+        wire_api_services(self.registry)
+        
+        # Override the old INTEGRATED_API_SERVICE with V2 version for backward compatibility
+        from dipeo.application.registry.registry_tokens import API_INVOKER
+        if self.registry.has(API_INVOKER):
+            api_invoker = self.registry.resolve(API_INVOKER)
+            self.registry.register(INTEGRATED_API_SERVICE, api_invoker)
+    
+    def _setup_repositories(self):
+        """Setup repository implementations (now in infrastructure layer)."""
+        from dipeo.infrastructure.repositories.conversation import (
+            InMemoryConversationRepository,
+            InMemoryPersonRepository
+        )
+        
+        # Create and register repository instances
+        conversation_repository = InMemoryConversationRepository()
+        person_repository = InMemoryPersonRepository()
+        
+        # Register repositories for application layer to use
+        self.registry.register(CONVERSATION_REPOSITORY, conversation_repository)
+        self.registry.register(PERSON_REPOSITORY, person_repository)

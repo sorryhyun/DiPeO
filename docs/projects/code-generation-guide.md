@@ -261,9 +261,9 @@ The staging directory (`diagram_generated_staged`) serves critical purposes:
    cd apps/web && pnpm codegen  # Generate TypeScript from updated schema
    ```
 
-## V2 Generation Improvements
+## Current Generation System
 
-The current generation system uses "v2" diagrams with key improvements:
+The code generation system uses modern diagram patterns with key features:
 
 1. **Template Job Nodes**: Direct template rendering without intermediate steps
 2. **Dynamic Discovery**: Glob patterns find all files automatically
@@ -271,12 +271,12 @@ The current generation system uses "v2" diagrams with key improvements:
 4. **Batch Processing**: Parallel generation of multiple nodes
 5. **Better Error Handling**: Graceful degradation in batch operations
 
-Example v2 pattern:
+Example pattern:
 ```yaml
 - label: Generate Field Configs
   type: template_job
   props:
-    template_path: projects/codegen/templates/frontend/field_config_v2.jinja2
+    template_path: projects/codegen/templates/frontend/field_config.jinja2
     output_path: "{{ output_dir }}/fields/{{ node_type_pascal }}Fields.ts"
     context:
       node_type: "{{ node_type }}"
@@ -401,4 +401,4 @@ make dev-all                                            # Restart servers
 
 ## Conclusion
 
-DiPeO's code generation system demonstrates the platform's maturity through its dog-fooding approach. By using DiPeO diagrams to orchestrate the generation of DiPeO's own code, the system proves its robustness and capabilities. The v2 architecture with staging directories, external code organization, and parallel batch processing shows how visual programming can handle sophisticated meta-programming tasks while maintaining type safety from TypeScript specifications through to Python models and GraphQL operations.
+DiPeO's code generation system demonstrates the platform's maturity through its dog-fooding approach. By using DiPeO diagrams to orchestrate the generation of DiPeO's own code, the system proves its robustness and capabilities. The current architecture with staging directories, external code organization, and parallel batch processing shows how visual programming can handle sophisticated meta-programming tasks while maintaining type safety from TypeScript specifications through to Python models and GraphQL operations.

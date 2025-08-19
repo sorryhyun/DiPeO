@@ -549,8 +549,9 @@ def main(inputs):
     dipeo_base = os.environ.get('DIPEO_BASE_DIR', '.')
     base_path = Path(dipeo_base)
     
-    # Parse the generated code from JSON
+    # Parse inputs
     generated_code = inputs.get('generated_code', '')
+    section_id = inputs.get('section_id')  # optional section ID for naming
     
     if isinstance(generated_code, str):
         content = generated_code
@@ -570,8 +571,11 @@ def main(inputs):
     # Validate extracted files
     validation = validate_extracted_files(files)
     
-    # Determine app name from content
-    app_name = get_app_name_from_content(files)
+    # Determine app name from content (or use section_id if provided)
+    if section_id:
+        app_name = f"section-{section_id}"
+    else:
+        app_name = get_app_name_from_content(files)
     
     # Create the app structure with proper base path
     app_path = base_path / 'projects' / 'frontend_enhance' / app_name

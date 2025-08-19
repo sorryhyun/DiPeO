@@ -10,11 +10,11 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import EndpointNode, NodeType
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_context import ExecutionContext
+    from dipeo.domain.execution.execution_context import ExecutionContext
     from dipeo.domain.ports.storage import FileSystemPort
 
 
@@ -107,7 +107,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     def validate(self, request: ExecutionRequest[EndpointNode]) -> Optional[str]:
         node = request.node
         if node.save_to_file:
-            if not request.get_service("filesystem_adapter") and not self.filesystem_adapter:
+            if not request.get_service(FILESYSTEM_ADAPTER) and not self.filesystem_adapter:
                 return "Filesystem adapter is required when save_to_file is enabled"
         
         return None

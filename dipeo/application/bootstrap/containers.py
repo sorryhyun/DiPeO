@@ -1,36 +1,28 @@
-"""3-container architecture:
-- CoreContainer: Immutable domain services (no external dependencies)
+"""2-container architecture:
 - InfrastructureContainer: External adapters (storage, LLM, etc.)
-- ApplicationContainer: Use cases and orchestration
+- ApplicationContainer: Use cases and orchestration (includes domain services)
 """
 
-from .core_container import CoreContainer
 from .infrastructure_container import InfrastructureContainer
 from .application_container import ApplicationContainer
 
-from pathlib import Path
 from typing import Any
 
 from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
 )
-
-TEMPLATE_PROCESSOR = ServiceKey("template_processor")
-NODE_REGISTRY = ServiceKey("node_registry")
-DOMAIN_SERVICE_REGISTRY = ServiceKey("domain_service_registry")
-FILESYSTEM_ADAPTER = ServiceKey("filesystem_adapter")
-API_KEY_STORAGE = ServiceKey("api_key_storage")
-from dipeo.core.config import Config
+from dipeo.domain.config import Config
 
 class Container:
-    """Main container orchestrating the 3-container architecture."""
+    """Main container orchestrating the 2-container architecture."""
     
     def __init__(self, config: Config | None = None):
         self.config = config or Config.from_env()
         self.registry = ServiceRegistry()
         
-        self.core = CoreContainer(self.registry)
+        # Infrastructure must be initialized before Application
+        # as Application depends on infrastructure services
         self.infrastructure = InfrastructureContainer(self.registry, self.config)
         self.application = ApplicationContainer(self.registry)
     
@@ -46,18 +38,18 @@ class Container:
         if api_key_service and hasattr(api_key_service, 'initialize'):
             await api_key_service.initialize()
         
-        from dipeo.application.registry.keys import COMPILATION_SERVICE
-        compilation_service = self.registry.resolve(COMPILATION_SERVICE)
-        if compilation_service and hasattr(compilation_service, 'initialize'):
-            await compilation_service.initialize()
+        from dipeo.application.registry.registry_tokens import DIAGRAM_COMPILER
+        compiler = self.registry.resolve(DIAGRAM_COMPILER)
+        if compiler and hasattr(compiler, 'initialize'):
+            await compiler.initialize()
         
-        from dipeo.application.registry.keys import DIAGRAM_CONVERTER
-        diagram_converter = self.registry.resolve(DIAGRAM_CONVERTER)
-        if diagram_converter and hasattr(diagram_converter, 'initialize'):
-            await diagram_converter.initialize()
+        from dipeo.application.registry.registry_tokens import DIAGRAM_SERIALIZER
+        diagram_serializer = self.registry.resolve(DIAGRAM_SERIALIZER)
+        if diagram_serializer and hasattr(diagram_serializer, 'initialize'):
+            await diagram_serializer.initialize()
         
-        from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
-        diagram_service = self.registry.resolve(DIAGRAM_SERVICE_NEW)
+        from dipeo.application.registry.keys import DIAGRAM_SERVICE
+        diagram_service = self.registry.resolve(DIAGRAM_SERVICE)
         if diagram_service and hasattr(diagram_service, 'initialize'):
             await diagram_service.initialize()
     
@@ -67,8 +59,8 @@ class Container:
     def create_sub_container(self, execution_id: str) -> "Container":
         """Create a sub-container for isolated execution.
         
-        Core services are shared (immutable), infrastructure is shared (connection pooling),
-        only execution context is isolated.
+        Infrastructure services are shared (connection pooling),
+        application services are shared, only execution context is isolated.
         """
         return self
 

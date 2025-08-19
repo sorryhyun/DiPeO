@@ -1,9 +1,11 @@
 """Main pipeline orchestrator for input resolution."""
 
+import logging
 from typing import Any
 
-from dipeo.core.execution.execution_context import ExecutionContext
-from dipeo.core.execution.envelope import Envelope
+from dipeo.domain.execution.execution_context import ExecutionContext
+from dipeo.domain.execution.envelope import Envelope
+from .errors import ResolutionError
 from dipeo.domain.diagram.models.executable_diagram import (
     ExecutableNode,
     ExecutableDiagram
@@ -14,6 +16,8 @@ from .incoming_edges import IncomingEdgesStage
 from .filter import FilterStage
 from .transform import TransformStage
 from .defaults import DefaultsStage
+
+log = logging.getLogger(__name__)
 
 
 class InputResolutionPipeline:
@@ -64,14 +68,28 @@ class InputResolutionPipeline:
         )
         
         # Run through pipeline stages
-        for stage in self.stages:
-            ctx = await stage.process(ctx)
+        try:
+            for stage in self.stages:
+                ctx = await stage.process(ctx)
+        except ResolutionError as e:
+            # Add node context if not already present
+            if not e.node_id:
+                e.node_id = str(node.id)
+            log.error(f"Resolution error for node {node.id}: {e}")
+            raise
+        except Exception as e:
+            # Wrap unexpected errors in ResolutionError
+            log.error(f"Unexpected error in resolution pipeline for node {node.id}: {e}")
+            from .errors import InputResolutionError
+            raise InputResolutionError(
+                f"Failed to resolve inputs for node {node.id}: {str(e)}"
+            ) from e
         
-        # Check for validation errors
+        # Check for validation errors (warnings, not failures)
         if hasattr(ctx, 'validation_errors') and ctx.validation_errors:
-            # Log errors but don't fail - let handler decide
+            # Log warnings but don't fail - let handler decide
             for error in ctx.validation_errors:
-                print(f"Input validation warning for {node.id}: {error}")
+                log.warning(f"Input validation warning for {node.id}: {error}")
         
         return ctx.final_inputs
     
@@ -97,7 +115,7 @@ class InputResolutionPipeline:
                 envelopes[key] = value
             else:
                 # Create envelope from value
-                from dipeo.core.execution.envelope import EnvelopeFactory
+                from dipeo.domain.execution.envelope import EnvelopeFactory
                 from uuid import uuid4
                 
                 trace_id = getattr(context, 'execution_id', str(uuid4()))

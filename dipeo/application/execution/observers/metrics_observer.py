@@ -6,7 +6,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
-from dipeo.core.events import EventConsumer, EventEmitter, EventType, ExecutionEvent
+from dipeo.domain.events import EventConsumer, EventEmitter, EventType, ExecutionEvent
+from dipeo.domain.events.contracts import MetricsCollectedEvent, OptimizationSuggestedEvent
 
 logger = logging.getLogger(__name__)
 
@@ -101,15 +102,18 @@ class MetricsObserver(EventConsumer):
     async def consume(self, event: ExecutionEvent) -> None:
         """Process execution events to collect metrics."""
         try:
-            if event.type == EventType.EXECUTION_STARTED:
+            # Handle both old and new event formats
+            event_type = getattr(event, 'event_type', getattr(event, 'type', None))
+            
+            if event_type == EventType.EXECUTION_STARTED:
                 await self._handle_execution_started(event)
-            elif event.type == EventType.NODE_STARTED:
+            elif event_type == EventType.NODE_STARTED:
                 await self._handle_node_started(event)
-            elif event.type == EventType.NODE_COMPLETED:
+            elif event_type == EventType.NODE_COMPLETED:
                 await self._handle_node_completed(event)
-            elif event.type == EventType.NODE_FAILED:
+            elif event_type == EventType.NODE_ERROR:
                 await self._handle_node_failed(event)
-            elif event.type == EventType.EXECUTION_COMPLETED:
+            elif event_type == EventType.EXECUTION_COMPLETED:
                 await self._handle_execution_completed(event)
         except Exception as e:
             logger.error(f"Error processing event: {e}", exc_info=True)
@@ -128,20 +132,22 @@ class MetricsObserver(EventConsumer):
         if not metrics:
             return
         
-        node_id = event.data.get("node_id")
+        node_id = getattr(event, 'node_id', None)
         if not node_id:
             return
         
         metrics.node_metrics[node_id] = NodeMetrics(
             node_id=node_id,
-            node_type=event.data.get("node_type", "unknown"),
+            node_type=getattr(event, 'node_type', 'unknown'),
             start_time=event.timestamp,
         )
         
-        # Track dependencies
-        deps = event.data.get("dependencies", [])
-        if deps:
-            self._node_dependencies[event.execution_id][node_id] = set(deps)
+        # Track dependencies from inputs if available
+        inputs = getattr(event, 'inputs', None)
+        if inputs and isinstance(inputs, dict):
+            deps = inputs.get('dependencies', [])
+            if deps:
+                self._node_dependencies[event.execution_id][node_id] = set(deps)
     
     async def _handle_node_completed(self, event: ExecutionEvent) -> None:
         """Track node completion and collect metrics."""
@@ -149,7 +155,7 @@ class MetricsObserver(EventConsumer):
         if not metrics:
             return
         
-        node_id = event.data.get("node_id")
+        node_id = getattr(event, 'node_id', None)
         if not node_id or node_id not in metrics.node_metrics:
             return
         
@@ -157,10 +163,12 @@ class MetricsObserver(EventConsumer):
         node_metrics.end_time = event.timestamp
         node_metrics.duration_ms = (node_metrics.end_time - node_metrics.start_time) * 1000
         
-        # Collect additional metrics
-        event_metrics = event.data.get("metrics", {})
-        node_metrics.memory_usage = event_metrics.get("memory_usage")
-        node_metrics.token_usage = event_metrics.get("token_usage")
+        # Collect additional metrics from state if available
+        state = getattr(event, 'state', None)
+        if state:
+            node_metrics.duration_ms = getattr(event, 'duration_ms', node_metrics.duration_ms)
+            if hasattr(state, 'token_usage') and state.token_usage:
+                node_metrics.token_usage = state.token_usage
     
     async def _handle_node_failed(self, event: ExecutionEvent) -> None:
         """Track node failure."""
@@ -168,14 +176,14 @@ class MetricsObserver(EventConsumer):
         if not metrics:
             return
         
-        node_id = event.data.get("node_id")
+        node_id = getattr(event, 'node_id', None)
         if not node_id or node_id not in metrics.node_metrics:
             return
         
         node_metrics = metrics.node_metrics[node_id]
-        node_metrics.end_time = event.timestamp
+        node_metrics.end_time = getattr(event, 'timestamp', time.time())
         node_metrics.duration_ms = (node_metrics.end_time - node_metrics.start_time) * 1000
-        node_metrics.error = event.data.get("error", "Unknown error")
+        node_metrics.error = getattr(event, 'error', 'Unknown error')
     
     async def _handle_execution_completed(self, event: ExecutionEvent) -> None:
         """Analyze execution and emit optimization suggestions."""
@@ -183,7 +191,7 @@ class MetricsObserver(EventConsumer):
         if not metrics:
             return
         
-        metrics.end_time = event.timestamp
+        metrics.end_time = getattr(event, 'timestamp', time.time())
         metrics.total_duration_ms = (metrics.end_time - metrics.start_time) * 1000
         
         # Analyze execution patterns
@@ -237,11 +245,10 @@ class MetricsObserver(EventConsumer):
                 }
             }
             
-            await self.event_bus.emit(ExecutionEvent(
-                type=EventType.METRICS_COLLECTED,
+            await self.event_bus.emit(MetricsCollectedEvent(
                 execution_id=execution_id,
                 timestamp=time.time(),
-                data={"metrics": metrics_dict}
+                metrics=metrics_dict
             ))
         
         if bottlenecks or parallelizable:
@@ -269,12 +276,15 @@ class MetricsObserver(EventConsumer):
             
             # Emit optimization event
             if self.event_bus:
-                await self.event_bus.emit(ExecutionEvent(
-                    type=EventType.OPTIMIZATION_SUGGESTED,
-                    execution_id=execution_id,
-                    timestamp=time.time(),
-                    data={"optimization": optimization.to_dict()}
-                ))
+                for suggestion in optimization.suggested_changes:
+                    await self.event_bus.emit(OptimizationSuggestedEvent(
+                        execution_id=execution_id,
+                        timestamp=time.time(),
+                        suggestion_type=suggestion["type"],
+                        affected_nodes=suggestion.get("nodes", []) or 
+                                     [n for group in suggestion.get("groups", []) for n in group],
+                        description=suggestion["description"]
+                    ))
     
     def _find_bottlenecks(self, metrics: ExecutionMetrics) -> List[Dict[str, Any]]:
         """Identify nodes that are performance bottlenecks."""

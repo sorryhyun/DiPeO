@@ -1,0 +1,21 @@
+{
+  "extends": "../../../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@dipeo/models/*": ["../../../models/src/*"],
+      "@dipeo/models": ["../../../models/src/index.ts"]
+    },
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowJs": true
+  },
+  "include": [
+    "**/*.ts",
+    "../../../models/src/**/*.ts"
+  ]
+}

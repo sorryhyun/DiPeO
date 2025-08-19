@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Optional, Tuple, List, Dict
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.domain.conversation import Person
 
 from .single_executor import SinglePersonJobExecutor

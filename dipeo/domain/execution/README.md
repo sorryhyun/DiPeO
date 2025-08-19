@@ -557,6 +557,8 @@ def test_execution_flow():
 **Internal:**
 - `dipeo.diagram_generated` - Generated node types
 - `dipeo.domain.diagram.models` - Diagram models
+- `dipeo.domain.diagram.resolution` - Input resolution system
+- `dipeo.domain.events` - Event contracts (consolidated from messaging)
 
 **External:**
 - Python 3.13+ standard library

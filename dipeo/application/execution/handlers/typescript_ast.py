@@ -7,11 +7,11 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.diagram_generated.generated_nodes import TypescriptAstNode, NodeType
-from dipeo.core.execution.envelope import Envelope, get_envelope_factory
+from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_context import ExecutionContext
+    from dipeo.domain.execution.execution_context import ExecutionContext
 
 
 @register_handler
@@ -58,7 +58,10 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     
     def validate(self, request: ExecutionRequest[TypescriptAstNode]) -> Optional[str]:
         """Validate the TypeScript AST parser configuration - static checks only."""
+        import logging
+        logger = logging.getLogger(__name__)
         node = request.node
+        logger.info(f"[TypescriptAstNode {node.id}] Validating node")
         
         # Validate extract patterns
         if node.extractPatterns:
@@ -79,6 +82,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         self._current_debug = False  # Will be set based on context if needed
         
         # Check parser service availability
+        # Use the string key name, not the ServiceKey object
         parser_service = request.get_service("ast_parser")
         if not parser_service:
             factory = get_envelope_factory()
@@ -95,16 +99,14 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         inputs: dict[str, Any],
         request: ExecutionRequest[TypescriptAstNode]
     ) -> Any:
-        """Execute TypeScript AST parsing."""
-        node = request.node
-        
-        # Add debug logging
         import logging
         logger = logging.getLogger(__name__)
-        
-        # Get TypeScript parser from services using DI pattern
+        """Execute TypeScript AST parsing."""
+        node = request.node
+
+        # Use the string key name, not the ServiceKey object
         parser_service = request.get_service("ast_parser")
-        
+
         # Check if batch mode is enabled
         batch_mode = getattr(node, 'batch', False)
 
@@ -169,6 +171,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             if not source and 'default' in inputs and isinstance(inputs['default'], dict):
                 source = inputs['default'].get('source', '')
             
+
             if not source:
                 raise ValueError("No TypeScript source code provided")
             
@@ -184,6 +187,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 )
             except Exception as parser_error:
                 import traceback
+                logger.error(f"[TypescriptAstNode {node.id}] Parse error: {parser_error}")
                 logger.error(f"[TypescriptAstNode {node.id}] Traceback: {traceback.format_exc()}")
                 raise
 
@@ -204,10 +208,12 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         request: ExecutionRequest[TypescriptAstNode]
     ) -> Envelope:
         """Custom serialization for TypeScript AST results."""
+        import logging
+        logger = logging.getLogger(__name__)
         node = request.node
         trace_id = request.execution_id or ""
         factory = get_envelope_factory()
-        
+
         # Handle batch mode results
         if isinstance(result, dict) and result.get('batch_mode'):
             return factory.json(

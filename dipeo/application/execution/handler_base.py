@@ -6,7 +6,7 @@ import warnings
 
 from pydantic import BaseModel
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_request import ExecutionRequest

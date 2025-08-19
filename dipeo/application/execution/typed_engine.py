@@ -14,18 +14,17 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.scheduler import NodeScheduler
 from dipeo.application.execution.typed_execution_context import TypedExecutionContext
-from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
-from dipeo.core.execution.runtime_resolver import RuntimeResolver
+from dipeo.domain.events import EventEmitter, EventType, ExecutionEvent
+from dipeo.domain.diagram.resolution import RuntimeInputResolverV2
 from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution import DomainDynamicOrderCalculator
 from dipeo.infrastructure.config import get_settings
-from dipeo.infrastructure.events import NullEventBus
 
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceRegistry
-    from dipeo.core.ports import ExecutionObserver
+    from dipeo.application.execution.observer_protocol import ExecutionObserver
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ class TypedExecutionEngine:
     def __init__(
         self, 
         service_registry: "ServiceRegistry",
-        runtime_resolver: RuntimeResolver,
+        runtime_resolver: RuntimeInputResolverV2,
         order_calculator: Any | None = None,
         event_bus: EventEmitter | None = None,
         observers: list["ExecutionObserver"] | None = None
@@ -56,11 +55,17 @@ class TypedExecutionEngine:
         self._scheduler: NodeScheduler | None = None
         
         if observers and not event_bus:
-            from dipeo.infrastructure.events.observer_adapter import create_event_bus_with_observers
+            from dipeo.infrastructure.events.adapters.legacy.observer_consumer_adapter import create_event_bus_with_observers
             self.event_bus = create_event_bus_with_observers(observers)
             self._managed_event_bus = True
         else:
-            self.event_bus = event_bus or NullEventBus()
+            # Use provided event bus or create async event bus
+            if not event_bus:
+                from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus
+                self.event_bus = AsyncEventBus()
+                self._managed_event_bus = True
+            else:
+                self.event_bus = event_bus
     
     async def execute(
         self,
@@ -168,9 +173,8 @@ class TypedExecutionEngine:
             
             if context:
                 await context.emit_event(
-                    EventType.EXECUTION_COMPLETED,
+                    EventType.EXECUTION_ERROR,
                     {
-                        "status": Status.FAILED,
                         "error": str(e),
                         "error_type": type(e).__name__
                     }
@@ -283,7 +287,7 @@ class TypedExecutionEngine:
         context: TypedExecutionContext
     ) -> dict[str, Any]:
         """Handle PersonJobNode that has reached max iterations."""
-        from dipeo.core.execution.envelope import EnvelopeFactory
+        from dipeo.domain.execution.envelope import EnvelopeFactory
         from dipeo.diagram_generated.enums import Status
         
         node_id = node.id
@@ -422,7 +426,7 @@ class TypedExecutionEngine:
             "node_name": getattr(node, 'name', str(node.id)),
             "status": node_state.status.value if node_state else "unknown",
             "output": self._serialize_output(output),
-            "node_state": node_state,
+            "state": node_state,  # Changed from node_state to state
             "metrics": {
                 "duration_ms": duration_ms,
                 "start_time": start_time,
@@ -450,7 +454,7 @@ class TypedExecutionEngine:
         
         # Emit node failed event
         await context.emit_event(
-            EventType.NODE_FAILED,
+            EventType.NODE_ERROR,
             {
                 "node_id": str(node.id),
                 "node_type": node.type,

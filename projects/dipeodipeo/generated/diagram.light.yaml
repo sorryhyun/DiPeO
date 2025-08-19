@@ -1,7 +1,7 @@
 version: light
-name: data_processor_pipeline
-description: Ingest CSV data, validate, process, and output results with error handling. All processing uses code_job nodes;
-  file I/O uses db nodes; branching via condition node with explicit _condtrue/_condfalse handles.
+name: dipeo_csv_transaction_pipeline
+description: '30-row CSV transaction dataset processing: load CSV, parse, validate, branch on validity, transform, and write
+  final results or log errors.'
 nodes:
 - label: Start
   type: start
@@ -9,154 +9,150 @@ nodes:
     x: 100
     y: 200
   props:
-    flipped: false
-    trigger_mode: none
-- label: Load Input Data
+    trigger_mode: manual
+- label: load_csv
   type: db
   position:
     x: 350
     y: 200
   props:
-    flipped: false
+    file:
+    - files/data/transactions.csv
     sub_type: file
     operation: read
+    serialize_json: false
     glob: false
-    format: text
-- label: Parse CSV
+- label: parse_csv
   type: code_job
   position:
     x: 600
     y: 200
   props:
-    flipped: false
     language: python
     code: |
       import csv
       from io import StringIO
-      csv_text = csv_content
-      reader = csv.DictReader(StringIO(csv_text))
+
+      text = csv_content
+      reader = csv.DictReader(StringIO(text))
       records = list(reader)
+      result = {\"records\": records, \"count\": len(records)}
     timeout: 60
-- label: Validate Records
+- label: validate_data
   type: code_job
   position:
     x: 850
     y: 200
   props:
-    flipped: false
     language: python
     code: |
-      records = records
+      records = input_data.get(\"records\", [])
       valid = []
       invalid = []
       for r in records:
-        if r.get('record_id') and r.get('record_type'):
-          valid.append(r)
-        else:
-          invalid.append(r)
-      validation_results = {"valid": valid, "invalid": invalid, "is_valid": len(invalid) == 0}
+          if r.get(\"transaction_id\") and r.get(\"status\"):
+              valid.append(r)
+          else:
+              invalid.append(r)
+      result = {\"valid\": valid, \"invalid\": invalid}
     timeout: 60
-- label: Check Data Valid
+- label: Check Valid
   type: condition
   position:
     x: 1100
     y: 200
   props:
-    flipped: false
     condition_type: custom
-    expression: validation_results.get('is_valid', False)
-- label: Process Valid
-  type: code_job
-  position:
-    x: 1350
-    y: 200
-  props:
-    flipped: false
-    language: python
-    code: |
-      validation_results = validation_results
-      valid = validation_results.get('valid', [])
-      invalid = validation_results.get('invalid', [])
-      processed = [{"record_id": r.get("record_id"), "status": "valid"} for r in valid]
-      result = {"processed_records": processed, "validation_results": validation_results, "valid_count": len(valid), "invalid_count": len(invalid)}
-    timeout: 60
-- label: Prepare Final Output
-  type: code_job
-  position:
-    x: 1600
-    y: 200
-  props:
-    flipped: false
-    language: python
-    code: |
-      processed = result.get('processed_records', [])
-      final_output = {"record_count": len(processed), "records": processed}
-    timeout: 60
-- label: Save Processed Output
-  type: endpoint
-  position:
-    x: 1850
-    y: 200
-  props:
-    flipped: false
-    save_to_file: true
-    file_name: outputs/processed_data.json
-- label: Log Validation Errors
+    expression: len(input_data.get('invalid', [])) == 0
+- label: transform_valid_data
   type: code_job
   position:
     x: 1350
     y: 400
   props:
-    flipped: false
     language: python
     code: |
-      validation_results = validation_results
-      error_report = {"error": "Validation failed", "valid_count": len(validation_results.get('valid', [])), "invalid_count": len(validation_results.get('invalid', []))}
-      result = error_report
+      records = valid_records if isinstance(valid_records, list) else []
+      for r in records:
+          try:
+              amt = r.get(\"amount\")
+              r[\"amount\"] = float(amt) if amt not in [\"\", None] else 0.0
+          except Exception:
+              r[\"amount\"] = 0.0
+      result = {\"records\": records, \"count\": len(records)}
     timeout: 60
-- label: Save Validation Errors
+- label: save_results
+  type: db
+  position:
+    x: 1650
+    y: 200
+  props:
+    file:
+    - files/outputs/transactions_processed.json
+    sub_type: file
+    operation: write
+    serialize_json: true
+- label: endpoint_success
   type: endpoint
   position:
-    x: 1850
+    x: 1950
+    y: 200
+  props:
+    save_to_file: true
+    file_name: files/outputs/transactions_processed.json
+- label: log_errors
+  type: code_job
+  position:
+    x: 1250
     y: 400
   props:
-    flipped: false
+    language: python
+    code: |
+      error_details = input_data.get('invalid', [])
+      result = {\"errors\": error_details, \"count\": len(error_details)}
+    timeout: 60
+- label: endpoint_errors
+  type: endpoint
+  position:
+    x: 1950
+    y: 400
+  props:
     save_to_file: true
-    file_name: logs/validation_errors.json
+    file_name: files/outputs/transactions_errors.json
 connections:
 - from: Start
-  to: Load Input Data
-  label: start_to_load
+  to: load_csv
+  label: start_signal
   content_type: raw_text
-- from: Load Input Data
-  to: Parse CSV
+- from: load_csv
+  to: parse_csv
   label: csv_content
   content_type: raw_text
-- from: Parse CSV
-  to: Validate Records
-  label: records
+- from: parse_csv
+  to: validate_data
+  label: input_data
   content_type: object
-- from: Validate Records
-  to: Check Data Valid
-  label: validation_results
+- from: validate_data
+  to: Check Valid
+  label: input_data
   content_type: object
-- from: Check Data Valid_condtrue
-  to: Process Valid
-  label: validation_results
+- from: Check Valid_condtrue
+  to: transform_valid_data
+  label: valid_records
   content_type: object
-- from: Check Data Valid_condfalse
-  to: Log Validation Errors
-  label: validation_results
+- from: Check Valid_condfalse
+  to: log_errors
+  label: invalid_records
   content_type: object
-- from: Process Valid
-  to: Prepare Final Output
-  label: result
+- from: transform_valid_data
+  to: save_results
+  label: output_data
   content_type: object
-- from: Prepare Final Output
-  to: Save Processed Output
-  label: final_output
+- from: save_results
+  to: endpoint_success
+  label: final_result
   content_type: object
-- from: Log Validation Errors
-  to: Save Validation Errors
-  label: error_report
+- from: log_errors
+  to: endpoint_errors
+  label: error_details
   content_type: object

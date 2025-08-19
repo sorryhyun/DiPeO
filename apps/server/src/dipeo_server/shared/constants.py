@@ -4,11 +4,11 @@ Shared domain constants used across the system.
 
 from typing import Final
 
-from dipeo.core.constants import (
+from dipeo.domain.constants import (
     BASE_DIR,
     normalize_service_name,
 )
-from dipeo.core.constants import (
+from dipeo.domain.constants import (
     VALID_LLM_SERVICES as CORE_VALID_SERVICES,
 )
 

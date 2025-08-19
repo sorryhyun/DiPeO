@@ -170,3 +170,12 @@ yarn.lock
 /projects/frontend_enhance/mycomponent-app/
 /projects/frontend_enhance/list-app/
 /projects/frontend_enhance/smartlist-app/
+/projects/frontend_enhance/generated/section_0_component-requirements.json
+/projects/frontend_enhance/generated/section_0_design-system.json
+/projects/frontend_enhance/generated/section_1_technical-specifications.json
+/projects/frontend_enhance/generated/section_2_design-system-integration.json
+/projects/frontend_enhance/generated/section_3_state-management.json
+/projects/frontend_enhance/generated/section_4_error-handling.json
+/projects/frontend_enhance/generated/section_5_performance-considerations.json
+/projects/frontend_enhance/generated/section_6_accessibility-requirements.json
+/projects/frontend_enhance/generated/section_7_testing-guidelines.json

@@ -14,11 +14,11 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
-from dipeo.core.events import EventEmitter, EventType, ExecutionEvent
-from dipeo.core.execution import ExecutionContext as ExecutionContextProtocol
-from dipeo.core.execution.execution_tracker import CompletionStatus, ExecutionTracker
-from dipeo.core.execution.envelope import Envelope
-from dipeo.core.execution.runtime_resolver import RuntimeResolver
+from dipeo.domain.events import EventEmitter, EventType, ExecutionEvent
+from dipeo.domain.execution.execution_context import ExecutionContext as ExecutionContextProtocol
+from dipeo.domain.execution.execution_tracker import CompletionStatus, ExecutionTracker
+from dipeo.domain.execution.envelope import Envelope
+from dipeo.domain.diagram.resolution import RuntimeInputResolverV2
 from dipeo.diagram_generated import (
     ExecutionState,
     Status,
@@ -71,7 +71,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     # Dependencies
     service_registry: Optional["ServiceRegistry"] = None
-    runtime_resolver: Optional[RuntimeResolver] = None
+    runtime_resolver: Optional[RuntimeInputResolverV2] = None
     event_bus: Optional[EventEmitter] = None
     container: Optional["Container"] = None
     
@@ -210,7 +210,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
             output = self._tracker.get_last_output(node_id)
 
             # Handle Envelope with condition result
-            from dipeo.core.execution.envelope import Envelope
+            from dipeo.domain.execution.envelope import Envelope
             if isinstance(output, Envelope):
                 # Extract branch from envelope metadata
                 if output.content_type == "condition_result":
@@ -409,12 +409,73 @@ class TypedExecutionContext(ExecutionContextProtocol):
         if not self.event_bus:
             return
         
-        event = ExecutionEvent(
-            type=event_type,
-            execution_id=self.execution_id,
-            timestamp=time.time(),
-            data=data or {}
+        # Import event classes
+        from dipeo.domain.events import (
+            ExecutionStartedEvent,
+            ExecutionCompletedEvent,
+            ExecutionErrorEvent,
+            NodeStartedEvent,
+            NodeCompletedEvent,
+            NodeErrorEvent,
+            NodeOutputEvent
         )
+        
+        # Map event types to event classes and their allowed fields
+        event_configs = {
+            EventType.EXECUTION_STARTED: (ExecutionStartedEvent, {
+                'variables', 'parent_execution_id', 'initiated_by', 'diagram_id'
+            }),
+            EventType.EXECUTION_COMPLETED: (ExecutionCompletedEvent, {
+                'status', 'total_duration_ms', 'total_tokens_used', 'node_count', 'diagram_id'
+            }),
+            EventType.EXECUTION_ERROR: (ExecutionErrorEvent, {
+                'error', 'error_type', 'stack_trace', 'failed_node_id', 'diagram_id'
+            }),
+            EventType.NODE_STARTED: (NodeStartedEvent, {
+                'node_id', 'node_type', 'inputs', 'iteration', 'diagram_id'
+            }),
+            EventType.NODE_COMPLETED: (NodeCompletedEvent, {
+                'node_id', 'node_type', 'state', 'duration_ms', 'token_usage', 
+                'output_summary', 'diagram_id'
+            }),
+            EventType.NODE_ERROR: (NodeErrorEvent, {
+                'node_id', 'node_type', 'error', 'error_type', 'retryable', 
+                'retry_count', 'max_retries', 'diagram_id'
+            }),
+            EventType.NODE_OUTPUT: (NodeOutputEvent, {
+                'node_id', 'node_type', 'output', 'is_partial', 'sequence_number', 'diagram_id'
+            })
+        }
+        
+        
+        # Get the event configuration
+        config = event_configs.get(event_type)
+        if not config:
+            # For unmapped events, don't emit (or could log a warning)
+            return
+        
+        event_class, allowed_fields = config
+        
+        # Process incoming data
+        processed_data = data or {}
+        
+        # Handle field mapping
+        if 'diagram_name' in processed_data:
+            # Map diagram_name to diagram_id if needed
+            processed_data['diagram_id'] = processed_data.get('diagram_id', processed_data.pop('diagram_name'))
+        
+        # Filter to only allowed fields
+        event_data = {
+            'execution_id': self.execution_id,
+            'timestamp': time.time()
+        }
+        
+        for field in allowed_fields:
+            if field in processed_data:
+                event_data[field] = processed_data[field]
+        
+        # Create the specific event instance
+        event = event_class(**event_data)
         
         await self.event_bus.emit(event)
     
@@ -466,7 +527,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         execution_state: ExecutionState,
         diagram: ExecutableDiagram,
         service_registry: Optional["ServiceRegistry"] = None,
-        runtime_resolver: Optional[RuntimeResolver] = None,
+        runtime_resolver: Optional[RuntimeInputResolverV2] = None,
         event_bus: Optional[EventEmitter] = None,
         container: Optional["Container"] = None
     ) -> "TypedExecutionContext":

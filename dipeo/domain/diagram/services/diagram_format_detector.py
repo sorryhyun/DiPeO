@@ -6,7 +6,7 @@ from typing import Any
 
 import yaml
 
-from dipeo.core import ValidationError
+from dipeo.domain.base.exceptions import ValidationError
 from dipeo.diagram_generated import DiagramFormat, DomainDiagram, HandleLabel
 
 

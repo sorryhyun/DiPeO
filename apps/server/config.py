@@ -1,6 +1,6 @@
 """Server configuration - imports path constants from dipeo.core."""
 
-from dipeo.core.constants import (
+from dipeo.domain.constants import (
     BASE_DIR,
     CONVERSATION_LOG_DIR,
     DATA_DIR,

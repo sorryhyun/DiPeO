@@ -10,12 +10,12 @@ from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.registry import INTEGRATED_API_SERVICE, API_KEY_SERVICE
 from dipeo.diagram_generated.generated_nodes import IntegratedApiNode, NodeType
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.integrated_api_model import IntegratedApiNodeData
 from dipeo.diagram_generated.enums import APIServiceType
 
 if TYPE_CHECKING:
-    from dipeo.core.execution.execution_context import ExecutionContext
+    from dipeo.domain.execution.execution_context import ExecutionContext
 
 
 @register_handler
@@ -114,6 +114,28 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         # Now get the full key details including the actual key
         provider_key = api_key_service.get_api_key(provider_summary["id"])
         api_key = provider_key["key"]
+        
+        # Validate provider/operation dynamically via registry
+        config = node.config or {}
+        try:
+            is_valid = await integrated_api_service.validate_operation(
+                provider=provider,
+                operation=operation,
+                config=config
+            )
+        except Exception as e:
+            return EnvelopeFactory.error(
+                f"Validation error for provider '{provider}' op '{operation}': {e}",
+                error_type="ValueError",
+                produced_by=str(node.id)
+            )
+        
+        if not is_valid:
+            return EnvelopeFactory.error(
+                f"Unsupported provider/operation or invalid config: {provider}.{operation}",
+                error_type="ValueError",
+                produced_by=str(node.id)
+            )
         
         # Store services and API key in instance variables for execute_request
         self._current_integrated_api_service = integrated_api_service

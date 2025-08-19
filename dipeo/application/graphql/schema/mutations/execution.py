@@ -6,10 +6,11 @@ from typing import AsyncGenerator, Dict, Any
 
 import strawberry
 
-from dipeo.application.registry import ServiceRegistry, ServiceKey
-from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
+from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry.keys import DIAGRAM_SERVICE, STATE_STORE, MESSAGE_ROUTER
 from dipeo.application.execution import ExecuteDiagramUseCase
-from dipeo.core.ports import StateStorePort, MessageRouterPort
+from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
+from dipeo.domain.events.ports import MessageBus as MessageRouterPort
 from dipeo.diagram_generated.enums import Status, EventType
 
 from ...types.inputs import (
@@ -19,10 +20,6 @@ from ...types.inputs import (
 from ...types.results import ExecutionResult
 
 logger = logging.getLogger(__name__)
-
-# Service keys
-STATE_STORE = ServiceKey[StateStorePort]("state_store")
-MESSAGE_ROUTER = ServiceKey[MessageRouterPort]("message_router")
 
 
 def create_execution_mutations(registry: ServiceRegistry) -> type:
@@ -36,7 +33,11 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 # Get required services
                 state_store = registry.resolve(STATE_STORE)
                 message_router = registry.resolve(MESSAGE_ROUTER)
-                integrated_service = registry.resolve(DIAGRAM_SERVICE_NEW)
+                integrated_service = registry.resolve(DIAGRAM_SERVICE)
+                
+                # Initialize diagram service if needed
+                if integrated_service and hasattr(integrated_service, 'initialize'):
+                    await integrated_service.initialize()
                 
                 # Get diagram data - must be DomainDiagram for type safety
                 from dipeo.diagram_generated import DomainDiagram
@@ -55,7 +56,7 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                         # Fallback: get dict and convert
                         diagram_dict = await integrated_service.get_diagram(input.diagram_id)
                         # Convert dict to DomainDiagram
-                        from dipeo.infrastructure.services.diagram import DiagramConverterService
+                        from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
                         converter = DiagramConverterService()
                         await converter.initialize()
                         import json
@@ -63,7 +64,7 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                         domain_diagram = converter.deserialize_from_storage(json_content, "native")
                 elif input.diagram_data:
                     # Direct dict provided - need to convert to DomainDiagram
-                    from dipeo.infrastructure.services.diagram import DiagramConverterService
+                    from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
                     converter = DiagramConverterService()
                     await converter.initialize()
                     

@@ -4,8 +4,6 @@ This module contains protocol definitions that establish boundaries
 between the domain layer and infrastructure implementations.
 """
 
-from .conversation_repository import ConversationRepository
-from .person_repository import PersonRepository
 from .storage import (
     Artifact,
     ArtifactRef,
@@ -14,6 +12,15 @@ from .storage import (
     FileInfo,
     FileSystemPort,
 )
+
+# DiagramInfo is in diagram.ports
+try:
+    from dipeo.domain.diagram.ports import DiagramInfo
+except ImportError:
+    DiagramInfo = None
+
+from .conversation_repository import ConversationRepository
+from .person_repository import PersonRepository
 
 __all__ = [
     # Storage ports
@@ -24,6 +31,9 @@ __all__ = [
     "Artifact",
     "ArtifactRef",
     # Repository ports
-    "PersonRepository",
     "ConversationRepository",
+    "PersonRepository",
 ]
+
+if DiagramInfo is not None:
+    __all__.insert(5, "DiagramInfo")

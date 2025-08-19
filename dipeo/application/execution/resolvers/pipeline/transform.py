@@ -3,8 +3,10 @@
 from typing import Any
 import json
 
-from dipeo.core.resolution import StandardNodeOutput, StandardTransformationEngine
-from dipeo.core.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.diagram.models.executable_diagram import StandardNodeOutput
+from dipeo.domain.diagram.resolution.transformation_engine import StandardTransformationEngine
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from .errors import TransformationError, SpreadCollisionError
 from .base import PipelineStage, PipelineContext
 
 
@@ -45,18 +47,22 @@ class TransformStage(PipelineStage):
             if packing_mode == 'spread':
                 # Spread mode: shallow-merge dict keys into the node's input namespace
                 if not isinstance(transformed_value, dict):
-                    raise ValueError(
-                        f"Cannot use 'spread' packing with non-dict value from edge {edge.source_node_id} -> {edge.target_node_id}. "
-                        f"Value type: {type(transformed_value).__name__}"
+                    raise TransformationError(
+                        f"Cannot use 'spread' packing with non-dict value. Value type: {type(transformed_value).__name__}",
+                        node_id=edge.target_node_id,
+                        edge_id=getattr(edge, 'id', f"{edge.source_node_id}->{edge.target_node_id}"),
+                        source_type=type(transformed_value).__name__,
+                        target_type="dict"
                     )
                 
                 # Check for key collisions
-                for key in transformed_value.keys():
-                    if key in ctx.transformed_values:
-                        raise ValueError(
-                            f"Key collision during 'spread' packing: '{key}' already exists in inputs. "
-                            f"Edge: {edge.source_node_id} -> {edge.target_node_id}"
-                        )
+                conflicting_keys = [key for key in transformed_value.keys() if key in ctx.transformed_values]
+                if conflicting_keys:
+                    raise SpreadCollisionError(
+                        conflicting_keys=conflicting_keys,
+                        node_id=edge.target_node_id,
+                        edge_id=getattr(edge, 'id', f"{edge.source_node_id}->{edge.target_node_id}")
+                    )
                 
                 # Spread the dict into the transformed values
                 ctx.transformed_values.update(transformed_value)
@@ -74,6 +80,9 @@ class TransformStage(PipelineStage):
         if isinstance(value, StandardNodeOutput):
             output_key = edge.source_output or "default"
             
+            # Check if this is structured output that should be preserved
+            is_structured = value.metadata.get("is_structured", False)
+            
             # Extract the actual value based on output key
             if not isinstance(value.value, dict):
                 # Non-dict values are wrapped
@@ -85,14 +94,15 @@ class TransformStage(PipelineStage):
                 actual_value = output_dict[output_key]
             elif output_key == "default":
                 # Special handling for default output
-                if len(output_dict) == 1:
-                    # If requesting default and only one output, use it
-                    actual_value = next(iter(output_dict.values()))
+                if is_structured:
+                    # For structured outputs, always preserve the full structure
+                    actual_value = value.value
                 elif "default" in output_dict:
                     # Use explicit default key
                     actual_value = output_dict["default"]
                 else:
-                    # For multi-output cases, use the entire dict
+                    # For all other cases (including single-key dicts), preserve the entire dict
+                    # This prevents auto-extraction of single-key dictionaries
                     actual_value = output_dict
             else:
                 # No matching output

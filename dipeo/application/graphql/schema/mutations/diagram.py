@@ -6,7 +6,7 @@ from datetime import datetime
 import strawberry
 
 from dipeo.application.registry import ServiceRegistry
-from dipeo.application.registry.keys import DIAGRAM_SERVICE_NEW
+from dipeo.application.registry.keys import DIAGRAM_SERVICE
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 
 from dipeo.diagram_generated.domain_models import DiagramID
@@ -24,7 +24,7 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
         @strawberry.mutation
         async def create_diagram(self, input: CreateDiagramInput) -> DiagramResult:
             try:
-                diagram_service = registry.resolve(DIAGRAM_SERVICE_NEW)
+                diagram_service = registry.resolve(DIAGRAM_SERVICE)
                 
                 # Create metadata from input
                 metadata = DiagramMetadata(
@@ -70,7 +70,7 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
         async def delete_diagram(self, id: strawberry.ID) -> DeleteResult:
             try:
                 diagram_id = DiagramID(str(id))
-                diagram_service = registry.resolve(DIAGRAM_SERVICE_NEW)
+                diagram_service = registry.resolve(DIAGRAM_SERVICE)
                 
                 # Get diagram to verify it exists
                 diagram_data = await diagram_service.get_diagram(diagram_id)

@@ -7,14 +7,6 @@ export type {
   ValidationResult 
 } from './useResource';
 
-export { useStream } from './useStream';
-export type { 
-  StreamState, 
-  StreamProtocol, 
-  StreamOptions, 
-  UseStreamReturn 
-} from './useStream';
-
 export { useForm } from './useForm';
 export type { 
   FormState, 

@@ -8,8 +8,10 @@ from typing import AsyncGenerator, Optional, Any
 
 import strawberry
 
-from dipeo.application.registry import ServiceRegistry, ServiceKey
-from dipeo.core.ports import MessageRouterPort, StateStorePort
+from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry.keys import MESSAGE_ROUTER, STATE_STORE
+from dipeo.domain.events.ports import MessageBus as MessageRouterPort
+from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
 from strawberry.scalars import JSON as JSONScalar
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import EventType
@@ -65,9 +67,6 @@ def serialize_for_json(obj: Any, seen: set = None, max_depth: int = 10) -> Any:
         # Remove from seen set when done
         seen.discard(obj_id)
 
-# Service keys
-MESSAGE_ROUTER = ServiceKey[MessageRouterPort]("message_router")
-STATE_STORE = ServiceKey[StateStorePort]("state_store")
 
 
 @strawberry.type

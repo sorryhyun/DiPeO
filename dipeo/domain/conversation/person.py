@@ -16,7 +16,7 @@ from dipeo.diagram_generated.domain_models import PersonID
 from .memory_filters import MemoryFilterFactory, MemoryLimiter, MemoryView
 
 if TYPE_CHECKING:
-    from dipeo.core.ports import LLMServicePort
+    from dipeo.domain.llm.ports import LLMService as LLMServicePort
 
     from .conversation_manager import ConversationManager
 
