@@ -32,32 +32,38 @@ class ConversationHandler:
         return False
     
     @staticmethod
-    def load_conversation_from_inputs(person: Person, inputs: dict[str, Any]) -> None:
-        """Load conversation messages from inputs into person's conversation.
+    def load_conversation_from_inputs(inputs: dict[str, Any], person_id: str) -> list[Message]:
+        """Extract and process conversation messages from inputs.
         
-        This replaces the old _rebuild_conversation method with better separation of concerns.
-        The conversation manager should ideally provide this functionality.
+        This method now returns messages to be added by the handler/orchestrator,
+        instead of directly adding them to the person.
         
         Args:
-            person: Person to add messages to
             inputs: Input dictionary containing conversation data
+            person_id: ID of the person for default attribution
+            
+        Returns:
+            List of processed Message objects to be added to conversation
         """
         all_messages = ConversationHandler._extract_messages_from_inputs(inputs)
         
         if not all_messages:
             logger.debug("load_conversation_from_inputs: No messages found in inputs")
-            return
+            return []
         
         logger.debug(f"load_conversation_from_inputs: Processing {len(all_messages)} total messages")
         
+        processed_messages = []
         for i, msg in enumerate(all_messages):
-            processed_msg = ConversationHandler._process_message(msg, person.id)
+            processed_msg = ConversationHandler._process_message(msg, person_id)
             if processed_msg:
-                person.add_message(processed_msg)
+                processed_messages.append(processed_msg)
                 logger.debug(
-                    f"  Added message {i}: from={processed_msg.from_person_id}, "
+                    f"  Processed message {i}: from={processed_msg.from_person_id}, "
                     f"to={processed_msg.to_person_id}, content_length={len(processed_msg.content)}"
                 )
+        
+        return processed_messages
     
     @staticmethod
     def _extract_messages_from_inputs(inputs: dict[str, Any]) -> list[Any]:

@@ -5,17 +5,19 @@ from datetime import datetime
 
 from dipeo.application.execution.observer_protocol import ExecutionObserver
 from dipeo.domain.events.ports import DomainEventBus
-from dipeo.domain.events.contracts import (
-    ExecutionStartedEvent,
-    ExecutionCompletedEvent,
-    ExecutionErrorEvent,
-    NodeStartedEvent,
-    NodeCompletedEvent,
-    NodeErrorEvent,
-    ExecutionLogEvent,
+from dipeo.domain.events import (
+    DomainEvent,
+    EventScope,
+    ExecutionStartedPayload,
+    ExecutionCompletedPayload,
+    ExecutionErrorPayload,
+    NodeStartedPayload,
+    NodeCompletedPayload,
+    NodeErrorPayload,
+    ExecutionLogPayload,
+    EventType,
 )
 from dipeo.diagram_generated import (
-    EventType,
     Status,
     NodeState,
 )
@@ -58,10 +60,13 @@ class UnifiedEventObserver(ExecutionObserver):
         if self.capture_logs:
             self._setup_log_capture(execution_id)
 
-        event = ExecutionStartedEvent(
-            execution_id=execution_id,
-            diagram_id=diagram_id,
-            variables={},  # TODO: Get actual variables from context
+        event = DomainEvent(
+            type=EventType.EXECUTION_STARTED,
+            scope=EventScope(execution_id=execution_id),
+            payload=ExecutionStartedPayload(
+                variables={},  # TODO: Get actual variables from context
+                diagram_id=diagram_id,
+            )
         )
         await self.event_bus.publish(event)
 
@@ -69,11 +74,20 @@ class UnifiedEventObserver(ExecutionObserver):
         """Handle node start event."""
         node_type = self._get_node_type(node_id)
         
-        event = NodeStartedEvent(
-            execution_id=execution_id,
-            node_id=node_id,
-            node_type=node_type,
-            inputs=None,  # TODO: Get actual inputs from context
+        # Create a minimal NodeState for the start event
+        state = NodeState(
+            status=Status.RUNNING,
+            started_at=datetime.now().isoformat(),
+        )
+        
+        event = DomainEvent(
+            type=EventType.NODE_STARTED,
+            scope=EventScope(execution_id=execution_id, node_id=node_id),
+            payload=NodeStartedPayload(
+                state=state,
+                node_type=node_type,
+                inputs=None,  # TODO: Get actual inputs from context
+            )
         )
         await self.event_bus.publish(event)
 
@@ -84,16 +98,21 @@ class UnifiedEventObserver(ExecutionObserver):
         # Calculate duration if both timestamps are available
         duration_ms = None
         if state.started_at and state.ended_at:
-            duration_ms = int((state.ended_at - state.started_at).total_seconds() * 1000)
+            # Parse ISO format strings if they're strings
+            started = datetime.fromisoformat(state.started_at) if isinstance(state.started_at, str) else state.started_at
+            ended = datetime.fromisoformat(state.ended_at) if isinstance(state.ended_at, str) else state.ended_at
+            duration_ms = int((ended - started).total_seconds() * 1000)
         
-        event = NodeCompletedEvent(
-            execution_id=execution_id,
-            node_id=node_id,
-            node_type=node_type,
-            state=state,
-            duration_ms=duration_ms,
-            token_usage=state.token_usage.model_dump() if state.token_usage else None,
-            output_summary=str(state.output)[:100] if state.output else None,  # Brief summary
+        event = DomainEvent(
+            type=EventType.NODE_COMPLETED,
+            scope=EventScope(execution_id=execution_id, node_id=node_id),
+            payload=NodeCompletedPayload(
+                state=state,
+                output=state.output,
+                duration_ms=duration_ms,
+                token_usage=state.token_usage.model_dump() if state.token_usage else None,
+                output_summary=str(state.output)[:100] if state.output else None,  # Brief summary
+            )
         )
         await self.event_bus.publish(event)
 
@@ -101,21 +120,33 @@ class UnifiedEventObserver(ExecutionObserver):
         """Handle node error event."""
         node_type = self._get_node_type(node_id)
         
-        event = NodeErrorEvent(
-            execution_id=execution_id,
-            node_id=node_id,
-            node_type=node_type,
+        # Create error state
+        state = NodeState(
+            status=Status.FAILED,
             error=error,
-            error_type=type(error).__name__ if not isinstance(error, str) else "Error",
-            retryable=False,  # TODO: Determine from error type
+            ended_at=datetime.now().isoformat(),
+        )
+        
+        event = DomainEvent(
+            type=EventType.NODE_ERROR,
+            scope=EventScope(execution_id=execution_id, node_id=node_id),
+            payload=NodeErrorPayload(
+                state=state,
+                error_message=error,
+                error_type=type(error).__name__ if not isinstance(error, str) else "Error",
+                retryable=False,  # TODO: Determine from error type
+            )
         )
         await self.event_bus.publish(event)
 
     async def on_execution_complete(self, execution_id: str):
         """Handle execution completion event."""
-        event = ExecutionCompletedEvent(
-            execution_id=execution_id,
-            status=Status.COMPLETED,
+        event = DomainEvent(
+            type=EventType.EXECUTION_COMPLETED,
+            scope=EventScope(execution_id=execution_id),
+            payload=ExecutionCompletedPayload(
+                status=Status.COMPLETED,
+            )
         )
         await self.event_bus.publish(event)
 
@@ -125,10 +156,13 @@ class UnifiedEventObserver(ExecutionObserver):
 
     async def on_execution_error(self, execution_id: str, error: str):
         """Handle execution error event."""
-        event = ExecutionErrorEvent(
-            execution_id=execution_id,
-            error=error,
-            error_type=type(error).__name__ if not isinstance(error, str) else "Error",
+        event = DomainEvent(
+            type=EventType.EXECUTION_ERROR,
+            scope=EventScope(execution_id=execution_id),
+            payload=ExecutionErrorPayload(
+                error_message=error,
+                error_type=type(error).__name__ if not isinstance(error, str) else "Error",
+            )
         )
         await self.event_bus.publish(event)
 
@@ -138,97 +172,41 @@ class UnifiedEventObserver(ExecutionObserver):
 
     async def _publish_log_event(self, execution_id: str, log_entry: dict):
         """Publish log event to event bus."""
-        event = ExecutionLogEvent(
-            execution_id=execution_id,
-            level=log_entry["level"],
-            message=log_entry["message"],
-            logger_name=log_entry["logger"],
-            node_id=log_entry.get("node_id"),
-            extra_fields={
-                "timestamp": log_entry["timestamp"],
-            },
+        event = DomainEvent(
+            type=EventType.EXECUTION_LOG,
+            scope=EventScope(
+                execution_id=execution_id,
+                node_id=log_entry.get("node_id")
+            ),
+            payload=ExecutionLogPayload(
+                level=log_entry["level"],
+                message=log_entry["message"],
+                logger_name=log_entry["logger"],
+                extra_fields={
+                    "timestamp": log_entry["timestamp"],
+                },
+            )
         )
-        
-        try:
-            await self.event_bus.publish(event)
-        except Exception as e:
-            logger.error(f"Failed to publish log event: {e}")
+        await self.event_bus.publish(event)
 
-    def _get_node_type(self, node_id: str) -> str | None:
-        """Get node type from execution runtime if available."""
-        if not self.execution_runtime:
-            return None
-
-        try:
-            from dipeo.diagram_generated import NodeID
-
-            node = self.execution_runtime.get_node(NodeID(node_id))
-            if node:
-                return node.type.value if hasattr(node.type, "value") else str(node.type)
-        except Exception:
-            pass
-
-        return None
+    def _get_node_type(self, node_id: str) -> str:
+        """Get node type from runtime context if available."""
+        if self.execution_runtime:
+            # Access the execution runtime's node registry
+            try:
+                node = self.execution_runtime.get_node(node_id)
+                if node:
+                    return node.__class__.__name__
+            except:
+                pass
+        return "Unknown"
 
     def _setup_log_capture(self, execution_id: str):
-        """Set up log capture for execution logs."""
-        import asyncio
-        from datetime import datetime
-
-        class LogCaptureHandler(logging.Handler):
-            def __init__(self, observer, exec_id):
-                super().__init__()
-                self.observer = observer
-                self.exec_id = exec_id
-                self.setLevel(logging.DEBUG)
-
-            def emit(self, record):
-                # Filter noisy logs
-                msg = record.getMessage()
-                if any(
-                    skip in msg
-                    for skip in [
-                        "APIKeyService",
-                        "[ExecutionLogStream]",
-                        "POST /graphql",
-                    ]
-                ):
-                    return
-
-                log_entry = {
-                    "level": record.levelname,
-                    "message": msg,
-                    "timestamp": datetime.fromtimestamp(record.created).isoformat(),
-                    "logger": record.name,
-                    "node_id": getattr(record, "node_id", None),
-                }
-
-                # Publish log asynchronously
-                try:
-                    loop = asyncio.get_running_loop()
-                    loop.create_task(
-                        self.observer._publish_log_event(
-                            self.exec_id, log_entry
-                        )
-                    )
-                except RuntimeError:
-                    pass  # No event loop available
-
-        self._log_handler = LogCaptureHandler(self, execution_id)
-
-        # Add to relevant loggers
-        logging.getLogger("dipeo").addHandler(self._log_handler)
-        logging.getLogger("dipeo.application").addHandler(self._log_handler)
-        logging.getLogger("dipeo.infra").addHandler(self._log_handler)
+        """Set up log capture handler for the execution."""
+        # TODO: Implement log capture setup
+        pass
 
     def _cleanup_log_capture(self):
         """Clean up log capture handler."""
-        if not self._log_handler:
-            return
-
-        # Remove from loggers
-        logging.getLogger("dipeo").removeHandler(self._log_handler)
-        logging.getLogger("dipeo.application").removeHandler(self._log_handler)
-        logging.getLogger("dipeo.infra").removeHandler(self._log_handler)
-
-        self._log_handler = None
+        # TODO: Implement log capture cleanup
+        pass

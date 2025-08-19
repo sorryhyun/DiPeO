@@ -58,8 +58,11 @@ class InfrastructureContainer:
 
     def _setup_storage_adapters(self):
         from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
-
-        filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.storage.base_dir))
+        
+        # Use absolute path from config
+        base_dir = Path(self.config.storage.base_dir).resolve()
+        
+        filesystem_adapter = LocalFileSystemAdapter(base_path=base_dir)
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
         from dipeo.infrastructure.shared.keys.drivers import APIKeyService
         api_key_path = Path(self.config.storage.base_dir) / self.config.storage.data_dir / "apikeys.json"
@@ -162,9 +165,10 @@ class InfrastructureContainer:
         # Wire V2 storage services
         wire_storage_services(self.registry)
         
-        # Also keep filesystem adapter for backward compatibility
+        # Override the filesystem adapter with the correct base path from config
         from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
-        filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.storage.base_dir))
+        base_dir = Path(self.config.storage.base_dir).resolve()
+        filesystem_adapter = LocalFileSystemAdapter(base_path=base_dir)
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
     
     def _setup_llm_v2(self):

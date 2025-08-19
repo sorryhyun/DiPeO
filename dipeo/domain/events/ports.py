@@ -1,7 +1,7 @@
 """Port interfaces for domain event handling."""
 
 from abc import ABC, abstractmethod
-from typing import Callable, Protocol, Optional, TypeVar, Generic
+from typing import Callable, Protocol, Optional, TypeVar, Generic, runtime_checkable
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -140,18 +140,20 @@ class EventStore(Protocol):
         ...
 
 
-from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Protocol, runtime_checkable
-from .contracts import ExecutionEvent
-
-
 class EventEmitter(Protocol):
-    async def emit(self, event: ExecutionEvent) -> None: ...
+    """Protocol for emitting domain events."""
+    
+    async def emit(self, event: DomainEvent) -> None:
+        """Emit a domain event."""
+        ...
 
 
 class EventConsumer(Protocol):
-    async def consume(self, event: ExecutionEvent) -> None: ...
+    """Protocol for consuming domain events."""
+    
+    async def consume(self, event: DomainEvent) -> None:
+        """Consume a domain event."""
+        ...
 
 
 @runtime_checkable

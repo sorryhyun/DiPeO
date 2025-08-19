@@ -258,13 +258,17 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
         region = os.getenv("DIPEO_S3_REGION", "us-east-1")
         blob_store = S3Adapter(bucket=bucket, region=region)
     else:
-        # Default to local storage
-        base_dir = os.getenv("DIPEO_BASE_DIR", str(Path.cwd()))
-        storage_path = Path(base_dir) / "storage"
+        # Default to local storage using config
+        from dipeo.config import get_settings
+        settings = get_settings()
+        base_dir = Path(settings.storage.base_dir).resolve()
+        storage_path = base_dir / "storage"
         blob_store = LocalBlobAdapter(base_path=storage_path)
         
-    # File system adapter
-    filesystem = LocalFileSystemAdapter(base_path=Path.cwd())
+    # File system adapter - use config base_dir
+    from dipeo.config import get_settings
+    settings = get_settings()
+    filesystem = LocalFileSystemAdapter(base_path=Path(settings.storage.base_dir).resolve())
     
     # Artifact store built on blob store
     artifact_store = ArtifactStoreAdapter(blob_store=blob_store)

@@ -28,59 +28,95 @@ class ObserverToEventConsumerAdapter(EventConsumer):
     async def consume(self, event: ExecutionEvent) -> None:
         """Convert events to observer method calls."""
         try:
-            # Handle both old and new event formats
+            # Handle both old and new event formats (including DomainEvent)
             event_type = getattr(event, 'event_type', getattr(event, 'type', None))
             event_data = getattr(event, 'data', {}) if hasattr(event, 'data') else {}
             
+            # Get execution_id from either direct attribute or scope
+            if hasattr(event, 'scope') and hasattr(event.scope, 'execution_id'):
+                execution_id = event.scope.execution_id
+            else:
+                execution_id = getattr(event, 'execution_id', None)
+            
+            if not execution_id:
+                logger.error(f"Event missing execution_id: {event}")
+                return
+            
             if event_type == EventType.EXECUTION_STARTED:
                 await self.observer.on_execution_start(
-                    execution_id=event.execution_id,
+                    execution_id=execution_id,
                     diagram_id=event_data.get("diagram_id") or getattr(event, 'diagram_id', None)
                 )
             
             elif event_type == EventType.NODE_STARTED:
-                node_id = event_data.get("node_id") or getattr(event, 'node_id', None)
+                # Get node_id from scope if it's a DomainEvent
+                if hasattr(event, 'scope') and hasattr(event.scope, 'node_id'):
+                    node_id = event.scope.node_id
+                else:
+                    node_id = event_data.get("node_id") or getattr(event, 'node_id', None)
                 # logger.debug(f"[ObserverAdapter] NODE_STARTED event received for node {node_id}")
                 if node_id:
                     # logger.debug(f"[ObserverAdapter] Calling observer.on_node_start for node {node_id}")
                     await self.observer.on_node_start(
-                        execution_id=event.execution_id,
+                        execution_id=execution_id,
                         node_id=node_id
                     )
             
             elif event_type == EventType.NODE_COMPLETED:
-                # Extract node state from event data or direct attribute
-                node_state = event_data.get("node_state") or event_data.get("state") or getattr(event, 'state', None)
-                node_id = event_data.get("node_id") or getattr(event, 'node_id', None)
+                # Extract node state from event data, payload, or direct attribute
+                if hasattr(event, 'payload') and hasattr(event.payload, 'state'):
+                    node_state = event.payload.state
+                else:
+                    node_state = event_data.get("node_state") or event_data.get("state") or getattr(event, 'state', None)
+                # Get node_id from scope if it's a DomainEvent
+                if hasattr(event, 'scope') and hasattr(event.scope, 'node_id'):
+                    node_id = event.scope.node_id
+                else:
+                    node_id = event_data.get("node_id") or getattr(event, 'node_id', None)
                 if node_state and node_id:
                     await self.observer.on_node_complete(
-                        execution_id=event.execution_id,
+                        execution_id=execution_id,
                         node_id=node_id,
                         state=node_state
                     )
             
             elif event_type == EventType.NODE_ERROR:
-                node_id = event_data.get("node_id") or getattr(event, 'node_id', None)
-                error = event_data.get("error") or getattr(event, 'error', "Unknown error")
+                # Get node_id from scope if it's a DomainEvent
+                if hasattr(event, 'scope') and hasattr(event.scope, 'node_id'):
+                    node_id = event.scope.node_id
+                else:
+                    node_id = event_data.get("node_id") or getattr(event, 'node_id', None)
+                # Extract error from payload if it's a DomainEvent
+                if hasattr(event, 'payload') and hasattr(event.payload, 'error_message'):
+                    error = event.payload.error_message
+                else:
+                    error = event_data.get("error") or getattr(event, 'error', "Unknown error")
                 if node_id:
                     await self.observer.on_node_error(
-                        execution_id=event.execution_id,
+                        execution_id=execution_id,
                         node_id=node_id,
                         error=error
                     )
             
             elif event_type == EventType.EXECUTION_COMPLETED:
                 # Check if it's an error completion
-                status = event_data.get("status") or getattr(event, 'status', None)
+                if hasattr(event, 'payload') and hasattr(event.payload, 'status'):
+                    status = event.payload.status
+                else:
+                    status = event_data.get("status") or getattr(event, 'status', None)
                 if status == Status.FAILED:
-                    error = event_data.get("error") or getattr(event, 'error', "Unknown error")
+                    # Extract error from payload if available
+                    if hasattr(event, 'payload') and hasattr(event.payload, 'error_message'):
+                        error = event.payload.error_message
+                    else:
+                        error = event_data.get("error") or getattr(event, 'error', "Unknown error")
                     await self.observer.on_execution_error(
-                        execution_id=event.execution_id,
+                        execution_id=execution_id,
                         error=error
                     )
                 else:
                     await self.observer.on_execution_complete(
-                        execution_id=event.execution_id
+                        execution_id=execution_id
                     )
             
             # Other event types are ignored as they don't map to observer methods

@@ -20,7 +20,7 @@ class LocalBlobAdapter(BaseService, BlobStorePort):
     
     def __init__(self, base_path: str | Path):
         super().__init__()
-        self.base_path = Path(base_path)
+        self.base_path = Path(base_path).resolve()
         self._initialized = False
     
     async def initialize(self) -> None:
@@ -156,7 +156,7 @@ class LocalFileSystemAdapter(BaseService, FileSystemPort):
     
     def __init__(self, base_path: str | Path | None = None):
         super().__init__()
-        self.base_path = Path(base_path) if base_path else Path.cwd()
+        self.base_path = Path(base_path).resolve() if base_path else Path.cwd()
         self._initialized = False
     
     async def initialize(self) -> None:

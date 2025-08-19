@@ -4,10 +4,20 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, cast
 
-from dipeo.domain.events import EventConsumer, EventEmitter, EventType, ExecutionEvent
-from dipeo.domain.events.contracts import MetricsCollectedEvent, OptimizationSuggestedEvent
+from dipeo.domain.events import (
+    DomainEvent,
+    EventScope,
+    EventConsumer,
+    EventEmitter,
+    EventType,
+    MetricsCollectedPayload,
+    OptimizationSuggestedPayload,
+    NodeCompletedPayload,
+    NodeStartedPayload,
+    NodeErrorPayload,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -99,312 +109,248 @@ class MetricsObserver(EventConsumer):
         
         logger.info("MetricsObserver stopped")
     
-    async def consume(self, event: ExecutionEvent) -> None:
+    async def consume(self, event: DomainEvent) -> None:
         """Process execution events to collect metrics."""
         try:
-            # Handle both old and new event formats
-            event_type = getattr(event, 'event_type', getattr(event, 'type', None))
-            
-            if event_type == EventType.EXECUTION_STARTED:
+            if event.type == EventType.EXECUTION_STARTED:
                 await self._handle_execution_started(event)
-            elif event_type == EventType.NODE_STARTED:
+            elif event.type == EventType.NODE_STARTED:
                 await self._handle_node_started(event)
-            elif event_type == EventType.NODE_COMPLETED:
+            elif event.type == EventType.NODE_COMPLETED:
                 await self._handle_node_completed(event)
-            elif event_type == EventType.NODE_ERROR:
+            elif event.type == EventType.NODE_ERROR:
                 await self._handle_node_failed(event)
-            elif event_type == EventType.EXECUTION_COMPLETED:
+            elif event.type == EventType.EXECUTION_COMPLETED:
                 await self._handle_execution_completed(event)
         except Exception as e:
             logger.error(f"Error processing event: {e}", exc_info=True)
     
-    async def _handle_execution_started(self, event: ExecutionEvent) -> None:
+    async def _handle_execution_started(self, event: DomainEvent) -> None:
         """Initialize metrics for a new execution."""
-        self._metrics_buffer[event.execution_id] = ExecutionMetrics(
-            execution_id=event.execution_id,
-            start_time=event.timestamp,
+        execution_id = event.scope.execution_id
+        self._metrics_buffer[execution_id] = ExecutionMetrics(
+            execution_id=execution_id,
+            start_time=event.occurred_at.timestamp(),
         )
-        self._node_dependencies[event.execution_id] = {}
+        self._node_dependencies[execution_id] = {}
     
-    async def _handle_node_started(self, event: ExecutionEvent) -> None:
+    async def _handle_node_started(self, event: DomainEvent) -> None:
         """Track node start time."""
-        metrics = self._metrics_buffer.get(event.execution_id)
-        if not metrics:
-            return
-        
-        node_id = getattr(event, 'node_id', None)
-        if not node_id:
-            return
-        
-        metrics.node_metrics[node_id] = NodeMetrics(
-            node_id=node_id,
-            node_type=getattr(event, 'node_type', 'unknown'),
-            start_time=event.timestamp,
-        )
-        
-        # Track dependencies from inputs if available
-        inputs = getattr(event, 'inputs', None)
-        if inputs and isinstance(inputs, dict):
-            deps = inputs.get('dependencies', [])
-            if deps:
-                self._node_dependencies[event.execution_id][node_id] = set(deps)
-    
-    async def _handle_node_completed(self, event: ExecutionEvent) -> None:
-        """Track node completion and collect metrics."""
-        metrics = self._metrics_buffer.get(event.execution_id)
-        if not metrics:
-            return
-        
-        node_id = getattr(event, 'node_id', None)
-        if not node_id or node_id not in metrics.node_metrics:
-            return
-        
-        node_metrics = metrics.node_metrics[node_id]
-        node_metrics.end_time = event.timestamp
-        node_metrics.duration_ms = (node_metrics.end_time - node_metrics.start_time) * 1000
-        
-        # Collect additional metrics from state if available
-        state = getattr(event, 'state', None)
-        if state:
-            node_metrics.duration_ms = getattr(event, 'duration_ms', node_metrics.duration_ms)
-            if hasattr(state, 'token_usage') and state.token_usage:
-                node_metrics.token_usage = state.token_usage
-    
-    async def _handle_node_failed(self, event: ExecutionEvent) -> None:
-        """Track node failure."""
-        metrics = self._metrics_buffer.get(event.execution_id)
-        if not metrics:
-            return
-        
-        node_id = getattr(event, 'node_id', None)
-        if not node_id or node_id not in metrics.node_metrics:
-            return
-        
-        node_metrics = metrics.node_metrics[node_id]
-        node_metrics.end_time = getattr(event, 'timestamp', time.time())
-        node_metrics.duration_ms = (node_metrics.end_time - node_metrics.start_time) * 1000
-        node_metrics.error = getattr(event, 'error', 'Unknown error')
-    
-    async def _handle_execution_completed(self, event: ExecutionEvent) -> None:
-        """Analyze execution and emit optimization suggestions."""
-        metrics = self._metrics_buffer.get(event.execution_id)
-        if not metrics:
-            return
-        
-        metrics.end_time = getattr(event, 'timestamp', time.time())
-        metrics.total_duration_ms = (metrics.end_time - metrics.start_time) * 1000
-        
-        # Analyze execution patterns
-        await self._analyze_execution(event.execution_id)
-        
-        # Clean up
-        del self._metrics_buffer[event.execution_id]
-        if event.execution_id in self._node_dependencies:
-            del self._node_dependencies[event.execution_id]
-    
-    async def _analyze_execution(self, execution_id: str) -> None:
-        """Analyze execution metrics and emit optimization suggestions."""
+        execution_id = event.scope.execution_id
         metrics = self._metrics_buffer.get(execution_id)
         if not metrics:
             return
         
-        # Identify patterns
-        bottlenecks = self._find_bottlenecks(metrics)
-        parallelizable = self._find_parallelizable_nodes(metrics)
-        critical_path = self._find_critical_path(metrics)
+        node_id = event.scope.node_id
+        if not node_id:
+            return
         
-        # Store patterns in metrics
-        metrics.bottlenecks = [b["node_id"] for b in bottlenecks]
-        metrics.parallelizable_groups = parallelizable
-        metrics.critical_path = critical_path
+        payload = cast(NodeStartedPayload, event.payload)
+        metrics.node_metrics[node_id] = NodeMetrics(
+            node_id=node_id,
+            node_type=payload.node_type or 'unknown',
+            start_time=event.occurred_at.timestamp(),
+        )
         
-        # Emit metrics collected event for persistence
-        if self.event_bus:
-            # Convert metrics to dict for serialization
-            metrics_dict = {
-                "execution_id": metrics.execution_id,
-                "start_time": metrics.start_time,
-                "end_time": metrics.end_time,
-                "total_duration_ms": metrics.total_duration_ms,
-                "critical_path": metrics.critical_path,
-                "parallelizable_groups": metrics.parallelizable_groups,
-                "bottlenecks": metrics.bottlenecks,
-                "node_metrics": {
-                    node_id: {
-                        "node_id": nm.node_id,
-                        "node_type": nm.node_type,
-                        "start_time": nm.start_time,
-                        "end_time": nm.end_time,
-                        "duration_ms": nm.duration_ms,
-                        "memory_usage": nm.memory_usage,
-                        "token_usage": nm.token_usage,
-                        "error": nm.error,
-                        "dependencies": list(nm.dependencies),
-                    }
-                    for node_id, nm in metrics.node_metrics.items()
-                }
-            }
-            
-            await self.event_bus.emit(MetricsCollectedEvent(
-                execution_id=execution_id,
-                timestamp=time.time(),
-                metrics=metrics_dict
-            ))
-        
-        if bottlenecks or parallelizable:
-            optimization = DiagramOptimization(
-                execution_id=execution_id,
-                diagram_id=None,  # Would need to track this
-                bottlenecks=bottlenecks,
-                parallelizable=parallelizable,
-            )
-            
-            # Generate specific suggestions
-            if bottlenecks:
-                optimization.suggested_changes.append({
-                    "type": "optimize_bottlenecks",
-                    "description": f"Optimize {len(bottlenecks)} slow nodes",
-                    "nodes": [b["node_id"] for b in bottlenecks],
-                })
-            
-            if parallelizable:
-                optimization.suggested_changes.append({
-                    "type": "enable_parallelization",
-                    "description": f"Run {len(parallelizable)} node groups in parallel",
-                    "groups": parallelizable,
-                })
-            
-            # Emit optimization event
-            if self.event_bus:
-                for suggestion in optimization.suggested_changes:
-                    await self.event_bus.emit(OptimizationSuggestedEvent(
-                        execution_id=execution_id,
-                        timestamp=time.time(),
-                        suggestion_type=suggestion["type"],
-                        affected_nodes=suggestion.get("nodes", []) or 
-                                     [n for group in suggestion.get("groups", []) for n in group],
-                        description=suggestion["description"]
-                    ))
+        # Track dependencies from inputs if available
+        if payload.inputs and isinstance(payload.inputs, dict):
+            deps = payload.inputs.get('dependencies', [])
+            if deps:
+                self._node_dependencies[execution_id][node_id] = set(deps)
     
-    def _find_bottlenecks(self, metrics: ExecutionMetrics) -> List[Dict[str, Any]]:
-        """Identify nodes that are performance bottlenecks."""
-        bottlenecks = []
+    async def _handle_node_completed(self, event: DomainEvent) -> None:
+        """Track node completion and calculate duration."""
+        execution_id = event.scope.execution_id
+        metrics = self._metrics_buffer.get(execution_id)
+        if not metrics:
+            return
         
+        node_id = event.scope.node_id
+        if not node_id or node_id not in metrics.node_metrics:
+            return
+        
+        node_metrics = metrics.node_metrics[node_id]
+        node_metrics.end_time = event.occurred_at.timestamp()
+        
+        payload = cast(NodeCompletedPayload, event.payload)
+        if payload.duration_ms:
+            node_metrics.duration_ms = payload.duration_ms
+        else:
+            node_metrics.duration_ms = (node_metrics.end_time - node_metrics.start_time) * 1000
+        
+        if payload.token_usage:
+            node_metrics.token_usage = payload.token_usage
+    
+    async def _handle_node_failed(self, event: DomainEvent) -> None:
+        """Track node failures."""
+        execution_id = event.scope.execution_id
+        metrics = self._metrics_buffer.get(execution_id)
+        if not metrics:
+            return
+        
+        node_id = event.scope.node_id
+        if not node_id or node_id not in metrics.node_metrics:
+            return
+        
+        node_metrics = metrics.node_metrics[node_id]
+        node_metrics.end_time = event.occurred_at.timestamp()
+        node_metrics.duration_ms = (node_metrics.end_time - node_metrics.start_time) * 1000
+        
+        payload = cast(NodeErrorPayload, event.payload)
+        node_metrics.error = payload.error_message
+    
+    async def _handle_execution_completed(self, event: DomainEvent) -> None:
+        """Finalize metrics and emit analysis events."""
+        execution_id = event.scope.execution_id
+        metrics = self._metrics_buffer.get(execution_id)
+        if not metrics:
+            return
+        
+        metrics.end_time = event.occurred_at.timestamp()
+        metrics.total_duration_ms = (metrics.end_time - metrics.start_time) * 1000
+        
+        # Analyze and emit metrics
+        await self._analyze_execution(metrics, event.scope)
+        
+        # Clean up
+        del self._metrics_buffer[execution_id]
+        if execution_id in self._node_dependencies:
+            del self._node_dependencies[execution_id]
+    
+    async def _analyze_execution(self, metrics: ExecutionMetrics, scope: EventScope) -> None:
+        """Analyze execution metrics and emit findings."""
+        # Identify bottlenecks (slowest nodes)
+        bottlenecks = []
         for node_id, node_metrics in metrics.node_metrics.items():
             if node_metrics.duration_ms and node_metrics.duration_ms > self._analysis_threshold_ms:
                 bottlenecks.append({
                     "node_id": node_id,
                     "node_type": node_metrics.node_type,
                     "duration_ms": node_metrics.duration_ms,
-                    "percentage": (node_metrics.duration_ms / metrics.total_duration_ms * 100)
-                    if metrics.total_duration_ms else 0,
                 })
         
         # Sort by duration
         bottlenecks.sort(key=lambda x: x["duration_ms"], reverse=True)
+        metrics.bottlenecks = [b["node_id"] for b in bottlenecks[:5]]  # Top 5 slowest
         
-        return bottlenecks
+        # Calculate critical path (simplified - just longest sequential chain)
+        metrics.critical_path = self._calculate_critical_path(metrics)
+        
+        # Identify parallelizable groups
+        metrics.parallelizable_groups = self._find_parallelizable_nodes(metrics)
+        
+        # Emit metrics event
+        if self.event_bus:
+            metrics_dict = {
+                "execution_id": metrics.execution_id,
+                "total_duration_ms": metrics.total_duration_ms,
+                "node_count": len(metrics.node_metrics),
+                "bottlenecks": bottlenecks[:5],
+                "critical_path_length": len(metrics.critical_path),
+                "parallelizable_groups": len(metrics.parallelizable_groups),
+            }
+            
+            await self.event_bus.emit(DomainEvent(
+                type=EventType.METRICS_COLLECTED,
+                scope=scope,
+                payload=MetricsCollectedPayload(metrics=metrics_dict)
+            ))
+            
+            # Emit optimization suggestions if there are improvements
+            if metrics.parallelizable_groups:
+                await self.event_bus.emit(DomainEvent(
+                    type=EventType.OPTIMIZATION_SUGGESTED,
+                    scope=scope,
+                    payload=OptimizationSuggestedPayload(
+                        suggestion_type="parallelize_nodes",
+                        affected_nodes=[n for group in metrics.parallelizable_groups for n in group],
+                        expected_improvement=f"Could save up to {self._estimate_parallel_savings(metrics)}ms",
+                        description=f"Found {len(metrics.parallelizable_groups)} groups of nodes that could run in parallel"
+                    )
+                ))
     
-    def _find_parallelizable_nodes(
-        self, metrics: ExecutionMetrics
-    ) -> List[List[str]]:
-        """Find groups of nodes that could run in parallel."""
-        execution_id = metrics.execution_id
-        if execution_id not in self._node_dependencies:
-            return []
-        
-        deps = self._node_dependencies[execution_id]
-        parallelizable_groups = []
-        
-        # Find nodes with no dependencies on each other
-        nodes = list(metrics.node_metrics.keys())
-        
-        for i, node1 in enumerate(nodes):
-            group = [node1]
-            
-            for j, node2 in enumerate(nodes[i+1:], i+1):
-                # Check if nodes can run in parallel
-                node1_deps = deps.get(node1, set())
-                node2_deps = deps.get(node2, set())
-                
-                # Nodes can run in parallel if neither depends on the other
-                if node2 not in node1_deps and node1 not in node2_deps:
-                    # Also check transitive dependencies
-                    if not self._has_dependency_path(deps, node1, node2) and \
-                       not self._has_dependency_path(deps, node2, node1):
-                        group.append(node2)
-            
-            if len(group) > 1:
-                parallelizable_groups.append(group)
-        
-        # Deduplicate groups
-        unique_groups = []
-        seen = set()
-        for group in parallelizable_groups:
-            group_key = tuple(sorted(group))
-            if group_key not in seen:
-                seen.add(group_key)
-                unique_groups.append(group)
-        
-        return unique_groups
-    
-    def _has_dependency_path(
-        self, deps: Dict[str, Set[str]], from_node: str, to_node: str
-    ) -> bool:
-        """Check if there's a dependency path from one node to another."""
-        visited = set()
-        queue = [from_node]
-        
-        while queue:
-            current = queue.pop(0)
-            if current == to_node:
-                return True
-            
-            if current in visited:
-                continue
-            
-            visited.add(current)
-            queue.extend(deps.get(current, set()))
-        
-        return False
-    
-    def _find_critical_path(self, metrics: ExecutionMetrics) -> List[str]:
-        """Find the critical path through the execution."""
-        # Simple implementation: nodes that took the longest and were sequential
-        # A more sophisticated version would use graph analysis
-        
+    def _calculate_critical_path(self, metrics: ExecutionMetrics) -> List[str]:
+        """Calculate the critical path through the execution."""
+        # Simplified: return nodes in execution order that took the longest
         sorted_nodes = sorted(
             metrics.node_metrics.items(),
-            key=lambda x: x[1].duration_ms or 0,
-            reverse=True
+            key=lambda x: x[1].start_time
         )
+        return [node_id for node_id, _ in sorted_nodes]
+    
+    def _find_parallelizable_nodes(self, metrics: ExecutionMetrics) -> List[List[str]]:
+        """Find groups of nodes that could run in parallel."""
+        groups = []
+        exec_id = metrics.execution_id
         
-        # Return top nodes as a simple critical path
-        return [node_id for node_id, _ in sorted_nodes[:5]]
+        if exec_id not in self._node_dependencies:
+            return groups
+        
+        dependencies = self._node_dependencies[exec_id]
+        
+        # Find nodes with no dependencies on each other
+        potential_group = []
+        for node_id in metrics.node_metrics:
+            node_deps = dependencies.get(node_id, set())
+            
+            # Check if this node can run in parallel with nodes in potential_group
+            can_parallel = True
+            for other_id in potential_group:
+                other_deps = dependencies.get(other_id, set())
+                if node_id in other_deps or other_id in node_deps:
+                    can_parallel = False
+                    break
+            
+            if can_parallel:
+                potential_group.append(node_id)
+            elif len(potential_group) > 1:
+                groups.append(potential_group)
+                potential_group = [node_id]
+        
+        if len(potential_group) > 1:
+            groups.append(potential_group)
+        
+        return groups
+    
+    def _estimate_parallel_savings(self, metrics: ExecutionMetrics) -> float:
+        """Estimate time savings from parallelization."""
+        total_savings = 0.0
+        
+        for group in metrics.parallelizable_groups:
+            durations = []
+            for node_id in group:
+                if node_id in metrics.node_metrics:
+                    duration = metrics.node_metrics[node_id].duration_ms
+                    if duration:
+                        durations.append(duration)
+            
+            if durations:
+                # Savings = sum of all durations - max duration (parallel execution time)
+                savings = sum(durations) - max(durations)
+                total_savings += savings
+        
+        return total_savings
     
     async def _cleanup_loop(self) -> None:
-        """Periodically clean up old metrics."""
+        """Periodically clean up stale metrics."""
         while self._running:
             try:
-                await asyncio.sleep(300)  # Run every 5 minutes
+                await asyncio.sleep(300)  # Clean up every 5 minutes
                 
-                # Clean up metrics older than 1 hour
                 current_time = time.time()
-                cutoff_time = current_time - 3600
+                stale_executions = []
                 
-                to_remove = [
-                    exec_id for exec_id, metrics in self._metrics_buffer.items()
-                    if metrics.start_time < cutoff_time
-                ]
+                for exec_id, metrics in self._metrics_buffer.items():
+                    # Remove metrics older than 1 hour without completion
+                    if current_time - metrics.start_time > 3600:
+                        stale_executions.append(exec_id)
                 
-                for exec_id in to_remove:
+                for exec_id in stale_executions:
+                    logger.warning(f"Cleaning up stale metrics for execution {exec_id}")
                     del self._metrics_buffer[exec_id]
                     if exec_id in self._node_dependencies:
                         del self._node_dependencies[exec_id]
-                
-                if to_remove:
-                    logger.info(f"Cleaned up metrics for {len(to_remove)} old executions")
-                    
+                        
             except asyncio.CancelledError:
                 break
             except Exception as e:

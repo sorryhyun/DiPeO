@@ -1,12 +1,8 @@
-"""MessageRouter adapter implementing the DomainEventBus port.
-
-This adapter bridges domain events to the existing MessageRouter infrastructure,
-handling all serialization and format conversion at the infrastructure layer.
-"""
+"""Simplified MessageRouter adapter implementing the DomainEventBus port."""
 
 import logging
-from datetime import datetime
-from typing import Optional
+from dataclasses import asdict
+from typing import Optional, cast
 from uuid import uuid4
 
 from dipeo.domain.events.ports import (
@@ -15,20 +11,15 @@ from dipeo.domain.events.ports import (
     EventSubscription,
     EventPriority,
 )
-from dipeo.domain.events.contracts import (
+from dipeo.domain.events import (
     DomainEvent,
-    ExecutionEvent,
-    NodeEvent,
-    ExecutionStartedEvent,
-    ExecutionCompletedEvent,
-    ExecutionErrorEvent,
-    NodeStartedEvent,
-    NodeCompletedEvent,
-    NodeErrorEvent,
-    NodeOutputEvent,
-    ExecutionLogEvent,
+    EventType,
+    ExecutionStartedPayload,
+    ExecutionCompletedPayload,
+    NodeStartedPayload,
+    NodeCompletedPayload,
+    NodeErrorPayload,
 )
-from dipeo.domain.events.types import EventType
 from dipeo.diagram_generated import Status
 from dipeo.infrastructure.execution.messaging.message_router import MessageRouter
 
@@ -36,15 +27,12 @@ logger = logging.getLogger(__name__)
 
 
 class MessageRouterEventBusAdapter(DomainEventBus):
-    """Adapter that implements DomainEventBus using MessageRouter.
+    """Simplified adapter that implements DomainEventBus using MessageRouter.
     
-    This adapter:
-    1. Receives typed domain events
-    2. Serializes them to the format expected by MessageRouter
-    3. Routes them through the existing infrastructure
-    
-    All serialization and infrastructure concerns are kept here,
-    while the domain and application layers work with pure domain events.
+    Key improvements:
+    1. Leverages DomainEvent's dataclass structure for automatic serialization
+    2. Cleaner separation of concerns
+    3. Reduced code duplication
     """
     
     def __init__(self, message_router: MessageRouter):
@@ -52,38 +40,29 @@ class MessageRouterEventBusAdapter(DomainEventBus):
         self._subscriptions: dict[str, EventSubscription] = {}
         
     async def publish(self, event: DomainEvent) -> None:
-        """Publish a domain event by converting it to MessageRouter format.
-        
-        Args:
-            event: The domain event to publish
-        """
+        """Publish a domain event by converting it to MessageRouter format."""
         # Convert domain event to MessageRouter format
         message = self._serialize_event(event)
         
-        # Route through MessageRouter if this is an execution event
-        if isinstance(event, ExecutionEvent):
+        # Route through MessageRouter for execution events
+        if event.scope.execution_id:
             await self.message_router.broadcast_to_execution(
-                event.execution_id,
+                event.scope.execution_id,
                 message
             )
         else:
-            # For non-execution events, handle differently or log
-            logger.debug(f"Non-execution event published: {event.event_type}")
+            logger.debug(f"Non-execution event published: {event.type}")
             
     async def publish_batch(self, events: list[DomainEvent]) -> None:
-        """Publish multiple events atomically.
-        
-        Args:
-            events: List of domain events to publish
-        """
+        """Publish multiple events atomically."""
         # Group events by execution_id for efficient routing
         execution_events: dict[str, list[dict]] = {}
         
         for event in events:
-            if isinstance(event, ExecutionEvent):
-                if event.execution_id not in execution_events:
-                    execution_events[event.execution_id] = []
-                execution_events[event.execution_id].append(
+            if event.scope.execution_id:
+                if event.scope.execution_id not in execution_events:
+                    execution_events[event.scope.execution_id] = []
+                execution_events[event.scope.execution_id].append(
                     self._serialize_event(event)
                 )
         
@@ -104,17 +83,8 @@ class MessageRouterEventBusAdapter(DomainEventBus):
     ) -> EventSubscription:
         """Subscribe to domain events.
         
-        Note: This is primarily used by infrastructure components.
+        Note: Currently used primarily by infrastructure components.
         Application layer uses observers for now.
-        
-        Args:
-            event_types: Types of events to subscribe to
-            handler: Handler to process events
-            filter_expression: Optional filter expression
-            priority: Priority for event processing
-            
-        Returns:
-            Subscription object that can be used to unsubscribe
         """
         subscription = EventSubscription(
             subscription_id=str(uuid4()),
@@ -133,11 +103,7 @@ class MessageRouterEventBusAdapter(DomainEventBus):
         return subscription
     
     async def unsubscribe(self, subscription: EventSubscription) -> None:
-        """Unsubscribe from domain events.
-        
-        Args:
-            subscription: The subscription to cancel
-        """
+        """Unsubscribe from domain events."""
         self._subscriptions.pop(subscription.subscription_id, None)
         subscription.active = False
     
@@ -150,137 +116,95 @@ class MessageRouterEventBusAdapter(DomainEventBus):
         await self.message_router.cleanup()
     
     def _serialize_event(self, event: DomainEvent) -> dict:
-        """Serialize a domain event to MessageRouter format.
-        
-        This method handles all serialization, keeping it in the infrastructure layer.
-        
-        Args:
-            event: Domain event to serialize
-            
-        Returns:
-            Dictionary in MessageRouter format
-        """
-        base_message = {
-            "type": event.event_type.value,
-            "timestamp": event.timestamp.isoformat(),
-            "event_id": event.event_id,
+        """Simplified serialization leveraging DomainEvent's dataclass structure."""
+        # Base message with common fields
+        message = {
+            "type": self._get_message_type(event),
+            "timestamp": event.occurred_at.isoformat(),
+            "event_id": event.id,
+            "execution_id": event.scope.execution_id,
         }
         
-        # Add execution_id for execution events
-        if isinstance(event, ExecutionEvent):
-            base_message["execution_id"] = event.execution_id
+        # Add optional scope fields
+        if event.scope.node_id:
+            message["node_id"] = event.scope.node_id
+        if event.scope.connection_id:
+            message["connection_id"] = event.scope.connection_id
+        if event.scope.parent_execution_id:
+            message["parent_execution_id"] = event.scope.parent_execution_id
         
-        # Serialize event-specific data based on type
-        if isinstance(event, ExecutionStartedEvent):
-            # Map to EXECUTION_STATUS_CHANGED for backward compatibility
-            base_message["type"] = EventType.EXECUTION_STATUS_CHANGED.value
-            base_message["data"] = {
-                "status": Status.RUNNING.value,
-                "diagram_id": event.diagram_id,
-                "variables": event.variables,
-                "parent_execution_id": event.parent_execution_id,
-                "initiated_by": event.initiated_by,
-                "timestamp": event.timestamp.isoformat(),
-            }
+        # Serialize payload
+        message["data"] = self._serialize_payload(event)
         
-        elif isinstance(event, ExecutionCompletedEvent):
-            # Map to EXECUTION_STATUS_CHANGED for backward compatibility
-            base_message["type"] = EventType.EXECUTION_STATUS_CHANGED.value
-            base_message["data"] = {
-                "status": event.status.value,
-                "total_duration_ms": event.total_duration_ms,
-                "total_tokens_used": event.total_tokens_used,
-                "node_count": event.node_count,
-                "timestamp": event.timestamp.isoformat(),
-            }
+        return message
+    
+    def _get_message_type(self, event: DomainEvent) -> str:
+        """Map event types for backward compatibility."""
+        # Map new event types to legacy message types for backward compatibility
+        compatibility_mapping = {
+            EventType.EXECUTION_STARTED: EventType.EXECUTION_STATUS_CHANGED,
+            EventType.EXECUTION_COMPLETED: EventType.EXECUTION_STATUS_CHANGED,
+            EventType.NODE_STARTED: EventType.NODE_STATUS_CHANGED,
+            EventType.NODE_COMPLETED: EventType.NODE_STATUS_CHANGED,
+            EventType.NODE_ERROR: EventType.NODE_STATUS_CHANGED,
+        }
         
-        elif isinstance(event, ExecutionErrorEvent):
-            # Keep EXECUTION_ERROR as is
-            base_message["data"] = {
-                "error": event.error,
-                "error_type": event.error_type,
-                "stack_trace": event.stack_trace,
-                "failed_node_id": event.failed_node_id,
-                "timestamp": event.timestamp.isoformat(),
-            }
+        mapped_type = compatibility_mapping.get(event.type, event.type)
+        return mapped_type.value
+    
+    def _serialize_payload(self, event: DomainEvent) -> dict:
+        """Serialize event payload with specific handling for backward compatibility."""
+        if not event.payload:
+            return {"timestamp": event.occurred_at.isoformat(), **event.meta}
         
-        elif isinstance(event, NodeStartedEvent):
-            # Map to NODE_STATUS_CHANGED for backward compatibility
-            base_message["type"] = EventType.NODE_STATUS_CHANGED.value
-            base_message["data"] = {
-                "node_id": event.node_id,
-                "node_type": event.node_type,
-                "status": Status.RUNNING.value,
-                "inputs": event.inputs,
-                "iteration": event.iteration,
-                "timestamp": event.timestamp.isoformat(),
-            }
+        # Convert payload to dict
+        payload_dict = asdict(event.payload)
+        payload_dict["timestamp"] = event.occurred_at.isoformat()
         
-        elif isinstance(event, NodeCompletedEvent):
-            # Map to NODE_STATUS_CHANGED for backward compatibility
-            base_message["type"] = EventType.NODE_STATUS_CHANGED.value
-            base_message["data"] = {
-                "node_id": event.node_id,
-                "node_type": event.node_type,
-                "status": event.state.status.value,
-                "output": event.state.output if event.state.output else None,
-                "started_at": event.state.started_at.isoformat() if event.state.started_at else None,
-                "ended_at": event.state.ended_at.isoformat() if event.state.ended_at else None,
-                "duration_ms": event.duration_ms,
-                "token_usage": event.token_usage,
-                "tokens_used": event.token_usage.get("total") if event.token_usage else None,
-                "output_summary": event.output_summary,
-                "timestamp": event.timestamp.isoformat(),
-            }
+        # Special handling for backward compatibility
+        if event.type == EventType.EXECUTION_STARTED:
+            payload = cast(ExecutionStartedPayload, event.payload)
+            payload_dict["status"] = Status.RUNNING.value
+            payload_dict["parent_execution_id"] = event.scope.parent_execution_id
+            
+        elif event.type == EventType.EXECUTION_COMPLETED:
+            payload = cast(ExecutionCompletedPayload, event.payload)
+            payload_dict["status"] = payload.status.value
+            
+        elif event.type in (EventType.NODE_STARTED, EventType.NODE_COMPLETED, EventType.NODE_ERROR):
+            # Add node_id to data for node events
+            payload_dict["node_id"] = event.scope.node_id
+            
+            # Handle NodeState serialization
+            if "state" in payload_dict and payload_dict["state"]:
+                state = payload_dict["state"]
+                if isinstance(state, dict):
+                    # Extract relevant fields from state
+                    if "status" in state:
+                        payload_dict["status"] = state["status"]
+                    if "started_at" in state:
+                        payload_dict["started_at"] = state["started_at"]
+                    if "ended_at" in state:
+                        payload_dict["ended_at"] = state["ended_at"]
+                    if "node_type" in state:
+                        payload_dict["node_type"] = state["node_type"]
+                # Remove the nested state object
+                del payload_dict["state"]
+            
+            # Add specific status for different node events
+            if event.type == EventType.NODE_STARTED:
+                payload_dict["status"] = Status.RUNNING.value
+            elif event.type == EventType.NODE_COMPLETED:
+                payload_dict.setdefault("status", Status.COMPLETED.value)
+            elif event.type == EventType.NODE_ERROR:
+                payload_dict["status"] = Status.FAILED.value
         
-        elif isinstance(event, NodeErrorEvent):
-            # Map to NODE_STATUS_CHANGED for backward compatibility
-            base_message["type"] = EventType.NODE_STATUS_CHANGED.value
-            base_message["data"] = {
-                "node_id": event.node_id,
-                "node_type": event.node_type,
-                "status": Status.FAILED.value,
-                "error": event.error,
-                "error_type": event.error_type,
-                "retryable": event.retryable,
-                "retry_count": event.retry_count,
-                "max_retries": event.max_retries,
-                "timestamp": event.timestamp.isoformat(),
-            }
-        
-        elif isinstance(event, NodeOutputEvent):
-            base_message["data"] = {
-                "node_id": event.node_id,
-                "node_type": event.node_type,
-                "output": event.output,
-                "is_partial": event.is_partial,
-                "sequence_number": event.sequence_number,
-                "timestamp": event.timestamp.isoformat(),
-            }
-        
-        elif isinstance(event, ExecutionLogEvent):
-            base_message["data"] = {
-                "level": event.level,
-                "message": event.message,
-                "logger": event.logger_name,
-                "node_id": event.node_id,
-                **event.extra_fields,
-            }
-        
-        else:
-            # Generic serialization for other event types
-            base_message["data"] = {
-                "timestamp": event.timestamp.isoformat(),
-                **event.metadata,
-            }
-        
-        return base_message
+        return payload_dict
 
 
-# Backwards compatibility: Also implement MessageBus interface
-# This allows gradual migration from MessageBus to DomainEventBus
+# Backward compatibility adapter
 class MessageBusCompatibilityAdapter:
-    """Provides MessageBus interface for backwards compatibility."""
+    """Provides MessageBus interface for backward compatibility."""
     
     def __init__(self, message_router: MessageRouter):
         self.message_router = message_router

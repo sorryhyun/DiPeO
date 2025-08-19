@@ -234,15 +234,15 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
     from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
     
     # Get filesystem adapter (should already be wired)
+    # Determine base path using unified config - ensure it's absolute
+    settings = get_settings()
+    base_path = (Path(settings.storage.base_dir) / settings.storage.data_dir).resolve()
+    
     filesystem = registry.resolve(FILESYSTEM_ADAPTER)
     if not filesystem:
-        # Fallback to creating one
+        # Fallback to creating one with the correct base_dir from config
         from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
-        filesystem = LocalFileSystemAdapter()
-    
-    # Determine base path using unified config
-    settings = get_settings()
-    base_path = Path(settings.storage.base_dir) / settings.storage.data_dir
+        filesystem = LocalFileSystemAdapter(base_path=Path(settings.storage.base_dir).resolve())
     
     # Resolve dependencies from registry
     compiler = registry.resolve(DIAGRAM_COMPILER)

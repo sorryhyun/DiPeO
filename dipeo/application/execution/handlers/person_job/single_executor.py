@@ -116,8 +116,11 @@ class SinglePersonJobExecutor:
         
         # Special handling for GOLDFISH - ensure no memory at all
         if is_goldfish:
-            # Clear conversation history for this person
-            person.clear_conversation_history()
+            # Clear conversation history for this person via repository
+            if hasattr(self._conversation_manager, 'clear_person_messages'):
+                self._conversation_manager.clear_person_messages(person.id)
+            # Reset person's memory limiter
+            person.reset_memory()
         
         # Use inputs directly
         transformed_inputs = inputs
@@ -125,10 +128,24 @@ class SinglePersonJobExecutor:
         # Handle conversation inputs
         has_conversation_input = self._conversation_handler.has_conversation_input(transformed_inputs)
         if has_conversation_input:
-            self._conversation_handler.load_conversation_from_inputs(person, transformed_inputs)
+            # Get messages to be added from inputs
+            messages_to_add = self._conversation_handler.load_conversation_from_inputs(
+                transformed_inputs, str(person.id)
+            )
+            # Add messages via orchestrator
+            if messages_to_add and hasattr(self._conversation_manager, 'add_message'):
+                for msg in messages_to_add:
+                    self._conversation_manager.add_message(
+                        msg,
+                        execution_id=trace_id,
+                        node_id=str(node.id)
+                    )
 
+        # Get all messages from conversation repository via orchestrator
+        all_messages = self._conversation_manager.get_conversation().messages if hasattr(self._conversation_manager, 'get_conversation') else []
+        
         # Get conversation context from person (respects memory profile)
-        conversation_context = person.get_conversation_context()
+        conversation_context = person.get_conversation_context(all_messages)
         
         # Prepare template values from inputs
         input_values = self._prompt_builder.prepare_template_values(transformed_inputs)
@@ -227,7 +244,37 @@ class SinglePersonJobExecutor:
         if pydantic_model:
             complete_kwargs["text_format"] = pydantic_model
             
-        result = await person.complete(**complete_kwargs)
+        # Check if orchestrator has the new helper method
+        if hasattr(self._conversation_manager, 'execute_person_completion'):
+            # Use the orchestrator's helper method which handles the new Person API
+            result = await self._conversation_manager.execute_person_completion(
+                person=person,
+                execution_id=trace_id,
+                node_id=str(node.id),
+                **complete_kwargs
+            )
+        else:
+            # Fallback: handle the new Person API directly
+            # Execute LLM call - now returns tuple (result, incoming_msg, response_msg)
+            result, incoming_msg, response_msg = await person.complete(
+                all_messages=all_messages,
+                **complete_kwargs
+            )
+            
+            # Add messages to conversation via orchestrator
+            if hasattr(self._conversation_manager, 'add_message'):
+                # Add incoming message
+                self._conversation_manager.add_message(
+                    incoming_msg,
+                    execution_id=trace_id,
+                    node_id=str(node.id)
+                )
+                # Add response message
+                self._conversation_manager.add_message(
+                    response_msg,
+                    execution_id=trace_id,
+                    node_id=str(node.id)
+                )
 
         
         # Build and return output with envelope support
@@ -301,9 +348,10 @@ class SinglePersonJobExecutor:
         # Check if conversation output is needed
         if self._conversation_handler.needs_conversation_output(str(node.id), diagram):
             # Return PersonJobOutput with messages
-            messages = []
-            for msg in person.get_messages():
-                messages.append(msg)
+            # Get all messages from conversation repository
+            all_conv_messages = self._conversation_manager.get_conversation().messages if hasattr(self._conversation_manager, 'get_conversation') else []
+            # Filter messages from person's perspective
+            messages = person.get_messages(all_conv_messages)
             
             # Return conversation envelope directly
             conversation_state = {
