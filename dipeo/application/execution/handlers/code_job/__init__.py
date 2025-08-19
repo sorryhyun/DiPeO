@@ -39,10 +39,8 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     """
     
     
-    def __init__(self, filesystem_adapter: FileSystemPort | None = None, template_processor: TemplateProcessorPort | None = None):
+    def __init__(self):
         super().__init__()
-        self._processor = template_processor
-        self.filesystem_adapter = filesystem_adapter
         
         self._executors: dict[str, CodeExecutor] = {
             "python": PythonExecutor(),

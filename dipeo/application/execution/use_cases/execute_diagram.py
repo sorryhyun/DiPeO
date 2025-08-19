@@ -11,9 +11,8 @@ from dipeo.diagram_generated.enums import Status
 from dipeo.application.registry import (
     STATE_STORE,
     MESSAGE_ROUTER,
-    DIAGRAM_SERVICE,
+    DIAGRAM_PORT,
     API_KEY_SERVICE,
-    CONVERSATION_SERVICE,
     CONVERSATION_MANAGER,
     PREPARE_DIAGRAM_USE_CASE,
 )

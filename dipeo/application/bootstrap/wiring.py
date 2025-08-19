@@ -13,10 +13,8 @@ from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     API_INVOKER,
     API_KEY_SERVICE,
-    API_PROVIDER_REGISTRY,
-    BLOB_STORAGE,
-    FILE_SYSTEM,
-    ARTIFACT_STORE,
+    BLOB_STORE,
+    FILESYSTEM_ADAPTER,
     DOMAIN_EVENT_BUS,
     LLM_CLIENT,
     LLM_REGISTRY,
@@ -153,7 +151,6 @@ def wire_api_services(registry: ServiceRegistry) -> None:
     """Wire integrated API services."""
     
     from dipeo.infrastructure.integrations.adapters.api_adapter import (
-        ApiProviderRegistryAdapter,
         ApiInvokerAdapter,
     )
     
@@ -176,10 +173,6 @@ def wire_api_services(registry: ServiceRegistry) -> None:
             limiter=rate_limiter,
             manifests=manifest_registry
         )
-        
-        # For V2, also need provider registry
-        from dipeo.infrastructure.integrations.drivers.api_provider_registry import APIProviderRegistry
-        provider_registry = APIProviderRegistry()
     else:
         # Use existing integrated API service
         from dipeo.infrastructure.integrations.drivers.integrated_api.service import IntegratedApiService
@@ -191,11 +184,9 @@ def wire_api_services(registry: ServiceRegistry) -> None:
         else:
             api_service = IntegratedApiService()
         
-        # Wrap with domain adapters
-        provider_registry = ApiProviderRegistryAdapter(api_service)
+        # Wrap with domain adapter
         api_invoker = ApiInvokerAdapter(api_service)
     
-    registry.register(API_PROVIDER_REGISTRY, provider_registry)
     registry.register(API_INVOKER, api_invoker)
 
 
@@ -243,7 +234,6 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
     from dipeo.infrastructure.shared.adapters import (
         LocalBlobAdapter,
         LocalFileSystemAdapter,
-        ArtifactStoreAdapter,
     )
     
     # Choose storage backend based on config
@@ -267,12 +257,8 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
     settings = get_settings()
     filesystem = LocalFileSystemAdapter(base_path=Path(settings.storage.base_dir).resolve())
     
-    # Artifact store built on blob store
-    artifact_store = ArtifactStoreAdapter(blob_store=blob_store)
-    
-    registry.register(BLOB_STORAGE, blob_store)
-    registry.register(FILE_SYSTEM, filesystem)
-    registry.register(ARTIFACT_STORE, artifact_store)
+    registry.register(BLOB_STORE, blob_store)
+    registry.register(FILESYSTEM_ADAPTER, filesystem)
 
 
 def wire_all_services(

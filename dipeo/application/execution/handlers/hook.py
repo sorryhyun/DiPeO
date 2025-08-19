@@ -35,9 +35,8 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     """
     
     
-    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
+    def __init__(self):
         super().__init__()
-        self.filesystem_adapter = filesystem_adapter
         # Instance variables for passing data between methods
         self._current_filesystem_adapter = None
         self._current_timeout = None
@@ -113,7 +112,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     produced_by=str(node.id)
                 )
             # Get filesystem adapter for file hooks
-            filesystem_adapter = self.filesystem_adapter or request.services.resolve(FILESYSTEM_ADAPTER)
+            filesystem_adapter = request.services.resolve(FILESYSTEM_ADAPTER)
             if not filesystem_adapter:
                 return EnvelopeFactory.error(
                     "Filesystem adapter is required for file hooks",
@@ -431,7 +430,7 @@ print(json.dumps(result))
         
         try:
             path = Path(file_path)
-            filesystem_adapter = getattr(self, '_temp_filesystem_adapter', self.filesystem_adapter)
+            filesystem_adapter = getattr(self, '_temp_filesystem_adapter', None)
             if not filesystem_adapter:
                 raise NodeExecutionError("Filesystem adapter not available")
             

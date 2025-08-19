@@ -12,9 +12,9 @@ import strawberry
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     FILESYSTEM_ADAPTER,
-    DIAGRAM_SERVICE,
+    DIAGRAM_PORT,
     STATE_STORE,
-    CONVERSATION_SERVICE,
+    CONVERSATION_MANAGER,
     CLI_SESSION_SERVICE,
     DIAGRAM_CONVERTER,
 )
@@ -166,7 +166,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
         @strawberry.field
         async def execution_capabilities(self) -> JSONScalar:
             # Get diagram service from registry
-            integrated_service = registry.resolve(DIAGRAM_SERVICE)
+            integrated_service = registry.resolve(DIAGRAM_PORT)
             persons_list = []
             
             if integrated_service:
@@ -239,7 +239,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
             offset: int = 0,
             since: Optional[datetime] = None,
         ) -> JSONScalar:
-            conversation_service = registry.resolve(CONVERSATION_SERVICE)
+            conversation_service = registry.resolve(CONVERSATION_MANAGER)
             
             all_conversations = []
             

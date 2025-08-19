@@ -36,11 +36,9 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     """
     
     
-    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None, template_processor: Optional[TemplateProcessorPort] = None):
+    def __init__(self):
         super().__init__()
-        self.filesystem_adapter = filesystem_adapter
         self._template_service = None  # Lazy initialization
-        self._template_processor = template_processor
         # Instance variables for passing data between methods
         self._current_filesystem_adapter = None
         self._current_engine = None
@@ -87,7 +85,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         services = request.services
         
         # Get filesystem adapter from services or use injected one
-        filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
+        filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
             return EnvelopeFactory.error(
                 "Filesystem adapter is required for template job execution",
@@ -122,7 +120,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Initialize template processor for path interpolation
         # Use injected processor or try to get from services
         from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
-        template_processor = self._template_processor
+        template_processor = None
         if not template_processor:
             try:
                 template_processor = services.resolve(TEMPLATE_PROCESSOR)

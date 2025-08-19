@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.registry import API_SERVICE
+from dipeo.application.registry import API_INVOKER
 from dipeo.diagram_generated.generated_nodes import ApiJobNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData, HttpMethod
@@ -28,9 +28,8 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     """
     
     
-    def __init__(self, api_service=None):
+    def __init__(self):
         super().__init__()
-        self.api_service = api_service
         # Instance variables for passing data between methods
         self._current_api_service = None
         self._current_method = None
@@ -65,7 +64,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         node = request.node
         
         # Check service availability
-        api_service = self.api_service or request.services.resolve(API_SERVICE)
+        api_service = request.services.resolve(API_INVOKER)
         if not api_service:
             return EnvelopeFactory.error(
                 "API service not available",

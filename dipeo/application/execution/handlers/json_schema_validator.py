@@ -26,10 +26,9 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     """
     
     
-    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
+    def __init__(self):
         super().__init__()
         self._validator = None
-        self.filesystem_adapter = filesystem_adapter
         # Instance variables for passing data between methods
         self._current_strict_mode = None
         self._current_error_on_extra = None
@@ -76,7 +75,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         self._current_debug = False  # Will be set based on context if needed
         
         # Check filesystem adapter availability
-        filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
+        filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
             return EnvelopeFactory.error(
                 "Filesystem adapter is required for JSON schema validation",
@@ -94,7 +93,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         """Convert envelope inputs to data for validation."""
         node = request.node
         services = request.services
-        filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
+        filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
         
         # Store inputs as envelope dict for data extraction
         self._envelope_inputs = inputs
@@ -158,7 +157,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         """Execute JSON schema validation."""
         node = request.node
         services = request.services
-        filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
+        filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
         
         if node.json_schema:
             schema = node.json_schema

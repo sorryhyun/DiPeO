@@ -6,8 +6,6 @@ from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
     API_KEY_STORAGE,
-    API_SERVICE,
-    ARTIFACT_STORE,
     AST_PARSER,
     BLOB_STORE,
     CONVERSATION_REPOSITORY,

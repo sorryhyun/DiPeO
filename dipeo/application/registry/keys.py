@@ -80,14 +80,10 @@ MEMORY_SERVICE = ServiceKey["MemoryService"]("memory_service")
 
 # Storage Services
 BLOB_STORE = ServiceKey["BlobStoreAdapter"]("blob_store")
-ARTIFACT_STORE = ServiceKey["ArtifactStoreAdapter"]("artifact_store")
 FILESYSTEM_ADAPTER = ServiceKey["FileSystemPort"]("filesystem_adapter")
-FILE_SYSTEM = ServiceKey["FileSystemPort"]("file_system")  # Alias from registry_tokens.py
-BLOB_STORAGE = ServiceKey["BlobStorePort"]("blob_storage")  # From registry_tokens.py
 
 # Application Services
 CONVERSATION_MANAGER = ServiceKey["ConversationManagerImpl"]("conversation_manager")
-CONVERSATION_SERVICE = ServiceKey["ConversationManagerImpl"]("conversation_service")  # Alias
 PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder")
 PERSON_MANAGER = ServiceKey["PersonManagerImpl"]("person_manager")
 TEMPLATE_PROCESSOR = ServiceKey["TemplateProcessorPort"]("template_processor")
@@ -100,18 +96,15 @@ DIAGRAM_SERIALIZER = ServiceKey["DiagramStorageSerializer"]("diagram_serializer"
 DIAGRAM_PORT = ServiceKey["DiagramPort"]("diagram_port")  # From registry_tokens.py
 
 # External Integration Services
-API_SERVICE = ServiceKey["APIService"]("api_service")
 API_KEY_SERVICE = ServiceKey["APIKeyPort"]("api_key_service")
 INTEGRATED_API_SERVICE = ServiceKey["IntegratedApiServicePort"]("integrated_api_service")
 PROVIDER_REGISTRY = ServiceKey["Any"]("provider_registry")  # Provider registry for webhook integration
-API_PROVIDER_REGISTRY = ServiceKey["ApiProviderRegistry"]("api_provider_registry")  # From registry_tokens.py
 API_INVOKER = ServiceKey["ApiInvoker"]("api_invoker")  # From registry_tokens.py
 
 # Parser Services
 AST_PARSER = ServiceKey["ASTParserPort"]("ast_parser")
 
 # Resolution Services (from registry_tokens.py)
-COMPILE_TIME_RESOLVER = ServiceKey["CompileTimeResolverV2"]("compile_time_resolver")
 RUNTIME_RESOLVER = ServiceKey["RuntimeInputResolverV2"]("runtime_resolver")
 TRANSFORMATION_ENGINE = ServiceKey["TransformationEngineV2"]("transformation_engine")
 
@@ -122,7 +115,6 @@ CURRENT_NODE_INFO = ServiceKey["Dict[str, Any]"]("current_node_info")
 NODE_EXEC_COUNTS = ServiceKey["Dict[str, int]"]("node_exec_counts")
 
 # Diagram Services
-DIAGRAM_SERVICE = ServiceKey["DiagramService"]("diagram_service")
 EXECUTION_SERVICE = ServiceKey["ExecutionService"]("execution_service")
 COMPILATION_SERVICE = ServiceKey["CompilationService"]("compilation_service")
 PREPARE_DIAGRAM_USE_CASE = ServiceKey["PrepareDiagramForExecutionUseCase"]("prepare_diagram_use_case")
@@ -191,14 +183,10 @@ __all__ = [
     
     # Storage
     "BLOB_STORE",
-    "ARTIFACT_STORE",
     "FILESYSTEM_ADAPTER",
-    "FILE_SYSTEM",
-    "BLOB_STORAGE",
     
     # Application
     "CONVERSATION_MANAGER",
-    "CONVERSATION_SERVICE",
     "PROMPT_BUILDER",
     "PERSON_MANAGER",
     "TEMPLATE_PROCESSOR",
@@ -211,18 +199,15 @@ __all__ = [
     "DIAGRAM_PORT",
     
     # External Integration
-    "API_SERVICE",
     "API_KEY_SERVICE",
     "INTEGRATED_API_SERVICE",
     "PROVIDER_REGISTRY",
-    "API_PROVIDER_REGISTRY",
     "API_INVOKER",
     
     # Parser
     "AST_PARSER",
     
     # Resolution Services
-    "COMPILE_TIME_RESOLVER",
     "RUNTIME_RESOLVER",
     "TRANSFORMATION_ENGINE",
     
@@ -233,7 +218,6 @@ __all__ = [
     "NODE_EXEC_COUNTS",
     
     # Diagram Services
-    "DIAGRAM_SERVICE",
     "EXECUTION_SERVICE",
     "COMPILATION_SERVICE",
     "PREPARE_DIAGRAM_USE_CASE",
@@ -277,42 +261,3 @@ __all__ = [
 ]
 
 
-def consolidate_duplicate_keys(registry: "ServiceRegistry") -> None:
-    """Consolidate duplicate service keys for backward compatibility.
-    
-    This function creates aliases for deprecated keys pointing to their canonical versions.
-    Call this after registering services to ensure backward compatibility during migration.
-    
-    Consolidations:
-    - FILE_SYSTEM -> FILESYSTEM_ADAPTER
-    - BLOB_STORAGE -> BLOB_STORE
-    - CONVERSATION_SERVICE -> CONVERSATION_MANAGER
-    - DIAGRAM_SERVICE -> DIAGRAM_PORT (if exists)
-    
-    Args:
-        registry: The service registry to consolidate
-    """
-    # Import here to avoid circular dependency
-    from .service_registry import ServiceRegistry
-    
-    # FILE_SYSTEM -> FILESYSTEM_ADAPTER
-    if registry.has(FILESYSTEM_ADAPTER) and not registry.has(FILE_SYSTEM):
-        service = registry.resolve(FILESYSTEM_ADAPTER)
-        registry.register(FILE_SYSTEM, service)
-    
-    # BLOB_STORAGE -> BLOB_STORE
-    if registry.has(BLOB_STORE) and not registry.has(BLOB_STORAGE):
-        service = registry.resolve(BLOB_STORE)
-        registry.register(BLOB_STORAGE, service)
-    
-    # CONVERSATION_SERVICE -> CONVERSATION_MANAGER
-    if registry.has(CONVERSATION_MANAGER) and not registry.has(CONVERSATION_SERVICE):
-        service = registry.resolve(CONVERSATION_MANAGER)
-        registry.register(CONVERSATION_SERVICE, service)
-    
-    # DIAGRAM_SERVICE -> DIAGRAM_PORT (if both are used)
-    if registry.has(DIAGRAM_PORT) and registry.has(DIAGRAM_SERVICE):
-        # Use DIAGRAM_PORT as canonical
-        service = registry.resolve(DIAGRAM_PORT)
-        registry.unregister(DIAGRAM_SERVICE)
-        registry.register(DIAGRAM_SERVICE, service)

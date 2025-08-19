@@ -38,10 +38,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     
     NODE_TYPE = NodeType.DB.value
 
-    def __init__(self, db_operations_service: Any | None = None, template_processor: TemplateProcessorPort | None = None) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.db_operations_service = db_operations_service
-        self._template_processor = template_processor
         # Instance variables for passing data between methods
         self._current_db_service = None
         self._current_base_dir = None
@@ -107,15 +105,13 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         self._current_base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
         
         # Initialize template processor for path interpolation
-        # Use injected processor or try to get from services
         from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
-        template_processor = self._template_processor
-        if not template_processor:
-            try:
-                template_processor = request.services.resolve(TEMPLATE_PROCESSOR)
-            except:
-                # If not available in services, template processing will be skipped
-                pass
+        template_processor = None
+        try:
+            template_processor = request.services.resolve(TEMPLATE_PROCESSOR)
+        except:
+            # If not available in services, template processing will be skipped
+            pass
         self._current_template_processor = template_processor
         
         # No early return - proceed to execute_request

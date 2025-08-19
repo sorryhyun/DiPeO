@@ -106,9 +106,9 @@ async def create_server_container() -> Container:
     # Get the state repository for state manager
     state_store = container.registry.resolve(STATE_REPOSITORY)
     
-    # Initialize if needed
-    if hasattr(state_store, 'initialize'):
-        await state_store.initialize()
+    # Initialize if needed (using Lifecycle protocol)
+    from dipeo.application.bootstrap.lifecycle import initialize_service
+    await initialize_service(state_store)
         
     # Also register as STATE_STORE for backward compatibility
     container.registry.register(STATE_STORE, state_store)
