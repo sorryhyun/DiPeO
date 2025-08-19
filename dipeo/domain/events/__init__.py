@@ -28,6 +28,7 @@ from .contracts import (
 
 from .ports import DomainEventBus, EventHandler, EventSubscription, EventEmitter, EventConsumer, MessageBus
 from .types import EventType, EventPriority, EventVersion
+from .publisher import EventPublisher
 
 __all__ = [
     # Core contracts
@@ -65,4 +66,6 @@ __all__ = [
     "EventType",
     "EventPriority",
     "EventVersion",
+    # Publisher
+    "EventPublisher",
 ]

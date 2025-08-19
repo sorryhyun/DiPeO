@@ -94,10 +94,8 @@ class ExecuteDiagramUseCase(BaseService):
             # Don't log for each batch item to reduce noise
         else:
             # Create event bus adapter for the observer
-            from dipeo.infrastructure.execution.messaging import (
-                MessageRouterEventBusAdapter
-            )
-            event_bus_adapter = MessageRouterEventBusAdapter(self.message_router)
+            from dipeo.infrastructure.events.adapters import InMemoryEventBus
+            event_bus_adapter = InMemoryEventBus()
             
             # Create unified observer for real-time updates (normal mode)
             unified_observer = UnifiedEventObserver(
@@ -110,15 +108,20 @@ class ExecuteDiagramUseCase(BaseService):
             # logger.debug(f"[ExecuteDiagram] Created UnifiedEventObserver for execution {execution_id}")
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
-        from dipeo.application.registry.keys import EVENT_BUS
+        from dipeo.application.registry.keys import EVENT_BUS, DOMAIN_EVENT_BUS
         
         runtime_resolver = StandardRuntimeResolver()
         
         # Get event bus from registry if available
+        # Use DOMAIN_EVENT_BUS (which has MessageRouter subscribed) if available,
+        # otherwise fall back to EVENT_BUS for backward compatibility
         event_bus = None
-        if self.service_registry.has(EVENT_BUS):
+        if self.service_registry.has(DOMAIN_EVENT_BUS):
+            event_bus = self.service_registry.resolve(DOMAIN_EVENT_BUS)
+            # logger.debug(f"[ExecuteDiagram] Using DOMAIN_EVENT_BUS from registry")
+        elif self.service_registry.has(EVENT_BUS):
             event_bus = self.service_registry.resolve(EVENT_BUS)
-            # logger.debug(f"[ExecuteDiagram] Using event bus from registry")
+            # logger.debug(f"[ExecuteDiagram] Using EVENT_BUS from registry")
             
             # Subscribe unified observer to event bus using adapter
             if engine_observers:

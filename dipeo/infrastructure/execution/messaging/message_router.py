@@ -12,7 +12,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from dipeo.domain.events.ports import MessageBus as MessageRouterPort
+from dipeo.domain.events.ports import MessageBus as MessageRouterPort, EventHandler
+from dipeo.domain.events.contracts import DomainEvent
+from dipeo.infrastructure.events.serialize import event_to_json_payload
 from dipeo.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -27,11 +29,14 @@ class ConnectionHealth:
     avg_latency: float = 0.0
 
 
-class MessageRouter(MessageRouterPort):
-    """Central message router implementing the MessageRouterPort protocol.
+class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
+    """Central message router implementing the MessageRouterPort protocol and EventHandler.
 
     This router manages connections and routes execution events to GraphQL
     subscriptions. It serves as the single source of truth for real-time monitoring.
+    
+    As an EventHandler, it subscribes to the DomainEventBus and forwards events
+    to GraphQL connections, eliminating the need for separate adapters.
 
     The router includes health monitoring, backpressure handling, and automatic
     cleanup of failed connections.
@@ -454,6 +459,27 @@ class MessageRouter(MessageRouterPort):
                 for conn_id, health in self.connection_health.items()
             },
         }
+
+    async def handle(self, event: DomainEvent) -> None:
+        """Handle a domain event by routing it to subscribed connections.
+        
+        This method implements the EventHandler protocol, allowing the router
+        to be subscribed directly to the DomainEventBus. It converts the event
+        to a JSON-serializable format and broadcasts it to all connections
+        subscribed to the execution.
+        
+        Args:
+            event: The domain event to route
+        """
+        # Serialize the event once
+        payload = event_to_json_payload(event)
+        
+        # Route to connections if there's an execution context
+        if event.scope.execution_id:
+            await self.broadcast_to_execution(str(event.scope.execution_id), payload)
+        else:
+            # Handle global events (not tied to specific execution)
+            logger.debug(f"Received global event: {event.type.value}")
 
 
 message_router = MessageRouter()

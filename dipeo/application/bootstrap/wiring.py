@@ -74,14 +74,15 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
     """Wire messaging services."""
     
     from dipeo.infrastructure.execution.messaging.messaging_adapter import MessageBusAdapter
-    from dipeo.infrastructure.execution.messaging import MessageRouter, InMemoryEventBus
+    from dipeo.infrastructure.execution.messaging import MessageRouter
+    from dipeo.infrastructure.events.adapters import InMemoryEventBus
     
     # Choose event bus implementation based on config
     event_bus_backend = os.getenv("DIPEO_EVENT_BUS_BACKEND", "adapter").lower()
     
     if event_bus_backend == "in_memory":
         # Use pure in-memory implementation
-        from dipeo.infrastructure.execution.messaging import InMemoryEventBus
+        from dipeo.infrastructure.events.adapters import InMemoryEventBus
         domain_event_bus = InMemoryEventBus(
             max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
             enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
@@ -201,10 +202,8 @@ def wire_api_services(registry: ServiceRegistry) -> None:
 def wire_event_services(registry: ServiceRegistry) -> None:
     """Wire event services for observer migration."""
     
-    from dipeo.infrastructure.execution.messaging import (
-        InMemoryEventBus,
-        ObserverToEventAdapter,
-    )
+    from dipeo.infrastructure.events.adapters import InMemoryEventBus
+    from dipeo.infrastructure.execution.messaging import ObserverToEventAdapter
     
     # Get or create domain event bus
     if registry.has(DOMAIN_EVENT_BUS):

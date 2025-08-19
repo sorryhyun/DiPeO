@@ -37,7 +37,13 @@ async def create_server_container() -> Container:
     
     # Get the message bus from wiring
     if container.registry.has(MESSAGE_BUS):
-        message_router = container.registry.resolve(MESSAGE_BUS)
+        message_bus = container.registry.resolve(MESSAGE_BUS)
+        # Extract the actual MessageRouter from the adapter
+        from dipeo.infrastructure.execution.messaging.messaging_adapter import MessageBusAdapter
+        if isinstance(message_bus, MessageBusAdapter):
+            message_router = message_bus._router
+        else:
+            message_router = message_bus
         # Also register as MESSAGE_ROUTER for backward compatibility
         container.registry.register(MESSAGE_ROUTER, message_router)
     else:
@@ -53,13 +59,16 @@ async def create_server_container() -> Container:
     wire_event_services(container.registry)
     
     # Get the domain event bus from wiring
+    domain_event_bus = None
     if container.registry.has(DOMAIN_EVENT_BUS):
-        # Uses domain event bus through adapters
+        # Use the new DomainEventBus directly
+        domain_event_bus = container.registry.resolve(DOMAIN_EVENT_BUS)
+        # Uses domain event bus through adapters for backward compatibility
         from dipeo.application.registry import ServiceKey
         event_bus = container.registry.resolve(ServiceKey("execution_observer"))  # ObserverToEventAdapter
     else:
-        # Fallback to InMemoryEventBus
-        from dipeo.infrastructure.execution.messaging import InMemoryEventBus
+        # Fallback to InMemoryEventBus (use canonical location)
+        from dipeo.infrastructure.events.adapters import InMemoryEventBus
         # Use unified config for queue size (use a reasonable default)
         queue_size = getattr(settings.messaging, 'queue_size', 50000)
         event_bus = InMemoryEventBus(max_queue_size=queue_size)
@@ -99,6 +108,35 @@ async def create_server_container() -> Container:
     # Use unified config for monitoring queue size (use a reasonable default)
     monitoring_queue_size = getattr(settings.messaging, 'monitoring_queue_size', 50000)
     streaming_monitor = StreamingMonitor(message_router, queue_size=monitoring_queue_size)
+    
+    # Initialize MessageRouter before wiring
+    await message_router.initialize()
+    
+    # Wire MessageRouter as EventHandler to DomainEventBus (Phase 1 refactoring)
+    if domain_event_bus is not None:
+        # MessageRouter now implements EventHandler, subscribe it directly to the bus
+        from dipeo.domain.events.types import EventPriority
+        
+        # Subscribe to all UI-relevant event types
+        ui_event_types = [
+            EventType.EXECUTION_STARTED,
+            EventType.EXECUTION_COMPLETED,
+            EventType.EXECUTION_ERROR,
+            EventType.NODE_STARTED,
+            EventType.NODE_COMPLETED,
+            EventType.NODE_ERROR,
+            EventType.NODE_PROGRESS,
+            EventType.EXECUTION_UPDATE,
+            EventType.METRICS_COLLECTED,
+            EventType.WEBHOOK_RECEIVED,
+        ]
+        
+        # Subscribe router to domain event bus with normal priority
+        await domain_event_bus.subscribe(
+            event_types=ui_event_types,
+            handler=message_router,
+            priority=EventPriority.NORMAL
+        )
 
     # Subscribe streaming monitor to all events (works with both V1 and V2)
     if hasattr(event_bus, 'subscribe'):
@@ -162,6 +200,9 @@ async def create_server_container() -> Container:
         event_bus.subscribe(EventType.WEBHOOK_RECEIVED, streaming_monitor)
 
     # Start services (check for start method for compatibility)
+    # Start the domain event bus FIRST (before other services that depend on it)
+    if domain_event_bus is not None and hasattr(domain_event_bus, 'start'):
+        await domain_event_bus.start()
     if hasattr(event_bus, 'start'):
         await event_bus.start()
     if hasattr(state_manager, 'start'):

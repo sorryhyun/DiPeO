@@ -9,7 +9,7 @@ import time
 from typing import Any, Optional
 
 from dipeo.domain.events import EventType, DomainEvent, EventScope, WebhookReceivedPayload
-from dipeo.infrastructure.execution.messaging import InMemoryEventBus
+from dipeo.infrastructure.events.adapters import InMemoryEventBus
 from dipeo.infrastructure.integrations.drivers.integrated_api.registry import ProviderRegistry
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse

@@ -55,7 +55,8 @@ class TypedExecutionEngine:
         self._scheduler: NodeScheduler | None = None
         
         if observers and not event_bus:
-            from dipeo.infrastructure.execution.messaging import InMemoryEventBus, ObserverToEventAdapter
+            from dipeo.infrastructure.events.adapters import InMemoryEventBus
+            from dipeo.infrastructure.execution.messaging import ObserverToEventAdapter
             from dipeo.domain.events import EventType
             # Create in-memory event bus and register observers
             self.event_bus = InMemoryEventBus()
@@ -70,7 +71,7 @@ class TypedExecutionEngine:
         else:
             # Use provided event bus or create async event bus
             if not event_bus:
-                from dipeo.infrastructure.execution.messaging import InMemoryEventBus
+                from dipeo.infrastructure.events.adapters import InMemoryEventBus
                 self.event_bus = InMemoryEventBus()
                 self._managed_event_bus = True
             else:
@@ -90,19 +91,9 @@ class TypedExecutionEngine:
         # Start event bus if we're managing it
         if self._managed_event_bus:
             await self.event_bus.start()
-            # Subscribe the original observers if we have them
-            if hasattr(self, '_observers') and self._observers:
-                from dipeo.domain.events import EventType
-                from dipeo.application.execution.observers import EventToObserverAdapter
-                for observer in self._observers:
-                    # Create an adapter that converts events to observer calls
-                    adapter = EventToObserverAdapter(observer)
-                    await self.event_bus.subscribe([EventType.EXECUTION_STARTED], adapter)
-                    await self.event_bus.subscribe([EventType.NODE_STARTED], adapter)
-                    await self.event_bus.subscribe([EventType.NODE_COMPLETED], adapter)
-                    await self.event_bus.subscribe([EventType.NODE_ERROR], adapter)
-                    await self.event_bus.subscribe([EventType.EXECUTION_COMPLETED], adapter)
-                    await self.event_bus.subscribe([EventType.EXECUTION_UPDATE], adapter)
+            # Note: We no longer convert events back to observers (EventToObserverAdapter removed)
+            # This eliminates unnecessary loops in the event system
+            # Observers should be wrapped with ObserverToEventAdapter at injection time instead
         
         context = None
         try:
