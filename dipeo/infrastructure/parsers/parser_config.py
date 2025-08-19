@@ -1,9 +1,11 @@
-"""Parser configuration module."""
+"""Parser configuration module using unified config system."""
 
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+
+from dipeo.config import get_settings
 
 
 @dataclass
@@ -25,9 +27,10 @@ class ParserConfig:
         Returns:
             ParserConfig instance with environment-based settings
         """
+        settings = get_settings()
         return cls(
             language=language,
-            project_root=Path(os.getenv('DIPEO_BASE_DIR', os.getcwd())),
+            project_root=Path(settings.storage.base_dir),
             cache_enabled=os.getenv('DIPEO_PARSER_CACHE', 'true').lower() == 'true'
         )
     
@@ -42,9 +45,10 @@ class ParserConfig:
         Returns:
             ParserConfig instance
         """
+        settings = get_settings()
         return cls(
             language=language,
-            project_root=Path(config.get('project_root', os.getenv('DIPEO_BASE_DIR', os.getcwd()))),
+            project_root=Path(config.get('project_root', settings.storage.base_dir)),
             cache_enabled=config.get('cache_enabled', True),
             script_path=Path(config['script_path']) if 'script_path' in config else None
         )

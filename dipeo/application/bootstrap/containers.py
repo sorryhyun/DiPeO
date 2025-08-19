@@ -12,13 +12,13 @@ from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
 )
-from dipeo.domain.config import Config
+from dipeo.config import get_settings, AppSettings
 
 class Container:
     """Main container orchestrating the 2-container architecture."""
     
-    def __init__(self, config: Config | None = None):
-        self.config = config or Config.from_env()
+    def __init__(self, config: AppSettings | None = None):
+        self.config = config or get_settings()
         self.registry = ServiceRegistry()
         
         # Infrastructure must be initialized before Application
@@ -38,12 +38,12 @@ class Container:
         if api_key_service and hasattr(api_key_service, 'initialize'):
             await api_key_service.initialize()
         
-        from dipeo.application.registry.registry_tokens import DIAGRAM_COMPILER
+        from dipeo.application.registry.keys import DIAGRAM_COMPILER
         compiler = self.registry.resolve(DIAGRAM_COMPILER)
         if compiler and hasattr(compiler, 'initialize'):
             await compiler.initialize()
         
-        from dipeo.application.registry.registry_tokens import DIAGRAM_SERIALIZER
+        from dipeo.application.registry.keys import DIAGRAM_SERIALIZER
         diagram_serializer = self.registry.resolve(DIAGRAM_SERIALIZER)
         if diagram_serializer and hasattr(diagram_serializer, 'initialize'):
             await diagram_serializer.initialize()

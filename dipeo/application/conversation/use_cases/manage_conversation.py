@@ -3,8 +3,8 @@
 from typing import Optional
 
 from dipeo.diagram_generated import Message
-from dipeo.domain.conversation import Conversation, ConversationManager
-from dipeo.domain.ports.conversation_repository import ConversationRepository
+from dipeo.domain.conversation import Conversation
+from dipeo.domain.conversation.ports import ConversationRepository
 
 
 class ManageConversationUseCase:
@@ -19,17 +19,14 @@ class ManageConversationUseCase:
     
     def __init__(
         self, 
-        conversation_repository: ConversationRepository,
-        conversation_manager: ConversationManager
+        conversation_repository: ConversationRepository
     ):
         """Initialize the use case with required dependencies.
         
         Args:
             conversation_repository: Repository for persisting conversations
-            conversation_manager: Domain service for conversation management
         """
         self.conversation_repository = conversation_repository
-        self.conversation_manager = conversation_manager
     
     def add_message(self, message: Message) -> None:
         """Add a message to the global conversation.

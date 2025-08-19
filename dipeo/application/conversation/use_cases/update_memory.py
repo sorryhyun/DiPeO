@@ -2,9 +2,9 @@
 
 from typing import Optional, Any
 
-from dipeo.domain.conversation import Person, PersonManager
-from dipeo.diagram_generated import MemoryView
-from dipeo.domain.ports.person_repository import PersonRepository
+from dipeo.domain.conversation import Person
+from dipeo.diagram_generated import MemoryView, PersonID
+from dipeo.domain.conversation.ports import PersonRepository
 
 
 class UpdateMemoryUseCase:
@@ -18,17 +18,14 @@ class UpdateMemoryUseCase:
     
     def __init__(
         self,
-        person_repository: PersonRepository,
-        person_manager: PersonManager
+        person_repository: PersonRepository
     ):
         """Initialize the use case with required dependencies.
         
         Args:
             person_repository: Repository for persisting person state
-            person_manager: Domain service for person management
         """
         self.person_repository = person_repository
-        self.person_manager = person_manager
     
     def update_memory_view(self, person_name: str, memory_view: MemoryView) -> None:
         """Update a person's memory view configuration.
@@ -37,8 +34,9 @@ class UpdateMemoryUseCase:
             person_name: Name of the person to update
             memory_view: New memory view setting
         """
-        person = self.person_repository.get_person(person_name)
-        if person:
+        person_id = PersonID(person_name)
+        if self.person_repository.exists(person_id):
+            person = self.person_repository.get(person_id)
             person.memory_filter.memory_view = memory_view
             # Note: In-memory repository updates are immediate
     
@@ -51,10 +49,12 @@ class UpdateMemoryUseCase:
         """
         from dipeo.domain.conversation.memory_filters import MemoryProfiles
         
-        person = self.person_repository.get_person(person_name)
-        if person and hasattr(MemoryProfiles, profile_name.upper()):
-            profile = getattr(MemoryProfiles, profile_name.upper())
-            person.memory_filter = profile
+        person_id = PersonID(person_name)
+        if self.person_repository.exists(person_id):
+            person = self.person_repository.get(person_id)
+            if hasattr(MemoryProfiles, profile_name.upper()):
+                profile = getattr(MemoryProfiles, profile_name.upper())
+                person.memory_filter = profile
     
     def update_memory_settings(
         self,
@@ -71,9 +71,11 @@ class UpdateMemoryUseCase:
             memory_view: Memory view setting
             max_words: Maximum word count for memory
         """
-        person = self.person_repository.get_person(person_name)
-        if not person:
+        person_id = PersonID(person_name)
+        if not self.person_repository.exists(person_id):
             return
+        
+        person = self.person_repository.get(person_id)
         
         if max_messages is not None:
             person.memory_filter.max_messages = max_messages
@@ -93,9 +95,11 @@ class UpdateMemoryUseCase:
         Returns:
             Dictionary with memory configuration or None if person not found
         """
-        person = self.person_repository.get_person(person_name)
-        if not person:
+        person_id = PersonID(person_name)
+        if not self.person_repository.exists(person_id):
             return None
+        
+        person = self.person_repository.get(person_id)
         
         return {
             "memory_view": person.memory_filter.memory_view,
@@ -114,6 +118,7 @@ class UpdateMemoryUseCase:
         """
         from dipeo.domain.conversation.memory_filters import MemoryProfiles
         
-        person = self.person_repository.get_person(person_name)
-        if person:
+        person_id = PersonID(person_name)
+        if self.person_repository.exists(person_id):
+            person = self.person_repository.get(person_id)
             person.memory_filter = MemoryProfiles.NORMAL

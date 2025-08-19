@@ -16,7 +16,7 @@ class LLMClientAdapter(LLMClient):
         self._service = llm_service
         if not self._service:
             # Initialize with minimal dependencies for standalone use
-            from dipeo.domain.ports.apikey import APIKeyPort
+            from dipeo.domain.integrations.ports import APIKeyPort
             from dipeo.infrastructure.shared.keys.drivers.environment_service import EnvironmentAPIKeyService
             api_key_service = EnvironmentAPIKeyService()
             self._service = LLMInfraService(api_key_service)

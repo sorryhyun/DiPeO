@@ -3,7 +3,7 @@
 import asyncio
 
 from dipeo.application.bootstrap import Container
-from dipeo.domain.config import Config, LLMConfig, StorageConfig
+from dipeo.config import get_settings
 from dipeo.domain.events import EventType
 
 from dipeo_server.shared.constants import BASE_DIR
@@ -16,17 +16,11 @@ async def create_server_container() -> Container:
 
     This replaces the complex ServerContainer with a simple configuration-based approach.
     """
-    config = Config(
-        base_dir=str(BASE_DIR),
-        storage=StorageConfig(
-            type="local",
-            local_path=str(BASE_DIR / "files"),
-        ),
-        llm=LLMConfig(provider="openai", default_model="gpt-4.1-nano"),
-        debug=True,
-    )
-
-    container = Container(config)
+    # Get unified settings
+    settings = get_settings()
+    
+    # Create container with unified settings
+    container = Container(settings)
     from dipeo.application.registry.keys import (
         CLI_SESSION_SERVICE,
         EVENT_BUS,
@@ -35,14 +29,11 @@ async def create_server_container() -> Container:
         PROVIDER_REGISTRY,
         INTEGRATED_API_SERVICE,
     )
-    from dipeo.infrastructure.config import get_settings
     from dipeo.application.bootstrap.wiring import wire_messaging_services
-    
-    settings = get_settings()
     
     # Wire messaging services
     wire_messaging_services(container.registry)
-    from dipeo.application.registry.registry_tokens import MESSAGE_BUS
+    from dipeo.application.registry.keys import MESSAGE_BUS
     
     # Get the message bus from wiring
     if container.registry.has(MESSAGE_BUS):
@@ -57,7 +48,7 @@ async def create_server_container() -> Container:
     
     # Wire event services
     from dipeo.application.bootstrap.wiring import wire_event_services
-    from dipeo.application.registry.registry_tokens import DOMAIN_EVENT_BUS
+    from dipeo.application.registry.keys import DOMAIN_EVENT_BUS
     
     wire_event_services(container.registry)
     
@@ -69,12 +60,14 @@ async def create_server_container() -> Container:
     else:
         # Fallback to AsyncEventBus
         from dipeo.infrastructure.events.adapters import AsyncEventBus
-        event_bus = AsyncEventBus(queue_size=settings.event_queue_size)
+        # Use unified config for queue size (use a reasonable default)
+        queue_size = getattr(settings.messaging, 'queue_size', 50000)
+        event_bus = AsyncEventBus(queue_size=queue_size)
         container.registry.register(EVENT_BUS, event_bus)
 
     # Wire state services
     from dipeo.application.bootstrap.wiring import wire_state_services
-    from dipeo.application.registry.registry_tokens import STATE_REPOSITORY, STATE_SERVICE, STATE_CACHE
+    from dipeo.application.registry.keys import STATE_REPOSITORY, STATE_SERVICE, STATE_CACHE
     
     wire_state_services(container.registry, redis_client=None)  # No Redis for now
     
@@ -103,7 +96,9 @@ async def create_server_container() -> Container:
 
     # Create streaming monitor for real-time UI updates
     from dipeo.infrastructure.execution.monitoring import StreamingMonitor
-    streaming_monitor = StreamingMonitor(message_router, queue_size=settings.monitoring_queue_size)
+    # Use unified config for monitoring queue size (use a reasonable default)
+    monitoring_queue_size = getattr(settings.messaging, 'monitoring_queue_size', 50000)
+    streaming_monitor = StreamingMonitor(message_router, queue_size=monitoring_queue_size)
 
     # Subscribe streaming monitor to all events (works with both V1 and V2)
     if hasattr(event_bus, 'subscribe'):

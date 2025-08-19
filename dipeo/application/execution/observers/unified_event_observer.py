@@ -1,10 +1,19 @@
-"""Unified event observer that publishes all execution events to MessageRouter."""
+"""Unified event observer that publishes domain events to the event bus."""
 
 import logging
 from datetime import datetime
 
 from dipeo.application.execution.observer_protocol import ExecutionObserver
-from dipeo.domain.events.ports import MessageBus as MessageRouterPort
+from dipeo.domain.events.ports import DomainEventBus
+from dipeo.domain.events.contracts import (
+    ExecutionStartedEvent,
+    ExecutionCompletedEvent,
+    ExecutionErrorEvent,
+    NodeStartedEvent,
+    NodeCompletedEvent,
+    NodeErrorEvent,
+    ExecutionLogEvent,
+)
 from dipeo.diagram_generated import (
     EventType,
     Status,
@@ -20,20 +29,18 @@ logger = logging.getLogger(__name__)
 
 
 class UnifiedEventObserver(ExecutionObserver):
-    """Unified observer that publishes all execution events to MessageRouter.
+    """Unified observer that publishes domain events to the event bus.
 
-    This observer replaces both MonitoringStreamObserver and EventPublishingObserver,
-    providing a single source of truth for real-time execution monitoring.
-
-    Events published through MessageRouter are consumed by GraphQL subscriptions
-    for real-time updates to connected clients.
+    This observer creates proper domain event objects and publishes them
+    to the domain event bus, keeping all serialization and infrastructure
+    concerns in the infrastructure layer.
     """
 
     def __init__(
-        self, message_router: MessageRouterPort, execution_runtime=None, capture_logs: bool = True,
+        self, event_bus: DomainEventBus, execution_runtime=None, capture_logs: bool = True,
         propagate_to_sub: bool = False
     ):
-        self.message_router = message_router
+        self.event_bus = event_bus
         self.execution_runtime = execution_runtime
         self.capture_logs = capture_logs
         self._log_handler: logging.Handler | None = None
@@ -51,79 +58,66 @@ class UnifiedEventObserver(ExecutionObserver):
         if self.capture_logs:
             self._setup_log_capture(execution_id)
 
-        await self._publish_event(
-            execution_id,
-            EventType.EXECUTION_STATUS_CHANGED,
-            {
-                "status": Status.RUNNING.value,
-                "diagram_id": diagram_id,
-                "timestamp": datetime.utcnow().isoformat(),
-            },
+        event = ExecutionStartedEvent(
+            execution_id=execution_id,
+            diagram_id=diagram_id,
+            variables={},  # TODO: Get actual variables from context
         )
+        await self.event_bus.publish(event)
 
     async def on_node_start(self, execution_id: str, node_id: str):
         """Handle node start event."""
         node_type = self._get_node_type(node_id)
         
-        # logger.debug(f"[UnifiedEventObserver] on_node_start called for node {node_id}, type: {node_type}")
-
-        await self._publish_event(
-            execution_id,
-            EventType.NODE_STATUS_CHANGED,
-            {
-                "node_id": node_id,
-                "status": Status.RUNNING.value,
-                "node_type": node_type,
-                "timestamp": datetime.utcnow().isoformat(),
-            },
+        event = NodeStartedEvent(
+            execution_id=execution_id,
+            node_id=node_id,
+            node_type=node_type,
+            inputs=None,  # TODO: Get actual inputs from context
         )
+        await self.event_bus.publish(event)
 
     async def on_node_complete(self, execution_id: str, node_id: str, state: NodeState):
         """Handle node completion event."""
         node_type = self._get_node_type(node_id)
-
-        await self._publish_event(
-            execution_id,
-            EventType.NODE_STATUS_CHANGED,
-            {
-                "node_id": node_id,
-                "status": state.status.value,
-                "node_type": node_type,
-                "output": state.output if state.output else None,
-                "started_at": state.started_at.isoformat() if state.started_at else None,
-                "ended_at": state.ended_at.isoformat() if state.ended_at else None,
-                "token_usage": state.token_usage.model_dump() if state.token_usage else None,
-                "tokens_used": state.token_usage.total if state.token_usage else None,
-                "timestamp": datetime.utcnow().isoformat(),
-            },
+        
+        # Calculate duration if both timestamps are available
+        duration_ms = None
+        if state.started_at and state.ended_at:
+            duration_ms = int((state.ended_at - state.started_at).total_seconds() * 1000)
+        
+        event = NodeCompletedEvent(
+            execution_id=execution_id,
+            node_id=node_id,
+            node_type=node_type,
+            state=state,
+            duration_ms=duration_ms,
+            token_usage=state.token_usage.model_dump() if state.token_usage else None,
+            output_summary=str(state.output)[:100] if state.output else None,  # Brief summary
         )
+        await self.event_bus.publish(event)
 
     async def on_node_error(self, execution_id: str, node_id: str, error: str):
         """Handle node error event."""
         node_type = self._get_node_type(node_id)
-
-        await self._publish_event(
-            execution_id,
-            EventType.NODE_STATUS_CHANGED,
-            {
-                "node_id": node_id,
-                "status": Status.FAILED.value,
-                "node_type": node_type,
-                "error": error,
-                "timestamp": datetime.utcnow().isoformat(),
-            },
+        
+        event = NodeErrorEvent(
+            execution_id=execution_id,
+            node_id=node_id,
+            node_type=node_type,
+            error=error,
+            error_type=type(error).__name__ if not isinstance(error, str) else "Error",
+            retryable=False,  # TODO: Determine from error type
         )
+        await self.event_bus.publish(event)
 
     async def on_execution_complete(self, execution_id: str):
         """Handle execution completion event."""
-        await self._publish_event(
-            execution_id,
-            EventType.EXECUTION_STATUS_CHANGED,
-            {
-                "status": Status.COMPLETED.value,
-                "timestamp": datetime.utcnow().isoformat(),
-            },
+        event = ExecutionCompletedEvent(
+            execution_id=execution_id,
+            status=Status.COMPLETED,
         )
+        await self.event_bus.publish(event)
 
         # Clean up log capture
         if self._log_handler:
@@ -131,36 +125,34 @@ class UnifiedEventObserver(ExecutionObserver):
 
     async def on_execution_error(self, execution_id: str, error: str):
         """Handle execution error event."""
-        await self._publish_event(
-            execution_id,
-            EventType.EXECUTION_ERROR,
-            {
-                "error": error,
-                "timestamp": datetime.utcnow().isoformat(),
-            },
+        event = ExecutionErrorEvent(
+            execution_id=execution_id,
+            error=error,
+            error_type=type(error).__name__ if not isinstance(error, str) else "Error",
         )
+        await self.event_bus.publish(event)
 
         # Clean up log capture
         if self._log_handler:
             self._cleanup_log_capture()
 
-    async def _publish_event(self, execution_id: str, event_type: EventType, data: dict):
-        """Publish event to message router."""
-        event = {
-            "type": event_type.value,
-            "execution_id": execution_id,
-            "data": data,
-            "timestamp": datetime.utcnow().isoformat(),
-        }
-
-        # logger.debug(f"[UnifiedEventObserver] Publishing event: {event_type.value} for execution {execution_id}")
+    async def _publish_log_event(self, execution_id: str, log_entry: dict):
+        """Publish log event to event bus."""
+        event = ExecutionLogEvent(
+            execution_id=execution_id,
+            level=log_entry["level"],
+            message=log_entry["message"],
+            logger_name=log_entry["logger"],
+            node_id=log_entry.get("node_id"),
+            extra_fields={
+                "timestamp": log_entry["timestamp"],
+            },
+        )
         
         try:
-            # Broadcast to all connections subscribed to this execution
-            await self.message_router.broadcast_to_execution(execution_id, event)
-            # logger.debug(f"[UnifiedEventObserver] Event published successfully")
+            await self.event_bus.publish(event)
         except Exception as e:
-            logger.error(f"Failed to publish event: {e}")
+            logger.error(f"Failed to publish log event: {e}")
 
     def _get_node_type(self, node_id: str) -> str | None:
         """Get node type from execution runtime if available."""
@@ -214,16 +206,9 @@ class UnifiedEventObserver(ExecutionObserver):
                 # Publish log asynchronously
                 try:
                     loop = asyncio.get_running_loop()
-                    # Use EventType.EXECUTION_LOG enum value
-                    log_event = {
-                        "type": EventType.EXECUTION_LOG.value,
-                        "execution_id": self.exec_id,
-                        "data": log_entry,
-                        "timestamp": datetime.utcnow().isoformat(),
-                    }
                     loop.create_task(
-                        self.observer.message_router.broadcast_to_execution(
-                            self.exec_id, log_event
+                        self.observer._publish_log_event(
+                            self.exec_id, log_entry
                         )
                     )
                 except RuntimeError:

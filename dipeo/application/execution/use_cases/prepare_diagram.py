@@ -106,7 +106,7 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         # Try to get compiler from service registry if available
         compiler = None
         if self.service_registry:
-            from dipeo.application.registry.registry_tokens import DIAGRAM_COMPILER
+            from dipeo.application.registry.keys import DIAGRAM_COMPILER
             compiler = self.service_registry.resolve(DIAGRAM_COMPILER)
         
         # Fallback to creating compiler adapter directly if not in registry

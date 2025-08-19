@@ -1,6 +1,6 @@
 """Person dynamic object representing an LLM agent with evolving conversation state."""
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from dipeo.diagram_generated import (
     ChatResult,
@@ -18,77 +18,91 @@ from .memory_filters import MemoryFilterFactory, MemoryLimiter, MemoryView
 if TYPE_CHECKING:
     from dipeo.domain.llm.ports import LLMService as LLMServicePort
 
-    from .conversation_manager import ConversationManager
-
 
 class Person:
-    """LLM agent with filtered view of global conversation."""
+    """LLM agent with filtered view of conversation messages.
+    
+    This entity manages its own memory filters and view settings,
+    but does not directly interact with conversations or repositories.
+    """
     
     def __init__(self, id: PersonID, name: str, llm_config: PersonLLMConfig, 
-                 conversation_manager: Optional["ConversationManager"] = None,
                  memory_view: MemoryView = MemoryView.ALL_INVOLVED):
         self.id = id
         self.name = name
         self.llm_config = llm_config
-        self._conversation_manager = conversation_manager
         
         self.memory_view = memory_view
         self._memory_filter = MemoryFilterFactory.create(memory_view)
         self._memory_limiter: MemoryLimiter | None = None
     
-    def add_message(self, message: Message) -> None:
-        if not self._conversation_manager:
-            raise RuntimeError("Person requires ConversationManager for message handling")
+    def filter_messages(self, messages: list[Message], memory_view: MemoryView | None = None) -> list[Message]:
+        """Filter messages based on this person's memory view and limits.
         
-        self._conversation_manager.add_message(
-            message=message,
-            execution_id=getattr(self._conversation_manager, '_current_execution_id', ''),
-            node_id=None
-        )
-    
-    
-    def get_messages(self, memory_view: MemoryView | None = None) -> list[Message]:
-        if not self._conversation_manager:
-            return []
-        
-        conversation = self._conversation_manager.get_conversation()
-        
+        Args:
+            messages: The full list of messages to filter
+            memory_view: Optional override for memory view (uses person's default if None)
+            
+        Returns:
+            Filtered list of messages based on person's perspective
+        """
         view = memory_view or self.memory_view
         filter = self._memory_filter if view == self.memory_view else MemoryFilterFactory.create(view)
         
-        filtered_messages = filter.filter(conversation.messages, self.id)
+        filtered_messages = filter.filter(messages, self.id)
         if self._memory_limiter:
             filtered_messages = self._memory_limiter.limit(filtered_messages)
         
         return filtered_messages
     
     
-    def get_latest_message(self) -> Message | None:
-        messages = self.get_messages()
+    def get_messages(self, all_messages: list[Message], memory_view: MemoryView | None = None) -> list[Message]:
+        """Get filtered messages from the provided message list.
+        
+        Args:
+            all_messages: The complete list of messages
+            memory_view: Optional override for memory view
+            
+        Returns:
+            Filtered messages based on person's view
+        """
+        return self.filter_messages(all_messages, memory_view)
+    
+    
+    def get_latest_message(self, all_messages: list[Message]) -> Message | None:
+        """Get the latest message from person's filtered view.
+        
+        Args:
+            all_messages: The complete list of messages
+            
+        Returns:
+            The latest message or None if no messages
+        """
+        messages = self.filter_messages(all_messages)
         return messages[-1] if messages else None
     
     def forget_all_messages(self) -> None:
         """Set memory limit to 0 - person can't see messages but they still exist."""
         self._memory_limiter = MemoryLimiter(0, preserve_system=False)
     
-    def clear_conversation_history(self) -> None:
-        """Clear all messages involving this person from the conversation.
+    def reset_memory(self) -> None:
+        """Reset memory to forget all messages.
         
-        This is used for GOLDFISH memory profile to ensure complete memory reset
-        between diagram executions.
+        This is used for GOLDFISH memory profile. Instead of clearing messages
+        from storage, we just set the memory limit to 0 so the person can't see them.
         """
-        if not self._conversation_manager:
-            return
-        
-        # Request the conversation manager to clear messages for this person
-        if hasattr(self._conversation_manager, 'clear_person_messages'):
-            self._conversation_manager.clear_person_messages(self.id)
-        else:
-            # Fallback: reset memory filter to show nothing
-            self._memory_limiter = MemoryLimiter(0, preserve_system=False)
+        self._memory_limiter = MemoryLimiter(0, preserve_system=False)
     
-    def get_message_count(self) -> int:
-        return len(self.get_messages())
+    def get_message_count(self, all_messages: list[Message]) -> int:
+        """Get count of messages visible to this person.
+        
+        Args:
+            all_messages: The complete list of messages
+            
+        Returns:
+            Number of messages visible to this person
+        """
+        return len(self.filter_messages(all_messages))
     
     def set_memory_view(self, view: MemoryView) -> None:
         self.memory_view = view
@@ -112,14 +126,25 @@ class Person:
     async def complete(
         self,
         prompt: str,
+        all_messages: list[Message],
         llm_service: "LLMServicePort",
         from_person_id: PersonID | str = "system",
         **llm_options: Any
-    ) -> ChatResult:
+    ) -> tuple[ChatResult, Message, Message]:
         """Complete prompt with this person's LLM.
         
-        This method now delegates all LLM-specific logic to the infrastructure layer.
-        The Person class only manages conversation state and memory.
+        This method delegates LLM-specific logic to the infrastructure layer.
+        It returns the result and the messages that should be added to the conversation.
+        
+        Args:
+            prompt: The prompt to complete
+            all_messages: The complete conversation history
+            llm_service: The LLM service to use
+            from_person_id: The ID of the person sending the prompt
+            **llm_options: Additional options for the LLM
+            
+        Returns:
+            Tuple of (ChatResult, incoming_message, response_message)
         """
         # Create the incoming message
         incoming = Message(
@@ -129,13 +154,9 @@ class Person:
             message_type="person_to_person" if from_person_id != "system" else "system_to_person"
         )
         
-        # Get messages from this person's filtered view BEFORE adding the new message
-        # This prevents double-appending when using filters like SENT_BY_ME
-        person_messages = self.get_messages()
+        # Get messages from this person's filtered view and add the incoming message
+        person_messages = self.filter_messages(all_messages)
         person_messages = person_messages + [incoming]
-        
-        # Now add the incoming message to the conversation history
-        self.add_message(incoming)
         
         # Delegate to LLM service with person context
         # The infrastructure layer handles system prompts and message formatting
@@ -146,7 +167,7 @@ class Person:
             **llm_options
         )
         
-        # Record the response message
+        # Create the response message
         response_message = Message(
             from_person_id=self.id,
             to_person_id=from_person_id,  # type: ignore[arg-type]
@@ -154,18 +175,20 @@ class Person:
             message_type="person_to_person" if from_person_id != "system" else "person_to_system",
             token_count=result.token_usage.total if result.token_usage else None
         )
-        self.add_message(response_message)
         
-        return result
+        return result, incoming, response_message
     
-    def get_conversation_context(self) -> dict[str, Any]:
+    def get_conversation_context(self, all_messages: list[Message]) -> dict[str, Any]:
         """Get this person's view of the conversation, formatted for templates.
         
         This method respects the person's memory filters and limits,
         providing a consistent view of the conversation that can be used
         in prompts and templates.
+        
+        Args:
+            all_messages: The complete conversation history
         """
-        messages = self.get_messages()  # Uses memory filters
+        messages = self.filter_messages(all_messages)  # Uses memory filters
         
         # Format messages for template use
         formatted_messages = [
@@ -233,5 +256,5 @@ class Person:
     
     def __repr__(self) -> str:
         return (f"Person(id={self.id}, name={self.name}, "
-                f"messages={self.get_message_count()}, "
+                f"memory_view={self.memory_view.value}, "
                 f"llm={self.llm_config.service}:{self.llm_config.model})")

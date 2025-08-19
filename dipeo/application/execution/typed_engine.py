@@ -19,7 +19,7 @@ from dipeo.domain.diagram.resolution import RuntimeInputResolverV2
 from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution import DomainDynamicOrderCalculator
-from dipeo.infrastructure.config import get_settings
+from dipeo.config import get_settings
 
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
@@ -123,8 +123,9 @@ class TypedExecutionEngine:
                 ready_nodes = await self._scheduler.get_ready_nodes(context)
                 
                 if not ready_nodes:
-                    # No nodes ready, wait briefly
-                    await asyncio.sleep(self._settings.node_ready_poll_interval)
+                    # No nodes ready, wait briefly (using a reasonable default)
+                    poll_interval = getattr(self._settings.execution, 'node_ready_poll_interval', 0.01)
+                    await asyncio.sleep(poll_interval)
                     continue
                 
                 step_count += 1

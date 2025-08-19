@@ -4,7 +4,7 @@ import logging
 import warnings
 from typing import Any
 
-from dipeo.domain.ports.template import TemplateProcessorPort
+from dipeo.domain.diagram.ports import TemplateProcessorPort
 
 logger = logging.getLogger(__name__)
 
@@ -179,8 +179,10 @@ class PromptBuilder:
         
         # Get context limit from settings
         try:
-            from dipeo.infrastructure.config import get_settings
-            context_limit = get_settings().conversation_context_limit
+            from dipeo.config import get_settings
+            settings = get_settings()
+            # Get conversation context limit from settings (use a reasonable default)
+            context_limit = getattr(settings, 'conversation_context_limit', 10)
         except:
             context_limit = 10  # Default fallback
         

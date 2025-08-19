@@ -7,7 +7,6 @@ import strawberry
 
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import PERSON_MANAGER
-from dipeo.domain.conversation import PersonManager
 from dipeo.diagram_generated import DomainPerson
 from dipeo.diagram_generated.domain_models import PersonLLMConfig, PersonID, LLMService, ApiKeyID
 

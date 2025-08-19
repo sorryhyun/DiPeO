@@ -3,8 +3,8 @@
 from typing import Any, Optional
 
 from dipeo.domain.base.exceptions import ServiceError
-from dipeo.domain.ports.parsers import ASTParserPort
-from dipeo.infrastructure.config.parser_config import ParserConfig
+from dipeo.domain.integrations.ports import ASTParserPort
+from .parser_config import ParserConfig
 
 from .registry import ParserRegistry
 from .resource_locator import ParserResourceLocator
