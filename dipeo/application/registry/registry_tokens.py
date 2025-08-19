@@ -18,6 +18,7 @@ if TYPE_CHECKING:
         BlobStorePort,
         FileSystemPort,
     )
+    from dipeo.domain.ports.parsers import ASTParserPort
     from dipeo.domain.diagram.ports import (
         DiagramCompiler,
         DiagramStorageSerializer,
@@ -65,7 +66,7 @@ RUNTIME_RESOLVER = ServiceKey["RuntimeInputResolverV2"]("runtime_resolver")
 TRANSFORMATION_ENGINE = ServiceKey["TransformationEngineV2"]("transformation_engine")
 
 # AST Parser Token
-AST_PARSER = ServiceKey["AstParser"]("ast_parser")
+AST_PARSER = ServiceKey["ASTParserPort"]("ast_parser")
 
 # Conversation & Person Tokens
 CONVERSATION_MANAGER = ServiceKey["ConversationManager"]("conversation_manager")

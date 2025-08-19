@@ -60,10 +60,6 @@ class ApplicationContainer:
         # Wire diagram context
         from dipeo.application.diagram.wiring import wire_diagram
         wire_diagram(self.registry)
-        
-        # Wire integrations context
-        from dipeo.application.integrations.wiring import wire_integrations
-        wire_integrations(self.registry)
 
     def _setup_app_services(self):
         # Register domain services

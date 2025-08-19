@@ -46,18 +46,18 @@ class ASTParserPort(Protocol):
     
     async def parse_batch(
         self,
-        sources: list[tuple[str, str]],
+        sources: dict[str, str],
         extract_patterns: list[str],
         options: dict[str, Any] | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         """Parse multiple source code strings in batch.
         
         Args:
-            sources: List of (identifier, source_code) tuples
+            sources: Dictionary mapping keys to source code
             extract_patterns: List of patterns to extract
             options: Optional parser-specific options
             
         Returns:
-            List of dictionaries containing extracted AST for each source
+            Dictionary mapping each key to its parse result
         """
         ...

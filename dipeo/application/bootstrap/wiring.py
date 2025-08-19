@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dipeo.application.registry import ServiceRegistry
-from dipeo.application.registry.registry_tokens import (
+from dipeo.application.registry.keys import (
     API_INVOKER,
     API_KEY_SERVICE,
     API_PROVIDER_REGISTRY,
@@ -158,14 +158,44 @@ def wire_api_services(registry: ServiceRegistry) -> None:
         ApiProviderRegistryAdapter,
         ApiInvokerAdapter,
     )
-    from dipeo.infrastructure.integrations.drivers.integrated_api.service import IntegratedApiService
     
-    # Create underlying service
-    api_service = IntegratedApiService()
+    # Check if V2 is enabled
+    use_v2 = os.getenv("INTEGRATIONS_PORT_V2", "0") == "1"
     
-    # Wrap with domain adapters
-    provider_registry = ApiProviderRegistryAdapter(api_service)
-    api_invoker = ApiInvokerAdapter(api_service)
+    if use_v2:
+        # V2 implementation with separate HTTP client, rate limiter, etc.
+        from dipeo.infrastructure.integrations.adapters.api_invoker import HttpApiInvoker
+        from dipeo.infrastructure.integrations.drivers.http_client import HttpClient
+        from dipeo.infrastructure.integrations.drivers.rate_limiter import RateLimiter
+        from dipeo.infrastructure.integrations.drivers.manifest_registry import ManifestRegistry
+        
+        http_client = HttpClient()
+        rate_limiter = RateLimiter()
+        manifest_registry = ManifestRegistry()
+        
+        api_invoker = HttpApiInvoker(
+            http=http_client,
+            limiter=rate_limiter,
+            manifests=manifest_registry
+        )
+        
+        # For V2, also need provider registry
+        from dipeo.infrastructure.integrations.drivers.api_provider_registry import APIProviderRegistry
+        provider_registry = APIProviderRegistry()
+    else:
+        # Use existing integrated API service
+        from dipeo.infrastructure.integrations.drivers.integrated_api.service import IntegratedApiService
+        
+        # If API key service is registered, use it
+        if registry.has(API_KEY_SERVICE):
+            api_key_port = registry.resolve(API_KEY_SERVICE)
+            api_service = IntegratedApiService(api_key_port=api_key_port)
+        else:
+            api_service = IntegratedApiService()
+        
+        # Wrap with domain adapters
+        provider_registry = ApiProviderRegistryAdapter(api_service)
+        api_invoker = ApiInvokerAdapter(api_service)
     
     registry.register(API_PROVIDER_REGISTRY, provider_registry)
     registry.register(API_INVOKER, api_invoker)

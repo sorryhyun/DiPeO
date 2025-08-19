@@ -163,8 +163,13 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
         """Prepare template variables from envelopes and node configuration."""
+        from datetime import datetime
+        
         node = request.node
         template_vars = {}
+        
+        # Add default variables
+        template_vars['now'] = datetime.now().isoformat()
         
         # Add node-defined variables
         if node.variables:

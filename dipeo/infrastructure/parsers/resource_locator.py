@@ -34,7 +34,7 @@ class ParserResourceLocator:
         if not script_rel_path:
             raise ValueError(f"No parser script configured for language: {language}")
             
-        return base_dir / 'dipeo/infrastructure/adapters/parsers' / script_rel_path
+        return base_dir / 'dipeo/infrastructure/parsers' / script_rel_path
     
     @classmethod
     def is_supported(cls, language: str) -> bool:

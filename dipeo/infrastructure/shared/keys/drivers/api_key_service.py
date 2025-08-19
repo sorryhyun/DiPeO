@@ -1,4 +1,4 @@
-"""API Key orchestration service in the application layer."""
+"""API Key service infrastructure implementation."""
 
 import json
 import logging

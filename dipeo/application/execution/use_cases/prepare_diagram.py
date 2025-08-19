@@ -4,7 +4,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Optional, TYPE_CHECKING
 
-from dipeo.application.integrations.use_cases import APIKeyService as APIKeyDomainService
+from dipeo.infrastructure.shared.keys.drivers import APIKeyService as APIKeyDomainService
 from dipeo.domain.base import BaseService
 from dipeo.domain.diagram.models import ExecutableDiagram
 from dipeo.domain.diagram.validation.diagram_validator import DiagramValidator

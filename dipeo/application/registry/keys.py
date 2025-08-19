@@ -9,12 +9,19 @@ from .service_registry import ServiceKey
 if TYPE_CHECKING:
     from dipeo.domain.llm.ports import LLMService as LLMServicePort
     from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
+    from dipeo.domain.execution.state import (
+        ExecutionCachePort,
+        ExecutionStateRepository,
+        ExecutionStateService,
+    )
     from dipeo.domain.ports.storage import BlobStorePort as FileServicePort
     from dipeo.domain.events.ports import MessageBus as MessageRouterPort
+    from dipeo.domain.events import DomainEventBus, MessageBus
     from dipeo.application.execution.observer_protocol import ExecutionObserver
     from dipeo.domain.ports.apikey import APIKeyPort
-    from dipeo.domain.diagram.ports import DiagramPort
+    from dipeo.domain.diagram.ports import DiagramPort, DiagramCompiler, DiagramStorageSerializer
     from dipeo.domain.integrations.ports import ApiInvoker as IntegratedApiServicePort
+    from dipeo.domain.integrations import ApiInvoker, ApiProvider, ApiProviderRegistry
     from dipeo.domain.diagram.ports import DiagramStorageSerializer as DiagramConverter
     from dipeo.domain.ports.parsers import ASTParserPort
     from dipeo.domain.ports import (
@@ -25,9 +32,15 @@ if TYPE_CHECKING:
         NodeOutputRepository,
         PersonRepository,
     )
-    from dipeo.domain.ports.storage import FileSystemPort
+    from dipeo.domain.ports.storage import FileSystemPort, ArtifactStorePort
     from dipeo.domain.ports.template import TemplateProcessorPort
     from dipeo.domain.events import EventEmitter
+    from dipeo.domain.llm import LLMClient, LLMService, MemoryService
+    from dipeo.domain.diagram.resolution.interfaces import (
+        CompileTimeResolverV2,
+        RuntimeInputResolverV2,
+        TransformationEngineV2,
+    )
     from dipeo.application.utils import PromptBuilder
     from dipeo.application.execution.handlers.condition.evaluators.expression_evaluator import ConditionEvaluator
     from dipeo.infrastructure.shared.adapters import (
@@ -51,10 +64,26 @@ FILE_SERVICE = ServiceKey["FileServicePort"]("file_service")
 MESSAGE_ROUTER = ServiceKey["MessageRouterPort"]("message_router")
 EVENT_BUS = ServiceKey["EventEmitter"]("event_bus")
 
+# Execution State Services (from registry_tokens.py)
+STATE_REPOSITORY = ServiceKey["ExecutionStateRepository"]("execution_state_repository")
+STATE_SERVICE = ServiceKey["ExecutionStateService"]("execution_state_service")
+STATE_CACHE = ServiceKey["ExecutionCachePort"]("execution_state_cache")
+
+# Messaging Services (from registry_tokens.py)
+MESSAGE_BUS = ServiceKey["MessageBus"]("message_bus")
+DOMAIN_EVENT_BUS = ServiceKey["DomainEventBus"]("domain_event_bus")
+
+# LLM Services (from registry_tokens.py)
+LLM_CLIENT = ServiceKey["LLMClient"]("llm_client")
+LLM_REGISTRY = ServiceKey["dict[str, LLMClient]"]("llm_registry")
+MEMORY_SERVICE = ServiceKey["MemoryService"]("memory_service")
+
 # Storage Services
 BLOB_STORE = ServiceKey["BlobStoreAdapter"]("blob_store")
 ARTIFACT_STORE = ServiceKey["ArtifactStoreAdapter"]("artifact_store")
 FILESYSTEM_ADAPTER = ServiceKey["FileSystemPort"]("filesystem_adapter")
+FILE_SYSTEM = ServiceKey["FileSystemPort"]("file_system")  # Alias from registry_tokens.py
+BLOB_STORAGE = ServiceKey["BlobStorePort"]("blob_storage")  # From registry_tokens.py
 
 # Application Services
 CONVERSATION_MANAGER = ServiceKey["ConversationManagerImpl"]("conversation_manager")
@@ -66,15 +95,25 @@ TEMPLATE_PROCESSOR = ServiceKey["TemplateProcessorPort"]("template_processor")
 # Domain Services
 DB_OPERATIONS_SERVICE = ServiceKey["DBOperationsDomainService"]("db_operations_service")
 DIAGRAM_CONVERTER = ServiceKey["DiagramConverter"]("diagram_converter")
+DIAGRAM_COMPILER = ServiceKey["DiagramCompiler"]("diagram_compiler")  # From registry_tokens.py
+DIAGRAM_SERIALIZER = ServiceKey["DiagramStorageSerializer"]("diagram_serializer")  # From registry_tokens.py
+DIAGRAM_PORT = ServiceKey["DiagramPort"]("diagram_port")  # From registry_tokens.py
 
 # External Integration Services
 API_SERVICE = ServiceKey["APIService"]("api_service")
 API_KEY_SERVICE = ServiceKey["APIKeyPort"]("api_key_service")
 INTEGRATED_API_SERVICE = ServiceKey["IntegratedApiServicePort"]("integrated_api_service")
 PROVIDER_REGISTRY = ServiceKey["Any"]("provider_registry")  # Provider registry for webhook integration
+API_PROVIDER_REGISTRY = ServiceKey["ApiProviderRegistry"]("api_provider_registry")  # From registry_tokens.py
+API_INVOKER = ServiceKey["ApiInvoker"]("api_invoker")  # From registry_tokens.py
 
 # Parser Services
 AST_PARSER = ServiceKey["ASTParserPort"]("ast_parser")
+
+# Resolution Services (from registry_tokens.py)
+COMPILE_TIME_RESOLVER = ServiceKey["CompileTimeResolverV2"]("compile_time_resolver")
+RUNTIME_RESOLVER = ServiceKey["RuntimeInputResolverV2"]("runtime_resolver")
+TRANSFORMATION_ENGINE = ServiceKey["TransformationEngineV2"]("transformation_engine")
 
 # Execution Context Services
 DIAGRAM = ServiceKey["ExecutableDiagram"]("diagram")
@@ -136,10 +175,26 @@ __all__ = [
     "MESSAGE_ROUTER",
     "EVENT_BUS",
     
+    # Execution State Services
+    "STATE_REPOSITORY",
+    "STATE_SERVICE",
+    "STATE_CACHE",
+    
+    # Messaging Services
+    "MESSAGE_BUS",
+    "DOMAIN_EVENT_BUS",
+    
+    # LLM Services
+    "LLM_CLIENT",
+    "LLM_REGISTRY",
+    "MEMORY_SERVICE",
+    
     # Storage
     "BLOB_STORE",
     "ARTIFACT_STORE",
     "FILESYSTEM_ADAPTER",
+    "FILE_SYSTEM",
+    "BLOB_STORAGE",
     
     # Application
     "CONVERSATION_MANAGER",
@@ -151,15 +206,25 @@ __all__ = [
     # Domain
     "DB_OPERATIONS_SERVICE",
     "DIAGRAM_CONVERTER",
+    "DIAGRAM_COMPILER",
+    "DIAGRAM_SERIALIZER",
+    "DIAGRAM_PORT",
     
     # External Integration
     "API_SERVICE",
     "API_KEY_SERVICE",
     "INTEGRATED_API_SERVICE",
     "PROVIDER_REGISTRY",
+    "API_PROVIDER_REGISTRY",
+    "API_INVOKER",
     
     # Parser
     "AST_PARSER",
+    
+    # Resolution Services
+    "COMPILE_TIME_RESOLVER",
+    "RUNTIME_RESOLVER",
+    "TRANSFORMATION_ENGINE",
     
     # Execution Context
     "DIAGRAM",

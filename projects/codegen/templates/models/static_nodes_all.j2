@@ -44,8 +44,14 @@ class BaseExecutableNode:
 # Available variables: {{ "now: " ~ now if now is defined else "now not defined" }}
 # static_nodes_data exists: {{ "yes" if static_nodes_data is defined else "no" }}
 {%- if static_nodes_data is defined %}
+# static_nodes_data type: {{ static_nodes_data.__class__.__name__ }}
+{%- if static_nodes_data is mapping %}
 # static_nodes_data keys: {{ static_nodes_data.keys() | list }}
 {%- set classes = static_nodes_data.node_classes if static_nodes_data.node_classes is defined else [] %}
+{%- else %}
+# WARNING: static_nodes_data is not a dict, it's a {{ static_nodes_data.__class__.__name__ }}
+{%- set classes = [] %}
+{%- endif %}
 {%- else %}
 {%- set classes = node_classes if node_classes is defined else [] %}
 {%- endif %}
@@ -106,7 +112,11 @@ class PersonBatchJobNode(PersonJobNode):
 
 
 ExecutableNode = Union[
-{%- set classes2 = static_nodes_data.node_classes if static_nodes_data else node_classes %}
+{%- if static_nodes_data is defined and static_nodes_data is mapping %}
+{%- set classes2 = static_nodes_data.node_classes if static_nodes_data.node_classes is defined else [] %}
+{%- else %}
+{%- set classes2 = classes %}
+{%- endif %}
 {%- for node_class in classes2 %}
     {{ node_class.class_name }},
 {%- endfor %}
@@ -126,9 +136,9 @@ def create_executable_node(
     """Factory function to create typed executable nodes from diagram data."""
     data = data or {}
     
-{%- if static_nodes_data is defined %}
+{%- if static_nodes_data is defined and static_nodes_data is mapping %}
 {%- set classes = static_nodes_data.node_classes if static_nodes_data.node_classes is defined else [] %}
-{%- else %}
+{%- elif classes is not defined %}
 {%- set classes = node_classes if node_classes is defined else [] %}
 {%- endif %}
 {% for node_class in classes %}

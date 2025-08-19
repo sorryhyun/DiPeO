@@ -61,7 +61,7 @@ class InfrastructureContainer:
 
         filesystem_adapter = LocalFileSystemAdapter(base_path=Path(self.config.base_dir))
         self.registry.register(FILESYSTEM_ADAPTER, filesystem_adapter)
-        from dipeo.application.integrations.use_cases import APIKeyService
+        from dipeo.infrastructure.shared.keys.drivers import APIKeyService
         api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
         self.registry.register(
             API_KEY_SERVICE,
@@ -133,22 +133,26 @@ class InfrastructureContainer:
         )
 
         from dipeo.infrastructure.diagram.drivers.parser_service import get_parser_service
+        import logging
+        logger = logging.getLogger(__name__)
         parser_service = get_parser_service(
             default_language="typescript",
             project_root=Path(self.config.base_dir),
             cache_enabled=True
         )
+        logger.info(f"Registering AST_PARSER with service: {parser_service}")
         self.registry.register(
             AST_PARSER,
             parser_service
         )
+        logger.info(f"AST_PARSER registered successfully")
     
     def _setup_storage_v2(self):
         """Setup storage services using domain ports."""
         from dipeo.application.bootstrap.wiring import wire_storage_services
         
         # First setup API key service (needed by other services)
-        from dipeo.application.integrations.use_cases import APIKeyService
+        from dipeo.infrastructure.shared.keys.drivers import APIKeyService
         api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
         self.registry.register(
             API_KEY_SERVICE,
@@ -169,7 +173,7 @@ class InfrastructureContainer:
         
         # Ensure API key service exists
         if not self.registry.has(API_KEY_SERVICE):
-            from dipeo.application.integrations.use_cases import APIKeyService
+            from dipeo.infrastructure.shared.keys.drivers import APIKeyService
             api_key_path = Path(self.config.base_dir) / "files" / "apikeys.json"
             self.registry.register(
                 API_KEY_SERVICE,
