@@ -40,6 +40,7 @@ class ServiceRegistry:
         self._services: Dict[str, object] = {}
         self._factories: Dict[str, Callable[[], object]] = {}
         self._lock = threading.RLock()
+        self._resolve_hits: Dict[str, int] = {}
     
     def register(self, key: ServiceKey[T], service: T | Callable[[], T]) -> None:
         """Register a service or factory.
@@ -70,11 +71,13 @@ class ServiceRegistry:
         """
         with self._lock:
             if key.name in self._services:
+                self._resolve_hits[key.name] = self._resolve_hits.get(key.name, 0) + 1
                 return cast(T, self._services[key.name])
             elif key.name in self._factories:
                 # Create service from factory and cache it
                 service = self._factories[key.name]()
                 self._services[key.name] = service
+                self._resolve_hits[key.name] = self._resolve_hits.get(key.name, 0) + 1
                 return cast(T, service)
             raise KeyError(f"Service not found: {key.name}")
     
@@ -125,6 +128,17 @@ class ServiceRegistry:
         """List all registered service names."""
         with self._lock:
             return list(set(self._services.keys()) | set(self._factories.keys()))
+    
+    def report_unused(self) -> list[str]:
+        """Return keys that were registered but never resolved.
+        
+        Returns:
+            List of unused service names
+        """
+        with self._lock:
+            registered = set(self._services) | set(self._factories)
+            used = set(k for k, n in self._resolve_hits.items() if n > 0)
+            return sorted(registered - used)
     
     def create_child(self, **services: object) -> ChildServiceRegistry:
         """Create a child registry with inheritance.

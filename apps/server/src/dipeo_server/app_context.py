@@ -1,6 +1,7 @@
 """Application context and dependency injection configuration."""
 
 import asyncio
+import os
 
 from dipeo.application.bootstrap import Container
 from dipeo.config import get_settings
@@ -29,10 +30,30 @@ async def create_server_container() -> Container:
         PROVIDER_REGISTRY,
         INTEGRATED_API_SERVICE,
     )
-    from dipeo.application.bootstrap.wiring import wire_messaging_services
+    # Check if we should use minimal wiring for faster startup
+    use_minimal_wiring = os.getenv("DIPEO_MINIMAL_WIRING", "").lower() in ("1", "true", "yes")
     
-    # Wire messaging services
-    wire_messaging_services(container.registry)
+    if use_minimal_wiring:
+        # Use minimal wiring for thin startup
+        from dipeo.application.bootstrap.wiring_minimal import wire_minimal, wire_feature_flags
+        
+        # Wire only essential services
+        wire_minimal(container.registry, redis_client=None)
+        
+        # Wire optional features if specified
+        features = os.getenv("DIPEO_FEATURES", "").split(",") if os.getenv("DIPEO_FEATURES") else []
+        if features:
+            wire_feature_flags(container.registry, [f.strip() for f in features if f.strip()])
+        
+        # Still need messaging services for server operation
+        from dipeo.application.bootstrap.wiring import wire_messaging_services
+        wire_messaging_services(container.registry)
+    else:
+        # Use full wiring (existing behavior)
+        from dipeo.application.bootstrap.wiring import wire_messaging_services
+        
+        # Wire messaging services
+        wire_messaging_services(container.registry)
     from dipeo.application.registry.keys import MESSAGE_BUS
     
     # Get the message bus from wiring
@@ -52,11 +73,12 @@ async def create_server_container() -> Container:
         message_router = MessageRouter()
         container.registry.register(MESSAGE_ROUTER, message_router)
     
-    # Wire event services
-    from dipeo.application.bootstrap.wiring import wire_event_services
-    from dipeo.application.registry.keys import DOMAIN_EVENT_BUS
+    # Wire event services (if not already done by minimal wiring)
+    if not use_minimal_wiring:
+        from dipeo.application.bootstrap.wiring import wire_event_services
+        wire_event_services(container.registry)
     
-    wire_event_services(container.registry)
+    from dipeo.application.registry.keys import DOMAIN_EVENT_BUS
     
     # Get the domain event bus from wiring
     domain_event_bus = None
@@ -74,11 +96,12 @@ async def create_server_container() -> Container:
         event_bus = InMemoryEventBus(max_queue_size=queue_size)
         container.registry.register(EVENT_BUS, event_bus)
 
-    # Wire state services
-    from dipeo.application.bootstrap.wiring import wire_state_services
-    from dipeo.application.registry.keys import STATE_REPOSITORY, STATE_SERVICE, STATE_CACHE
+    # Wire state services (if not already done by minimal wiring)
+    if not use_minimal_wiring:
+        from dipeo.application.bootstrap.wiring import wire_state_services
+        wire_state_services(container.registry, redis_client=None)  # No Redis for now
     
-    wire_state_services(container.registry, redis_client=None)  # No Redis for now
+    from dipeo.application.registry.keys import STATE_REPOSITORY, STATE_SERVICE, STATE_CACHE
     
     # Get the state repository for state manager
     state_store = container.registry.resolve(STATE_REPOSITORY)
@@ -218,6 +241,17 @@ async def create_server_container() -> Container:
 
     if not container.registry.has(CLI_SESSION_SERVICE):
         container.registry.register(CLI_SESSION_SERVICE, CliSessionService())
+
+    # Consolidate duplicate service keys for backward compatibility
+    from dipeo.application.registry.keys import consolidate_duplicate_keys
+    consolidate_duplicate_keys(container.registry)
+    
+    # Report unused services for DI cleanup
+    import logging
+    logger = logging.getLogger(__name__)
+    unused = container.registry.report_unused()
+    if unused:
+        logger.info(f"🔎 Unused registrations this run ({len(unused)}): {', '.join(unused)}")
 
     return container
 

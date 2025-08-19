@@ -275,3 +275,44 @@ __all__ = [
     "DOMAIN_SERVICE_REGISTRY",
     "API_KEY_STORAGE",
 ]
+
+
+def consolidate_duplicate_keys(registry: "ServiceRegistry") -> None:
+    """Consolidate duplicate service keys for backward compatibility.
+    
+    This function creates aliases for deprecated keys pointing to their canonical versions.
+    Call this after registering services to ensure backward compatibility during migration.
+    
+    Consolidations:
+    - FILE_SYSTEM -> FILESYSTEM_ADAPTER
+    - BLOB_STORAGE -> BLOB_STORE
+    - CONVERSATION_SERVICE -> CONVERSATION_MANAGER
+    - DIAGRAM_SERVICE -> DIAGRAM_PORT (if exists)
+    
+    Args:
+        registry: The service registry to consolidate
+    """
+    # Import here to avoid circular dependency
+    from .service_registry import ServiceRegistry
+    
+    # FILE_SYSTEM -> FILESYSTEM_ADAPTER
+    if registry.has(FILESYSTEM_ADAPTER) and not registry.has(FILE_SYSTEM):
+        service = registry.resolve(FILESYSTEM_ADAPTER)
+        registry.register(FILE_SYSTEM, service)
+    
+    # BLOB_STORAGE -> BLOB_STORE
+    if registry.has(BLOB_STORE) and not registry.has(BLOB_STORAGE):
+        service = registry.resolve(BLOB_STORE)
+        registry.register(BLOB_STORAGE, service)
+    
+    # CONVERSATION_SERVICE -> CONVERSATION_MANAGER
+    if registry.has(CONVERSATION_MANAGER) and not registry.has(CONVERSATION_SERVICE):
+        service = registry.resolve(CONVERSATION_MANAGER)
+        registry.register(CONVERSATION_SERVICE, service)
+    
+    # DIAGRAM_SERVICE -> DIAGRAM_PORT (if both are used)
+    if registry.has(DIAGRAM_PORT) and registry.has(DIAGRAM_SERVICE):
+        # Use DIAGRAM_PORT as canonical
+        service = registry.resolve(DIAGRAM_PORT)
+        registry.unregister(DIAGRAM_SERVICE)
+        registry.register(DIAGRAM_SERVICE, service)

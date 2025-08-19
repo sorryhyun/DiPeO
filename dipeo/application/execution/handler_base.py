@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional, TypeVar, Generic, Any, Protocol
+from typing import TYPE_CHECKING, Optional, TypeVar, Generic, Any, Protocol, ClassVar
 import logging
 import warnings
 
@@ -26,6 +26,9 @@ class TypedNodeHandler(Generic[T], ABC):
     - Default implementations handle common cases
     """
     
+    # Class variable to avoid instantiation at registration
+    NODE_TYPE: ClassVar[str] = ""
+    
     def __init__(self):
         self._resolver = None  # Injected by engine
     
@@ -35,9 +38,9 @@ class TypedNodeHandler(Generic[T], ABC):
         ...
     
     @property
-    @abstractmethod
     def node_type(self) -> str:
-        ...
+        """Get node type from class variable."""
+        return self.NODE_TYPE
     
     @property
     @abstractmethod

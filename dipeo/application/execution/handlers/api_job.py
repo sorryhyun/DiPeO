@@ -65,7 +65,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         node = request.node
         
         # Check service availability
-        api_service = self.api_service or request.get_service(API_SERVICE.name)
+        api_service = self.api_service or request.services.resolve(API_SERVICE)
         if not api_service:
             return EnvelopeFactory.error(
                 "API service not available",

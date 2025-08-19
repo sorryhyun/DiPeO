@@ -36,6 +36,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     Now uses template method pattern to reduce code duplication.
     """
     
+    NODE_TYPE = NodeType.DB.value
 
     def __init__(self, db_operations_service: Any | None = None, template_processor: TemplateProcessorPort | None = None) -> None:
         super().__init__()
@@ -49,10 +50,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     @property
     def node_class(self) -> type[DBNode]:
         return DBNode
-
-    @property
-    def node_type(self) -> str:
-        return NodeType.DB.value
 
     @property
     def schema(self) -> type[BaseModel]:
