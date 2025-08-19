@@ -58,11 +58,11 @@ async def create_server_container() -> Container:
         from dipeo.application.registry import ServiceKey
         event_bus = container.registry.resolve(ServiceKey("execution_observer"))  # ObserverToEventAdapter
     else:
-        # Fallback to AsyncEventBus
-        from dipeo.infrastructure.events.adapters import AsyncEventBus
+        # Fallback to InMemoryEventBus
+        from dipeo.infrastructure.execution.messaging import InMemoryEventBus
         # Use unified config for queue size (use a reasonable default)
         queue_size = getattr(settings.messaging, 'queue_size', 50000)
-        event_bus = AsyncEventBus(queue_size=queue_size)
+        event_bus = InMemoryEventBus(max_queue_size=queue_size)
         container.registry.register(EVENT_BUS, event_bus)
 
     # Wire state services

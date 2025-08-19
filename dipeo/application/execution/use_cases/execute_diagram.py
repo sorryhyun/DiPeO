@@ -94,7 +94,7 @@ class ExecuteDiagramUseCase(BaseService):
             # Don't log for each batch item to reduce noise
         else:
             # Create event bus adapter for the observer
-            from dipeo.infrastructure.events.adapters.message_router_event_bus import (
+            from dipeo.infrastructure.execution.messaging import (
                 MessageRouterEventBusAdapter
             )
             event_bus_adapter = MessageRouterEventBusAdapter(self.message_router)
@@ -122,7 +122,7 @@ class ExecuteDiagramUseCase(BaseService):
             
             # Subscribe unified observer to event bus using adapter
             if engine_observers:
-                from dipeo.infrastructure.events.adapters.legacy import ObserverToEventConsumerAdapter
+                from dipeo.infrastructure.execution.messaging import ObserverToEventAdapter as ObserverToEventConsumerAdapter
                 from dipeo.domain.events import EventType
                 
                 for observer in engine_observers:

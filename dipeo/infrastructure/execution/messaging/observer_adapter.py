@@ -8,12 +8,12 @@ from dipeo.application.execution.observer_protocol import ExecutionObserver
 from dipeo.diagram_generated import NodeState
 from dipeo.domain.events import (
     DomainEventBus,
-    ExecutionStartedEvent,
-    ExecutionCompletedEvent,
-    ExecutionErrorEvent,
-    NodeStartedEvent,
-    NodeCompletedEvent,
-    NodeErrorEvent,
+    execution_started,
+    execution_completed,
+    execution_error,
+    node_started,
+    node_completed,
+    node_error,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,23 +46,34 @@ class ObserverToEventAdapter(ExecutionObserver):
         diagram_id: str | None
     ) -> None:
         """Convert execution start to domain event."""
-        event = ExecutionStartedEvent(
+        event = execution_started(
             execution_id=execution_id,
-            diagram_id=diagram_id,
-            correlation_id=self._correlation_id,
+            diagram_id=diagram_id
         )
+        # Set correlation_id in meta if needed
+        if self._correlation_id:
+            event.meta['correlation_id'] = self._correlation_id
         await self._event_bus.publish(event)
-        logger.debug(f"Published ExecutionStartedEvent for {execution_id}")
+        logger.debug(f"Published execution started event for {execution_id}")
     
     async def on_node_start(self, execution_id: str, node_id: str) -> None:
         """Convert node start to domain event."""
-        event = NodeStartedEvent(
+        # Create a dummy NodeState for now
+        from dipeo.diagram_generated import NodeState, Status
+        state = NodeState(
+            node_id=node_id,
+            status=Status.RUNNING,
+            started_at=datetime.now()
+        )
+        event = node_started(
             execution_id=execution_id,
             node_id=node_id,
-            correlation_id=self._correlation_id,
+            state=state
         )
+        if self._correlation_id:
+            event.meta['correlation_id'] = self._correlation_id
         await self._event_bus.publish(event)
-        logger.debug(f"Published NodeStartedEvent for {node_id}")
+        logger.debug(f"Published node started event for {node_id}")
     
     async def on_node_complete(
         self,
@@ -82,16 +93,18 @@ class ObserverToEventAdapter(ExecutionObserver):
         if state.token_usage:
             token_usage = state.token_usage.model_dump()
         
-        event = NodeCompletedEvent(
+        event = node_completed(
             execution_id=execution_id,
             node_id=node_id,
             state=state,
+            output=state.output if state else None,
             duration_ms=duration_ms,
-            token_usage=token_usage,
-            correlation_id=self._correlation_id,
+            token_usage=token_usage
         )
+        if self._correlation_id:
+            event.meta['correlation_id'] = self._correlation_id
         await self._event_bus.publish(event)
-        logger.debug(f"Published NodeCompletedEvent for {node_id}")
+        logger.debug(f"Published node completed event for {node_id}")
     
     async def on_node_error(
         self,
@@ -100,26 +113,36 @@ class ObserverToEventAdapter(ExecutionObserver):
         error: str
     ) -> None:
         """Convert node error to domain event."""
-        event = NodeErrorEvent(
+        # Create a dummy NodeState for the error
+        from dipeo.diagram_generated import NodeState, Status
+        state = NodeState(
+            node_id=node_id,
+            status=Status.FAILED,
+            error=error
+        )
+        event = node_error(
             execution_id=execution_id,
             node_id=node_id,
-            error=error,
-            correlation_id=self._correlation_id,
+            state=state,
+            error_message=error
         )
+        if self._correlation_id:
+            event.meta['correlation_id'] = self._correlation_id
         await self._event_bus.publish(event)
-        logger.debug(f"Published NodeErrorEvent for {node_id}")
+        logger.debug(f"Published node error event for {node_id}")
     
     async def on_execution_complete(self, execution_id: str) -> None:
         """Convert execution completion to domain event."""
         from dipeo.diagram_generated import Status
         
-        event = ExecutionCompletedEvent(
+        event = execution_completed(
             execution_id=execution_id,
-            status=Status.COMPLETED,
-            correlation_id=self._correlation_id,
+            status=Status.COMPLETED
         )
+        if self._correlation_id:
+            event.meta['correlation_id'] = self._correlation_id
         await self._event_bus.publish(event)
-        logger.debug(f"Published ExecutionCompletedEvent for {execution_id}")
+        logger.debug(f"Published execution completed event for {execution_id}")
     
     async def on_execution_error(
         self,
@@ -127,10 +150,11 @@ class ObserverToEventAdapter(ExecutionObserver):
         error: str
     ) -> None:
         """Convert execution error to domain event."""
-        event = ExecutionErrorEvent(
+        event = execution_error(
             execution_id=execution_id,
-            error=error,
-            correlation_id=self._correlation_id,
+            error_message=error
         )
+        if self._correlation_id:
+            event.meta['correlation_id'] = self._correlation_id
         await self._event_bus.publish(event)
-        logger.debug(f"Published ExecutionErrorEvent for {execution_id}")
+        logger.debug(f"Published execution error event for {execution_id}")

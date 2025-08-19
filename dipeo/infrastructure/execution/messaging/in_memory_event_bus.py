@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from collections import defaultdict
-from typing import Optional, Callable
+from typing import Any, Optional, Callable
 from uuid import uuid4
 import re
 
@@ -49,6 +49,24 @@ class InMemoryEventBus(DomainEventBus):
         self._event_store: list[DomainEvent] = []
         self._running = False
     
+    async def emit(self, event: Any) -> None:
+        """Emit an event (alias for publish for compatibility)."""
+        if isinstance(event, DomainEvent):
+            await self.publish(event)
+        else:
+            # Handle non-DomainEvent types (like ExecutionEvent)
+            # Convert to DomainEvent if needed
+            await self._handle_legacy_event(event)
+    
+    async def _handle_legacy_event(self, event: Any) -> None:
+        """Handle legacy event types."""
+        # For now, just process them directly
+        for subscription in self._subscriptions.values():
+            try:
+                await subscription.handler.handle(event)
+            except Exception as e:
+                logger.error(f"Error handling legacy event: {e}")
+    
     async def publish(self, event: DomainEvent) -> None:
         """Publish a domain event."""
         if not self._running:
@@ -60,7 +78,7 @@ class InMemoryEventBus(DomainEventBus):
             self._event_store.append(event)
         
         # Find matching subscriptions
-        subscriptions = self._handlers_by_type.get(event.event_type, [])
+        subscriptions = self._handlers_by_type.get(event.type, [])
         
         # Sort by priority (higher priority first)
         sorted_subs = sorted(
@@ -92,11 +110,11 @@ class InMemoryEventBus(DomainEventBus):
                 except asyncio.QueueFull:
                     logger.warning(
                         f"Queue full for subscription {subscription.subscription_id}, "
-                        f"dropping event {event.event_type}"
+                        f"dropping event {event.type}"
                     )
                 except Exception as e:
                     logger.error(
-                        f"Error handling event {event.event_type}: {e}",
+                        f"Error handling event {event.type}: {e}",
                         exc_info=True
                     )
     

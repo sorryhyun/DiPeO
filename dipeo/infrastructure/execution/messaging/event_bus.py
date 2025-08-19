@@ -21,7 +21,7 @@ from dipeo.domain.events import (
     NodeErrorPayload,
 )
 from dipeo.diagram_generated import Status
-from dipeo.infrastructure.execution.messaging.message_router import MessageRouter
+from .message_router import MessageRouter
 
 logger = logging.getLogger(__name__)
 
