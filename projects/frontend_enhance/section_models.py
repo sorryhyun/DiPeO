@@ -25,8 +25,8 @@ class Architecture(BaseModel):
     folder_structure: str = Field(
         description="Recommended folder/file organization for scalability"
     )
-    tech_stack: Dict[str, str] = Field(
-        description="Core technologies and their purpose (e.g., {'state': 'Zustand', 'api': 'React Query', 'forms': 'React Hook Form'})"
+    tech_stack: List[str] = Field(
+        description="Core technologies and their purpose (e.g., {'Zustand', 'React Query', 'React Hook Form'})"
     )
 
 
@@ -115,14 +115,15 @@ EXAMPLE_RESPONSE = Response(
         patterns=["Container/Presentational Components", "Atomic Design", "Domain-driven layers", "Event-driven communication"],
         data_flow="Global state managed by Zustand, server state via React Query with optimistic updates. Components emit domain events that trigger state updates. API calls are centralized in service layers with proper error handling.",
         folder_structure="src/features/{section}/ containing components/, hooks/, services/, types/, and utils/. Shared code in src/shared/ with common components, hooks, and utilities.",
-        tech_stack={
-            "state": "Zustand",
-            "api": "React Query",
-            "forms": "React Hook Form",
-            "validation": "Zod",
-            "styling": "Tailwind CSS",
-            "testing": "React Testing Library"
-        }
+        tech_stack=[
+            "Zustand",
+            "React Query",
+            "React Hook Form",
+            "Zod",
+            "Tailwind CSS",
+            "React Testing Library"
+        ]
+
     ),
     sections=[
         Section(

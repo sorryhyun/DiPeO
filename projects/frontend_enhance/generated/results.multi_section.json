@@ -1,1 +1,7 @@
-'str' object has no attribute 'get'
+Failed to load diagram 'projects/frontend_enhance/section_implementor': 2 validation errors for DomainDiagram
+persons.0.llm_config.service
+  Input should be 'openai', 'anthropic', 'google', 'gemini', 'bedrock', 'vertex', 'deepseek' or 'ollama' [type=enum, input_value='claude-code', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/enum
+persons.1.llm_config.service
+  Input should be 'openai', 'anthropic', 'google', 'gemini', 'bedrock', 'vertex', 'deepseek' or 'ollama' [type=enum, input_value='claude-code', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/enum

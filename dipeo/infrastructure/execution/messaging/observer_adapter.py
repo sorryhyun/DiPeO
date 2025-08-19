@@ -8,6 +8,7 @@ from dipeo.application.execution.observer_protocol import ExecutionObserver
 from dipeo.diagram_generated import NodeState
 from dipeo.domain.events import (
     DomainEventBus,
+    DomainEvent,
     execution_started,
     execution_completed,
     execution_error,

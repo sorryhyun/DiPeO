@@ -173,6 +173,8 @@ class LLMService(str, Enum):
     DEEPSEEK = "deepseek"
     
     OLLAMA = "ollama"
+
+    CLAUDE_CODE = "claude-code"
     
 
 
@@ -205,7 +207,7 @@ class APIServiceType(str, Enum):
     
     JIRA = "jira"
     
-
+    CLAUDE_CODE = "claude-code"
 
 class ToolType(str, Enum):
     """ToolType enum values"""

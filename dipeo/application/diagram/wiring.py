@@ -166,18 +166,14 @@ def wire_diagram_serializer(registry: ServiceRegistry) -> None:
     
     if use_strategy_based:
         serializer = FormatStrategyAdapter()
-        logger.info("Using strategy-based diagram serializer")
     else:
         serializer = UnifiedSerializerAdapter()
-        logger.info("Using unified diagram serializer")
-    
+
     if enable_caching:
         cache_size = int(os.getenv("DIAGRAM_SERIALIZER_CACHE_SIZE", "50"))
         serializer = CachingSerializerAdapter(serializer, cache_size=cache_size)
-        logger.info(f"Diagram serializer caching enabled (size={cache_size})")
-    
+
     registry.register(DIAGRAM_SERIALIZER, serializer)
-    logger.info("Registered diagram serializer")
 
 
 def wire_resolution_services(registry: ServiceRegistry) -> None:
@@ -202,8 +198,7 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
     if use_composite:
         # Could add multiple resolvers here for fallback
         compile_resolver = CompositeResolverAdapter([compile_resolver])
-        logger.info("Using composite compile-time resolver")
-    
+
     # Create runtime resolver
     runtime_resolver = StandardRuntimeResolverAdapter()
     
@@ -211,8 +206,7 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
     enable_runtime_cache = os.getenv("DIAGRAM_RUNTIME_RESOLVER_CACHE", "1") == "1"
     if enable_runtime_cache:
         runtime_resolver = CachingRuntimeResolverAdapter(runtime_resolver)
-        logger.info("Runtime resolver caching enabled")
-    
+
     # Create transformation engine
     transform_engine = StandardTransformationEngineAdapter()
     
@@ -220,7 +214,6 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
     registry.register(COMPILE_TIME_RESOLVER, compile_resolver)
     registry.register(RUNTIME_RESOLVER, runtime_resolver)
     registry.register(TRANSFORMATION_ENGINE, transform_engine)
-    logger.info("Registered resolution services")
 
 
 def wire_diagram_port(registry: ServiceRegistry) -> None:
@@ -257,7 +250,6 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
     )
     
     registry.register(DIAGRAM_PORT, diagram_service)
-    logger.info("Registered DiagramService with adapters")
 
 
 # Backward compatibility export

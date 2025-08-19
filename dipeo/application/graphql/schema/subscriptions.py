@@ -136,10 +136,10 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                             
                             # For node events, restructure the data to match frontend expectations
                             if event_type in ["NODE_STARTED", "NODE_COMPLETED", "NODE_FAILED"]:
-                                # Extract node-specific fields and rename to snake_case
+                                # Extract node-specific fields - they are already in snake_case from the engine
                                 data = {
-                                    "node_id": event.get("nodeId"),
-                                    "node_type": event.get("nodeType"),
+                                    "node_id": event.get("node_id"),
+                                    "node_type": event.get("node_type"),
                                     "status": event.get("status"),
                                     "output": event.get("output"),
                                     "metrics": event.get("metrics"),

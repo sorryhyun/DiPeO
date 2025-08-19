@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
-from dipeo.domain.events import EventEmitter, EventType, DomainEvent
+from dipeo.domain.events import DomainEventBus, EventType, DomainEvent
 from dipeo.domain.execution.execution_context import ExecutionContext as ExecutionContextProtocol
 from dipeo.domain.execution.execution_tracker import CompletionStatus, ExecutionTracker
 from dipeo.domain.execution.envelope import Envelope
@@ -72,7 +72,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     # Dependencies
     service_registry: Optional["ServiceRegistry"] = None
     runtime_resolver: Optional[RuntimeInputResolverV2] = None
-    event_bus: Optional[EventEmitter] = None
+    event_bus: Optional[DomainEventBus] = None
     container: Optional["Container"] = None
     
     # ========== Node State Queries ==========
@@ -510,7 +510,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
                 )
         
         if event:
-            await self.event_bus.emit(event)
+            await self.event_bus.publish(event)
     
     # ========== Service Access ==========
     
@@ -561,7 +561,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         diagram: ExecutableDiagram,
         service_registry: Optional["ServiceRegistry"] = None,
         runtime_resolver: Optional[RuntimeInputResolverV2] = None,
-        event_bus: Optional[EventEmitter] = None,
+        event_bus: Optional[DomainEventBus] = None,
         container: Optional["Container"] = None
     ) -> "TypedExecutionContext":
         """Create context from persisted execution state."""

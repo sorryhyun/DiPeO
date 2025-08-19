@@ -27,7 +27,8 @@ export enum APIServiceType {
   BEDROCK = 'bedrock',
   VERTEX = 'vertex',
   DEEPSEEK = 'deepseek',
-  OLLAMA = 'ollama'
+  OLLAMA = 'ollama',
+  CLAUDE_CODE = "claude-code"
 }
 
 /**

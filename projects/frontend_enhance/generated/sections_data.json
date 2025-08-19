@@ -1,25 +1,207 @@
 {
+  "architecture": {
+    "overview": "This plan defines a cohesive React 18+ dashboard application built with TypeScript, Tailwind, and a modular, scalable architecture. It emphasizes clear separation of concerns, robust state and data management, accessibility, performance, and progressive enhancement. The system is designed for parallel development of independent sections that integrate through well-defined contracts (providers, hooks, and shared services).",
+    "patterns": [
+      "Container/Presentational",
+      "Feature-Sliced Architecture",
+      "Compound Components",
+      "Hooks-First / Custom Hooks",
+      "Reducer + Context for domain state",
+      "Server State management with React Query (TanStack Query)",
+      "Code-Splitting with React.lazy and Suspense",
+      "Error Boundaries with fallback UIs and recovery paths"
+    ],
+    "data_flow": "User interactions flow from UI components to local state (via useReducer/Context) or server state (via React Query). Server-sourced data streams in through API calls and WebSocket connections, updating caches and triggering re-renders. UI components leverage memoization to minimize renders. Data virtualization handles large collections. A dedicated service worker enables offline support. UI state (theme, navigation, auth status) is provided by a Context-based store; server state is cached and synchronized via React Query with optimistic updates where applicable. SEO/meta management uses dynamic head updates for SPA scenarios. Code splitting ensures large dashboards and charts load on demand.",
+    "folder_structure": "src/\n  app/                // routing, layouts, app-wide providers\n  shared/             // design system primitives, utilities, and common components\n  features/           // domain modules (auth, dashboard, analytics, etc.)\n  design-system/      // tokens, themes, Tailwind config extensions\n  hooks/              // custom hooks used across features\n  context/            // global React Contexts (auth, UI, etc.)\n  services/           // API client, WebSocket client, notifications, etc.\n  i18n/               // internationalization setup\n  lib/                // utilities and helpers\n  locales/            // translation resources\n  pages/              // route pages (if using non-sparse routing)\n  styles/             // global styles and Tailwind entry\ntech_stack:[\"React 18+\",\"TypeScript\",\"Tailwind CSS\",\"TanStack Query (React Query)\",\"React Router v6\",\"WebSocket for real-time updates\",\"i18next for i18n\",\"Vitest + React Testing Library\",\"Service Workers (PWA offline)\",\"ESLint/Prettier\",\"Vite (build tooling)\",\"React.lazy + Suspense for code splitting\"]},",
+    "tech_stack": [
+      "React 18+",
+      "TypeScript",
+      "Tailwind CSS",
+      "TanStack Query (React Query)",
+      "React Router v6",
+      "WebSocket",
+      "i18next",
+      "Vitest + React Testing Library",
+      "Service Workers (PWA offline)",
+      "ESLint/Prettier",
+      "Vite (build tooling)"
+    ]
+  },
   "sections": [
     {
       "id": "component-requirements",
       "title": "Component Requirements",
-      "description": "Define core dashboard UI components, their prop contracts, and reusable patterns. Establish clear boundaries between presentational and container logic, and extract reusable hooks, compound components, and utility components to maximize reusability.",
+      "description": "Define, implement, and document a reusable component library and patterns that will power all dashboard UI with accessibility, theming, and performance in mind.",
       "acceptance": [
-        "Core component primitives and prop interfaces identified for dashboards (cards, panels, charts, nav items, forms, modals, etc.)",
-        "Separation of presentational vs container logic with clearly defined data flow",
-        "Reusable custom hooks and compound components extracted and documented",
-        "Type-safe component APIs using TypeScript generics and discriminated unions for UI states",
-        "Conventions for accessibility (ARIA labeling, keyboard navigation) embedded in component contracts",
-        "Folder structure and naming conventions defined for scalability",
-        "Design-system tokens consumed by components and demonstrated in examples"
+        "Base component library with 12+ reusable components (Button, Input, Select, Card, Modal, Navbar, Drawer, ChartPanel, Avatar, Icon, Tooltip, Tabs)",
+        "Components have strong TypeScript typings, including discriminated unions and generics where appropriate",
+        "All components are accessible (ARIA roles, keyboard navigation, focus management) and support dark mode theming",
+        "Components are designed for composition (compound components, render props patterns) and can be lazy-loaded",
+        "Unit tests cover core behavior and accessibility for critical components",
+        "Demonstrated usage in at least three features via example pages or stories"
+      ],
+      "implementation_steps": [
+        "1. Define core component API surface with types for Button, Input, Select, Card, Modal, Navbar, Drawer, ChartPanel",
+        "2. Build compound components: Card (Card.Header, Card.Body), Modal with focus-trap, Navbar with responsive items",
+        "3. Implement render-props and simple HOC-like patterns where beneficial (e.g., withLoading, withError)",
+        "4. Implement Tailwind-based styling with accessibility-friendly defaults and dark mode variants",
+        "5. Add strict TypeScript props using discriminated unions (e.g., Button variant/type, Input variants)",
+        "6. Create an index barrel exporting all components and a simple design-system token hookup",
+        "7. Integrate with design-system tokens for colors, spacing, typography",
+        "8. Add RTL/LTR support hooks and direction-aware utilities",
+        "9. Write RTL and a11y tests for core components",
+        "10. Document usage patterns and provide usage examples in a components guide"
+      ],
+      "integration_points": [
+        "Design System Integration (tokens, dark mode)",
+        "Technical Specifications (typing, props patterns)",
+        "State Management (consume UI components via context)",
+        "Performance Considerations (code-splitting for heavy controls)"
       ],
       "prompt_context": {
-        "component_type": "component",
-        "data_model": "Frontend UI components library and data contracts",
+        "component_type": "component-library",
+        "data_model": "ui-components",
         "interactions": [
-          "define interfaces",
-          "compose components",
-          "refactor into presentational/container patterns"
+          "compose",
+          "reuse",
+          "customize",
+          "test",
+          "render"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "design-system-integration",
+          "technical-specifications"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "technical-specifications",
+      "title": "Technical Specifications",
+      "description": "Document and implement the technical foundation, tooling, and patterns that every section relies on.",
+      "acceptance": [
+        "Strict TypeScript configuration (noImplicitAny, strictNullChecks)",
+        "Consistent folder structure and naming conventions",
+        "CI pipeline with lint/test/build steps",
+        "Routing with protected routes and token refresh patterns",
+        "API client with base URL and auth interceptor",
+        "React Query as the primary data-fetch layer with caching and optimistic updates",
+        "Error boundaries and Suspense boundaries in place",
+        "Code-splitting via React.lazy and dynamic imports"
+      ],
+      "implementation_steps": [
+        "1. Create tsconfig strict settings and path aliases",
+        "2. Configure Vite build with React 18, TS, and Tailwind integration",
+        "3. Set up React Router v6 with protected routes and lazy-loaded routes",
+        "4. Implement API client (fetch-based) with auth token handling and refresh flow",
+        "5. Integrate TanStack Query Client for server state management and caching",
+        "6. Implement global error boundaries and fallback UI wrappers",
+        "7. Set up React Suspense boundaries around heavy UI blocks (charts, dashboards)",
+        "8. Enable code-splitting for route modules and features",
+        "9. Configure environment variables strategy and per-environment configs",
+        "10. Add CI tasks for lint, type-check, tests, and build artifacts"
+      ],
+      "integration_points": [
+        "Component library usage",
+        "State Management (QueryClient, auth flows)",
+        "Error Handling",
+        "Performance Considerations"
+      ],
+      "prompt_context": {
+        "component_type": "section",
+        "data_model": "technical-specs",
+        "interactions": [
+          "setup",
+          "configure",
+          "validate"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "component-requirements",
+          "design-system-integration"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "design-system-integration",
+      "title": "Design System Integration",
+      "description": "Align color, typography, spacing, and component tokens across the app via a cohesive design system and Tailwind configuration.",
+      "acceptance": [
+        "Tailwind configured with a design-token system",
+        "Dark mode support and smooth transitions",
+        "Fluid typography and container queries support",
+        "Accessible color tokens and contrast checks",
+        "Components consume tokens consistently across themes"
+      ],
+      "implementation_steps": [
+        "1. Define design tokens (colors, spacing scale, typography scale, radii) in a centralized file",
+        "2. Extend Tailwind config to expose custom tokens and utility variants",
+        "3. Create CSS variables for theme switching and ensure runtime toggling for dark mode",
+        "4. Implement fluid/responsive typography using viewport-based scales",
+        "5. Build a small Design System package (tokens, typography, shadows) and export for reuse",
+        "6. Create theme toggle mechanism wired to global context",
+        "7. Validate contrast ratios and accessibility requirements across components",
+        "8. Document tokens and usage guidelines"
+      ],
+      "integration_points": [
+        "Component Requirements",
+        "Technical Specifications",
+        "State Management (theme state)",
+        "Accessibility"
+      ],
+      "prompt_context": {
+        "component_type": "design-system",
+        "data_model": "design-tokens",
+        "interactions": [
+          "theme-switch",
+          "token-consumption",
+          "token-update"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "technical-specifications",
+          "component-requirements"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "state-management",
+      "title": "State Management",
+      "description": "Define and implement a robust, scalable state management strategy combining local state, context, reducers, and server state caching.",
+      "acceptance": [
+        "Context + useReducer for global app state (auth, UI, user preferences)",
+        "Seamless server state via TanStack Query with caching, invalidation, and optimistic updates",
+        "Clear separation of concerns between UI state, domain state, and server state",
+        "Deterministic state changes with immutability and type-safe actions",
+        "Devtools-friendly structure and predictable re-renders"
+      ],
+      "implementation_steps": [
+        "1. Define state schemas: AuthState, UIState, DataState with discriminated unions",
+        "2. Create AppContext with providers, reducers, and typed dispatchers",
+        "3. Expose custom hooks (useAppState, useAppDispatch)",
+        "4. Configure TanStack Query Client and default options (staleTime, cacheTime, refetchOnWindowFocus)",
+        "5. Implement token refresh flow and session persistence in Auth logic",
+        "6. Integrate with protected routes and real-time update handlers",
+        "7. Implement memoized selectors and avoid prop drilling",
+        "8. Add tests for reducers and selectors",
+        "9. Document state contracts and action types"
+      ],
+      "integration_points": [
+        "Technical Specifications",
+        "Design System (theme/state)",
+        "Component Library (consumes UI state)",
+        "Testing Guidelines"
+      ],
+      "prompt_context": {
+        "component_type": "state-management",
+        "data_model": "application-state",
+        "interactions": [
+          "update",
+          "select",
+          "observe"
         ],
         "styling_approach": "tailwind",
         "dependencies": [
@@ -30,111 +212,44 @@
       "priority": 1
     },
     {
-      "id": "technical-specifications",
-      "title": "Technical Specifications",
-      "description": "Provide the technical blueprint for the React dashboard, including architecture, patterns, data fetching, type strategy, and deployment considerations. Ensure readiness for React 18+ features and SSR/SSG planning.",
-      "acceptance": [
-        "Adopt React 18+ features (Suspense, Error Boundaries, concurrent features) and clear guidance on their usage",
-        "Strong TypeScript guidance: generics, discriminated unions, and strict type safety across components/hooks",
-        "Defined architecture: file structure, module boundaries, and separation of concerns",
-        "Data fetching pattern using React Query or SWR with loading, error, and success states",
-        "Code splitting strategy using React.lazy and dynamic imports",
-        "Environment/config handling and feature flags guidance",
-        "Server Components readiness considerations and SSR/SSG alignment plan"
-      ],
-      "prompt_context": {
-        "component_type": "technical-spec",
-        "data_model": "Frontend architecture contracts and API payload types",
-        "interactions": [
-          "define patterns",
-          "specify types",
-          "outline SSR/SSG readiness"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "component-requirements",
-          "design-system-integration",
-          "state-management"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "design-system-integration",
-      "title": "Design System Integration",
-      "description": "Align components with a Tailwind-based design system: tokens for color/typography/spacing, component API conventions, accessibility patterns, and responsive design enhancements (container queries, fluid typography).",
-      "acceptance": [
-        "Tailwind design tokens wired into components (colors, typography, spacing, radii)",
-        "Shared design system catalog and token-driven API for components",
-        "Reusable, accessible UI primitives documented for consumption by dashboards",
-        "Container queries and responsive typography integrated in the design system",
-        "Guidance on style encapsulation while leveraging Tailwind (and optional CSS modules or CSS-in-JS if used)"
-      ],
-      "prompt_context": {
-        "component_type": "design-system",
-        "data_model": "Design tokens and UI primitives",
-        "interactions": [
-          "define tokens",
-          "consume design system in components",
-          "document design-system usage"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "technical-specifications"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "state-management",
-      "title": "State Management",
-      "description": "Define state ownership, global vs local state, context usage, and reducer patterns. Establish data flow rules and integrate with server state management where applicable.",
-      "acceptance": [
-        "Clear delineation of local, global, and server state with ownership rules",
-        "Context API with well-typed slices and reducers (prefer discriminated unions)",
-        "Custom hooks to access and mutate state with minimal prop drilling",
-        "Guidance for lifting state and composing stateful components",
-        "Server state management patterns using React Query/SWR with caching and invalidation strategies"
-      ],
-      "prompt_context": {
-        "component_type": "state-management",
-        "data_model": "UI state contracts and data-fetching contracts",
-        "interactions": [
-          "lift state",
-          "provide context",
-          "define reducers"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "component-requirements",
-          "technical-specifications",
-          "performance-considerations"
-        ]
-      },
-      "priority": 2
-    },
-    {
       "id": "error-handling",
       "title": "Error Handling",
-      "description": "Implement robust error handling strategies, including error boundaries, fallback UIs, and recovery workflows with logging and user-friendly messages.",
+      "description": "Provide consistent, user-friendly error handling, boundaries, and reporting for both client and server errors.",
       "acceptance": [
-        "React Error Boundaries with well-designed fallback UIs and recovery paths",
-        "Centralized error logging/reporting hooks and integration points",
-        "User-friendly error messages with ARIA attributes for accessibility",
-        "Test coverage for error scenarios and boundary behavior"
+        "Global error boundaries with graceful fallbacks",
+        "Uniform error shape for API and runtime errors",
+        "Telemetry/logging integration (e.g., Sentry)",
+        "Retry and recovery strategies for transient failures",
+        "Accessible error messaging with ARIA alerts when appropriate"
+      ],
+      "implementation_steps": [
+        "1. Implement an ErrorBoundary component wrapping top-level routes",
+        "2. Create a centralized error store or error boundary context for runtime errors",
+        "3. Wrap lazy-loaded modules with boundary fallbacks and recovery options",
+        "4. Standardize error payloads from API clients and adapters",
+        "5. Integrate with logging/monitoring (Sentry/console fallback)",
+        "6. Implement retry policies for recoverable API calls with exponential backoff",
+        "7. Provide accessible inline error messages and screen reader announcements",
+        "8. Add tests for boundary fallback and error scenarios"
+      ],
+      "integration_points": [
+        "Technical Specifications",
+        "State Management",
+        "Testing Guidelines",
+        "Performance Considerations"
       ],
       "prompt_context": {
-        "component_type": "error-handling",
-        "data_model": "Error states across components",
+        "component_type": "section",
+        "data_model": "error-handling",
         "interactions": [
-          "catch-errors",
-          "render-fallback",
-          "log-errors"
+          "catch",
+          "report",
+          "recover"
         ],
-        "styling_approach": null,
+        "styling_approach": "tailwind",
         "dependencies": [
           "technical-specifications",
-          "testing-guidelines"
+          "state-management"
         ]
       },
       "priority": 2
@@ -142,54 +257,87 @@
     {
       "id": "performance-considerations",
       "title": "Performance Considerations",
-      "description": "Outline performance-oriented practices to optimize Core Web Vitals, including code-splitting, memoization, virtualization, and caching strategies.",
+      "description": "Address performance through code-splitting, virtualization, memoization, and efficient rendering to meet Core Web Vitals goals.",
       "acceptance": [
-        "Code-splitting with React.lazy and dynamic imports for large dashboards",
-        "Memoization: React.memo, useMemo, useCallback to minimize re-renders",
-        "Virtualization for large lists and supportive infinite scrolling patterns",
-        "IntersectionObserver-driven lazy loading and scroll-triggered animations",
-        "Data caching and optimistic UI updates with proper invalidation",
-        "Guidance on asset optimization and responsive image handling"
+        "Route-based code splitting and lazy loading for heavy modules",
+        "Suspense boundaries around heavy components (charts, dashboards)",
+        "Memoization of expensive computations and components (React.memo, useMemo, useCallback)",
+        "Data virtualization for large lists and infinite scrolling",
+        "Optimistic UI updates and controlled loading states for responsiveness"
+      ],
+      "implementation_steps": [
+        "1. Identify heavy routes/components and enable lazy loading",
+        "2. Wrap large dashboards with Suspense fallbacks and loading skeletons",
+        "3. Memoize expensive computations and component trees",
+        "4. Implement virtualization for large lists (e.g., react-window / react-virtualized)",
+        "5. Introduce optimistic UI patterns with React Query for mutations",
+        "6. Add performance budgets and run Lighthouse audits in CI",
+        "7. Enable image optimization patterns (srcset, modern formats)",
+        "8. Instrument performance metrics (timing API, Web Vitals)"
+      ],
+      "integration_points": [
+        "Component Requirements",
+        "State Management",
+        "Accessibility Requirements",
+        "Testing Guidelines",
+        "SEO/Performance Reporting"
       ],
       "prompt_context": {
-        "component_type": "performance-optimization",
-        "data_model": "Performance metrics and bundle size targets",
+        "component_type": "section",
+        "data_model": "performance-metrics",
         "interactions": [
-          "analyze",
-          "instrument",
-          "optimize"
+          "optimize",
+          "measure",
+          "iterate"
         ],
-        "styling_approach": null,
+        "styling_approach": "tailwind",
         "dependencies": [
           "technical-specifications",
-          "testing-guidelines"
+          "state-management"
         ]
       },
-      "priority": 3
+      "priority": 2
     },
     {
       "id": "accessibility-requirements",
       "title": "Accessibility Requirements",
-      "description": "Ensure WCAG 2.1 AA compliance through semantic HTML, ARIA labeling, keyboard navigation, and screen reader support across components.",
+      "description": "Ensure WCAG 2.1 AA compliance with proper ARIA, keyboard navigation, focus management, and screen reader support.",
       "acceptance": [
-        "WCAG 2.1 AA conformance support in all interactive components",
-        "Accessible name/role/state semantics with proper ARIA attributes",
-        "Keyboard-only navigation, focus management, and skip links",
-        "Screen reader-friendly labels and announcements for dynamic changes",
-        "Accessibility testing guidance and checks embedded in development process"
+        "Keyboard navigable all interactive controls",
+        "ARIA labels on controls with descriptive text",
+        "Focusable modal/dialogs with focus restoration",
+        "Contrast ratios meet WCAG standards",
+        "Screen reader announcements for dynamic content",
+        "RTL support and proper text direction handling"
+      ],
+      "implementation_steps": [
+        "1. Audit all interactive components for keyboard access and focus order",
+        "2. Add ARIA labels and roles to widgets (buttons, inputs, charts)",
+        "3. Implement focus trap and restoration for modals/drawers",
+        "4. Integrate color tokens with accessible contrast checks",
+        "5. Ensure dynamic regions have aria-live or aria-atomic as needed",
+        "6. Add RTL layout tests and direction-aware utilities",
+        "7. Run a11y checks with automated tools and unit tests",
+        "8. Document accessibility guidelines and checklists"
+      ],
+      "integration_points": [
+        "Design System Integration",
+        "Component Requirements",
+        "Performance Considerations",
+        "Testing Guidelines"
       ],
       "prompt_context": {
-        "component_type": "accessibility",
-        "data_model": "Accessible UI contracts",
+        "component_type": "section",
+        "data_model": "a11y-spec",
         "interactions": [
-          "audit",
-          "implement ARIA",
-          "validate accessibility"
+          "navigate",
+          "announce",
+          "focus"
         ],
-        "styling_approach": null,
+        "styling_approach": "tailwind",
         "dependencies": [
           "design-system-integration",
-          "testing-guidelines"
+          "component-requirements"
         ]
       },
       "priority": 2
@@ -197,28 +345,48 @@
     {
       "id": "testing-guidelines",
       "title": "Testing Guidelines",
-      "description": "Define testing strategy, tooling, and coverage targets for components, hooks, and integration flows. Include RTL-oriented tests, accessibility checks, and CI integration.",
+      "description": "Define testing strategy and concrete test plans for unit and integration tests across components and features.",
       "acceptance": [
-        "Unit tests for components and hooks using React Testing Library",
-        "Integration tests for key state flows and data fetching",
-        "Defined test coverage targets and mocking strategies",
-        "Accessibility tests and automated checks incorporated into CI",
-        "Clear guidance for test data, fixtures, and environment setup"
+        "Unit tests for core components and hooks",
+        "Integration tests for key flows (auth, data fetch, realtime updates)",
+        "Accessibility tests (a11y)",
+        "Mocking/stubbing of API and WebSocket in tests",
+        "Test suite integrated with CI and coverage thresholds"
+      ],
+      "implementation_steps": [
+        "1. Set up testing framework (Vitest) with React Testing Library",
+        "2. Create test utilities for mocks and providers (Theme, Router, QueryClient, Auth)",
+        "3. Write unit tests for core components (Button, Input, Card, Modal)",
+        "4. Write integration tests for Auth flow and data fetch with React Query mocks",
+        "5. Add tests for real-time updates and WS cleanup",
+        "6. Add a11y tests using jest-axe or similar",
+        "7. Integrate coverage reporting and enforce minimum thresholds",
+        "8. Create CI job to run tests on push/PR",
+        "9. Provide test data factories and utilities"
+      ],
+      "integration_points": [
+        "Technical Specifications",
+        "State Management",
+        "Error Handling",
+        "Performance Considerations",
+        "Design System Integration"
       ],
       "prompt_context": {
-        "component_type": "testing",
-        "data_model": "Test contracts for UI components and hooks",
+        "component_type": "section",
+        "data_model": "testing-plan",
         "interactions": [
-          "define test strategy",
-          "write sample tests"
+          "test",
+          "validate",
+          "report"
         ],
-        "styling_approach": null,
+        "styling_approach": "tailwind",
         "dependencies": [
           "technical-specifications",
-          "accessibility-requirements"
+          "component-requirements",
+          "state-management"
         ]
       },
-      "priority": 2
+      "priority": 3
     }
   ]
 }

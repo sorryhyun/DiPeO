@@ -165,11 +165,6 @@ class InMemoryEventBus(DomainEventBus):
             )
             self._tasks[subscription_id] = task
         
-        logger.debug(
-            f"Subscribed {handler.__class__.__name__} to {event_types} "
-            f"with priority {priority}"
-        )
-        
         return subscription
     
     async def unsubscribe(self, subscription: EventSubscription) -> None:

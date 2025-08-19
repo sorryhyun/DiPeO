@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.scheduler import NodeScheduler
 from dipeo.application.execution.typed_execution_context import TypedExecutionContext
-from dipeo.domain.events import EventEmitter, EventType, DomainEvent
+from dipeo.domain.events import EventType, DomainEventBus, DomainEvent
 from dipeo.domain.diagram.resolution import RuntimeInputResolverV2
 from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
@@ -44,7 +44,7 @@ class TypedExecutionEngine:
         service_registry: "ServiceRegistry",
         runtime_resolver: RuntimeInputResolverV2,
         order_calculator: Any | None = None,
-        event_bus: EventEmitter | None = None,
+        event_bus: DomainEventBus | None = None,
         observers: list["ExecutionObserver"] | None = None
     ):
         self.service_registry = service_registry
@@ -62,9 +62,11 @@ class TypedExecutionEngine:
             # Store adapters for later async subscription
             self._observer_adapters = []
             for observer in observers:
-                adapter = ObserverToEventAdapter(observer)
+                adapter = ObserverToEventAdapter(self.event_bus)
                 self._observer_adapters.append(adapter)
             self._managed_event_bus = True
+            # Store the original observers for direct notification
+            self._observers = observers
         else:
             # Use provided event bus or create async event bus
             if not event_bus:
@@ -88,16 +90,19 @@ class TypedExecutionEngine:
         # Start event bus if we're managing it
         if self._managed_event_bus:
             await self.event_bus.start()
-            # Subscribe observer adapters if we have them
-            if hasattr(self, '_observer_adapters'):
+            # Subscribe the original observers if we have them
+            if hasattr(self, '_observers') and self._observers:
                 from dipeo.domain.events import EventType
-                for adapter in self._observer_adapters:
-                    await self.event_bus.subscribe(EventType.EXECUTION_STARTED, adapter)
-                    await self.event_bus.subscribe(EventType.NODE_STARTED, adapter)
-                    await self.event_bus.subscribe(EventType.NODE_COMPLETED, adapter)
-                    await self.event_bus.subscribe(EventType.NODE_ERROR, adapter)
-                    await self.event_bus.subscribe(EventType.EXECUTION_COMPLETED, adapter)
-                    await self.event_bus.subscribe(EventType.EXECUTION_UPDATE, adapter)
+                from dipeo.application.execution.observers import EventToObserverAdapter
+                for observer in self._observers:
+                    # Create an adapter that converts events to observer calls
+                    adapter = EventToObserverAdapter(observer)
+                    await self.event_bus.subscribe([EventType.EXECUTION_STARTED], adapter)
+                    await self.event_bus.subscribe([EventType.NODE_STARTED], adapter)
+                    await self.event_bus.subscribe([EventType.NODE_COMPLETED], adapter)
+                    await self.event_bus.subscribe([EventType.NODE_ERROR], adapter)
+                    await self.event_bus.subscribe([EventType.EXECUTION_COMPLETED], adapter)
+                    await self.event_bus.subscribe([EventType.EXECUTION_UPDATE], adapter)
         
         context = None
         try:

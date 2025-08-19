@@ -5,8 +5,6 @@ using a composable pipeline architecture with focused stages.
 """
 
 from typing import Any
-import asyncio
-import concurrent.futures
 
 from .runtime_resolver_protocol import RuntimeResolverV2
 from dipeo.domain.execution.execution_context import ExecutionContext
@@ -17,7 +15,7 @@ from dipeo.domain.diagram.models.executable_diagram import (
     ExecutableDiagram
 )
 
-from .pipeline import InputResolutionPipeline
+from dipeo.domain.execution.resolution import resolve_inputs
 
 
 class StandardRuntimeResolver(RuntimeResolverV2):
@@ -32,7 +30,8 @@ class StandardRuntimeResolver(RuntimeResolverV2):
     """
     
     def __init__(self):
-        self.pipeline = InputResolutionPipeline()
+        # No longer need pipeline - using domain resolution directly
+        pass
     
     def resolve_node_inputs(
         self,
@@ -40,7 +39,7 @@ class StandardRuntimeResolver(RuntimeResolverV2):
         incoming_edges: list[ExecutableEdgeV2],
         context: ExecutionContext
     ) -> dict[str, Any]:
-        """Resolve all inputs for a node using the pipeline.
+        """Resolve all inputs for a node using domain resolution.
         
         Args:
             node: The node to resolve inputs for
@@ -58,21 +57,11 @@ class StandardRuntimeResolver(RuntimeResolverV2):
             metadata={}
         )
         
-        # Use asyncio to run the async pipeline
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # We're already in an async context
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    asyncio.run,
-                    self.pipeline.resolve(node, context, diagram)
-                )
-                return future.result()
-        else:
-            # We can run directly
-            return loop.run_until_complete(
-                self.pipeline.resolve(node, context, diagram)
-            )
+        # Use domain resolution directly (it's synchronous)
+        envelopes = resolve_inputs(node, diagram, context)
+        
+        # Extract raw values from envelopes for backward compatibility
+        return {key: env.body for key, env in envelopes.items()}
     
     async def resolve_as_envelopes(
         self,
@@ -92,4 +81,5 @@ class StandardRuntimeResolver(RuntimeResolverV2):
         Returns:
             Dictionary of input envelopes
         """
-        return await self.pipeline.resolve_as_envelopes(node, context, diagram)
+        # Use domain resolution directly (it's synchronous but we wrap for async interface)
+        return resolve_inputs(node, diagram, context)
