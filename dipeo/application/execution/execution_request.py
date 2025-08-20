@@ -55,9 +55,15 @@ class ExecutionRequest(Generic[T]):
         if isinstance(self.services, dict):
             return self.services.get(name)
         else:
+            # Try to resolve from ServiceRegistry properly
             from dipeo.application.registry import ServiceKey
             key = ServiceKey(name)
-            return self.services.get(key)
+            # Use resolve() instead of get() to properly handle factories
+            try:
+                return self.services.resolve(key)
+            except KeyError:
+                # Fall back to get() with None default
+                return self.services.get(key)
     
     def get_input(self, name: str, default: Any = None) -> Any:
         return self.inputs.get(name, default)

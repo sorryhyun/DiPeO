@@ -82,7 +82,14 @@ class ExecuteDiagramUseCase(BaseService):
             logger.warning("Observers parameter is deprecated and will be ignored. Using event bus directly.")
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
-        from dipeo.application.registry.keys import EVENT_BUS, DOMAIN_EVENT_BUS
+        from dipeo.application.registry.keys import EVENT_BUS, DOMAIN_EVENT_BUS, AST_PARSER
+        
+        # Debug: Check if AST_PARSER is available
+        if self.service_registry.has(AST_PARSER):
+            logger.debug("[ExecuteDiagramUseCase] AST_PARSER is available in service registry")
+        else:
+            available_services = self.service_registry.list_services() if hasattr(self.service_registry, 'list_services') else []
+            logger.debug(f"[ExecuteDiagramUseCase] AST_PARSER NOT found. Available services: {available_services[:10]}")
         
         runtime_resolver = StandardRuntimeResolver()
         

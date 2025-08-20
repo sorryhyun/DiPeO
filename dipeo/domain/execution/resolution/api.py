@@ -88,6 +88,9 @@ def transform_edge_values(
         TransformationError: If transformation fails
         SpreadCollisionError: If spread operations collide
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     engine = StandardTransformationEngine()
     transformed: Dict[str, Envelope] = {}
     
@@ -95,13 +98,21 @@ def transform_edge_values(
         # Get the output from source node
         source_output = ctx.get_node_output(edge.source_node_id)
         
+        logger.debug(f"[Resolution] Edge {edge.source_node_id} -> {node.id}: output type={type(source_output).__name__ if source_output else 'None'}")
+        
         if not source_output:
+            logger.debug(f"[Resolution] No output from source node {edge.source_node_id}")
             continue
         
         # Extract value from output format
         value = extract_edge_value(source_output, edge)
         
+        logger.debug(f"[Resolution] Extracted value type={type(value).__name__ if value is not None else 'None'}")
+        if isinstance(value, dict) and len(value) <= 5:
+            logger.debug(f"[Resolution] Value keys: {list(value.keys())}")
+        
         if value is None:
+            logger.debug(f"[Resolution] No value extracted from edge")
             continue
         
         # Get transformation rules (type-based + edge overrides)
@@ -150,6 +161,7 @@ def transform_edge_values(
         else:
             # Pack mode (default): bind to the input key
             input_key = edge.target_input or 'default'
+            logger.debug(f"[Resolution] Pack mode: binding to input key '{input_key}'")
             transformed[input_key] = EnvelopeFactory.coerce(transformed_value)
     
     return transformed

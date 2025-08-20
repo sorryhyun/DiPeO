@@ -180,28 +180,9 @@ nodes:
       diagram_format: light
       passInputData: false
 
-  # Summary
-  - label: Summarize Results
-    type: code_job
-    position: {x: 1000, y: 400}
-    props:
-      language: python
-      code: |
-        # Summary - prints removed to reduce verbosity
-        result = {
-            'status': 'success',
-            'message': 'All code generation completed successfully',
-            'summary': {
-                'typescript_parsing': 'completed',
-                'domain_models': 'generated (11 artifact types)',
-                'frontend_components': 'generated',
-                'output_location': 'dipeo/diagram_generated_staged/'
-            }
-        }
-
   - label: End
     type: endpoint
-    position: {x: 1200, y: 400}
+    position: {x: 1000, y: 400}
     props:
       save_to_file: false
 
@@ -234,23 +215,5 @@ connections:
   - {from: Discover Node Specs, to: Prepare Node List, label: default, content_type: object}
   - {from: Prepare Node List, to: Batch Generate Frontend, content_type: object}
   
-  # All generation tasks converge to Summarize Results
-  - {from: Generate Python Models, to: Summarize Results}
-  - {from: Generate Enums, to: Summarize Results}
-  - {from: Generate Integrations, to: Summarize Results}
-  - {from: Generate Conversions, to: Summarize Results}
-  - {from: Generate Backend Models, to: Summarize Results}
-  - {from: Generate GraphQL Schema, to: Summarize Results}
-  - {from: Generate Static Nodes, to: Summarize Results}
-  - {from: Generate Strawberry Types, to: Summarize Results}
-  - {from: Generate Strawberry Mutations, to: Summarize Results}
-  - {from: Generate Validation Models, to: Summarize Results}
-  - {from: Generate TypeScript Indexes, to: Summarize Results}
-#  - {from: Generate Handler Stubs, to: Summarize Results}
-  - {from: Batch Generate Frontend, to: Summarize Results}
-  - {from: Generate Frontend Registry, to: Summarize Results}
-  - {from: Generate GraphQL Queries, to: Summarize Results}
-  - {from: Generate Zod Schemas, to: Summarize Results}
-  - {from: Generate Field Configs, to: Summarize Results}
-  
-  - {from: Summarize Results, to: End}
+  # All generation tasks complete independently - no convergence needed
+  # The End node is not connected to any tasks since they all run in parallel

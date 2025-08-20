@@ -4,11 +4,10 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 330,
+        "x": 50,
         "y": 200
       },
       "data": {
-        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {},
         "label": "start"
@@ -16,82 +15,62 @@
     },
     {
       "id": "node_1",
-      "type": "person_job",
+      "type": "code_job",
       "position": {
-        "x": 632,
-        "y": 231
+        "x": 200,
+        "y": 200
       },
       "data": {
-        "default_prompt": "say hi",
-        "max_iteration": 3,
-        "memory_profile": "FULL",
-        "person": "person 1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "label": "printer",
-        "first_only_prompt": ""
+        "language": "python",
+        "code": "import os\nimport glob\n\n# Define base paths for TypeScript models\nbase_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')\nmodels_dir = os.path.join(base_dir, 'dipeo/models/src')\n\n# Gather all TypeScript files recursively\nts_files = glob.glob(os.path.join(models_dir, '**/*.ts'), recursive=True)\n\nprint(f\"Found {len(ts_files)} TypeScript files\")\nsources = {}\n\nfor file_path in ts_files:\n    try:\n        with open(file_path, 'r', encoding='utf-8') as f:\n            content = f.read()\n            # Use file path as key for tracking\n            sources[file_path] = content\n    except Exception as e:\n        print(f\"Warning: Failed to read {file_path}: {e}\")\n        continue\n\nresult = {\"sources\": sources}\n",
+        "label": "gather typescript files"
       }
     },
     {
       "id": "node_2",
-      "type": "condition",
+      "type": "typescript_ast",
       "position": {
-        "x": 620,
-        "y": 425
+        "x": 600,
+        "y": 200
       },
       "data": {
-        "condition_type": "detect_max_iterations",
-        "flipped": [
-          true,
-          true
+        "batch": true,
+        "batchInputKey": "sources",
+        "includeJSDoc": true,
+        "parseMode": "module",
+        "outputFormat": "for_codegen",
+        "extractPatterns": [
+          "interface",
+          "type",
+          "enum",
+          "const"
         ],
-        "label": "condition"
+        "label": "batch parse typescript"
       }
     },
     {
       "id": "node_3",
-      "type": "endpoint",
+      "type": "code_job",
       "position": {
-        "x": 0,
-        "y": 437
+        "x": 800,
+        "y": 200
       },
       "data": {
-        "file_format": "txt",
-        "save_to_file": true,
-        "flipped": [
-          true,
-          false
-        ],
-        "file_name": "files/results/total.txt",
-        "label": "endpoint"
+        "language": "python",
+        "code": "import os\nimport json\n\n# Get batch results - handle both wrapped and direct structures\nbatch_results = inputs.get('default', {})\n\n# Handle SEAC compatibility - check for wrapped structure\nif isinstance(batch_results, dict) and 'results' in batch_results:\n    # Legacy wrapped structure from batch sub_diagram\n    batch_results = batch_results['results']\n\nif not isinstance(batch_results, dict):\n    print(\"Warning: No batch results to cache\")\n    result = {'cached_count': 0}\nelse:\n    base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')\n    models_dir = os.path.join(base_dir, 'dipeo/models/src')\n    cached_count = 0\n    for file_path, parse_result in batch_results.items():\n        # Get relative path from models_dir\n        if file_path.startswith(models_dir):\n            relative_path = os.path.relpath(file_path, models_dir)\n        else:\n            # Fallback to basename if not in expected location\n            relative_path = os.path.basename(file_path)\n        \n        # Create cache path preserving directory structure\n        cache_path = os.path.join(base_dir, f'temp/{relative_path}.json')\n        cache_dir = os.path.dirname(cache_path)\n        \n        # Ensure cache directory exists\n        if cache_dir and cache_dir != 'temp':\n            os.makedirs(cache_dir, exist_ok=True)\n        \n        # Save the parsed result to cache\n        try:\n            with open(cache_path, 'w', encoding='utf-8') as f:\n                json.dump(parse_result['ast'], f, indent=2)\n            cached_count += 1\n        except Exception as e:\n            print(f\"Warning: Failed to cache {file_path}: {e}\")\n    \n    result = {'cached_count': cached_count}\n",
+        "label": "save cache files"
       }
     },
     {
       "id": "node_4",
-      "type": "person_job",
+      "type": "endpoint",
       "position": {
-        "x": 311,
-        "y": 443
+        "x": 1000,
+        "y": 200
       },
       "data": {
-        "default_prompt": "How many times did you respond?",
-        "flipped": [
-          true,
-          false
-        ],
-        "max_iteration": 1,
-        "memory_profile": "FULL",
-        "person": "person 1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "label": "ask",
-        "first_only_prompt": ""
+        "save_to_file": false,
+        "label": "end"
       }
     }
   ],
@@ -112,54 +91,28 @@
       "label": null,
       "packing": null,
       "data": null,
-      "content_type": "conversation_state"
+      "content_type": "object"
     },
     {
       "id": "arrow_2",
-      "source": "node_2_condfalse_output",
-      "target": "node_1_default_input",
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
       "label": null,
       "packing": null,
-      "data": {
-        "branch": "false"
-      },
-      "content_type": "conversation_state"
+      "data": null,
+      "content_type": "object"
     },
     {
       "id": "arrow_3",
-      "source": "node_2_condtrue_output",
+      "source": "node_3_default_output",
       "target": "node_4_default_input",
-      "label": null,
-      "packing": null,
-      "data": {
-        "branch": "true"
-      },
-      "content_type": "conversation_state"
-    },
-    {
-      "id": "arrow_4",
-      "source": "node_4_default_output",
-      "target": "node_3_default_input",
       "label": null,
       "packing": null,
       "data": null,
       "content_type": "raw_text"
     }
   ],
-  "persons": [
-    {
-      "id": "person 1",
-      "label": "person 1",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": null,
-        "prompt_file": null
-      },
-      "type": "person"
-    }
-  ],
+  "persons": [],
   "handles": [
     {
       "id": "node_0_default_output",
@@ -168,14 +121,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_1_first_input",
-      "node_id": "node_1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -202,19 +147,11 @@
       "position": "left"
     },
     {
-      "id": "node_2_condtrue_output",
+      "id": "node_2_default_output",
       "node_id": "node_2",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_2_condfalse_output",
-      "node_id": "node_2",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
@@ -226,12 +163,12 @@
       "position": "left"
     },
     {
-      "id": "node_4_first_input",
-      "node_id": "node_4",
-      "label": "first",
-      "direction": "input",
+      "id": "node_3_default_output",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "output",
       "data_type": "any",
-      "position": "left"
+      "position": "right"
     },
     {
       "id": "node_4_default_input",
@@ -242,22 +179,30 @@
       "position": "left"
     },
     {
-      "id": "node_4_default_output",
-      "node_id": "node_4",
-      "label": "default",
+      "id": "node_2_results_output",
+      "node_id": "node_2",
+      "label": "results",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_2_error_output",
+      "node_id": "node_2",
+      "label": "error",
       "direction": "output",
       "data_type": "any",
       "position": "right"
     }
   ],
   "metadata": {
-    "name": "/home/soryhyun/DiPeO/files/diagrams/examples/simple_iter.light.yaml",
+    "name": "/home/soryhyun/DiPeO/projects/codegen/diagrams/shared/parse_typescript_batch_direct.light.yaml",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-20T01:45:24.184Z",
-    "modified": "2025-08-20T01:45:24.184Z",
+    "created": "2025-08-20T05:15:57.738Z",
+    "modified": "2025-08-20T05:15:57.738Z",
     "version": "1.0.0",
-    "id": "/home/soryhyun/DiPeO/files/diagrams/examples/simple_iter.light.yaml"
+    "id": "/home/soryhyun/DiPeO/projects/codegen/diagrams/shared/parse_typescript_batch_direct.light.yaml"
   }
 }

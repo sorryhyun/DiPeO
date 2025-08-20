@@ -23,53 +23,13 @@ nodes:
         base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
         models_dir = os.path.join(base_dir, 'dipeo/models/src')
         
-        # Gather TypeScript files from main dir and subdirectories
-        ts_files = []
+        # Gather all TypeScript files recursively
+        ts_files = glob.glob(os.path.join(models_dir, '**/*.ts'), recursive=True)
         
-        # Main directory files
-        ts_files.extend(glob.glob(os.path.join(models_dir, '*.ts')))
-        
-        # Core files
-        ts_files.extend(glob.glob(os.path.join(models_dir, 'core', '*.ts')))
-        ts_files.extend(glob.glob(os.path.join(models_dir, 'core', 'nodes', '*.ts')))
-        ts_files.extend(glob.glob(os.path.join(models_dir, 'core', 'enums', '*.ts')))
-        
-        # Specifications files
-        ts_files.extend(glob.glob(os.path.join(models_dir, 'specifications', '*.ts')))
-        ts_files.extend(glob.glob(os.path.join(models_dir, 'specifications', 'nodes', '*.ts')))
-        
-        # Utilities files
-        ts_files.extend(glob.glob(os.path.join(models_dir, 'utilities', '*.ts')))
-        
-        # Codegen files
-        ts_files.extend(glob.glob(os.path.join(models_dir, 'codegen', '*.ts')))
-        
-        # Frontend files
-        ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', '*.ts')))
-        ts_files.extend(glob.glob(os.path.join(models_dir, 'frontend', 'query-definitions', '*.ts')))
-        
-        # Return list directly for SEAC compatibility
-        result = ts_files
-    
-  # Read all TypeScript sources into a dictionary
-  - label: Read All Sources
-    type: code_job
-    position: {x: 400, y: 200}
-    props:
-      language: python
-      code: |
-        import os
+        print(f"Found {len(ts_files)} TypeScript files")
         sources = {}
-        # Handle both wrapped and direct structures (SEAC compatibility)
-        file_list = inputs.get('default', [])
-        if isinstance(file_list, dict) and 'results' in file_list:
-            # Legacy wrapped structure
-            file_list = file_list['results']
-        elif not isinstance(file_list, list):
-            # If it's not a list, try to handle it gracefully
-            file_list = []
         
-        for file_path in file_list:
+        for file_path in ts_files:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
@@ -79,15 +39,15 @@ nodes:
                 print(f"Warning: Failed to read {file_path}: {e}")
                 continue
         
-        result = {'sources':sources}
-        
+        result = {"sources": sources}
+
   # Parse all TypeScript sources in a single batch operation
   - label: Batch Parse TypeScript
     type: typescript_ast
     position: {x: 600, y: 200}
     props:
       batch: true
-      batchInputKey: sources  # Key to find sources in inputs
+      batchInputKey: sources
       includeJSDoc: true
       parseMode: module
       outputFormat: for_codegen
@@ -153,7 +113,6 @@ nodes:
       
 connections:
   - {from: Start, to: Gather TypeScript Files}
-  - {from: Gather TypeScript Files, to: Read All Sources, content_type: object}
-  - {from: Read All Sources, to: Batch Parse TypeScript, content_type: object}
+  - {from: Gather TypeScript Files, to: Batch Parse TypeScript, content_type: object}
   - {from: Batch Parse TypeScript, to: Save Cache Files, content_type: object}
   - {from: Save Cache Files, to: End}

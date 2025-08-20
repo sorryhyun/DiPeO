@@ -76,6 +76,18 @@ class TypedExecutionEngine:
     ) -> AsyncIterator[dict[str, Any]]:
         """Execute a diagram using the unified execution context."""
         
+        # Debug: Log diagram nodes and connections
+        logger.debug(f"[TypedExecutionEngine] Diagram has {len(diagram.nodes)} nodes")
+        for node in diagram.nodes:
+            logger.debug(f"[TypedExecutionEngine] Node: {node.id} ({node.type}) - {getattr(node, 'label', 'no label')}")
+        
+        if hasattr(diagram, 'connections'):
+            logger.debug(f"[TypedExecutionEngine] Diagram has {len(diagram.connections)} connections")
+            for conn in diagram.connections:
+                logger.debug(f"[TypedExecutionEngine] Connection: {conn.from_node} -> {conn.to_node}")
+        else:
+            logger.debug("[TypedExecutionEngine] Diagram has no connections attribute")
+        
         # Start event bus if we're managing it
         if self._managed_event_bus:
             await self.event_bus.start()
@@ -123,6 +135,7 @@ class TypedExecutionEngine:
             while not context.is_execution_complete():
                 # Get ready nodes using scheduler
                 ready_nodes = await self._scheduler.get_ready_nodes(context)
+                logger.debug(f"[TypedExecutionEngine] Ready nodes: {[n.id for n in ready_nodes] if ready_nodes else 'None'}")
                 
                 if not ready_nodes:
                     # No nodes ready, wait briefly (using a reasonable default)
@@ -133,7 +146,9 @@ class TypedExecutionEngine:
                 step_count += 1
                 
                 # Execute ready nodes
+                logger.debug(f"[TypedExecutionEngine] Executing {len(ready_nodes)} nodes: {[n.id for n in ready_nodes]}")
                 results = await self._execute_nodes(ready_nodes, context)
+                logger.debug(f"[TypedExecutionEngine] Execution results: {list(results.keys())}")
                 
                 # Update scheduler with completed nodes
                 for node_id in results.keys():
@@ -369,6 +384,14 @@ class TypedExecutionEngine:
     ) -> "ExecutionRequest":
         """Create an ExecutionRequest for the handler."""
         from dipeo.application.execution.execution_request import ExecutionRequest
+        
+        # Debug: Check what services are available in the registry
+        if hasattr(self.service_registry, 'list_services'):
+            available_services = self.service_registry.list_services()
+            if 'ast_parser' in available_services:
+                logger.debug(f"[TypedExecutionEngine] AST_PARSER is available in service registry")
+            else:
+                logger.debug(f"[TypedExecutionEngine] AST_PARSER NOT found. Available services: {available_services[:10]}")
         
         # Include diagram metadata
         request_metadata = {}

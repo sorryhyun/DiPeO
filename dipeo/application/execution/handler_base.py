@@ -88,6 +88,8 @@ class TypedNodeHandler(Generic[T], ABC):
         request: "ExecutionRequest[T]"
     ) -> dict[str, Envelope]:
         """Resolve inputs as envelopes through resolver"""
+        import logging
+        logger = logging.getLogger(__name__)
         
         if not self._resolver:
             from dipeo.application.execution.resolvers import get_resolver
@@ -97,13 +99,16 @@ class TypedNodeHandler(Generic[T], ABC):
         diagram = getattr(request.context, 'diagram', None)
         if not diagram:
             # Fall back to empty inputs if no diagram available
+            logger.debug(f"[Handler] No diagram in context for node {request.node.id}")
             return {}
         
-        return await self._resolver.resolve_as_envelopes(
+        result = await self._resolver.resolve_as_envelopes(
             request.node,
             request.context,
             diagram
         )
+        logger.debug(f"[Handler] Resolved inputs for node {request.node.id}: {list(result.keys()) if result else 'None'}")
+        return result
     
     async def prepare_inputs(
         self,
