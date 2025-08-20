@@ -161,28 +161,72 @@ class ExecuteDiagramUseCase(BaseService):
                     "error": state.error if state and state.error else ("Failed" if is_error else None),
                 }
             else:
-                # For web executions, events are consumed via MessageRouter/GraphQL subscriptions
-                await asyncio.sleep(0.1)
-                while True:
+                # For web/CLI executions, run the task and poll for completion
+                # The task needs to actually run, not just be created
+                
+                # Start monitoring for completion while the task runs
+                poll_task = asyncio.create_task(self._poll_execution_status(execution_id))
+                
+                try:
+                    # Run both the execution and polling concurrently
+                    # The execution task will do the actual work
+                    # The poll task will monitor for completion
+                    done, pending = await asyncio.wait(
+                        [execution_task, poll_task],
+                        return_when=asyncio.FIRST_COMPLETED
+                    )
+                    
+                    # Cancel any pending tasks
+                    for task in pending:
+                        task.cancel()
+                        try:
+                            await task
+                        except asyncio.CancelledError:
+                            pass
+                    
+                    # Get final state
                     state = await self.state_store.get_state(execution_id)
-                    if state and state.status in [
-                        Status.COMPLETED,
-                        Status.FAILED,
-                        Status.ABORTED,
-                    ]:
-                        break
-                    await asyncio.sleep(1)
-                # Only treat FAILED and ABORTED as errors
-                is_error = state.status in [Status.FAILED, Status.ABORTED]
-                yield {
-                    "type": "execution_error" if is_error else "execution_complete",
-                    "execution_id": execution_id,
-                    "status": state.status.value,
-                    "error": state.error if state.error else ("Failed" if is_error else None),
-                }
+                    if not state:
+                        # Shouldn't happen, but handle it
+                        yield {
+                            "type": "execution_error",
+                            "execution_id": execution_id,
+                            "status": "unknown",
+                            "error": "Execution state not found",
+                        }
+                    else:
+                        # Only treat FAILED and ABORTED as errors
+                        is_error = state.status in [Status.FAILED, Status.ABORTED]
+                        yield {
+                            "type": "execution_error" if is_error else "execution_complete",
+                            "execution_id": execution_id,
+                            "status": state.status.value,
+                            "error": state.error if state.error else ("Failed" if is_error else None),
+                        }
+                except Exception as e:
+                    # Make sure to cancel the execution task if something goes wrong
+                    execution_task.cancel()
+                    try:
+                        await execution_task
+                    except asyncio.CancelledError:
+                        pass
+                    raise
         except Exception:
             # Re-raise any exceptions
             raise
+    
+    async def _poll_execution_status(self, execution_id: str) -> None:
+        """Poll for execution completion."""
+        while True:
+            state = await self.state_store.get_state(execution_id)
+            if state and state.status in [
+                Status.COMPLETED,
+                Status.FAILED,
+                Status.ABORTED,
+                Status.MAXITER_REACHED,
+            ]:
+                return
+            await asyncio.sleep(1)
     
     async def _prepare_and_compile_diagram(self, diagram: "DomainDiagram", options: dict[str, Any]) -> "ExecutableDiagram":  # type: ignore
         """Prepare and compile diagram using the standard flow."""

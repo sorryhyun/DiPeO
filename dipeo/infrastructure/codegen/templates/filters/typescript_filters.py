@@ -317,37 +317,12 @@ class TypeScriptToPythonFilters:
                 'undefined' in ts_type.split('|') or
                 'null' in ts_type.split('|'))
     
-    @classmethod
-    def extract_base_type(cls, ts_type: str) -> str:
-        """Extract base type without optional/null."""
-        ts_type = ts_type.strip()
-        
-        # Remove trailing optional markers
-        for suffix in [' | undefined', ' | null']:
-            if ts_type.endswith(suffix):
-                ts_type = ts_type[:-len(suffix)].strip()
-                
-        # Handle union types with undefined/null
-        if '|' in ts_type:
-            parts = [p.strip() for p in ts_type.split('|')]
-            parts = [p for p in parts if p not in ['undefined', 'null']]
-            if len(parts) == 1:
-                return parts[0]
-            elif parts:
-                return ' | '.join(parts)
-                
-        return ts_type
-    
-    @classmethod
-    def should_be_integer(cls, field_name: str, ts_type: str = 'number') -> bool:
-        """Check if a number field should be integer."""
-        return ts_type == 'number' and field_name in cls.INTEGER_FIELDS
-    
+
     @classmethod
     def is_branded_type(cls, type_name: str) -> bool:
         """Check if a type is a branded ID type."""
         return type_name in cls.BRANDED_IDS
-    
+
     @classmethod
     def get_default_value(cls, py_type: str, is_optional: bool = False) -> str:
         """Get appropriate default value for a Python type."""
@@ -574,71 +549,24 @@ class TypeScriptToPythonFilters:
             value = str(value)
         return value.replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
     
-    @classmethod
-    def humanize(cls, value: str) -> str:
-        """Convert snake_case or camelCase to human readable format."""
-        import re
-        # First convert camelCase to snake_case
-        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', value)
-        s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-        # Then convert to title case
-        return ' '.join(word.title() for word in s2.split('_'))
-    
-    @classmethod
-    def ts_consts(cls, ast_cache: dict, name: str) -> Any:
-        """Extract a constant value from TypeScript AST cache by name."""
-        for filepath, ast_data in (ast_cache or {}).items():
-            for const in (ast_data.get('constants') or []):
-                if const.get('name') == name:
-                    return const.get('value')
-        return None
-    
-    @classmethod
-    def ts_iface(cls, ast_cache: dict, name: str) -> Optional[dict]:
-        """Extract an interface from TypeScript AST cache by name."""
-        for filepath, ast_data in (ast_cache or {}).items():
-            for iface in (ast_data.get('interfaces') or []):
-                if iface.get('name') == name:
-                    return iface
-        return None
-    
-    @classmethod
-    def ts_specs(cls, ast_cache: dict) -> List[dict]:
-        """Extract all node specifications from TypeScript AST cache.
-        
-        Looks for constants that have a 'nodeType' field, which indicates
-        they are node specification objects.
-        """
-        specs = []
-        for filepath, ast_data in (ast_cache or {}).items():
-            for const in (ast_data.get('constants') or []):
-                value = const.get('value')
-                if isinstance(value, dict) and 'nodeType' in value:
-                    specs.append(value)
-        return specs
-    
+
     @classmethod
     def get_all_filters(cls) -> dict:
-        """Get all filter methods as a dictionary."""
+        """Get all filter methods as a dictionary.
+        
+        Only exports filters actually used by codegen templates.
+        Internal helper methods remain in the class but are not exported.
+        """
         return {
+            # Core conversion filters
             'ts_to_python': cls.ts_to_python_type,
+            'to_py': cls.ts_to_python_type,  # Alias for backward compatibility
             'is_optional_ts': cls.is_optional_type,
-            'extract_base_type': cls.extract_base_type,
-            'should_be_int': cls.should_be_integer,
-            'is_branded_id': cls.is_branded_type,
-            'py_default_value': cls.get_default_value,
-            'get_py_imports': cls.get_python_imports,
-            'strip_comments': cls.strip_inline_comments,
-            # Codegen-specific filters
+            
+            # Codegen-specific filters used in templates
             'typescript_type': cls.typescript_type,
             'ui_field_type': cls.ui_field_type,
             'zod_schema': cls.zod_schema,
             'escape_js': cls.escape_js,
-            'humanize': cls.humanize,
-            # TypeScript AST filters
-            'ts_consts': cls.ts_consts,
-            'ts_iface': cls.ts_iface,
-            'ts_specs': cls.ts_specs,
-            # Aliases
-            'to_py': cls.ts_to_python_type,
+
         }

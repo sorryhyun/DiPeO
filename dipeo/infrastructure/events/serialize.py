@@ -5,6 +5,7 @@ ensuring consistent format across all transport mechanisms.
 """
 
 from datetime import datetime
+from enum import Enum
 from typing import Any
 from uuid import UUID
 import json
@@ -28,6 +29,8 @@ def serialize_for_json(data: dict[str, Any]) -> dict[str, Any]:
             return str(value)
         elif isinstance(value, datetime):
             return value.isoformat()
+        elif isinstance(value, Enum):
+            return value.value
         elif isinstance(value, dict):
             return {k: convert_value(v) for k, v in value.items()}
         elif isinstance(value, list):

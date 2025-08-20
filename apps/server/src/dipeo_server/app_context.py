@@ -98,13 +98,47 @@ async def create_server_container() -> Container:
 
     state_manager = AsyncStateManager(state_store)
 
-    # Subscribe state manager to relevant events (works with both V1 and V2)
-    if hasattr(event_bus, 'subscribe'):
-        await event_bus.subscribe(EventType.EXECUTION_STARTED, state_manager)
-        await event_bus.subscribe(EventType.NODE_STARTED, state_manager)
-        await event_bus.subscribe(EventType.NODE_COMPLETED, state_manager)
-        await event_bus.subscribe(EventType.NODE_ERROR, state_manager)
-        await event_bus.subscribe(EventType.EXECUTION_COMPLETED, state_manager)
+    # Subscribe state manager to the DomainEventBus
+    # AsyncStateManager implements EventConsumer, but DomainEventBus expects EventHandler
+    # Create a simple adapter to bridge the interface
+    if domain_event_bus is not None:
+        from dipeo.domain.events.types import EventPriority
+        from dipeo.domain.events.ports import EventHandler
+        from dipeo.domain.events.contracts import DomainEvent
+        
+        # Create an adapter that converts EventHandler.handle() to EventConsumer.consume()
+        class StateManagerAdapter:
+            """Adapter to make EventConsumer compatible with EventHandler interface."""
+            def __init__(self, state_manager):
+                self.state_manager = state_manager
+            
+            async def handle(self, event: DomainEvent) -> None:
+                """Handle method required by EventHandler protocol."""
+                await self.state_manager.consume(event)
+        
+        state_manager_adapter = StateManagerAdapter(state_manager)
+        
+        # Subscribe state manager to domain event bus so it persists state changes
+        await domain_event_bus.subscribe(
+            event_types=[
+                EventType.EXECUTION_STARTED,
+                EventType.NODE_STARTED,
+                EventType.NODE_COMPLETED,
+                EventType.NODE_ERROR,
+                EventType.EXECUTION_COMPLETED,
+                EventType.METRICS_COLLECTED,
+            ],
+            handler=state_manager_adapter,
+            priority=EventPriority.LOW,  # Process after other handlers
+        )
+    else:
+        # Fallback to legacy event bus subscription (for backward compatibility)
+        if hasattr(event_bus, 'subscribe'):
+            await event_bus.subscribe(EventType.EXECUTION_STARTED, state_manager)
+            await event_bus.subscribe(EventType.NODE_STARTED, state_manager)
+            await event_bus.subscribe(EventType.NODE_COMPLETED, state_manager)
+            await event_bus.subscribe(EventType.NODE_ERROR, state_manager)
+            await event_bus.subscribe(EventType.EXECUTION_COMPLETED, state_manager)
 
     # StreamingMonitor removed - MessageRouter handles all event routing directly
     

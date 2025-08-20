@@ -84,11 +84,10 @@ class InfrastructureContainer:
         )
 
     def _setup_infrastructure_services(self):
-        # Register template processor service
-        from dipeo.infrastructure.shared.template.drivers.simple_processor import SimpleTemplateProcessor
+        # No legacy simple processor; Jinja2-only path
         self.registry.register(
             TEMPLATE_PROCESSOR,
-            SimpleTemplateProcessor()
+            None
         )
         
         self.registry.register(
@@ -112,10 +111,9 @@ class InfrastructureContainer:
         from dipeo.infrastructure.integrations.drivers.integrated_api import IntegratedApiService
         from dipeo.infrastructure.integrations.adapters.api_service import APIService
         from dipeo.domain.integrations.api_services import APIBusinessLogic
-        from dipeo.infrastructure.shared.template.drivers.simple_processor import SimpleTemplateProcessor
         
-        template_processor = SimpleTemplateProcessor()
-        api_business_logic = APIBusinessLogic(template_processor=template_processor)
+        # Template processor no longer needed - using Jinja2
+        api_business_logic = APIBusinessLogic(template_processor=None)
         api_service = APIService(api_business_logic)
         integrated_api_service = IntegratedApiService(api_service=api_service)
         self.registry.register(
@@ -127,7 +125,6 @@ class InfrastructureContainer:
         import logging
         logger = logging.getLogger(__name__)
         parser_service = get_parser_service(
-            default_language="typescript",
             project_root=Path(self.config.storage.base_dir),
             cache_enabled=True
         )

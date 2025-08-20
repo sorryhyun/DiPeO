@@ -15,8 +15,7 @@ from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
-from dipeo.infrastructure.shared.template.drivers.jinja_template.template_integration import get_enhanced_template_service
-from dipeo.domain.diagram.ports import TemplateProcessorPort
+from dipeo.infrastructure.codegen.templates.template_integration import get_enhanced_template_service
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -118,17 +117,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 produced_by=str(node.id)
             )
         
-        # Initialize template processor for path interpolation
-        # Use injected processor or try to get from services
-        from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
-        template_processor = None
-        if not template_processor:
-            try:
-                template_processor = services.resolve(TEMPLATE_PROCESSOR)
-            except:
-                # If not available in services, template processing will be skipped
-                pass
-        self._current_template_processor = template_processor
+        # Template processor no longer needed - using Jinja2 for everything
+        self._current_template_processor = None
         
         # No early return - proceed to execute_request
         return None
@@ -236,13 +226,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         if node.template_content:
             template_content = node.template_content
         else:
-            # First process single bracket {} interpolation for diagram variables (if processor available)
-            processed_path = node.template_path
-            if template_processor:
-                processed_path = template_processor.process_single_brace(node.template_path, template_vars)
-            
-            # Then process Jinja2 {{ }} syntax if present
-            processed_template_path = template_service.render_string(processed_path, **template_vars).strip()
+            # Use Jinja2 for both paths and contents
+            processed_template_path = template_service.render_string(node.template_path, **template_vars).strip()
             
             # Load from file - just use the path as-is since filesystem adapter handles base path
             template_path = Path(processed_template_path)
@@ -264,19 +249,13 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                     rendered = template_service.render_string(template_content, **local_context)
                 except Exception as e:
                     # Fall back to standard Jinja2
-                    rendered = self._render_jinja2_sync(template_content, local_context)
+                    rendered = self._render_jinja2(template_content, local_context)
                     logger.debug(f"Enhancement fallback: {e}")
             else:
                 rendered = template_content  # Fallback
             
-            # Process output path template
-            if template_processor:
-                output_path_str = template_processor.process_single_brace(output_path_template, local_context)
-            else:
-                output_path_str = output_path_template
-            
-            # Render any Jinja2 syntax in the path
-            output_path_str = template_service.render_string(output_path_str, **local_context).strip()
+            # Render output path via Jinja2 as well
+            output_path_str = template_service.render_string(output_path_template, **local_context).strip()
             output_path = Path(output_path_str)
             
             # Create parent directories if needed
@@ -343,13 +322,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             # Write to file if output_path is specified
             if node.output_path:
-                # First process single bracket {} interpolation for diagram variables (if processor available)
-                processed_path = node.output_path
-                if template_processor:
-                    processed_path = template_processor.process_single_brace(node.output_path, template_vars)
-                
-                # Then process Jinja2 {{ }} syntax if present
-                processed_output_path = template_service.render_string(processed_path, **template_vars).strip()
+                # Use Jinja2 for output path
+                processed_output_path = template_service.render_string(node.output_path, **template_vars).strip()
                 
                 output_path = Path(processed_output_path)
                 
@@ -388,10 +362,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     async def _render_jinja2(self, template: str, variables: dict[str, Any]) -> str:
         """Render template using Jinja2 with custom filters."""
         try:
-            from jinja2 import Environment, StrictUndefined
+            from jinja2 import Environment
             
             # Create Jinja2 environment with custom filters
-            env = Environment(undefined=StrictUndefined)
+            env = Environment()
             
             # Add custom filters from the registry
             from dipeo.infrastructure.shared.template.drivers.jinja_template.filters import create_filter_registry
@@ -404,27 +378,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             return jinja_template.render(**variables)
         except ImportError:
             raise ImportError("Jinja2 is not installed. Install it with: pip install jinja2")
-    
-    def _render_jinja2_sync(self, template: str, variables: dict[str, Any]) -> str:
-        """Synchronous version of Jinja2 rendering for use in nested functions."""
-        try:
-            from jinja2 import Environment, StrictUndefined
-            
-            # Create Jinja2 environment with custom filters
-            env = Environment(undefined=StrictUndefined)
-            
-            # Add custom filters from the registry
-            from dipeo.infrastructure.shared.template.drivers.jinja_template.filters import create_filter_registry
-            registry = create_filter_registry()
-            for name, func in registry.get_all_filters().items():
-                env.filters[name] = func
-            
-            # Create and render template
-            jinja_template = env.from_string(template)
-            return jinja_template.render(**variables)
-        except ImportError:
-            raise ImportError("Jinja2 is not installed. Install it with: pip install jinja2")
-    
+
     
     def post_execute(
         self,

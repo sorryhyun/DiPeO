@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 import sys
 import os
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
-from dipeo.infrastructure.parsers.typescript.type_transformer import map_ts_type_to_python
+from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python
 
 
 def get_python_type(ts_type: str, is_optional: bool, ts_to_py_type: dict) -> str:

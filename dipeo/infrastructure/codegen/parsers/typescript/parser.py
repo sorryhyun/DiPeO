@@ -11,8 +11,6 @@ from pathlib import Path
 from typing import Any
 
 from dipeo.domain.base.exceptions import ServiceError
-
-from ..resource_locator import ParserResourceLocator
 from .platform_utils import get_tsx_command, setup_github_actions_env
 
 logger = logging.getLogger(__name__)
@@ -29,17 +27,17 @@ class TypeScriptParser:
         
         Args:
             project_root: Project root directory. If not provided, uses DIPEO_BASE_DIR or cwd.
-            parser_script: Path to the parser script. If not provided, uses resource locator.
+            parser_script: Path to the parser script. If not provided, uses default location.
             cache_enabled: Whether to enable AST caching (default: True)
         """
         self.project_root = project_root or Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
         
-        # Use provided script path or get from resource locator
+        # Use provided script path or default to ts_parser_main.ts in the same directory
         if parser_script:
             self.parser_script = parser_script
         else:
-            # Use resource locator to dynamically find the parser script
-            self.parser_script = ParserResourceLocator.get_parser_script('typescript', self.project_root)
+            # Direct path to the TypeScript parser script
+            self.parser_script = (Path(__file__).parent / "ts_parser_main.ts").resolve()
         
         # Only initialize cache if enabled
         self._cache: dict[str, dict[str, Any]] = {} if cache_enabled else None

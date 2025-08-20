@@ -80,10 +80,6 @@ class RunCommand:
             execution_id = result["execution_id"]
             print(f"✓ Execution started: {execution_id}")
 
-            # Open browser if requested (without sensitive data in URL)
-            if not no_browser:
-                self._open_browser()
-
             # Poll for completion
             return self._wait_for_completion(execution_id, timeout, debug)
 
@@ -102,22 +98,6 @@ class RunCommand:
             # Stop the server
             self.server.stop()
 
-    def _open_browser(self):
-        """Open browser in monitor mode."""
-        monitor_url = "http://localhost:3000/?monitor=true"
-        print(f"🌐 Opening browser in monitor mode: {monitor_url}")
-        print("📡 Browser will automatically detect CLI execution")
-        try:
-            # Open in same browser window (new=0)
-            if not webbrowser.open(monitor_url, new=0):
-                print(
-                    "⚠️  Could not open browser automatically. Please open manually:"
-                )
-                print(f"   {monitor_url}")
-        except Exception as e:
-            print(f"⚠️  Error opening browser: {e}")
-            print(f"   Please open manually: {monitor_url}")
-
     def _wait_for_completion(self, execution_id: str, timeout: int, debug: bool) -> bool:
         """Poll for execution completion."""
         print(f"\n⏳ Waiting for execution to complete (timeout: {timeout}s)...")
@@ -131,7 +111,7 @@ class RunCommand:
                 self.server.stop()
                 return False
 
-            time.sleep(4)
+            time.sleep(2)  # Reduced polling interval for faster response
             exec_result = self.server.get_execution_result(execution_id)
 
             if exec_result is None:

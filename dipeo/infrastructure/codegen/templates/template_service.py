@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union
 from dataclasses import dataclass, field
 from jinja2 import Environment, FileSystemLoader, Template, ChoiceLoader, DictLoader
 
-from .filters import FilterRegistry, create_filter_registry
+from .filters import FilterRegistry, create_filter_registry_profile
 
 
 @dataclass
@@ -110,12 +110,12 @@ class TemplateRenderer:
 
 class TemplateService:
     
-    def __init__(self, filter_sources: Optional[List[str]] = None):
+    def __init__(self, filter_sources: Optional[List[str]] = None, profile: str = 'full'):
         
         self._base_templates: Dict[str, str] = {}
         self._register_base_templates()
         
-        self._filter_registry = create_filter_registry()
+        self._filter_registry = create_filter_registry_profile(profile)
         
         if filter_sources is None:
             filter_sources = ['base']
@@ -259,9 +259,5 @@ export interface {{ name }}{% if extends %} extends {{ extends | join(', ') }}{%
         return self._filter_sources.copy()
 
 
-def create_template_service(filter_sources: Optional[List[str]] = None) -> TemplateService:
-    return TemplateService(filter_sources)
-
-
-def create_enhanced_template_service() -> TemplateService:
-    return create_template_service(['base', 'typescript', 'backend', 'graphql'])
+def create_template_service(filter_sources: Optional[List[str]] = None, profile: str = 'full') -> TemplateService:
+    return TemplateService(filter_sources, profile=profile)

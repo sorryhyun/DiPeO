@@ -6,6 +6,7 @@ import traceback
 import requests
 
 from ..server_manager import ServerManager
+from ..graphql_queries import GraphQLQueries
 
 
 class MetricsCommand:
@@ -55,19 +56,7 @@ class MetricsCommand:
         self, url: str, execution_id: str, output_json: bool, bottlenecks_only: bool, optimizations_only: bool
     ):
         """Query specific execution metrics."""
-        query = """
-        query ExecutionMetrics($executionId: ID!) {
-            execution(id: $executionId) {
-                id
-                status
-                diagramId
-                startedAt
-                endedAt
-                durationSeconds
-                metrics
-            }
-        }
-        """
+        query = GraphQLQueries.EXECUTION_METRICS_DETAILED
         variables = {"executionId": execution_id}
 
         response = requests.post(
@@ -101,18 +90,7 @@ class MetricsCommand:
         self, url: str, diagram_id: str, output_json: bool, bottlenecks_only: bool, optimizations_only: bool
     ):
         """Query execution history for diagram."""
-        query = """
-        query ExecutionHistory($diagramId: ID!, $includeMetrics: Boolean!) {
-            executionHistory(diagramId: $diagramId, limit: 10, includeMetrics: $includeMetrics) {
-                id
-                status
-                startedAt
-                endedAt
-                durationSeconds
-                metrics
-            }
-        }
-        """
+        query = GraphQLQueries.EXECUTION_HISTORY
         variables = {
             "diagramId": diagram_id,
             "includeMetrics": True
@@ -144,19 +122,7 @@ class MetricsCommand:
         self, url: str, output_json: bool, bottlenecks_only: bool, optimizations_only: bool
     ):
         """Query latest execution."""
-        query = """
-        query LatestExecution {
-            executions(limit: 1) {
-                id
-                status
-                diagramId
-                startedAt
-                endedAt
-                durationSeconds
-                metrics
-            }
-        }
-        """
+        query = GraphQLQueries.LATEST_EXECUTION
 
         response = requests.post(
             url,

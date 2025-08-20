@@ -1,7 +1,7 @@
 // Auto-generated node configuration for {{ nodeType }}
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
-import { {{ nodeTypeCamel }}Fields } from '../fields/{{ nodeTypePascal }}Fields';
+import { {{ nodeType | camel_case }}Fields } from '../fields/{{ nodeType | pascal_case }}Fields';
 {%- if nodeType == 'integrated_api' %}
 import { mergeFieldConfigs } from '@/domain/diagram/config/nodes/fieldOverrides';
 
@@ -9,7 +9,7 @@ import { mergeFieldConfigs } from '@/domain/diagram/config/nodes/fieldOverrides'
 const fieldsWithOverrides = mergeFieldConfigs('integrated_api');
 {%- endif %}
 
-export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
+export const {{ nodeType | camel_case }}Config: UnifiedNodeConfig = {
   label: '{{ displayName }}',
   icon: '{{ icon }}',
   color: '{{ color | default('#6366f1') }}',
@@ -57,11 +57,11 @@ export const {{ nodeTypeCamel }}Config: UnifiedNodeConfig = {
 {%- if nodeType == 'integrated_api' %}
   customFields: fieldsWithOverrides,
 {%- else %}
-  customFields: {{ nodeTypeCamel }}Fields,
+  customFields: {{ nodeType | camel_case }}Fields,
 {%- endif %}
 {%- if primaryDisplayField %}
   primaryDisplayField: '{{ primaryDisplayField }}',
 {%- endif %}
 };
 
-export default {{ nodeTypeCamel }}Config;
+export default {{ nodeType | camel_case }}Config;

@@ -80,7 +80,7 @@ nodes:
     props:
       engine: jinja2
       template_path: projects/codegen/templates/frontend/typescript_model.j2
-      output_path: apps/web/src/__generated__/models/{node_naming.node_name}Node.ts
+      output_path: apps/web/src/__generated__/models/{node_name}Node.ts
 
   - label: Generate Node Config
     type: template_job
@@ -88,7 +88,7 @@ nodes:
     props:
       engine: jinja2
       template_path: projects/codegen/templates/frontend/node_config.j2
-      output_path: apps/web/src/__generated__/nodes/{node_naming.node_name}Config.ts
+      output_path: apps/web/src/__generated__/nodes/{node_name}Config.ts
 
   - label: Generate Field Config
     type: template_job
@@ -96,7 +96,7 @@ nodes:
     props:
       engine: jinja2
       template_path: projects/codegen/templates/frontend/field_config.j2
-      output_path: apps/web/src/__generated__/fields/{node_naming.node_name}Fields.ts
+      output_path: apps/web/src/__generated__/fields/{node_name}Fields.ts
 
   - label: End
     type: endpoint

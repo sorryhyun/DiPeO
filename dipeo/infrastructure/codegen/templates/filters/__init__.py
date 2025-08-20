@@ -10,7 +10,7 @@ from .base_filters import BaseFilters
 from .typescript_filters import TypeScriptToPythonFilters
 from .backend_filters import BackendFilters
 from .graphql_filters import TypeScriptToGraphQLFilters
-from .registry import FilterRegistry, FilterInfo, create_filter_registry, filter_registry
+from .registry import FilterRegistry, FilterInfo, create_filter_registry, create_filter_registry_profile, filter_registry
 
 __all__ = [
     'BaseFilters',
@@ -20,5 +20,6 @@ __all__ = [
     'FilterRegistry',
     'FilterInfo',
     'create_filter_registry',
+    'create_filter_registry_profile',
     'filter_registry',
 ]

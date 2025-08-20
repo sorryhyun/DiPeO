@@ -312,7 +312,8 @@ class AsyncStateManager(EventConsumer):
         # Get the state from cache and persist it
         state = await self.state_store.get_state(execution_id)
         if state:
+            # Don't remove cache immediately - let persist_final_state handle it
+            # This avoids race condition where CLI can't read final state
             await self.state_store.persist_final_state(state)
         
-        # Remove from cache after persistence
-        await self._execution_cache.remove_cache(execution_id)
+        # Note: persist_final_state already removes the cache, no need to do it again

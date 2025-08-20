@@ -102,30 +102,54 @@ filter_registry = FilterRegistry()
 
 
 def create_filter_registry() -> FilterRegistry:
+    return _create_filter_registry_profile('full')
+
+
+def create_filter_registry_profile(profile: str = 'full') -> FilterRegistry:
+    return _create_filter_registry_profile(profile)
+
+
+def _create_filter_registry_profile(profile: str) -> FilterRegistry:
     registry = FilterRegistry()
-    
-    try:
-        from .base_filters import BaseFilters
-        registry.register_filter_collection('base', BaseFilters.get_all_filters())
-    except ImportError:
-        pass
+    # Lazy imports keep optional deps optional.
+    from .base_filters import BaseFilters
+    from .typescript_filters import TypeScriptToPythonFilters
+    from .backend_filters import BackendFilters
+    from .graphql_filters import TypeScriptToGraphQLFilters
+
+    if profile == 'codegen':
+        # Minimal, proven-by-templates set
+        base = BaseFilters.get_all_filters()
+        ts = TypeScriptToPythonFilters.get_all_filters()
+        be = BackendFilters.get_all_filters()
+        gql = TypeScriptToGraphQLFilters.get_all_filters()
         
-    try:
-        from .typescript_filters import TypeScriptToPythonFilters
-        registry.register_filter_collection('typescript', TypeScriptToPythonFilters.get_all_filters())
-    except ImportError:
-        pass
-        
-    try:
-        from .backend_filters import BackendFilters
-        registry.register_filter_collection('backend', BackendFilters.get_all_filters())
-    except ImportError:
-        pass
-        
-    try:
-        from .graphql_filters import TypeScriptToGraphQLFilters
-        registry.register_filter_collection('graphql', TypeScriptToGraphQLFilters.get_all_filters())
-    except ImportError:
-        pass
-        
+        registry.register_filter_collection('base', {
+            'snake_case': base['snake_case'],
+            'pascal_case': base['pascal_case'],
+            'humanize': base['humanize'],
+        })
+        registry.register_filter_collection('typescript', {
+            'ts_to_python': ts['ts_to_python'],
+            'to_py': ts['to_py'],
+            'is_optional_ts': ts['is_optional_ts'],
+            'typescript_type': ts['typescript_type'],
+            'ui_field_type': ts['ui_field_type'],
+            'zod_schema': ts['zod_schema'],
+            'escape_js': ts['escape_js'],
+        })
+        registry.register_filter_collection('backend', {
+            'python_type_with_context': be['python_type_with_context'],
+            'python_default': be['python_default'],
+        })
+        registry.register_filter_collection('graphql', {
+            'graphql_field_type': gql['graphql_field_type'],
+        })
+        return registry
+
+    # Fallback: previous behavior (register everything)
+    registry.register_filter_collection('base', BaseFilters.get_all_filters())
+    registry.register_filter_collection('typescript', TypeScriptToPythonFilters.get_all_filters())
+    registry.register_filter_collection('backend', BackendFilters.get_all_filters())
+    registry.register_filter_collection('graphql', TypeScriptToGraphQLFilters.get_all_filters())
     return registry

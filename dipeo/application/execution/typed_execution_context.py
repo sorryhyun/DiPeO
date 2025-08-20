@@ -352,8 +352,10 @@ class TypedExecutionContext(ExecutionContextProtocol):
         """Check if execution is complete."""
         # Check if any endpoint nodes have been reached
         from dipeo.diagram_generated.generated_nodes import NodeType
+        has_endpoint = False
         for node in self.diagram.nodes:
             if node.type == NodeType.ENDPOINT.value:
+                has_endpoint = True
                 node_state = self.get_node_state(node.id)
                 if node_state and node_state.status in [Status.COMPLETED, Status.MAXITER_REACHED]:
                     return True
@@ -361,6 +363,16 @@ class TypedExecutionContext(ExecutionContextProtocol):
         # Check if any nodes are running
         if any(state.status == Status.RUNNING for state in self._node_states.values()):
             return False
+        
+        # If there's an endpoint node but it hasn't been executed yet, execution is not complete
+        if has_endpoint:
+            # Check if endpoint dependencies are met but endpoint hasn't run
+            for node in self.diagram.nodes:
+                if node.type == NodeType.ENDPOINT.value:
+                    node_state = self.get_node_state(node.id)
+                    # If endpoint has no state yet, execution is not complete
+                    if not node_state:
+                        return False
         
         # Check if all nodes have been processed (no pending nodes with met dependencies)
         # This is a simplified check - the engine's order calculator determines actual readiness

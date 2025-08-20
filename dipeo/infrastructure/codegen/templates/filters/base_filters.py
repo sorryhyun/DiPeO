@@ -15,31 +15,45 @@ class BaseFilters:
     
     @staticmethod
     def camel_case(text: str) -> str:
-        return inflection.camelize(text, uppercase_first_letter=False)
+        if text is None or text == '' or str(text) == 'Undefined':
+            return ''
+        return inflection.camelize(str(text), uppercase_first_letter=False)
     
     @staticmethod
     def pascal_case(text: str) -> str:
-        return inflection.camelize(text)
+        if text is None or text == '' or str(text) == 'Undefined':
+            return ''
+        return inflection.camelize(str(text))
     
     @staticmethod
     def kebab_case(text: str) -> str:
-        return inflection.dasherize(inflection.underscore(text))
+        if text is None or text == '' or str(text) == 'Undefined':
+            return ''
+        return inflection.dasherize(inflection.underscore(str(text)))
     
     @staticmethod
     def pluralize(text: str) -> str:
-        return inflection.pluralize(text)
+        if text is None or text == '' or str(text) == 'Undefined':
+            return ''
+        return inflection.pluralize(str(text))
     
     @staticmethod
     def singularize(text: str) -> str:
-        return inflection.singularize(text)
+        if text is None or text == '' or str(text) == 'Undefined':
+            return ''
+        return inflection.singularize(str(text))
     
     @staticmethod
     def humanize(text: str) -> str:
-        return inflection.humanize(text)
+        if text is None or text == '' or str(text) == 'Undefined':
+            return ''
+        return inflection.humanize(str(text))
     
     @staticmethod
     def titleize(text: str) -> str:
-        return inflection.titleize(text)
+        if text is None or text == '' or str(text) == 'Undefined':
+            return ''
+        return inflection.titleize(str(text))
     
     @staticmethod
     def ordinalize(number: int) -> str:
