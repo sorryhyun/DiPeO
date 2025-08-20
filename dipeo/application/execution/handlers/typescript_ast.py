@@ -85,20 +85,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         # Set debug flag for later use
         self._current_debug = False  # Will be set based on context if needed
         
-        # Debug: Check what services are available
-        if hasattr(request.services, '_services'):
-            available_services = list(request.services._services.keys())
-            logger.debug(f"[TypescriptAstNode {request.node.id}] Available services: {available_services[:10]}")
-        if hasattr(request.services, '_factories'):
-            available_factories = list(request.services._factories.keys())
-            logger.debug(f"[TypescriptAstNode {request.node.id}] Available factories: {available_factories[:10]}")
-        if hasattr(request.services, 'list_services'):
-            all_services = request.services.list_services()
-            logger.debug(f"[TypescriptAstNode {request.node.id}] Total services count: {len(all_services)}")
-            logger.debug(f"[TypescriptAstNode {request.node.id}] All services (via list_services): {all_services}")
-            if 'ast_parser' in all_services:
-                logger.debug(f"[TypescriptAstNode {request.node.id}] AST_PARSER found in list_services()")
-        
         # Check parser service availability - try different approaches
         parser_service = request.get_service("ast_parser")
         if not parser_service and hasattr(request.services, 'resolve'):
@@ -106,10 +92,8 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             from dipeo.application.registry.keys import AST_PARSER
             try:
                 parser_service = request.services.resolve(AST_PARSER)
-                if parser_service:
-                    logger.debug(f"[TypescriptAstNode {request.node.id}] Found AST_PARSER via direct resolve()")
             except Exception as e:
-                logger.debug(f"[TypescriptAstNode {request.node.id}] Failed to resolve AST_PARSER: {e}")
+                pass
         if not parser_service:
             factory = get_envelope_factory()
             return factory.error(
@@ -140,32 +124,22 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             # Batch mode: parse multiple sources at once
             batch_input_key = getattr(node, 'batchInputKey', 'sources')
             
-            # Debug logging to understand input structure
-            logger.debug(f"[TypescriptAstNode {node.id}] Batch mode - looking for key '{batch_input_key}'")
-            logger.debug(f"[TypescriptAstNode {node.id}] Input keys: {list(inputs.keys())}")
-            logger.debug(f"[TypescriptAstNode {node.id}] Input types: {[(k, type(v).__name__) for k, v in inputs.items()]}")
-            
             # Get sources from node config or inputs
             sources = getattr(node, 'sources', None)
             if not sources:
                 # Try direct access first
                 sources = inputs.get(batch_input_key, None)
-                logger.debug(f"[TypescriptAstNode {node.id}] Direct access for '{batch_input_key}': {type(sources).__name__ if sources else 'None'}")
             
             # If not found, check if inputs has a 'default' key with the sources
             if not sources and 'default' in inputs:
                 default_input = inputs['default']
-                logger.debug(f"[TypescriptAstNode {node.id}] Checking default input - type: {type(default_input).__name__}")
                 if isinstance(default_input, dict):
-                    logger.debug(f"[TypescriptAstNode {node.id}] Default input keys: {list(default_input.keys())[:5]}...")  # Show first 5 keys
                     # Check if the default input has the batch_input_key
                     if batch_input_key in default_input:
                         sources = default_input[batch_input_key]
-                        logger.debug(f"[TypescriptAstNode {node.id}] Found sources in default['{batch_input_key}'] - type: {type(sources).__name__}, len: {len(sources) if isinstance(sources, (dict, list)) else 'N/A'}")
                     # Or if the default input IS the sources dict directly (all keys look like file paths)
                     elif default_input and all(isinstance(k, str) and (k.endswith('.ts') or '/' in k) for k in list(default_input.keys())[:10]):
                         sources = default_input
-                        logger.debug(f"[TypescriptAstNode {node.id}] Default input appears to be sources dict directly - len: {len(sources)}")
             
             # Also check if inputs itself looks like a sources dict (all keys are file paths)
             if not sources and isinstance(inputs, dict) and inputs:
@@ -174,7 +148,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 if non_default_keys and all(isinstance(k, str) and (k.endswith('.ts') or '/' in k) for k in non_default_keys[:10]):
                     # Exclude 'default' key and use the rest as sources
                     sources = {k: v for k, v in inputs.items() if k != 'default'}
-                    logger.debug(f"[TypescriptAstNode {node.id}] Inputs appear to be sources dict directly - len: {len(sources)}")
             
             if not sources or not isinstance(sources, dict):
                 logger.error(f"[TypescriptAstNode {node.id}] Failed to find sources - sources type: {type(sources).__name__ if sources else 'None'}")

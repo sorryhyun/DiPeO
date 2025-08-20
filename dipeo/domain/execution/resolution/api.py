@@ -59,7 +59,10 @@ def resolve_inputs(
     special = compute_special_inputs(node, ctx)
     for key, value in special.items():
         # Special inputs don't override explicit edge inputs
-        transformed.setdefault(key, EnvelopeFactory.coerce(value))
+        if isinstance(value, str):
+            transformed.setdefault(key, EnvelopeFactory.text(value))
+        else:
+            transformed.setdefault(key, EnvelopeFactory.json(value))
     
     # 4) Apply defaults for missing required inputs
     final_inputs = apply_defaults(node, transformed)
@@ -88,9 +91,6 @@ def transform_edge_values(
         TransformationError: If transformation fails
         SpreadCollisionError: If spread operations collide
     """
-    import logging
-    logger = logging.getLogger(__name__)
-    
     engine = StandardTransformationEngine()
     transformed: Dict[str, Envelope] = {}
     
@@ -98,21 +98,13 @@ def transform_edge_values(
         # Get the output from source node
         source_output = ctx.get_node_output(edge.source_node_id)
         
-        logger.debug(f"[Resolution] Edge {edge.source_node_id} -> {node.id}: output type={type(source_output).__name__ if source_output else 'None'}")
-        
         if not source_output:
-            logger.debug(f"[Resolution] No output from source node {edge.source_node_id}")
             continue
         
         # Extract value from output format
         value = extract_edge_value(source_output, edge)
         
-        logger.debug(f"[Resolution] Extracted value type={type(value).__name__ if value is not None else 'None'}")
-        if isinstance(value, dict) and len(value) <= 5:
-            logger.debug(f"[Resolution] Value keys: {list(value.keys())}")
-        
         if value is None:
-            logger.debug(f"[Resolution] No value extracted from edge")
             continue
         
         # Get transformation rules (type-based + edge overrides)
@@ -157,12 +149,19 @@ def transform_edge_values(
             
             # Spread the dict values as individual Envelopes
             for key, val in transformed_value.items():
-                transformed[key] = EnvelopeFactory.coerce(val)
+                # Create appropriate envelope based on value type
+                if isinstance(val, str):
+                    transformed[key] = EnvelopeFactory.text(val)
+                else:
+                    transformed[key] = EnvelopeFactory.json(val)
         else:
             # Pack mode (default): bind to the input key
             input_key = edge.target_input or 'default'
-            logger.debug(f"[Resolution] Pack mode: binding to input key '{input_key}'")
-            transformed[input_key] = EnvelopeFactory.coerce(transformed_value)
+            # Create appropriate envelope based on value type
+            if isinstance(transformed_value, str):
+                transformed[input_key] = EnvelopeFactory.text(transformed_value)
+            else:
+                transformed[input_key] = EnvelopeFactory.json(transformed_value)
     
     return transformed
 

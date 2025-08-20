@@ -5,72 +5,311 @@
       "type": "start",
       "position": {
         "x": 50,
-        "y": 200
+        "y": 400
       },
       "data": {
-        "custom_data": {},
+        "custom_data": {
+          "message": "Starting complete code generation from TypeScript sources"
+        },
         "output_data_structure": {},
         "label": "start"
       }
     },
     {
       "id": "node_1",
-      "type": "code_job",
+      "type": "sub_diagram",
       "position": {
         "x": 200,
-        "y": 200
+        "y": 400
       },
       "data": {
-        "language": "python",
-        "code": "import os\nimport glob\n\n# Define base paths for TypeScript models\nbase_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')\nmodels_dir = os.path.join(base_dir, 'dipeo/models/src')\n\n# Gather all TypeScript files recursively\nts_files = glob.glob(os.path.join(models_dir, '**/*.ts'), recursive=True)\n\nprint(f\"Found {len(ts_files)} TypeScript files\")\nsources = {}\n\nfor file_path in ts_files:\n    try:\n        with open(file_path, 'r', encoding='utf-8') as f:\n            content = f.read()\n            # Use file path as key for tracking\n            sources[file_path] = content\n    except Exception as e:\n        print(f\"Warning: Failed to read {file_path}: {e}\")\n        continue\n\nresult = {\"sources\": sources}\n",
-        "label": "gather typescript files"
+        "diagram_name": "projects/codegen/diagrams/shared/parse_typescript_batch_direct",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "parse all typescript"
       }
     },
     {
       "id": "node_2",
-      "type": "typescript_ast",
+      "type": "sub_diagram",
       "position": {
-        "x": 600,
-        "y": 200
+        "x": 400,
+        "y": 100
       },
       "data": {
-        "batch": true,
-        "batchInputKey": "sources",
-        "includeJSDoc": true,
-        "parseMode": "module",
-        "outputFormat": "for_codegen",
-        "extractPatterns": [
-          "interface",
-          "type",
-          "enum",
-          "const"
-        ],
-        "label": "batch parse typescript"
+        "diagram_name": "projects/codegen/diagrams/models/generate_python_models_dynamic",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate python models"
       }
     },
     {
       "id": "node_3",
-      "type": "code_job",
+      "type": "sub_diagram",
       "position": {
-        "x": 800,
-        "y": 200
+        "x": 400,
+        "y": 150
       },
       "data": {
-        "language": "python",
-        "code": "import os\nimport json\n\n# Get batch results - handle both wrapped and direct structures\nbatch_results = inputs.get('default', {})\n\n# Handle SEAC compatibility - check for wrapped structure\nif isinstance(batch_results, dict) and 'results' in batch_results:\n    # Legacy wrapped structure from batch sub_diagram\n    batch_results = batch_results['results']\n\nif not isinstance(batch_results, dict):\n    print(\"Warning: No batch results to cache\")\n    result = {'cached_count': 0}\nelse:\n    base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')\n    models_dir = os.path.join(base_dir, 'dipeo/models/src')\n    cached_count = 0\n    for file_path, parse_result in batch_results.items():\n        # Get relative path from models_dir\n        if file_path.startswith(models_dir):\n            relative_path = os.path.relpath(file_path, models_dir)\n        else:\n            # Fallback to basename if not in expected location\n            relative_path = os.path.basename(file_path)\n        \n        # Create cache path preserving directory structure\n        cache_path = os.path.join(base_dir, f'temp/{relative_path}.json')\n        cache_dir = os.path.dirname(cache_path)\n        \n        # Ensure cache directory exists\n        if cache_dir and cache_dir != 'temp':\n            os.makedirs(cache_dir, exist_ok=True)\n        \n        # Save the parsed result to cache\n        try:\n            with open(cache_path, 'w', encoding='utf-8') as f:\n                json.dump(parse_result['ast'], f, indent=2)\n            cached_count += 1\n        except Exception as e:\n            print(f\"Warning: Failed to cache {file_path}: {e}\")\n    \n    result = {'cached_count': cached_count}\n",
-        "label": "save cache files"
+        "diagram_name": "projects/codegen/diagrams/models/generate_enums",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate enums"
       }
     },
     {
       "id": "node_4",
-      "type": "endpoint",
+      "type": "sub_diagram",
       "position": {
-        "x": 1000,
+        "x": 400,
         "y": 200
       },
       "data": {
-        "save_to_file": false,
+        "diagram_name": "projects/codegen/diagrams/models/generate_integrations",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate integrations"
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 250
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_conversions",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate conversions"
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 300
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_backend_models",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate backend models"
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 350
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_graphql_schema_template_dynamic",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate graphql schema"
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 400
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_static_nodes",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate static nodes"
+      }
+    },
+    {
+      "id": "node_9",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 450
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_strawberry_types_v2_dynamic",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate strawberry types"
+      }
+    },
+    {
+      "id": "node_10",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 500
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_strawberry_mutations_v2",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate strawberry mutations"
+      }
+    },
+    {
+      "id": "node_11",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 550
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/models/generate_validation_models",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate validation models"
+      }
+    },
+    {
+      "id": "node_12",
+      "type": "code_job",
+      "position": {
+        "x": 400,
+        "y": 600
+      },
+      "data": {
+        "language": "python",
+        "filePath": "projects/codegen/code/models/generate_typescript_indexes.py",
+        "functionName": "main",
+        "label": "generate typescript indexes"
+      }
+    },
+    {
+      "id": "node_13",
+      "type": "db",
+      "position": {
+        "x": 400,
+        "y": 700
+      },
+      "data": {
+        "operation": "read",
+        "sub_type": "file",
+        "format": "json",
+        "glob": true,
+        "file": [
+          "temp/specifications/nodes/*.spec.ts.json"
+        ],
+        "label": "discover node specs"
+      }
+    },
+    {
+      "id": "node_14",
+      "type": "code_job",
+      "position": {
+        "x": 600,
+        "y": 700
+      },
+      "data": {
+        "language": "python",
+        "filePath": "projects/codegen/code/shared/simplified_extractors.py",
+        "functionName": "prepare_node_list_for_batch",
+        "label": "prepare node list"
+      }
+    },
+    {
+      "id": "node_15",
+      "type": "sub_diagram",
+      "position": {
+        "x": 800,
+        "y": 700
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/frontend/generate_frontend_single",
+        "diagram_format": "light",
+        "batch": true,
+        "batch_input_key": "default",
+        "batch_parallel": true,
+        "label": "batch generate frontend"
+      }
+    },
+    {
+      "id": "node_16",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 750
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/frontend/generate_frontend_registry",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate frontend registry"
+      }
+    },
+    {
+      "id": "node_17",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 800
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/frontend/generate_graphql_queries",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate graphql queries"
+      }
+    },
+    {
+      "id": "node_18",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 850
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/frontend/generate_zod_schemas_v2",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate zod schemas"
+      }
+    },
+    {
+      "id": "node_19",
+      "type": "sub_diagram",
+      "position": {
+        "x": 400,
+        "y": 900
+      },
+      "data": {
+        "diagram_name": "projects/codegen/diagrams/frontend/generate_field_configs_v2",
+        "diagram_format": "light",
+        "passInputData": false,
+        "label": "generate field configs"
+      }
+    },
+    {
+      "id": "node_20",
+      "type": "code_job",
+      "position": {
+        "x": 1000,
+        "y": 400
+      },
+      "data": {
+        "language": "python",
+        "code": "print('finished!')\n",
         "label": "end"
+      }
+    },
+    {
+      "id": "node_21",
+      "type": "endpoint",
+      "position": {
+        "x": 1200,
+        "y": 400
+      },
+      "data": {
+        "save_to_file": false,
+        "label": "terminate"
       }
     }
   ],
@@ -91,21 +330,309 @@
       "label": null,
       "packing": null,
       "data": null,
-      "content_type": "object"
+      "content_type": "raw_text"
     },
     {
       "id": "arrow_2",
-      "source": "node_2_default_output",
+      "source": "node_1_default_output",
       "target": "node_3_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_3",
+      "source": "node_1_default_output",
+      "target": "node_4_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_1_default_output",
+      "target": "node_5_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_1_default_output",
+      "target": "node_6_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_1_default_output",
+      "target": "node_7_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_1_default_output",
+      "target": "node_8_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_1_default_output",
+      "target": "node_9_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_9",
+      "source": "node_1_default_output",
+      "target": "node_10_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_10",
+      "source": "node_1_default_output",
+      "target": "node_11_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_11",
+      "source": "node_1_default_output",
+      "target": "node_12_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_12",
+      "source": "node_1_default_output",
+      "target": "node_13_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_13",
+      "source": "node_1_default_output",
+      "target": "node_16_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_14",
+      "source": "node_1_default_output",
+      "target": "node_17_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_15",
+      "source": "node_1_default_output",
+      "target": "node_18_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_16",
+      "source": "node_1_default_output",
+      "target": "node_19_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_17",
+      "source": "node_13_default_output",
+      "target": "node_14_default_input",
+      "label": "default",
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_18",
+      "source": "node_14_default_output",
+      "target": "node_15_default_input",
       "label": null,
       "packing": null,
       "data": null,
       "content_type": "object"
     },
     {
-      "id": "arrow_3",
+      "id": "arrow_19",
+      "source": "node_2_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_20",
       "source": "node_3_default_output",
-      "target": "node_4_default_input",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_21",
+      "source": "node_4_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_22",
+      "source": "node_5_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_23",
+      "source": "node_6_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_24",
+      "source": "node_7_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_25",
+      "source": "node_8_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_26",
+      "source": "node_9_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_27",
+      "source": "node_10_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_28",
+      "source": "node_11_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_29",
+      "source": "node_12_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_30",
+      "source": "node_15_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_31",
+      "source": "node_16_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_32",
+      "source": "node_17_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_33",
+      "source": "node_18_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_34",
+      "source": "node_19_default_output",
+      "target": "node_20_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_35",
+      "source": "node_20_default_output",
+      "target": "node_21_default_input",
       "label": null,
       "packing": null,
       "data": null,
@@ -179,30 +706,286 @@
       "position": "left"
     },
     {
-      "id": "node_2_results_output",
-      "node_id": "node_2",
-      "label": "results",
+      "id": "node_4_default_output",
+      "node_id": "node_4",
+      "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_2_error_output",
-      "node_id": "node_2",
-      "label": "error",
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_output",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_default_output",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8_default_output",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_9_default_input",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_9_default_output",
+      "node_id": "node_9",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_10_default_input",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_10_default_output",
+      "node_id": "node_10",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_11_default_input",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_11_default_output",
+      "node_id": "node_11",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_12_default_input",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_12_default_output",
+      "node_id": "node_12",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_13_default_input",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_13_default_output",
+      "node_id": "node_13",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_14_default_input",
+      "node_id": "node_14",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_14_default_output",
+      "node_id": "node_14",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_15_default_input",
+      "node_id": "node_15",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_15_default_output",
+      "node_id": "node_15",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_16_default_input",
+      "node_id": "node_16",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_16_default_output",
+      "node_id": "node_16",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_17_default_input",
+      "node_id": "node_17",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_17_default_output",
+      "node_id": "node_17",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_18_default_input",
+      "node_id": "node_18",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_18_default_output",
+      "node_id": "node_18",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_19_default_input",
+      "node_id": "node_19",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_19_default_output",
+      "node_id": "node_19",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_20_default_input",
+      "node_id": "node_20",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_20_default_output",
+      "node_id": "node_20",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_21_default_input",
+      "node_id": "node_21",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
-    "name": "/home/soryhyun/DiPeO/projects/codegen/diagrams/shared/parse_typescript_batch_direct.light.yaml",
+    "name": "/home/soryhyun/DiPeO/projects/codegen/diagrams/generate_all.light.yaml",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-20T05:15:57.738Z",
-    "modified": "2025-08-20T05:15:57.738Z",
+    "created": "2025-08-20T08:03:27.261Z",
+    "modified": "2025-08-20T08:03:27.261Z",
     "version": "1.0.0",
-    "id": "/home/soryhyun/DiPeO/projects/codegen/diagrams/shared/parse_typescript_batch_direct.light.yaml"
+    "id": "/home/soryhyun/DiPeO/projects/codegen/diagrams/generate_all.light.yaml"
   }
 }

@@ -83,14 +83,7 @@ class ExecuteDiagramUseCase(BaseService):
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
         from dipeo.application.registry.keys import EVENT_BUS, DOMAIN_EVENT_BUS, AST_PARSER
-        
-        # Debug: Check if AST_PARSER is available
-        if self.service_registry.has(AST_PARSER):
-            logger.debug("[ExecuteDiagramUseCase] AST_PARSER is available in service registry")
-        else:
-            available_services = self.service_registry.list_services() if hasattr(self.service_registry, 'list_services') else []
-            logger.debug(f"[ExecuteDiagramUseCase] AST_PARSER NOT found. Available services: {available_services[:10]}")
-        
+
         runtime_resolver = StandardRuntimeResolver()
         
         # Get event bus from registry if available
@@ -388,15 +381,6 @@ class ExecuteDiagramUseCase(BaseService):
                 api_key_id = None
                 if hasattr(person, 'api_key_id'):
                     api_key_id = person.api_key_id
-                elif hasattr(person, 'apiKeyId'):
-                    api_key_id = person.apiKeyId
-                elif hasattr(person, 'llm_config'):
-                    # Handle nested llm_config structure
-                    if hasattr(person.llm_config, 'api_key_id'):
-                        api_key_id = person.llm_config.api_key_id
-                    elif hasattr(person.llm_config, 'apiKeyId'):
-                        api_key_id = person.llm_config.apiKeyId
-                    
                 if api_key_id and api_key_id in all_keys:
                     api_keys[api_key_id] = all_keys[api_key_id]
         

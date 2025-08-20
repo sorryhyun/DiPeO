@@ -75,7 +75,7 @@ class ServerManager:
 
         # Wait for server to be ready
         for _ in range(20):  # 10 seconds timeout
-            time.sleep(0.5)
+            time.sleep(0.2)
             if self.is_running():
                 print("✓ Server started successfully")
                 return True

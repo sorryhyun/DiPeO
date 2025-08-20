@@ -80,9 +80,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
 
     async def pre_execute(self, request: ExecutionRequest[CodeJobNode]) -> Envelope | None:
         """Runtime validation and setup - prepares execution environment."""
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.debug(f"[CodeJobNode {request.node.id}] pre_execute called")
         node = request.node
         
         # 1. Extract configuration with defaults
@@ -190,8 +187,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     ) -> Any:
         """Execute code with prepared context."""
         import logging
-        logger = logging.getLogger(__name__)
-        logger.debug(f"[CodeJobNode {request.node.id}] run called with inputs: {list(inputs.keys())}")
         node = request.node
         exec_context = inputs
         
@@ -202,9 +197,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         
         if node.code:
             request.add_metadata("inline_code", True)
-            logger.debug(f"[CodeJobNode {node.id}] Executing inline code (length: {len(node.code)})")
             result = await executor.execute_inline(node.code, exec_context, timeout, function_name)
-            logger.debug(f"[CodeJobNode {node.id}] Code execution result type: {type(result).__name__}, keys: {list(result.keys()) if isinstance(result, dict) else 'N/A'}")
         else:
             # Use pre-resolved file path from instance variable
             file_path = self._current_file_path

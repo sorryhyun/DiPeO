@@ -36,12 +36,15 @@ def edge_is_ready(
     if not src_state:
         return False
     
-    # Check if source node has completed
-    if not hasattr(src_state, "is_completed") or not src_state.is_completed:
+    # Check if source node has completed - check status field
+    from dipeo.diagram_generated import Status
+    is_completed = hasattr(src_state, "status") and src_state.status == Status.COMPLETED
+    
+    if not is_completed:
         return False
     
     # Check if source node failed
-    if hasattr(src_state, "is_failed") and src_state.is_failed:
+    if hasattr(src_state, "status") and src_state.status == Status.FAILED:
         return False
     
     # Edge is ready from a basic completion perspective

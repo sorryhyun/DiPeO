@@ -180,12 +180,20 @@ nodes:
       diagram_format: light
       passInputData: false
 
+  # Summary
   - label: End
-    type: endpoint
+    type: code_job
     position: {x: 1000, y: 400}
     props:
-      save_to_file: false
+      language: python
+      code: |
+        print('finished!')
 
+  - label: terminate
+    type: endpoint
+    position: {x: 1200, y: 400}
+    props:
+      save_to_file: false
 connections:
   # First parse all TypeScript files
   - {from: Start, to: Parse All TypeScript}
@@ -215,5 +223,22 @@ connections:
   - {from: Discover Node Specs, to: Prepare Node List, label: default, content_type: object}
   - {from: Prepare Node List, to: Batch Generate Frontend, content_type: object}
   
-  # All generation tasks complete independently - no convergence needed
-  # The End node is not connected to any tasks since they all run in parallel
+  # All generation tasks converge to End
+  - {from: Generate Python Models, to: End}
+  - {from: Generate Enums, to: End}
+  - {from: Generate Integrations, to: End}
+  - {from: Generate Conversions, to: End}
+  - {from: Generate Backend Models, to: End}
+  - {from: Generate GraphQL Schema, to: End}
+  - {from: Generate Static Nodes, to: End}
+  - {from: Generate Strawberry Types, to: End}
+  - {from: Generate Strawberry Mutations, to: End}
+  - {from: Generate Validation Models, to: End}
+  - {from: Generate TypeScript Indexes, to: End}
+#  - {from: Generate Handler Stubs, to: End}
+  - {from: Batch Generate Frontend, to: End}
+  - {from: Generate Frontend Registry, to: End}
+  - {from: Generate GraphQL Queries, to: End}
+  - {from: Generate Zod Schemas, to: End}
+  - {from: Generate Field Configs, to: End}
+  - {from: End, to: terminate}

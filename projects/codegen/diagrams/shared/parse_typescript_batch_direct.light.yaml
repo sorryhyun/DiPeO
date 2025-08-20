@@ -26,7 +26,6 @@ nodes:
         # Gather all TypeScript files recursively
         ts_files = glob.glob(os.path.join(models_dir, '**/*.ts'), recursive=True)
         
-        print(f"Found {len(ts_files)} TypeScript files")
         sources = {}
         
         for file_path in ts_files:

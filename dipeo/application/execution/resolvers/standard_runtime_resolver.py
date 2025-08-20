@@ -81,4 +81,6 @@ class StandardRuntimeResolver:
             Dictionary of input envelopes
         """
         # Use domain resolution directly (it's synchronous but we wrap for async interface)
-        return resolve_inputs(node, diagram, context)
+        result = resolve_inputs(node, diagram, context)
+        
+        return result

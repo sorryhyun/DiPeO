@@ -102,10 +102,17 @@ class TypeScriptToPythonFilters:
             cls._type_cache[cache_key] = result
             return result
         
-        # Try to use infrastructure's type transformer first
-        # But only for simple types, not complex nested structures
+        # Check for complex object types first (before infrastructure transformer)
+        # These need special handling that infrastructure doesn't provide
+        if ts_type.strip().startswith('{') and ts_type.strip().endswith('}'):
+            # Complex object literal - convert to Dict[str, Any]
+            result = 'Dict[str, Any]'
+            cls._type_cache[cache_key] = result
+            return result
+        
+        # Try to use infrastructure's type transformer for simple types
         infrastructure_transformer = get_infrastructure_type_transformer()
-        if infrastructure_transformer and not ('Array<' in ts_type and '{' in ts_type):
+        if infrastructure_transformer:
             try:
                 # Use infrastructure's centralized type mapping
                 result = infrastructure_transformer(ts_type)
@@ -118,8 +125,13 @@ class TypeScriptToPythonFilters:
                 if result in ['ExecutionStatus', 'NodeExecutionStatus']:
                     result = 'Status'
                 
-                # Don't use result if it looks like unconverted TypeScript
-                if not any(ts_keyword in result for ts_keyword in ['string', 'number', 'boolean', 'undefined', ';']):
+                # Check if the result is still unconverted TypeScript
+                # If it contains TypeScript syntax, it wasn't properly converted
+                if result == ts_type or any(ts_keyword in result for ts_keyword in ['string', 'number', 'boolean', 'undefined', ';', ':', '\n']):
+                    # Infrastructure couldn't convert it, fall through to legacy handling
+                    pass
+                else:
+                    # Successfully converted
                     cls._type_cache[cache_key] = result
                     return result
             except Exception:

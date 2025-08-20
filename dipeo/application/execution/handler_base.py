@@ -99,7 +99,6 @@ class TypedNodeHandler(Generic[T], ABC):
         diagram = getattr(request.context, 'diagram', None)
         if not diagram:
             # Fall back to empty inputs if no diagram available
-            logger.debug(f"[Handler] No diagram in context for node {request.node.id}")
             return {}
         
         result = await self._resolver.resolve_as_envelopes(
@@ -107,7 +106,6 @@ class TypedNodeHandler(Generic[T], ABC):
             request.context,
             diagram
         )
-        logger.debug(f"[Handler] Resolved inputs for node {request.node.id}: {list(result.keys()) if result else 'None'}")
         return result
     
     async def prepare_inputs(
