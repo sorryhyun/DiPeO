@@ -51,11 +51,20 @@ class DBOperationsAdapter:
 
     async def _get_db_file_path(self, db_name: str) -> Path:
         db_path = self.domain_service.construct_db_path(db_name)
-        return Path(db_path)
+        # Convert to Path object - will be resolved by FileSystemAdapter
+        path = Path(db_path)
+        # If it's a relative path, leave it as-is for FileSystemAdapter to resolve
+        # against its base_path. If absolute, use as-is.
+        return path
 
     async def _read_db(self, file_path: Path) -> dict[str, Any]:
         try:
-            if not self.file_system.exists(file_path):
+            import logging
+            logger = logging.getLogger(__name__)
+
+            exists = self.file_system.exists(file_path)
+            if not exists:
+                logger.warning(f"File not found: {file_path}")
                 return self.domain_service.prepare_read_response(
                     {}, str(file_path), 0
                 )

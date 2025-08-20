@@ -106,12 +106,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         
         # Initialize template processor for path interpolation
         from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
-        template_processor = None
-        try:
-            template_processor = request.services.resolve(TEMPLATE_PROCESSOR)
-        except:
-            # If not available in services, template processing will be skipped
-            pass
+        template_processor = request.services.resolve(TEMPLATE_PROCESSOR)
         self._current_template_processor = template_processor
         
         # No early return - proceed to execute_request
@@ -212,9 +207,21 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 if hasattr(context, 'get_variables'):
                     variables = context.get_variables()
                 
-                merged_variables = {**variables, **inputs}
+                # Flatten nested 'default' structure if present
+                if 'default' in inputs and isinstance(inputs['default'], dict):
+                    # Add contents of 'default' directly as variables
+                    flattened_inputs = {**inputs['default'], **inputs}
+                else:
+                    flattened_inputs = inputs
+                
+                merged_variables = {**variables, **flattened_inputs}
+
                 if template_processor:
-                    file_path = template_processor.process_single_brace(file_path, merged_variables)
+                    resolved_path = template_processor.process_single_brace(file_path, merged_variables)
+                    logger.debug(f"Template resolved: {file_path} -> {resolved_path}")
+                    file_path = resolved_path
+                else:
+                    logger.warning(f"No template processor available for path: {file_path}")
 
             processed_paths.append(file_path)
         

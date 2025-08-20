@@ -220,7 +220,7 @@ connections:
   - {from: Parse All TypeScript, to: Generate Field Configs}
   
   # Frontend batch processing chain - uses simplified extractors
-  - {from: Discover Node Specs, to: Prepare Node List, label: default, content_type: object}
+  - {from: Discover Node Specs, to: Prepare Node List, content_type: object}
   - {from: Prepare Node List, to: Batch Generate Frontend, content_type: object}
   
   # All generation tasks converge to End

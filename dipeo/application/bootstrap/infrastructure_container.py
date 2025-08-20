@@ -84,10 +84,11 @@ class InfrastructureContainer:
         )
 
     def _setup_infrastructure_services(self):
-        # No legacy simple processor; Jinja2-only path
+        # Register SimpleTemplateProcessor for path interpolation in DB nodes
+        from dipeo.domain.diagram.template import SimpleTemplateProcessor
         self.registry.register(
             TEMPLATE_PROCESSOR,
-            None
+            SimpleTemplateProcessor()
         )
         
         self.registry.register(
@@ -112,8 +113,9 @@ class InfrastructureContainer:
         from dipeo.infrastructure.integrations.adapters.api_service import APIService
         from dipeo.domain.integrations.api_services import APIBusinessLogic
         
-        # Template processor no longer needed - using Jinja2
-        api_business_logic = APIBusinessLogic(template_processor=None)
+        # Get the template processor for API business logic
+        template_processor = self.registry.resolve(TEMPLATE_PROCESSOR)
+        api_business_logic = APIBusinessLogic(template_processor=template_processor)
         api_service = APIService(api_business_logic)
         integrated_api_service = IntegratedApiService(api_service=api_service)
         self.registry.register(

@@ -8,47 +8,35 @@ nodes:
     type: start
     position: {x: 50, y: 200}
 
-  # Extract node type from input
-  - label: Parse Input
-    type: code_job
-    position: {x: 200, y: 200}
-    props:
-      language: python
-      code: |
-        # Handle both direct and nested input
-        default = inputs.get('default', {})
-        if "node_spec_path" in default:
-            node_type = default["node_spec_path"]
-        elif "default" in default and isinstance(default["default"], dict):
-            node_type = default["default"]["node_spec_path"]
-        else:
-            raise ValueError(f"node_spec_path not found in input: {default}")
-        
-        # Return the original node type (with underscores, from prepare_node_list_from_specs)
-        # Convert to hyphenated form for file loading
-        result = node_type.replace('_', '-')
-
-  # Load cached AST data
+  # Load cached AST data directly - the input already has the hyphenated node type
   - label: Load AST
     type: db
-    position: {x: 400, y: 200}
+    position: {x: 200, y: 200}
     props:
       operation: read
       sub_type: file
-      source_details: "temp/specifications/nodes/{node_type}.spec.ts.json"  # Direct template interpolation
+      source_details: "temp/specifications/nodes/{node_spec_path}.spec.ts.json"  # Use node_spec_path directly
       format: json
   
   # Prepare inputs for extractor
   - label: Prepare Extractor Inputs
     type: code_job
-    position: {x: 550, y: 200}
+    position: {x: 400, y: 200}
     props:
       language: python
       code: |
-        # Combine AST data and node type into proper format
-        # Handle case where ast_data might be missing or invalid
+        # Get AST data and node type
         ast_data = inputs.get('ast_data')
-        node_type_hyphenated = inputs.get('node_type')
+        
+        # Extract node type from the default input
+        default = inputs.get('default', {})
+        
+        if "node_spec_path" in default:
+            node_type_hyphenated = default["node_spec_path"]
+        elif 'default' in default:
+            node_type_hyphenated = default['default']["node_spec_path"]
+        else:
+            raise ValueError(f"node_spec_path not found in input: {default}")
         
         if not ast_data:
             raise ValueError(f"No AST data found for node type: {node_type_hyphenated}")
@@ -56,7 +44,7 @@ nodes:
         if isinstance(ast_data, str):
             raise ValueError(f"AST data is a string instead of dict: {ast_data[:100]}...")
         
-        # Convert back to underscore format for the extractor
+        # Convert to underscore format for the extractor (it expects underscore format)
         node_type = node_type_hyphenated.replace('-', '_')
         
         result = {
@@ -67,7 +55,7 @@ nodes:
   # Extract all frontend data in one step
   - label: Extract Frontend Data
     type: code_job
-    position: {x: 700, y: 200}
+    position: {x: 550, y: 200}
     props:
       language: python
       filePath: projects/codegen/code/frontend/frontend_node_extractor.py
@@ -76,7 +64,7 @@ nodes:
   # Generate all three files using template_job
   - label: Generate TypeScript Model
     type: template_job
-    position: {x: 800, y: 100}
+    position: {x: 700, y: 100}
     props:
       engine: jinja2
       template_path: projects/codegen/templates/frontend/typescript_model.j2
@@ -84,7 +72,7 @@ nodes:
 
   - label: Generate Node Config
     type: template_job
-    position: {x: 800, y: 200}
+    position: {x: 700, y: 200}
     props:
       engine: jinja2
       template_path: projects/codegen/templates/frontend/node_config.j2
@@ -92,7 +80,7 @@ nodes:
 
   - label: Generate Field Config
     type: template_job
-    position: {x: 800, y: 300}
+    position: {x: 700, y: 300}
     props:
       engine: jinja2
       template_path: projects/codegen/templates/frontend/field_config.j2
@@ -100,21 +88,18 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1000, y: 200}
+    position: {x: 900, y: 200}
     props:
       save_to_file: false
 
 connections:
-  # Parse input
-  - {from: Start, to: Parse Input}
-    
-  # Pass node_type for template interpolation
-  - {from: Parse Input, to: Load AST, label: node_type, content_type: object}
-    
-  # Prepare inputs
-  - {from: Load AST, to: Prepare Extractor Inputs, label: ast_data, content_type: object}
-  - {from: Parse Input, to: Prepare Extractor Inputs, label: node_type}
+  # Start to Load AST - passes the input directly without wrapping
+  - {from: Start, to: Load AST}
   
+  # Pass AST data and original input to prepare
+  - {from: Load AST, to: Prepare Extractor Inputs, label: ast_data, content_type: object}
+  - {from: Start, to: Prepare Extractor Inputs, label: default}
+
   # Extract all data
   - {from: Prepare Extractor Inputs, to: Extract Frontend Data}
   

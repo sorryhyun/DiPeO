@@ -468,6 +468,9 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         to a JSON-serializable format and broadcasts it to all connections
         subscribed to the execution.
         
+        Additionally, it transforms certain domain events into UI-friendly events
+        that the frontend expects (replacing the removed StreamingMonitor functionality).
+        
         Args:
             event: The domain event to route
         """
@@ -476,7 +479,66 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         
         # Route to connections if there's an execution context
         if event.scope.execution_id:
+            # Broadcast the original event
             await self.broadcast_to_execution(str(event.scope.execution_id), payload)
+            
+            # Transform domain events into UI-friendly events
+            # This replaces StreamingMonitor's transformation logic
+            from dipeo.domain.events import EventType
+            
+            if event.type == EventType.EXECUTION_STARTED:
+                # Also emit EXECUTION_STATUS_CHANGED for UI consistency
+                ui_payload = {
+                    "type": "EXECUTION_STATUS_CHANGED",
+                    "event_type": "EXECUTION_STATUS_CHANGED",  # Include both for compatibility
+                    "execution_id": str(event.scope.execution_id),
+                    "data": {
+                        "status": "RUNNING",
+                        "timestamp": event.occurred_at.isoformat()
+                    },
+                    "timestamp": event.occurred_at.isoformat()
+                }
+                await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
+                
+            elif event.type == EventType.EXECUTION_COMPLETED:
+                # Transform to EXECUTION_STATUS_CHANGED that frontend expects
+                # Handle both dict and object payloads
+                if hasattr(event.payload, 'status'):
+                    status = event.payload.status
+                elif isinstance(event.payload, dict):
+                    status = event.payload.get("status", "COMPLETED")
+                else:
+                    status = "COMPLETED"
+                    
+                ui_payload = {
+                    "type": "EXECUTION_STATUS_CHANGED", 
+                    "event_type": "EXECUTION_STATUS_CHANGED",  # Include both for compatibility
+                    "execution_id": str(event.scope.execution_id),
+                    "data": {
+                        "status": status,
+                        "is_final": True,
+                        "timestamp": event.occurred_at.isoformat()
+                    },
+                    "timestamp": event.occurred_at.isoformat()
+                }
+                await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
+                
+            elif event.type in [EventType.NODE_STARTED, EventType.NODE_COMPLETED, EventType.NODE_ERROR]:
+                # Also emit NODE_STATUS_CHANGED for UI consistency
+                node_status = "RUNNING" if event.type == EventType.NODE_STARTED else \
+                             "COMPLETED" if event.type == EventType.NODE_COMPLETED else "FAILED"
+                ui_payload = {
+                    "type": "NODE_STATUS_CHANGED",
+                    "event_type": "NODE_STATUS_CHANGED",  # Include both for compatibility
+                    "execution_id": str(event.scope.execution_id),
+                    "data": {
+                        "node_id": event.scope.node_id,
+                        "status": node_status,
+                        "timestamp": event.occurred_at.isoformat()
+                    },
+                    "timestamp": event.occurred_at.isoformat()
+                }
+                await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
         else:
             # Handle global events (not tied to specific execution)
             logger.debug(f"Received global event: {event.type.value}")

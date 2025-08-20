@@ -193,12 +193,7 @@ def extract_field_configs_core(ast_data: dict, mappings: dict) -> dict:
             'nodeType': node_type,
             'fields': fields
         })
-    
-    print(f"Generated field configs for {len(node_configs)} node types")
-    # Debug: Print first few node configs
-    for i, nc in enumerate(node_configs[:3]):
-        print(f"[DEBUG extract_field_configs_core] node {i}: nodeType='{nc['nodeType']}', fields={len(nc['fields'])}")
-    
+
     return {
         'node_configs': node_configs,
         'enum_values': enum_values

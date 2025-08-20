@@ -493,11 +493,22 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         node = original_request.node
         batch_input_key = getattr(node, 'batch_input_key', 'items')
         
-        item_inputs = {
-            'default': item,
-            '_batch_index': index,
-            '_batch_total': total
-        }
+        # When batch_input_key is 'default', the item itself becomes the default input
+        # to avoid double-wrapping when Start node processes it
+        if batch_input_key == 'default':
+            # Don't wrap with 'default' key - let the item be the direct input
+            item_inputs = {
+                **item,  # Spread the item directly
+                '_batch_index': index,
+                '_batch_total': total
+            }
+        else:
+            # For other batch_input_keys, wrap with 'default' as before
+            item_inputs = {
+                'default': item,
+                '_batch_index': index,
+                '_batch_total': total
+            }
         
         # Merge with original inputs (excluding the batch array)
         if original_request.inputs:

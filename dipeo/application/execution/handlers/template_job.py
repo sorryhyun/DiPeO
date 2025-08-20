@@ -15,7 +15,7 @@ from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
-from dipeo.infrastructure.codegen.templates.template_integration import get_enhanced_template_service
+from dipeo.infrastructure.codegen.templates.drivers.factory import get_enhanced_template_service
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -126,9 +126,15 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     def _get_template_service(self):
         """Get or create the template service."""
         if self._template_service is None:
-            # print("[DEBUG] Creating template service...")
-            self._template_service = get_enhanced_template_service()
-            # print("[DEBUG] Template service created successfully")
+            print("[DEBUG] Creating template service...")
+            try:
+                self._template_service = get_enhanced_template_service()
+                print("[DEBUG] Template service created successfully")
+            except Exception as e:
+                print(f"[ERROR] Failed to create template service: {e}")
+                import traceback
+                traceback.print_exc()
+                raise
         return self._template_service
     
     def _resolve_dotted_path(self, dotted: str, ctx: dict) -> Any:
@@ -193,6 +199,11 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         node = request.node
         template_vars = inputs
         
+        logger.info(f"[TEMPLATE_JOB DEBUG] Starting run for node {node.id}")
+        logger.info(f"[TEMPLATE_JOB DEBUG] Template path: {node.template_path}")
+        logger.info(f"[TEMPLATE_JOB DEBUG] Output path: {node.output_path}")
+        logger.info(f"[TEMPLATE_JOB DEBUG] Template vars keys: {list(template_vars.keys())}")
+        
         # Use services from instance variables (set in pre_execute)
         filesystem_adapter = self._current_filesystem_adapter
         engine = self._current_engine
@@ -227,7 +238,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             template_content = node.template_content
         else:
             # Use Jinja2 for both paths and contents
-            processed_template_path = template_service.render_string(node.template_path, **template_vars).strip()
+            processed_template_path = (await template_service.render_string(node.template_path, template_vars)).strip()
             
             # Load from file - just use the path as-is since filesystem adapter handles base path
             template_path = Path(processed_template_path)
@@ -239,14 +250,14 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 template_content = f.read().decode('utf-8')
         
         # Helper function to render and write a single file
-        def render_to_path(output_path_template: str, local_context: dict) -> str:
+        async def render_to_path(output_path_template: str, local_context: dict) -> str:
             """Render template and write to file specified by path template."""
             # Render the template content
             if engine == "internal":
-                rendered = template_service.render_string(template_content, **local_context)
+                rendered = await template_service.render_string(template_content, local_context)
             elif engine == "jinja2":
                 try:
-                    rendered = template_service.render_string(template_content, **local_context)
+                    rendered = await template_service.render_string(template_content, local_context)
                 except Exception as e:
                     # Fall back to standard Jinja2
                     rendered = self._render_jinja2(template_content, local_context)
@@ -255,7 +266,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 rendered = template_content  # Fallback
             
             # Render output path via Jinja2 as well
-            output_path_str = template_service.render_string(output_path_template, **local_context).strip()
+            output_path_str = (await template_service.render_string(output_path_template, local_context)).strip()
             output_path = Path(output_path_str)
             
             # Create parent directories if needed
@@ -299,7 +310,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 local_context = {**template_vars, var_name: item, 'index': idx}
                 
                 # Render and write file
-                output_file = render_to_path(output_path_template, local_context)
+                output_file = await render_to_path(output_path_template, local_context)
                 written_files.append(output_file)
             
             # Return list of written files
@@ -309,10 +320,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         else:
             # Render template
             if engine == "internal":
-                rendered = template_service.render_string(template_content, **template_vars)
+                rendered = await template_service.render_string(template_content, template_vars)
             elif engine == "jinja2":
                 try:
-                    rendered = template_service.render_string(template_content, **template_vars)
+                    rendered = await template_service.render_string(template_content, template_vars)
                 except Exception as e:
                     # Fall back to standard Jinja2
                     rendered = await self._render_jinja2(template_content, template_vars)
@@ -323,20 +334,26 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             # Write to file if output_path is specified
             if node.output_path:
                 # Use Jinja2 for output path
-                processed_output_path = template_service.render_string(node.output_path, **template_vars).strip()
+                processed_output_path = (await template_service.render_string(node.output_path, template_vars)).strip()
                 
                 output_path = Path(processed_output_path)
+                logger.info(f"[TEMPLATE_JOB DEBUG] Writing to file: {output_path}")
+                logger.info(f"[TEMPLATE_JOB DEBUG] Rendered content length: {len(rendered)}")
                 
                 # Create parent directories if needed
                 parent_dir = output_path.parent
                 if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
+                    logger.info(f"[TEMPLATE_JOB DEBUG] Creating parent dir: {parent_dir}")
                     filesystem_adapter.mkdir(parent_dir, parents=True)
                 
                 with filesystem_adapter.open(output_path, 'wb') as f:
                     f.write(rendered.encode('utf-8'))
+                logger.info(f"[TEMPLATE_JOB DEBUG] File written successfully: {output_path}")
                 
                 # Store output path for metadata
                 self._current_output_path = output_path
+            else:
+                logger.info(f"[TEMPLATE_JOB DEBUG] No output_path specified, returning rendered content only")
             
             return rendered
 

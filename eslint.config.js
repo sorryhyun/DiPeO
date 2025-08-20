@@ -24,7 +24,7 @@ export default [
       '.venv/**', // Python virtual environment
       'files/**', // Diagram files
       'docs/**', // Documentation
-      '.temp/**', // Temporary files
+      'temp/**', // Temporary files
       'dipeo/**' // Domain models directory
     ],
   },

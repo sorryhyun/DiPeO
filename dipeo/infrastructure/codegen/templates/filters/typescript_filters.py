@@ -104,7 +104,8 @@ class TypeScriptToPythonFilters:
         
         # Check for complex object types first (before infrastructure transformer)
         # These need special handling that infrastructure doesn't provide
-        if ts_type.strip().startswith('{') and ts_type.strip().endswith('}'):
+        ts_type_stripped = ts_type.strip()
+        if ts_type_stripped.startswith('{') and ts_type_stripped.endswith('}'):
             # Complex object literal - convert to Dict[str, Any]
             result = 'Dict[str, Any]'
             cls._type_cache[cache_key] = result
@@ -127,7 +128,7 @@ class TypeScriptToPythonFilters:
                 
                 # Check if the result is still unconverted TypeScript
                 # If it contains TypeScript syntax, it wasn't properly converted
-                if result == ts_type or any(ts_keyword in result for ts_keyword in ['string', 'number', 'boolean', 'undefined', ';', ':', '\n']):
+                if result == ts_type:
                     # Infrastructure couldn't convert it, fall through to legacy handling
                     pass
                 else:

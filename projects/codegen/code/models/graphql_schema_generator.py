@@ -14,7 +14,7 @@ from jinja2 import Template, StrictUndefined
 # Import type transformer from infrastructure
 import sys
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
-from dipeo.infrastructure.parsers.typescript.type_transformer import map_ts_type_to_python
+from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python
 
 
 # ============================================================================
@@ -27,7 +27,7 @@ def combine_node_data_ast(inputs):
     base_dir = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
     
     # Read all node data AST files from cache
-    cache_dir = base_dir / '.temp'
+    cache_dir = base_dir / 'temp'
     
     # Combine all interfaces, types, and enums from node data files
     all_interfaces = []

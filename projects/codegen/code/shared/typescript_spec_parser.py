@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Union
 import sys
 import os
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
-from dipeo.infrastructure.parsers.typescript.type_transformer import map_ts_type_to_python
+from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python
 
 
 def extract_spec_from_ast(ast_data: Dict[str, Any], spec_name: str) -> Optional[Dict[str, Any]]:

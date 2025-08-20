@@ -84,6 +84,7 @@ class TypedExecutionEngine:
             # Observers should be wrapped with ObserverToEventAdapter at injection time instead
         
         context = None
+        log_handler = None
         try:
             # Create execution context
             context = TypedExecutionContext.from_execution_state(
@@ -93,6 +94,14 @@ class TypedExecutionEngine:
                 runtime_resolver=self.runtime_resolver,
                 event_bus=self.event_bus,
                 container=container
+            )
+            
+            # Set up execution logging to emit EXECUTION_LOG events
+            from dipeo.infrastructure.execution.logging_handler import setup_execution_logging
+            log_handler = setup_execution_logging(
+                event_bus=self.event_bus,
+                execution_id=str(context.execution_id),
+                log_level=logging.DEBUG if options.get('debug', False) else logging.INFO
             )
             
             # Initialize scheduler for this execution
@@ -188,6 +197,11 @@ class TypedExecutionEngine:
             }
             raise
         finally:
+            # Teardown execution logging
+            if log_handler:
+                from dipeo.infrastructure.execution.logging_handler import teardown_execution_logging
+                teardown_execution_logging(log_handler)
+            
             # Stop event bus if we're managing it
             if self._managed_event_bus:
                 await self.event_bus.stop()

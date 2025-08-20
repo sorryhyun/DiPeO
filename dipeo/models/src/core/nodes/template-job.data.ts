@@ -3,6 +3,16 @@ import { BaseNodeData } from './base.js';
 import { TemplateEngine } from '../enums/node-specific.js';
 import { JsonDict } from '../types/json.js';
 
+/** Configuration for template preprocessor */
+export interface TemplatePreprocessor {
+  /** Python module path, e.g. "projects.codegen.code.shared.context_builders" */
+  module: string;
+  /** Function name to call, e.g. "build_context_from_ast" */
+  function: string;
+  /** Optional arguments passed as kwargs to the function */
+  args?: JsonDict;
+}
+
 export interface TemplateJobNodeData extends BaseNodeData {
   template_path?: string;
   template_content?: string;
@@ -25,9 +35,5 @@ export interface TemplateJobNodeData extends BaseNodeData {
   };
 
   /** Optional Python preprocessor that returns extra context for the template */
-  preprocessor?: {
-    module: string;         // e.g. "projects.codegen.code.shared.context_builders"
-    function: string;       // e.g. "build_context_from_ast"
-    args?: JsonDict;        // passed through as kwargs
-  };
+  preprocessor?: TemplatePreprocessor;
 }

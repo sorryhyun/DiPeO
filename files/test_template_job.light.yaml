@@ -1,0 +1,23 @@
+# Test template_job node
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 100}
+    
+  - label: Test Template
+    type: template_job
+    position: {x: 200, y: 100}
+    props:
+      engine: jinja2
+      template_content: |
+        Hello {{ name }}!
+        Today is {{ now }}
+      output_path: temp/test_template_output.txt
+      variables:
+        name: World
+        
+connections:
+  - from: Start
+    to: Test Template
