@@ -242,9 +242,7 @@ async def create_server_container() -> Container:
     if not container.registry.has(CLI_SESSION_SERVICE):
         container.registry.register(CLI_SESSION_SERVICE, CliSessionService())
 
-    # Consolidate duplicate service keys for backward compatibility
-    from dipeo.application.registry.keys import consolidate_duplicate_keys
-    consolidate_duplicate_keys(container.registry)
+    # Duplicate service keys have been removed in cleanup
     
     # Report unused services for DI cleanup
     import logging

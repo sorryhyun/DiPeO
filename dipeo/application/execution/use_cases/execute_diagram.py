@@ -45,7 +45,7 @@ class ExecuteDiagramUseCase(BaseService):
         
         self.state_store = state_store or service_registry.resolve(STATE_STORE)
         self.message_router = message_router or service_registry.resolve(MESSAGE_ROUTER)
-        self.diagram_service = diagram_service or service_registry.resolve(DIAGRAM_SERVICE)
+        self.diagram_service = diagram_service or service_registry.resolve(DIAGRAM_PORT)
         
         if not self.state_store:
             raise ValueError("state_store is required but not found in service registry")
@@ -317,11 +317,8 @@ class ExecuteDiagramUseCase(BaseService):
 
         conversation_service = None
         if hasattr(self.service_registry, 'resolve'):
-            # Try the standardized name first
-            conversation_service = self.service_registry.resolve(CONVERSATION_SERVICE)
-            if not conversation_service:
-                # Fall back to conversation manager for backward compatibility
-                conversation_service = self.service_registry.resolve(CONVERSATION_MANAGER)
+            # Use the consolidated conversation manager service
+            conversation_service = self.service_registry.resolve(CONVERSATION_MANAGER)
         
         if conversation_service:
             # Extract person configs from typed nodes

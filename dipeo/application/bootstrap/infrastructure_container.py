@@ -69,11 +69,6 @@ class InfrastructureContainer:
             APIKeyService(file_path=api_key_path)
         )
 
-        self.registry.register(
-            ARTIFACT_STORE,
-            None
-        )
-
     def _setup_llm_adapter(self):
         from dipeo.infrastructure.llm.drivers.service import LLMInfraService
         from dipeo.domain.llm import LLMDomainService
@@ -112,11 +107,6 @@ class InfrastructureContainer:
             LocalBlobAdapter(
                 base_path=str(Path(self.config.storage.base_dir) / "blobs")
             )
-        )
-
-        self.registry.register(
-            API_SERVICE,
-            None
         )
 
         from dipeo.infrastructure.integrations.drivers.integrated_api import IntegratedApiService

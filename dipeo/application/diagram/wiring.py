@@ -9,7 +9,6 @@ from dipeo.application.registry.service_registry import ServiceRegistry, Service
 from dipeo.application.registry.keys import (
     DIAGRAM_COMPILER,
     DIAGRAM_SERIALIZER,
-    COMPILE_TIME_RESOLVER,
     RUNTIME_RESOLVER,
     TRANSFORMATION_ENGINE,
     DIAGRAM_PORT,
@@ -211,7 +210,7 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
     transform_engine = StandardTransformationEngineAdapter()
     
     # Register all resolution services
-    registry.register(COMPILE_TIME_RESOLVER, compile_resolver)
+    # Note: compile_resolver is internal to compilation, not exposed as a service
     registry.register(RUNTIME_RESOLVER, runtime_resolver)
     registry.register(TRANSFORMATION_ENGINE, transform_engine)
 

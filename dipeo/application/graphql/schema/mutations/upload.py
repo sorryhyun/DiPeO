@@ -7,7 +7,7 @@ import strawberry
 from strawberry.file_uploads import Upload
 
 from dipeo.application.registry import ServiceRegistry
-from dipeo.application.registry.keys import FILESYSTEM_ADAPTER, DIAGRAM_SERVICE
+from dipeo.application.registry.keys import FILESYSTEM_ADAPTER, DIAGRAM_PORT
 from dipeo.application.graphql.enums import DiagramFormat
 from dipeo.domain.constants import FILES_DIR
 
@@ -117,7 +117,7 @@ def create_upload_mutations(registry: ServiceRegistry) -> type:
         ) -> DiagramResult:
             """Upload and import a diagram file."""
             try:
-                integrated_service = registry.resolve(DIAGRAM_SERVICE)
+                integrated_service = registry.resolve(DIAGRAM_PORT)
                 
                 # Read file content
                 content = await file.read()
@@ -153,7 +153,7 @@ def create_upload_mutations(registry: ServiceRegistry) -> type:
         ) -> DiagramValidationResult:
             """Validate diagram content without saving."""
             try:
-                integrated_service = registry.resolve(DIAGRAM_SERVICE)
+                integrated_service = registry.resolve(DIAGRAM_PORT)
                 
                 # Convert GraphQL enum to Python enum
                 format_python = format.to_python_enum()

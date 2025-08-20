@@ -43,6 +43,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     Now uses envelope-based communication for clean interfaces.
     """
     
+    NODE_TYPE = NodeType.SUB_DIAGRAM.value
     
     def __init__(self):
         """Initialize executors."""
@@ -105,7 +106,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         # Configure services for executors on first execution
         if not self._services_configured:
             from dipeo.application.registry import (
-                DIAGRAM_SERVICE,
+                DIAGRAM_PORT,
                 MESSAGE_ROUTER,
                 PREPARE_DIAGRAM_USE_CASE,
                 STATE_STORE,
@@ -113,7 +114,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             state_store = request.services.resolve(STATE_STORE)
             message_router = request.services.resolve(MESSAGE_ROUTER)
-            diagram_service = request.services.resolve(DIAGRAM_SERVICE)
+            diagram_service = request.services.resolve(DIAGRAM_PORT)
             prepare_use_case = request.services.resolve(PREPARE_DIAGRAM_USE_CASE)
             
             # Validate required services
