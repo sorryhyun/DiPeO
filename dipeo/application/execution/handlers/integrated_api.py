@@ -29,6 +29,7 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     
     Now uses envelope-based communication for clean input/output interfaces.
     """
+    NODE_TYPE = NodeType.INTEGRATED_API
     
     
     def __init__(self):

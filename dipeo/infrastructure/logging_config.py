@@ -134,7 +134,6 @@ def suppress_noisy_loggers(log_level: str = "INFO"):
     # Reduce verbose debug logging from execution components in non-DEBUG mode
     if log_level != "DEBUG":
         verbose_loggers = [
-            "dipeo.application.execution.observers.unified_event_observer",
             "dipeo.infrastructure.events.observer_adapter",
             "dipeo.infrastructure.utils.single_flight_cache",
             "dipeo.infrastructure.llm.adapters.openai",

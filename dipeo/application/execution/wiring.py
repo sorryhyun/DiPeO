@@ -28,8 +28,13 @@ def wire_execution(registry: ServiceRegistry) -> None:
     - Execute diagram use case
     - Prepare diagram use case
     - CLI session service
+    - Handler auto-registration
     """
     logger.info("🔧 Wiring execution bounded context")
+    
+    # Ensure handlers are auto-registered
+    # This import triggers the auto-registration in handlers/__init__.py
+    import dipeo.application.execution.handlers  # noqa: F401
     
     # Wire execution orchestrator
     from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator

@@ -34,6 +34,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     
     Now uses envelope-based communication for clean input/output interfaces.
     """
+    NODE_TYPE = NodeType.TEMPLATE_JOB
     
     
     def __init__(self):

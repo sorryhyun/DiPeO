@@ -33,6 +33,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     
     Now uses envelope-based communication for clean input/output interfaces.
     """
+    NODE_TYPE = NodeType.HOOK
     
     
     def __init__(self):

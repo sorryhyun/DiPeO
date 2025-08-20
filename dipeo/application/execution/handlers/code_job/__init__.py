@@ -37,6 +37,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     Instance variables are used to pass validated data between pre_execute and execute_with_envelopes,
     avoiding metadata pollution and providing clean, type-safe data flow.
     """
+    NODE_TYPE = NodeType.CODE_JOB
     
     
     def __init__(self):

@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 @register_handler
 class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     """Handler for condition nodes using evaluator pattern with envelope support."""
+    NODE_TYPE = NodeType.CONDITION
     
     
     def __init__(self):

@@ -19,7 +19,7 @@ __all__ = [
     # Types
     "ExecutionContext",
     "ExecutionOptions",
-    "ExecutionObserver",
+    "ExecutionObserver",  # Minimal protocol for sub-diagrams
     # Handlers
     "TypedNodeHandler",
     "HandlerRegistry",

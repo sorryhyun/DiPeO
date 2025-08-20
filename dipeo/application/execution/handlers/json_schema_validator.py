@@ -24,6 +24,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     
     Now uses envelope-based communication for clean input/output interfaces.
     """
+    NODE_TYPE = NodeType.JSON_SCHEMA_VALIDATOR
     
     
     def __init__(self):

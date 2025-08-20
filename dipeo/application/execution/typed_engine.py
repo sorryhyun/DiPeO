@@ -54,29 +54,17 @@ class TypedExecutionEngine:
         self._managed_event_bus = False
         self._scheduler: NodeScheduler | None = None
         
-        if observers and not event_bus:
+        # Legacy observers parameter is ignored - use event bus directly
+        if observers:
+            logger.warning("Observers parameter is deprecated and will be ignored. Use event_bus instead.")
+        
+        # Use provided event bus or create one
+        if not event_bus:
             from dipeo.infrastructure.events.adapters import InMemoryEventBus
-            from dipeo.infrastructure.execution.messaging import ObserverToEventAdapter
-            from dipeo.domain.events import EventType
-            # Create in-memory event bus and register observers
             self.event_bus = InMemoryEventBus()
-            # Store adapters for later async subscription
-            self._observer_adapters = []
-            for observer in observers:
-                adapter = ObserverToEventAdapter(self.event_bus)
-                self._observer_adapters.append(adapter)
             self._managed_event_bus = True
-            # Store the original observers for direct notification
-            self._observers = observers
         else:
-            # Use provided event bus or create async event bus
-            if not event_bus:
-                from dipeo.infrastructure.events.adapters import InMemoryEventBus
-                self.event_bus = InMemoryEventBus()
-                self._managed_event_bus = True
-            else:
-                self.event_bus = event_bus
-            self._observer_adapters = []  # Initialize empty list to avoid AttributeError
+            self.event_bus = event_bus
     
     async def execute(
         self,
@@ -499,6 +487,10 @@ class TypedExecutionEngine:
         registry = get_global_registry()
         if not hasattr(registry, '_service_registry') or registry._service_registry is None:
             HandlerFactory(self.service_registry)
+        
+        # Ensure we use the string value, not the enum itself
+        if hasattr(node_type, 'value'):
+            node_type = node_type.value
         
         return registry.create_handler(node_type)
     

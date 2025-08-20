@@ -28,6 +28,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     
     Now uses envelope-based communication for clean input/output interfaces.
     """
+    NODE_TYPE = NodeType.ENDPOINT
     
     def __init__(self):
         super().__init__()

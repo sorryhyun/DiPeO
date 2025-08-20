@@ -5,10 +5,16 @@ This module automatically imports all handler classes using the auto_register sy
 eliminating the need for manual imports when adding new handlers.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 from .auto_register import auto_register_handlers, get_handler_exports
 
 # Auto-register all handlers
+logger.info("🔄 Auto-registering handlers...")
 registered_handlers = auto_register_handlers()
+logger.info(f"✅ Registered {len(registered_handlers)} handlers: {[h.__name__ for h in registered_handlers]}")
 
 # Create a dynamic __all__ list
 __all__ = get_handler_exports()

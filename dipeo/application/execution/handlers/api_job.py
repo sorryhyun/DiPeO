@@ -26,6 +26,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     
     Now uses envelope-based communication for clean input/output interfaces.
     """
+    NODE_TYPE = NodeType.API_JOB
     
     
     def __init__(self):

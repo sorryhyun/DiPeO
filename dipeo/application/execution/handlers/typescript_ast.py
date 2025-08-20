@@ -24,6 +24,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     - run() for core parsing logic
     - serialize_output() for custom envelope creation
     """
+    NODE_TYPE = NodeType.TYPESCRIPT_AST
     
     
     def __init__(self):

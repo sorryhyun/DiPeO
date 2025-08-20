@@ -66,7 +66,7 @@ class ExecuteDiagramUseCase(BaseService):
         options: dict[str, Any],
         execution_id: str,
         interactive_handler: Callable | None = None,
-        observers: list[Any] | None = None,  # Allow passing observers for sub-diagrams
+        observers: list[Any] | None = None,  # Deprecated, kept for backward compatibility
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
@@ -74,37 +74,12 @@ class ExecuteDiagramUseCase(BaseService):
         typed_diagram = await self._prepare_and_compile_diagram(diagram, options)
         await self._initialize_typed_execution_state(execution_id, typed_diagram, options)
         
-        # Always use unified monitoring
-        from dipeo.application.execution.observers.unified_event_observer import UnifiedEventObserver
+        # Legacy observers parameter is deprecated
         import logging
-
         logger = logging.getLogger(__name__)
         
-        # Check if this is a batch item execution (lightweight mode)
-        is_batch_item = options.get("is_batch_item", False)
-        
-        # If observers are provided (e.g., for sub-diagrams), use them
-        # Empty list means no observers needed (batch mode optimization)
-        if observers is not None and (observers or not is_batch_item):
-            engine_observers = observers
-        elif observers == [] or is_batch_item:
-            # Batch mode: no observers for performance
-            engine_observers = []
-            # Don't log for each batch item to reduce noise
-        else:
-            # Create event bus adapter for the observer
-            from dipeo.infrastructure.events.adapters import InMemoryEventBus
-            event_bus_adapter = InMemoryEventBus()
-            
-            # Create unified observer for real-time updates (normal mode)
-            unified_observer = UnifiedEventObserver(
-                event_bus=event_bus_adapter,
-                execution_runtime=typed_diagram,
-                capture_logs=True,  # Always enable log capture
-                propagate_to_sub=False  # Don't track sub-diagram nodes by default
-            )
-            engine_observers = [unified_observer]
-            # logger.debug(f"[ExecuteDiagram] Created UnifiedEventObserver for execution {execution_id}")
+        if observers:
+            logger.warning("Observers parameter is deprecated and will be ignored. Using event bus directly.")
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
         from dipeo.application.registry.keys import EVENT_BUS, DOMAIN_EVENT_BUS
@@ -117,37 +92,15 @@ class ExecuteDiagramUseCase(BaseService):
         event_bus = None
         if self.service_registry.has(DOMAIN_EVENT_BUS):
             event_bus = self.service_registry.resolve(DOMAIN_EVENT_BUS)
-            # logger.debug(f"[ExecuteDiagram] Using DOMAIN_EVENT_BUS from registry")
         elif self.service_registry.has(EVENT_BUS):
             event_bus = self.service_registry.resolve(EVENT_BUS)
-            # logger.debug(f"[ExecuteDiagram] Using EVENT_BUS from registry")
-            
-            # Subscribe unified observer to event bus using adapter
-            if engine_observers:
-                from dipeo.infrastructure.execution.messaging import ObserverToEventAdapter as ObserverToEventConsumerAdapter
-                from dipeo.domain.events import EventType
-                
-                for observer in engine_observers:
-                    adapter = ObserverToEventConsumerAdapter(observer)
-                    # Subscribe to all relevant event types
-                    event_bus.subscribe(EventType.EXECUTION_STARTED, adapter)
-                    event_bus.subscribe(EventType.NODE_STARTED, adapter)
-                    event_bus.subscribe(EventType.NODE_COMPLETED, adapter)
-                    event_bus.subscribe(EventType.NODE_ERROR, adapter)
-                    event_bus.subscribe(EventType.EXECUTION_COMPLETED, adapter)
-                    # logger.debug(f"[ExecuteDiagram] Subscribed observer to event bus")
-        else:
-            # logger.debug(f"[ExecuteDiagram] No event bus in registry, will use observers")
-            pass
         
-        # Create engine with event bus (no need for observers when using event bus)
+        # Create engine with event bus only (observers are deprecated)
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
             runtime_resolver=runtime_resolver,
             event_bus=event_bus,
-            observers=engine_observers if not event_bus else None,
         )
-        # logger.debug(f"[ExecuteDiagram] Created engine with event_bus={bool(event_bus)}, observers={bool(engine_observers if not event_bus else None)}")
 
         # No update iterator needed with unified monitoring
 
