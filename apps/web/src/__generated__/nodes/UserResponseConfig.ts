@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated node configuration for user_response
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
@@ -26,7 +18,6 @@ export const userResponseConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    timeout: 300,
   },
   customFields: userResponseFields,
   primaryDisplayField: 'prompt',

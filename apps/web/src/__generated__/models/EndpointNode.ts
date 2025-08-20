@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated TypeScript model for endpoint node
 import { z } from 'zod';
 

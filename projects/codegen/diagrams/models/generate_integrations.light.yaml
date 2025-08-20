@@ -19,7 +19,6 @@ nodes:
       diagram_name: projects/codegen/diagrams/shared/parse_typescript_batch_direct
       diagram_format: light
       passInputData: false
-      ignoreIfSub: true
 
   # Load cached integration AST data
   - label: Load Integration AST

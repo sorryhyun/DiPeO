@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated node configuration for start
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
@@ -23,7 +15,6 @@ export const startConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    trigger_mode: HookTriggerMode.NONE,
   },
   customFields: startFields,
 };

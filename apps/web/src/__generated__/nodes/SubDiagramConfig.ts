@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated node configuration for sub_diagram
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
@@ -26,11 +18,6 @@ export const subDiagramConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    wait_for_completion: true,
-    isolate_conversation: false,
-    ignoreIfSub: false,
-    batch: false,
-    batch_parallel: false,
   },
   customFields: subDiagramFields,
   primaryDisplayField: 'diagram_name',

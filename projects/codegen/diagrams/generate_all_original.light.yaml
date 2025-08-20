@@ -1,4 +1,4 @@
-# Unified Code Generation Pipeline - Simplified
+# Unified Code Generation Pipeline - Original Parallel Version
 # Uses simplified extractors that work directly with DB glob results
 # Generates all code from TypeScript sources - models, backend, and frontend in parallel
 
@@ -110,14 +110,6 @@ nodes:
       filePath: projects/codegen/code/models/generate_typescript_indexes.py
       functionName: main
 
-#  - label: Generate Handler Stubs
-#    type: sub_diagram
-#    position: {x: 400, y: 650}
-#    props:
-#      diagram_name: projects/codegen/diagrams/models/generate_handler_stubs
-#      diagram_format: light
-#      passInputData: false
-
   # ===== Frontend Generation (from generate_frontend) =====
   - label: Discover Node Specs
     type: db
@@ -194,11 +186,12 @@ nodes:
     position: {x: 1200, y: 400}
     props:
       save_to_file: false
+
 connections:
   # First parse all TypeScript files
   - {from: Start, to: Parse All TypeScript}
   
-  # After parsing, run ALL generation tasks in parallel
+  # After parsing, run ALL generation tasks in parallel (original configuration)
   - {from: Parse All TypeScript, to: Generate Python Models}
   - {from: Parse All TypeScript, to: Generate Enums}
   - {from: Parse All TypeScript, to: Generate Integrations}

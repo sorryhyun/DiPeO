@@ -28,8 +28,7 @@ class FilterRegistry:
             filters: Dictionary mapping filter names to functions
         """
         self._filter_collections[name] = filters
-        logger.debug(f"Registered filter collection '{name}' with {len(filters)} filters")
-    
+
     def get_collection(self, name: str) -> Optional[Dict[str, Callable]]:
         """Get a filter collection by name.
         

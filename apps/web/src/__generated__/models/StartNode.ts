@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated TypeScript model for start node
 import { z } from 'zod';
 

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for typescript_ast
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -21,7 +13,7 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
   {
     name: 'extractPatterns',
     type: 'code',
-    label: 'Extract Patterns',
+    label: 'Extractpatterns',
     required: false,
     defaultValue: ["interface", "type", "enum"],
     description: 'Patterns to extract from the AST',
@@ -32,7 +24,7 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
   {
     name: 'includeJSDoc',
     type: 'checkbox',
-    label: 'Include Js Doc',
+    label: 'Includejsdoc',
     required: false,
     defaultValue: false,
     description: 'Include JSDoc comments in the extracted data',
@@ -40,7 +32,7 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
   {
     name: 'parseMode',
     type: 'select',
-    label: 'Parse Mode',
+    label: 'Parsemode',
     required: false,
     defaultValue: "module",
     description: 'TypeScript parsing mode',
@@ -55,7 +47,7 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
   {
     name: 'transformEnums',
     type: 'checkbox',
-    label: 'Transform Enums',
+    label: 'Transformenums',
     required: false,
     defaultValue: false,
     description: 'Transform enum definitions to a simpler format',
@@ -63,7 +55,7 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
   {
     name: 'flattenOutput',
     type: 'checkbox',
-    label: 'Flatten Output',
+    label: 'Flattenoutput',
     required: false,
     defaultValue: false,
     description: 'Flatten the output structure for easier consumption',
@@ -71,7 +63,7 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
   {
     name: 'outputFormat',
     type: 'select',
-    label: 'Output Format',
+    label: 'Outputformat',
     required: false,
     defaultValue: "standard",
     description: 'Output format for the parsed data',

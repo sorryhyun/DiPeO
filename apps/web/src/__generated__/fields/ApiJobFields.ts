@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for api_job
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -68,7 +60,7 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'auth_type',
     type: 'select',
-    label: 'Auth Type',
+    label: 'Auth type',
     required: false,
     description: 'Authentication type',
     options: [
@@ -84,7 +76,7 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'auth_config',
     type: 'code',
-    label: 'Auth Config',
+    label: 'Auth config',
     required: false,
     description: 'Authentication configuration',
   },

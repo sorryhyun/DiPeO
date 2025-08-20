@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated node configuration for integrated_api
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
@@ -27,7 +19,7 @@ export const integratedApiConfig: UnifiedNodeConfig = {
     ],
     output: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
-      { label: HandleLabel.ERROR, displayLabel: 'Error', position: 'right' },
+      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

@@ -198,12 +198,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         """Execute template rendering with support for foreach and preprocessor."""
         node = request.node
         template_vars = inputs
-        
-        logger.info(f"[TEMPLATE_JOB DEBUG] Starting run for node {node.id}")
-        logger.info(f"[TEMPLATE_JOB DEBUG] Template path: {node.template_path}")
-        logger.info(f"[TEMPLATE_JOB DEBUG] Output path: {node.output_path}")
-        logger.info(f"[TEMPLATE_JOB DEBUG] Template vars keys: {list(template_vars.keys())}")
-        
+
         # Use services from instance variables (set in pre_execute)
         filesystem_adapter = self._current_filesystem_adapter
         engine = self._current_engine
@@ -337,13 +332,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 processed_output_path = (await template_service.render_string(node.output_path, template_vars)).strip()
                 
                 output_path = Path(processed_output_path)
-                logger.info(f"[TEMPLATE_JOB DEBUG] Writing to file: {output_path}")
-                logger.info(f"[TEMPLATE_JOB DEBUG] Rendered content length: {len(rendered)}")
                 
                 # Create parent directories if needed
                 parent_dir = output_path.parent
                 if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
-                    logger.info(f"[TEMPLATE_JOB DEBUG] Creating parent dir: {parent_dir}")
                     filesystem_adapter.mkdir(parent_dir, parents=True)
                 
                 with filesystem_adapter.open(output_path, 'wb') as f:

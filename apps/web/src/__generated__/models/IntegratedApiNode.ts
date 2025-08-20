@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated TypeScript model for integrated_api node
 import { z } from 'zod';
 

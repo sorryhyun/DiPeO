@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated TypeScript model for code_job node
 import { z } from 'zod';
 

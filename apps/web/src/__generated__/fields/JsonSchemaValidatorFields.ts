@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for json_schema_validator
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -13,7 +5,7 @@ export const jsonSchemaValidatorFields: UnifiedFieldDefinition[] = [
   {
     name: 'schema_path',
     type: 'text',
-    label: 'Schema Path',
+    label: 'Schema path',
     required: false,
     placeholder: '/path/to/file',
     description: 'Path to JSON schema file',
@@ -28,7 +20,7 @@ export const jsonSchemaValidatorFields: UnifiedFieldDefinition[] = [
   {
     name: 'data_path',
     type: 'text',
-    label: 'Data Path',
+    label: 'Data path',
     required: false,
     placeholder: '/path/to/file',
     description: 'Data Path configuration',
@@ -36,14 +28,14 @@ export const jsonSchemaValidatorFields: UnifiedFieldDefinition[] = [
   {
     name: 'strict_mode',
     type: 'checkbox',
-    label: 'Strict Mode',
+    label: 'Strict mode',
     required: false,
     description: 'Strict Mode configuration',
   },
   {
     name: 'error_on_extra',
     type: 'checkbox',
-    label: 'Error On Extra',
+    label: 'Error on extra',
     required: false,
     description: 'Error On Extra configuration',
   },

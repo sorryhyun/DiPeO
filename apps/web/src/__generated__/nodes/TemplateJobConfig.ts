@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated node configuration for template_job
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
@@ -26,7 +18,6 @@ export const templateJobConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    engine: 'jinja2',
   },
   customFields: templateJobFields,
   primaryDisplayField: 'engine',

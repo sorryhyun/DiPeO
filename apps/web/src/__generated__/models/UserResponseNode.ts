@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated TypeScript model for user_response node
 import { z } from 'zod';
 

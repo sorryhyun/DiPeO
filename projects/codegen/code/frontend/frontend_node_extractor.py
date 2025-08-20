@@ -54,7 +54,6 @@ def extract_frontend_node_data(ast_data: dict, node_type: str) -> dict:
     result.setdefault('handles', {})
     result.setdefault('defaults', {})
     result.setdefault('primaryDisplayField', '')
-    
     return result
 
 

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for sub_diagram
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -13,7 +5,7 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
   {
     name: 'diagram_name',
     type: 'select',
-    label: 'Diagram Name',
+    label: 'Diagram name',
     required: false,
     placeholder: 'Select diagram...',
     description: 'Name of the diagram to execute (e.g., \'workflow/process\')',
@@ -21,14 +13,14 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
   {
     name: 'diagram_data',
     type: 'code',
-    label: 'Diagram Data',
+    label: 'Diagram data',
     required: false,
     description: 'Inline diagram data (alternative to diagram_name)',
   },
   {
     name: 'input_mapping',
     type: 'code',
-    label: 'Input Mapping',
+    label: 'Input mapping',
     required: false,
     placeholder: '{ \"targetVar\": \"sourceInput\" }',
     description: 'Map node inputs to sub-diagram variables',
@@ -36,7 +28,7 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
   {
     name: 'output_mapping',
     type: 'code',
-    label: 'Output Mapping',
+    label: 'Output mapping',
     required: false,
     placeholder: '{ \"outputKey\": \"nodeId.field\" }',
     description: 'Map sub-diagram outputs to node outputs',
@@ -62,7 +54,7 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
   {
     name: 'wait_for_completion',
     type: 'checkbox',
-    label: 'Wait For Completion',
+    label: 'Wait for completion',
     required: false,
     defaultValue: true,
     description: 'Whether to wait for sub-diagram completion',
@@ -70,7 +62,7 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
   {
     name: 'isolate_conversation',
     type: 'checkbox',
-    label: 'Isolate Conversation',
+    label: 'Isolate conversation',
     required: false,
     defaultValue: false,
     description: 'Create isolated conversation context for sub-diagram',
@@ -78,7 +70,7 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
   {
     name: 'ignoreIfSub',
     type: 'checkbox',
-    label: 'Ignore If Sub',
+    label: 'Ignoreifsub',
     required: false,
     defaultValue: false,
     description: 'Skip execution if this diagram is being run as a sub-diagram',
@@ -86,7 +78,7 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
   {
     name: 'diagram_format',
     type: 'select',
-    label: 'Diagram Format',
+    label: 'Diagram format',
     required: false,
     description: 'Format of the diagram file (yaml, json, or light)',
     options: [
@@ -109,7 +101,7 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
   {
     name: 'batch_input_key',
     type: 'text',
-    label: 'Batch Input Key',
+    label: 'Batch input key',
     required: false,
     placeholder: 'items',
     description: 'Key in inputs containing the array of items for batch processing',
@@ -117,7 +109,7 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
   {
     name: 'batch_parallel',
     type: 'checkbox',
-    label: 'Batch Parallel',
+    label: 'Batch parallel',
     required: false,
     defaultValue: false,
     description: 'Execute batch items in parallel',

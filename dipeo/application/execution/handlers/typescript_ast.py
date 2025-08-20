@@ -114,6 +114,22 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         """Execute TypeScript AST parsing."""
         node = request.node
 
+        # Check if parsing should be skipped (cache already exists)
+        # Check both at root level and in default dict
+        skip_parsing = inputs.get('_skip_parsing', False)
+        if not skip_parsing and 'default' in inputs and isinstance(inputs['default'], dict):
+            skip_parsing = inputs['default'].get('_skip_parsing', False)
+        
+        if skip_parsing:
+            logger.info(f"[TypescriptAstNode {node.id}] Skipping parsing - cache already exists")
+            # Return empty results to indicate no parsing was done
+            return {
+                'results': {},
+                'batch_mode': True,
+                'total_sources': 0,
+                'skipped': True
+            }
+
         # Get the parser service
         parser_service = request.get_service("ast_parser")
 
@@ -153,6 +169,18 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                 logger.error(f"[TypescriptAstNode {node.id}] Failed to find sources - sources type: {type(sources).__name__ if sources else 'None'}")
                 logger.error(f"[TypescriptAstNode {node.id}] Full inputs structure: {json.dumps({k: type(v).__name__ for k, v in inputs.items()}, indent=2)}")
                 raise ValueError(f"Batch mode enabled but no sources dictionary provided at key '{batch_input_key}'")
+            
+            # Filter out dummy sources that indicate cache skip
+            sources = {k: v for k, v in sources.items() if k != '_dummy'}
+            
+            if not sources:
+                logger.info(f"[TypescriptAstNode {node.id}] No real sources after filtering dummy entries - cache must exist")
+                return {
+                    'results': {},
+                    'batch_mode': True,
+                    'total_sources': 0,
+                    'skipped': True
+                }
 
             # Parse all sources in batch
             try:
@@ -226,6 +254,18 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         node = request.node
         trace_id = request.execution_id or ""
         factory = get_envelope_factory()
+
+        # Handle skipped parsing (cache already exists)
+        if isinstance(result, dict) and result.get('skipped'):
+            return factory.json(
+                {},
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
+                batch_mode=True,
+                skipped=True,
+                reason="Cache already exists"
+            )
 
         # Handle batch mode results
         if isinstance(result, dict) and result.get('batch_mode'):

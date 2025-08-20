@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for person_job
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -20,7 +12,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'first_only_prompt',
     type: 'textarea',
-    label: 'First Only Prompt',
+    label: 'First only prompt',
     required: true,
     placeholder: 'Enter prompt template...',
     description: 'Prompt used only on first execution',
@@ -32,7 +24,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'first_prompt_file',
     type: 'text',
-    label: 'First Prompt File',
+    label: 'First prompt file',
     required: false,
     placeholder: 'example_first.txt',
     description: 'External prompt file for first iteration only',
@@ -41,7 +33,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'default_prompt',
     type: 'textarea',
-    label: 'Default Prompt',
+    label: 'Default prompt',
     required: false,
     placeholder: 'Enter prompt template...',
     description: 'Default prompt template',
@@ -53,7 +45,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'prompt_file',
     type: 'text',
-    label: 'Prompt File',
+    label: 'Prompt file',
     required: false,
     placeholder: 'example.txt',
     description: 'Path to prompt file in /files/prompts/',
@@ -62,7 +54,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'max_iteration',
     type: 'number',
-    label: 'Max Iteration',
+    label: 'Max iteration',
     required: true,
     defaultValue: 1,
     description: 'Maximum execution iterations',
@@ -71,7 +63,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'memory_profile',
     type: 'select',
-    label: 'Memory Profile',
+    label: 'Memory profile',
     required: false,
     defaultValue: "FOCUSED",
     description: 'Memory profile for conversation context',
@@ -103,7 +95,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'text_format',
     type: 'textarea',
-    label: 'Text Format',
+    label: 'Text format',
     required: false,
     placeholder: '{\"type\": \"object\", \"properties\": {...}}',
     description: 'JSON schema or response format for structured outputs',
@@ -114,7 +106,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'memory_settings',
     type: 'group',
-    label: 'Memory Settings',
+    label: 'Memory settings',
     required: false,
     description: 'Custom memory settings (when memory_profile is CUSTOM)',
     nestedFields: [
@@ -137,7 +129,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
       {
         name: 'max_messages',
         type: 'number',
-        label: 'Max Messages',
+        label: 'Max messages',
         required: false,
         description: 'Maximum number of messages to retain',
         uiConfig: {
@@ -149,7 +141,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
       {
         name: 'preserve_system',
         type: 'checkbox',
-        label: 'Preserve System',
+        label: 'Preserve system',
         required: false,
         description: 'Always preserve system messages',
         defaultValue: true,
