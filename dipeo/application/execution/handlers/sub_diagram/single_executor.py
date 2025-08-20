@@ -40,20 +40,6 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         node = request.node
         trace_id = request.execution_id or ""
         
-        # Check if we should skip execution when running as a sub-diagram
-        if getattr(node, 'ignoreIfSub', False):
-            if self._is_sub_diagram_context(request):
-                # Return skip envelope directly
-                skip_data = {
-                    "status": "skipped",
-                    "reason": "Skipped because running as sub-diagram with ignoreIfSub=true"
-                }
-                return EnvelopeFactory.json(
-                    skip_data,
-                    produced_by=node.id,
-                    trace_id=trace_id
-                ).with_meta(execution_status="skipped")
-        
         try:
             # Use pre-configured services (set by handler)
             if not all([self._state_store, self._message_router, self._diagram_service]):
