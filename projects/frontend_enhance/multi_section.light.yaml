@@ -99,24 +99,6 @@ nodes:
       batch_input_key: indices
       batch_parallel: true
 
-  - label: Aggregate Results
-    type: code_job
-    position: {x: 1540, y: 200}
-    props:
-      language: python
-      code: |
-        import statistics
-        scores = [it.get("score", 0) for it in batch_results]
-        ok = all(s >= target_score for s in scores)
-        result = {
-          "sections_done": len(scores),
-          "scores": scores,
-          "min_score": min(scores) if scores else 0,
-          "avg_score": round(statistics.mean(scores), 2) if scores else 0,
-          "target": target_score,
-          "success": ok,
-        }
-
   - label: Save Summary
     type: endpoint
     position: {x: 1820, y: 200}
@@ -131,6 +113,4 @@ connections:
   - {from: Understand Requirements, to: Save Sections Data, content_type: object}
   - {from: Understand Requirements, to: Prepare Batch Indices, label: sections, content_type: object}
   - {from: Prepare Batch Indices, to: Implement Sections, content_type: object}
-  - {from: Implement Sections, to: Aggregate Results, label: batch_results, content_type: object}
-  - {from: Load Config, to: Aggregate Results, label: target_score, content_type: object}
-  - {from: Aggregate Results, to: Save Summary, content_type: object}
+  - {from: Implement Sections, to: Save Summary, content_type: object}

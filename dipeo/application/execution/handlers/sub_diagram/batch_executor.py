@@ -381,7 +381,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
             index=index
         )
         
-        # Prepare execution options
+        # Prepare execution options with proper parent diagram context
         options = {
             "variables": item_inputs,
             "parent_execution_id": base_context['parent_execution_id'],
@@ -393,14 +393,19 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
                 "is_sub_diagram": True,
                 "is_batch_item": True,
                 "parent_execution_id": base_context['parent_execution_id'],
+                "parent_diagram": node.diagram_name or 'inline',  # Fix: Add parent_diagram
                 "batch_index": index,
-                "batch_total": total
+                "batch_total": total,
+                "diagram_scope": node.diagram_name  # Add explicit scope
             }
         }
         
-        # Create execution use case for this item
+        # Create isolated context for this batch item to prevent cross-contamination
+        isolated_registry = self._create_isolated_registry(base_context['service_registry'])
+        
+        # Create execution use case with isolated registry
         execute_use_case = ExecuteDiagramUseCase(
-            service_registry=base_context['service_registry'],
+            service_registry=isolated_registry,
             state_store=base_context['state_store'],
             message_router=base_context['message_router'],
             diagram_service=base_context['diagram_service'],
@@ -408,12 +413,15 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         )
 
         # Execute and collect only final results
+        # Pass the diagram name in options to help with scoping
+        options['diagram_source_path'] = self._construct_diagram_path(node)
+        
         execution_results, execution_error = await self._execute_optimized(
             execute_use_case=execute_use_case,
             domain_diagram=domain_diagram,
             options=options,
             sub_execution_id=sub_execution_id,
-            parent_observers=[]  # Minimal observers for batch items
+            event_filter=None  # No filtering needed for batch items
         )
         
         # Handle execution error
@@ -429,7 +437,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         domain_diagram: Any,  # DomainDiagram
         options: dict[str, Any],
         sub_execution_id: str,
-        parent_observers: list[Any]
+        event_filter: Any | None
     ) -> tuple[dict[str, Any], str | None]:
         """Execute sub-diagram with optimized update collection for batch processing."""
         execution_results = {}
@@ -441,7 +449,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
             options=options,
             execution_id=sub_execution_id,
             interactive_handler=None,
-            observers=parent_observers
+            event_filter=event_filter
         ):
             update_type = update.get("type", "")
             
@@ -493,11 +501,22 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         node = original_request.node
         batch_input_key = getattr(node, 'batch_input_key', 'items')
         
-        item_inputs = {
-            'default': item,
-            '_batch_index': index,
-            '_batch_total': total
-        }
+        # When batch_input_key is 'default', the item itself becomes the default input
+        # to avoid double-wrapping when Start node processes it
+        if batch_input_key == 'default':
+            # Don't wrap with 'default' key - let the item be the direct input
+            item_inputs = {
+                **item,  # Spread the item directly
+                '_batch_index': index,
+                '_batch_total': total
+            }
+        else:
+            # For other batch_input_keys, wrap with 'default' as before
+            item_inputs = {
+                'default': item,
+                '_batch_index': index,
+                '_batch_total': total
+            }
         
         # Merge with original inputs (excluding the batch array)
         if original_request.inputs:
@@ -529,4 +548,25 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
                 'sub_execution_id': sub_execution_id
             }
         }
+    
+    def _create_isolated_registry(self, parent_registry):
+        """Create an isolated service registry for batch item execution.
+        
+        This creates a copy of the parent registry to prevent state contamination
+        between parallel batch item executions.
+        """
+        from dipeo.application.registry import ServiceRegistry
+        
+        # Create new registry instance
+        isolated_registry = ServiceRegistry()
+        
+        # Copy services from parent registry if possible
+        if hasattr(parent_registry, '_services'):
+            # Copy the services to ensure isolation
+            # The registry stores keys as strings internally
+            for key_str, service in parent_registry._services.items():
+                # Directly assign to internal dict since keys are already strings
+                isolated_registry._services[key_str] = service
+        
+        return isolated_registry
     

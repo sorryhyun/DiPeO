@@ -19,6 +19,7 @@ Each file must be formatted as follow:
 IMPORTANT: The generated prompt must explicitly instruct the AI to return ONLY code in this format, with NO additional text.
 
 ===
+Overall Architecture: {{architecture}}
 
 Section: {{section_title}}
 Description: {{section_description}}

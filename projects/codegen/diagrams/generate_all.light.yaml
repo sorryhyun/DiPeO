@@ -1,6 +1,6 @@
 # Unified Code Generation Pipeline - Simplified
-# Uses simplified extractors that work directly with DB glob results
-# Generates all code from TypeScript sources - models, backend, and frontend in parallel
+# Runs parse_typescript_batch_direct first, then delegates to backend and frontend diagrams
+# This avoids duplicate parsing and simplifies the main pipeline
 
 version: light
 
@@ -17,240 +17,57 @@ nodes:
     type: sub_diagram
     position: {x: 200, y: 400}
     props:
-      diagram_name: projects/codegen/diagrams/shared/parse_typescript_batch_direct
+      diagram_name: projects/codegen/diagrams/parse_typescript_batch_direct
       diagram_format: light
       passInputData: false
 
-  # ===== Domain Model Generation (from generate_all_models) =====
-  - label: Generate Python Models
-    type: sub_diagram
-    position: {x: 400, y: 100}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_python_models_dynamic
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate Enums
-    type: sub_diagram
-    position: {x: 400, y: 150}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_enums
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate Integrations
-    type: sub_diagram
-    position: {x: 400, y: 200}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_integrations
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate Conversions
-    type: sub_diagram
-    position: {x: 400, y: 250}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_conversions
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate Backend Models
+  # Run backend generation pipeline (without parsing)
+  - label: Generate Backend
     type: sub_diagram
     position: {x: 400, y: 300}
     props:
-      diagram_name: projects/codegen/diagrams/models/generate_backend_models
+      diagram_name: projects/codegen/diagrams/generate_backend
       diagram_format: light
       passInputData: false
 
-  - label: Generate GraphQL Schema
-    type: sub_diagram
-    position: {x: 400, y: 350}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_graphql_schema_template_dynamic
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate Static Nodes
-    type: sub_diagram
-    position: {x: 400, y: 400}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_static_nodes
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate Strawberry Types
-    type: sub_diagram
-    position: {x: 400, y: 450}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_strawberry_types_v2_dynamic
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate Strawberry Mutations
+  # Run frontend generation pipeline (without parsing)
+  - label: Generate Frontend
     type: sub_diagram
     position: {x: 400, y: 500}
     props:
-      diagram_name: projects/codegen/diagrams/models/generate_strawberry_mutations_v2
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate Validation Models
-    type: sub_diagram
-    position: {x: 400, y: 550}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_validation_models
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate TypeScript Indexes
-    type: code_job
-    position: {x: 400, y: 600}
-    props:
-      language: python
-      filePath: projects/codegen/code/models/generate_typescript_indexes.py
-      functionName: main
-
-#  - label: Generate Handler Stubs
-#    type: sub_diagram
-#    position: {x: 400, y: 650}
-#    props:
-#      diagram_name: projects/codegen/diagrams/models/generate_handler_stubs
-#      diagram_format: light
-#      passInputData: false
-
-  # ===== Frontend Generation (from generate_frontend) =====
-  - label: Discover Node Specs
-    type: db
-    position: {x: 400, y: 700}
-    props:
-      operation: read
-      sub_type: file
-      format: json
-      glob: true
-      source_details:
-        - "temp/specifications/nodes/*.spec.ts.json"
-
-  - label: Prepare Node List
-    type: code_job
-    position: {x: 600, y: 700}
-    props:
-      language: python
-      filePath: projects/codegen/code/shared/simplified_extractors.py
-      functionName: prepare_node_list_for_batch
-
-  - label: Batch Generate Frontend
-    type: sub_diagram
-    position: {x: 800, y: 700}
-    props:
-      diagram_name: projects/codegen/diagrams/frontend/generate_frontend_single
-      diagram_format: light
-      batch: true
-      batch_input_key: default
-      batch_parallel: true
-
-  - label: Generate Frontend Registry
-    type: sub_diagram
-    position: {x: 400, y: 750}
-    props:
-      diagram_name: projects/codegen/diagrams/frontend/generate_frontend_registry
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate GraphQL Queries
-    type: sub_diagram
-    position: {x: 400, y: 800}
-    props:
-      diagram_name: projects/codegen/diagrams/frontend/generate_graphql_queries
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate Zod Schemas
-    type: sub_diagram
-    position: {x: 400, y: 850}
-    props:
-      diagram_name: projects/codegen/diagrams/frontend/generate_zod_schemas_v2
-      diagram_format: light
-      passInputData: false
-
-  - label: Generate Field Configs
-    type: sub_diagram
-    position: {x: 400, y: 900}
-    props:
-      diagram_name: projects/codegen/diagrams/frontend/generate_field_configs_v2
+      diagram_name: projects/codegen/diagrams/generate_frontend
       diagram_format: light
       passInputData: false
 
   # Summary
-  - label: Summarize Results
+  - label: End
     type: code_job
-    position: {x: 1000, y: 400}
+    position: {x: 600, y: 400}
     props:
       language: python
       code: |
-        # Summary - prints removed to reduce verbosity
-        result = {
-            'status': 'success',
-            'message': 'All code generation completed successfully',
-            'summary': {
-                'typescript_parsing': 'completed',
-                'domain_models': 'generated (11 artifact types)',
-                'frontend_components': 'generated',
-                'output_location': 'dipeo/diagram_generated_staged/'
-            }
-        }
+        print('\n✅ All code generation finished!')
+        print('\nNext steps:')
+        print('  1. Review generated code in dipeo/diagram_generated_staged/')
+        print('  2. Run "make apply-syntax-only" to apply changes')
+        print('  3. Run "make graphql-schema" to update GraphQL types')
 
-  - label: End
+  - label: terminate
     type: endpoint
-    position: {x: 1200, y: 400}
+    position: {x: 800, y: 400}
     props:
       save_to_file: false
-
 connections:
   # First parse all TypeScript files
   - {from: Start, to: Parse All TypeScript}
   
-  # After parsing, start all model generation tasks in parallel
-  - {from: Parse All TypeScript, to: Generate Python Models}
-  - {from: Parse All TypeScript, to: Generate Enums}
-  - {from: Parse All TypeScript, to: Generate Integrations}
-  - {from: Parse All TypeScript, to: Generate Conversions}
-  - {from: Parse All TypeScript, to: Generate Backend Models}
-  - {from: Parse All TypeScript, to: Generate GraphQL Schema}
-  - {from: Parse All TypeScript, to: Generate Static Nodes}
-  - {from: Parse All TypeScript, to: Generate Strawberry Types}
-  - {from: Parse All TypeScript, to: Generate Strawberry Mutations}
-  - {from: Parse All TypeScript, to: Generate Validation Models}
-  - {from: Parse All TypeScript, to: Generate TypeScript Indexes}
-#  - {from: Parse All TypeScript, to: Generate Handler Stubs}
+  # After parsing, run backend and frontend generation in parallel
+  - {from: Parse All TypeScript, to: Generate Backend}
+  - {from: Parse All TypeScript, to: Generate Frontend}
   
-  # Start frontend generation in parallel
-  - {from: Parse All TypeScript, to: Discover Node Specs}
-  - {from: Parse All TypeScript, to: Generate Frontend Registry}
-  - {from: Parse All TypeScript, to: Generate GraphQL Queries}
-  - {from: Parse All TypeScript, to: Generate Zod Schemas}
-  - {from: Parse All TypeScript, to: Generate Field Configs}
+  # Both generation pipelines converge to End
+  - {from: Generate Backend, to: End}
+  - {from: Generate Frontend, to: End}
   
-  # Frontend batch processing chain - uses simplified extractors
-  - {from: Discover Node Specs, to: Prepare Node List, label: default, content_type: object}
-  - {from: Prepare Node List, to: Batch Generate Frontend, content_type: object}
-  
-  # All generation tasks converge to Summarize Results
-  - {from: Generate Python Models, to: Summarize Results}
-  - {from: Generate Enums, to: Summarize Results}
-  - {from: Generate Integrations, to: Summarize Results}
-  - {from: Generate Conversions, to: Summarize Results}
-  - {from: Generate Backend Models, to: Summarize Results}
-  - {from: Generate GraphQL Schema, to: Summarize Results}
-  - {from: Generate Static Nodes, to: Summarize Results}
-  - {from: Generate Strawberry Types, to: Summarize Results}
-  - {from: Generate Strawberry Mutations, to: Summarize Results}
-  - {from: Generate Validation Models, to: Summarize Results}
-  - {from: Generate TypeScript Indexes, to: Summarize Results}
-#  - {from: Generate Handler Stubs, to: Summarize Results}
-  - {from: Batch Generate Frontend, to: Summarize Results}
-  - {from: Generate Frontend Registry, to: Summarize Results}
-  - {from: Generate GraphQL Queries, to: Summarize Results}
-  - {from: Generate Zod Schemas, to: Summarize Results}
-  - {from: Generate Field Configs, to: Summarize Results}
-  
-  - {from: Summarize Results, to: End}
+  # End to terminate
+  - {from: End, to: terminate}

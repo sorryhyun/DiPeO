@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated node configuration for hook
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
@@ -22,14 +14,11 @@ export const hookConfig: UnifiedNodeConfig = {
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: HandleLabel.SUCCESS, displayLabel: 'Success', position: 'right' },
-      { label: HandleLabel.ERROR, displayLabel: 'Error', position: 'right' },
+      { label: HandleLabel.SUCCESS, displayLabel: '', position: 'right' },
+      { label: HandleLabel.ERROR, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {
-    hook_type: HookType.SHELL,
-    timeout: 60,
-    retry_count: 0,
   },
   customFields: hookFields,
   primaryDisplayField: 'hook_type',

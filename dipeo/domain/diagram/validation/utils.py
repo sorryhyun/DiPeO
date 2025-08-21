@@ -9,7 +9,7 @@ from dipeo.diagram_generated import (
     NodeID,
     NodeType,
 )
-from dipeo.domain.diagram.handle import parse_handle_id_safe
+from dipeo.domain.diagram.utils import parse_handle_id_safe
 
 
 def validate_arrow_handles(arrow: DomainArrow, node_ids: set[NodeID]) -> list[str]:

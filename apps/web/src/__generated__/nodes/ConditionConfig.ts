@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated node configuration for condition
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
@@ -22,12 +14,11 @@ export const conditionConfig: UnifiedNodeConfig = {
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: HandleLabel.CONDTRUE, displayLabel: 'Condtrue', position: 'right' },
-      { label: HandleLabel.CONDFALSE, displayLabel: 'Condfalse', position: 'right' },
+      { label: HandleLabel.CONDTRUE, displayLabel: '', position: 'right' },
+      { label: HandleLabel.CONDFALSE, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {
-    condition_type: 'custom',
   },
   customFields: conditionFields,
   primaryDisplayField: 'condition_type',

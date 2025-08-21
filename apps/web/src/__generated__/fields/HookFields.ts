@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for hook
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -13,7 +5,7 @@ export const hookFields: UnifiedFieldDefinition[] = [
   {
     name: 'hook_type',
     type: 'select',
-    label: 'Hook Type',
+    label: 'Hook type',
     required: true,
     defaultValue: "shell",
     description: 'Type of hook to execute',
@@ -71,7 +63,7 @@ export const hookFields: UnifiedFieldDefinition[] = [
   {
     name: 'retry_count',
     type: 'number',
-    label: 'Retry Count',
+    label: 'Retry count',
     required: false,
     defaultValue: 0,
     description: 'Number of retries on failure',

@@ -1,0 +1,159 @@
+# Direct TypeScript Batch Parser
+# Uses the TypeScript AST node's batch mode to parse all files in a single operation
+# Much more efficient than sub_diagram batch approach
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    
+  # Gather all TypeScript model files
+  - label: Gather TypeScript Files
+    type: code_job
+    position: {x: 200, y: 200}
+    props:
+      language: python
+      code: |
+        import os
+        import glob
+        import json
+        
+        # Define base paths for TypeScript models
+        base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+        models_dir = os.path.join(base_dir, 'dipeo/models/src')
+        
+        # Check if cache already exists - if ALL expected cache files exist, skip parsing
+        cache_dir = os.path.join(base_dir, 'temp')
+        expected_cache_files = [
+            'temp/core/diagram.ts.json',
+            'temp/core/execution.ts.json', 
+            'temp/core/conversation.ts.json',
+            'temp/core/integration.ts.json'
+        ]
+        
+        all_cache_exists = True
+        for cache_file in expected_cache_files:
+            full_path = os.path.join(base_dir, cache_file)
+            if not os.path.exists(full_path):
+                all_cache_exists = False
+                break
+            # Also check if file is not empty
+            try:
+                with open(full_path, 'r') as f:
+                    data = json.load(f)
+                    if not data:
+                        all_cache_exists = False
+                        break
+            except:
+                all_cache_exists = False
+                break
+        
+        if all_cache_exists:
+            print("Cache files already exist, skipping TypeScript parsing")
+            # Pass a dummy source to satisfy typescript_ast but it won't actually parse
+            result = {"sources": {"_dummy": "// Cache already exists, skipping"}, "_skip_parsing": True}
+        else:
+            # Gather all TypeScript files recursively
+            ts_files = glob.glob(os.path.join(models_dir, '**/*.ts'), recursive=True)
+            
+            sources = {}
+            
+            for file_path in ts_files:
+                try:
+                    with open(file_path, 'r') as f:
+                        content = f.read()
+                        # Use file path as key for tracking
+                        sources[file_path] = content
+                except Exception as e:
+                    print(f"Warning: Failed to read {file_path}: {e}")
+                    continue
+            
+            result = {"sources": sources}
+
+  # Parse all TypeScript sources in a single batch operation
+  - label: Batch Parse TypeScript
+    type: typescript_ast
+    position: {x: 600, y: 200}
+    props:
+      batch: true
+      batchInputKey: sources
+      includeJSDoc: true
+      parseMode: module
+      outputFormat: for_codegen
+      extractPatterns: ["interface", "type", "enum", "const"]
+      
+  # Save parsed results to cache files
+  - label: Save Cache Files
+    type: code_job
+    position: {x: 800, y: 200}
+    props:
+      language: python
+      code: |
+        import os
+        import json
+        
+        # Check if we skipped parsing
+        gather_results = inputs.get('gather_results', {})
+        if gather_results.get('_skip_parsing'):
+            print("Parsing was skipped, using existing cache")
+            result = {'cached_count': 0, 'skipped': True}
+        else:
+            # Get batch results - handle both wrapped and direct structures
+            batch_results = inputs.get('default', {})
+            
+            # Handle SEAC compatibility - check for wrapped structure
+            if isinstance(batch_results, dict) and 'results' in batch_results:
+                # Legacy wrapped structure from batch sub_diagram
+                batch_results = batch_results['results']
+            
+            if not isinstance(batch_results, dict):
+                print("Warning: No batch results to cache")
+                result = {'cached_count': 0}
+            else:
+                base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+                models_dir = os.path.join(base_dir, 'dipeo/models/src')
+                cached_count = 0
+                for file_path, parse_result in batch_results.items():
+                    # Skip dummy entry
+                    if file_path == "_dummy":
+                        continue
+                    # Get relative path from models_dir
+                    if file_path.startswith(models_dir):
+                        relative_path = os.path.relpath(file_path, models_dir)
+                    else:
+                        # Fallback to basename if not in expected location
+                        relative_path = os.path.basename(file_path)
+                    
+                    # Create cache path preserving directory structure
+                    cache_path = os.path.join(base_dir, f'temp/{relative_path}.json')
+                    cache_dir = os.path.dirname(cache_path)
+                    
+                    # Ensure cache directory exists
+                    if cache_dir and cache_dir != 'temp':
+                        os.makedirs(cache_dir, exist_ok=True)
+                    
+                    # Save the parsed result to cache
+                    try:
+                        with open(cache_path, 'w', encoding='utf-8') as f:
+                            json.dump(parse_result['ast'], f, indent=2)
+                        cached_count += 1
+                    except Exception as e:
+                        print(f"Warning: Failed to cache {file_path}: {e}")
+                
+                result = {'cached_count': cached_count}
+      
+  # End
+  - label: End
+    type: endpoint
+    position: {x: 1000, y: 200}
+    props:
+      save_to_file: false
+      
+connections:
+  - {from: Start, to: Gather TypeScript Files}
+  - {from: Gather TypeScript Files, to: Batch Parse TypeScript, content_type: object}
+  - {from: Batch Parse TypeScript, to: Save Cache Files, content_type: object}
+  - {from: Gather TypeScript Files, to: Save Cache Files, label: gather_results, content_type: object}
+  - {from: Save Cache Files, to: End}

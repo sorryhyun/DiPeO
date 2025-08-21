@@ -266,6 +266,38 @@ class TransformationMetadata:
         return self.source_type == self.target_type or bool(self.rules)
 ```
 
+### 5. Compile-Time Resolution (`compile_time_resolution.py`)
+
+Defines interfaces and data structures for compile-time resolution:
+
+```python
+class CompileTimeResolver(ABC):
+    """Resolves static structure and transformation rules at compile time"""
+    
+    @abstractmethod
+    def resolve_connections(self, 
+                          arrows: list[DomainArrow], 
+                          nodes: list[DomainNode]) -> list[Connection]:
+        """Resolve arrows to concrete connections between nodes"""
+        pass
+    
+    @abstractmethod
+    def determine_transformation_rules(self,
+                                      connection: Connection,
+                                      source_node_type: NodeType,
+                                      target_node_type: NodeType,
+                                      nodes_by_id: dict[NodeID, DomainNode]) -> TransformRules:
+        """Determine transformation rules for a connection"""
+        pass
+```
+
+**Key Classes:**
+- `Connection` - Represents a resolved connection between nodes
+- `TransformRules` - Encapsulates transformation rules for connections
+- `CompileTimeResolver` - Interface for custom resolution strategies
+
+This provides the foundation for determining how nodes connect and what transformations apply during compilation, separate from runtime resolution which happens during execution.
+
 ## Compilation Process
 
 ### Phase 1: Node Creation
@@ -534,7 +566,6 @@ def test_full_compilation():
 
 **Internal:**
 - `dipeo.domain.diagram.models` - Domain diagram models
-- `dipeo.domain.diagram.resolution` - Input resolution system (moved from domain root)
 - `dipeo.diagram_generated` - Generated node types
 - `dipeo.domain.execution` - Execution rules
 

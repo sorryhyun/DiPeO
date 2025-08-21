@@ -15,7 +15,7 @@ from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
-    from dipeo.domain.ports.storage import FileSystemPort
+    from dipeo.domain.base.storage_port import FileSystemPort
 
 
 @register_handler
@@ -28,10 +28,10 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     
     Now uses envelope-based communication for clean input/output interfaces.
     """
+    NODE_TYPE = NodeType.ENDPOINT
     
-    def __init__(self, filesystem_adapter: Optional["FileSystemPort"] = None):
+    def __init__(self):
         super().__init__()
-        self.filesystem_adapter = filesystem_adapter
         # Instance variables for passing data between methods
         self._current_save_enabled = False
         self._current_filename = None
@@ -66,7 +66,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         
         # Check filesystem adapter availability if saving is enabled
         if node.save_to_file:
-            filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
+            filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
             
             if not filesystem_adapter:
                 return EnvelopeFactory.error(
@@ -107,7 +107,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     def validate(self, request: ExecutionRequest[EndpointNode]) -> Optional[str]:
         node = request.node
         if node.save_to_file:
-            if not request.get_service(FILESYSTEM_ADAPTER) and not self.filesystem_adapter:
+            if not request.get_service(FILESYSTEM_ADAPTER):
                 return "Filesystem adapter is required when save_to_file is enabled"
         
         return None

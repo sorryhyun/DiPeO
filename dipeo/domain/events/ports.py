@@ -12,6 +12,21 @@ from .types import EventType, EventPriority
 T = TypeVar('T', bound=DomainEvent)
 
 
+class EventFilter(Protocol):
+    """Protocol for filtering domain events."""
+    
+    def matches(self, event: DomainEvent) -> bool:
+        """Check if an event matches the filter criteria.
+        
+        Args:
+            event: The domain event to check
+            
+        Returns:
+            True if the event matches the filter, False otherwise
+        """
+        ...
+
+
 class EventHandler(Protocol, Generic[T]):
     """Protocol for handling domain events."""
     
@@ -27,7 +42,8 @@ class EventSubscription:
     subscription_id: str
     event_types: list[EventType]
     handler: EventHandler
-    filter_expression: Optional[str] = None  # e.g., "execution_id == 'xyz'"
+    filter: Optional[EventFilter] = None  # Event filter instance
+    filter_expression: Optional[str] = None  # Legacy: string expression for backward compat
     priority: EventPriority = EventPriority.NORMAL
     active: bool = True
 
@@ -66,6 +82,7 @@ class DomainEventBus(Protocol):
         self,
         event_types: list[EventType],
         handler: EventHandler,
+        filter: Optional[EventFilter] = None,
         filter_expression: Optional[str] = None,
         priority: EventPriority = EventPriority.NORMAL
     ) -> EventSubscription:
@@ -74,7 +91,8 @@ class DomainEventBus(Protocol):
         Args:
             event_types: Types of events to subscribe to
             handler: Handler to process events
-            filter_expression: Optional filter expression (infrastructure-specific)
+            filter: Optional event filter to apply before handling
+            filter_expression: Legacy: Optional filter expression (infrastructure-specific)
             priority: Priority for event processing
             
         Returns:

@@ -33,20 +33,25 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
             return EvaluationResult(
                 result=False,
                 metadata={"reason": "No expression provided"},
-                output_data={"condfalse": inputs if inputs else {}}
+                output_data=inputs if inputs else {}
             )
         
         eval_context = inputs.copy() if inputs else {}
+        
+        # Add all variables to evaluation context (includes loop indices)
+        if hasattr(context, 'get_variables'):
+            variables = context.get_variables()
+            for key, value in variables.items():
+                # Variables take precedence over inputs
+                eval_context[key] = value
         
         result = self._expression_evaluator.evaluate_custom_expression(
             expression=expression,
             context_values=eval_context
         )
         
-        if result:
-            output_data = {"condtrue": inputs if inputs else {}}
-        else:
-            output_data = {"condfalse": inputs if inputs else {}}
+        # Pass through inputs directly without wrapping
+        output_data = inputs if inputs else {}
 
         return EvaluationResult(
             result=result,

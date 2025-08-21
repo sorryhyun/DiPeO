@@ -36,11 +36,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     Now uses template method pattern to reduce code duplication.
     """
     
+    NODE_TYPE = NodeType.DB.value
 
-    def __init__(self, db_operations_service: Any | None = None, template_processor: TemplateProcessorPort | None = None) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.db_operations_service = db_operations_service
-        self._template_processor = template_processor
         # Instance variables for passing data between methods
         self._current_db_service = None
         self._current_base_dir = None
@@ -49,10 +48,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     @property
     def node_class(self) -> type[DBNode]:
         return DBNode
-
-    @property
-    def node_type(self) -> str:
-        return NodeType.DB.value
 
     @property
     def schema(self) -> type[BaseModel]:
@@ -110,15 +105,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         self._current_base_dir = os.getenv('DIPEO_BASE_DIR', os.getcwd())
         
         # Initialize template processor for path interpolation
-        # Use injected processor or try to get from services
         from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
-        template_processor = self._template_processor
-        if not template_processor:
-            try:
-                template_processor = request.services.resolve(TEMPLATE_PROCESSOR)
-            except:
-                # If not available in services, template processing will be skipped
-                pass
+        template_processor = request.services.resolve(TEMPLATE_PROCESSOR)
         self._current_template_processor = template_processor
         
         # No early return - proceed to execute_request
@@ -219,9 +207,20 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                 if hasattr(context, 'get_variables'):
                     variables = context.get_variables()
                 
-                merged_variables = {**variables, **inputs}
+                # Flatten nested 'default' structure if present
+                if 'default' in inputs and isinstance(inputs['default'], dict):
+                    # Add contents of 'default' directly as variables
+                    flattened_inputs = {**inputs['default'], **inputs}
+                else:
+                    flattened_inputs = inputs
+                
+                merged_variables = {**variables, **flattened_inputs}
+
                 if template_processor:
-                    file_path = template_processor.process_single_brace(file_path, merged_variables)
+                    resolved_path = template_processor.process_single_brace(file_path, merged_variables)
+                    file_path = resolved_path
+                else:
+                    logger.warning(f"No template processor available for path: {file_path}")
 
             processed_paths.append(file_path)
         

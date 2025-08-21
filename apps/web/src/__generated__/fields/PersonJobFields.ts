@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for person_job
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -20,7 +12,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'first_only_prompt',
     type: 'textarea',
-    label: 'First Only Prompt',
+    label: 'First only prompt',
     required: true,
     placeholder: 'Enter prompt template...',
     description: 'Prompt used only on first execution',
@@ -32,7 +24,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'first_prompt_file',
     type: 'text',
-    label: 'First Prompt File',
+    label: 'First prompt file',
     required: false,
     placeholder: 'example_first.txt',
     description: 'External prompt file for first iteration only',
@@ -41,7 +33,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'default_prompt',
     type: 'textarea',
-    label: 'Default Prompt',
+    label: 'Default prompt',
     required: false,
     placeholder: 'Enter prompt template...',
     description: 'Default prompt template',
@@ -53,7 +45,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'prompt_file',
     type: 'text',
-    label: 'Prompt File',
+    label: 'Prompt file',
     required: false,
     placeholder: 'example.txt',
     description: 'Path to prompt file in /files/prompts/',
@@ -62,19 +54,47 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'max_iteration',
     type: 'number',
-    label: 'Max Iteration',
+    label: 'Max iteration',
     required: true,
-    defaultValue: 1,
+    defaultValue: 100,
     description: 'Maximum execution iterations',
     min: 1,
   },
   {
+    name: 'memorize_to',
+    type: 'text',
+    label: 'Memorize to',
+    required: false,
+    placeholder: 'e.g., requirements, acceptance criteria, API keys',
+    description: 'Criteria used to select helpful messages for this task. Empty = memorize all. Special: \'GOLDFISH\' for goldfish mode. Comma-separated for multiple criteria.',
+    column: 2,
+  },
+  {
+    name: 'at_most',
+    type: 'number',
+    label: 'At most',
+    required: false,
+    description: 'Select at most N messages to keep (system messages may be preserved in addition).',
+    column: 1,
+    min: 1,
+    max: 500,
+    validate: (value: unknown) => {
+      if (typeof value === 'number' && value < 1) {
+        return { isValid: false, error: 'Value must be at least 1' };
+      }
+      if (typeof value === 'number' && value > 500) {
+        return { isValid: false, error: 'Value must be at most 500' };
+      }
+      return { isValid: true };
+    },
+  },
+  {
     name: 'memory_profile',
     type: 'select',
-    label: 'Memory Profile',
+    label: 'Memory profile',
     required: false,
     defaultValue: "FOCUSED",
-    description: 'Memory profile for conversation context',
+    description: 'Memory profile for conversation context (Deprecated: prefer \'memorize_to\' + \'at_most\')',
     options: [
       { value: 'FULL', label: 'Full 🧠 - No limits, see everything' },
       { value: 'FOCUSED', label: 'Focused 🎯 - Last 20 messages, conversation pairs' },
@@ -103,7 +123,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'text_format',
     type: 'textarea',
-    label: 'Text Format',
+    label: 'Text format',
     required: false,
     placeholder: '{\"type\": \"object\", \"properties\": {...}}',
     description: 'JSON schema or response format for structured outputs',
@@ -114,9 +134,9 @@ export const personJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'memory_settings',
     type: 'group',
-    label: 'Memory Settings',
+    label: 'Memory settings',
     required: false,
-    description: 'Custom memory settings (when memory_profile is CUSTOM)',
+    description: 'Custom memory settings (when memory_profile is CUSTOM) (Deprecated: prefer \'memorize_to\' + \'at_most\')',
     nestedFields: [
       {
         name: 'view',
@@ -137,7 +157,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
       {
         name: 'max_messages',
         type: 'number',
-        label: 'Max Messages',
+        label: 'Max messages',
         required: false,
         description: 'Maximum number of messages to retain',
         uiConfig: {
@@ -149,7 +169,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
       {
         name: 'preserve_system',
         type: 'checkbox',
-        label: 'Preserve System',
+        label: 'Preserve system',
         required: false,
         description: 'Always preserve system messages',
         defaultValue: true,

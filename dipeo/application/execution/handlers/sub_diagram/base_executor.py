@@ -58,8 +58,10 @@ class BaseSubDiagramExecutor:
             return f"{diagram_name}{format_suffix}"
         elif diagram_name.startswith('codegen/'):
             return f"files/{diagram_name}{format_suffix}"
+        elif diagram_name.startswith('examples/'):
+            return f"{diagram_name}{format_suffix}"
         else:
-            return f"files/diagrams/{diagram_name}{format_suffix}"
+            return f"examples/{diagram_name}{format_suffix}"
     
     def _process_output_mapping(self, node: "SubDiagramNode", execution_results: dict[str, Any]) -> Any:
         """Process output mapping from sub-diagram results.

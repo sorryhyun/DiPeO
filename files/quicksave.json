@@ -4,8 +4,8 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 330,
-        "y": 200
+        "x": 60,
+        "y": 240
       },
       "data": {
         "trigger_mode": "manual",
@@ -16,82 +16,127 @@
     },
     {
       "id": "node_1",
-      "type": "person_job",
+      "type": "db",
       "position": {
-        "x": 632,
-        "y": 231
+        "x": 300,
+        "y": 240
       },
       "data": {
-        "default_prompt": "say hi",
-        "max_iteration": 3,
-        "memory_profile": "FULL",
-        "person": "person 1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "label": "printer",
-        "first_only_prompt": ""
+        "operation": "read",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/frontend_enhance_config.json",
+        "label": "load config"
       }
     },
     {
       "id": "node_2",
-      "type": "condition",
+      "type": "person_job",
       "position": {
-        "x": 620,
-        "y": 425
+        "x": 400,
+        "y": 240
       },
       "data": {
-        "condition_type": "detect_max_iterations",
-        "flipped": [
-          true,
-          true
-        ],
-        "label": "condition"
+        "person": "Section Planner",
+        "text_format_file": "projects/frontend_enhance/section_models.py",
+        "default_prompt": "Analyze the requirements and create a comprehensive development plan:\n\nApp config: {{config}}\n\nYour response MUST include:\n1. An overall architecture that defines:\n   - How all sections work together as a cohesive system\n   - Core architectural patterns and principles\n   - Data flow and state management strategy\n   - DETAILED folder structure with ACTUAL FILE NAMES (e.g., src/components/Button.tsx)\n   - Tech stack decisions\n\n2. Independent sections where EACH section represents ONE SPECIFIC FILE:\n   - file_to_implement: EXACT file path (e.g., \"src/features/dashboard/components/MetricCard.tsx\")\n   - Clear acceptance criteria for that specific file\n   - Implementation steps for THAT FILE ONLY (what goes inside it)\n   - Integration points showing how this file connects with others\n   - Proper dependencies and priority\n\nCRITICAL: Each section MUST specify the exact file path in file_to_implement field.\nThink like you're planning a real production React application.\nEnsure files can be developed independently but integrate seamlessly.\n",
+        "label": "plan sections",
+        "first_only_prompt": "",
+        "max_iteration": 1
       }
     },
     {
       "id": "node_3",
-      "type": "endpoint",
+      "type": "db",
       "position": {
-        "x": 0,
-        "y": 437
+        "x": 800,
+        "y": 240
       },
       "data": {
-        "file_format": "txt",
-        "save_to_file": true,
-        "flipped": [
-          true,
-          false
-        ],
-        "file_name": "files/results/total.txt",
-        "label": "endpoint"
+        "operation": "write",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/generated/sections_data.json",
+        "label": "save sections data"
       }
     },
     {
       "id": "node_4",
-      "type": "person_job",
+      "type": "condition",
       "position": {
-        "x": 311,
-        "y": 443
+        "x": 1450,
+        "y": 240
       },
       "data": {
-        "default_prompt": "How many times did you respond?",
+        "condition_type": "custom",
+        "expression": "current_index >= 2",
+        "expose_index_as": "current_index",
         "flipped": [
-          true,
-          false
+          false,
+          true
         ],
-        "max_iteration": 1,
-        "memory_profile": "FULL",
-        "person": "person 1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        },
-        "label": "ask",
+        "label": "check continue"
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "db",
+      "position": {
+        "x": 1100,
+        "y": 240
+      },
+      "data": {
+        "operation": "read",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/generated/sections_data.json",
+        "label": "load sections data"
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "person_job",
+      "position": {
+        "x": 1800,
+        "y": 240
+      },
+      "data": {
+        "person": "Frontend Generator",
+        "max_iteration": 100,
+        "memorize_to": "Necessary codes to implement or which are dependent to",
+        "at_most": 5,
+        "prompt_file": "frontend_generator.txt",
+        "label": "generate frontend code",
         "first_only_prompt": ""
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "db",
+      "position": {
+        "x": 2200,
+        "y": 240
+      },
+      "data": {
+        "operation": "write",
+        "sub_type": "file",
+        "format": "text",
+        "file": "projects/frontend_enhance/generated/consolidated_section_{current_index}.tsx",
+        "label": "write section result"
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "endpoint",
+      "position": {
+        "x": 1800,
+        "y": 600
+      },
+      "data": {
+        "file_format": "json",
+        "save_to_file": true,
+        "file_name": "projects/frontend_enhance/generated/consolidated_results.json",
+        "label": "end"
       }
     }
   ],
@@ -109,52 +154,100 @@
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "label": null,
+      "label": "config",
       "packing": null,
       "data": null,
-      "content_type": "conversation_state"
+      "content_type": "object"
     },
     {
       "id": "arrow_2",
-      "source": "node_2_condfalse_output",
-      "target": "node_1_default_input",
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_3",
+      "source": "node_3_default_output",
+      "target": "node_4_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_4_condfalse_output",
+      "target": "node_5_default_input",
       "label": null,
       "packing": null,
       "data": {
         "branch": "false"
       },
-      "content_type": "conversation_state"
+      "content_type": "object"
     },
     {
-      "id": "arrow_3",
-      "source": "node_2_condtrue_output",
-      "target": "node_4_default_input",
+      "id": "arrow_5",
+      "source": "node_4_condtrue_output",
+      "target": "node_8_default_input",
       "label": null,
       "packing": null,
       "data": {
         "branch": "true"
       },
-      "content_type": "conversation_state"
+      "content_type": "object"
     },
     {
-      "id": "arrow_4",
-      "source": "node_4_default_output",
-      "target": "node_3_default_input",
+      "id": "arrow_6",
+      "source": "node_5_default_output",
+      "target": "node_6_default_input",
       "label": null,
       "packing": null,
       "data": null,
-      "content_type": "raw_text"
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_6_default_output",
+      "target": "node_7_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_7_default_output",
+      "target": "node_4_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "object"
     }
   ],
   "persons": [
     {
-      "id": "person 1",
-      "label": "person 1",
+      "id": "Section Planner",
+      "label": "section planner",
       "llm_config": {
         "service": "openai",
         "model": "gpt-5-nano-2025-08-07",
         "api_key_id": "APIKEY_52609F",
-        "system_prompt": null,
+        "system_prompt": "You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.\n\nYour task is to:\n1. FIRST define the overall application architecture that will guide all sections\n2. THEN split the work into independent sections that fit within this architecture\n3. For EACH section, provide concrete implementation steps and integration points\n\nFocus on:\n- Clear architectural patterns and principles\n- How data flows through the application\n- Specific, actionable implementation steps (not vague descriptions)\n- How sections communicate and integrate with each other\n- Modern React 18+ best practices and TypeScript patterns\n\nEach section should be a cohesive unit that can be developed independently but integrates smoothly.\nFollow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.\n",
+        "prompt_file": null
+      },
+      "type": "person"
+    },
+    {
+      "id": "Frontend Generator",
+      "label": "frontend generator",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": "You are an expert React/TypeScript engineer building a cohesive frontend application.\n\nCRITICAL RULES:\n1. Return ONLY the raw code files in the exact format specified in the prompt. You MUST NOT attempt to examine any existing codes.\n2. Do NOT include any conversational text, explanations, or commentary\n3. Generate production-ready code that integrates with previously generated sections\n4. Follow established patterns from earlier sections for consistency\n5. Import and use components/utilities from previous sections when referenced\n\nYou are building sections iteratively. Use the context from previous sections to maintain consistency in:\n- Naming conventions\n- Import paths\n- Type definitions\n- Component patterns\n- State management approach\n",
         "prompt_file": null
       },
       "type": "person"
@@ -168,14 +261,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_1_first_input",
-      "node_id": "node_1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -194,6 +279,14 @@
       "position": "right"
     },
     {
+      "id": "node_2_first_input",
+      "node_id": "node_2",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
       "id": "node_2_default_input",
       "node_id": "node_2",
       "label": "default",
@@ -202,19 +295,11 @@
       "position": "left"
     },
     {
-      "id": "node_2_condtrue_output",
+      "id": "node_2_default_output",
       "node_id": "node_2",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_2_condfalse_output",
-      "node_id": "node_2",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
@@ -226,12 +311,12 @@
       "position": "left"
     },
     {
-      "id": "node_4_first_input",
-      "node_id": "node_4",
-      "label": "first",
-      "direction": "input",
+      "id": "node_3_default_output",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "output",
       "data_type": "any",
-      "position": "left"
+      "position": "right"
     },
     {
       "id": "node_4_default_input",
@@ -242,22 +327,94 @@
       "position": "left"
     },
     {
-      "id": "node_4_default_output",
+      "id": "node_4_condtrue_output",
       "node_id": "node_4",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_4_condfalse_output",
+      "node_id": "node_4",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_6_first_input",
+      "node_id": "node_6",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_output",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_default_output",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
-    "name": "/home/soryhyun/DiPeO/files/diagrams/examples/simple_iter.light.yaml",
+    "name": "consolidated_generator",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-19T05:12:23.170Z",
-    "modified": "2025-08-19T05:12:23.170Z",
+    "created": "2025-08-21T13:40:36.169Z",
+    "modified": "2025-08-21T13:40:36.169Z",
     "version": "1.0.0",
-    "id": "/home/soryhyun/DiPeO/files/diagrams/examples/simple_iter.light.yaml"
+    "id": "projects/frontend_enhance/consolidated_generator"
   }
 }

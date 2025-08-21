@@ -166,7 +166,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
     def _make_api_call(self, messages: list[dict[str, str]], **kwargs) -> ChatResult:
         # Prepare request
         input_messages, api_tools, api_params = self._prepare_api_request(messages, **kwargs)
-        
         if not input_messages:
             return ChatResult(text='', raw_response=None)
         # Make response API call with retry logic
@@ -238,10 +237,9 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 kwargs['top_p'] = options.top_p
             if options.response_format is not None:
                 kwargs['response_format'] = options.response_format
-        
         # Prepare request
         input_messages, api_tools, api_params = self._prepare_api_request(messages, **kwargs)
-        
+        # print(input_messages)
         if not input_messages:
             return ChatResult(text='', raw_response=None)
         

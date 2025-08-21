@@ -219,9 +219,9 @@ export class DiagramAdapter {
     const sourceNode = sourceParsed.node_id;
     const targetNode = targetParsed.node_id;
     
-    // React Flow needs handle IDs to match what FlowHandle component generates
-    // FlowHandle generates: nodeId_handleId_direction
-    // Our stored format is already: nodeId_label_direction  
+    // React Flow expects sourceHandle/targetHandle to be the full handle ID
+    // that matches what FlowHandle component generates: nodeId_label_direction
+    // Since our stored format is already in this format, we use it directly
     const sourceHandle = arrow.source;
     const targetHandle = arrow.target;
     

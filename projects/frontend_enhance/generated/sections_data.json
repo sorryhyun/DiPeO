@@ -1,224 +1,73 @@
 {
-  "sections": [
+  "id": "resp_68a7223d7928819b9205ec40c36a21e10d365d6028f790c1",
+  "created_at": 1755783741.0,
+  "error": null,
+  "incomplete_details": null,
+  "instructions": null,
+  "metadata": {},
+  "model": "gpt-5-nano-2025-08-07",
+  "object": "response",
+  "output": [
     {
-      "id": "component-requirements",
-      "title": "Component Requirements",
-      "description": "Define core dashboard UI components, their prop contracts, and reusable patterns. Establish clear boundaries between presentational and container logic, and extract reusable hooks, compound components, and utility components to maximize reusability.",
-      "acceptance": [
-        "Core component primitives and prop interfaces identified for dashboards (cards, panels, charts, nav items, forms, modals, etc.)",
-        "Separation of presentational vs container logic with clearly defined data flow",
-        "Reusable custom hooks and compound components extracted and documented",
-        "Type-safe component APIs using TypeScript generics and discriminated unions for UI states",
-        "Conventions for accessibility (ARIA labeling, keyboard navigation) embedded in component contracts",
-        "Folder structure and naming conventions defined for scalability",
-        "Design-system tokens consumed by components and demonstrated in examples"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "Frontend UI components library and data contracts",
-        "interactions": [
-          "define interfaces",
-          "compose components",
-          "refactor into presentational/container patterns"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "technical-specifications",
-          "design-system-integration"
-        ]
-      },
-      "priority": 1
+      "id": "rs_68a7223dcc68819b90fed4d8822fcd7d0d365d6028f790c1",
+      "summary": [],
+      "type": "reasoning",
+      "encrypted_content": null,
+      "status": null
     },
     {
-      "id": "technical-specifications",
-      "title": "Technical Specifications",
-      "description": "Provide the technical blueprint for the React dashboard, including architecture, patterns, data fetching, type strategy, and deployment considerations. Ensure readiness for React 18+ features and SSR/SSG planning.",
-      "acceptance": [
-        "Adopt React 18+ features (Suspense, Error Boundaries, concurrent features) and clear guidance on their usage",
-        "Strong TypeScript guidance: generics, discriminated unions, and strict type safety across components/hooks",
-        "Defined architecture: file structure, module boundaries, and separation of concerns",
-        "Data fetching pattern using React Query or SWR with loading, error, and success states",
-        "Code splitting strategy using React.lazy and dynamic imports",
-        "Environment/config handling and feature flags guidance",
-        "Server Components readiness considerations and SSR/SSG alignment plan"
+      "id": "msg_68a72257dfa4819b8bf133e69f6cee760d365d6028f790c1",
+      "content": [
+        {
+          "annotations": [],
+          "text": "architecture = {\n  \"overview\": \"Production-ready React 18+ dashboard frontend with a feature-sliced-like modular architecture, emphasizing clear data flow, strong typing, accessibility, performance, and real-time capabilities.\",\n  \"core_principles\": [\n    \"Feature-Sliced / modular domain boundaries: each feature owns UI, domain data, and data access layers.\",\n    \"Unidirectional data flow: API/data layer -> UI components -> hooks/composers -> routes.\",\n    \"Type safety first: strict TS types, discriminated unions, generics, and runtime validation (zod-like).\",\n    \"React Query as single source of truth for server state; optimistic updates and proper error/loading states.\",\n    \"Code splitting and lazy loading: React.lazy with Suspense for route-level and component-level lazy loads.\",\n    \"Accessible by default: ARIA attributes, keyboard navigation, screen reader support, WCAG 2.1 AA targets.\",\n    \"Performance: virtualization for large lists, memoization, useMemo/useCallback, and careful re-renders.\",\n    \"Theming and styling: Tailwind CSS with optional CSS modules for component-scoped styles; dark mode support.\",\n    \"Offline & resilience: service workers for offline, localStorage fallbacks, and graceful degradation.\",\n    \"Security and trust: proper input sanitization, CSP guidance, and XSS mitigation patterns on the frontend.\",\n    \"Observability & reliability: wrapping boundaries, logging hooks, and structured error handling.\",\n    \"Internationalization: i18n with RTL/LTR support and dynamic text direction handling.\",\n    \"Data freshness: real-time updates via WebSocket, with cleanup on unmount and reconnection strategies.\",\n    \"Testing: unit tests with React Testing Library and integration tests; CI-ready test coverage.\",\n    \"SEO/SSG readiness: meta tags and structured data hooks to support SSR/SSG scenarios in future.\"\n  ],\n  \"data_flow\": {\n    \"client_side\": [\n      \"Auth state and UI config are provided via AppProviders.\",\n      \"UI components consume data through feature hooks (useChartData, useRealtime) which source data from React Query endpoints.\",\n      \"Dashboard components use data via props from parent containers or via feature-level contexts.\",\n      \"WebSocket/wsClient.ts pushes real-time updates to React Query caches or local state with optimistic UI patterns.\"\n    ],\n    \"server_side_considerations\": [\n      \"API client layer abstracts fetch logic; transform responses into strongly typed models.\",\n      \"Cache invalidation and optimistic updates align with mutation patterns in React Query.\"\n    ]\n  },\n  \"folders_and_files_pattern\": {\n    \"src/\": \"application root\",\n    \"src/app/\": \"providers, routing, theming hooks\",\n    \"src/features/\": \"domain features (authentication, dashboard, etc.)\",\n    \"src/shared/\": \"shared UI primitives, hooks, helpers\",\n    \"src/services/\": \"WebSocket/REST client clients\",\n    \"src/i18n/\": \"translations and i18n setup\",\n    \"src/types/\": \"shared TypeScript types\",\n    \"src/styles/\": \"global styles, Tailwind setup\"\n  },\n  \"tech_stack_decisions\": {\n    \"framework\": \"React 18+ with TypeScript\",\n    \"styling\": \"Tailwind CSS + optional CSS Modules for encapsulated tweaks\",\n    \"routing\": \"React Router v6\",\n    \"data_fetching\": \"React Query\",\n    \"charts\": \"Recharts (or Visx) with TS typings\",\n    \"real_time\": \"WebSocket with reconnection and cleanup\",\n    \"state_management\": \"Context + useReducer for app-wide slices; local state in components\",\n    \"i18n\": \"react-i18next\",\n    \"authentication\": \"token-based (stored securely); protected routes\",\n    \"testing\": \"React Testing Library + Jest\",\n    \"offline\": \"Service Worker (PWA) + localStorage fallbacks\",\n    \"SEO/SSR\": \"meta tags hook strategy for SSR/SSG readiness\",\n    \"code_splitting\": \"React.lazy() + dynamic imports\",\n    \"data_validation\": \"Zod-like runtime validation in API layer\",\n    \"accessibility\": \"ARB-compliant semantics, ARIA attributes, keyboard nav\",\n    \"security\": \"Input sanitization, CSP guidance, safe rendering\"\n  }\n}\n\nsections = [\n  {\n    \"file_to_implement\": \"src/app/providers/AppProviders.tsx\",\n    \"acceptance_criteria\": [\n      \"Exports a React component AppProviders that wraps children with: QueryClientProvider (React Query), ThemeProvider (dark/light), I18nProvider, and AuthProvider.\",\n      \"Initializes a global QueryClient with sensible defaults (staleTime, cacheTime, retry behavior) and Suspense-compatible settings.\",\n      \"Applies the initial theme (dark mode preference or system preference) and passes a toggle function via context for the UI.\",\n      \"Loads translation namespaces and provides i18n instance to children.\",\n      \"Error boundaries around child trees for resilience.\"\n    ],\n    \"implementation_steps\": [\n      \"Create AppProviders.tsx exporting a functional component AppProviders: interface Props { children: React.ReactNode }\",\n      \"Instantiate a QueryClient with defaultOptions: queries: { cacheTime: 1000 * 60 * 5; staleTime: 1000 * 60; refetchOnWindowFocus: false }; mutations: { retry: 1 }\",\n      \"Wrap children with QueryClientProvider\",\n      \"Provide Theme context: read from localStorage or system preference; implement ThemeProvider that toggles a 'dark' class on documentElement; expose toggleTheme via context\",\n      \"Initialize I18nProvider: create or reuse existing i18n instance; wrap with I18nextProvider; ensure fallback language and lazy-loaded namespaces\",\n      \"Attach AuthProvider: wraps with authentication state; ensure token is persisted in localStorage and available via context for API client\",\n      \"Add ErrorBoundary component wrapper around children\",\n      \"Export AppProviders as default with proper prop-types\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"DashboardPage.tsx and SignInForm.tsx rely on AppProviders for auth state and translations.\",\n        \"dashboardApi.ts and wsClient.ts use the QueryClientContext to perform data fetching.\",\n        \"Theme toggle from UI components updates ThemeProvider state.\"\n      ],\n      \"dependencies\": [\n        \"src/features/auth/context/AuthProvider.tsx\",\n        \"src/i18n/i18nProvider.tsx\",\n        \"src/features/dashboard/api/dashboardApi.ts\",\n        \"src/services/wsClient.ts\",\n        \"src/styles/ThemeProvider.tsx\"\n      ]\n    },\n    \"dependencies\": [\"@tanstack/react-query\", \"react-i18next\", \"i18next\", \"tailwindcss\", \"classnames\"],\n    \"priority\": \"high\"\n  },\n  {\n    \"file_to_implement\": \"src/app/routes/AppRoutes.tsx\",\n    \"acceptance_criteria\": [\n      \"Exports a router setup with two primary routes: /dashboard (protected) and /login (auth).\",\n      \"ProtectedRoute wrapper prevents access to /dashboard when not authenticated; redirects to /login.\",\n      \"Supports lazy loading for DashboardPage and SignInForm to enable code splitting.\",\n      \"Integrates with i18n for route-level titles and meta tags (SEO hooks).\",\n      \"Handles 404 fallback route.\"\n    ],\n    \"implementation_steps\": [\n      \"Create AppRoutes.tsx exporting AppRoutes component\",\n      \"Configure React Router v6: BrowserRouter, Routes, Route\",\n      \"Use React.lazy for DashboardPage and SignInPage components\",\n      \"Create ProtectedRoute component (or wrap via separate section) that reads auth state from context and redirects to /login when unauthenticated\",\n      \"Set up meta/title updates per route using a small hook (e.g., useSeo) that reads from route config\",\n      \"Add a 404 route\",\n      \"Export AppRoutes and ensure AppProviders wraps AppRoutes in the application root\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"App.tsx or index.tsx will render <AppProviders><AppRoutes/></AppProviders>\"\n      ],\n      \"dependencies\": [\"src/app/providers/AppProviders.tsx\", \"src/features/auth/context/AuthProvider.tsx\"]\n    },\n    \"dependencies\": [\"react-router-dom\", \"react\", \"typescript\"],\n    \"priority\": \"high\"\n  },\n  {\n    \"file_to_implement\": \"src/features/auth/context/AuthProvider.tsx\",\n    \"acceptance_criteria\": [\n      \"Provides AuthContext with fields: user, isAuthenticated, token, login, logout, refreshToken (optional).\",\n      \"login stores token securely (in memory and optionally localStorage) and updates isAuthenticated.\",\n      \"logout clears token and redirects to login via context usage.\",\n      \"Expose a hook useAuth() for components to read auth state and trigger login/logout.\"\n    ],\n    \"implementation_steps\": [\n      \"Create AuthContext with TypeScript interface { user?: User; token?: string; isAuthenticated: boolean; login: (credentials) => Promise<void>; logout: () => void }\",\n      \"Implement AuthProvider component that manages state via useReducer or useState; supports token refresh flow outline (no full server integration in this file).\",\n      \"Persist token to localStorage securely with a minimal data surface (only token string, not sensitive user data).\",\n      \"Implement login(payload) function that calls a placeholder API client (to be implemented in dashboardApi.ts) and stores token on success\",\n      \"Implement logout() to clear token and user data, and optionally clear localStorage\",\n      \"Provide useAuth() hook that returns context values and actions\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"AppProviders.tsx wraps with AuthProvider; SignInForm.tsx consumes useAuth() to perform login\",\n        \"dashboardApi.ts uses token from AuthContext to perform authenticated requests\"\n      ],\n      \"dependencies\": [\"src/app/providers/AppProviders.tsx\", \"src/features/auth/components/SignInForm.tsx\"]\n    },\n    \"dependencies\": [\"react\", \"typescript\", \"localforage\"/* optional */, \"zod\"/* for validation later */],\n    \"priority\": \"high\"\n  },\n  {\n    \"file_to_implement\": \"src/features/auth/components/SignInForm.tsx\",\n    \"acceptance_criteria\": [\n      \"Renders accessible login form with controlled inputs for email and password.\",\n      \"Real-time validation UI (email format, required fields) with inline error messages.\",\n      \"On submit, calls login from AuthContext; shows loading state; handles error with user-friendly message.\",\n      \"Supports keyboard navigation, aria-labels, and proper focus trapping within modal or container.\",\n      \"Dark-mode aware styling via Tailwind; responsive layout.\"\n    ],\n    \"implementation_steps\": [\n      \"Create SignInForm.tsx exporting a functional component\",\n      \"Use useAuth() to access login function and isLoading state\",\n      \"Implement local input state with validation using simple literals (email regex) or a tiny schema\",\n      \"Render input fields with aria-labels and error messages; disable submit if invalid\",\n      \"On submit, call login({ email, password }) and show a loading indicator\",\n      \"On success, redirect to /dashboard using navigate hook from react-router-dom\",\n      \"Ensure accessibility attributes: aria-invalid, aria-live, role=form\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"AppRoutes.tsx lazy-loaded route for /login renders SignInForm\",\n        \"AuthProvider.tsx supplies login() and token context\"\n      ],\n      \"dependencies\": [\"src/features/auth/context/AuthProvider.tsx\"]\n    },\n    \"dependencies\": [\"react-router-dom\", \"react\", \"typescript\"],\n    \"priority\": \"high\"\n  },\n  {\n    \"file_to_implement\": \"src/features/dashboard/pages/DashboardPage.tsx\",\n    \"acceptance_criteria\": [\n      \"Dashboard page composed of MetricCard widgets and ChartPanel, plus a RealTime ticker or list.\",\n      \"Uses React Query to fetch initial dashboard data and subscribes to real-time updates via useRealtime hook.\",\n      \"Includes a container that handles responsive grid layout with Tailwind utility classes and container queries.\",\n      \"Supports dark mode styling and ARIA roles for each major region.\",\n      \"Code-split via Suspense boundaries around heavy components.\"\n    ],\n    \"implementation_steps\": [\n      \"Create DashboardPage.tsx exporting a React component\",\n      \"Layout using a responsive Tailwind grid (e.g., grid-cols-1 md:grid-cols-2 lg:grid-cols-3)\",\n      \"Fetch initial data via dashboardApi.ts; render MetricCard and ChartPanel with the received data as props\",\n      \"Wrap heavy components with React.Suspense with a fallback (skeleton loaders)\",\n      \"Integrate useRealtime to push updates into local state or React Query cache\",\n      \"Ensure proper ARIA roles and landmarks; provide descriptive accessible labels for charts\",\n      \"Use memoization for derived data and ensure minimal re-renders\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"MetricCard.tsx and ChartPanel.tsx consume data from DashboardPage props or via a shared context\",\n        \"useRealtime.ts updates cache/state used by both charts and metrics\"\n      ],\n      \"dependencies\": [\"src/features/dashboard/api/dashboardApi.ts\", \"src/features/dashboard/hooks/useRealtime.ts\", \"src/features/dashboard/components/MetricCard.tsx\", \"src/features/dashboard/components/ChartPanel.tsx\"]\n    },\n    \"dependencies\": [\"react\", \"react-query\", \"tailwindcss\", \"recharts|visx\", \"typescript\"],\n    \"priority\": \"high\"\n  },\n  {\n    \"file_to_implement\": \"src/features/dashboard/components/MetricCard.tsx\",\n    \"acceptance_criteria\": [\n      \"A presentational card showing a metric value, delta, and small trend sparkline.\",\n      \"Accepts props with generic metric type: { id: string; label: string; value: number; delta?: number; trend?: number[] }\",\n      \"Supports dark mode and responsive sizing; uses memo to prevent unnecessary re-renders\",\n      \"Accessible with aria-label and roles; value is read by screen readers\"\n    ],\n    \"implementation_steps\": [\n      \"Create MetricCard.tsx as a memoized functional component\",\n      \"Define props type MetricCardProps<T> with discriminated union on metric kind if needed\",\n      \"Render title label, value with proper formatting (e.g., toLocaleString), delta indicator, and a tiny sparkline (SVG or small chart) \",\n      \"Add Tailwind classes for layout and theming; ensure responsive sizing\",\n      \"Add ARIA attributes: role='img' for sparkline with aria-label describing trend\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"DashboardPage passes metric data to MetricCard\",\n        \"useRealtime can update the value in a local cache that MetricCard reads via props\"\n      ],\n      \"dependencies\": [\"src/features/dashboard/components/ChartPanel.tsx\"]\n    },\n    \"dependencies\": [\"react\", \"typescript\"],\n    \"priority\": \"high\"\n  },\n  {\n    \"file_to_implement\": \"src/features/dashboard/components/ChartPanel.tsx\",\n    \"acceptance_criteria\": [\n      \"Renders a responsive chart (line or area chart) using a chart library (e.g., Recharts).\",\n      \"Accepts data prop: series data points [{ t: string|Date; y: number }].\",\n      \"Includes a caption and tooltip; supports dark/light themes.\",\n      \"Supports lazy loading with Suspense if the chart data is heavy.\",\n      \"Accessible with keyboard navigation and aria-labels.\"\n    ],\n    \"implementation_steps\": [\n      \"Create ChartPanel.tsx exporting a functional component\",\n      \"Define ChartPanelProps<T> with generic data type and optional config\",\n      \"Use Recharts (LineChart/AreaChart) to render the series; implement custom tooltip\",\n      \"Make chart responsive using width/height bindings; integrate with Tailwind container classes\",\n      \"Add optional skeleton loader while data is loading\",\n      \"Ensure aria-label on chart container and accessible tooltip content\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"DashboardPage passes data to ChartPanel\",\n        \"dashboardApi.ts provides initial data; useRealtime.ts can push updates into chart series\"\n      ],\n      \"dependencies\": [\"src/features/dashboard/hooks/useRealtime.ts\", \"src/features/dashboard/api/dashboardApi.ts\"]\n    },\n    \"dependencies\": [\"react\", \"recharts\", \"typesafe-ish generic TS types\"],\n    \"priority\": \"high\"\n  },\n  {\n    \"file_to_implement\": \"src/features/dashboard/hooks/useRealtime.ts\",\n    \"acceptance_criteria\": [\n      \"Establishes a WebSocket connection to receive live updates for dashboard metrics.\",\n      \"Exposes a React hook useRealtime that subscribes to updates and updates React Query caches or local state.\",\n      \"Handles reconnection, backoff, and cleanup on unmount.\",\n      \"Provides a simple API for components to consume real-time data via React Query data keys.\"\n    ],\n    \"implementation_steps\": [\n      \"Create useRealtime.ts exporting a hook that uses useEffect to open WebSocket to a given endpoint\",\n      \"On message, parse payload and update a React Query cache via queryClient.setQueryData or by dispatching to a reducer in a context\",\n      \"Implement cleanup: close socket on unmount, cancel timers\",\n      \"Expose a typed updatePayload that maps to the dashboard metric IDs\",\n      \"Provide error handling and reconnection strategy with exponential backoff\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"DashboardPage and MetricCard listen for data changes via React Query caches or via local state updated by WebSocket messages\",\n        \"AppProviders.tsx ensures QueryClient is available for updates\"\n      ],\n      \"dependencies\": [\"src/app/providers/AppProviders.tsx\", \"src/features/dashboard/api/dashboardApi.ts\"]\n    },\n    \"dependencies\": [\"websocket\", \"react-query\", \"typescript\"],\n    \"priority\": \"high\"\n  },\n  {\n    \"file_to_implement\": \"src/features/dashboard/api/dashboardApi.ts\",\n    \"acceptance_criteria\": [\n      \"Exports API client functions for dashboard data: fetchDashboardMetrics, fetchChartSeries, etc.\",\n      \"Uses a typed API client with runtime validation (e.g., zod) and error handling.\",\n      \"Includes a function to invalidate or refetch data via React Query (e.g., useQuery keys).\",\n      \"Attaches authentication token from AuthProvider via an interceptor (headers) when available.\"\n    ],\n    \"implementation_steps\": [\n      \"Create a TS module exporting fetchDashboardMetrics and fetchChartSeries functions returning typed data\",\n      \"Implement a generic fetchHelper with fetch + error normalization; validate responses with a simple type guard or runtime schema\",\n      \"Add an API client that reads token from local storage or an AuthContext hook to attach Authorization header\",\n      \"Expose a function to prefetch or invalidate via React Query's queryClient\",\n      \"Provide small mock data fallback for local development\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"DashboardPage uses fetchDashboardMetrics to render metrics\",\n        \"ChartPanel uses fetchChartSeries for its data\",\n        \"useRealtime.ts may update React Query caches on real-time events\"\n      ],\n      \"dependencies\": [\"src/features/dashboard/hooks/useRealtime.ts\", \"src/app/providers/AppProviders.tsx\"]\n    },\n    \"dependencies\": [\"@tanstack/react-query\", \"typescript\", \"zod\" (optional)]\n    ,\n    \"priority\": \"high\"\n  },\n  {\n    \"file_to_implement\": \"src/services/wsClient.ts\",\n    \"acceptance_criteria\": [\n      \"Provides a small WebSocket client utility with connect, subscribe, unsubscribe, and cleanup.\",\n      \"Exposes a function createWebSocket(url) returning an object with onMessage callback registration.\",\n      \"Handles automatic reconnection and exponential backoff.\",\n      \"Integrates with global cleanup on app shutdown.\"\n    ],\n    \"implementation_steps\": [\n      \"Create wsClient.ts exporting a wrapper around WebSocket with events\",\n      \"Provide a type for message payloads and a generic onMessage handler\",\n      \"Implement connect(url) returning a client instance with addListener/removeListener\",\n      \"Add reconnection logic using exponential backoff and a max retry cap\",\n      \"Expose a terminate() method for cleanup\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"useRealtime.ts uses wsClient to establish a real-time feed\",\n        \"dashboardApi.ts may forward real-time payloads into React Query caches\"\n      ],\n      \"dependencies\": [\"src/features/dashboard/hooks/useRealtime.ts\"]\n    },\n    \"dependencies\": [\"typescript\", \"no external libs required\"],\n    \"priority\": \"medium\"\n  },\n  {\n    \"file_to_implement\": \"src/shared/hooks/useVirtualizedList.ts\",\n    \"acceptance_criteria\": [\n      \"Exports a hook to render a virtualized list (for large dashboards), using react-window or similar.\",\n      \"Supports a renderItem function, itemSize, and dynamic height with window scrolling.\",\n      \"Works with React 18, TypeScript, and memoized item renderer to minimize re-renders.\",\n      \"Integrates with intersection observer for lazy loading optional list items.\"\n    ],\n    \"implementation_steps\": [\n      \"Implement useVirtualizedList<T>(items: T[], itemHeight: number, renderItem: (item: T, index: number) => ReactNode) returning a virtualized list component\",\n      \"Use react-window's VariableSizeList or FixedSizeList depending on item size consistency\",\n      \"Expose an API to set overscan and scrolling handlers\",\n      \"Add an optional IntersectionObserver fallback to prefetch data when items near viewport\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"DashboardPage or MetricCard can render large data lists via this hook\",\n        \"Ensure types align with data shape used in metrics or logs list\"\n      ],\n      \"dependencies\": [\"react-window\", \"react\", \"typescript\"],\n    },\n    \"dependencies\": [\"react-window\"],\n    \"priority\": \"medium\"\n  },\n  {\n    \"file_to_implement\": \"src/i18n/i18nProvider.tsx\",\n    \"acceptance_criteria\": [\n      \"Exports I18nProvider component that initializes i18n (i18next) and wraps children with I18nextProvider.\",\n      \"Supports dynamic namespaces loading and RTL/LTR direction handling.\",\n      \"Provides a hook for changing language at runtime.\"\n    ],\n    \"implementation_steps\": [\n      \"Create i18nProvider.tsx exporting I18nProvider\",\n      \"Configure i18next with resources (placeholder translations) and language detector\",\n      \"Wrap children with I18nextProvider and pass the t function via hooks\",\n      \"Implement a small LanguageSwitcher component concept to be consumed by UI (or expose setLanguage via context)\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"AppProviders.tsx wraps App with I18nProvider\",\n        \"Dashboard UI calls useTranslation hooks for text\"\n      ],\n      \"dependencies\": [\"src/app/providers/AppProviders.tsx\"]\n    },\n    \"dependencies\": [\"react-i18next\", \"i18next\", \"typescript\"],\n    \"priority\": \"medium\"\n  },\n  {\n    \"file_to_implement\": \"src/styles/ThemeProvider.tsx\",\n    \"acceptance_criteria\": [\n      \"Exports ThemeProvider handling dark/light mode with Tailwind classes on root element.\",\n      \"Exposes a hook useTheme to toggle theme and persists preference to localStorage.\",\n      \"Applies data-theme attribute or class to html/body for Tailwind's dark mode utility.\",\n      \"Accessible toggle button semantics with ARIA labels.\"\n    ],\n    \"implementation_steps\": [\n      \"Create ThemeProvider.tsx exporting a React context ThemeContext\",\n      \"Implement toggleTheme function and store preference in localStorage\",\n      \"On mount, read system preference and persisted user preference to determine initial theme\",\n      \"Apply 'dark' class on document.documentElement or use data-theme attribute for Tailwind\",\n      \"Provide useTheme() hook for toggling theme\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"AppProviders.tsx uses ThemeProvider to wrap app\",\n        \"UI components rely on Tailwind dark mode classes\"\n      ],\n      \"dependencies\": [\"src/app/providers/AppProviders.tsx\"]\n    },\n    \"dependencies\": [\"typescript\", \"tailwindcss\"],\n    \"priority\": \"medium\"\n  },\n  {\n    \"file_to_implement\": \"src/utils/seo/meta.ts\",\n    \"acceptance_criteria\": [\n      \"Exports a small helper to set page title and meta description in components.\",\n      \"Supports simple structured data injection possibility (JSON-LD) via a renderable object.\",\n      \"Integrates with router or per-page components to update SEO metadata.\"\n    ],\n    \"implementation_steps\": [\n      \"Create meta.ts exporting setMeta(pageTitle: string, description?: string, schema?: object)\",\n      \"Implement a simple SEO component that uses document.title and sets meta description tag\",\n      \"If schema is provided, render a script tag with type application/ld+json\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"DashboardPage.tsx calls setMeta for the dashboard page\",\n        \"AppRoutes or SignInForm can set their own meta as needed\"\n      ],\n      \"dependencies\": []\n    },\n    \"dependencies\": [\"typescript\"],\n    \"priority\": \"low\"\n  },\n  {\n    \"file_to_implement\": \"src/types/index.ts\",\n    \"acceptance_criteria\": [\n      \"Exports shared TS types used across features: User, ApiResponse, Metric, ChartPoint, AppRouteConfig, etc.\",\n      \"Uses discriminated unions where appropriate to differentiate data shapes (e.g., success vs error).\",\n      \"Includes generic types for API responses and data adapters.\"\n    ],\n    \"implementation_steps\": [\n      \"Create src/types/index.ts exporting interface User { id, email, name } and type ApiResponse<T> = { ok: boolean; data?: T; error?: string }\",\n      \"Define Metric and ChartPoint types\",\n      \"Define AppRouteConfig discriminated union type for route configurations\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"dashboardApi.ts and components use these types\",\n        \"AuthProvider and useRealtime rely on User and token shapes\"\n      ],\n      \"dependencies\": []\n    },\n    \"dependencies\": [\"typescript\"],\n    \"priority\": \"high\"\n  },\n  {\n    \"file_to_implement\": \"src/features/dashboard/pages/DashboardPage.tsx (alternative path if you prefer dedicated page folder)\",\n    \"acceptance_criteria\": [\n      \"This is a cohesive page component that composes MetricCard, ChartPanel, and RealTimeTicker components.\",\n      \"Data is sourced via useQuery from dashboardApi.ts and updated by useRealtime.ts\",\n      \"Layout supports a responsive grid and includes section headings with appropriate ARIA landmarks.\"\n    ],\n    \"implementation_steps\": [\n      \"Create the DashboardPage.tsx with a grid layout using Tailwind classes\",\n      \"Invoke useQuery from React Query to fetch initial dashboard data\",\n      \"Render MetricCard components for each metric and a ChartPanel for trend data\",\n      \"Include a RealTimeTicker or activity bar for live updates\",\n      \"Wrap with Suspense or local loading placeholders while data loads\"\n    ],\n    \"integration_points\": {\n      \"consumers\": [\n        \"AppRoutes.tsx routes to this page\",\n        \"dashboardApi.ts supplies initial data\"\n      ],\n      \"dependencies\": [\"src/features/dashboard/api/dashboardApi.ts\", \"src/features/dashboard/components/MetricCard.tsx\", \"src/features/dashboard/components/ChartPanel.tsx\"]\n    ],\n    \"dependencies\": [\"react\", \"react-query\", \"tailwindcss\", \"typescript\"],\n    \"priority\": \"high\"\n  }\n]\n\nfinal_plan_summary = \"\"\"\nDevelopment plan spans 3 iterations (as per max_iterations). \nIteration 1 focuses on foundational architecture, authentication scaffold, and the dashboard shell with core components (MetricCard, ChartPanel) wired to API client and basic real-time hook. \nIteration 2 adds real-time polish (WebSocket client, useRealtime), virtualization for large data lists, and performance hardening (memoization, code-splitting). \nIteration 3 introduces accessibility hardening, offline capabilities (service worker), i18n completeness, tests scaffolding, and logging/analytics hooks.\n\nNotes:\n- Each file section above is designed to be independently developable yet integrates through the described dependencies and integration points.\n- If you want, I can generate starter code blocks for each file in a follow-up pass.\n- Ensure your CI runs TypeScript strict checks, lint rules, and tests for each file as part of iteration gates.\n\"\"\"\n\n# End of plan summary\n\n",
+          "type": "output_text",
+          "logprobs": []
+        }
       ],
-      "prompt_context": {
-        "component_type": "technical-spec",
-        "data_model": "Frontend architecture contracts and API payload types",
-        "interactions": [
-          "define patterns",
-          "specify types",
-          "outline SSR/SSG readiness"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "component-requirements",
-          "design-system-integration",
-          "state-management"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "design-system-integration",
-      "title": "Design System Integration",
-      "description": "Align components with a Tailwind-based design system: tokens for color/typography/spacing, component API conventions, accessibility patterns, and responsive design enhancements (container queries, fluid typography).",
-      "acceptance": [
-        "Tailwind design tokens wired into components (colors, typography, spacing, radii)",
-        "Shared design system catalog and token-driven API for components",
-        "Reusable, accessible UI primitives documented for consumption by dashboards",
-        "Container queries and responsive typography integrated in the design system",
-        "Guidance on style encapsulation while leveraging Tailwind (and optional CSS modules or CSS-in-JS if used)"
-      ],
-      "prompt_context": {
-        "component_type": "design-system",
-        "data_model": "Design tokens and UI primitives",
-        "interactions": [
-          "define tokens",
-          "consume design system in components",
-          "document design-system usage"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "technical-specifications"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "state-management",
-      "title": "State Management",
-      "description": "Define state ownership, global vs local state, context usage, and reducer patterns. Establish data flow rules and integrate with server state management where applicable.",
-      "acceptance": [
-        "Clear delineation of local, global, and server state with ownership rules",
-        "Context API with well-typed slices and reducers (prefer discriminated unions)",
-        "Custom hooks to access and mutate state with minimal prop drilling",
-        "Guidance for lifting state and composing stateful components",
-        "Server state management patterns using React Query/SWR with caching and invalidation strategies"
-      ],
-      "prompt_context": {
-        "component_type": "state-management",
-        "data_model": "UI state contracts and data-fetching contracts",
-        "interactions": [
-          "lift state",
-          "provide context",
-          "define reducers"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "component-requirements",
-          "technical-specifications",
-          "performance-considerations"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "error-handling",
-      "title": "Error Handling",
-      "description": "Implement robust error handling strategies, including error boundaries, fallback UIs, and recovery workflows with logging and user-friendly messages.",
-      "acceptance": [
-        "React Error Boundaries with well-designed fallback UIs and recovery paths",
-        "Centralized error logging/reporting hooks and integration points",
-        "User-friendly error messages with ARIA attributes for accessibility",
-        "Test coverage for error scenarios and boundary behavior"
-      ],
-      "prompt_context": {
-        "component_type": "error-handling",
-        "data_model": "Error states across components",
-        "interactions": [
-          "catch-errors",
-          "render-fallback",
-          "log-errors"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "technical-specifications",
-          "testing-guidelines"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "performance-considerations",
-      "title": "Performance Considerations",
-      "description": "Outline performance-oriented practices to optimize Core Web Vitals, including code-splitting, memoization, virtualization, and caching strategies.",
-      "acceptance": [
-        "Code-splitting with React.lazy and dynamic imports for large dashboards",
-        "Memoization: React.memo, useMemo, useCallback to minimize re-renders",
-        "Virtualization for large lists and supportive infinite scrolling patterns",
-        "IntersectionObserver-driven lazy loading and scroll-triggered animations",
-        "Data caching and optimistic UI updates with proper invalidation",
-        "Guidance on asset optimization and responsive image handling"
-      ],
-      "prompt_context": {
-        "component_type": "performance-optimization",
-        "data_model": "Performance metrics and bundle size targets",
-        "interactions": [
-          "analyze",
-          "instrument",
-          "optimize"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "technical-specifications",
-          "testing-guidelines"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "accessibility-requirements",
-      "title": "Accessibility Requirements",
-      "description": "Ensure WCAG 2.1 AA compliance through semantic HTML, ARIA labeling, keyboard navigation, and screen reader support across components.",
-      "acceptance": [
-        "WCAG 2.1 AA conformance support in all interactive components",
-        "Accessible name/role/state semantics with proper ARIA attributes",
-        "Keyboard-only navigation, focus management, and skip links",
-        "Screen reader-friendly labels and announcements for dynamic changes",
-        "Accessibility testing guidance and checks embedded in development process"
-      ],
-      "prompt_context": {
-        "component_type": "accessibility",
-        "data_model": "Accessible UI contracts",
-        "interactions": [
-          "audit",
-          "implement ARIA",
-          "validate accessibility"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "design-system-integration",
-          "testing-guidelines"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "testing-guidelines",
-      "title": "Testing Guidelines",
-      "description": "Define testing strategy, tooling, and coverage targets for components, hooks, and integration flows. Include RTL-oriented tests, accessibility checks, and CI integration.",
-      "acceptance": [
-        "Unit tests for components and hooks using React Testing Library",
-        "Integration tests for key state flows and data fetching",
-        "Defined test coverage targets and mocking strategies",
-        "Accessibility tests and automated checks incorporated into CI",
-        "Clear guidance for test data, fixtures, and environment setup"
-      ],
-      "prompt_context": {
-        "component_type": "testing",
-        "data_model": "Test contracts for UI components and hooks",
-        "interactions": [
-          "define test strategy",
-          "write sample tests"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "technical-specifications",
-          "accessibility-requirements"
-        ]
-      },
-      "priority": 2
+      "role": "assistant",
+      "status": "completed",
+      "type": "message"
     }
-  ]
+  ],
+  "parallel_tool_calls": true,
+  "temperature": 1.0,
+  "tool_choice": "auto",
+  "tools": [],
+  "top_p": 1.0,
+  "background": false,
+  "max_output_tokens": null,
+  "previous_response_id": null,
+  "prompt": null,
+  "reasoning": {
+    "effort": "medium",
+    "generate_summary": null,
+    "summary": null
+  },
+  "service_tier": "default",
+  "status": "completed",
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 1100,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 9789,
+    "output_tokens_details": {
+      "reasoning_tokens": 3776
+    },
+    "total_tokens": 10889
+  },
+  "user": null,
+  "max_tool_calls": null,
+  "prompt_cache_key": null,
+  "safety_identifier": null,
+  "store": true,
+  "top_logprobs": 0
 }

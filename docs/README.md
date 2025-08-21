@@ -332,7 +332,7 @@ Analysis → Condition (quality > 80)
 
 ### Getting Help
 
-- Check example diagrams in `files/diagrams/examples/`
+- Check example diagrams in `examples/`
 - Review the logs in Execution Mode
 - Experiment with memory profiles
 - Start with working examples and modify

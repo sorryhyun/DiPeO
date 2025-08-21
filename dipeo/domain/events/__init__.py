@@ -26,8 +26,16 @@ from .contracts import (
     node_error,
 )
 
-from .ports import DomainEventBus, EventHandler, EventSubscription, EventEmitter, EventConsumer, MessageBus
+from .ports import DomainEventBus, EventHandler, EventSubscription, EventEmitter, EventConsumer, MessageBus, EventFilter
 from .types import EventType, EventPriority, EventVersion
+from .publisher import EventPublisher
+from .filters import (
+    ExecutionScopeFilter,
+    NodeScopeFilter,
+    EventTypeFilter,
+    CompositeFilter,
+    SubDiagramFilter,
+)
 
 __all__ = [
     # Core contracts
@@ -61,8 +69,17 @@ __all__ = [
     "EventEmitter",
     "EventConsumer",
     "MessageBus",
+    "EventFilter",
     # Types
     "EventType",
     "EventPriority",
     "EventVersion",
+    # Publisher
+    "EventPublisher",
+    # Filters
+    "ExecutionScopeFilter",
+    "NodeScopeFilter",
+    "EventTypeFilter",
+    "CompositeFilter",
+    "SubDiagramFilter",
 ]

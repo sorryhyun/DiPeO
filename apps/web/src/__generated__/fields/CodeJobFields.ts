@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for code_job
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -29,7 +21,7 @@ export const codeJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'filePath',
     type: 'text',
-    label: 'File Path',
+    label: 'Filepath',
     required: false,
     placeholder: '/path/to/file',
     description: 'Path to code file',
@@ -46,7 +38,7 @@ export const codeJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'functionName',
     type: 'text',
-    label: 'Function Name',
+    label: 'Functionname',
     required: false,
     description: 'Function to execute',
   },

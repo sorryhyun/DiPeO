@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated node configuration for db
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
@@ -26,8 +18,6 @@ export const dbConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    serialize_json: false,
-    format: 'json',
   },
   customFields: dbFields,
   primaryDisplayField: 'operation',

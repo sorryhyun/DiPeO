@@ -64,7 +64,7 @@ class ExecutionSettings(BaseSettings):
         description="Per-node execution timeout in seconds"
     )
     parallelism: int = Field(
-        default=4,
+        default=15,
         env="DIPEO_EXECUTION_PARALLELISM",
         description="Maximum parallel node executions"
     )
@@ -142,7 +142,7 @@ class ServerSettings(BaseSettings):
         description="Server port"
     )
     workers: int = Field(
-        default=1,
+        default=2,
         env="DIPEO_WORKERS",
         description="Number of server workers"
     )
@@ -181,12 +181,12 @@ class StorageSettings(BaseSettings):
         description="Logs directory (relative to base_dir)"
     )
     temp_dir: str = Field(
-        default=".temp",
+        default="temp",
         env="DIPEO_TEMP_DIR",
         description="Temporary files directory (relative to base_dir)"
     )
     diagrams_dir: str = Field(
-        default="files/diagrams",
+        default="examples",
         env="DIPEO_DIAGRAMS_DIR",
         description="Diagrams directory (relative to base_dir)"
     )

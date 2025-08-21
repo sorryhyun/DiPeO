@@ -7,7 +7,57 @@ from typing import Any, Dict, List
 import sys
 import os
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
-from dipeo.infrastructure.parsers.typescript.type_transformer import map_ts_type_to_python
+from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python
+
+
+def extract_specs_from_combined_data(node_data_input: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """Extract specs data from the combined input that includes both data and spec files."""
+    specs_by_node_type = {}
+    
+    # Handle wrapped inputs
+    if 'default' in node_data_input and isinstance(node_data_input['default'], dict):
+        glob_results = node_data_input['default']
+    else:
+        glob_results = node_data_input
+    
+    
+    for filepath, ast_data in glob_results.items():
+        # Skip special keys
+        if filepath in ['default', 'inputs', 'node_id', 'node_data']:
+            continue
+        
+        # Check if this is a spec file
+        if not filepath.endswith('.spec.ts.json'):
+            continue
+        
+        # Parse AST data if string
+        if isinstance(ast_data, str):
+            ast_data = json.loads(ast_data)
+        
+        # Extract specs from constants
+        for const in ast_data.get('constants', []):
+            name = const.get('name', '')
+            if name.endswith('Spec') or name.endswith('spec'):
+                spec_value = const.get('value', {})
+                if isinstance(spec_value, dict) and 'nodeType' in spec_value:
+                    # Clean up nodeType
+                    node_type = spec_value.get('nodeType', '')
+                    node_type = node_type.replace('NodeType.', '').replace('"', '').lower()
+                    node_type = node_type.replace('-', '_')
+                    
+                    # Create field lookup by name for easy access
+                    fields_by_name = {}
+                    for field in spec_value.get('fields', []):
+                        field_name = field.get('name')
+                        if field_name:
+                            fields_by_name[field_name] = field
+                    
+                    specs_by_node_type[node_type] = {
+                        'spec': spec_value,
+                        'fields_by_name': fields_by_name
+                    }
+    
+    return specs_by_node_type
 
 
 def get_python_type(ts_type: str, is_optional: bool, ts_to_py_type: dict) -> str:
@@ -25,14 +75,26 @@ def get_python_type(ts_type: str, is_optional: bool, ts_to_py_type: dict) -> str
     
     # Handle special cases that need custom processing
     
-    # Handle string literal unions
-    if ("'" in clean_type or '"' in clean_type) and '|' in clean_type:
-        literals = []
-        for lit in clean_type.split('|'):
-            cleaned = lit.strip().replace("'", '').replace('"', '')
-            literals.append(f'"{cleaned}"')
-        literal_type = f"Literal[{', '.join(literals)}]"
-        return f"Optional[{literal_type}]" if is_optional else literal_type
+    # First check if this is a complex object type (has TypeScript object syntax)
+    # These should be converted to Dict[str, Any]
+    if (clean_type.startswith('{') or 
+        '/**' in clean_type or '//' in clean_type or
+        ('\n' in clean_type and ':' in clean_type)):
+        # This is a TypeScript object type with comments or multiline definition
+        dict_type = 'Dict[str, Any]'
+        return f"Optional[{dict_type}]" if is_optional else dict_type
+    
+    # Handle string literal unions (but not object types)
+    if ("'" in clean_type or '"' in clean_type) and '|' in clean_type and not clean_type.startswith('{'):
+        # Only process as literal union if it's not an object type
+        # and doesn't contain TypeScript comments
+        if '/**' not in clean_type and '//' not in clean_type:
+            literals = []
+            for lit in clean_type.split('|'):
+                cleaned = lit.strip().replace("'", '').replace('"', '')
+                literals.append(f'"{cleaned}"')
+            literal_type = f"Literal[{', '.join(literals)}]"
+            return f"Optional[{literal_type}]" if is_optional else literal_type
     
     # Use infrastructure's type transformer for standard types
     try:
@@ -52,25 +114,19 @@ def get_python_type(ts_type: str, is_optional: bool, ts_to_py_type: dict) -> str
     except Exception:
         # Fallback for complex types the infrastructure can't handle
         
-        # Handle object literal types (e.g., { field: type; ... })
-        if clean_type.startswith('{'):
-            # Check if it looks like an object type by looking for common patterns
-            if (':' in clean_type or '?' in clean_type or ';' in clean_type or 
-                '//' in clean_type or '/*' in clean_type):
-                dict_type = 'Dict[str, Any]'
-                return f"Optional[{dict_type}]" if is_optional else dict_type
-        
         # If nothing matched, return the original type (might be a custom type)
-        # Handle optional wrapping
+        # Handle optional wrapping for remaining types
         if is_optional and not clean_type.startswith('Optional['):
             return f"Optional[{clean_type}]"
         
         return clean_type
 
 
-def extract_static_nodes_data(ast_data: dict, mappings: dict) -> dict:
+def extract_static_nodes_data(ast_data: dict, mappings: dict, specs_by_node_type: dict = None) -> dict:
     """Extract static node data from TypeScript AST"""
     interfaces = ast_data.get('interfaces', [])
+    if specs_by_node_type is None:
+        specs_by_node_type = {}
     
     # Get mappings
     node_interface_map = mappings.get('node_interface_map', {})
@@ -143,10 +199,56 @@ def extract_static_nodes_data(ast_data: dict, mappings: dict) -> dict:
             }
             
             # Handle default values
+            # First check for special handling defaults
             if 'default' in field_special:
                 field_data['has_default'] = True
                 field_data['default_value'] = field_special['default']
                 field_data['is_field_default'] = 'field(' in field_special['default']
+            # Check for defaultValue from specs
+            elif node_type in specs_by_node_type:
+                spec_fields = specs_by_node_type[node_type].get('fields_by_name', {})
+                spec_field = spec_fields.get(ts_name, {})
+                if 'defaultValue' in spec_field and spec_field['defaultValue'] is not None:
+                    field_data['has_default'] = True
+                    # Convert TypeScript default to Python default
+                    ts_default = spec_field['defaultValue']
+                    if isinstance(ts_default, bool):
+                        field_data['default_value'] = str(ts_default)
+                        field_data['is_field_default'] = False
+                    elif isinstance(ts_default, (int, float)):
+                        field_data['default_value'] = str(ts_default)
+                        field_data['is_field_default'] = False
+                    elif isinstance(ts_default, str):
+                        field_data['default_value'] = f'"{ts_default}"'
+                        field_data['is_field_default'] = False
+                    elif isinstance(ts_default, list):
+                        # Handle list defaults with field(default_factory=...)
+                        field_data['default_value'] = f'field(default_factory=lambda: {ts_default})'
+                        field_data['is_field_default'] = True
+                    else:
+                        field_data['default_value'] = str(ts_default)
+                        field_data['is_field_default'] = False
+            # Check for defaultValue from TypeScript interface (fallback)
+            elif 'defaultValue' in prop and prop['defaultValue'] is not None:
+                field_data['has_default'] = True
+                # Convert TypeScript default to Python default
+                ts_default = prop['defaultValue']
+                if isinstance(ts_default, bool):
+                    field_data['default_value'] = str(ts_default)
+                    field_data['is_field_default'] = False
+                elif isinstance(ts_default, (int, float)):
+                    field_data['default_value'] = str(ts_default)
+                    field_data['is_field_default'] = False
+                elif isinstance(ts_default, str):
+                    field_data['default_value'] = f'"{ts_default}"'
+                    field_data['is_field_default'] = False
+                elif isinstance(ts_default, list):
+                    # Handle list defaults with field(default_factory=...)
+                    field_data['default_value'] = f'field(default_factory=lambda: {ts_default})'
+                    field_data['is_field_default'] = True
+                else:
+                    field_data['default_value'] = str(ts_default)
+                    field_data['is_field_default'] = False
             elif is_optional:
                 field_data['has_default'] = True
                 field_data['default_value'] = 'None'
@@ -201,12 +303,16 @@ def generate_static_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
     # Extract base interface
     base_interface = base_data.get('base_interface')
     
-    # The node_data_input contains the output from extract_node_data_from_ast
+    # The node_data_input contains the output from extract_node_data_from_glob
     # which returns {'node_data': {...}} so we need to unwrap it
     if 'node_data' in node_data_input:
         actual_node_data = node_data_input['node_data']
     else:
         actual_node_data = node_data_input
+    
+    # Also extract specs data to get defaultValues
+    # The specs are loaded alongside node data files now
+    specs_by_node_type = extract_specs_from_combined_data(node_data_input)
     
     # Convert node_data to parsed_nodes format
     parsed_nodes = []
@@ -246,6 +352,6 @@ def generate_static_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'base_interface': base_interface
     }
     
-    # Run the static nodes extractor
-    result = extract_static_nodes_data(combined_ast, mappings)
+    # Run the static nodes extractor (now with specs for defaultValues)
+    result = extract_static_nodes_data(combined_ast, mappings, specs_by_node_type)
     return result

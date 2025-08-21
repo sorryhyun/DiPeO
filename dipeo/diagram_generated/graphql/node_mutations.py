@@ -1,16 +1,8 @@
-
-
-
-
-
-
-
-
 """
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-08-18T11:04:27.671418
+Generated at: 2025-08-21T18:30:22.397495
 """
 
 import strawberry
@@ -326,7 +318,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -356,7 +348,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -394,7 +386,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -424,7 +416,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -462,7 +454,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -492,7 +484,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -530,7 +522,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -560,7 +552,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -598,7 +590,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -628,7 +620,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -666,7 +658,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -696,7 +688,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -734,7 +726,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -764,7 +756,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -802,7 +794,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -832,7 +824,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -870,7 +862,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -900,7 +892,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -938,7 +930,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -968,7 +960,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -1006,7 +998,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -1036,7 +1028,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -1074,7 +1066,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -1104,7 +1096,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -1142,7 +1134,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -1172,7 +1164,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -1210,7 +1202,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -1240,7 +1232,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(
@@ -1278,7 +1270,7 @@ class NodeMutations:
         }
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Create the node
         domain_node = await integrated_service.create_node(
@@ -1308,7 +1300,7 @@ class NodeMutations:
         
         
         # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_SERVICE)
+        integrated_service = registry.resolve(DIAGRAM_PORT)
         
         # Update the node
         domain_node = await integrated_service.update_node(

@@ -12,7 +12,7 @@ from pathlib import Path
 import sys
 import os
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
-from dipeo.infrastructure.parsers.typescript.type_transformer import map_ts_type_to_python
+from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python
 
 
 def load_query_definitions(ast_cache: Dict[str, Any]) -> List[Dict[str, Any]]:

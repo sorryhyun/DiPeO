@@ -10,7 +10,7 @@ from dipeo.diagram_generated import ExecutionOptions
 from dipeo.domain.execution.execution_context import ExecutionContext
 from .typed_engine import TypedExecutionEngine
 from .use_cases import ExecuteDiagramUseCase
-from .observer_protocol import ExecutionObserver
+from .observers import MetricsObserver
 
 __all__ = [
     "TypedExecutionEngine",
@@ -19,10 +19,11 @@ __all__ = [
     # Types
     "ExecutionContext",
     "ExecutionOptions",
-    "ExecutionObserver",
     # Handlers
     "TypedNodeHandler",
     "HandlerRegistry",
     "register_handler",
     "get_global_registry",
+    # Observers
+    "MetricsObserver",
 ]

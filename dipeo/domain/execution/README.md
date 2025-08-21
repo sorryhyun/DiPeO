@@ -259,6 +259,34 @@ def get_parallel_groups(self) -> list[set[NodeID]]:
     return groups
 ```
 
+### 4. Runtime Input Resolution (`resolution/`)
+
+Handles runtime resolution of node inputs during execution:
+
+**Components:**
+- `api.py` - Main entry point `resolve_inputs()` for resolving all inputs
+- `runtime_resolver.py` - `RuntimeInputResolver` interface for custom resolvers
+- `transformation_engine.py` - `TransformationEngine` for applying data transformations
+- `node_strategies.py` - Node-type-specific resolution strategies (PersonJob, Condition, etc.)
+- `data_structures.py` - Value objects like `InputResolutionContext`, `ValidationResult`
+- `selectors.py` - Edge selection logic for determining which inputs are ready
+- `defaults.py` - Default value application for missing inputs
+- `errors.py` - Resolution-specific exceptions
+
+**Key Features:**
+- Resolves actual values from executed nodes
+- Applies transformation rules at runtime
+- Handles special inputs (iteration counts, diagram info)
+- Supports spread/pack modes for data flow
+- Node-specific strategies for custom behavior
+
+```python
+from dipeo.domain.execution.resolution import resolve_inputs
+
+# Called by handlers during execution
+inputs = resolve_inputs(node, diagram, execution_context)
+```
+
 ## Business Rules
 
 ### Node Type Rules
@@ -557,7 +585,7 @@ def test_execution_flow():
 **Internal:**
 - `dipeo.diagram_generated` - Generated node types
 - `dipeo.domain.diagram.models` - Diagram models
-- `dipeo.domain.diagram.resolution` - Input resolution system
+- `dipeo.domain.diagram.compilation` - Compile-time resolution interfaces
 - `dipeo.domain.events` - Event contracts (consolidated from messaging)
 
 **External:**

@@ -96,7 +96,7 @@ people:
 
 Execute diagrams with Claude Code agents:
 ```bash
-dipeo run files/diagrams/test/test_claude_code --light --debug
+dipeo run examples/test_claude_code --light --debug
 ```
 
 ## Troubleshooting

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for template_job
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -13,7 +5,7 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'template_path',
     type: 'text',
-    label: 'Template Path',
+    label: 'Template path',
     required: false,
     placeholder: '/path/to/file',
     description: 'Path to template file',
@@ -21,7 +13,7 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'template_content',
     type: 'textarea',
-    label: 'Template Content',
+    label: 'Template content',
     required: false,
     placeholder: 'Enter template content...',
     description: 'Inline template content',
@@ -31,7 +23,7 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
   {
     name: 'output_path',
     type: 'text',
-    label: 'Output Path',
+    label: 'Output path',
     required: false,
     placeholder: '/path/to/file',
     description: 'Output file path',

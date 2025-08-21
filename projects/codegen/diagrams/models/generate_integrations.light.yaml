@@ -11,15 +11,6 @@ nodes:
       custom_data:
         message: Starting integration models generation
 
-  # Run batch parser if cache doesn't exist
-  - label: Parse TypeScript Batch
-    type: sub_diagram
-    position: {x: 200, y: 200}
-    props:
-      diagram_name: projects/codegen/diagrams/shared/parse_typescript_batch_direct
-      diagram_format: light
-      passInputData: false
-      ignoreIfSub: true
 
   # Load cached integration AST data
   - label: Load Integration AST
@@ -59,11 +50,8 @@ nodes:
       save_to_file: false
 
 connections:
-  # Run batch parser first
-  - {from: Start, to: Parse TypeScript Batch}
-    
   # Load cached AST after parsing
-  - {from: Parse TypeScript Batch, to: Load Integration AST, content_type: object}
+  - {from: Start, to: Load Integration AST, content_type: object}
 
   # Extract definitions from cached AST
   - {from: Load Integration AST, to: Extract Integrations, content_type: object}

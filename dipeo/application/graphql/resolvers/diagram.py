@@ -4,9 +4,9 @@ import logging
 from typing import Optional, List
 
 from dipeo.application.registry import ServiceRegistry
-from dipeo.application.registry.keys import DIAGRAM_SERVICE
+from dipeo.application.registry.keys import DIAGRAM_PORT
 from dipeo.diagram_generated.domain_models import DiagramID, DomainDiagram
-from dipeo.domain.ports.storage import DiagramInfo
+from dipeo.domain.base.storage_port import DiagramInfo
 
 from ..types.inputs import DiagramFilterInput
 
@@ -22,7 +22,7 @@ class DiagramResolver:
     async def get_diagram(self, id: DiagramID) -> Optional[DomainDiagram]:
         """Get a single diagram by ID."""
         try:
-            service = self.registry.resolve(DIAGRAM_SERVICE)
+            service = self.registry.resolve(DIAGRAM_PORT)
             diagram_data = await service.get_diagram(id)
             
             # Service now returns DomainDiagram directly
@@ -43,7 +43,7 @@ class DiagramResolver:
     ) -> List[DomainDiagram]:
         """List diagrams with optional filtering."""
         try:
-            service = self.registry.resolve(DIAGRAM_SERVICE)
+            service = self.registry.resolve(DIAGRAM_PORT)
             
             # Get diagram metadata
             all_infos = await service.list_diagrams()

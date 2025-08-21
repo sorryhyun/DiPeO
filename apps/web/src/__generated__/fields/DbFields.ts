@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for db
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -27,7 +19,7 @@ export const dbFields: UnifiedFieldDefinition[] = [
   {
     name: 'sub_type',
     type: 'select',
-    label: 'Sub Type',
+    label: 'Sub type',
     required: true,
     description: 'Database operation type',
     options: [
@@ -64,7 +56,7 @@ export const dbFields: UnifiedFieldDefinition[] = [
   {
     name: 'serialize_json',
     type: 'checkbox',
-    label: 'Serialize Json',
+    label: 'Serialize json',
     required: false,
     defaultValue: false,
     description: 'Serialize structured data to JSON string (for backward compatibility)',

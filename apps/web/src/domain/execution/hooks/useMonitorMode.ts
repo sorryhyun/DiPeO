@@ -57,7 +57,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   // Poll for active CLI session when in monitor mode
   const { data: cliSessionData, loading: cliSessionLoading, error: cliSessionError } = useQuery(ACTIVE_CLI_SESSION_QUERY, {
     skip: !isMonitorMode() || !pollCliSessions,
-    pollInterval: 2000, // Poll every 2 seconds
+    pollInterval: 500, // Poll every 500ms for faster response
     fetchPolicy: 'network-only',
   });
   
@@ -88,17 +88,21 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
           }
         }
         
-        // Switch to execution canvas and start monitoring
+        // Switch to execution canvas
         setActiveCanvas('execution');
         
-        // Connect to the CLI execution directly (no URL params needed)
-        const nodeCount = activeSession.diagram_data ? 
-          JSON.parse(activeSession.diagram_data).nodes?.length || 0 : 
-          0;
-        
-        // console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
-        execution.connectToExecution(activeSession.execution_id, nodeCount);
-        hasStartedRef.current = true;
+        // Add a small delay to ensure React Flow has time to initialize nodes/handles
+        // This prevents the "Couldn't create edge" error
+        setTimeout(() => {
+          // Connect to the CLI execution directly (no URL params needed)
+          const nodeCount = activeSession.diagram_data ? 
+            JSON.parse(activeSession.diagram_data).nodes?.length || 0 : 
+            0;
+          
+          // console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
+          execution.connectToExecution(activeSession.execution_id, nodeCount);
+          hasStartedRef.current = true;
+        }, 100); // 100ms delay for React Flow to initialize
       }
     } else if (lastSessionIdRef.current) {
       // CLI session ended

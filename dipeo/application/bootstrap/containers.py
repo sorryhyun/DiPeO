@@ -34,24 +34,26 @@ class Container:
         return self.registry.resolve(service_key)
     
     async def initialize(self):
+        from .lifecycle import initialize_service
+        
         api_key_service = self.registry.resolve(API_KEY_SERVICE)
-        if api_key_service and hasattr(api_key_service, 'initialize'):
-            await api_key_service.initialize()
+        if api_key_service:
+            await initialize_service(api_key_service)
         
         from dipeo.application.registry.keys import DIAGRAM_COMPILER
         compiler = self.registry.resolve(DIAGRAM_COMPILER)
-        if compiler and hasattr(compiler, 'initialize'):
-            await compiler.initialize()
+        if compiler:
+            await initialize_service(compiler)
         
         from dipeo.application.registry.keys import DIAGRAM_SERIALIZER
         diagram_serializer = self.registry.resolve(DIAGRAM_SERIALIZER)
-        if diagram_serializer and hasattr(diagram_serializer, 'initialize'):
-            await diagram_serializer.initialize()
+        if diagram_serializer:
+            await initialize_service(diagram_serializer)
         
-        from dipeo.application.registry.keys import DIAGRAM_SERVICE
-        diagram_service = self.registry.resolve(DIAGRAM_SERVICE)
-        if diagram_service and hasattr(diagram_service, 'initialize'):
-            await diagram_service.initialize()
+        from dipeo.application.registry.keys import DIAGRAM_PORT
+        diagram_service = self.registry.resolve(DIAGRAM_PORT)
+        if diagram_service:
+            await initialize_service(diagram_service)
     
     async def shutdown(self):
         pass

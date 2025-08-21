@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime
 import aiofiles
 
-from dipeo.domain.ports.storage import BlobStorePort, FileSystemPort, FileInfo
+from dipeo.domain.base.storage_port import BlobStorePort, FileSystemPort, FileInfo
 from dipeo.domain.base import BaseService, StorageError
 
 logger = logging.getLogger(__name__)
@@ -182,7 +182,9 @@ class LocalFileSystemAdapter(BaseService, FileSystemPort):
             raise StorageError(f"Failed to open {path}: {e}")
     
     def exists(self, path: Path) -> bool:
-        return self._resolve_path(path).exists()
+        resolved = self._resolve_path(path)
+        result = resolved.exists()
+        return result
     
     def mkdir(self, path: Path, parents: bool = True) -> None:
         resolved_path = self._resolve_path(path)

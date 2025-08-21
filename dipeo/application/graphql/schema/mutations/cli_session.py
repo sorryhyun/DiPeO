@@ -34,8 +34,8 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
                     diagram_path = input.diagram_path or input.diagram_name
                     try:
                         # Load diagram from file using the diagram service
-                        from dipeo.application.registry.keys import DIAGRAM_SERVICE
-                        diagram_service = registry.get(DIAGRAM_SERVICE)
+                        from dipeo.application.registry.keys import DIAGRAM_PORT
+                        diagram_service = registry.get(DIAGRAM_PORT)
                         
                         if diagram_service:
                             # Initialize diagram service if needed

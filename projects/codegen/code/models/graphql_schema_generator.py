@@ -14,7 +14,7 @@ from jinja2 import Template, StrictUndefined
 # Import type transformer from infrastructure
 import sys
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
-from dipeo.infrastructure.parsers.typescript.type_transformer import map_ts_type_to_python
+from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python
 
 
 # ============================================================================
@@ -27,7 +27,15 @@ def combine_node_data_ast(inputs):
     base_dir = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
     
     # Read all node data AST files from cache
-    cache_dir = base_dir / '.temp'
+    cache_dir = base_dir / 'temp'
+    
+    # Import file locking for safe concurrent access
+    try:
+        from dipeo.infrastructure.shared.drivers.utils import get_cache_lock_manager
+        cache_lock = get_cache_lock_manager(cache_dir)
+    except ImportError:
+        # Fallback if file locking not available
+        cache_lock = None
     
     # Combine all interfaces, types, and enums from node data files
     all_interfaces = []
@@ -49,12 +57,22 @@ def combine_node_data_ast(inputs):
         file_path = cache_dir / filename
         if file_path.exists():
             try:
-                with open(file_path, 'r') as f:
-                    data = json.load(f)
-                    all_interfaces.extend(data.get('interfaces', []))
-                    all_types.extend(data.get('types', []))
-                    all_enums.extend(data.get('enums', []))
-                    pass  # File loaded
+                if cache_lock:
+                    # Use file locking for safe concurrent access
+                    with cache_lock.read(file_path) as f:
+                        if f:
+                            data = json.load(f)
+                            all_interfaces.extend(data.get('interfaces', []))
+                            all_types.extend(data.get('types', []))
+                            all_enums.extend(data.get('enums', []))
+                else:
+                    # Fallback to direct file access
+                    with open(file_path, 'r') as f:
+                        data = json.load(f)
+                        all_interfaces.extend(data.get('interfaces', []))
+                        all_types.extend(data.get('types', []))
+                        all_enums.extend(data.get('enums', []))
+                pass  # File loaded
             except Exception as e:
                 pass  # Error handled
         else:

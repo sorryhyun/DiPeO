@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 # Auto-generated Pydantic model for api_job node
 
 from typing import *

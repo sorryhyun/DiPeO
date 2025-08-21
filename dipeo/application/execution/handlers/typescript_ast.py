@@ -24,6 +24,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     - run() for core parsing logic
     - serialize_output() for custom envelope creation
     """
+    NODE_TYPE = NodeType.TYPESCRIPT_AST
     
     
     def __init__(self):
@@ -78,12 +79,21 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     
     async def pre_execute(self, request: ExecutionRequest[TypescriptAstNode]) -> Optional[Envelope]:
         """Runtime validation and setup."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # Set debug flag for later use
         self._current_debug = False  # Will be set based on context if needed
         
-        # Check parser service availability
-        # Use the string key name, not the ServiceKey object
+        # Check parser service availability - try different approaches
         parser_service = request.get_service("ast_parser")
+        if not parser_service and hasattr(request.services, 'resolve'):
+            # Try resolving with the ServiceKey directly
+            from dipeo.application.registry.keys import AST_PARSER
+            try:
+                parser_service = request.services.resolve(AST_PARSER)
+            except Exception as e:
+                pass
         if not parser_service:
             factory = get_envelope_factory()
             return factory.error(
@@ -104,7 +114,23 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         """Execute TypeScript AST parsing."""
         node = request.node
 
-        # Use the string key name, not the ServiceKey object
+        # Check if parsing should be skipped (cache already exists)
+        # Check both at root level and in default dict
+        skip_parsing = inputs.get('_skip_parsing', False)
+        if not skip_parsing and 'default' in inputs and isinstance(inputs['default'], dict):
+            skip_parsing = inputs['default'].get('_skip_parsing', False)
+        
+        if skip_parsing:
+            logger.info(f"[TypescriptAstNode {node.id}] Skipping parsing - cache already exists")
+            # Return empty results to indicate no parsing was done
+            return {
+                'results': {},
+                'batch_mode': True,
+                'total_sources': 0,
+                'skipped': True
+            }
+
+        # Get the parser service
         parser_service = request.get_service("ast_parser")
 
         # Check if batch mode is enabled
@@ -118,7 +144,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             sources = getattr(node, 'sources', None)
             if not sources:
                 # Try direct access first
-                sources = inputs.get(batch_input_key, {})
+                sources = inputs.get(batch_input_key, None)
             
             # If not found, check if inputs has a 'default' key with the sources
             if not sources and 'default' in inputs:
@@ -127,19 +153,34 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     # Check if the default input has the batch_input_key
                     if batch_input_key in default_input:
                         sources = default_input[batch_input_key]
-                    # Or if the default input IS the sources dict directly
-                    elif all(isinstance(k, str) and k.endswith('.ts') for k in default_input.keys()):
+                    # Or if the default input IS the sources dict directly (all keys look like file paths)
+                    elif default_input and all(isinstance(k, str) and (k.endswith('.ts') or '/' in k) for k in list(default_input.keys())[:10]):
                         sources = default_input
             
             # Also check if inputs itself looks like a sources dict (all keys are file paths)
             if not sources and isinstance(inputs, dict) and inputs:
                 # Check if this looks like a sources dictionary (keys are file paths)
-                if all(isinstance(k, str) and (k.endswith('.ts') or '/' in k) for k in inputs.keys() if k != 'default'):
+                non_default_keys = [k for k in inputs.keys() if k != 'default']
+                if non_default_keys and all(isinstance(k, str) and (k.endswith('.ts') or '/' in k) for k in non_default_keys[:10]):
                     # Exclude 'default' key and use the rest as sources
                     sources = {k: v for k, v in inputs.items() if k != 'default'}
             
             if not sources or not isinstance(sources, dict):
+                logger.error(f"[TypescriptAstNode {node.id}] Failed to find sources - sources type: {type(sources).__name__ if sources else 'None'}")
+                logger.error(f"[TypescriptAstNode {node.id}] Full inputs structure: {json.dumps({k: type(v).__name__ for k, v in inputs.items()}, indent=2)}")
                 raise ValueError(f"Batch mode enabled but no sources dictionary provided at key '{batch_input_key}'")
+            
+            # Filter out dummy sources that indicate cache skip
+            sources = {k: v for k, v in sources.items() if k != '_dummy'}
+            
+            if not sources:
+                logger.info(f"[TypescriptAstNode {node.id}] No real sources after filtering dummy entries - cache must exist")
+                return {
+                    'results': {},
+                    'batch_mode': True,
+                    'total_sources': 0,
+                    'skipped': True
+                }
 
             # Parse all sources in batch
             try:
@@ -213,6 +254,18 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         node = request.node
         trace_id = request.execution_id or ""
         factory = get_envelope_factory()
+
+        # Handle skipped parsing (cache already exists)
+        if isinstance(result, dict) and result.get('skipped'):
+            return factory.json(
+                {},
+                produced_by=node.id,
+                trace_id=trace_id
+            ).with_meta(
+                batch_mode=True,
+                skipped=True,
+                reason="Cache already exists"
+            )
 
         # Handle batch mode results
         if isinstance(result, dict) and result.get('batch_mode'):

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 # Auto-generated Pydantic model for json_schema_validator node
 
 from typing import *

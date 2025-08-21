@@ -9,7 +9,6 @@ from dipeo.application.registry.service_registry import ServiceRegistry, Service
 from dipeo.application.registry.keys import (
     DIAGRAM_COMPILER,
     DIAGRAM_SERIALIZER,
-    COMPILE_TIME_RESOLVER,
     RUNTIME_RESOLVER,
     TRANSFORMATION_ENGINE,
     DIAGRAM_PORT,
@@ -18,10 +17,10 @@ from dipeo.application.registry.keys import (
 if TYPE_CHECKING:
     from dipeo.domain.diagram.compilation import DiagramCompiler
     from dipeo.domain.diagram.ports import DiagramStorageSerializer
-    from dipeo.domain.diagram.resolution.interfaces import (
-        CompileTimeResolverV2,
-        RuntimeInputResolverV2,
-        TransformationEngineV2,
+    from dipeo.domain.diagram.compilation import CompileTimeResolver
+    from dipeo.domain.execution.resolution import (
+        RuntimeInputResolver,
+        TransformationEngine,
     )
     from dipeo.application.diagram.use_cases import (
         CompileDiagramUseCase,
@@ -49,8 +48,6 @@ def wire_diagram(registry: ServiceRegistry) -> None:
     - Transformation engine
     - GraphQL resolvers
     """
-    logger.info("🔧 Wiring diagram bounded context")
-    
     # Wire core diagram services
     wire_diagram_compiler(registry)
     wire_diagram_serializer(registry)
@@ -62,8 +59,6 @@ def wire_diagram(registry: ServiceRegistry) -> None:
     
     # Wire diagram GraphQL resolvers
     wire_diagram_resolvers(registry)
-    
-    logger.info("✅ Diagram bounded context wired")
 
 
 def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
@@ -137,15 +132,12 @@ def wire_diagram_compiler(registry: ServiceRegistry) -> None:
     # Apply decorators
     if enable_validation:
         compiler = ValidatingCompilerAdapter(compiler)
-        logger.info("Diagram compiler validation enabled")
-    
+
     if enable_caching:
         cache_size = int(os.getenv("DIAGRAM_COMPILER_CACHE_SIZE", "100"))
         compiler = CachingCompilerAdapter(compiler, cache_size=cache_size)
-        logger.info(f"Diagram compiler caching enabled (size={cache_size})")
-    
+
     registry.register(DIAGRAM_COMPILER, compiler)
-    logger.info(f"Registered diagram compiler (interface_based={use_interface_based})")
 
 
 def wire_diagram_serializer(registry: ServiceRegistry) -> None:
@@ -166,18 +158,14 @@ def wire_diagram_serializer(registry: ServiceRegistry) -> None:
     
     if use_strategy_based:
         serializer = FormatStrategyAdapter()
-        logger.info("Using strategy-based diagram serializer")
     else:
         serializer = UnifiedSerializerAdapter()
-        logger.info("Using unified diagram serializer")
-    
+
     if enable_caching:
         cache_size = int(os.getenv("DIAGRAM_SERIALIZER_CACHE_SIZE", "50"))
         serializer = CachingSerializerAdapter(serializer, cache_size=cache_size)
-        logger.info(f"Diagram serializer caching enabled (size={cache_size})")
-    
+
     registry.register(DIAGRAM_SERIALIZER, serializer)
-    logger.info("Registered diagram serializer")
 
 
 def wire_resolution_services(registry: ServiceRegistry) -> None:
@@ -186,41 +174,29 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
     Args:
         registry: Service registry to register resolvers with
     """
-    from dipeo.infrastructure.diagram.adapters import (
-        StandardCompileTimeResolverAdapter,
-        StandardRuntimeResolverAdapter,
-        StandardTransformationEngineAdapter,
-        CompositeResolverAdapter,
-        CachingRuntimeResolverAdapter,
-    )
+    from dipeo.domain.execution.resolution import StandardTransformationEngine
     
-    # Create compile-time resolver
-    compile_resolver = StandardCompileTimeResolverAdapter()
+    # For now, we'll use a simple runtime resolver placeholder
+    # The actual runtime resolution is handled by domain logic
+    # in dipeo.domain.execution.resolution.api.resolve_inputs
+    class SimpleRuntimeResolver:
+        """Placeholder runtime resolver.
+        
+        The actual resolution logic is in domain.execution.resolution.api.resolve_inputs
+        which is called directly by handlers.
+        """
+        async def resolve_input_value(self, *args, **kwargs):
+            # This is not actually used - resolution happens in domain layer
+            raise NotImplementedError("Use domain.execution.resolution.api.resolve_inputs")
     
-    # Optionally use composite resolver for fallback
-    use_composite = os.getenv("DIAGRAM_USE_COMPOSITE_RESOLVER", "0") == "1"
-    if use_composite:
-        # Could add multiple resolvers here for fallback
-        compile_resolver = CompositeResolverAdapter([compile_resolver])
-        logger.info("Using composite compile-time resolver")
-    
-    # Create runtime resolver
-    runtime_resolver = StandardRuntimeResolverAdapter()
-    
-    # Optionally add caching
-    enable_runtime_cache = os.getenv("DIAGRAM_RUNTIME_RESOLVER_CACHE", "1") == "1"
-    if enable_runtime_cache:
-        runtime_resolver = CachingRuntimeResolverAdapter(runtime_resolver)
-        logger.info("Runtime resolver caching enabled")
+    runtime_resolver = SimpleRuntimeResolver()
     
     # Create transformation engine
-    transform_engine = StandardTransformationEngineAdapter()
+    transform_engine = StandardTransformationEngine()
     
     # Register all resolution services
-    registry.register(COMPILE_TIME_RESOLVER, compile_resolver)
     registry.register(RUNTIME_RESOLVER, runtime_resolver)
     registry.register(TRANSFORMATION_ENGINE, transform_engine)
-    logger.info("Registered resolution services")
 
 
 def wire_diagram_port(registry: ServiceRegistry) -> None:
@@ -257,7 +233,6 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
     )
     
     registry.register(DIAGRAM_PORT, diagram_service)
-    logger.info("Registered DiagramService with adapters")
 
 
 # Backward compatibility export

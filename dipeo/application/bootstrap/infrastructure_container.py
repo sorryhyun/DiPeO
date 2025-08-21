@@ -6,8 +6,6 @@ from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
     API_KEY_STORAGE,
-    API_SERVICE,
-    ARTIFACT_STORE,
     AST_PARSER,
     BLOB_STORE,
     CONVERSATION_REPOSITORY,
@@ -71,11 +69,6 @@ class InfrastructureContainer:
             APIKeyService(file_path=api_key_path)
         )
 
-        self.registry.register(
-            ARTIFACT_STORE,
-            None
-        )
-
     def _setup_llm_adapter(self):
         from dipeo.infrastructure.llm.drivers.service import LLMInfraService
         from dipeo.domain.llm import LLMDomainService
@@ -91,8 +84,8 @@ class InfrastructureContainer:
         )
 
     def _setup_infrastructure_services(self):
-        # Register template processor service
-        from dipeo.infrastructure.shared.template.drivers.simple_processor import SimpleTemplateProcessor
+        # Register SimpleTemplateProcessor for path interpolation in DB nodes
+        from dipeo.domain.diagram.template import SimpleTemplateProcessor
         self.registry.register(
             TEMPLATE_PROCESSOR,
             SimpleTemplateProcessor()
@@ -116,17 +109,12 @@ class InfrastructureContainer:
             )
         )
 
-        self.registry.register(
-            API_SERVICE,
-            None
-        )
-
         from dipeo.infrastructure.integrations.drivers.integrated_api import IntegratedApiService
         from dipeo.infrastructure.integrations.adapters.api_service import APIService
         from dipeo.domain.integrations.api_services import APIBusinessLogic
-        from dipeo.infrastructure.shared.template.drivers.simple_processor import SimpleTemplateProcessor
         
-        template_processor = SimpleTemplateProcessor()
+        # Get the template processor for API business logic
+        template_processor = self.registry.resolve(TEMPLATE_PROCESSOR)
         api_business_logic = APIBusinessLogic(template_processor=template_processor)
         api_service = APIService(api_business_logic)
         integrated_api_service = IntegratedApiService(api_service=api_service)
@@ -135,21 +123,18 @@ class InfrastructureContainer:
             integrated_api_service
         )
 
-        from dipeo.infrastructure.diagram.drivers.parser_service import get_parser_service
+        from dipeo.infrastructure.codegen.parsers.parser_service import get_parser_service
         import logging
         logger = logging.getLogger(__name__)
         parser_service = get_parser_service(
-            default_language="typescript",
             project_root=Path(self.config.storage.base_dir),
             cache_enabled=True
         )
-        logger.info(f"Registering AST_PARSER with service: {parser_service}")
         self.registry.register(
             AST_PARSER,
             parser_service
         )
-        logger.info(f"AST_PARSER registered successfully")
-    
+
     def _setup_storage_v2(self):
         """Setup storage services using domain ports."""
         from dipeo.application.bootstrap.wiring import wire_storage_services

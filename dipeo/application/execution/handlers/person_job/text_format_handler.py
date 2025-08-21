@@ -84,7 +84,7 @@ class TextFormatHandler:
         Returns:
             Compiled Pydantic BaseModel class or None if compilation fails
         """
-        from dipeo.application.utils.pydantic_compiler import (
+        from dipeo.infrastructure.llm.drivers.pydantic_compiler import (
             compile_pydantic_model, 
             is_pydantic_code
         )

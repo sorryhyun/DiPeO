@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for condition
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -13,7 +5,7 @@ export const conditionFields: UnifiedFieldDefinition[] = [
   {
     name: 'condition_type',
     type: 'select',
-    label: 'Condition Type',
+    label: 'Condition type',
     required: false,
     defaultValue: "custom",
     description: 'Type of condition to evaluate',
@@ -38,12 +30,20 @@ export const conditionFields: UnifiedFieldDefinition[] = [
   {
     name: 'node_indices',
     type: 'nodeSelect',
-    label: 'Node Indices',
+    label: 'Node indices',
     required: false,
     placeholder: 'Select nodes to monitor',
     description: 'Node indices for detect_max_iteration condition',
     validate: (value: unknown) => {
       return { isValid: true };
     },
+  },
+  {
+    name: 'expose_index_as',
+    type: 'text',
+    label: 'Expose index as',
+    required: false,
+    placeholder: 'e.g., current_index, loop_counter',
+    description: 'Variable name to expose the condition node\'s execution count (0-based index) to downstream nodes',
   },
 ];

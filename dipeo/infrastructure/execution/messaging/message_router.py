@@ -12,7 +12,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from dipeo.domain.events.ports import MessageBus as MessageRouterPort
+from dipeo.domain.events.ports import MessageBus as MessageRouterPort, EventHandler
+from dipeo.domain.events.contracts import DomainEvent
+from dipeo.infrastructure.events.serialize import event_to_json_payload
 from dipeo.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -27,11 +29,14 @@ class ConnectionHealth:
     avg_latency: float = 0.0
 
 
-class MessageRouter(MessageRouterPort):
-    """Central message router implementing the MessageRouterPort protocol.
+class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
+    """Central message router implementing the MessageRouterPort protocol and EventHandler.
 
     This router manages connections and routes execution events to GraphQL
     subscriptions. It serves as the single source of truth for real-time monitoring.
+    
+    As an EventHandler, it subscribes to the DomainEventBus and forwards events
+    to GraphQL connections, eliminating the need for separate adapters.
 
     The router includes health monitoring, backpressure handling, and automatic
     cleanup of failed connections.
@@ -67,7 +72,6 @@ class MessageRouter(MessageRouterPort):
             return
 
         self._initialized = True
-        logger.info("MessageRouter initialized")
 
     async def cleanup(self) -> None:
         # Cancel pending batch tasks and flush remaining batches
@@ -454,6 +458,89 @@ class MessageRouter(MessageRouterPort):
                 for conn_id, health in self.connection_health.items()
             },
         }
+
+    async def handle(self, event: DomainEvent) -> None:
+        """Handle a domain event by routing it to subscribed connections.
+        
+        This method implements the EventHandler protocol, allowing the router
+        to be subscribed directly to the DomainEventBus. It converts the event
+        to a JSON-serializable format and broadcasts it to all connections
+        subscribed to the execution.
+        
+        Additionally, it transforms certain domain events into UI-friendly events
+        that the frontend expects (replacing the removed StreamingMonitor functionality).
+        
+        Args:
+            event: The domain event to route
+        """
+        # Serialize the event once
+        payload = event_to_json_payload(event)
+        
+        # Route to connections if there's an execution context
+        if event.scope.execution_id:
+            # Broadcast the original event
+            await self.broadcast_to_execution(str(event.scope.execution_id), payload)
+            
+            # Transform domain events into UI-friendly events
+            # This replaces StreamingMonitor's transformation logic
+            from dipeo.domain.events import EventType
+            
+            if event.type == EventType.EXECUTION_STARTED:
+                # Also emit EXECUTION_STATUS_CHANGED for UI consistency
+                ui_payload = {
+                    "type": "EXECUTION_STATUS_CHANGED",
+                    "event_type": "EXECUTION_STATUS_CHANGED",  # Include both for compatibility
+                    "execution_id": str(event.scope.execution_id),
+                    "data": {
+                        "status": "RUNNING",
+                        "timestamp": event.occurred_at.isoformat()
+                    },
+                    "timestamp": event.occurred_at.isoformat()
+                }
+                await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
+                
+            elif event.type == EventType.EXECUTION_COMPLETED:
+                # Transform to EXECUTION_STATUS_CHANGED that frontend expects
+                # Handle both dict and object payloads
+                if hasattr(event.payload, 'status'):
+                    status = event.payload.status
+                elif isinstance(event.payload, dict):
+                    status = event.payload.get("status", "COMPLETED")
+                else:
+                    status = "COMPLETED"
+                    
+                ui_payload = {
+                    "type": "EXECUTION_STATUS_CHANGED", 
+                    "event_type": "EXECUTION_STATUS_CHANGED",  # Include both for compatibility
+                    "execution_id": str(event.scope.execution_id),
+                    "data": {
+                        "status": status,
+                        "is_final": True,
+                        "timestamp": event.occurred_at.isoformat()
+                    },
+                    "timestamp": event.occurred_at.isoformat()
+                }
+                await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
+                
+            elif event.type in [EventType.NODE_STARTED, EventType.NODE_COMPLETED, EventType.NODE_ERROR]:
+                # Also emit NODE_STATUS_CHANGED for UI consistency
+                node_status = "RUNNING" if event.type == EventType.NODE_STARTED else \
+                             "COMPLETED" if event.type == EventType.NODE_COMPLETED else "FAILED"
+                ui_payload = {
+                    "type": "NODE_STATUS_CHANGED",
+                    "event_type": "NODE_STATUS_CHANGED",  # Include both for compatibility
+                    "execution_id": str(event.scope.execution_id),
+                    "data": {
+                        "node_id": event.scope.node_id,
+                        "status": node_status,
+                        "timestamp": event.occurred_at.isoformat()
+                    },
+                    "timestamp": event.occurred_at.isoformat()
+                }
+                await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
+        else:
+            # Handle global events (not tied to specific execution)
+            logger.debug(f"Received global event: {event.type.value}")
 
 
 message_router = MessageRouter()

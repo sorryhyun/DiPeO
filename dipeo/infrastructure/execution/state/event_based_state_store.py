@@ -580,10 +580,19 @@ class EventBasedStateStore(StateStorePort):
         await self.save_state(state)
     
     async def persist_final_state(self, state: ExecutionState):
-        """Persist final state and remove from cache."""
+        """Persist final state and delay cache removal to avoid race conditions."""
         state.is_active = False
         await self._persist_state(state)
-        await self._execution_cache.remove_cache(state.id)
+        
+        # Keep the cache for 10 seconds after completion to allow CLI to read final state
+        # This avoids race condition where CLI polls but cache is already removed
+        async def delayed_cache_removal():
+            await asyncio.sleep(10)  # Wait 10 seconds
+            await self._execution_cache.remove_cache(state.id)
+            logger.debug(f"Removed cache for completed execution {state.id}")
+        
+        # Schedule cache removal without blocking
+        asyncio.create_task(delayed_cache_removal())
     
     async def list_executions(
         self,

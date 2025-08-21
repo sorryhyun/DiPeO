@@ -159,15 +159,22 @@ class AsyncStateManager(EventConsumer):
         # Create execution in cache first for fast access
         cache = await self._execution_cache.get_cache(execution_id)
         
-        # Create execution in state store
-        state = await self.state_store.create_execution(
-            execution_id=execution_id,
-            diagram_id=diagram_id,
-            variables=variables
-        )
+        # Check if execution already exists (created by _initialize_typed_execution_state)
+        existing_state = await self.state_store.get_state(execution_id)
         
-        # Cache the initial state
-        await cache.set_state(state)
+        if not existing_state:
+            # Create execution in state store only if it doesn't exist
+            state = await self.state_store.create_execution(
+                execution_id=execution_id,
+                diagram_id=diagram_id,
+                variables=variables
+            )
+            
+            # Cache the initial state
+            await cache.set_state(state)
+        else:
+            # Use existing state
+            await cache.set_state(existing_state)
         
         # Update status to running
         await self.state_store.update_status(
@@ -305,7 +312,8 @@ class AsyncStateManager(EventConsumer):
         # Get the state from cache and persist it
         state = await self.state_store.get_state(execution_id)
         if state:
+            # Don't remove cache immediately - let persist_final_state handle it
+            # This avoids race condition where CLI can't read final state
             await self.state_store.persist_final_state(state)
         
-        # Remove from cache after persistence
-        await self._execution_cache.remove_cache(execution_id)
+        # Note: persist_final_state already removes the cache, no need to do it again

@@ -1,12 +1,14 @@
 import os
 import json
 import logging
+import hashlib
+import time
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Any
+from typing import TYPE_CHECKING, Optional, Any, Dict, Tuple
 from importlib import import_module
 
 from pydantic import BaseModel
-from dipeo.domain.ports.storage import FileSystemPort
+from dipeo.domain.base.storage_port import FileSystemPort
 
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
@@ -15,8 +17,7 @@ from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
-from dipeo.infrastructure.shared.template.drivers.jinja_template.template_integration import get_enhanced_template_service
-from dipeo.domain.diagram.ports import TemplateProcessorPort
+from dipeo.infrastructure.codegen.templates.drivers.factory import get_enhanced_template_service
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -34,13 +35,16 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     
     Now uses envelope-based communication for clean input/output interfaces.
     """
+    NODE_TYPE = NodeType.TEMPLATE_JOB
     
+    # Class-level cache for deduplication
+    # Key: (file_path, content_hash), Value: (timestamp, node_id)
+    _recent_writes: Dict[Tuple[str, str], Tuple[float, str]] = {}
+    _DEDUP_WINDOW_SECONDS = 2.0  # Deduplicate writes within 2 seconds
     
-    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None, template_processor: Optional[TemplateProcessorPort] = None):
+    def __init__(self):
         super().__init__()
-        self.filesystem_adapter = filesystem_adapter
         self._template_service = None  # Lazy initialization
-        self._template_processor = template_processor
         # Instance variables for passing data between methods
         self._current_filesystem_adapter = None
         self._current_engine = None
@@ -87,7 +91,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         services = request.services
         
         # Get filesystem adapter from services or use injected one
-        filesystem_adapter = self.filesystem_adapter or services.resolve(FILESYSTEM_ADAPTER)
+        filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
             return EnvelopeFactory.error(
                 "Filesystem adapter is required for template job execution",
@@ -119,17 +123,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 produced_by=str(node.id)
             )
         
-        # Initialize template processor for path interpolation
-        # Use injected processor or try to get from services
-        from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
-        template_processor = self._template_processor
-        if not template_processor:
-            try:
-                template_processor = services.resolve(TEMPLATE_PROCESSOR)
-            except:
-                # If not available in services, template processing will be skipped
-                pass
-        self._current_template_processor = template_processor
+        # Template processor no longer needed - using Jinja2 for everything
+        self._current_template_processor = None
         
         # No early return - proceed to execute_request
         return None
@@ -137,10 +132,61 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     def _get_template_service(self):
         """Get or create the template service."""
         if self._template_service is None:
-            # print("[DEBUG] Creating template service...")
-            self._template_service = get_enhanced_template_service()
-            # print("[DEBUG] Template service created successfully")
+            try:
+                self._template_service = get_enhanced_template_service()
+            except Exception as e:
+                print(f"[ERROR] Failed to create template service: {e}")
+                import traceback
+                traceback.print_exc()
+                raise
         return self._template_service
+    
+    @classmethod
+    def _is_duplicate_write(cls, file_path: str, content: str, node_id: str) -> bool:
+        """Check if this is a duplicate write within the deduplication window."""
+        # Special handling for generated_nodes.py - normalize content to ignore timestamps
+        normalized_content = content
+        if "generated_nodes.py" in str(file_path):
+            # Remove timestamp lines for comparison
+            import re
+            # Remove lines with timestamps like "Generated at: 2025-08-21T11:38:18.584978"
+            normalized_content = re.sub(r'Generated at: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+', 
+                                       'Generated at: [TIMESTAMP]', content)
+            # Also normalize the "now" variable in comments
+            normalized_content = re.sub(r'# Available variables: now: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+',
+                                       '# Available variables: now: [TIMESTAMP]', normalized_content)
+        
+        # Create content hash for comparison
+        content_hash = hashlib.md5(normalized_content.encode()).hexdigest()
+        cache_key = (str(file_path), content_hash)
+        
+        current_time = time.time()
+        
+        # Check if we've seen this write recently
+        if cache_key in cls._recent_writes:
+            last_write_time, last_node_id = cls._recent_writes[cache_key]
+            time_diff = current_time - last_write_time
+            
+            if time_diff < cls._DEDUP_WINDOW_SECONDS:
+                # This is a duplicate write
+                logger.warning(
+                    f"[DEDUPLICATION] Skipping duplicate write to {file_path} "
+                    f"from node {node_id} (already written by {last_node_id} "
+                    f"{time_diff:.2f}s ago)"
+                )
+                return True
+        
+        # Not a duplicate - update cache
+        cls._recent_writes[cache_key] = (current_time, node_id)
+        
+        # Clean up old entries from cache
+        cutoff_time = current_time - cls._DEDUP_WINDOW_SECONDS * 2
+        cls._recent_writes = {
+            k: v for k, v in cls._recent_writes.items()
+            if v[0] > cutoff_time
+        }
+        
+        return False
     
     def _resolve_dotted_path(self, dotted: str, ctx: dict) -> Any:
         """Resolve a dotted path like 'a.b.c' into the context."""
@@ -203,7 +249,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         """Execute template rendering with support for foreach and preprocessor."""
         node = request.node
         template_vars = inputs
-        
+
         # Use services from instance variables (set in pre_execute)
         filesystem_adapter = self._current_filesystem_adapter
         engine = self._current_engine
@@ -237,13 +283,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         if node.template_content:
             template_content = node.template_content
         else:
-            # First process single bracket {} interpolation for diagram variables (if processor available)
-            processed_path = node.template_path
-            if template_processor:
-                processed_path = template_processor.process_single_brace(node.template_path, template_vars)
-            
-            # Then process Jinja2 {{ }} syntax if present
-            processed_template_path = template_service.render_string(processed_path, **template_vars).strip()
+            # Use Jinja2 for both paths and contents
+            processed_template_path = (await template_service.render_string(node.template_path, template_vars)).strip()
             
             # Load from file - just use the path as-is since filesystem adapter handles base path
             template_path = Path(processed_template_path)
@@ -255,30 +296,34 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 template_content = f.read().decode('utf-8')
         
         # Helper function to render and write a single file
-        def render_to_path(output_path_template: str, local_context: dict) -> str:
+        async def render_to_path(output_path_template: str, local_context: dict) -> str:
             """Render template and write to file specified by path template."""
             # Render the template content
             if engine == "internal":
-                rendered = template_service.render_string(template_content, **local_context)
+                rendered = await template_service.render_string(template_content, local_context)
             elif engine == "jinja2":
                 try:
-                    rendered = template_service.render_string(template_content, **local_context)
+                    rendered = await template_service.render_string(template_content, local_context)
                 except Exception as e:
                     # Fall back to standard Jinja2
-                    rendered = self._render_jinja2_sync(template_content, local_context)
+                    rendered = self._render_jinja2(template_content, local_context)
                     logger.debug(f"Enhancement fallback: {e}")
             else:
                 rendered = template_content  # Fallback
             
-            # Process output path template
-            if template_processor:
-                output_path_str = template_processor.process_single_brace(output_path_template, local_context)
-            else:
-                output_path_str = output_path_template
-            
-            # Render any Jinja2 syntax in the path
-            output_path_str = template_service.render_string(output_path_str, **local_context).strip()
+            # Render output path via Jinja2 as well
+            output_path_str = (await template_service.render_string(output_path_template, local_context)).strip()
             output_path = Path(output_path_str)
+            
+            # Add detailed trace logging for foreach mode
+            if "generated_nodes.py" in str(output_path):
+                logger.warning(f"[GENERATED_NODES WRITE FOREACH] Node {node.id} writing to {output_path} in foreach mode")
+                logger.debug(f"[GENERATED_NODES FOREACH CONTEXT] Item index: {local_context.get('index')}, Item var: {var_name}")
+            
+            # Check for duplicate write
+            if self._is_duplicate_write(str(output_path), rendered, str(node.id)):
+                logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
+                return str(output_path)  # Return path without writing
             
             # Create parent directories if needed
             parent_dir = output_path.parent
@@ -321,7 +366,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 local_context = {**template_vars, var_name: item, 'index': idx}
                 
                 # Render and write file
-                output_file = render_to_path(output_path_template, local_context)
+                output_file = await render_to_path(output_path_template, local_context)
                 written_files.append(output_file)
             
             # Return list of written files
@@ -331,10 +376,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         else:
             # Render template
             if engine == "internal":
-                rendered = template_service.render_string(template_content, **template_vars)
+                rendered = await template_service.render_string(template_content, template_vars)
             elif engine == "jinja2":
                 try:
-                    rendered = template_service.render_string(template_content, **template_vars)
+                    rendered = await template_service.render_string(template_content, template_vars)
                 except Exception as e:
                     # Fall back to standard Jinja2
                     rendered = await self._render_jinja2(template_content, template_vars)
@@ -344,15 +389,23 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             # Write to file if output_path is specified
             if node.output_path:
-                # First process single bracket {} interpolation for diagram variables (if processor available)
-                processed_path = node.output_path
-                if template_processor:
-                    processed_path = template_processor.process_single_brace(node.output_path, template_vars)
-                
-                # Then process Jinja2 {{ }} syntax if present
-                processed_output_path = template_service.render_string(processed_path, **template_vars).strip()
+                # Use Jinja2 for output path
+                processed_output_path = (await template_service.render_string(node.output_path, template_vars)).strip()
                 
                 output_path = Path(processed_output_path)
+
+                # Check if this is a duplicate write to generated_nodes.py
+                if "generated_nodes.py" in str(output_path):
+                    logger.warning(f"[GENERATED_NODES WRITE] Node {node.id} writing to {output_path}")
+                    if 'batch_item' in template_vars:
+                        logger.debug(f"[GENERATED_NODES BATCH] Batch item detected in context")
+                
+                # Check for duplicate write
+                if self._is_duplicate_write(str(output_path), rendered, str(node.id)):
+                    logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
+                    # Store output path for metadata but don't write
+                    self._current_output_path = output_path
+                    return rendered  # Return content without writing
                 
                 # Create parent directories if needed
                 parent_dir = output_path.parent
@@ -361,9 +414,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 
                 with filesystem_adapter.open(output_path, 'wb') as f:
                     f.write(rendered.encode('utf-8'))
-                
                 # Store output path for metadata
                 self._current_output_path = output_path
+            else:
+                logger.info(f"[TEMPLATE_JOB DEBUG] No output_path specified, returning rendered content only")
             
             return rendered
 
@@ -389,10 +443,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     async def _render_jinja2(self, template: str, variables: dict[str, Any]) -> str:
         """Render template using Jinja2 with custom filters."""
         try:
-            from jinja2 import Environment, StrictUndefined
+            from jinja2 import Environment
             
             # Create Jinja2 environment with custom filters
-            env = Environment(undefined=StrictUndefined)
+            env = Environment()
             
             # Add custom filters from the registry
             from dipeo.infrastructure.shared.template.drivers.jinja_template.filters import create_filter_registry
@@ -405,27 +459,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             return jinja_template.render(**variables)
         except ImportError:
             raise ImportError("Jinja2 is not installed. Install it with: pip install jinja2")
-    
-    def _render_jinja2_sync(self, template: str, variables: dict[str, Any]) -> str:
-        """Synchronous version of Jinja2 rendering for use in nested functions."""
-        try:
-            from jinja2 import Environment, StrictUndefined
-            
-            # Create Jinja2 environment with custom filters
-            env = Environment(undefined=StrictUndefined)
-            
-            # Add custom filters from the registry
-            from dipeo.infrastructure.shared.template.drivers.jinja_template.filters import create_filter_registry
-            registry = create_filter_registry()
-            for name, func in registry.get_all_filters().items():
-                env.filters[name] = func
-            
-            # Create and render template
-            jinja_template = env.from_string(template)
-            return jinja_template.render(**variables)
-        except ImportError:
-            raise ImportError("Jinja2 is not installed. Install it with: pip install jinja2")
-    
+
     
     def post_execute(
         self,

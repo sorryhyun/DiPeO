@@ -157,7 +157,7 @@ function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal
         }
         
         const handleName = handle.label || 'default';
-        const uniqueId = `${nodeId}_${handleName}_${handle.type}`;
+        const uniqueId = `${nodeId}_${handleName}_${handle.type}_${index}`;
         
         processedHandles.push({
           type: handle.type,

@@ -43,6 +43,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     Now uses envelope-based communication for clean interfaces.
     """
     
+    NODE_TYPE = NodeType.SUB_DIAGRAM.value
     
     def __init__(self):
         """Initialize executors."""
@@ -105,7 +106,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         # Configure services for executors on first execution
         if not self._services_configured:
             from dipeo.application.registry import (
-                DIAGRAM_SERVICE,
+                DIAGRAM_PORT,
                 MESSAGE_ROUTER,
                 PREPARE_DIAGRAM_USE_CASE,
                 STATE_STORE,
@@ -113,7 +114,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             
             state_store = request.services.resolve(STATE_STORE)
             message_router = request.services.resolve(MESSAGE_ROUTER)
-            diagram_service = request.services.resolve(DIAGRAM_SERVICE)
+            diagram_service = request.services.resolve(DIAGRAM_PORT)
             prepare_use_case = request.services.resolve(PREPARE_DIAGRAM_USE_CASE)
             
             # Validate required services
@@ -177,6 +178,22 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     ) -> Any:
         """Route execution to appropriate executor based on configuration."""
         node = request.node
+        
+        # Check ignoreIfSub flag - if true and we're already in a sub-diagram, skip execution
+        if getattr(node, 'ignoreIfSub', False):
+            # Check if we're already in a sub-diagram execution context via metadata
+            if request.metadata.get('is_sub_diagram', False):
+                logger.info(f"Skipping sub-diagram '{node.diagram_name}' (node: {node.id}) due to ignoreIfSub=true (parent: {request.metadata.get('parent_diagram', 'unknown')})")
+                # Return empty result envelope
+                return EnvelopeFactory.json(
+                    {"skipped": True, "reason": "ignoreIfSub flag is set and already in sub-diagram context"},
+                    produced_by=node.id,
+                    trace_id=request.execution_id or ""
+                ).with_meta(
+                    diagram_name=node.diagram_name or "inline",
+                    execution_mode="skipped",
+                    parent_diagram=request.metadata.get('parent_diagram', 'unknown')
+                )
         
         # Update request inputs for executors
         request.inputs = inputs

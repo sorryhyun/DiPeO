@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 # Auto-generated Pydantic model for sub_diagram node
 
 from typing import *

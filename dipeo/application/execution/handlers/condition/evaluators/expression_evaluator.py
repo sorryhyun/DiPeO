@@ -49,6 +49,26 @@ class ConditionEvaluator:
             ast.NotIn: lambda x, y: x not in y,
         }
         
+        # Whitelist of safe built-in functions
+        allowed_functions = {
+            'len': len,
+            'abs': abs,
+            'min': min,
+            'max': max,
+            'sum': sum,
+            'all': all,
+            'any': any,
+            'bool': bool,
+            'int': int,
+            'float': float,
+            'str': str,
+            'list': list,
+            'dict': dict,
+            'tuple': tuple,
+            'set': set,
+            'round': round,
+        }
+        
         try:
             tree = ast.parse(expression, mode='eval')
         except SyntaxError:
@@ -88,6 +108,21 @@ class ConditionEvaluator:
                 if op_func is None:
                     raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
                 return op_func(eval_node(node.operand))
+            elif isinstance(node, ast.Call):
+                # Handle function calls
+                if isinstance(node.func, ast.Name):
+                    func_name = node.func.id
+                    if func_name not in allowed_functions:
+                        raise ValueError(f"Function '{func_name}' is not allowed")
+                    func = allowed_functions[func_name]
+                    # Evaluate all arguments
+                    args = [eval_node(arg) for arg in node.args]
+                    # Keyword arguments are not supported for simplicity
+                    if node.keywords:
+                        raise ValueError("Keyword arguments are not supported")
+                    return func(*args)
+                else:
+                    raise ValueError("Only simple function calls are supported")
             else:
                 raise ValueError(f"Unsupported node type: {type(node).__name__}")
         
@@ -109,6 +144,26 @@ class ConditionEvaluator:
             ast.Not: operator.not_,
             ast.In: lambda x, y: x in y,
             ast.NotIn: lambda x, y: x not in y,
+        }
+        
+        # Whitelist of safe built-in functions
+        allowed_functions = {
+            'len': len,
+            'abs': abs,
+            'min': min,
+            'max': max,
+            'sum': sum,
+            'all': all,
+            'any': any,
+            'bool': bool,
+            'int': int,
+            'float': float,
+            'str': str,
+            'list': list,
+            'dict': dict,
+            'tuple': tuple,
+            'set': set,
+            'round': round,
         }
         
         try:
@@ -161,6 +216,21 @@ class ConditionEvaluator:
                 if op_func is None:
                     raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
                 return op_func(eval_node(node.operand))
+            elif isinstance(node, ast.Call):
+                # Handle function calls
+                if isinstance(node.func, ast.Name):
+                    func_name = node.func.id
+                    if func_name not in allowed_functions:
+                        raise ValueError(f"Function '{func_name}' is not allowed")
+                    func = allowed_functions[func_name]
+                    # Evaluate all arguments
+                    args = [eval_node(arg) for arg in node.args]
+                    # Keyword arguments are not supported for simplicity
+                    if node.keywords:
+                        raise ValueError("Keyword arguments are not supported")
+                    return func(*args)
+                else:
+                    raise ValueError("Only simple function calls are supported")
             else:
                 raise ValueError(f"Unsupported node type: {type(node).__name__}")
         

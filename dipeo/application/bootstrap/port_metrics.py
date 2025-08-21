@@ -249,6 +249,12 @@ def add_metrics_to_port(port_instance: Any, port_name: str, is_v2: bool = False)
     Returns:
         Wrapped port instance with metrics
     """
+    import os
+    
+    # Only wrap with metrics if explicitly enabled
+    if os.getenv("DIPEO_PORT_METRICS") != "1":
+        return port_instance
+    
     class MetricsWrapper:
         def __init__(self, wrapped):
             self._wrapped = wrapped
@@ -263,3 +269,62 @@ def add_metrics_to_port(port_instance: Any, port_name: str, is_v2: bool = False)
             return attr
     
     return MetricsWrapper(port_instance)
+
+
+def wire_port_metrics(registry: "ServiceRegistry") -> None:
+    """Wire port metrics collection to all registered services.
+    
+    This should only be called when DIPEO_PORT_METRICS=1 is set.
+    
+    Args:
+        registry: The service registry containing all services
+    """
+    import os
+    
+    # Only wire metrics if explicitly enabled
+    if os.getenv("DIPEO_PORT_METRICS") != "1":
+        logger.debug("Port metrics disabled (set DIPEO_PORT_METRICS=1 to enable)")
+        return
+    
+    logger.info("🔬 Wiring port metrics collection (development mode)")
+    
+    # Get all registered services and wrap them with metrics
+    from dipeo.application.registry.keys import (
+        STATE_REPOSITORY, STATE_SERVICE, STATE_CACHE,
+        LLM_SERVICE, LLM_CLIENT,
+        FILESYSTEM_ADAPTER, BLOB_STORE,
+        MESSAGE_BUS, DOMAIN_EVENT_BUS,
+        API_INVOKER, INTEGRATED_API_SERVICE,
+        DB_OPERATIONS_SERVICE,
+        DIAGRAM_PORT, DIAGRAM_COMPILER,
+    )
+    
+    # Map of service keys to port names and versions
+    port_mappings = [
+        (STATE_REPOSITORY, "StateRepository", True),
+        (STATE_SERVICE, "StateService", True),
+        (STATE_CACHE, "StateCache", True),
+        (LLM_SERVICE, "LLMService", True),
+        (LLM_CLIENT, "LLMClient", True),
+        (FILESYSTEM_ADAPTER, "FileSystem", True),
+        (BLOB_STORE, "BlobStore", True),
+        (MESSAGE_BUS, "MessageBus", True),
+        (DOMAIN_EVENT_BUS, "EventBus", True),
+        (API_INVOKER, "ApiInvoker", True),
+        (INTEGRATED_API_SERVICE, "IntegratedApi", False),
+        (DB_OPERATIONS_SERVICE, "DBOperations", True),
+        (DIAGRAM_PORT, "DiagramPort", True),
+        (DIAGRAM_COMPILER, "DiagramCompiler", True),
+    ]
+    
+    wrapped_count = 0
+    for service_key, port_name, is_v2 in port_mappings:
+        if registry.has(service_key):
+            service = registry.resolve(service_key)
+            wrapped = add_metrics_to_port(service, port_name, is_v2)
+            # Re-register the wrapped service
+            registry.unregister(service_key)
+            registry.register(service_key, wrapped)
+            wrapped_count += 1
+    
+    logger.info(f"✅ Wrapped {wrapped_count} services with port metrics")

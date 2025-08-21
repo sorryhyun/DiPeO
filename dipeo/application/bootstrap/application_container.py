@@ -5,15 +5,13 @@ from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
     API_KEY_STORAGE,
-    API_SERVICE,
-    ARTIFACT_STORE,
     AST_PARSER,
     BLOB_STORE,
     CLI_SESSION_SERVICE,
     CONVERSATION_MANAGER,
     DB_OPERATIONS_SERVICE,
     DIAGRAM_CONVERTER,
-    DIAGRAM_SERVICE,
+    DIAGRAM_PORT,
     DIAGRAM_VALIDATOR,
     DOMAIN_SERVICE_REGISTRY,
     EXECUTION_SERVICE,
@@ -122,8 +120,8 @@ class ApplicationContainer:
         # Register the orchestrator as both conversation manager and person manager
         # for backward compatibility during migration
         self.registry.register(CONVERSATION_MANAGER, orchestrator)
-        from dipeo.application.registry.keys import CONVERSATION_SERVICE
-        self.registry.register(CONVERSATION_SERVICE, orchestrator)
+        # Register as CONVERSATION_MANAGER (CONVERSATION_SERVICE removed)
+        # Already registered as CONVERSATION_MANAGER above
         
         # For now, we'll keep PERSON_MANAGER pointing to the orchestrator
         # This maintains compatibility while we migrate
@@ -137,7 +135,7 @@ class ApplicationContainer:
         from dipeo.application.registry.keys import DIAGRAM_PORT
         diagram_service = self.registry.resolve(DIAGRAM_PORT)
         if diagram_service:
-            self.registry.register(DIAGRAM_SERVICE, diagram_service)
+            self.registry.register(DIAGRAM_PORT, diagram_service)
         from dipeo.application.execution.use_cases import ExecuteDiagramUseCase, PrepareDiagramForExecutionUseCase
         self.registry.register(
             EXECUTION_SERVICE,
@@ -145,13 +143,13 @@ class ApplicationContainer:
                 service_registry=self.registry,
                 state_store=self.registry.resolve(STATE_STORE),
                 message_router=self.registry.resolve(MESSAGE_ROUTER),
-                diagram_service=self.registry.resolve(DIAGRAM_SERVICE),
+                diagram_service=self.registry.resolve(DIAGRAM_PORT),
             )
         )
         self.registry.register(
             PREPARE_DIAGRAM_USE_CASE,
             lambda: PrepareDiagramForExecutionUseCase(
-                diagram_service=self.registry.resolve(DIAGRAM_SERVICE),
+                diagram_service=self.registry.resolve(DIAGRAM_PORT),
                 validator=self.registry.resolve(DIAGRAM_VALIDATOR),
                 api_key_service=self.registry.resolve(API_KEY_SERVICE),
                 service_registry=self.registry,

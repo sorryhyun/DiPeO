@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 # Auto-generated Pydantic model for person_job node
 
 from typing import *
@@ -26,10 +18,12 @@ class PersonJobNodeData(BaseModel):
     default_prompt: Optional[str] = Field(description="Default prompt template")
     prompt_file: Optional[str] = Field(description="Path to prompt file in /files/prompts/")
     max_iteration: int = Field(description="Maximum execution iterations")
-    memory_profile: Optional[str] = Field(description="Memory profile for conversation context")
+    memorize_to: Optional[str] = Field(description="Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria.")
+    at_most: Optional[float] = Field(description="Select at most N messages to keep (system messages may be preserved in addition).")
+    memory_profile: Optional[str] = Field(description="Memory profile for conversation context (Deprecated: prefer 'memorize_to' + 'at_most')")
     tools: Optional[List[ToolConfig]] = Field(description="Tools available to the AI agent")
     text_format: Optional[str] = Field(description="JSON schema or response format for structured outputs")
-    memory_settings: Optional[MemorySettings] = Field(description="Custom memory settings (when memory_profile is CUSTOM)")
+    memory_settings: Optional[MemorySettings] = Field(description="Custom memory settings (when memory_profile is CUSTOM) (Deprecated: prefer 'memorize_to' + 'at_most')")
 
     class Config:
         extra = "forbid"

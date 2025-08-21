@@ -22,6 +22,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     
     Now uses envelope-based communication for clean input/output interfaces.
     """
+    NODE_TYPE = NodeType.USER_RESPONSE
     
     
     def __init__(self):

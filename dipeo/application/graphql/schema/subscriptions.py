@@ -125,21 +125,31 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                         try:
                             # Wait for events with timeout to allow periodic checks
                             event = await asyncio.wait_for(event_queue.get(), timeout=30.0)
+                            # Normalize timestamp to string
                             timestamp = event.get("timestamp")
-                            if not timestamp:
-                                timestamp = datetime.now().isoformat()
-                            elif isinstance(timestamp, datetime):
+                            if isinstance(timestamp, datetime):
                                 timestamp = timestamp.isoformat()
+                            elif isinstance(timestamp, (int, float)):
+                                # Convert numeric epoch timestamp to ISO string
+                                timestamp = datetime.fromtimestamp(timestamp).isoformat()
+                            elif timestamp is None or timestamp == "":
+                                timestamp = datetime.now().isoformat()
+                            else:
+                                # Ensure it's a string
+                                timestamp = str(timestamp)
                             
-                            # Extract the event type
-                            event_type = event.get("type", "unknown")
+                            # Extract the event type, preferring UI event_type over raw type
+                            event_type = event.get("event_type") or event.get("type", "unknown")
+                            
+                            # Normalize execution_id key (handle both executionId and execution_id)
+                            exec_id_str = event.get("execution_id") or event.get("executionId") or str(exec_id)
                             
                             # For node events, restructure the data to match frontend expectations
                             if event_type in ["NODE_STARTED", "NODE_COMPLETED", "NODE_FAILED"]:
-                                # Extract node-specific fields and rename to snake_case
+                                # Extract node-specific fields - they are already in snake_case from the engine
                                 data = {
-                                    "node_id": event.get("nodeId"),
-                                    "node_type": event.get("nodeType"),
+                                    "node_id": event.get("node_id"),
+                                    "node_type": event.get("node_type"),
                                     "status": event.get("status"),
                                     "output": event.get("output"),
                                     "metrics": event.get("metrics"),
@@ -159,7 +169,7 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                                 data = {k: v for k, v in event.items() if k not in ["type", "timestamp", "executionId"]}
                             
                             yield ExecutionUpdate(
-                                execution_id=str(exec_id),
+                                execution_id=exec_id_str,
                                 event_type=event_type,
                                 data=serialize_for_json(data),
                                 timestamp=str(timestamp),
@@ -168,7 +178,19 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                             # Check if execution still exists periodically
                             if state_store:
                                 execution = await state_store.get_state(str(exec_id))
-                                if not execution or not execution.is_active:
+                                # Don't break immediately when execution becomes inactive
+                                # Allow time for final events to be sent
+                                if not execution:
+                                    break
+                                # If execution is complete, yield one more update then break
+                                if not execution.is_active and execution.status in ["COMPLETED", "FAILED", "ABORTED", "MAXITER_REACHED"]:
+                                    # Send final status update
+                                    yield ExecutionUpdate(
+                                        execution_id=str(exec_id),
+                                        event_type="EXECUTION_STATUS_CHANGED",
+                                        data={"status": execution.status, "is_final": True},
+                                        timestamp=datetime.now().isoformat(),
+                                    )
                                     break
                 finally:
                     # Clean up subscription

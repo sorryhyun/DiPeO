@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 # Auto-generated Pydantic model for typescript_ast node
 
 from typing import *

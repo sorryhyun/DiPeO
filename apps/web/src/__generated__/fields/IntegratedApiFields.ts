@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Generated field configuration for integrated_api
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
@@ -28,7 +20,7 @@ export const integratedApiFields: UnifiedFieldDefinition[] = [
   {
     name: 'resource_id',
     type: 'text',
-    label: 'Resource Id',
+    label: 'Resource',
     required: false,
     placeholder: 'Resource ID (if applicable)',
     description: 'Resource identifier (e.g., page ID, channel ID)',
@@ -61,7 +53,7 @@ export const integratedApiFields: UnifiedFieldDefinition[] = [
   {
     name: 'max_retries',
     type: 'number',
-    label: 'Max Retries',
+    label: 'Max retries',
     required: false,
     placeholder: '3',
     description: 'Maximum retry attempts',

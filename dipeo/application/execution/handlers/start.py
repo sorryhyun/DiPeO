@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 class StartNodeHandler(TypedNodeHandler[StartNode]):
     """Handler for start nodes with envelope support."""
     
+    NODE_TYPE = NodeType.START.value
+    
     def __init__(self):
         super().__init__()
         # Instance variables for passing data between methods
@@ -31,10 +33,6 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
     @property
     def node_class(self) -> type[StartNode]:
         return StartNode
-    
-    @property
-    def node_type(self) -> str:
-        return NodeType.START.value
 
     @property
     def schema(self) -> type[BaseModel]:

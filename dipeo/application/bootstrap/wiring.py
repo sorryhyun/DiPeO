@@ -1,28 +1,23 @@
-"""Application wiring for all services.
-
-This module provides wiring for all application services including state, messaging,
-LLM, API, storage, and diagram services.
-"""
+"""Minimal wiring for thin startup - only registers services actually used at runtime."""
 
 import logging
 import os
 from pathlib import Path
 from typing import Any, Optional
 
-from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry.keys import (
     API_INVOKER,
     API_KEY_SERVICE,
-    API_PROVIDER_REGISTRY,
-    BLOB_STORAGE,
-    FILE_SYSTEM,
-    ARTIFACT_STORE,
+    BLOB_STORE,
+    FILESYSTEM_ADAPTER,
     DOMAIN_EVENT_BUS,
     LLM_CLIENT,
     LLM_REGISTRY,
     LLM_SERVICE,
     MEMORY_SERVICE,
     MESSAGE_BUS,
+    MESSAGE_ROUTER,
     STATE_CACHE,
     STATE_REPOSITORY,
     STATE_SERVICE,
@@ -34,7 +29,6 @@ logger = logging.getLogger(__name__)
 def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> None:
     """Wire state management services."""
     
-    logger.info("🔄 Wiring state services with domain ports")
     from dipeo.infrastructure.execution.adapters import (
         StateRepositoryAdapter,
         StateServiceAdapter,
@@ -66,29 +60,26 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
     registry.register(STATE_REPOSITORY, repository)
     registry.register(STATE_SERVICE, service)
     registry.register(STATE_CACHE, cache)
-    
-    logger.info(f"✅ State services wired: backend={use_redis and 'redis' or 'memory'}")
 
 
 def wire_messaging_services(registry: ServiceRegistry) -> None:
     """Wire messaging services."""
     
-    from dipeo.infrastructure.execution.messaging.messaging_adapter import MessageBusAdapter
-    from dipeo.infrastructure.execution.messaging import MessageRouter, InMemoryEventBus
+    from dipeo.infrastructure.execution.messaging.message_router import MessageRouter
+    from dipeo.infrastructure.events.adapters import InMemoryEventBus
     
     # Choose event bus implementation based on config
     event_bus_backend = os.getenv("DIPEO_EVENT_BUS_BACKEND", "adapter").lower()
     
     if event_bus_backend == "in_memory":
         # Use pure in-memory implementation
-        from dipeo.infrastructure.execution.messaging import InMemoryEventBus
+        from dipeo.infrastructure.events.adapters import InMemoryEventBus
         domain_event_bus = InMemoryEventBus(
             max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
             enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
         )
     elif event_bus_backend == "redis":
         # Redis not yet implemented, use in-memory fallback
-        logger.info("Redis event bus not yet implemented, using in-memory fallback")
         domain_event_bus = InMemoryEventBus(
             max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
             enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
@@ -100,11 +91,10 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
             enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
         )
     
-    # Create message router
+    # Create message router and register under both keys for compatibility
     router = MessageRouter()
-    message_bus = MessageBusAdapter(router)
-    
-    registry.register(MESSAGE_BUS, message_bus)
+    registry.register(MESSAGE_ROUTER, router)
+    registry.register(MESSAGE_BUS, router)  # Legacy alias
     registry.register(DOMAIN_EVENT_BUS, domain_event_bus)
 
 
@@ -152,7 +142,6 @@ def wire_api_services(registry: ServiceRegistry) -> None:
     """Wire integrated API services."""
     
     from dipeo.infrastructure.integrations.adapters.api_adapter import (
-        ApiProviderRegistryAdapter,
         ApiInvokerAdapter,
     )
     
@@ -175,10 +164,6 @@ def wire_api_services(registry: ServiceRegistry) -> None:
             limiter=rate_limiter,
             manifests=manifest_registry
         )
-        
-        # For V2, also need provider registry
-        from dipeo.infrastructure.integrations.drivers.api_provider_registry import APIProviderRegistry
-        provider_registry = APIProviderRegistry()
     else:
         # Use existing integrated API service
         from dipeo.infrastructure.integrations.drivers.integrated_api.service import IntegratedApiService
@@ -190,21 +175,18 @@ def wire_api_services(registry: ServiceRegistry) -> None:
         else:
             api_service = IntegratedApiService()
         
-        # Wrap with domain adapters
-        provider_registry = ApiProviderRegistryAdapter(api_service)
+        # Wrap with domain adapter
         api_invoker = ApiInvokerAdapter(api_service)
     
-    registry.register(API_PROVIDER_REGISTRY, provider_registry)
     registry.register(API_INVOKER, api_invoker)
 
 
 def wire_event_services(registry: ServiceRegistry) -> None:
-    """Wire event services for observer migration."""
+    """Wire event services and connect router to event bus."""
     
-    from dipeo.infrastructure.execution.messaging import (
-        InMemoryEventBus,
-        ObserverToEventAdapter,
-    )
+    import asyncio
+    from dipeo.infrastructure.events.adapters import InMemoryEventBus
+    from dipeo.diagram_generated.enums import EventType
     
     # Get or create domain event bus
     if registry.has(DOMAIN_EVENT_BUS):
@@ -225,17 +207,23 @@ def wire_event_services(registry: ServiceRegistry) -> None:
                 enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
             )
     
-    # Create observer adapter for backward compatibility
-    observer_adapter = ObserverToEventAdapter(domain_event_bus)
+    # Register event bus if not already registered
+    if not registry.has(DOMAIN_EVENT_BUS):
+        registry.register(DOMAIN_EVENT_BUS, domain_event_bus)
     
-    # Register services
-    registry.register(DOMAIN_EVENT_BUS, domain_event_bus)
-    
-    # Also register as string key for backward compatibility
-    from dipeo.application.registry import ServiceKey
-    registry.register(ServiceKey("execution_observer"), observer_adapter)
-    
-    logger.info("Events/Observers migration: Using domain events with observer adapter")
+    # Connect router to event bus for fan-out of all domain events
+    if registry.has(MESSAGE_ROUTER):
+        router = registry.resolve(MESSAGE_ROUTER)
+        # Subscribe router to all event types
+        # Note: This subscription happens asynchronously later when the event loop is available
+        async def subscribe_router():
+            await domain_event_bus.subscribe(
+                event_types=[et for et in EventType],  # Subscribe to all events
+                handler=router,
+            )
+        
+        # Store the coroutine to be executed later when event loop is available
+        registry.register(ServiceKey("router_subscription"), subscribe_router)
 
 
 def wire_storage_services(registry: ServiceRegistry) -> None:
@@ -244,7 +232,6 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
     from dipeo.infrastructure.shared.adapters import (
         LocalBlobAdapter,
         LocalFileSystemAdapter,
-        ArtifactStoreAdapter,
     )
     
     # Choose storage backend based on config
@@ -268,36 +255,61 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
     settings = get_settings()
     filesystem = LocalFileSystemAdapter(base_path=Path(settings.storage.base_dir).resolve())
     
-    # Artifact store built on blob store
-    artifact_store = ArtifactStoreAdapter(blob_store=blob_store)
+    registry.register(BLOB_STORE, blob_store)
+    registry.register(FILESYSTEM_ADAPTER, filesystem)
+
+
+def wire_minimal(registry: ServiceRegistry, redis_client: Optional[object] = None) -> None:
+    """Wire only the minimal set of services actually used at runtime.
     
-    registry.register(BLOB_STORAGE, blob_store)
-    registry.register(FILE_SYSTEM, filesystem)
-    registry.register(ARTIFACT_STORE, artifact_store)
-
-
-def wire_all_services(
-    registry: ServiceRegistry,
-    redis_client: Optional[Any] = None,
-    api_key_service: Optional[Any] = None,
-) -> None:
-    """Wire all application services.
+    This avoids registering ~37 unused services identified by runtime analysis.
+    Services are wired lazily on first use where possible.
     
     Args:
-        registry: Service registry to register services with
-        redis_client: Optional Redis client for state persistence
-        api_key_service: Optional API key service for LLM services
+        registry: The service registry to wire services into
+        redis_client: Optional Redis client for distributed state
     """
-    # Wire each service group
+    from dipeo.application.diagram.wiring import (
+        wire_diagram_port,
+        wire_diagram_use_cases,
+    )
+    from dipeo.application.execution.wiring import wire_execution
+    from dipeo.application.conversation.wiring import wire_conversation
+    
+    # Core services that are always needed
     wire_state_services(registry, redis_client)
-    wire_messaging_services(registry)
     wire_event_services(registry)
-    wire_llm_services(registry, api_key_service)
-    wire_api_services(registry)
-    wire_storage_services(registry)
     
-    # Wire diagram services
-    from dipeo.application.diagram.wiring import wire_diagram
-    wire_diagram(registry)
+    # Diagram services - only the essentials
+    wire_diagram_port(registry)
+    wire_diagram_use_cases(registry)
     
-    logger.info("✅ All application services wired")
+    # Execution services - orchestrator and use cases only
+    wire_execution(registry)
+    
+    # Conversation services - only if actually used
+    # Check if PersonJob nodes exist in the diagram before wiring
+    # This can be determined at runtime based on diagram content
+    wire_conversation(registry)
+
+
+
+def wire_feature_flags(registry: ServiceRegistry, features: list[str]) -> None:
+    """Wire optional features based on feature flags.
+    
+    Args:
+        registry: The service registry
+        features: List of feature names to enable
+    """
+    if "ast_parser" in features:
+        from dipeo.application.bootstrap.infrastructure_container import wire_ast_parser
+        wire_ast_parser(registry)
+    
+    if "blob_storage" in features:
+        wire_storage_services(registry)
+    
+    # Add more feature flags as needed
+
+
+# Compatibility alias for migration
+wire_all_services = wire_minimal

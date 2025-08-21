@@ -8,6 +8,8 @@ from typing import Any
 import requests
 from dipeo.domain.constants import BASE_DIR
 
+from .graphql_queries import GraphQLQueries
+
 
 class ServerManager:
     """Manages the backend server process."""
@@ -75,7 +77,7 @@ class ServerManager:
 
         # Wait for server to be ready
         for _ in range(20):  # 10 seconds timeout
-            time.sleep(0.5)
+            time.sleep(0.2)
             if self.is_running():
                 print("✓ Server started successfully")
                 return True
@@ -110,20 +112,7 @@ class ServerManager:
         diagram_format: str | None = None,
     ) -> dict[str, Any]:
         """Execute a diagram via GraphQL."""
-        query = """
-        mutation ExecuteDiagram($diagramId: ID, $diagramData: JSON, $variables: JSON, $useUnifiedMonitoring: Boolean) {
-            execute_diagram(input: {
-                diagram_id: $diagramId,
-                diagram_data: $diagramData,
-                variables: $variables,
-                use_unified_monitoring: $useUnifiedMonitoring
-            }) {
-                success
-                execution_id
-                error
-            }
-        }
-        """
+        query = GraphQLQueries.EXECUTE_DIAGRAM
 
         response = requests.post(
             f"{self.base_url}/graphql",
@@ -153,7 +142,7 @@ class ServerManager:
                 execution_id=execution_result["execution_id"],
                 diagram_name=diagram_name or "unknown",
                 diagram_format=diagram_format or "native",
-                diagram_data=None,  # Not needed when using diagram_id
+                diagram_data=diagram_data,  # Send diagram data for faster loading
                 diagram_path=diagram_id,  # Pass the file path
             )
 
@@ -161,15 +150,7 @@ class ServerManager:
 
     def get_execution_result(self, execution_id: str) -> dict[str, Any] | None:
         """Get execution result by ID."""
-        query = """
-        query GetExecutionResult($id: ID!) {
-            execution(id: $id) {
-                status
-                node_outputs
-                error
-            }
-        }
-        """
+        query = GraphQLQueries.GET_EXECUTION_RESULT
 
         try:
             response = requests.post(
@@ -209,20 +190,7 @@ class ServerManager:
         diagram_path: str | None = None,
     ) -> bool:
         """Register a CLI execution session with the server."""
-        mutation = """
-        mutation RegisterCliSession($executionId: String!, $diagramName: String!, $diagramFormat: String!, $diagramData: JSON, $diagramPath: String) {
-            register_cli_session(input: {
-                execution_id: $executionId,
-                diagram_name: $diagramName,
-                diagram_format: $diagramFormat,
-                diagram_data: $diagramData,
-                diagram_path: $diagramPath
-            }) {
-                success
-                error
-            }
-        }
-        """
+        mutation = GraphQLQueries.REGISTER_CLI_SESSION
 
         try:
             response = requests.post(
@@ -255,13 +223,7 @@ class ServerManager:
 
     def unregister_cli_session(self, execution_id: str) -> bool:
         """Unregister a CLI execution session."""
-        mutation = """
-        mutation UnregisterCliSession($executionId: String!) {
-            unregister_cli_session(input: { execution_id: $executionId }) {
-                success
-            }
-        }
-        """
+        mutation = GraphQLQueries.UNREGISTER_CLI_SESSION
 
         try:
             response = requests.post(

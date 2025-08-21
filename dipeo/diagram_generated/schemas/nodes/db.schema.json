@@ -2,16 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/DBNodeData",
   "definitions": {
-    "DBBlockSubType": {
-      "description": "Node-specific enumerations",
-      "enum": [
-        "fixed_prompt",
-        "file",
-        "code",
-        "api_tool"
-      ],
-      "type": "string"
-    },
     "DBNodeData": {
       "additionalProperties": false,
       "description": "Configuration data for DB nodes that handle file system operations",
@@ -75,6 +65,16 @@
         "sub_type"
       ],
       "type": "object"
+    },
+    "DBBlockSubType": {
+      "description": "Node-specific enumerations",
+      "enum": [
+        "fixed_prompt",
+        "file",
+        "code",
+        "api_tool"
+      ],
+      "type": "string"
     },
     "JsonDict": {
       "additionalProperties": false,

@@ -7,11 +7,7 @@ enum APIServiceType {
   VERTEX
   DEEPSEEK
   OLLAMA
-  NOTION
-  GOOGLE_SEARCH
-  SLACK
-  GITHUB
-  JIRA
+  CLAUDE_CODE
 }
 
 """Unique identifier for API keys"""
@@ -533,7 +529,7 @@ type TestApiKeyResult {
 type TokenUsageType {
   input: Int!
   output: Int!
-  cached: Float
+  cached: Int
   total: Int
 }
 

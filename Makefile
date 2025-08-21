@@ -2,7 +2,7 @@
 # Now using uv for Python dependency management
 # Activate virtual environment with: source .venv/bin/activate
 
-.PHONY: install install-dev install-uv sync-deps codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated
+.PHONY: install install-dev install-uv sync-deps parse-typescript codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated
 
 # Default target
 help:
@@ -13,7 +13,8 @@ help:
 	@echo "  make sync-deps    - Sync Python dependencies with uv"
 	@echo ""
 	@echo "Code Generation (Recommended Workflow):"
-	@echo "  make codegen      - Generate all code to staging directory (safe)"
+	@echo "  make parse-typescript - Parse TypeScript models to generate AST cache"
+	@echo "  make codegen      - Generate all code to staging directory (includes parse-typescript)"
 	@echo "  make diff-staged  - Review changes before applying"
 	@echo "  make apply-syntax-only - Apply staged changes with syntax validation"
 	@echo "  make graphql-schema - Update GraphQL schema and TypeScript types"
@@ -66,14 +67,22 @@ install-dev: install
 	@export PATH="$$HOME/.local/bin:$$PATH" && uv pip install import-linter black mypy "ruff>=0.8.0" pytest-asyncio pytest-cov isort
 	@echo "Development dependencies installed!"
 
+# Parse TypeScript models to generate AST cache
+parse-typescript:
+	@echo "Cleaning TypeScript AST cache..."
+	@rm -rf temp/core temp/specifications temp/frontend temp/codegen temp/utilities temp/*.json 2>/dev/null || true
+	@echo "Parsing TypeScript models..."
+	dipeo run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20
+	@echo "✓ TypeScript parsing complete"
+
 # Primary code generation command (SAFE - stages changes for review)
-codegen:
+codegen: parse-typescript
 	@echo "Starting code generation..."
-	dipeo run projects/codegen/diagrams/generate_all --light --debug --timeout=30
+	dipeo run projects/codegen/diagrams/generate_all --light --debug --timeout=35
 	@echo "✓ Code generation complete. Next: make diff-staged → make apply-syntax-only → make graphql-schema"
 
 # Automatic code generation with auto-apply (DANGEROUS - use with caution!)
-codegen-auto:
+codegen-auto: parse-typescript
 	@echo "⚠️  WARNING: Auto-applying all changes!"
 	dipeo run projects/codegen/diagrams/generate_all --light --timeout=30
 	@sleep 1

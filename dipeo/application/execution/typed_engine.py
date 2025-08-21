@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.scheduler import NodeScheduler
 from dipeo.application.execution.typed_execution_context import TypedExecutionContext
-from dipeo.domain.events import EventEmitter, EventType, DomainEvent
-from dipeo.domain.diagram.resolution import RuntimeInputResolverV2
+from dipeo.domain.events import EventType, DomainEventBus, DomainEvent
+from dipeo.domain.execution.resolution import RuntimeInputResolver
 from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution import DomainDynamicOrderCalculator
@@ -24,7 +24,6 @@ from dipeo.config import get_settings
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceRegistry
-    from dipeo.application.execution.observer_protocol import ExecutionObserver
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +41,9 @@ class TypedExecutionEngine:
     def __init__(
         self, 
         service_registry: "ServiceRegistry",
-        runtime_resolver: RuntimeInputResolverV2,
+        runtime_resolver: RuntimeInputResolver,
         order_calculator: Any | None = None,
-        event_bus: EventEmitter | None = None,
-        observers: list["ExecutionObserver"] | None = None
+        event_bus: DomainEventBus | None = None
     ):
         self.service_registry = service_registry
         self.runtime_resolver = runtime_resolver
@@ -54,26 +52,13 @@ class TypedExecutionEngine:
         self._managed_event_bus = False
         self._scheduler: NodeScheduler | None = None
         
-        if observers and not event_bus:
-            from dipeo.infrastructure.execution.messaging import InMemoryEventBus, ObserverToEventAdapter
-            from dipeo.domain.events import EventType
-            # Create in-memory event bus and register observers
+        # Use provided event bus or create one
+        if not event_bus:
+            from dipeo.infrastructure.events.adapters import InMemoryEventBus
             self.event_bus = InMemoryEventBus()
-            # Store adapters for later async subscription
-            self._observer_adapters = []
-            for observer in observers:
-                adapter = ObserverToEventAdapter(observer)
-                self._observer_adapters.append(adapter)
             self._managed_event_bus = True
         else:
-            # Use provided event bus or create async event bus
-            if not event_bus:
-                from dipeo.infrastructure.execution.messaging import InMemoryEventBus
-                self.event_bus = InMemoryEventBus()
-                self._managed_event_bus = True
-            else:
-                self.event_bus = event_bus
-            self._observer_adapters = []  # Initialize empty list to avoid AttributeError
+            self.event_bus = event_bus
     
     async def execute(
         self,
@@ -88,18 +73,12 @@ class TypedExecutionEngine:
         # Start event bus if we're managing it
         if self._managed_event_bus:
             await self.event_bus.start()
-            # Subscribe observer adapters if we have them
-            if hasattr(self, '_observer_adapters'):
-                from dipeo.domain.events import EventType
-                for adapter in self._observer_adapters:
-                    await self.event_bus.subscribe(EventType.EXECUTION_STARTED, adapter)
-                    await self.event_bus.subscribe(EventType.NODE_STARTED, adapter)
-                    await self.event_bus.subscribe(EventType.NODE_COMPLETED, adapter)
-                    await self.event_bus.subscribe(EventType.NODE_ERROR, adapter)
-                    await self.event_bus.subscribe(EventType.EXECUTION_COMPLETED, adapter)
-                    await self.event_bus.subscribe(EventType.EXECUTION_UPDATE, adapter)
+            # Note: We no longer convert events back to observers (EventToObserverAdapter removed)
+            # This eliminates unnecessary loops in the event system
+            # Observers should be wrapped with ObserverToEventAdapter at injection time instead
         
         context = None
+        log_handler = None
         try:
             # Create execution context
             context = TypedExecutionContext.from_execution_state(
@@ -109,6 +88,18 @@ class TypedExecutionEngine:
                 runtime_resolver=self.runtime_resolver,
                 event_bus=self.event_bus,
                 container=container
+            )
+            
+            # Store parent metadata from options for nested sub-diagrams
+            if 'parent_metadata' in options:
+                context._parent_metadata = options['parent_metadata']
+            
+            # Set up execution logging to emit EXECUTION_LOG events
+            from dipeo.infrastructure.execution.logging_handler import setup_execution_logging
+            log_handler = setup_execution_logging(
+                event_bus=self.event_bus,
+                execution_id=str(context.execution_id),
+                log_level=logging.DEBUG if options.get('debug', False) else logging.INFO
             )
             
             # Initialize scheduler for this execution
@@ -139,7 +130,6 @@ class TypedExecutionEngine:
             while not context.is_execution_complete():
                 # Get ready nodes using scheduler
                 ready_nodes = await self._scheduler.get_ready_nodes(context)
-                
                 if not ready_nodes:
                     # No nodes ready, wait briefly (using a reasonable default)
                     poll_interval = getattr(self._settings.execution, 'node_ready_poll_interval', 0.01)
@@ -205,6 +195,11 @@ class TypedExecutionEngine:
             }
             raise
         finally:
+            # Teardown execution logging
+            if log_handler:
+                from dipeo.infrastructure.execution.logging_handler import teardown_execution_logging
+                teardown_execution_logging(log_handler)
+            
             # Stop event bus if we're managing it
             if self._managed_event_bus:
                 await self.event_bus.stop()
@@ -386,11 +381,15 @@ class TypedExecutionEngine:
         """Create an ExecutionRequest for the handler."""
         from dipeo.application.execution.execution_request import ExecutionRequest
         
-        # Include diagram metadata
+        # Include diagram metadata and parent metadata from context
         request_metadata = {}
         if hasattr(context.diagram, 'metadata') and context.diagram.metadata:
             request_metadata['diagram_source_path'] = context.diagram.metadata.get('diagram_source_path')
             request_metadata['diagram_id'] = context.diagram.metadata.get('diagram_id')
+        
+        # Propagate parent metadata if we're in a nested sub-diagram
+        if hasattr(context, '_parent_metadata') and context._parent_metadata:
+            request_metadata.update(context._parent_metadata)
         
         return ExecutionRequest(
             node=node,
@@ -503,6 +502,10 @@ class TypedExecutionEngine:
         registry = get_global_registry()
         if not hasattr(registry, '_service_registry') or registry._service_registry is None:
             HandlerFactory(self.service_registry)
+        
+        # Ensure we use the string value, not the enum itself
+        if hasattr(node_type, 'value'):
+            node_type = node_type.value
         
         return registry.create_handler(node_type)
     

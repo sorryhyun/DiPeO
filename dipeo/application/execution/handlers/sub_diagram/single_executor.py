@@ -40,20 +40,6 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         node = request.node
         trace_id = request.execution_id or ""
         
-        # Check if we should skip execution when running as a sub-diagram
-        if getattr(node, 'ignoreIfSub', False):
-            if self._is_sub_diagram_context(request):
-                # Return skip envelope directly
-                skip_data = {
-                    "status": "skipped",
-                    "reason": "Skipped because running as sub-diagram with ignoreIfSub=true"
-                }
-                return EnvelopeFactory.json(
-                    skip_data,
-                    produced_by=node.id,
-                    trace_id=trace_id
-                ).with_meta(execution_status="skipped")
-        
         try:
             # Use pre-configured services (set by handler)
             if not all([self._state_store, self._message_router, self._diagram_service]):
@@ -79,8 +65,8 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
             # Create the execution use case
             execute_use_case = self._create_execution_use_case(request)
             
-            # Configure observers for sub-diagram execution
-            filtered_observers = self._configure_observers(
+            # Configure event filter for sub-diagram execution
+            event_filter = self._configure_event_filter(
                 request=request,
                 sub_execution_id=sub_execution_id,
                 options=options
@@ -92,7 +78,7 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
                 domain_diagram=domain_diagram,
                 options=options,
                 sub_execution_id=sub_execution_id,
-                parent_observers=filtered_observers
+                event_filter=event_filter
             )
             
             # Build and return output
@@ -142,30 +128,30 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
             container=container
         )
     
-    def _configure_observers(
+    def _configure_event_filter(
         self,
         request: ExecutionRequest[SubDiagramNode],
         sub_execution_id: str,
         options: dict[str, Any]
-    ) -> list[Any]:
-        """Configure observers for sub-diagram execution."""
-        # Get parent observers if available
-        parent_observers = options.get("observers", [])
+    ) -> Any:
+        """Configure event filter for sub-diagram execution.
         
-        # Filter observers based on their propagation settings
-        from dipeo.application.execution.observers.scoped_observer import create_scoped_observers
-        filtered_observers = create_scoped_observers(
-            observers=parent_observers,
+        Returns an EventFilter that scopes events to the sub-diagram execution.
+        """
+        from dipeo.domain.events import SubDiagramFilter
+        
+        # Create filter for sub-diagram execution
+        event_filter = SubDiagramFilter(
             parent_execution_id=request.execution_id,
-            sub_execution_id=sub_execution_id,
-            inherit_all=False  # Only inherit observers with propagate_to_sub=True
+            propagate_to_sub=True,  # Allow sub-execution events
+            scope_to_execution=False,  # Don't limit to parent only
         )
         
         # Log sub-diagram execution start
         if request.metadata:
             request.add_metadata("sub_execution_id", sub_execution_id)
         
-        return filtered_observers
+        return event_filter
     
     def _build_node_output(
         self,
@@ -248,7 +234,7 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         domain_diagram: Any,  # DomainDiagram
         options: dict[str, Any],
         sub_execution_id: str,
-        parent_observers: list[Any]
+        event_filter: Any
     ) -> tuple[dict[str, Any], str | None]:
         """Execute the sub-diagram and return results and any error.
         
@@ -262,7 +248,7 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
             options=options,
             execution_id=sub_execution_id,
             interactive_handler=None,
-            observers=parent_observers
+            event_filter=event_filter
         ):
             # Process execution updates
             result, error, should_break = self._process_execution_update(update, execution_results)

@@ -64,12 +64,13 @@ def extract_node_specs_from_glob(inputs: Dict[str, Any]) -> Dict[str, Any]:
 def extract_node_data_from_glob(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """
     Extract node data interfaces directly from glob-loaded data files.
+    Also preserves the full glob results for spec extraction.
     
     Args:
         inputs: Dict with file paths as keys from DB glob operation
         
     Returns:
-        Dictionary with 'node_data' organized by node type
+        Dictionary with 'node_data' organized by node type and the full glob results
     """
     # Handle wrapped inputs
     if 'default' in inputs and isinstance(inputs['default'], dict):
@@ -106,7 +107,17 @@ def extract_node_data_from_glob(inputs: Dict[str, Any]) -> Dict[str, Any]:
                 }
                 break
     
-    return {'node_data': node_data_by_type}
+    # Return both the extracted node data AND the full glob results
+    # This allows extract_specs_from_combined_data to work with the spec files
+    result = {'node_data': node_data_by_type}
+    
+    # Include the full glob results so specs can be extracted
+    # Add all the original glob results to the output
+    for filepath, ast_data in glob_results.items():
+        if filepath not in ['default', 'inputs', 'node_id']:
+            result[filepath] = ast_data
+    
+    return result
 
 
 def prepare_strawberry_types(inputs: Dict[str, Any]) -> Dict[str, Any]:

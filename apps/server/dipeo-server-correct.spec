@@ -65,7 +65,7 @@ else:
     raise FileNotFoundError(f"dipeo package not found at {DIPEO_DIR}")
 
 # Create essential directories
-for dir_name in ['files', 'files/diagrams', 'files/results', 'files/conversation_logs', 'files/uploads', 'files/prompts']:
+for dir_name in ['files', 'examples', 'files/results', 'files/conversation_logs', 'files/uploads', 'files/prompts']:
     dir_path = os.path.join(SERVER_DIR, dir_name)
     if not os.path.exists(dir_path):
         os.makedirs(dir_path, exist_ok=True)

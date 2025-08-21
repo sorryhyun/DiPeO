@@ -11,7 +11,6 @@ from .db_node import DbNode
 from .endpoint_node import EndpointNode
 from .hook_node import HookNode
 from .json_schema_validator_node import JsonSchemaValidatorNode
-from .notion_node import NotionNode
 from .person_batch_job_node import PersonBatchJobNode
 from .person_job_node import PersonJobNode
 from .start_node import StartNode
@@ -29,7 +28,6 @@ __all__ = [
     'EndpointNode',
     'HookNode',
     'JsonSchemaValidatorNode',
-    'NotionNode',
     'PersonBatchJobNode',
     'PersonJobNode',
     'StartNode',

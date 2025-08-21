@@ -14,32 +14,27 @@ if TYPE_CHECKING:
         ExecutionStateRepository,
         ExecutionStateService,
     )
-    from dipeo.domain.ports.storage import BlobStorePort as FileServicePort
+    from dipeo.domain.base.storage_port import BlobStorePort as FileServicePort
     from dipeo.domain.events.ports import MessageBus as MessageRouterPort
     from dipeo.domain.events import DomainEventBus, MessageBus
-    from dipeo.application.execution.observer_protocol import ExecutionObserver
     from dipeo.domain.integrations.ports import APIKeyPort
     from dipeo.domain.diagram.ports import DiagramPort, DiagramCompiler, DiagramStorageSerializer
     from dipeo.domain.integrations.ports import ApiInvoker as IntegratedApiServicePort
     from dipeo.domain.integrations import ApiInvoker, ApiProvider, ApiProviderRegistry
     from dipeo.domain.diagram.ports import DiagramStorageSerializer as DiagramConverter
     from dipeo.domain.integrations.ports import ASTParserPort
-    from dipeo.domain.ports import (
-        APIKeyRepository,
+    from dipeo.domain.conversation.ports import (
         ConversationRepository,
-        DiagramRepository,
-        ExecutionRepository,
-        NodeOutputRepository,
         PersonRepository,
     )
-    from dipeo.domain.ports.storage import FileSystemPort, ArtifactStorePort
+    from dipeo.domain.base.storage_port import FileSystemPort, ArtifactStorePort
     from dipeo.domain.diagram.ports import TemplateProcessorPort
     from dipeo.domain.events import EventEmitter
     from dipeo.domain.llm import LLMClient, LLMService, MemoryService
-    from dipeo.domain.diagram.resolution.interfaces import (
-        CompileTimeResolverV2,
-        RuntimeInputResolverV2,
-        TransformationEngineV2,
+    from dipeo.domain.diagram.compilation import CompileTimeResolver
+    from dipeo.domain.execution.resolution import (
+        RuntimeInputResolver,
+        TransformationEngine,
     )
     from dipeo.application.utils import PromptBuilder
     from dipeo.application.execution.handlers.condition.evaluators.expression_evaluator import ConditionEvaluator
@@ -80,14 +75,10 @@ MEMORY_SERVICE = ServiceKey["MemoryService"]("memory_service")
 
 # Storage Services
 BLOB_STORE = ServiceKey["BlobStoreAdapter"]("blob_store")
-ARTIFACT_STORE = ServiceKey["ArtifactStoreAdapter"]("artifact_store")
 FILESYSTEM_ADAPTER = ServiceKey["FileSystemPort"]("filesystem_adapter")
-FILE_SYSTEM = ServiceKey["FileSystemPort"]("file_system")  # Alias from registry_tokens.py
-BLOB_STORAGE = ServiceKey["BlobStorePort"]("blob_storage")  # From registry_tokens.py
 
 # Application Services
 CONVERSATION_MANAGER = ServiceKey["ConversationManagerImpl"]("conversation_manager")
-CONVERSATION_SERVICE = ServiceKey["ConversationManagerImpl"]("conversation_service")  # Alias
 PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder")
 PERSON_MANAGER = ServiceKey["PersonManagerImpl"]("person_manager")
 TEMPLATE_PROCESSOR = ServiceKey["TemplateProcessorPort"]("template_processor")
@@ -100,20 +91,17 @@ DIAGRAM_SERIALIZER = ServiceKey["DiagramStorageSerializer"]("diagram_serializer"
 DIAGRAM_PORT = ServiceKey["DiagramPort"]("diagram_port")  # From registry_tokens.py
 
 # External Integration Services
-API_SERVICE = ServiceKey["APIService"]("api_service")
 API_KEY_SERVICE = ServiceKey["APIKeyPort"]("api_key_service")
 INTEGRATED_API_SERVICE = ServiceKey["IntegratedApiServicePort"]("integrated_api_service")
 PROVIDER_REGISTRY = ServiceKey["Any"]("provider_registry")  # Provider registry for webhook integration
-API_PROVIDER_REGISTRY = ServiceKey["ApiProviderRegistry"]("api_provider_registry")  # From registry_tokens.py
 API_INVOKER = ServiceKey["ApiInvoker"]("api_invoker")  # From registry_tokens.py
 
 # Parser Services
 AST_PARSER = ServiceKey["ASTParserPort"]("ast_parser")
 
 # Resolution Services (from registry_tokens.py)
-COMPILE_TIME_RESOLVER = ServiceKey["CompileTimeResolverV2"]("compile_time_resolver")
-RUNTIME_RESOLVER = ServiceKey["RuntimeInputResolverV2"]("runtime_resolver")
-TRANSFORMATION_ENGINE = ServiceKey["TransformationEngineV2"]("transformation_engine")
+RUNTIME_RESOLVER = ServiceKey["RuntimeInputResolver"]("runtime_resolver")
+TRANSFORMATION_ENGINE = ServiceKey["TransformationEngine"]("transformation_engine")
 
 # Execution Context Services
 DIAGRAM = ServiceKey["ExecutableDiagram"]("diagram")
@@ -122,7 +110,6 @@ CURRENT_NODE_INFO = ServiceKey["Dict[str, Any]"]("current_node_info")
 NODE_EXEC_COUNTS = ServiceKey["Dict[str, int]"]("node_exec_counts")
 
 # Diagram Services
-DIAGRAM_SERVICE = ServiceKey["DiagramService"]("diagram_service")
 EXECUTION_SERVICE = ServiceKey["ExecutionService"]("execution_service")
 COMPILATION_SERVICE = ServiceKey["CompilationService"]("compilation_service")
 PREPARE_DIAGRAM_USE_CASE = ServiceKey["PrepareDiagramForExecutionUseCase"]("prepare_diagram_use_case")
@@ -191,14 +178,10 @@ __all__ = [
     
     # Storage
     "BLOB_STORE",
-    "ARTIFACT_STORE",
     "FILESYSTEM_ADAPTER",
-    "FILE_SYSTEM",
-    "BLOB_STORAGE",
     
     # Application
     "CONVERSATION_MANAGER",
-    "CONVERSATION_SERVICE",
     "PROMPT_BUILDER",
     "PERSON_MANAGER",
     "TEMPLATE_PROCESSOR",
@@ -211,18 +194,15 @@ __all__ = [
     "DIAGRAM_PORT",
     
     # External Integration
-    "API_SERVICE",
     "API_KEY_SERVICE",
     "INTEGRATED_API_SERVICE",
     "PROVIDER_REGISTRY",
-    "API_PROVIDER_REGISTRY",
     "API_INVOKER",
     
     # Parser
     "AST_PARSER",
     
     # Resolution Services
-    "COMPILE_TIME_RESOLVER",
     "RUNTIME_RESOLVER",
     "TRANSFORMATION_ENGINE",
     
@@ -233,7 +213,6 @@ __all__ = [
     "NODE_EXEC_COUNTS",
     
     # Diagram Services
-    "DIAGRAM_SERVICE",
     "EXECUTION_SERVICE",
     "COMPILATION_SERVICE",
     "PREPARE_DIAGRAM_USE_CASE",
@@ -275,3 +254,5 @@ __all__ = [
     "DOMAIN_SERVICE_REGISTRY",
     "API_KEY_STORAGE",
 ]
+
+

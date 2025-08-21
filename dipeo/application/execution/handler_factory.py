@@ -26,8 +26,13 @@ class HandlerRegistry:
         self._service_registry = service_registry
 
     def register_class(self, handler_class: type[TypedNodeHandler]) -> None:
-        temp_instance = handler_class()
-        node_type = temp_instance.node_type
+        # Use NODE_TYPE class variable instead of instantiating
+        if hasattr(handler_class, 'NODE_TYPE'):
+            node_type = handler_class.NODE_TYPE
+        else:
+            # Fallback for handlers not yet updated
+            temp_instance = handler_class()
+            node_type = temp_instance.node_type
         self._handler_classes[node_type] = handler_class
 
     def create_handler(self, node_type: str) -> TypedNodeHandler:
@@ -37,55 +42,8 @@ class HandlerRegistry:
             log.error(f"No handler class registered for node type: {node_type}. Available types: {available_types}")
             raise ValueError(f"No handler class registered for node type: {node_type}")
 
-        sig = inspect.signature(handler_class.__init__)
-        params = list(sig.parameters.keys())
-
-        if len(params) == 1 and params[0] == 'self':
-            handler = handler_class()
-            return handler
-        else:
-            handler = self._create_handler_with_services(handler_class)
-            return handler
-
-    def _create_handler_with_services(self, handler_class: type[TypedNodeHandler]) -> TypedNodeHandler:
-        if not self._service_registry:
-            raise RuntimeError("Service registry not set. Call set_service_registry first.")
-
-        sig = inspect.signature(handler_class.__init__)
-        kwargs = {}
-
-        for param_name, param in sig.parameters.items():
-            if param_name == 'self':
-                continue
-            
-            if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-                continue
-
-            service_name = param_name
-
-            if service_name == 'template_service':
-                service_name = 'template'
-            elif service_name == 'conversation_service':
-                service_name = 'conversation_service'
-
-            key = ServiceKey(service_name)
-            service = self._service_registry.get(key)
-            
-            if service is not None:
-                kwargs[param_name] = service
-            else:
-                if service_name.endswith('_service'):
-                    alt_name = service_name[:-8]
-                    alt_key = ServiceKey(alt_name)
-                    service = self._service_registry.get(alt_key)
-                    if service is not None:
-                        kwargs[param_name] = service
-                        continue
-                
-                if param.default is inspect.Parameter.empty:
-                    raise ValueError(f"Required service '{service_name}' not found for handler {handler_class.__name__}")
-
-        return handler_class(**kwargs)
+        # Simply instantiate the handler class with no arguments
+        return handler_class()
 
 
 _global_registry = HandlerRegistry()

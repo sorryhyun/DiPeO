@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import aiohttp
 from pydantic import BaseModel
-from dipeo.domain.ports.storage import FileSystemPort
+from dipeo.domain.base.storage_port import FileSystemPort
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
@@ -33,11 +33,11 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     
     Now uses envelope-based communication for clean input/output interfaces.
     """
+    NODE_TYPE = NodeType.HOOK
     
     
-    def __init__(self, filesystem_adapter: Optional[FileSystemPort] = None):
+    def __init__(self):
         super().__init__()
-        self.filesystem_adapter = filesystem_adapter
         # Instance variables for passing data between methods
         self._current_filesystem_adapter = None
         self._current_timeout = None
@@ -113,7 +113,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     produced_by=str(node.id)
                 )
             # Get filesystem adapter for file hooks
-            filesystem_adapter = self.filesystem_adapter or request.services.resolve(FILESYSTEM_ADAPTER)
+            filesystem_adapter = request.services.resolve(FILESYSTEM_ADAPTER)
             if not filesystem_adapter:
                 return EnvelopeFactory.error(
                     "Filesystem adapter is required for file hooks",
@@ -431,7 +431,7 @@ print(json.dumps(result))
         
         try:
             path = Path(file_path)
-            filesystem_adapter = getattr(self, '_temp_filesystem_adapter', self.filesystem_adapter)
+            filesystem_adapter = getattr(self, '_temp_filesystem_adapter', None)
             if not filesystem_adapter:
                 raise NodeExecutionError("Filesystem adapter not available")
             

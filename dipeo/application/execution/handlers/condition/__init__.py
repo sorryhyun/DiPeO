@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 @register_handler
 class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     """Handler for condition nodes using evaluator pattern with envelope support."""
+    NODE_TYPE = NodeType.CONDITION
     
     
     def __init__(self):
@@ -134,6 +135,19 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         evaluator = self._current_evaluator
         diagram = self._current_diagram
         
+        # Track and expose loop index if configured
+        if hasattr(node, 'expose_index_as') and node.expose_index_as:
+            # Get execution count for loop index (0-based)
+            execution_count = context.get_node_execution_count(node.id)
+            loop_index = execution_count - 1  # Convert to 0-based index
+            
+            # Store in variables for downstream nodes to access (persisted across executions)
+            context.set_variable(node.expose_index_as, loop_index)
+            
+            logger.debug(
+                f"ConditionNode {node.id}: Exposing loop index as '{node.expose_index_as}' = {loop_index}"
+            )
+        
         # Execute evaluation with pre-selected evaluator
         eval_result = await evaluator.evaluate(node, context, diagram, legacy_inputs)
         result = eval_result["result"]
@@ -142,21 +156,20 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Store evaluation metadata in instance variable for later use
         self._current_evaluation_metadata = eval_result["metadata"]
         
-        true_output = output_value.get("condtrue") if result else None
-        false_output = output_value.get("condfalse") if not result else None
+        # Return only the active branch data
+        active_branch = "condtrue" if result else "condfalse"
         
         logger.debug(
             f"ConditionNode {node.id}: type={node.condition_type}, "
-            f"result={result}, has_true_output={true_output is not None}, "
-            f"has_false_output={false_output is not None}"
+            f"result={result}, active_branch={active_branch}"
         )
         
         # Return structured result for serialization
+        # The output_value goes directly in the response, not wrapped
         return {
             "result": result,
-            "condtrue": true_output,
-            "condfalse": false_output,
-            "active_branch": "condtrue" if result else "condfalse",
+            "active_branch": active_branch,
+            "branch_data": output_value,  # Direct pass-through of active branch data
             "condition_type": node.condition_type,
             "evaluation_metadata": self._current_evaluation_metadata,
             "timestamp": time.time()
@@ -167,22 +180,30 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         result: Any,
         request: ExecutionRequest[ConditionNode]
     ) -> Envelope:
-        """Serialize condition result to special condition envelope."""
+        """Serialize condition result to envelope with active branch data in body."""
         node = request.node
+        context = request.context
         
-        # Extract result data
-        condition_result = result["result"]
-        meta = {k: v for k, v in result.items() if k != "result"}
+        # Extract the active branch data
+        branch_data = result.get("branch_data", {})
+        active_branch = result.get("active_branch", "condfalse")
         
-        # Create Envelope directly for proper branch routing
-        from dipeo.domain.execution.envelope import Envelope
+        # 1) Publish globals for any downstream node/template
+        context.set_variable(f"branch[{node.id}]", active_branch)  # e.g., "condtrue" | "condfalse"
         
-        output = Envelope(
-            content_type="condition_result",  # Special content type for conditions
-            body=condition_result,
-            produced_by=str(node.id),
-            meta=meta
-        )
+        # 2) Return a normal envelope (no special content_type)
+        if isinstance(branch_data, dict):
+            output = EnvelopeFactory.json(
+                branch_data,
+                produced_by=str(node.id),
+                trace_id=request.execution_id or ""
+            )
+        else:
+            output = EnvelopeFactory.text(
+                str(branch_data) if branch_data is not None else "",
+                produced_by=str(node.id),
+                trace_id=request.execution_id or ""
+            )
         
         return output
     

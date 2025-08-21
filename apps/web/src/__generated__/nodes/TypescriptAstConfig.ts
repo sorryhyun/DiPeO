@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated node configuration for typescript_ast
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
@@ -22,17 +14,11 @@ export const typescriptAstConfig: UnifiedNodeConfig = {
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: HandleLabel.RESULTS, displayLabel: 'Results', position: 'right' },
-      { label: HandleLabel.ERROR, displayLabel: 'Error', position: 'right' },
+      { label: HandleLabel.RESULTS, displayLabel: '', position: 'right' },
+      { label: HandleLabel.ERROR, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {
-    extractPatterns: ["interface", "type", "enum"],
-    includeJSDoc: false,
-    parseMode: 'module',
-    transformEnums: false,
-    flattenOutput: false,
-    outputFormat: 'standard',
   },
   customFields: typescriptAstFields,
   primaryDisplayField: 'parseMode',

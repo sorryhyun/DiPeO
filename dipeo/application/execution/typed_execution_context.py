@@ -14,11 +14,11 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
-from dipeo.domain.events import EventEmitter, EventType, DomainEvent
+from dipeo.domain.events import DomainEventBus, EventType, DomainEvent
 from dipeo.domain.execution.execution_context import ExecutionContext as ExecutionContextProtocol
 from dipeo.domain.execution.execution_tracker import CompletionStatus, ExecutionTracker
 from dipeo.domain.execution.envelope import Envelope
-from dipeo.domain.diagram.resolution import RuntimeInputResolverV2
+from dipeo.domain.execution.resolution import RuntimeInputResolver
 from dipeo.diagram_generated import (
     ExecutionState,
     Status,
@@ -71,8 +71,8 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     # Dependencies
     service_registry: Optional["ServiceRegistry"] = None
-    runtime_resolver: Optional[RuntimeInputResolverV2] = None
-    event_bus: Optional[EventEmitter] = None
+    runtime_resolver: Optional[RuntimeInputResolver] = None
+    event_bus: Optional[DomainEventBus] = None
     container: Optional["Container"] = None
     
     # ========== Node State Queries ==========
@@ -206,23 +206,22 @@ class TypedExecutionContext(ExecutionContextProtocol):
 
         # Special handling for ConditionNode - only reset nodes on the active branch
         if isinstance(completed_node, ConditionNode):
-            # Get the output to determine which branch was taken
-            output = self._tracker.get_last_output(node_id)
-
-            # Handle Envelope with condition result
-            from dipeo.domain.execution.envelope import Envelope
-            if isinstance(output, Envelope):
-                # Extract branch from envelope metadata
-                if output.content_type == "condition_result":
-                    # Use active_branch from metadata (set by condition handler)
-                    active_branch = output.meta.get("active_branch", "condfalse")
-                else:
-                    # Fallback: check the body for result
-                    result = output.body.get("result", False) if isinstance(output.body, dict) else False
-                    active_branch = "condtrue" if result else "condfalse"
-            else:
-                    # No valid output, can't determine branch
-                    return
+            # (A) Preferred: read from global variables
+            active_branch = None
+            if hasattr(self, "get_variable"):
+                active_branch = self.get_variable(f"branch[{node_id}]")
+            
+            # (B) Fallback: infer from legacy patterns if needed
+            if not active_branch:
+                output = self._tracker.get_last_output(node_id)
+                from dipeo.domain.execution.envelope import Envelope
+                if isinstance(output, Envelope) and output:
+                    if isinstance(output.body, dict) and "result" in output.body:
+                        active_branch = "condtrue" if bool(output.body["result"]) else "condfalse"
+            
+            if not active_branch:
+                # Default safe branch
+                active_branch = "condfalse"
 
             # Only process edges on the active branch
             outgoing_edges = [
@@ -352,8 +351,10 @@ class TypedExecutionContext(ExecutionContextProtocol):
         """Check if execution is complete."""
         # Check if any endpoint nodes have been reached
         from dipeo.diagram_generated.generated_nodes import NodeType
+        has_endpoint = False
         for node in self.diagram.nodes:
             if node.type == NodeType.ENDPOINT.value:
+                has_endpoint = True
                 node_state = self.get_node_state(node.id)
                 if node_state and node_state.status in [Status.COMPLETED, Status.MAXITER_REACHED]:
                     return True
@@ -361,6 +362,16 @@ class TypedExecutionContext(ExecutionContextProtocol):
         # Check if any nodes are running
         if any(state.status == Status.RUNNING for state in self._node_states.values()):
             return False
+        
+        # If there's an endpoint node but it hasn't been executed yet, execution is not complete
+        if has_endpoint:
+            # Check if endpoint dependencies are met but endpoint hasn't run
+            for node in self.diagram.nodes:
+                if node.type == NodeType.ENDPOINT.value:
+                    node_state = self.get_node_state(node.id)
+                    # If endpoint has no state yet, execution is not complete
+                    if not node_state:
+                        return False
         
         # Check if all nodes have been processed (no pending nodes with met dependencies)
         # This is a simplified check - the engine's order calculator determines actual readiness
@@ -510,7 +521,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
                 )
         
         if event:
-            await self.event_bus.emit(event)
+            await self.event_bus.publish(event)
     
     # ========== Service Access ==========
     
@@ -560,8 +571,8 @@ class TypedExecutionContext(ExecutionContextProtocol):
         execution_state: ExecutionState,
         diagram: ExecutableDiagram,
         service_registry: Optional["ServiceRegistry"] = None,
-        runtime_resolver: Optional[RuntimeInputResolverV2] = None,
-        event_bus: Optional[EventEmitter] = None,
+        runtime_resolver: Optional[RuntimeInputResolver] = None,
+        event_bus: Optional[DomainEventBus] = None,
         container: Optional["Container"] = None
     ) -> "TypedExecutionContext":
         """Create context from persisted execution state."""

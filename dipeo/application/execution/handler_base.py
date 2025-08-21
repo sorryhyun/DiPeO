@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional, TypeVar, Generic, Any, Protocol
+from typing import TYPE_CHECKING, Optional, TypeVar, Generic, Any, Protocol, ClassVar
 import logging
 import warnings
 
@@ -26,8 +26,12 @@ class TypedNodeHandler(Generic[T], ABC):
     - Default implementations handle common cases
     """
     
+    # Class variable to avoid instantiation at registration
+    NODE_TYPE: ClassVar[str] = ""
+    
     def __init__(self):
-        self._resolver = None  # Injected by engine
+        # Resolver no longer needed - using domain resolution directly
+        pass
     
     @property
     @abstractmethod
@@ -35,9 +39,9 @@ class TypedNodeHandler(Generic[T], ABC):
         ...
     
     @property
-    @abstractmethod
     def node_type(self) -> str:
-        ...
+        """Get node type from class variable."""
+        return self.NODE_TYPE
     
     @property
     @abstractmethod
@@ -84,11 +88,11 @@ class TypedNodeHandler(Generic[T], ABC):
         self,
         request: "ExecutionRequest[T]"
     ) -> dict[str, Envelope]:
-        """Resolve inputs as envelopes through resolver"""
+        """Resolve inputs as envelopes using domain resolution directly"""
+        import logging
+        from dipeo.domain.execution.resolution import resolve_inputs
         
-        if not self._resolver:
-            from dipeo.application.execution.resolvers import get_resolver
-            self._resolver = get_resolver()
+        logger = logging.getLogger(__name__)
         
         # Get diagram from context
         diagram = getattr(request.context, 'diagram', None)
@@ -96,11 +100,9 @@ class TypedNodeHandler(Generic[T], ABC):
             # Fall back to empty inputs if no diagram available
             return {}
         
-        return await self._resolver.resolve_as_envelopes(
-            request.node,
-            request.context,
-            diagram
-        )
+        # Use domain resolution directly (it's synchronous)
+        result = resolve_inputs(request.node, diagram, request.context)
+        return result
     
     async def prepare_inputs(
         self,

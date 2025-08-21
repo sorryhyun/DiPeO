@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from dipeo.domain.constants import FILES_DIR, PROJECTS_DIR
+from dipeo.domain.constants import FILES_DIR, PROJECTS_DIR, EXAMPLES_DIR
 
 
 class DiagramLoader:
@@ -18,7 +18,8 @@ class DiagramLoader:
         Search order:
         1. Check as-is (for absolute paths or direct references)
         2. Check in projects/ directory (new default)
-        3. Check in files/ directory (backward compatibility)
+        3. Check in examples/ directory (for example diagrams)
+        4. Check in files/ directory (backward compatibility)
         """
         # If it's an absolute path, use as-is
         path = Path(diagram)
@@ -36,13 +37,18 @@ class DiagramLoader:
             if path_with_projects.exists():
                 return str(path_with_projects)
             
+            # Try with examples/ prefix
+            path_with_examples = EXAMPLES_DIR / diagram
+            if path_with_examples.exists():
+                return str(path_with_examples)
+            
             # Try with files/ prefix for backward compatibility
             path_with_files = FILES_DIR / diagram
             if path_with_files.exists():
                 return str(path_with_files)
             
-            # If it starts with files/ or projects/, also try resolving from project root
-            if diagram.startswith(("files/", "projects/")):
+            # If it starts with files/, projects/, or examples/, also try resolving from project root
+            if diagram.startswith(("files/", "projects/", "examples/")):
                 return str(FILES_DIR.parent / diagram)
 
         # For paths without extension, handle prefixes
@@ -52,9 +58,12 @@ class DiagramLoader:
         elif diagram.startswith("projects/"):
             diagram_path = diagram[9:]  # Remove projects/ prefix
             search_dirs = [PROJECTS_DIR]  # Only search in projects/
+        elif diagram.startswith("examples/"):
+            diagram_path = diagram[9:]  # Remove examples/ prefix
+            search_dirs = [EXAMPLES_DIR]  # Only search in examples/
         else:
             diagram_path = diagram
-            search_dirs = [PROJECTS_DIR, FILES_DIR]  # Search both, projects first
+            search_dirs = [PROJECTS_DIR, EXAMPLES_DIR, FILES_DIR]  # Search all, projects first
 
         if not format_type:
             # Try to find the diagram with known extensions
@@ -131,20 +140,31 @@ class DiagramLoader:
             return f"projects/{path_str}"
         except ValueError:
             try:
-                # Try to make path relative to FILES_DIR
-                relative_path = path.relative_to(FILES_DIR)
+                # Try to make path relative to EXAMPLES_DIR
+                relative_path = path.relative_to(EXAMPLES_DIR)
                 # Remove format suffix from the relative path
                 path_str = str(relative_path)
                 for suffix in [".native.json", ".light.yaml", ".readable.yaml"]:
                     if path_str.endswith(suffix):
                         path_str = path_str[: -len(suffix)]
                         break
-                return f"files/{path_str}"
+                return f"examples/{path_str}"
             except ValueError:
-                # If not under either directory, use the original logic
-                name = path.name
-                for suffix in [".native.json", ".light.yaml", ".readable.yaml"]:
-                    if name.endswith(suffix):
-                        name = name[: -len(suffix)]
-                        break
-                return name
+                try:
+                    # Try to make path relative to FILES_DIR
+                    relative_path = path.relative_to(FILES_DIR)
+                    # Remove format suffix from the relative path
+                    path_str = str(relative_path)
+                    for suffix in [".native.json", ".light.yaml", ".readable.yaml"]:
+                        if path_str.endswith(suffix):
+                            path_str = path_str[: -len(suffix)]
+                            break
+                    return f"files/{path_str}"
+                except ValueError:
+                    # If not under any directory, use the original logic
+                    name = path.name
+                    for suffix in [".native.json", ".light.yaml", ".readable.yaml"]:
+                        if name.endswith(suffix):
+                            name = name[: -len(suffix)]
+                            break
+                    return name

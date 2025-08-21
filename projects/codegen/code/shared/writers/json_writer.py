@@ -19,9 +19,7 @@ def write_field_configs_json(node_configs: list, base_dir: str = None) -> dict:
     output_path = os.path.join(output_dir, 'field-configs.json')
     with open(output_path, 'w') as f:
         json.dump(node_configs, f, indent=2)
-    
-    print(f"Written JSON to: {output_path}")
-    
+
     return {'json_path': output_path}
 
 

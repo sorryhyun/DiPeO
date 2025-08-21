@@ -29,12 +29,11 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     
     Now uses envelope-based communication for clean input/output interfaces.
     """
+    NODE_TYPE = NodeType.INTEGRATED_API
     
     
-    def __init__(self, integrated_api_service=None, api_key_service=None):
+    def __init__(self):
         super().__init__()
-        self.integrated_api_service = integrated_api_service
-        self.api_key_service = api_key_service
         # Instance variables for passing data between methods
         self._current_integrated_api_service = None
         self._current_api_key_service = None
@@ -71,8 +70,8 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         node = request.node
         
         # Get services from ServiceRegistry
-        integrated_api_service = self.integrated_api_service or request.services.resolve(INTEGRATED_API_SERVICE)
-        api_key_service = self.api_key_service or request.services.resolve(API_KEY_SERVICE)
+        integrated_api_service = request.services.resolve(INTEGRATED_API_SERVICE)
+        api_key_service = request.services.resolve(API_KEY_SERVICE)
         
         if not integrated_api_service:
             return EnvelopeFactory.error(

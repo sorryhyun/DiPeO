@@ -12,7 +12,7 @@ from dipeo.domain.diagram.ports import TemplateProcessorPort
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import CodeJobNode, NodeType
 from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData
-from dipeo.domain.ports.storage import FileSystemPort
+from dipeo.domain.base.storage_port import FileSystemPort
 
 from .executors import (
     BashExecutor,
@@ -37,12 +37,11 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     Instance variables are used to pass validated data between pre_execute and execute_with_envelopes,
     avoiding metadata pollution and providing clean, type-safe data flow.
     """
+    NODE_TYPE = NodeType.CODE_JOB
     
     
-    def __init__(self, filesystem_adapter: FileSystemPort | None = None, template_processor: TemplateProcessorPort | None = None):
+    def __init__(self):
         super().__init__()
-        self._processor = template_processor
-        self.filesystem_adapter = filesystem_adapter
         
         self._executors: dict[str, CodeExecutor] = {
             "python": PythonExecutor(),
@@ -187,6 +186,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         request: ExecutionRequest[CodeJobNode]
     ) -> Any:
         """Execute code with prepared context."""
+        import logging
         node = request.node
         exec_context = inputs
         

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 // Auto-generated node configuration for person_job
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
@@ -20,16 +12,13 @@ export const personJobConfig: UnifiedNodeConfig = {
   handles: {
     input: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
-      { label: HandleLabel.FIRST, displayLabel: 'First', position: 'left' },
+      { label: HandleLabel.FIRST, displayLabel: '', position: 'left' },
     ],
     output: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {
-    max_iteration: 1,
-    memory_profile: MemoryProfile.FOCUSED,
-    tools: ToolSelection.NONE,
   },
   customFields: personJobFields,
   primaryDisplayField: 'person',

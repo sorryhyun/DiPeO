@@ -48,8 +48,9 @@ nodes:
       language: python
       code: |
         batch_index = item.get('index', 0)
+        architecture = sections_data['architecture']
         sections_data = sections_data['sections']
-
+        
         # Select the section for this batch index
         if batch_index >= len(sections_data):
           raise ValueError(f"Batch index {batch_index} out of range for {len(sections_data)} sections")
@@ -66,6 +67,7 @@ nodes:
         prompt_requirements_text = "\n".join(f"- {req}" for req in prompt_reqs)
         
         result = {
+          "architecture": architecture,
           "section": sec,
           "section_id": sec["id"],
           "section_title": sec["title"],
@@ -146,7 +148,7 @@ connections:
   - {from: Start, to: Prepare Context, label: item, content_type: object}
   - {from: Load Sections Data, to: Prepare Context, label: sections_data, content_type: object}
   - {from: Load Config, to: Prepare Context, label: config, content_type: object}
-  - {from: Prepare Context, to: Generate Prompt, content_type: object}
+  - {from: Prepare Context, to: Generate Prompt_first, content_type: object}
   - {from: Generate Prompt, to: Generate Frontend Code, content_type: raw_text, label: generated_prompt}
   - {from: Generate Frontend Code, to: Save Generated Code, label: generated_code, content_type: object}
   - {from: Generate Prompt, to: Save Generated Code, label: prompt_text, content_type: raw_text}

@@ -2,6 +2,33 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/TemplateJobNodeData",
   "definitions": {
+    "TemplatePreprocessor": {
+      "additionalProperties": false,
+      "description": "Configuration for template preprocessor",
+      "properties": {
+        "args": {
+          "$ref": "#/definitions/JsonDict",
+          "description": "Optional arguments passed as kwargs to the function"
+        },
+        "function": {
+          "description": "Function name to call, e.g. \"build_context_from_ast\"",
+          "type": "string"
+        },
+        "module": {
+          "description": "Python module path, e.g. \"projects.codegen.code.shared.context_builders\"",
+          "type": "string"
+        }
+      },
+      "required": [
+        "function",
+        "module"
+      ],
+      "type": "object"
+    },
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "TemplateJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -58,24 +85,8 @@
           "type": "string"
         },
         "preprocessor": {
-          "additionalProperties": false,
-          "description": "Optional Python preprocessor that returns extra context for the template",
-          "properties": {
-            "args": {
-              "$ref": "#/definitions/JsonDict"
-            },
-            "function": {
-              "type": "string"
-            },
-            "module": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "function",
-            "module"
-          ],
-          "type": "object"
+          "$ref": "#/definitions/TemplatePreprocessor",
+          "description": "Optional Python preprocessor that returns extra context for the template"
         },
         "template_content": {
           "type": "string"
@@ -91,10 +102,6 @@
       "required": [
         "label"
       ],
-      "type": "object"
-    },
-    "JsonDict": {
-      "additionalProperties": false,
       "type": "object"
     }
   }

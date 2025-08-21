@@ -263,7 +263,7 @@ class DiagramLoader:
                            diagram: str, 
                            format_type: str | None) -> str:
         """Resolve diagram path with format suffix"""
-        # Handles: my_diagram --light → files/diagrams/my_diagram.light.yaml
+        # Handles: my_diagram --light → examples/my_diagram.light.yaml
     
     def load_diagram(self, file_path: str) -> dict:
         """Load diagram from JSON or YAML"""

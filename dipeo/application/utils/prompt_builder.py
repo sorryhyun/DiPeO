@@ -33,14 +33,23 @@ class PromptBuilder:
             logger.warning("No prompt provided to PromptBuilder - returning empty string")
             return ""
         
+        logger.debug(f"[PromptBuilder] template_values keys: {list(template_values.keys())}")
+        if 'current_index' in template_values:
+            logger.debug(f"[PromptBuilder] current_index: {template_values['current_index']}")
+        if 'sections' in template_values:
+            logger.debug(f"[PromptBuilder] sections type: {type(template_values['sections'])}, len: {len(template_values['sections']) if isinstance(template_values['sections'], list) else 'N/A'}")
+        
         # Use template processing to support variable substitution
         if self._processor:
             result = self._processor.process(selected_prompt, template_values)
             if result.errors:
                 logger.warning(f"Template processing errors: {result.errors}")
+            if result.missing_keys:
+                logger.warning(f"Template missing keys: {result.missing_keys}")
             return result.content
         else:
             # Return raw prompt if no processor available
+            logger.warning("No template processor available!")
             return selected_prompt
     
     def prepare_template_values(self, inputs: dict[str, Any]) -> dict[str, Any]:
@@ -56,14 +65,27 @@ class PromptBuilder:
         for special_key in ['default', 'first']:
             if special_key in inputs and isinstance(inputs[special_key], dict):
                 special_value = inputs[special_key]
-                # First, add all properties from the special input to the root context
-                for prop_key, prop_value in special_value.items():
-                    if prop_key not in template_values:  # Don't overwrite existing values
-                        template_values[prop_key] = prop_value
+                
+                # Handle double/triple nesting: recursively unwrap if default contains only a 'default' key
+                # This handles cases where data passes through multiple unlabeled edges
+                while (isinstance(special_value, dict) and 
+                       len(special_value) == 1 and 
+                       'default' in special_value):
+                    logger.debug(f"[PromptBuilder] Unwrapping nested 'default' in {special_key}")
+                    special_value = special_value['default']
+                
+                # Add all properties from the special input to the root context
+                if isinstance(special_value, dict):
+                    for prop_key, prop_value in special_value.items():
+                        if prop_key not in template_values:  # Don't overwrite existing values
+                            template_values[prop_key] = prop_value
                 # Also keep the special object itself for backward compatibility
                 template_values[special_key] = special_value
         
+        # Process remaining inputs (skip already processed special keys)
         for key, value in inputs.items():
+            if key in ['default', 'first']:
+                continue  # Already processed above
             if isinstance(value, (str, int, float, bool, type(None))):
                 template_values[key] = value
             

@@ -1,6 +1,7 @@
 """Application context and dependency injection configuration."""
 
 import asyncio
+import os
 
 from dipeo.application.bootstrap import Container
 from dipeo.config import get_settings
@@ -29,54 +30,65 @@ async def create_server_container() -> Container:
         PROVIDER_REGISTRY,
         INTEGRATED_API_SERVICE,
     )
-    from dipeo.application.bootstrap.wiring import wire_messaging_services
+    # Use minimal wiring for thin startup
+    from dipeo.application.bootstrap.wiring import wire_minimal, wire_feature_flags, wire_messaging_services
     
-    # Wire messaging services
+    # Wire only essential services
+    wire_minimal(container.registry, redis_client=None)
+    
+    # Wire optional features if specified
+    features = os.getenv("DIPEO_FEATURES", "").split(",") if os.getenv("DIPEO_FEATURES") else []
+    if features:
+        wire_feature_flags(container.registry, [f.strip() for f in features if f.strip()])
+    
+    # Wire messaging services for server operation
     wire_messaging_services(container.registry)
     from dipeo.application.registry.keys import MESSAGE_BUS
     
-    # Get the message bus from wiring
-    if container.registry.has(MESSAGE_BUS):
+    # Get the message router from wiring (registered as both MESSAGE_BUS and MESSAGE_ROUTER)
+    if container.registry.has(MESSAGE_ROUTER):
+        message_router = container.registry.resolve(MESSAGE_ROUTER)
+    elif container.registry.has(MESSAGE_BUS):
+        # Fallback to MESSAGE_BUS if MESSAGE_ROUTER not found
         message_router = container.registry.resolve(MESSAGE_BUS)
-        # Also register as MESSAGE_ROUTER for backward compatibility
+        # Also register as MESSAGE_ROUTER for consistency
         container.registry.register(MESSAGE_ROUTER, message_router)
     else:
         # Fallback to direct creation if wiring failed
         from dipeo.infrastructure.execution.messaging import MessageRouter
         message_router = MessageRouter()
         container.registry.register(MESSAGE_ROUTER, message_router)
+        container.registry.register(MESSAGE_BUS, message_router)
     
-    # Wire event services
-    from dipeo.application.bootstrap.wiring import wire_event_services
+    # Event services are already wired by minimal wiring
+    
     from dipeo.application.registry.keys import DOMAIN_EVENT_BUS
     
-    wire_event_services(container.registry)
-    
     # Get the domain event bus from wiring
+    domain_event_bus = None
     if container.registry.has(DOMAIN_EVENT_BUS):
-        # Uses domain event bus through adapters
-        from dipeo.application.registry import ServiceKey
-        event_bus = container.registry.resolve(ServiceKey("execution_observer"))  # ObserverToEventAdapter
+        # Use the new DomainEventBus directly
+        domain_event_bus = container.registry.resolve(DOMAIN_EVENT_BUS)
+        # Use domain event bus directly (no adapter needed)
+        event_bus = domain_event_bus
     else:
-        # Fallback to InMemoryEventBus
-        from dipeo.infrastructure.execution.messaging import InMemoryEventBus
+        # Fallback to InMemoryEventBus (use canonical location)
+        from dipeo.infrastructure.events.adapters import InMemoryEventBus
         # Use unified config for queue size (use a reasonable default)
         queue_size = getattr(settings.messaging, 'queue_size', 50000)
         event_bus = InMemoryEventBus(max_queue_size=queue_size)
         container.registry.register(EVENT_BUS, event_bus)
 
-    # Wire state services
-    from dipeo.application.bootstrap.wiring import wire_state_services
-    from dipeo.application.registry.keys import STATE_REPOSITORY, STATE_SERVICE, STATE_CACHE
+    # State services are already wired by minimal wiring
     
-    wire_state_services(container.registry, redis_client=None)  # No Redis for now
+    from dipeo.application.registry.keys import STATE_REPOSITORY, STATE_SERVICE, STATE_CACHE
     
     # Get the state repository for state manager
     state_store = container.registry.resolve(STATE_REPOSITORY)
     
-    # Initialize if needed
-    if hasattr(state_store, 'initialize'):
-        await state_store.initialize()
+    # Initialize if needed (using Lifecycle protocol)
+    from dipeo.application.bootstrap.lifecycle import initialize_service
+    await initialize_service(state_store)
         
     # Also register as STATE_STORE for backward compatibility
     container.registry.register(STATE_STORE, state_store)
@@ -86,28 +98,80 @@ async def create_server_container() -> Container:
 
     state_manager = AsyncStateManager(state_store)
 
-    # Subscribe state manager to relevant events (works with both V1 and V2)
-    if hasattr(event_bus, 'subscribe'):
-        event_bus.subscribe(EventType.EXECUTION_STARTED, state_manager)
-        event_bus.subscribe(EventType.NODE_STARTED, state_manager)
-        event_bus.subscribe(EventType.NODE_COMPLETED, state_manager)
-        event_bus.subscribe(EventType.NODE_ERROR, state_manager)
-        event_bus.subscribe(EventType.EXECUTION_COMPLETED, state_manager)
+    # Subscribe state manager to the DomainEventBus
+    # AsyncStateManager implements EventConsumer, but DomainEventBus expects EventHandler
+    # Create a simple adapter to bridge the interface
+    if domain_event_bus is not None:
+        from dipeo.domain.events.types import EventPriority
+        from dipeo.domain.events.ports import EventHandler
+        from dipeo.domain.events.contracts import DomainEvent
+        
+        # Create an adapter that converts EventHandler.handle() to EventConsumer.consume()
+        class StateManagerAdapter:
+            """Adapter to make EventConsumer compatible with EventHandler interface."""
+            def __init__(self, state_manager):
+                self.state_manager = state_manager
+            
+            async def handle(self, event: DomainEvent) -> None:
+                """Handle method required by EventHandler protocol."""
+                await self.state_manager.consume(event)
+        
+        state_manager_adapter = StateManagerAdapter(state_manager)
+        
+        # Subscribe state manager to domain event bus so it persists state changes
+        await domain_event_bus.subscribe(
+            event_types=[
+                EventType.EXECUTION_STARTED,
+                EventType.NODE_STARTED,
+                EventType.NODE_COMPLETED,
+                EventType.NODE_ERROR,
+                EventType.EXECUTION_COMPLETED,
+                EventType.METRICS_COLLECTED,
+            ],
+            handler=state_manager_adapter,
+            priority=EventPriority.LOW,  # Process after other handlers
+        )
+    else:
+        # Fallback to legacy event bus subscription (for backward compatibility)
+        if hasattr(event_bus, 'subscribe'):
+            await event_bus.subscribe(EventType.EXECUTION_STARTED, state_manager)
+            await event_bus.subscribe(EventType.NODE_STARTED, state_manager)
+            await event_bus.subscribe(EventType.NODE_COMPLETED, state_manager)
+            await event_bus.subscribe(EventType.NODE_ERROR, state_manager)
+            await event_bus.subscribe(EventType.EXECUTION_COMPLETED, state_manager)
 
-    # Create streaming monitor for real-time UI updates
-    from dipeo.infrastructure.execution.monitoring import StreamingMonitor
-    # Use unified config for monitoring queue size (use a reasonable default)
-    monitoring_queue_size = getattr(settings.messaging, 'monitoring_queue_size', 50000)
-    streaming_monitor = StreamingMonitor(message_router, queue_size=monitoring_queue_size)
+    # StreamingMonitor removed - MessageRouter handles all event routing directly
+    
+    # Initialize MessageRouter before wiring
+    await message_router.initialize()
+    
+    # Wire MessageRouter as EventHandler to DomainEventBus (Phase 1 refactoring)
+    if domain_event_bus is not None:
+        # MessageRouter now implements EventHandler, subscribe it directly to the bus
+        from dipeo.domain.events.types import EventPriority
+        
+        # Subscribe to all UI-relevant event types
+        ui_event_types = [
+            EventType.EXECUTION_STARTED,
+            EventType.EXECUTION_COMPLETED,
+            EventType.EXECUTION_ERROR,
+            EventType.NODE_STARTED,
+            EventType.NODE_COMPLETED,
+            EventType.NODE_ERROR,
+            EventType.NODE_PROGRESS,
+            EventType.EXECUTION_UPDATE,
+            EventType.METRICS_COLLECTED,
+            EventType.WEBHOOK_RECEIVED,
+        ]
+        
+        # Subscribe router to domain event bus with normal priority
+        await domain_event_bus.subscribe(
+            event_types=ui_event_types,
+            handler=message_router,
+            priority=EventPriority.NORMAL
+        )
 
-    # Subscribe streaming monitor to all events (works with both V1 and V2)
-    if hasattr(event_bus, 'subscribe'):
-        event_bus.subscribe(EventType.EXECUTION_STARTED, streaming_monitor)
-        event_bus.subscribe(EventType.NODE_STARTED, streaming_monitor)
-        event_bus.subscribe(EventType.NODE_COMPLETED, streaming_monitor)
-        event_bus.subscribe(EventType.NODE_ERROR, streaming_monitor)
-        event_bus.subscribe(EventType.EXECUTION_COMPLETED, streaming_monitor)
-        event_bus.subscribe(EventType.METRICS_COLLECTED, streaming_monitor)
+    # Streaming monitor removed - events flow directly through MessageRouter
 
     # Create metrics observer for performance analysis
     from dipeo.application.execution.observers import MetricsObserver
@@ -125,11 +189,11 @@ async def create_server_container() -> Container:
 
     # Subscribe metrics observer to execution events (works with both V1 and V2)
     if hasattr(event_bus, 'subscribe'):
-        event_bus.subscribe(EventType.EXECUTION_STARTED, metrics_observer)
-        event_bus.subscribe(EventType.NODE_STARTED, metrics_observer)
-        event_bus.subscribe(EventType.NODE_COMPLETED, metrics_observer)
-        event_bus.subscribe(EventType.NODE_ERROR, metrics_observer)
-        event_bus.subscribe(EventType.EXECUTION_COMPLETED, metrics_observer)
+        await event_bus.subscribe(EventType.EXECUTION_STARTED, metrics_observer)
+        await event_bus.subscribe(EventType.NODE_STARTED, metrics_observer)
+        await event_bus.subscribe(EventType.NODE_COMPLETED, metrics_observer)
+        await event_bus.subscribe(EventType.NODE_ERROR, metrics_observer)
+        await event_bus.subscribe(EventType.EXECUTION_COMPLETED, metrics_observer)
 
     # Initialize provider registry for webhook integration
     from dipeo.infrastructure.integrations.drivers.integrated_api.registry import ProviderRegistry
@@ -157,17 +221,17 @@ async def create_server_container() -> Container:
     
     container.registry.register(PROVIDER_REGISTRY, provider_registry)
     
-    # Subscribe webhook events to streaming monitor (works with both V1 and V2)
-    if hasattr(event_bus, 'subscribe'):
-        event_bus.subscribe(EventType.WEBHOOK_RECEIVED, streaming_monitor)
+    # Webhook events now handled directly by MessageRouter
 
     # Start services (check for start method for compatibility)
+    # Start the domain event bus FIRST (before other services that depend on it)
+    if domain_event_bus is not None and hasattr(domain_event_bus, 'start'):
+        await domain_event_bus.start()
     if hasattr(event_bus, 'start'):
         await event_bus.start()
     if hasattr(state_manager, 'start'):
         await state_manager.start()
-    if hasattr(streaming_monitor, 'start'):
-        await streaming_monitor.start()
+    # StreamingMonitor removed - no startup needed
     if hasattr(metrics_observer, 'start'):
         await metrics_observer.start()
 
@@ -177,6 +241,15 @@ async def create_server_container() -> Container:
 
     if not container.registry.has(CLI_SESSION_SERVICE):
         container.registry.register(CLI_SESSION_SERVICE, CliSessionService())
+
+    # Duplicate service keys have been removed in cleanup
+    
+    # Report unused services for DI cleanup
+    import logging
+    logger = logging.getLogger(__name__)
+    unused = container.registry.report_unused()
+    if unused:
+        logger.info(f"🔎 Unused registrations this run ({len(unused)}): {', '.join(unused)}")
 
     return container
 
