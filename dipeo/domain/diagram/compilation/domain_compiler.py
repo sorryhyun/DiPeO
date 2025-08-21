@@ -429,6 +429,7 @@ class DomainDiagramCompiler(DiagramCompiler):
         
         # Create metadata
         metadata = {
+            "id": context.domain_diagram.metadata.id if context.domain_diagram.metadata else None,
             "name": context.domain_diagram.metadata.name if context.domain_diagram.metadata else None,
             "compilation_warnings": [w.message for w in context.result.warnings],
             "start_nodes": list(context.start_nodes),
@@ -604,6 +605,7 @@ class DomainDiagramCompiler(DiagramCompiler):
             elif isinstance(executable_diagram.metadata, dict):
                 # Create DiagramMetadata from dict if needed
                 metadata = DiagramMetadata(
+                    id=executable_diagram.metadata.get("id"),
                     name=executable_diagram.metadata.get("name"),
                     description=executable_diagram.metadata.get("description"),
                     version=executable_diagram.metadata.get("version", "1.0"),

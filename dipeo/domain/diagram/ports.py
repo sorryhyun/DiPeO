@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 if TYPE_CHECKING:
     from dipeo.diagram_generated import DomainDiagram, DiagramFormat
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-    from dipeo.domain.ports.storage import DiagramInfo
+    from dipeo.domain.base.storage_port import DiagramInfo
 
 
 # ============================================================================

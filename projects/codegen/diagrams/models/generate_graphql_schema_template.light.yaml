@@ -16,7 +16,7 @@ nodes:
     type: sub_diagram
     position: {x: 200, y: 300}
     props:
-      diagram_name: projects/codegen/diagrams/shared/parse_typescript_batch_direct
+      diagram_name: projects/codegen/diagrams/parse_typescript_batch_direct
       diagram_format: light
       passInputData: false
 
@@ -78,11 +78,9 @@ nodes:
       save_to_file: false
 
 connections:
-  # Parse specs first
-  - {from: Start, to: Parse TypeScript Batch}
   
   # Load all AST files
-  - {from: Parse TypeScript Batch, to: Load All AST Files}
+  - {from: Start, to: Load All AST Files}
   
   # Prepare GraphQL data
   - {from: Load All AST Files, to: Prepare GraphQL Data, content_type: object}

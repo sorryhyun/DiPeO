@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime
 import aiofiles
 
-from dipeo.domain.ports.storage import BlobStorePort, FileSystemPort, FileInfo
+from dipeo.domain.base.storage_port import BlobStorePort, FileSystemPort, FileInfo
 from dipeo.domain.base import BaseService, StorageError
 
 logger = logging.getLogger(__name__)

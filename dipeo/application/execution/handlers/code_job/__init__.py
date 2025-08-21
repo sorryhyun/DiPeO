@@ -12,7 +12,7 @@ from dipeo.domain.diagram.ports import TemplateProcessorPort
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.generated_nodes import CodeJobNode, NodeType
 from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData
-from dipeo.domain.ports.storage import FileSystemPort
+from dipeo.domain.base.storage_port import FileSystemPort
 
 from .executors import (
     BashExecutor,

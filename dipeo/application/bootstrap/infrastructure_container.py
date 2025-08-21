@@ -130,13 +130,11 @@ class InfrastructureContainer:
             project_root=Path(self.config.storage.base_dir),
             cache_enabled=True
         )
-        logger.info(f"Registering AST_PARSER with service: {parser_service}")
         self.registry.register(
             AST_PARSER,
             parser_service
         )
-        logger.info(f"AST_PARSER registered successfully")
-    
+
     def _setup_storage_v2(self):
         """Setup storage services using domain ports."""
         from dipeo.application.bootstrap.wiring import wire_storage_services

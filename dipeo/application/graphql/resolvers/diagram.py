@@ -6,7 +6,7 @@ from typing import Optional, List
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT
 from dipeo.diagram_generated.domain_models import DiagramID, DomainDiagram
-from dipeo.domain.ports.storage import DiagramInfo
+from dipeo.domain.base.storage_port import DiagramInfo
 
 from ..types.inputs import DiagramFilterInput
 

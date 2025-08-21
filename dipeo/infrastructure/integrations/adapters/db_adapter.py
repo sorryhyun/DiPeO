@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from dipeo.domain.base.exceptions import ValidationError
-from dipeo.domain.ports.storage import FileSystemPort
+from dipeo.domain.base.storage_port import FileSystemPort
 from dipeo.domain.integrations.db_services import DBOperationsDomainService
 from dipeo.domain.integrations.validators import DataValidator
 

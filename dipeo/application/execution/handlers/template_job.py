@@ -1,12 +1,14 @@
 import os
 import json
 import logging
+import hashlib
+import time
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Any
+from typing import TYPE_CHECKING, Optional, Any, Dict, Tuple
 from importlib import import_module
 
 from pydantic import BaseModel
-from dipeo.domain.ports.storage import FileSystemPort
+from dipeo.domain.base.storage_port import FileSystemPort
 
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
@@ -35,6 +37,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     """
     NODE_TYPE = NodeType.TEMPLATE_JOB
     
+    # Class-level cache for deduplication
+    # Key: (file_path, content_hash), Value: (timestamp, node_id)
+    _recent_writes: Dict[Tuple[str, str], Tuple[float, str]] = {}
+    _DEDUP_WINDOW_SECONDS = 2.0  # Deduplicate writes within 2 seconds
     
     def __init__(self):
         super().__init__()
@@ -134,6 +140,53 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 traceback.print_exc()
                 raise
         return self._template_service
+    
+    @classmethod
+    def _is_duplicate_write(cls, file_path: str, content: str, node_id: str) -> bool:
+        """Check if this is a duplicate write within the deduplication window."""
+        # Special handling for generated_nodes.py - normalize content to ignore timestamps
+        normalized_content = content
+        if "generated_nodes.py" in str(file_path):
+            # Remove timestamp lines for comparison
+            import re
+            # Remove lines with timestamps like "Generated at: 2025-08-21T11:38:18.584978"
+            normalized_content = re.sub(r'Generated at: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+', 
+                                       'Generated at: [TIMESTAMP]', content)
+            # Also normalize the "now" variable in comments
+            normalized_content = re.sub(r'# Available variables: now: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+',
+                                       '# Available variables: now: [TIMESTAMP]', normalized_content)
+        
+        # Create content hash for comparison
+        content_hash = hashlib.md5(normalized_content.encode()).hexdigest()
+        cache_key = (str(file_path), content_hash)
+        
+        current_time = time.time()
+        
+        # Check if we've seen this write recently
+        if cache_key in cls._recent_writes:
+            last_write_time, last_node_id = cls._recent_writes[cache_key]
+            time_diff = current_time - last_write_time
+            
+            if time_diff < cls._DEDUP_WINDOW_SECONDS:
+                # This is a duplicate write
+                logger.warning(
+                    f"[DEDUPLICATION] Skipping duplicate write to {file_path} "
+                    f"from node {node_id} (already written by {last_node_id} "
+                    f"{time_diff:.2f}s ago)"
+                )
+                return True
+        
+        # Not a duplicate - update cache
+        cls._recent_writes[cache_key] = (current_time, node_id)
+        
+        # Clean up old entries from cache
+        cutoff_time = current_time - cls._DEDUP_WINDOW_SECONDS * 2
+        cls._recent_writes = {
+            k: v for k, v in cls._recent_writes.items()
+            if v[0] > cutoff_time
+        }
+        
+        return False
     
     def _resolve_dotted_path(self, dotted: str, ctx: dict) -> Any:
         """Resolve a dotted path like 'a.b.c' into the context."""
@@ -262,6 +315,16 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             output_path_str = (await template_service.render_string(output_path_template, local_context)).strip()
             output_path = Path(output_path_str)
             
+            # Add detailed trace logging for foreach mode
+            if "generated_nodes.py" in str(output_path):
+                logger.warning(f"[GENERATED_NODES WRITE FOREACH] Node {node.id} writing to {output_path} in foreach mode")
+                logger.debug(f"[GENERATED_NODES FOREACH CONTEXT] Item index: {local_context.get('index')}, Item var: {var_name}")
+            
+            # Check for duplicate write
+            if self._is_duplicate_write(str(output_path), rendered, str(node.id)):
+                logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
+                return str(output_path)  # Return path without writing
+            
             # Create parent directories if needed
             parent_dir = output_path.parent
             if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
@@ -330,6 +393,19 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 processed_output_path = (await template_service.render_string(node.output_path, template_vars)).strip()
                 
                 output_path = Path(processed_output_path)
+
+                # Check if this is a duplicate write to generated_nodes.py
+                if "generated_nodes.py" in str(output_path):
+                    logger.warning(f"[GENERATED_NODES WRITE] Node {node.id} writing to {output_path}")
+                    if 'batch_item' in template_vars:
+                        logger.debug(f"[GENERATED_NODES BATCH] Batch item detected in context")
+                
+                # Check for duplicate write
+                if self._is_duplicate_write(str(output_path), rendered, str(node.id)):
+                    logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
+                    # Store output path for metadata but don't write
+                    self._current_output_path = output_path
+                    return rendered  # Return content without writing
                 
                 # Create parent directories if needed
                 parent_dir = output_path.parent
@@ -338,8 +414,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 
                 with filesystem_adapter.open(output_path, 'wb') as f:
                     f.write(rendered.encode('utf-8'))
-                logger.info(f"[TEMPLATE_JOB DEBUG] File written successfully: {output_path}")
-                
                 # Store output path for metadata
                 self._current_output_path = output_path
             else:

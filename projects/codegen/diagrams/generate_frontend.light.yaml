@@ -1,0 +1,142 @@
+# Frontend Code Generation Pipeline
+# Orchestrates all frontend-related code generation diagrams
+# Generates frontend components, GraphQL queries, Zod schemas, and field configs
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 400}
+    props:
+      custom_data:
+        message: Starting frontend code generation from TypeScript sources
+
+  # Discover node specs for batch processing
+  - label: Discover Node Specs
+    type: db
+    position: {x: 400, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      glob: true
+      source_details:
+        - "temp/specifications/nodes/*.spec.ts.json"
+
+  - label: Prepare Node List
+    type: code_job
+    position: {x: 550, y: 200}
+    props:
+      language: python
+      filePath: projects/codegen/code/shared/simplified_extractors.py
+      functionName: prepare_node_list_for_batch
+
+  # Batch generate individual frontend components
+  - label: Batch Generate Frontend
+    type: sub_diagram
+    position: {x: 700, y: 200}
+    props:
+      diagram_name: projects/codegen/diagrams/frontend/generate_frontend_single
+      diagram_format: light
+      batch: true
+      batch_input_key: default
+      batch_parallel: true
+
+  # Generate frontend registry
+  - label: Generate Frontend Registry
+    type: sub_diagram
+    position: {x: 400, y: 350}
+    props:
+      diagram_name: projects/codegen/diagrams/frontend/generate_frontend_registry
+      diagram_format: light
+      passInputData: false
+
+  # Generate GraphQL queries
+  - label: Generate GraphQL Queries
+    type: sub_diagram
+    position: {x: 400, y: 450}
+    props:
+      diagram_name: projects/codegen/diagrams/frontend/generate_graphql_queries
+      diagram_format: light
+      passInputData: false
+
+  # Generate Zod schemas
+  - label: Generate Zod Schemas
+    type: sub_diagram
+    position: {x: 400, y: 550}
+    props:
+      diagram_name: projects/codegen/diagrams/frontend/generate_zod_schemas_v2
+      diagram_format: light
+      passInputData: false
+
+  # Generate field configs
+  - label: Generate Field Configs
+    type: sub_diagram
+    position: {x: 400, y: 650}
+    props:
+      diagram_name: projects/codegen/diagrams/frontend/generate_field_configs_v2
+      diagram_format: light
+      passInputData: false
+
+  # Summary
+  - label: Summary
+    type: code_job
+    position: {x: 900, y: 400}
+    props:
+      language: python
+      code: |
+        import json
+        
+        # Collect generation results
+        results = {
+            "status": "completed",
+            "generated": [
+                "Frontend components (batch)",
+                "Node registry",
+                "GraphQL queries",
+                "Zod schemas",
+                "Field configs"
+            ]
+        }
+        
+        print("\n✅ Frontend code generation completed successfully!")
+        print("\nGenerated:")
+        for item in results["generated"]:
+            print(f"  • {item}")
+        
+        print("\nNext steps:")
+        print("  1. Review generated code in apps/web/src/__generated__/")
+        print("  2. Run 'make apply-syntax-only' to apply changes")
+        print("  3. Run 'make graphql-schema' to update GraphQL types")
+        print("  4. Run 'pnpm typecheck' to verify TypeScript compilation")
+        
+        return results
+
+  - label: End
+    type: endpoint
+    position: {x: 1050, y: 400}
+    props:
+      save_to_file: false
+
+connections:
+  # Start all frontend generation tasks from Start in parallel
+  - {from: Start, to: Discover Node Specs}
+  - {from: Start, to: Generate Frontend Registry}
+  - {from: Start, to: Generate GraphQL Queries}
+  - {from: Start, to: Generate Zod Schemas}
+  - {from: Start, to: Generate Field Configs}
+  
+  # Frontend batch processing chain
+  - {from: Discover Node Specs, to: Prepare Node List, content_type: object}
+  - {from: Prepare Node List, to: Batch Generate Frontend, content_type: object}
+  
+  # All generation tasks converge to Summary
+  - {from: Batch Generate Frontend, to: Summary}
+  - {from: Generate Frontend Registry, to: Summary}
+  - {from: Generate GraphQL Queries, to: Summary}
+  - {from: Generate Zod Schemas, to: Summary}
+  - {from: Generate Field Configs, to: Summary}
+  
+  # Summary to End
+  - {from: Summary, to: End}

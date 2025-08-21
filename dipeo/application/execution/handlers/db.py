@@ -218,7 +218,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
 
                 if template_processor:
                     resolved_path = template_processor.process_single_brace(file_path, merged_variables)
-                    logger.debug(f"Template resolved: {file_path} -> {resolved_path}")
                     file_path = resolved_path
                 else:
                     logger.warning(f"No template processor available for path: {file_path}")

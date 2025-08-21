@@ -31,7 +31,7 @@ def combine_node_data_ast(inputs):
     
     # Import file locking for safe concurrent access
     try:
-        from dipeo.infrastructure.filesystem.file_lock import get_cache_lock_manager
+        from dipeo.infrastructure.shared.drivers.utils import get_cache_lock_manager
         cache_lock = get_cache_lock_manager(cache_dir)
     except ImportError:
         # Fallback if file locking not available

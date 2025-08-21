@@ -11,16 +11,6 @@ nodes:
       custom_data:
         message: Starting Strawberry GraphQL types generation with dynamic discovery
 
-  # Run batch parser if cache doesn't exist
-  - label: Parse TypeScript Batch
-    type: sub_diagram
-    position: {x: 200, y: 300}
-    props:
-      diagram_name: projects/codegen/diagrams/shared/parse_typescript_batch_direct
-      diagram_format: light
-      passInputData: false
-      ignoreIfSub: true
-
   # NEW: Load all spec files dynamically using glob patterns
   - label: Load All Spec Files
     type: db
@@ -64,11 +54,9 @@ nodes:
       save_to_file: false
 
 connections:
-  # Parse specs first
-  - {from: Start, to: Parse TypeScript Batch}
   
   # Load spec files
-  - {from: Parse TypeScript Batch, to: Load All Spec Files}
+  - {from: Start, to: Load All Spec Files}
   
   # Pass glob results directly to simplified generator
   - {from: Load All Spec Files, to: Generate Strawberry Types, label: default, content_type: object}

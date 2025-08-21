@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from dipeo.domain.base import BaseService, StorageError
 from dipeo.domain.diagram.ports import DiagramPort
-from dipeo.domain.ports.storage import DiagramInfo, FileSystemPort
+from dipeo.domain.base.storage_port import DiagramInfo, FileSystemPort
 from dipeo.domain.diagram.services import DiagramFormatDetector
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated import DiagramFormat, DomainDiagram
@@ -140,13 +140,17 @@ class DiagramService(BaseService, DiagramPort):
             
         path = Path(file_path)
         
+        # Extract diagram ID from path for metadata
+        diagram_id = self._extract_diagram_id_from_path(path)
+        
         # Try absolute path first
         if self.filesystem.exists(path):
             with self.filesystem.open(path, "rb") as f:
                 content = f.read().decode('utf-8')
             format_enum = self.format_detector.detect_format_from_filename(str(path))
             format_str = format_enum.value if format_enum else None
-            return self.deserialize(content, format_str)
+            diagram = self.deserialize(content, format_str)
+            return self._ensure_metadata_with_id(diagram, diagram_id)
         
         # Try relative to base_path
         if not path.is_absolute():
@@ -156,7 +160,8 @@ class DiagramService(BaseService, DiagramPort):
                     content = f.read().decode('utf-8')
                 format_enum = self.format_detector.detect_format_from_filename(str(relative_path))
                 format_str = format_enum.value if format_enum else None
-                return self.deserialize(content, format_str)
+                diagram = self.deserialize(content, format_str)
+                return self._ensure_metadata_with_id(diagram, diagram_id)
         
         # Extract diagram ID and try with various extensions
         if "files" in path.parts:
@@ -181,7 +186,8 @@ class DiagramService(BaseService, DiagramPort):
             with self.filesystem.open(resolved_path, "rb") as f:
                 content = f.read().decode('utf-8')
             format_str = self._detect_format_from_path(resolved_path)
-            return self.deserialize(content, format_str)
+            diagram = self.deserialize(content, format_str)
+            return self._ensure_metadata_with_id(diagram, diagram_id)
         
         raise StorageError(f"Diagram not found: {file_path}")
     
@@ -489,3 +495,49 @@ class DiagramService(BaseService, DiagramPort):
         if format_enum:
             return format_enum.value
         return "native"
+    
+    def _extract_diagram_id_from_path(self, path: Path) -> str:
+        """Extract diagram ID from file path."""
+        # Extract relative path based on location
+        if "files" in path.parts:
+            idx = path.parts.index("files")
+            rel_path = Path(*path.parts[idx+1:])
+        elif "projects" in path.parts:
+            idx = path.parts.index("projects")
+            rel_path = Path("projects", *path.parts[idx+1:])
+        else:
+            rel_path = path
+        
+        # Remove file extension and format suffixes
+        diagram_id = str(rel_path.with_suffix(""))
+        
+        # Remove format suffixes like .native, .light, .readable
+        for suffix in [".native", ".light", ".readable"]:
+            if diagram_id.endswith(suffix):
+                diagram_id = diagram_id[:-len(suffix)]
+                break
+        
+        return diagram_id
+    
+    def _ensure_metadata_with_id(self, diagram: DomainDiagram, diagram_id: str) -> DomainDiagram:
+        """Ensure diagram has metadata with ID and name set."""
+        from dipeo.diagram_generated import DiagramMetadata
+        from datetime import datetime
+        
+        if diagram.metadata is None:
+            # Create new metadata
+            diagram.metadata = DiagramMetadata(
+                id=diagram_id,
+                name=diagram_id.split('/')[-1],  # Use last part of path as name
+                version="1.0",
+                created=datetime.now().isoformat(),
+                modified=datetime.now().isoformat()
+            )
+        else:
+            # Update existing metadata if ID or name is missing
+            if diagram.metadata.id is None:
+                diagram.metadata.id = diagram_id
+            if diagram.metadata.name is None:
+                diagram.metadata.name = diagram_id.split('/')[-1]
+        
+        return diagram

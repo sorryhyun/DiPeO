@@ -72,7 +72,6 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
             return
 
         self._initialized = True
-        logger.info("MessageRouter initialized")
 
     async def cleanup(self) -> None:
         # Cancel pending batch tasks and flush remaining batches

@@ -233,7 +233,6 @@ def main(inputs: dict) -> dict:
             # First extract mappings from mappings.ts.json
             for filepath, content in default_data.items():
                 if 'mappings.ts.json' in filepath or 'codegen-mappings' in filepath:
-                    print(f"Found mappings file: {filepath}")
                     ast_data = content if isinstance(content, dict) else json.loads(content)
                     mappings = extract_mappings(ast_data)
                     break
@@ -241,7 +240,6 @@ def main(inputs: dict) -> dict:
             # Then extract NODE_INTERFACE_MAP from node-interface-map.ts.json
             for filepath, content in default_data.items():
                 if 'node-interface-map.ts.json' in filepath:
-                    print(f"Found node-interface-map file: {filepath}")
                     ast_data = content if isinstance(content, dict) else json.loads(content)
                     # Extract NODE_INTERFACE_MAP from this file
                     for constant in ast_data.get('constants', []):
@@ -251,16 +249,11 @@ def main(inputs: dict) -> dict:
                             for k, v in value.items():
                                 clean_key = k.strip("'\"")
                                 node_interface_map[clean_key] = v
-                            print(f"Extracted NODE_INTERFACE_MAP with {len(node_interface_map)} entries")
                             break
             
             # Merge the results
             if mappings:
                 mappings['node_interface_map'] = node_interface_map
-                print(f"Final node_interface_map has {len(mappings.get('node_interface_map', {}))} entries")
-                # Debug: Print first few entries
-                for i, (k, v) in enumerate(list(node_interface_map.items())[:3]):
-                    print(f"[DEBUG extract_mappings]   {k} -> {v}")
                 return mappings
             else:
                 # If no mappings found, return with NODE_INTERFACE_MAP

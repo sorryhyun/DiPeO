@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import aiohttp
 from pydantic import BaseModel
-from dipeo.domain.ports.storage import FileSystemPort
+from dipeo.domain.base.storage_port import FileSystemPort
 
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler

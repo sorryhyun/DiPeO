@@ -14,7 +14,7 @@ if TYPE_CHECKING:
         ExecutionStateRepository,
         ExecutionStateService,
     )
-    from dipeo.domain.ports.storage import BlobStorePort as FileServicePort
+    from dipeo.domain.base.storage_port import BlobStorePort as FileServicePort
     from dipeo.domain.events.ports import MessageBus as MessageRouterPort
     from dipeo.domain.events import DomainEventBus, MessageBus
     from dipeo.application.execution.observer_protocol import ExecutionObserver
@@ -24,15 +24,11 @@ if TYPE_CHECKING:
     from dipeo.domain.integrations import ApiInvoker, ApiProvider, ApiProviderRegistry
     from dipeo.domain.diagram.ports import DiagramStorageSerializer as DiagramConverter
     from dipeo.domain.integrations.ports import ASTParserPort
-    from dipeo.domain.ports import (
-        APIKeyRepository,
+    from dipeo.domain.conversation.ports import (
         ConversationRepository,
-        DiagramRepository,
-        ExecutionRepository,
-        NodeOutputRepository,
         PersonRepository,
     )
-    from dipeo.domain.ports.storage import FileSystemPort, ArtifactStorePort
+    from dipeo.domain.base.storage_port import FileSystemPort, ArtifactStorePort
     from dipeo.domain.diagram.ports import TemplateProcessorPort
     from dipeo.domain.events import EventEmitter
     from dipeo.domain.llm import LLMClient, LLMService, MemoryService
