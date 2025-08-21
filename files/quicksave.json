@@ -62,21 +62,6 @@
     },
     {
       "id": "node_4",
-      "type": "db",
-      "position": {
-        "x": 1100,
-        "y": 240
-      },
-      "data": {
-        "operation": "read",
-        "sub_type": "file",
-        "format": "json",
-        "file": "projects/frontend_enhance/generated/sections_data.json",
-        "label": "load sections data"
-      }
-    },
-    {
-      "id": "node_5",
       "type": "condition",
       "position": {
         "x": 1450,
@@ -91,6 +76,21 @@
           true
         ],
         "label": "check continue"
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "db",
+      "position": {
+        "x": 1100,
+        "y": 240
+      },
+      "data": {
+        "operation": "read",
+        "sub_type": "file",
+        "format": "json",
+        "file": "projects/frontend_enhance/generated/sections_data.json",
+        "label": "load sections data"
       }
     },
     {
@@ -120,8 +120,8 @@
       "data": {
         "operation": "write",
         "sub_type": "file",
-        "format": "json",
-        "file": "projects/frontend_enhance/generated/consolidated_section_{current_index}.json",
+        "format": "text",
+        "file": "projects/frontend_enhance/generated/consolidated_section_{current_index}.tsx",
         "label": "write section result"
       }
     },
@@ -179,17 +179,8 @@
     },
     {
       "id": "arrow_4",
-      "source": "node_4_default_output",
+      "source": "node_4_condfalse_output",
       "target": "node_5_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_5",
-      "source": "node_5_condfalse_output",
-      "target": "node_6_default_input",
       "label": null,
       "packing": null,
       "data": {
@@ -198,14 +189,23 @@
       "content_type": "object"
     },
     {
-      "id": "arrow_6",
-      "source": "node_5_condtrue_output",
+      "id": "arrow_5",
+      "source": "node_4_condtrue_output",
       "target": "node_8_default_input",
       "label": null,
       "packing": null,
       "data": {
         "branch": "true"
       },
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_5_default_output",
+      "target": "node_6_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
       "content_type": "object"
     },
     {
@@ -220,7 +220,7 @@
     {
       "id": "arrow_8",
       "source": "node_7_default_output",
-      "target": "node_5_default_input",
+      "target": "node_4_default_input",
       "label": null,
       "packing": null,
       "data": null,
@@ -244,9 +244,9 @@
       "id": "Frontend Generator",
       "label": "frontend generator",
       "llm_config": {
-        "service": "claude-code",
-        "model": "claude-code",
-        "api_key_id": "APIKEY_CLAUDE",
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
         "system_prompt": "You are an expert React/TypeScript engineer building a cohesive frontend application.\n\nCRITICAL RULES:\n1. Return ONLY the raw code files in the exact format specified in the prompt. You MUST NOT attempt to examine any existing codes.\n2. Do NOT include any conversational text, explanations, or commentary\n3. Generate production-ready code that integrates with previously generated sections\n4. Follow established patterns from earlier sections for consistency\n5. Import and use components/utilities from previous sections when referenced\n\nYou are building sections iteratively. Use the context from previous sections to maintain consistency in:\n- Naming conventions\n- Import paths\n- Type definitions\n- Component patterns\n- State management approach\n",
         "prompt_file": null
       },
@@ -327,11 +327,19 @@
       "position": "left"
     },
     {
-      "id": "node_4_default_output",
+      "id": "node_4_condtrue_output",
       "node_id": "node_4",
-      "label": "default",
+      "label": "condtrue",
       "direction": "output",
-      "data_type": "any",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_4_condfalse_output",
+      "node_id": "node_4",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
       "position": "right"
     },
     {
@@ -343,19 +351,11 @@
       "position": "left"
     },
     {
-      "id": "node_5_condtrue_output",
+      "id": "node_5_default_output",
       "node_id": "node_5",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_5_condfalse_output",
-      "node_id": "node_5",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
@@ -412,8 +412,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-21T11:49:05.560Z",
-    "modified": "2025-08-21T11:49:05.560Z",
+    "created": "2025-08-21T13:40:36.169Z",
+    "modified": "2025-08-21T13:40:36.169Z",
     "version": "1.0.0",
     "id": "projects/frontend_enhance/consolidated_generator"
   }

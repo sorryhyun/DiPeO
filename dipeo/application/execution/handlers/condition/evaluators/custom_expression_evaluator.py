@@ -38,12 +38,12 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
         
         eval_context = inputs.copy() if inputs else {}
         
-        # Add exposed loop indices to evaluation context
-        metadata = context.get_execution_metadata()
-        for key, value in metadata.items():
-            if key.startswith("loop_index_"):
-                var_name = key.replace("loop_index_", "")
-                eval_context[var_name] = value
+        # Add all variables to evaluation context (includes loop indices)
+        if hasattr(context, 'get_variables'):
+            variables = context.get_variables()
+            for key, value in variables.items():
+                # Variables take precedence over inputs
+                eval_context[key] = value
         
         result = self._expression_evaluator.evaluate_custom_expression(
             expression=expression,

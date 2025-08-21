@@ -206,23 +206,22 @@ class TypedExecutionContext(ExecutionContextProtocol):
 
         # Special handling for ConditionNode - only reset nodes on the active branch
         if isinstance(completed_node, ConditionNode):
-            # Get the output to determine which branch was taken
-            output = self._tracker.get_last_output(node_id)
-
-            # Handle Envelope with condition result
-            from dipeo.domain.execution.envelope import Envelope
-            if isinstance(output, Envelope):
-                # Extract branch from envelope metadata
-                if output.content_type == "condition_result":
-                    # Use active_branch from metadata (set by condition handler)
-                    active_branch = output.meta.get("active_branch", "condfalse")
-                else:
-                    # Fallback: check the body for result
-                    result = output.body.get("result", False) if isinstance(output.body, dict) else False
-                    active_branch = "condtrue" if result else "condfalse"
-            else:
-                    # No valid output, can't determine branch
-                    return
+            # (A) Preferred: read from global variables
+            active_branch = None
+            if hasattr(self, "get_variable"):
+                active_branch = self.get_variable(f"branch[{node_id}]")
+            
+            # (B) Fallback: infer from legacy patterns if needed
+            if not active_branch:
+                output = self._tracker.get_last_output(node_id)
+                from dipeo.domain.execution.envelope import Envelope
+                if isinstance(output, Envelope) and output:
+                    if isinstance(output.body, dict) and "result" in output.body:
+                        active_branch = "condtrue" if bool(output.body["result"]) else "condfalse"
+            
+            if not active_branch:
+                # Default safe branch
+                active_branch = "condfalse"
 
             # Only process edges on the active branch
             outgoing_edges = [

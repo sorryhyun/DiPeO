@@ -163,6 +163,11 @@ class SinglePersonJobExecutor:
             **input_values,
             **conversation_context
         }
+        
+        # Merge global variables from context to make them available in templates
+        variables = context.get_variables() if hasattr(context, "get_variables") else {}
+        template_values = {**variables, **template_values}
+        
         logger.debug(f"[PersonJob] final template_values keys: {list(template_values.keys())}")
         
         # Handle memorize_to feature for intelligent memory selection

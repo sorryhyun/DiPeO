@@ -24,12 +24,12 @@ persons:
       Follow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.
 
   Frontend Generator:
-#    service: openai
-#    model: gpt-5-nano-2025-08-07
-#    api_key_id: APIKEY_52609F
-    service: claude-code
-    model: claude-code
-    api_key_id: APIKEY_CLAUDE
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+#    service: claude-code
+#    model: claude-code
+#    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer building a cohesive frontend application.
       
@@ -102,15 +102,6 @@ nodes:
       format: json
       source_details: projects/frontend_enhance/generated/sections_data.json
 
-  - label: Load Sections Data
-    type: db
-    position: {x: 1100, y: 240}
-    props:
-      operation: read
-      sub_type: file
-      format: json
-      source_details: projects/frontend_enhance/generated/sections_data.json
-
   - label: Check Continue
     type: condition
     position: {x: 1450, y: 240}
@@ -120,6 +111,15 @@ nodes:
 #      expression: current_index >= len(sections)
       expose_index_as: current_index
       flipped: [false, true]
+
+  - label: Load Sections Data
+    type: db
+    position: {x: 1100, y: 240}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_enhance/generated/sections_data.json
 
   - label: Generate Frontend Code
     type: person_job
@@ -137,8 +137,8 @@ nodes:
     props:
       operation: write
       sub_type: file
-      format: json
-      source_details: "projects/frontend_enhance/generated/consolidated_section_{current_index}.json"
+      format: text
+      source_details: "projects/frontend_enhance/generated/consolidated_section_{current_index}.tsx"
 
 
 #  - label: Compile Results
@@ -181,11 +181,11 @@ connections:
   - {from: Start, to: Load Config}
   - {from: Load Config, to: Plan Sections, label: config, content_type: object}
   - {from: Plan Sections, to: Save Sections Data, content_type: object}
-  - {from: Save Sections Data, to: Load Sections Data, content_type: object}
-  - {from: Load Sections Data, to: Check Continue, content_type: object}
+  - {from: Save Sections Data, to: Check Continue, content_type: object}
 
-  - {from: Check Continue_condfalse, to: Generate Frontend Code, content_type: object}
-  - {from: Check Continue_condtrue, to: End, content_type: object}
+  - { from: Check Continue_condfalse, to: Load Sections Data, content_type: object }
+  - { from: Check Continue_condtrue, to: End, content_type: object }
+  - {from: Load Sections Data, to: Generate Frontend Code, content_type: object}
   - {from: Generate Frontend Code, to: Write Section Result, content_type: object}
   - {from: Write Section Result, to: Check Continue, content_type: object}
 

@@ -129,54 +129,17 @@ def transform_edge_values(
                 f"Failed to transform value from {edge.source_node_id} to {edge.target_node_id}: {str(ex)}"
             ) from ex
         
-        # Handle packing mode (pack vs spread)
-        packing_mode = getattr(edge, 'packing', 'pack') or 'pack'
+        # Unified packing behavior based on edge labeling
+        # Unlabeled edges pass data as-is under 'default' key
+        # Labeled edges pack data under the specified label
+        key = edge.target_input or 'default'
         
-        # Special handling for condition nodes - always spread their output
-        # This avoids wrapping the data in 'default' unnecessarily
-        if source_output and isinstance(source_output, Envelope) and source_output.content_type == "condition_result":
-            packing_mode = 'spread'
-        
-        if packing_mode == 'spread':
-            # Spread mode: merge dict keys into input namespace
-            if not isinstance(transformed_value, dict):
-                # For non-dict values from condition nodes, still pack them
-                # but avoid the 'default' key issue
-                if source_output and isinstance(source_output, Envelope) and source_output.content_type == "condition_result":
-                    # Pack to default but this is a simple value
-                    input_key = edge.target_input or 'default'
-                    if isinstance(transformed_value, str):
-                        transformed[input_key] = EnvelopeFactory.text(transformed_value)
-                    else:
-                        transformed[input_key] = EnvelopeFactory.json(transformed_value)
-                else:
-                    raise TransformationError(
-                        f"Cannot use 'spread' packing with non-dict value. "
-                        f"Value type: {type(transformed_value).__name__}"
-                    )
-            else:
-                # Check for key collisions
-                conflicting_keys = [k for k in transformed_value.keys() if k in transformed]
-                if conflicting_keys:
-                    raise SpreadCollisionError(
-                        f"Spread operation would overwrite existing keys: {conflicting_keys}"
-                    )
-                
-                # Spread the dict values as individual Envelopes
-                for key, val in transformed_value.items():
-                    # Create appropriate envelope based on value type
-                    if isinstance(val, str):
-                        transformed[key] = EnvelopeFactory.text(val)
-                    else:
-                        transformed[key] = EnvelopeFactory.json(val)
-        else:
-            # Pack mode (default): bind to the input key
-            input_key = edge.target_input or 'default'
-            # Create appropriate envelope based on value type
-            if isinstance(transformed_value, str):
-                transformed[input_key] = EnvelopeFactory.text(transformed_value)
-            else:
-                transformed[input_key] = EnvelopeFactory.json(transformed_value)
+        # Create appropriate envelope based on value type
+        env = transformed_value if isinstance(transformed_value, Envelope) else (
+            EnvelopeFactory.text(transformed_value) if isinstance(transformed_value, str)
+            else EnvelopeFactory.json(transformed_value)
+        )
+        transformed[key] = env
     
     return transformed
 
@@ -193,12 +156,7 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
     """
     # Handle Envelope format
     if isinstance(source_output, Envelope):
-        # Special handling for condition nodes
-        if source_output.content_type == "condition_result":
-            # Body contains the active branch data directly
-            return source_output.body
-        
-        # Extract based on content type for other nodes
+        # Extract based on content type
         if source_output.content_type == "raw_text":
             return str(source_output.body)
         elif source_output.content_type == "object":

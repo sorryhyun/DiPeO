@@ -1,14 +1,30 @@
 """File system locking utilities for safe concurrent access to cache files."""
 
 import asyncio
-import fcntl
 import hashlib
 import logging
 import os
+import sys
 import time
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from typing import Any, Optional
+
+# Platform-specific imports for file locking
+try:
+    import fcntl
+    HAS_FCNTL = True
+except ImportError:
+    HAS_FCNTL = False
+
+if sys.platform == "win32":
+    try:
+        import msvcrt
+        HAS_MSVCRT = True
+    except ImportError:
+        HAS_MSVCRT = False
+else:
+    HAS_MSVCRT = False
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +32,8 @@ logger = logging.getLogger(__name__)
 class FileLock:
     """File-based lock for coordinating access to shared resources.
     
-    Uses fcntl on Unix systems for true file locking.
+    Uses fcntl on Unix systems or msvcrt on Windows for file locking.
+    Falls back to simple file-based locking if platform APIs are unavailable.
     """
     
     def __init__(self, lock_file: Path, timeout: float = 30.0):
@@ -29,9 +46,107 @@ class FileLock:
         self.lock_file = lock_file
         self.timeout = timeout
         self.lock_fd = None
+        self.use_fcntl = HAS_FCNTL
+        self.use_msvcrt = HAS_MSVCRT
         
         # Ensure lock directory exists
         self.lock_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    def _lock_unix(self, fd: int, blocking: bool) -> bool:
+        """Unix-specific file locking using fcntl.
+        
+        Args:
+            fd: File descriptor
+            blocking: Whether to block for lock acquisition
+            
+        Returns:
+            True if lock acquired, False otherwise
+        """
+        if not self.use_fcntl:
+            return self._lock_fallback(blocking)
+        
+        try:
+            flags = fcntl.LOCK_EX
+            if not blocking:
+                flags |= fcntl.LOCK_NB
+            fcntl.flock(fd, flags)
+            return True
+        except (IOError, OSError):
+            return False
+    
+    def _unlock_unix(self, fd: int) -> None:
+        """Unix-specific file unlocking using fcntl.
+        
+        Args:
+            fd: File descriptor
+        """
+        if self.use_fcntl:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+            except Exception as e:
+                logger.error(f"Error unlocking file: {e}")
+    
+    def _lock_windows(self, fd: int, blocking: bool) -> bool:
+        """Windows-specific file locking using msvcrt.
+        
+        Args:
+            fd: File descriptor
+            blocking: Whether to block for lock acquisition
+            
+        Returns:
+            True if lock acquired, False otherwise
+        """
+        if not self.use_msvcrt:
+            return self._lock_fallback(blocking)
+        
+        try:
+            # Lock entire file (0 bytes from position 0)
+            flags = msvcrt.LK_LOCK if blocking else msvcrt.LK_NBLCK
+            msvcrt.locking(fd, flags, 1)
+            return True
+        except (IOError, OSError):
+            return False
+    
+    def _unlock_windows(self, fd: int) -> None:
+        """Windows-specific file unlocking using msvcrt.
+        
+        Args:
+            fd: File descriptor
+        """
+        if self.use_msvcrt:
+            try:
+                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+            except Exception as e:
+                logger.error(f"Error unlocking file: {e}")
+    
+    def _lock_fallback(self, blocking: bool) -> bool:
+        """Fallback locking mechanism using simple file existence.
+        
+        This is a simple fallback that's not as robust as platform-specific
+        locking but works across all platforms.
+        
+        Args:
+            blocking: Whether to block for lock acquisition
+            
+        Returns:
+            True if lock acquired, False otherwise
+        """
+        if blocking:
+            start_time = time.time()
+            while time.time() - start_time < self.timeout:
+                try:
+                    # Try to create lock file exclusively
+                    self.lock_fd = open(self.lock_file, 'x')
+                    return True
+                except FileExistsError:
+                    time.sleep(0.1)
+            return False
+        else:
+            try:
+                self.lock_fd = open(self.lock_file, 'x')
+                return True
+            except FileExistsError:
+                return False
     
     def acquire(self, blocking: bool = True) -> bool:
         """Acquire the lock.
@@ -45,6 +160,10 @@ class FileLock:
         if self.lock_fd is not None:
             return True  # Already locked
         
+        # Use fallback method if neither platform API is available
+        if not self.use_fcntl and not self.use_msvcrt:
+            return self._lock_fallback(blocking)
+        
         # Open or create lock file
         try:
             self.lock_fd = open(self.lock_file, 'w')
@@ -52,38 +171,66 @@ class FileLock:
             logger.error(f"Failed to open lock file {self.lock_file}: {e}")
             return False
         
-        if blocking:
-            # Try to acquire lock with timeout
-            start_time = time.time()
-            while time.time() - start_time < self.timeout:
-                try:
-                    fcntl.flock(self.lock_fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    return True
-                except (IOError, OSError):
-                    # Lock is held by another process
-                    time.sleep(0.1)
-            
-            # Timeout reached
-            logger.warning(f"Timeout acquiring lock for {self.lock_file}")
+        # Use platform-specific locking
+        if self.use_fcntl:
+            success = self._lock_unix_with_timeout(self.lock_fd.fileno(), blocking)
+        elif self.use_msvcrt:
+            success = self._lock_windows_with_timeout(self.lock_fd.fileno(), blocking)
+        else:
+            success = False
+        
+        if not success:
             self.lock_fd.close()
             self.lock_fd = None
+            if blocking:
+                logger.warning(f"Timeout acquiring lock for {self.lock_file}")
+        
+        return success
+    
+    def _lock_unix_with_timeout(self, fd: int, blocking: bool) -> bool:
+        """Unix locking with timeout handling."""
+        if blocking:
+            start_time = time.time()
+            while time.time() - start_time < self.timeout:
+                if self._lock_unix(fd, False):  # Non-blocking attempt
+                    return True
+                time.sleep(0.1)
             return False
         else:
-            # Non-blocking attempt
-            try:
-                fcntl.flock(self.lock_fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                return True
-            except (IOError, OSError):
-                self.lock_fd.close()
-                self.lock_fd = None
-                return False
+            return self._lock_unix(fd, False)
+    
+    def _lock_windows_with_timeout(self, fd: int, blocking: bool) -> bool:
+        """Windows locking with timeout handling."""
+        if blocking:
+            start_time = time.time()
+            while time.time() - start_time < self.timeout:
+                if self._lock_windows(fd, False):  # Non-blocking attempt
+                    return True
+                time.sleep(0.1)
+            return False
+        else:
+            return self._lock_windows(fd, False)
     
     def release(self):
         """Release the lock."""
         if self.lock_fd is not None:
             try:
-                fcntl.flock(self.lock_fd.fileno(), fcntl.LOCK_UN)
+                # Use platform-specific unlocking
+                if self.use_fcntl:
+                    self._unlock_unix(self.lock_fd.fileno())
+                elif self.use_msvcrt:
+                    self._unlock_windows(self.lock_fd.fileno())
+                # For fallback method, just close the file
+                
                 self.lock_fd.close()
+                
+                # For fallback method, remove the lock file
+                if not self.use_fcntl and not self.use_msvcrt:
+                    try:
+                        self.lock_file.unlink()
+                    except FileNotFoundError:
+                        pass  # File already removed
+                        
             except Exception as e:
                 logger.error(f"Error releasing lock for {self.lock_file}: {e}")
             finally:

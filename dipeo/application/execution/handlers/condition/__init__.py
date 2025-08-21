@@ -182,28 +182,28 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     ) -> Envelope:
         """Serialize condition result to envelope with active branch data in body."""
         node = request.node
+        context = request.context
         
         # Extract the active branch data
         branch_data = result.get("branch_data", {})
         active_branch = result.get("active_branch", "condfalse")
         
-        # Create metadata without the actual data (just control flow info)
-        meta = {
-            "condition_result": result["result"],
-            "active_branch": active_branch,
-            "condition_type": result.get("condition_type"),
-            "evaluation_metadata": result.get("evaluation_metadata", {}),
-            "timestamp": result.get("timestamp", time.time())
-        }
+        # 1) Publish globals for any downstream node/template
+        context.set_variable(f"branch[{node.id}]", active_branch)  # e.g., "condtrue" | "condfalse"
         
-        # Create envelope with special content_type for condition routing
-        # The body contains the actual data to pass through
-        output = Envelope(
-            content_type="condition_result",  # Special type for routing
-            body=branch_data,  # Actual data to pass through
-            produced_by=str(node.id),
-            meta=meta
-        )
+        # 2) Return a normal envelope (no special content_type)
+        if isinstance(branch_data, dict):
+            output = EnvelopeFactory.json(
+                branch_data,
+                produced_by=str(node.id),
+                trace_id=request.execution_id or ""
+            )
+        else:
+            output = EnvelopeFactory.text(
+                str(branch_data) if branch_data is not None else "",
+                produced_by=str(node.id),
+                trace_id=request.execution_id or ""
+            )
         
         return output
     

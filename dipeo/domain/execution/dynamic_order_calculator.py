@@ -365,19 +365,30 @@ class DomainDynamicOrderCalculator:
         # For edges from condition nodes, check if the branch is active
         if edge.source_output in ["condtrue", "condfalse"]:
             if context:
-                output = context.get_node_output(edge.source_node_id)
-                # Check for Envelope with condition result
-                from dipeo.domain.execution.envelope import Envelope
-                if isinstance(output, Envelope) and output.content_type == "condition_result":
-                    # Use active_branch from metadata
-                    active_branch = output.meta.get("active_branch", "condfalse")
-                    # Only satisfied if this edge is on the active branch
-                    return edge.source_output == active_branch
-                elif hasattr(output, 'value') and isinstance(output.value, bool):
-                    # Handle boolean outputs
-                    active_branch = "condtrue" if output.value else "condfalse"
-                    return edge.source_output == active_branch
-            # If no context or output, can't verify branch - consider not satisfied
+                # (A) Preferred: read from global variables
+                active_branch = None
+                if hasattr(context, "get_variable"):
+                    active_branch = context.get_variable(f"branch[{edge.source_node_id}]")
+                
+                # (B) Fallback: check the output envelope
+                if not active_branch:
+                    output = context.get_node_output(edge.source_node_id)
+                    from dipeo.domain.execution.envelope import Envelope
+                    if isinstance(output, Envelope):
+                        # Check the body for result
+                        if isinstance(output.body, dict) and "result" in output.body:
+                            active_branch = "condtrue" if bool(output.body["result"]) else "condfalse"
+                    elif hasattr(output, 'value') and isinstance(output.value, bool):
+                        # Handle boolean outputs
+                        active_branch = "condtrue" if output.value else "condfalse"
+                
+                if not active_branch:
+                    # Default safe branch
+                    active_branch = "condfalse"
+                
+                # Only satisfied if this edge is on the active branch
+                return edge.source_output == active_branch
+            # If no context, can't verify branch - consider not satisfied
             return False
         
         # For non-condition edges, source completion is enough

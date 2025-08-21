@@ -22,10 +22,6 @@ class DataTransformRules:
         if isinstance(source, PersonJobNode) and source.tools:
             transforms["extract_tool_results"] = True
         
-        if isinstance(source, ConditionNode):
-            transforms["branch_on"] = "condition_result"
-        
-        
         return transforms
     
     @staticmethod

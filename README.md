@@ -13,9 +13,10 @@
 
 ### Hmm, so can I tweak it?
 
-<center><img src="/docs/pics/img.png" width="85%" alt=""></center>
+<div style="text-align: center;"><img src="/docs/pics/img.png" width="85%" alt=""></div>
 
-* Definitely, you can just run `make dev-web` and tweak it in `localhost:3000`
+
+* Definitely. You can just run `make dev-web` and tweak it in `localhost:3000`
 * The whole procedure works inside your computer. Nothing is in cloud or somewhere in network.
 
 ### How about the diagram file?
@@ -110,6 +111,7 @@ If you need to modify the codebase or add new features:
 ```bash
 # After modifying TypeScript specifications
 cd dipeo/models && pnpm build  # Build TypeScript models
+make parse-typescript
 dipeo run codegen/diagrams/generate_all --light --debug --timeout=90  # Generate code
 make apply-syntax-only  # Apply staged changes
 make graphql-schema  # Update GraphQL types
@@ -173,4 +175,5 @@ dipeo ask --to "build data pipeline" --and-run --debug --timeout=120 --run-timeo
 - Python 3.13+
 
 ### Release Notes
+* **0.4.4:** Semantic memory selection by 'memorize_to' is in development
 * **0.4.2:** Claude code support

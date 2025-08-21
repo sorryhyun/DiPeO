@@ -66,10 +66,19 @@ class PromptBuilder:
             if special_key in inputs and isinstance(inputs[special_key], dict):
                 special_value = inputs[special_key]
                 
+                # Handle double/triple nesting: recursively unwrap if default contains only a 'default' key
+                # This handles cases where data passes through multiple unlabeled edges
+                while (isinstance(special_value, dict) and 
+                       len(special_value) == 1 and 
+                       'default' in special_value):
+                    logger.debug(f"[PromptBuilder] Unwrapping nested 'default' in {special_key}")
+                    special_value = special_value['default']
+                
                 # Add all properties from the special input to the root context
-                for prop_key, prop_value in special_value.items():
-                    if prop_key not in template_values:  # Don't overwrite existing values
-                        template_values[prop_key] = prop_value
+                if isinstance(special_value, dict):
+                    for prop_key, prop_value in special_value.items():
+                        if prop_key not in template_values:  # Don't overwrite existing values
+                            template_values[prop_key] = prop_value
                 # Also keep the special object itself for backward compatibility
                 template_values[special_key] = special_value
         
