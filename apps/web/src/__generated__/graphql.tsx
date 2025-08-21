@@ -57,16 +57,12 @@ export type Scalars = {
 export enum APIServiceType {
   ANTHROPIC = 'ANTHROPIC',
   BEDROCK = 'BEDROCK',
+  CLAUDE_CODE = 'CLAUDE_CODE',
   DEEPSEEK = 'DEEPSEEK',
   GEMINI = 'GEMINI',
-  GITHUB = 'GITHUB',
   GOOGLE = 'GOOGLE',
-  GOOGLE_SEARCH = 'GOOGLE_SEARCH',
-  JIRA = 'JIRA',
-  NOTION = 'NOTION',
   OLLAMA = 'OLLAMA',
   OPENAI = 'OPENAI',
-  SLACK = 'SLACK',
   VERTEX = 'VERTEX'
 }
 
@@ -765,7 +761,7 @@ export type TestApiKeyResult = {
 
 export type TokenUsageType = {
   __typename?: 'TokenUsageType';
-  cached?: Maybe<Scalars['Float']['output']>;
+  cached?: Maybe<Scalars['Int']['output']>;
   input: Scalars['Int']['output'];
   output: Scalars['Int']['output'];
   total?: Maybe<Scalars['Int']['output']>;

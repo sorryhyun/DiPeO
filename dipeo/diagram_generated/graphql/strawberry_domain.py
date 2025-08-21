@@ -4,7 +4,7 @@ Temporary file to register domain types used by node data models.
 """
 
 import strawberry
-from dipeo.diagram_generated.domain_models import MemorySettings, ToolConfig
+from dipeo.diagram_generated.domain_models import MemorySettings, ToolConfig, TemplatePreprocessor
 from dipeo.diagram_generated.enums import MemoryView, ToolType
 
 
@@ -17,4 +17,10 @@ class MemorySettingsType:
 @strawberry.experimental.pydantic.type(ToolConfig, all_fields=True)
 class ToolConfigType:
     """Tool configuration for AI agents"""
+    pass
+
+
+@strawberry.experimental.pydantic.type(TemplatePreprocessor, all_fields=True)
+class TemplatePreprocessorType:
+    """Configuration for template preprocessor"""
     pass

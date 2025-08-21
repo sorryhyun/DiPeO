@@ -22,6 +22,7 @@ else:
 
 FILES_DIR: Path = BASE_DIR / "files"
 PROJECTS_DIR: Path = BASE_DIR / "projects"
+EXAMPLES_DIR: Path = BASE_DIR / "examples"
 UPLOAD_DIR: Path = FILES_DIR / "uploads"
 RESULT_DIR: Path = FILES_DIR / "results"
 CONVERSATION_LOG_DIR: Path = FILES_DIR / "conversation_logs"
@@ -64,6 +65,7 @@ MAX_NODE_EXECUTIONS = 1000
 def ensure_directories_exist() -> None:
     for dir_path in [
         FILES_DIR,
+        EXAMPLES_DIR,
         UPLOAD_DIR,
         RESULT_DIR,
         CONVERSATION_LOG_DIR,

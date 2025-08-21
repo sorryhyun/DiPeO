@@ -67,6 +67,7 @@ class ExecuteDiagramUseCase(BaseService):
         execution_id: str,
         interactive_handler: Callable | None = None,
         observers: list[Any] | None = None,  # Deprecated, kept for backward compatibility
+        event_filter: Any | None = None,  # EventFilter for sub-diagram scoping
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
 
@@ -80,11 +81,39 @@ class ExecuteDiagramUseCase(BaseService):
         
         if observers:
             logger.warning("Observers parameter is deprecated and will be ignored. Using event bus directly.")
+        
+        # Store event filter in options for the engine to use
+        if event_filter:
+            options['event_filter'] = event_filter
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
-        from dipeo.application.execution.resolvers import StandardRuntimeResolver
         from dipeo.application.registry.keys import EVENT_BUS, DOMAIN_EVENT_BUS, AST_PARSER
+        from dipeo.domain.execution.resolution import resolve_inputs
 
-        runtime_resolver = StandardRuntimeResolver()
+        # Create a minimal runtime resolver that directly uses domain resolution
+        class DirectDomainResolver:
+            def resolve_node_inputs(self, node, incoming_edges, context):
+                """Resolve inputs using domain resolution directly."""
+                from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
+                
+                # Create minimal diagram for resolution
+                diagram = ExecutableDiagram(
+                    id="temp",
+                    nodes=[node],
+                    edges=incoming_edges,
+                    metadata={}
+                )
+                
+                # Use domain resolution (synchronous)
+                envelopes = resolve_inputs(node, diagram, context)
+                
+                # Extract raw values from envelopes
+                return {key: env.body for key, env in envelopes.items()}
+            
+            async def resolve_as_envelopes(self, node, context, diagram):
+                """Resolve as envelopes - just wraps synchronous call."""
+                return resolve_inputs(node, diagram, context)
+        
+        runtime_resolver = DirectDomainResolver()
         
         # Get event bus from registry if available
         # Use DOMAIN_EVENT_BUS (which has MessageRouter subscribed) if available,

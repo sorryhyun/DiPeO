@@ -25,21 +25,15 @@ logger = logging.getLogger(__name__)
 class StandardCompileTimeResolverAdapter(CompileTimeResolver):
     """Adapter for the standard compile-time resolver.
     
-    Wraps the existing StandardCompileTimeResolver to implement
-    the domain CompileTimeResolver interface.
+    NOTE: This adapter appears to have been incorrectly using StandardRuntimeResolver
+    for compile-time resolution. This needs architectural review.
     """
     
     def __init__(self):
         """Initialize the adapter."""
-        self._resolver = None
-        self._initialize_resolver()
-    
-    def _initialize_resolver(self):
-        """Initialize the underlying resolver."""
-        from dipeo.application.execution.resolvers.standard_runtime_resolver import (
-            StandardRuntimeResolver
-        )
-        self._resolver = StandardRuntimeResolver()
+        # This adapter was incorrectly using runtime resolver for compile-time
+        # Needs architectural review
+        pass
 
     def resolve_connections(
         self,
@@ -55,10 +49,12 @@ class StandardCompileTimeResolverAdapter(CompileTimeResolver):
         Returns:
             List of resolved connections
         """
-        if not self._resolver:
-            raise RuntimeError("Resolver not initialized")
-        
-        return self._resolver.resolve_connections(arrows, nodes)
+        # This adapter was incorrectly using runtime resolver for compile-time
+        # Needs proper implementation or removal
+        raise NotImplementedError(
+            "StandardCompileTimeResolverAdapter needs proper implementation - "
+            "was incorrectly using runtime resolver for compile-time resolution"
+        )
     
     def determine_transformation_rules(
         self,
@@ -78,32 +74,24 @@ class StandardCompileTimeResolverAdapter(CompileTimeResolver):
         Returns:
             Transformation rules to apply
         """
-        if not self._resolver:
-            raise RuntimeError("Resolver not initialized")
-        
-        return self._resolver.determine_transformation_rules(
-            connection, source_node_type, target_node_type, nodes_by_id
+        # This adapter was incorrectly using runtime resolver for compile-time
+        # Needs proper implementation or removal
+        raise NotImplementedError(
+            "StandardCompileTimeResolverAdapter needs proper implementation - "
+            "was incorrectly using runtime resolver for compile-time resolution"
         )
 
 
 class StandardRuntimeResolverAdapter(RuntimeInputResolver):
     """Adapter for the standard runtime input resolver.
     
-    Wraps the existing StandardRuntimeInputResolver to implement
-    the domain RuntimeInputResolver interface.
+    Now directly uses domain resolution instead of wrapping StandardRuntimeResolver.
     """
     
     def __init__(self):
         """Initialize the adapter."""
-        self._resolver = None
-        self._initialize_resolver()
-    
-    def _initialize_resolver(self):
-        """Initialize the underlying resolver."""
-        from dipeo.application.execution.resolvers.standard_runtime_resolver import (
-            StandardRuntimeResolver
-        )
-        self._resolver = StandardRuntimeResolver()
+        # No longer need to create a resolver - we'll use domain resolution directly
+        pass
 
     async def resolve_input_value(
         self,
@@ -114,6 +102,10 @@ class StandardRuntimeResolverAdapter(RuntimeInputResolver):
     ) -> Any:
         """Resolve the actual value for a node's input at runtime.
         
+        NOTE: This adapter method signature doesn't match how domain resolution works.
+        Domain resolution resolves ALL inputs for a node at once, not individual inputs.
+        This adapter would need significant refactoring to work properly.
+        
         Args:
             target_node_id: ID of the target node
             target_input: Name of the input to resolve
@@ -123,11 +115,11 @@ class StandardRuntimeResolverAdapter(RuntimeInputResolver):
         Returns:
             The resolved input value
         """
-        if not self._resolver:
-            raise RuntimeError("Resolver not initialized")
-        
-        return await self._resolver.resolve_input_value(
-            target_node_id, target_input, node_outputs, transformation_rules
+        # This interface doesn't match domain resolution which resolves all inputs at once
+        # For now, we'll raise NotImplementedError to indicate this needs architectural changes
+        raise NotImplementedError(
+            "StandardRuntimeResolverAdapter needs refactoring - domain resolution "
+            "resolves all inputs at once, not individual inputs"
         )
 
 

@@ -4,10 +4,11 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 50,
-        "y": 100
+        "x": 330,
+        "y": 200
       },
       "data": {
+        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {},
         "label": "start"
@@ -15,19 +16,82 @@
     },
     {
       "id": "node_1",
-      "type": "template_job",
+      "type": "person_job",
       "position": {
-        "x": 200,
-        "y": 100
+        "x": 632,
+        "y": 231
       },
       "data": {
-        "engine": "jinja2",
-        "template_content": "Hello {{ name }}!\nToday is {{ now }}\n",
-        "output_path": "temp/test_template_output.txt",
-        "variables": {
-          "name": "World"
+        "default_prompt": "say hi",
+        "max_iteration": 3,
+        "memory_profile": "FULL",
+        "person": "person 1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
         },
-        "label": "test template"
+        "label": "printer",
+        "first_only_prompt": ""
+      }
+    },
+    {
+      "id": "node_2",
+      "type": "condition",
+      "position": {
+        "x": 620,
+        "y": 425
+      },
+      "data": {
+        "condition_type": "detect_max_iterations",
+        "flipped": [
+          true,
+          true
+        ],
+        "label": "condition"
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "endpoint",
+      "position": {
+        "x": 0,
+        "y": 437
+      },
+      "data": {
+        "file_format": "txt",
+        "save_to_file": true,
+        "flipped": [
+          true,
+          false
+        ],
+        "file_name": "files/results/total.txt",
+        "label": "endpoint"
+      }
+    },
+    {
+      "id": "node_4",
+      "type": "person_job",
+      "position": {
+        "x": 311,
+        "y": 443
+      },
+      "data": {
+        "default_prompt": "How many times did you respond?",
+        "flipped": [
+          true,
+          false
+        ],
+        "max_iteration": 1,
+        "memory_profile": "FULL",
+        "person": "person 1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        },
+        "label": "ask",
+        "first_only_prompt": ""
       }
     }
   ],
@@ -40,9 +104,62 @@
       "packing": null,
       "data": null,
       "content_type": "raw_text"
+    },
+    {
+      "id": "arrow_1",
+      "source": "node_1_default_output",
+      "target": "node_2_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "conversation_state"
+    },
+    {
+      "id": "arrow_2",
+      "source": "node_2_condfalse_output",
+      "target": "node_1_default_input",
+      "label": null,
+      "packing": null,
+      "data": {
+        "branch": "false"
+      },
+      "content_type": "conversation_state"
+    },
+    {
+      "id": "arrow_3",
+      "source": "node_2_condtrue_output",
+      "target": "node_4_default_input",
+      "label": null,
+      "packing": null,
+      "data": {
+        "branch": "true"
+      },
+      "content_type": "conversation_state"
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_4_default_output",
+      "target": "node_3_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "raw_text"
     }
   ],
-  "persons": [],
+  "persons": [
+    {
+      "id": "person 1",
+      "label": "person 1",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": null,
+        "prompt_file": null
+      },
+      "type": "person"
+    }
+  ],
   "handles": [
     {
       "id": "node_0_default_output",
@@ -51,6 +168,14 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_1_first_input",
+      "node_id": "node_1",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -67,16 +192,80 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_2_default_input",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_2_condtrue_output",
+      "node_id": "node_2",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_2_condfalse_output",
+      "node_id": "node_2",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_3_default_input",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4_first_input",
+      "node_id": "node_4",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4_default_input",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4_default_output",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_2_default_output",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
     }
   ],
   "metadata": {
-    "name": "/home/soryhyun/DiPeO/files/test_template_job.light.yaml",
+    "name": "simple_iter",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-20T12:02:54.904Z",
-    "modified": "2025-08-20T12:02:54.904Z",
+    "created": "2025-08-21T04:34:50.769Z",
+    "modified": "2025-08-21T04:34:50.769Z",
     "version": "1.0.0",
-    "id": "/home/soryhyun/DiPeO/files/test_template_job.light.yaml"
+    "id": "diagrams/examples/simple_iter"
   }
 }

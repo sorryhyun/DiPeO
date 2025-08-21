@@ -255,12 +255,36 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         Returns:
             Tuple of (execution_results, execution_errors)
         """
-        from dipeo.application.execution.resolvers import StandardRuntimeResolver
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.registry import ServiceRegistry
+        from dipeo.domain.execution.resolution import resolve_inputs
+        from dipeo.domain.execution.envelope import Envelope
         
-        # Create a minimal runtime resolver
-        runtime_resolver = StandardRuntimeResolver()
+        # Create a minimal runtime resolver that directly uses domain resolution
+        class MinimalResolver:
+            def resolve_node_inputs(self, node, incoming_edges, context):
+                """Resolve inputs using domain resolution directly."""
+                from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
+                
+                # Create minimal diagram for resolution
+                diagram = ExecutableDiagram(
+                    id="temp",
+                    nodes=[node],
+                    edges=incoming_edges,
+                    metadata={}
+                )
+                
+                # Use domain resolution (synchronous)
+                envelopes = resolve_inputs(node, diagram, context)
+                
+                # Extract raw values from envelopes
+                return {key: env.body for key, env in envelopes.items()}
+            
+            async def resolve_as_envelopes(self, node, context, diagram):
+                """Resolve as envelopes - just wraps synchronous call."""
+                return resolve_inputs(node, diagram, context)
+        
+        runtime_resolver = MinimalResolver()
         
         # Create isolated service registry (copy from parent but independent)
         parent_registry = request.parent_registry or request.services
@@ -270,8 +294,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         engine = TypedExecutionEngine(
             service_registry=isolated_registry,
             runtime_resolver=runtime_resolver,
-            event_bus=NullEventBus(),  # No event emission
-            observers=None  # No observers
+            event_bus=NullEventBus()  # No event emission
         )
         
         # Run execution and collect outputs and errors

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 #!/usr/bin/env python3
 # __generated__ by DiPeO
 """
@@ -54,7 +46,7 @@ class DomainHandle(BaseModel):
     label: HandleLabel
     direction: HandleDirection
     data_type: DataType
-    position: Optional[Union[str, None]] = Field(default=None)
+    position: Optional[str] = Field(default=None)
 
 
 class DomainNode(BaseModel):
@@ -74,9 +66,9 @@ class DomainArrow(BaseModel):
     id: ArrowID
     source: HandleID
     target: HandleID
-    content_type: Optional[Union[ContentType, None]] = Field(default=None)
-    label: Optional[Union[str, None]] = Field(default=None)
-    packing: Optional[Union[Literal['pack'], Literal['spread'], None]] = Field(default=None)
+    content_type: Optional[ContentType] = Field(default=None)
+    label: Optional[str] = Field(default=None)
+    packing: Optional[Literal["pack", "spread"]] = Field(default=None)
     data: Optional[Dict[str, Any]] = Field(default=None)
 
 
@@ -85,7 +77,7 @@ class MemorySettings(BaseModel):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     view: MemoryView
-    max_messages: Optional[Union[float, None]] = Field(default=None)
+    max_messages: Optional[float] = Field(default=None)
     preserve_system: Optional[bool] = Field(default=None)
 
 
@@ -96,8 +88,8 @@ class PersonLLMConfig(BaseModel):
     service: LLMService
     model: str
     api_key_id: ApiKeyID
-    system_prompt: Optional[Union[str, None]] = Field(default=None)
-    prompt_file: Optional[Union[str, None]] = Field(default=None)
+    system_prompt: Optional[str] = Field(default=None)
+    prompt_file: Optional[str] = Field(default=None)
 
 
 class DomainPerson(BaseModel):
@@ -107,7 +99,7 @@ class DomainPerson(BaseModel):
     id: PersonID
     label: str
     llm_config: PersonLLMConfig
-    type: Literal['person']
+    type: Literal["person"]
 
 
 class DomainApiKey(BaseModel):
@@ -124,15 +116,15 @@ class DiagramMetadata(BaseModel):
     """DiagramMetadata model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    id: Optional[Union[DiagramID, None]] = Field(default=None)
-    name: Optional[Union[str, None]] = Field(default=None)
-    description: Optional[Union[str, None]] = Field(default=None)
+    id: Optional[DiagramID] = Field(default=None)
+    name: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
     version: str
     created: str
     modified: str
-    author: Optional[Union[str, None]] = Field(default=None)
-    tags: Optional[Union[List[str], None]] = Field(default=None)
-    format: Optional[Union[str, None]] = Field(default=None)
+    author: Optional[str] = Field(default=None)
+    tags: Optional[List[str]] = Field(default=None)
+    format: Optional[str] = Field(default=None)
 
 
 class DomainDiagram(BaseModel):
@@ -143,7 +135,7 @@ class DomainDiagram(BaseModel):
     handles: List[DomainHandle]
     arrows: List[DomainArrow]
     persons: List[DomainPerson]
-    metadata: Optional[Union[DiagramMetadata, None]] = Field(default=None)
+    metadata: Optional[DiagramMetadata] = Field(default=None)
 
 
 class TokenUsage(BaseModel):
@@ -152,7 +144,7 @@ class TokenUsage(BaseModel):
     
     input: int
     output: int
-    cached: Optional[Union[float, None]] = Field(default=None)
+    cached: Optional[int] = Field(default=None)
     total: Optional[int] = Field(default=None)
 
 
@@ -161,10 +153,10 @@ class NodeState(BaseModel):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     status: Status
-    started_at: Optional[Union[str, None]] = Field(default=None)
-    ended_at: Optional[Union[str, None]] = Field(default=None)
-    error: Optional[Union[str, None]] = Field(default=None)
-    token_usage: Optional[Union[TokenUsage, None]] = Field(default=None)
+    started_at: Optional[str] = Field(default=None)
+    ended_at: Optional[str] = Field(default=None)
+    error: Optional[str] = Field(default=None)
+    token_usage: Optional[TokenUsage] = Field(default=None)
     output: Optional[Dict[str, Any]] = Field(default=None)
 
 
@@ -175,11 +167,11 @@ class NodeMetrics(BaseModel):
     node_id: str
     node_type: str
     start_time: float
-    end_time: Optional[Union[float, None]] = Field(default=None)
-    duration_ms: Optional[Union[float, None]] = Field(default=None)
-    memory_usage: Optional[Union[float, None]] = Field(default=None)
-    token_usage: Optional[Union[TokenUsage, None]] = Field(default=None)
-    error: Optional[Union[str, None]] = Field(default=None)
+    end_time: Optional[float] = Field(default=None)
+    duration_ms: Optional[float] = Field(default=None)
+    memory_usage: Optional[float] = Field(default=None)
+    token_usage: Optional[TokenUsage] = Field(default=None)
+    error: Optional[str] = Field(default=None)
     dependencies: Optional[List[str]] = Field(default=None)
 
 
@@ -199,8 +191,8 @@ class ExecutionMetrics(BaseModel):
     
     execution_id: ExecutionID
     start_time: float
-    end_time: Optional[Union[float, None]] = Field(default=None)
-    total_duration_ms: Optional[Union[float, None]] = Field(default=None)
+    end_time: Optional[float] = Field(default=None)
+    total_duration_ms: Optional[float] = Field(default=None)
     node_metrics: Dict[str, NodeMetrics]
     critical_path: Optional[List[str]] = Field(default=None)
     parallelizable_groups: Optional[List[List[str]]] = Field(default=None)
@@ -241,26 +233,26 @@ class ExecutionState(BaseModel):
     
     id: ExecutionID
     status: Status
-    diagram_id: Optional[Union[DiagramID, None]] = Field(default=None)
+    diagram_id: Optional[DiagramID] = Field(default=None)
     started_at: str
-    ended_at: Optional[Union[str, None]] = Field(default=None)
+    ended_at: Optional[str] = Field(default=None)
     node_states: Dict[str, NodeState]
     node_outputs: Dict[str, SerializedNodeOutput]
     token_usage: TokenUsage
-    error: Optional[Union[str, None]] = Field(default=None)
+    error: Optional[str] = Field(default=None)
     variables: Optional[JsonDict] = Field(default=None)
-    duration_seconds: Optional[Union[float, None]] = Field(default=None)
+    duration_seconds: Optional[float] = Field(default=None)
     is_active: Optional[bool] = Field(default=None)
     exec_counts: Dict[str, float]
     executed_nodes: List[str]
-    metrics: Optional[Union[ExecutionMetrics, None]] = Field(default=None)
+    metrics: Optional[ExecutionMetrics] = Field(default=None)
 
 
 class ExecutionOptions(BaseModel):
     """ExecutionOptions model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    mode: Optional[Union[Literal['normal'], Literal['debug'], Literal['monitor']]] = Field(default=None)
+    mode: Optional[Literal["normal", "debug", "monitor"]] = Field(default=None)
     timeout: Optional[int] = Field(default=None)
     variables: Optional[JsonDict] = Field(default=None)
     debug: Optional[bool] = Field(default=None)
@@ -273,7 +265,7 @@ class InteractivePromptData(BaseModel):
     node_id: NodeID
     prompt: str
     timeout: Optional[int] = Field(default=None)
-    default_value: Optional[Union[str, None]] = Field(default=None)
+    default_value: Optional[str] = Field(default=None)
 
 
 class InteractiveResponse(BaseModel):
@@ -319,12 +311,12 @@ Used by both execution (PersonMemory) and person domains"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     id: Optional[str] = Field(default=None)
-    from_person_id: Union[PersonID, Literal['system']]
+    from_person_id: Union[PersonID, Literal["system"]]
     to_person_id: PersonID
     content: str
     timestamp: Optional[str] = Field(default=None)
     token_count: Optional[float] = Field(default=None)
-    message_type: Union[Literal['person_to_person'], Literal['system_to_person'], Literal['person_to_system']]
+    message_type: Literal["person_to_person", "system_to_person", "person_to_system"]
     metadata: Optional[JsonDict] = Field(default=None)
 
 
@@ -390,9 +382,9 @@ class ChatResult(BaseModel):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     text: str
-    token_usage: Optional[Union[TokenUsage, None]] = Field(default=None)
-    raw_response: Optional[Union[Any, None]] = Field(default=None)
-    tool_outputs: Optional[Union[List[ToolOutput], None]] = Field(default=None)
+    token_usage: Optional[TokenUsage] = Field(default=None)
+    raw_response: Optional[Any] = Field(default=None)
+    tool_outputs: Optional[List[ToolOutput]] = Field(default=None)
 
 
 class LLMRequestOptions(BaseModel):
@@ -453,7 +445,7 @@ class DBNodeData(BaseNodeData):
     """Configuration data for DB nodes that handle file system operations"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    file: Optional[List[Union[str, str]]] = Field(default=None, description="File path(s) - single string or list for multiple files")
+    file: Optional[List[Union[str]]] = Field(default=None, description="File path(s) - single string or list for multiple files")
     collection: Optional[str] = Field(default=None, description="Database collection name (for database operations)")
     sub_type: DBBlockSubType = Field(description="Storage type: file or database")
     operation: str = Field(description="Operation type: read or write")
@@ -487,7 +479,7 @@ class HookNodeData(BaseNodeData):
     script: Optional[str] = Field(default=None)
     function_name: Optional[str] = Field(default=None)
     file_path: Optional[str] = Field(default=None)
-    format: Optional[Union[Literal['json'], Literal['yaml'], Literal['text']]] = Field(default=None)
+    format: Optional[Literal["json", "yaml", "text"]] = Field(default=None)
     timeout: Optional[int] = Field(default=None)
     retry_count: Optional[float] = Field(default=None)
     retry_delay: Optional[float] = Field(default=None)
@@ -527,7 +519,7 @@ class PersonJobNodeData(BaseNodeData):
     prompt_file: Optional[str] = Field(default=None, description="External prompt file in files/prompts/ (overrides inline prompts)")
     max_iteration: float = Field(description="Maximum conversation turns (default: 1)")
     memory_profile: Optional[MemoryProfile] = Field(default=None, description="Memory profile: GOLDFISH (2 msgs), MINIMAL (5), FOCUSED (20), FULL (all)")
-    memory_settings: Optional[Union[MemorySettings, None]] = Field(default=None, description="Advanced memory configuration when memory_profile is CUSTOM")
+    memory_settings: Optional[MemorySettings] = Field(default=None, description="Advanced memory configuration when memory_profile is CUSTOM")
     tools: Optional[ToolSelection] = Field(default=None, description="LLM tools to enable (web_search_preview, etc.)")
     text_format: Optional[str] = Field(default=None, description="Pydantic model name for structured output")
     text_format_file: Optional[str] = Field(default=None, description="External Python file with Pydantic models (overrides text_format)")
@@ -561,15 +553,26 @@ class SubDiagramNodeData(BaseNodeData):
     ignoreIfSub: Optional[bool] = Field(default=None, description="Skip if already running as sub-diagram")
 
 
+class TemplatePreprocessor(BaseModel):
+    """Configuration for template preprocessor"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+    
+    module: str = Field(description="Python module path, e.g. \"projects.codegen.code.shared.context_builders\"")
+    function: str = Field(description="Function name to call, e.g. \"build_context_from_ast\"")
+    args: Optional[JsonDict] = Field(default=None, description="Optional arguments passed as kwargs to the function")
+
+
 class TemplateJobNodeData(BaseNodeData):
     """TemplateJobNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     template_path: Optional[str] = Field(default=None)
     template_content: Optional[str] = Field(default=None)
-    output_path: Optional[str] = Field(default=None)
-    variables: Optional[JsonDict] = Field(default=None)
+    output_path: Optional[str] = Field(default=None, description="Single-file path; can contain template expressions")
+    variables: Optional[JsonDict] = Field(default=None, description="Simple key\u2192value map passed to template; string values are resolved")
     engine: Optional[TemplateEngine] = Field(default=None)
+    foreach: Optional[Dict[str, Any]] = Field(default=None, description="Render a template for each item and write many files")
+    preprocessor: Optional[TemplatePreprocessor] = Field(default=None, description="Optional Python preprocessor that returns extra context for the template")
 
 
 class TypescriptAstNodeData(BaseNodeData):
@@ -579,7 +582,7 @@ class TypescriptAstNodeData(BaseNodeData):
     source: Optional[str] = Field(default=None)
     extractPatterns: Optional[List[str]] = Field(default=None)
     includeJSDoc: Optional[bool] = Field(default=None)
-    parseMode: Optional[Union[Literal['module'], Literal['script']]] = Field(default=None)
+    parseMode: Optional[Literal["module", "script"]] = Field(default=None)
     batch: Optional[bool] = Field(default=None)
     sources: Optional[Dict[str, str]] = Field(default=None)
     batchInputKey: Optional[str] = Field(default=None)
@@ -751,6 +754,9 @@ def is_start_node_data(obj: Any) -> bool:
 def is_sub_diagram_node_data(obj: Any) -> bool:
     """Check if object is a SubDiagramNodeData."""
     return isinstance(obj, SubDiagramNodeData)
+def is_template_preprocessor(obj: Any) -> bool:
+    """Check if object is a TemplatePreprocessor."""
+    return isinstance(obj, TemplatePreprocessor)
 def is_template_job_node_data(obj: Any) -> bool:
     """Check if object is a TemplateJobNodeData."""
     return isinstance(obj, TemplateJobNodeData)

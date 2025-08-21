@@ -186,7 +186,7 @@ class StorageSettings(BaseSettings):
         description="Temporary files directory (relative to base_dir)"
     )
     diagrams_dir: str = Field(
-        default="files/diagrams",
+        default="examples",
         env="DIPEO_DIAGRAMS_DIR",
         description="Diagrams directory (relative to base_dir)"
     )

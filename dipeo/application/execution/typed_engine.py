@@ -24,7 +24,6 @@ from dipeo.config import get_settings
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceRegistry
-    from dipeo.application.execution.observer_protocol import ExecutionObserver
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +43,7 @@ class TypedExecutionEngine:
         service_registry: "ServiceRegistry",
         runtime_resolver: RuntimeInputResolverV2,
         order_calculator: Any | None = None,
-        event_bus: DomainEventBus | None = None,
-        observers: list["ExecutionObserver"] | None = None
+        event_bus: DomainEventBus | None = None
     ):
         self.service_registry = service_registry
         self.runtime_resolver = runtime_resolver
@@ -53,10 +51,6 @@ class TypedExecutionEngine:
         self._settings = get_settings()
         self._managed_event_bus = False
         self._scheduler: NodeScheduler | None = None
-        
-        # Legacy observers parameter is ignored - use event bus directly
-        if observers:
-            logger.warning("Observers parameter is deprecated and will be ignored. Use event_bus instead.")
         
         # Use provided event bus or create one
         if not event_bus:

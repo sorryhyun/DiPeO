@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from dipeo.domain.constants import FILES_DIR, PROJECTS_DIR
+from dipeo.domain.constants import FILES_DIR, PROJECTS_DIR, EXAMPLES_DIR
 
 
 class DiagramLoader:
@@ -18,7 +18,8 @@ class DiagramLoader:
         Search order:
         1. Check as-is (for absolute paths or direct references)
         2. Check in projects/ directory (new default)
-        3. Check in files/ directory (backward compatibility)
+        3. Check in examples/ directory (for example diagrams)
+        4. Check in files/ directory (backward compatibility)
         """
         # If it's an absolute path, use as-is
         path = Path(diagram)
@@ -35,6 +36,11 @@ class DiagramLoader:
             path_with_projects = PROJECTS_DIR / diagram
             if path_with_projects.exists():
                 return str(path_with_projects)
+            
+            # Try with examples/ prefix
+            path_with_examples = EXAMPLES_DIR / diagram
+            if path_with_examples.exists():
+                return str(path_with_examples)
             
             # Try with files/ prefix for backward compatibility
             path_with_files = FILES_DIR / diagram

@@ -137,7 +137,7 @@ persons:
     model: gpt-oss:20b
     api_key_id: APIKEY_21A814
 ```
-read [example](files/diagrams/examples/simple_iter_ollama.light.yaml)
+read [example](examples/simple_diagrams/simple_iter_ollama.light.yaml)
 
 - We support Notion, custom LLM with curl, ... etc, any API services
 - Since we use schema-driven integrations, it's quite easy to add new external API feature.

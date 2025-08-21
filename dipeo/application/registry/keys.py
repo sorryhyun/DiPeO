@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from dipeo.domain.base.storage_port import BlobStorePort as FileServicePort
     from dipeo.domain.events.ports import MessageBus as MessageRouterPort
     from dipeo.domain.events import DomainEventBus, MessageBus
-    from dipeo.application.execution.observer_protocol import ExecutionObserver
     from dipeo.domain.integrations.ports import APIKeyPort
     from dipeo.domain.diagram.ports import DiagramPort, DiagramCompiler, DiagramStorageSerializer
     from dipeo.domain.integrations.ports import ApiInvoker as IntegratedApiServicePort

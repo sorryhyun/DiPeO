@@ -14,6 +14,7 @@ from dipeo.domain.events import (
     DomainEventBus,
     EventType,
     EventPriority,
+    EventFilter,
 )
 
 logger = logging.getLogger(__name__)
@@ -91,7 +92,11 @@ class InMemoryEventBus(DomainEventBus):
             if not subscription.active:
                 continue
             
-            # Apply filter if specified
+            # Apply EventFilter if specified (new approach)
+            if subscription.filter and not subscription.filter.matches(event):
+                continue
+            
+            # Apply legacy filter expression if specified (backward compat)
             if subscription.filter_expression and not self._evaluate_filter(
                 event, subscription.filter_expression
             ):
@@ -133,6 +138,7 @@ class InMemoryEventBus(DomainEventBus):
         self,
         event_types: list[EventType],
         handler: EventHandler,
+        filter: Optional[EventFilter] = None,
         filter_expression: Optional[str] = None,
         priority: EventPriority = EventPriority.NORMAL
     ) -> EventSubscription:
@@ -142,6 +148,7 @@ class InMemoryEventBus(DomainEventBus):
             subscription_id=subscription_id,
             event_types=event_types,
             handler=handler,
+            filter=filter,
             filter_expression=filter_expression,
             priority=priority,
             active=True

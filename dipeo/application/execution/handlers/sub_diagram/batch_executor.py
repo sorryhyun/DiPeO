@@ -421,7 +421,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
             domain_diagram=domain_diagram,
             options=options,
             sub_execution_id=sub_execution_id,
-            parent_observers=[]  # Minimal observers for batch items
+            event_filter=None  # No filtering needed for batch items
         )
         
         # Handle execution error
@@ -437,7 +437,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         domain_diagram: Any,  # DomainDiagram
         options: dict[str, Any],
         sub_execution_id: str,
-        parent_observers: list[Any]
+        event_filter: Any | None
     ) -> tuple[dict[str, Any], str | None]:
         """Execute sub-diagram with optimized update collection for batch processing."""
         execution_results = {}
@@ -449,7 +449,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
             options=options,
             execution_id=sub_execution_id,
             interactive_handler=None,
-            observers=parent_observers
+            event_filter=event_filter
         ):
             update_type = update.get("type", "")
             

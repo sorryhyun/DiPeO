@@ -30,7 +30,8 @@ class TypedNodeHandler(Generic[T], ABC):
     NODE_TYPE: ClassVar[str] = ""
     
     def __init__(self):
-        self._resolver = None  # Injected by engine
+        # Resolver no longer needed - using domain resolution directly
+        pass
     
     @property
     @abstractmethod
@@ -87,13 +88,11 @@ class TypedNodeHandler(Generic[T], ABC):
         self,
         request: "ExecutionRequest[T]"
     ) -> dict[str, Envelope]:
-        """Resolve inputs as envelopes through resolver"""
+        """Resolve inputs as envelopes using domain resolution directly"""
         import logging
-        logger = logging.getLogger(__name__)
+        from dipeo.domain.execution.resolution import resolve_inputs
         
-        if not self._resolver:
-            from dipeo.application.execution.resolvers import get_resolver
-            self._resolver = get_resolver()
+        logger = logging.getLogger(__name__)
         
         # Get diagram from context
         diagram = getattr(request.context, 'diagram', None)
@@ -101,11 +100,8 @@ class TypedNodeHandler(Generic[T], ABC):
             # Fall back to empty inputs if no diagram available
             return {}
         
-        result = await self._resolver.resolve_as_envelopes(
-            request.node,
-            request.context,
-            diagram
-        )
+        # Use domain resolution directly (it's synchronous)
+        result = resolve_inputs(request.node, diagram, request.context)
         return result
     
     async def prepare_inputs(
