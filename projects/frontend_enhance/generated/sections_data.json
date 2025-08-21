@@ -1,420 +1,401 @@
 {
   "architecture": {
-    "overview": "A modular, scalable React 18+ dashboard architecture built with TypeScript, Tailwind CSS, and modern frontend patterns. The system is organized around a clear separation of concerns: Core app providers (global state, theming, i18n, auth), feature-driven UI (dashboard, auth), and shared primitives (UI components, hooks, utilities). Data flows are unidirectional with a central data layer via React Query for server state, complemented by WebSocket-based real-time updates that synchronize the cache. Lazy loading and code-splitting ensure fast initial load and progressive enhancement. Accessibility, WCAG 2.1 AA, and performance are baked in from the start (aria labels, keyboard navigation, Suspense fallbacks, lazy components, virtualization placeholders). Real-time events update the UI via the query cache and local state rather than imperative DOM manipulation. Offline capabilities and service worker groundwork are prepared for future extension. The architecture supports protected routes, token refresh, and robust error handling via error boundaries.",
+    "overview": "A modular, production-grade React 18+ dashboard architecture built around a feature-first, container/presentational pattern. The app uses a thin set of core providers to manage cross-cutting concerns (auth, theming, data fetching) and lazy-loads feature modules for optimal performance. Data flows in a unidirectional manner: API/WebSocket data -> React Query cache or local state -> UI components. Real-time updates propagate via a WebSocket hook that feeds React Query caches or local state with optimistic UI where appropriate. Accessibility, performance, and maintainability are baked in through patterns like Suspense, Error Boundaries, code-splitting, and strict TypeScript typings. The design favors small, independent sections that integrate through well-defined contracts (contexts, hooks, and provider components).",
     "patterns": [
       "Container/Presentational",
-      "Atomic Design / Feature-Sliced Thinking",
-      "Hooks as a primary abstraction (custom hooks, reducer patterns, compound components)",
-      "Render props / composition where useful (ChartPanel, DataList virtualization hooks)",
-      "Reducer-based local state + Context API for cross-cutting concerns",
-      "React Query for server state, caching, and optimistic UI",
-      "Code splitting with React.lazy and dynamic imports",
-      "Suspense + Error Boundaries for resilience and UX fidelity"
+      "Feature-based (domain modules under src/features)",
+      "Compound components for form controls",
+      "Render props and hooks for extensibility",
+      "Reducer-based state management via React.useReducer + Context",
+      "Code-splitting with React.lazy and dynamic imports",
+      "Data fetching with React Query (TanStack Query) including caching and optimistic updates",
+      "Suspense for data loading, Error Boundaries for resilience"
     ],
-    "data_flow": "User interacts with UI \u2192 actions update local/global state via Context or reducers \u2192 React Query handles server state requests; successful responses update the cache and UI via selectors/selectors-like hooks; real-time data arrives through WebSocket hook and updates the React Query cache or local state; errors are captured by Error Boundaries and surfaced via toast/aria-live regions; navigation and protected routes orchestrate token validation and redirects.",
-    "folder_structure": "src/\n  app/\n    providers/\n      AppProviders.tsx\n    routes/\n      ProtectedRoute.tsx\n  features/\n    dashboard/\n      pages/\n        DashboardPage.tsx\n      components/\n        MetricCard.tsx\n        ChartPanel.tsx\n      hooks/\n        useRealtime.ts\n    auth/\n      hooks/\n        useAuth.ts\n      ui/\n        SignInForm.tsx\n  shared/\n    components/\n      ErrorBoundary.tsx\n      ResponsiveNav.tsx\n    hooks/\n      useDebouncedValue.ts\n    ui/\n      Modal.tsx\n  libs/\n    api/\n      client.ts\n  types/\n    index.d.ts\n  styles/\n    globals.css\n  index.html\n  main.tsx",
+    "data_flow": "User interactions -> UI events -> actions trigger reducers or API mutations via React Query/mutations -> server responses -> cache updates (React Query) or local state -> components re-render. Real-time data uses a WebSocket hook to feed the cache/local state and trigger UI updates with proper cleanup. Global state is accessed via Context (Auth, Theme) while per-page data is managed by React Query. Code-splitting and lazy loading minimize initial bundle size. Asset loading, images, and fonts are handled with responsive, lazy-loading strategies and Tailwind for styling.",
+    "folder_structure": "src/\n  app/\n    App.tsx\n    providers/\n      QueryClientProvider.tsx\n    contexts/\n      AuthContext.tsx\n      ThemeContext.tsx\n  features/\n    auth/\n      components/\n        LoginForm.tsx\n    navigation/\n      components/\n        ResponsiveNav.tsx\n    theme/\n      components/\n        ThemeToggle.tsx\n    dashboard/\n      components/\n        ChartPanel.tsx\n        VirtualizedList.tsx\n  shared/\n    components/\n      ErrorBoundary.tsx\n    hooks/\n      useWebSocket.ts\n  utils/\n    hooks/\n      useWebSocket.ts\n  mocks/\n    (optional mocks for dev/testing)\n  assets/\n    (images, icons, logos)\n  index.html\n  main.tsx",
     "tech_stack": [
       "React 18+",
       "TypeScript",
       "Tailwind CSS",
-      "React Router v6",
-      "React Query (Tanstack) for data fetching and caching",
-      "WebSocket for real-time updates",
-      "i18n with react-i18next",
-      "Vite (or Webpack) as bundler",
-      "Testing: React Testing Library + Jest",
-      "PWA-ready (service worker groundwork)",
+      "TanStack/React Query (data fetching and caching)",
+      "React Router (routing)",
+      "WebSocket API for real-time features",
+      "Accessibility tooling (ARIA, keyboard nav)",
       "Code-splitting with React.lazy",
-      "Accessibility tooling (ARIA, keyboard navigation)"
+      "Error Boundaries",
+      "Testing Library (RTL) for tests",
+      "i18n (optional placeholder)",
+      "Service Workers for PWA/offline (optional]"
     ]
   },
   "sections": [
     {
-      "id": "app-providers",
-      "title": "App Providers and Global bootstrap",
-      "description": "Root provider that wires Theme, i18n, Auth, and React Query. Exposes a stable AppProviders wrapper that can be used by main.tsx to bootstrap the app. Includes a Theme toggle, internationalization setup, and a protected router tree.",
-      "file_to_implement": "src/app/providers/AppProviders.tsx",
+      "id": "app-entrypoint",
+      "title": "App bootstrap and routing",
+      "description": "Root app component that wires providers, suspense, routes, protected routes, and error boundary.",
+      "file_to_implement": "src/app/App.tsx",
       "acceptance": [
-        "Exports a React component AppProviders that wraps children with QueryClientProvider, I18nextProvider, ThemeProvider, AuthProvider, and Router.",
-        "Initializes a single shared QueryClient with sane defaults for caching and stale times.",
-        "Implements a ThemeContext with a persistent dark/light preference (localStorage) and a toggle method.",
-        "Integrates a ProtectedRoute wrapper for routes that require authentication.",
-        "Includes Suspense boundary and a global ErrorBoundary wrapper for resilience."
+        "Renders the application root and bootstraps providers (Auth, Theme, React Query).",
+        "Configures React Router with public (Login) and protected (Dashboard) routes.",
+        "Uses React.Suspense for lazy-loaded routes and wraps the app in an ErrorBoundary.",
+        "Ensures accessibility attributes are present on core navigational elements."
       ],
       "implementation_steps": [
-        "1) Create or import a pre-wired QueryClient from src/libs/api/client.ts and wrap the app with <QueryClientProvider>.",
-        "2) Initialize a ThemeProvider with context to manage dark mode, persisting choice in localStorage; provide a hook to toggle theme.",
-        "3) Initialize i18n using react-i18next setup (I18nProvider or I18nextProvider) and wrap children.",
-        "4) Create/use an AuthProvider from src/features/auth/hooks/useAuth.ts that provides isAuthenticated and token management; wrap children with <AuthProvider>.",
-        "5) Setup BrowserRouter with routes and a skeleton ProtectedRoute for guarded sections.",
-        "6) Add a lightweight ErrorBoundary around the app and a Suspense fallback for lazy-loaded components.",
-        "7) Ensure all providers are composed in a sensible order: I18n -> Theme -> Auth -> Query -> Router.",
-        "8) Export AppProviders and any exported contexts/hooks for consumption by pages/components."
+        "1. Create App.tsx as the application bootstrap.",
+        "2. Import and render AppProviders (AuthContext, ThemeContext, QueryClientProvider).",
+        "3. Set up React Router with routes: /login (LoginForm) and /dashboard (lazy-loaded Dashboard module) and a catch-all redirect.",
+        "4. Wrap routes in Suspense with a global fallback UI.",
+        "5. Wrap everything in an ErrorBoundary with reset capability.",
+        "6. Ensure Tailwind CSS classes are applied and support for dark mode is wired via ThemeContext.",
+        "7. Expose a public root element for rendering (e.g., ReactDOM.createRoot(document.getElementById('root')).render)."
       ],
       "integration_points": [
-        "Main.tsx imports and uses AppProviders to bootstrap the app.",
-        "ProtectedRoute relies on AuthContext provided here to gate routes.",
-        "ChartPanel/MetricCard components consume Theme and i18n contexts for styling and labels.",
-        "ErrorBoundary catches errors from any child route/component and renders a fallback UI."
+        "Imports AppProviders from src/app/providers/QueryClientProvider.tsx; uses AuthContext and ThemeContext from their respective files; lazy-loads dashboard module via React.lazy; protects routes via a PrivateRoute-like mechanism (could be internal to App.tsx)"
       ],
       "prompt_context": {
-        "component_type": "provider-bootstrapping",
-        "data_model": null,
+        "component_type": "file",
+        "data_model": "application",
         "interactions": [
-          "initialization",
-          "theme_toggle",
-          "routing_setup"
+          "initialize",
+          "navigate",
+          "protect_route"
         ],
-        "styling_approach": "Tailwind",
+        "styling_approach": "tailwind",
         "dependencies": [
-          "src/libs/api/client.ts",
-          "src/features/auth/hooks/useAuth.ts"
+          "src/app/providers/QueryClientProvider.tsx",
+          "src/app/contexts/AuthContext.tsx",
+          "src/app/contexts/ThemeContext.tsx"
         ]
       },
       "priority": 1
     },
     {
-      "id": "protected-route",
-      "title": "Protected Route",
-      "description": "A small wrapper around react-router-dom v6 Navigate to enforce authentication for protected routes.",
-      "file_to_implement": "src/app/routes/ProtectedRoute.tsx",
+      "id": "query-client-provider",
+      "title": "React Query Client Provider",
+      "description": "Configures a TanStack React Query client with sane default options and optional devtools for development.",
+      "file_to_implement": "src/app/providers/QueryClientProvider.tsx",
       "acceptance": [
-        "Exports a component ProtectedRoute that accepts children and an optional redirect path.",
-        "If user is not authenticated, redirects to /login and preserves the attempted location for post-login redirect.",
-        "If authenticated, renders the nested children.",
-        "Handles a loading state with a simple inline loading indicator without breaking the UX."
+        "Exports a React component that provides a configured QueryClient to the app.",
+        "Sets defaultQueryOptions for caching, stale times, and retry behavior.",
+        "Optionally exposes ReactQueryDevtools in development.",
+        "Is a wrapper that App.tsx can compose around the app tree."
       ],
       "implementation_steps": [
-        "1) Import useAuth from src/features/auth/hooks/useAuth.ts to access isAuthenticated and loading.",
-        "2) Use React Router v6's Navigate to redirect unauthenticated users, preserving location via state.",
-        "3) If loading, render a small loading indicator (aria-live polite).",
-        "4) Render children when authenticated.",
-        "5) Ensure type-safe props using React.PropsWithChildren and proper discriminated types if needed."
+        "1. Import React, QueryClient, QueryClientProvider, and ReactQueryDevtools (optional).",
+        "2. Instantiate a QueryClient with options: defaultOptions for queries (staleTime, cacheTime, refetchOnWindowFocus), mutations, and retries.",
+        "3. Create a functional component QueryClientProviderWrapper({children}).",
+        "4. Return <QueryClientProvider client={client}>{children} {devtools}</QueryClientProvider>",
+        "5. Export the wrapper as default and also export the client if needed for tests."
       ],
       "integration_points": [
-        "Used by AppProviders to guard /dashboard and other future private routes.",
-        "Works with SignInForm to redirect back after successful login."
+        "Used by App.tsx to wrap the app tree with data-fetching capabilities."
       ],
       "prompt_context": {
-        "component_type": "route-guard",
-        "data_model": null,
+        "component_type": "file",
+        "data_model": "application services",
         "interactions": [
-          "authenticate-check",
-          "redirect-on-unauthenticated"
+          "fetch",
+          "cache",
+          "invalidate"
         ],
-        "styling_approach": "Tailwind",
+        "styling_approach": "tailwind",
         "dependencies": [
-          "src/features/auth/hooks/useAuth.ts",
-          "react-router-dom"
+          "src/app/contexts/AuthContext.tsx",
+          "src/app/contexts/ThemeContext.tsx"
         ]
       },
       "priority": 1
     },
     {
-      "id": "dashboard-page",
-      "title": "Dashboard Page",
-      "description": "Main dashboard page composing header, navigation, grid of metrics and charts, and a real-time data feed. Uses lazy-loaded charts and a WebSocket-backed realtime hook to update UI.",
-      "file_to_implement": "src/features/dashboard/pages/DashboardPage.tsx",
+      "id": "auth-context",
+      "title": "Authentication context",
+      "description": "Centralized authentication state, sign-in/out, and token handling.",
+      "file_to_implement": "src/app/contexts/AuthContext.tsx",
       "acceptance": [
-        "Renders a responsive layout with a top nav and a grid of MetricCard components.",
-        "Integrates useRealtime to subscribe to server events and update relevant data via React Query cache or local state.",
-        "Lazily loads heavy chart components and wraps them in Suspense with proper fallbacks.",
-        "Accessible: all controls have aria-labels and keyboard navigation is supported."
+        "Provides a hook to access authentication state (useAuth).",
+        "Stores and validates tokens in memory and localStorage securely.",
+        "Offers signIn and signOut methods; reports isAuthenticated and user info.",
+        "Integrates with protected routes logic in App.tsx."
       ],
       "implementation_steps": [
-        "1) Import React, Suspense, and lazy-loaded ChartPanel and MetricCard components.",
-        "2) Use React Query hooks to fetch initial dashboard metrics (or rely on React Query defaults in custom hooks).",
-        "3) Instantiate useRealtime to subscribe to updates for the dashboard data; wire updates to queryClient.setQueryData / invalidateQueries as appropriate.",
-        "4) Build responsive Tailwind grid: e.g., grid-cols-1 md:grid-cols-2 lg:grid-cols-3 for metrics and charts.",
-        "5) Render a MetricCard for each metric (e.g., Revenue, Active Users) and a ChartPanel for visualizations.",
-        "6) Wrap heavy charts with React.lazy and Suspense; provide fallback skeletons.",
-        "7) Ensure components receive data via props or via selectors from React Query.",
-        "8) Add basic error boundaries for data fetch failures and provide retry UI."
+        "1. Define User type and AuthState interface.",
+        "2. Create AuthContext with default values.",
+        "3. Implement AuthProvider component with useState for user and tokens; load from localStorage on init.",
+        "4. Implement signIn(credentials) to simulate/mutate and store tokens; implement signOut to clear tokens.",
+        "5. Expose useAuth hook for components to access state and actions.",
+        "6. Ensure token refresh mechanism placeholder (optional) and access control for protected routes.",
+        "7. Add minimal test hooks or console warnings for development."
       ],
       "integration_points": [
-        "Consumes data from React Query caches; updates via useRealtime.",
-        "Uses ResponsiveNav for navigation and Theme context for dark mode visuals.",
-        "ChartPanel and MetricCard are standalone but receive data from DashboardPage's data layer."
+        "Used by LoginForm.tsx for authenticating users; used by App.tsx to guard routes; may connect with backend via API module in future."
       ],
       "prompt_context": {
-        "component_type": "page",
-        "data_model": "dashboard_metrics",
+        "component_type": "file",
+        "data_model": "auth/user_session",
         "interactions": [
-          "view",
-          "real-time-update",
-          "resize",
-          "filter-charts"
+          "login",
+          "logout",
+          "token_refresh"
         ],
-        "styling_approach": "Tailwind",
+        "styling_approach": "tailwind",
         "dependencies": [
-          "src/features/dashboard/components/MetricCard.tsx",
-          "src/features/dashboard/components/ChartPanel.tsx",
-          "src/features/dashboard/hooks/useRealtime.ts",
-          "src/libs/api/client.ts"
+          "src/app/app.tsx",
+          "src/features/auth/components/LoginForm.tsx"
         ]
       },
       "priority": 1
     },
     {
-      "id": "metric-card",
-      "title": "Metric Card",
-      "description": "Reusable, memoized metric display card. Displays a label, a value, delta/trend, and optional units. Designed for reusability and performance.",
-      "file_to_implement": "src/features/dashboard/components/MetricCard.tsx",
+      "id": "theme-context",
+      "title": "Theme (dark/light) context",
+      "description": "Global theme state with a toggle and persistent preference.",
+      "file_to_implement": "src/app/contexts/ThemeContext.tsx",
       "acceptance": [
-        "Exports a memoized functional component MetricCard with props { label, value, delta?, format? }.",
-        "Supports dark/light states via Tailwind and reads from theme context if needed.",
-        "Includes ARIA semantics: role='region', aria-labels for screen readers and live region for updates.",
-        "Accepts optional delta to show a small trend indicator and accessible description."
+        "Provides a ThemeContext with current theme and toggleTheme function.",
+        "Persists user preference in localStorage.",
+        "Applies theme class (e.g., 'dark') on document root for Tailwind dark mode support.",
+        "Exports useTheme hook for components to read and toggle theme."
       ],
       "implementation_steps": [
-        "1) Define MetricCardProps with generics: value can be string | number; delta?: number; unit?: string.",
-        "2) Implement as React.memo to prevent unnecessary re-renders when props do not change.",
-        "3) Build UI with Tailwind classes to render title, value, and delta with an arrow/percentage indicator.",
-        "4) Add aria-live='polite' region for live updates and aria-labels for accessibility.",
-        "5) Accept an optional format function to format value (e.g., currency, percentage).",
-        "6) Export as default."
+        "1. Define Theme type ('light'|'dark').",
+        "2. Create ThemeContext with default theme.",
+        "3. Implement ThemeProvider that reads initial theme from localStorage or system preference.",
+        "4. Implement toggleTheme to switch themes and persist choice.",
+        "5. Update document.documentElement.classList to reflect the current theme.",
+        "6. Export useTheme hook for consumption."
       ],
       "integration_points": [
-        "Used by DashboardPage to render each metric tile.",
-        "Receives data from React Query or props passed by DashboardPage."
+        "Used by ThemeToggle.tsx and App.tsx to ensure theme consistency across the app."
       ],
       "prompt_context": {
-        "component_type": "card",
-        "data_model": "dashboard_metric",
+        "component_type": "file",
+        "data_model": "ui/theme",
         "interactions": [
-          "data-update",
-          "visibility"
+          "toggle",
+          "persist"
         ],
-        "styling_approach": "Tailwind",
+        "styling_approach": "tailwind",
         "dependencies": [
-          "src/features/dashboard/pages/DashboardPage.tsx"
+          "src/features/theme/components/ThemeToggle.tsx",
+          "src/app/App.tsx"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "login-form",
+      "title": "Login form UI",
+      "description": "Accessible authentication form with validation and integration with AuthContext.",
+      "file_to_implement": "src/features/auth/components/LoginForm.tsx",
+      "acceptance": [
+        "Renders username/email and password fields with real-time validation.",
+        "Shows inline errors and loading state during sign-in.",
+        "Calls AuthContext.signIn on submit and handles success/failure gracefully.",
+        "Includes ARIA attributes, keyboard navigation, and responsive layout."
+      ],
+      "implementation_steps": [
+        "1. Create functional component LoginForm with internal state for email, password, and errors.",
+        "2. Use useAuth() to access signIn.",
+        "3. Implement validation rules (required fields, email format, password length).",
+        "4. Render accessible form controls with proper labels and aria-invalid/aria-live for errors.",
+        "5. Show loading spinner and disable submit while authenticating.",
+        "6. On success, navigate to /dashboard; on failure, display error state and reset as appropriate.",
+        "7. Apply Tailwind classes for responsive layout."
+      ],
+      "integration_points": [
+        "Used on /login route from App.tsx; authenticates via useAuth hook from AuthContext; after login, route protection logic redirects to dashboard."
+      ],
+      "prompt_context": {
+        "component_type": "file",
+        "data_model": "auth/login",
+        "interactions": [
+          "submit",
+          "validation",
+          "redirect"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/app/contexts/AuthContext.tsx",
+          "src/app/App.tsx"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "responsive-nav",
+      "title": "Responsive navigation bar",
+      "description": "Accessible, responsive navigation with mobile drawer and keyboard support.",
+      "file_to_implement": "src/features/navigation/components/ResponsiveNav.tsx",
+      "acceptance": [
+        "Renders brand/logo and navigation links.",
+        "Collapses into a mobile-friendly drawer with proper aria attributes.",
+        "Keyboard accessible and supports focus management.",
+        "Integrates with Router Links and ThemeToggle if needed."
+      ],
+      "implementation_steps": [
+        "1. Build a functional component with state for open/closed mobile menu.",
+        "2. Use Tailwind for responsive layout; implement aria-expanded and role attributes.",
+        "3. Render Link components for navigation; ensure focus trap and keyboard handlers (Escape to close).",
+        "4. Ensure color contrast and ARIA labels for all controls.",
+        "5. Integrate with ThemeToggle if part of the header."
+      ],
+      "integration_points": [
+        "Used by App.tsx as the main navigation component; consumes route information to render active states."
+      ],
+      "prompt_context": {
+        "component_type": "file",
+        "data_model": "ui/navigation",
+        "interactions": [
+          "navigate",
+          "toggle_menu"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/app/App.tsx",
+          "src/features/theme/components/ThemeToggle.tsx"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "theme-toggle",
+      "title": "Theme toggle button",
+      "description": "UI control to switch between light and dark themes.",
+      "file_to_implement": "src/features/theme/components/ThemeToggle.tsx",
+      "acceptance": [
+        "Renders a accessible toggle button with proper aria-labels.",
+        "Updates ThemeContext on toggle and persists preference.",
+        "Does not cause layout shifts; uses prefers-color-scheme as fallback."
+      ],
+      "implementation_steps": [
+        "1. Create a button element with aria-label 'Toggle theme'.",
+        "2. Consume useTheme to read current mode and toggleTheme function.",
+        "3. On click, call toggleTheme and ensure class on documentElement is updated.",
+        "4. Apply appropriate Tailwind classes for iconography and hover states."
+      ],
+      "integration_points": [
+        "Used by ResponsiveNav.tsx and standalone header areas; relies on ThemeContext to reflect changes across UI."
+      ],
+      "prompt_context": {
+        "component_type": "file",
+        "data_model": "ui/theme",
+        "interactions": [
+          "toggle",
+          "persist"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/app/contexts/ThemeContext.tsx",
+          "src/features/navigation/components/ResponsiveNav.tsx"
         ]
       },
       "priority": 2
     },
     {
       "id": "chart-panel",
-      "title": "Chart Panel",
-      "description": "Container responsible for rendering charts. Lazily loads heavy chart components to optimize bundle size; supports multiple series and responsive sizing.",
+      "title": "Chart panel for data visualization",
+      "description": "Generic ChartPanel component that renders a simple SVG line chart with configurable data.",
       "file_to_implement": "src/features/dashboard/components/ChartPanel.tsx",
       "acceptance": [
-        "Exports ChartPanel component that accepts a data prop or pulls from a data hook and renders charts.",
-        "Heavy chart libraries are loaded lazily via React.lazy and Suspense with a graceful fallback.",
-        "Charts are accessible with proper aria-labels and descriptive titles.",
-        "Configured to work with data from React Query or useRealtime hook for live updates."
+        "Renders a responsive SVG line chart based on provided data.",
+        "Accepts props for data, labels, color, width, height and optional loading state.",
+        "Exported as React.memo to avoid unnecessary re-renders.",
+        "Accessible with descriptive title and aria-labels on interactive elements."
       ],
       "implementation_steps": [
-        "1) Define ChartPanelProps with series definitions and options.",
-        "2) Implement lazy-loaded Chart component(s) using React.lazy (e.g., import { LineChart } from 'recharts' lazily).",
-        "3) Wrap with Suspense and provide a lightweight skeleton while loading.",
-        "4) Ensure responsiveness by using container width or responsive chart containers.",
-        "5) Consume data via props or internal hooks; update charts on data changes via memoization.",
-        "6) Provide accessible labeling and keyboard navigability for charts."
+        "1. Define ChartPanelProps with data:number[], labels:string[], color:string, width?:number, height?:number, loading?:boolean.",
+        "2. Compute scales (min/max) and map data to SVG coordinates.",
+        "3. Build SVG path string for the line chart and render axes/labels simplistically.",
+        "4. Add a simple hover tooltip (optional) using local state.",
+        "5. Wrap with React.memo and expose default props.",
+        "6. Ensure responsiveness (viewBox-based scaling) and Tailwind container classes."
       ],
       "integration_points": [
-        "Embedded in DashboardPage; receives data via props or via internal hooks exposing query results.",
-        "Cooperates with MetricCard or other shared UI primitives for layout."
+        "Used by dashboard sections to visualize data; can be fed by data fetched via React Query or WebSocket hook for real-time updates."
       ],
       "prompt_context": {
-        "component_type": "chart-panel",
-        "data_model": "dashboard_chart_data",
+        "component_type": "file",
+        "data_model": "dashboard/chart",
         "interactions": [
-          "data-update",
+          "update_data",
+          "tooltip",
           "resize"
         ],
-        "styling_approach": "Tailwind",
+        "styling_approach": "tailwind",
         "dependencies": [
-          "src/features/dashboard/hooks/useRealtime.ts",
-          "recharts"
+          "src/features/dashboard/components/ChartPanel.tsx",
+          "src/utils/hooks/useWebSocket.ts"
         ]
       },
       "priority": 2
     },
     {
-      "id": "responsive-nav",
-      "title": "Responsive Navigation",
-      "description": "Responsive top navigation bar with mobile drawer, keyboard accessible menu, and dark mode toggle. Uses Tailwind for styling and ARIA roles for accessibility.",
-      "file_to_implement": "src/shared/ui/ResponsiveNav.tsx",
+      "id": "use-websocket",
+      "title": "WebSocket hook for real-time updates",
+      "description": "Generic hook to manage a WebSocket connection with cleanups and typed messages.",
+      "file_to_implement": "src/utils/hooks/useWebSocket.ts",
       "acceptance": [
-        "Renders a responsive navigation bar with logo, links, and a mobile drawer toggle.",
-        "Dark mode toggle wired to ThemeProvider context.",
-        "All interactive controls have proper ARIA labels and keyboard navigation.",
-        "Navigation routes integrate with React Router Link components."
+        "Establishes a WebSocket connection and handles onOpen, onMessage, onError, onClose.",
+        "Provides a send function to emit messages.",
+        "Cleans up on unmount and handles reconnection strategy if needed.",
+        "Types messages to ensure type safety and easy consumption by UI components."
       ],
       "implementation_steps": [
-        "1) Define a responsive layout with a top bar and a collapsible side drawer for small screens.",
-        "2) Use Link components for navigation; apply Tailwind classes for responsive behavior.",
-        "3) Implement a theme toggle that toggles dark/light in context and persists to localStorage.",
-        "4) Ensure ARIA attributes on all interactive elements and implement keyboard shortcuts (e.g., Escape to close drawer).",
-        "5) Export as a reusable component that can be plugged into DashboardPage and other pages."
+        "1. Define a generic type TMessage and a callback signature for onMessage.",
+        "2. Implement useEffect to open and close WebSocket based on URL or options.",
+        "3. Return an object with send(data), lastMessage, readyState, and a close function.",
+        "4. Add optional auto-reconnect logic with exponential backoff (basic example).",
+        "5. Ensure cleanup on unmount; handle component unmount mid-connection gracefully."
       ],
       "integration_points": [
-        "Used by DashboardPage as part of the overall layout.",
-        "Theme toggle interacts with AppProviders' ThemeProvider.",
-        "Accessible navigation supports i18n and RTL if applicable."
+        "Can be used by ChartPanel or Realtime components to push data into UI via lastMessage or via a separate state update flow."
       ],
       "prompt_context": {
-        "component_type": "nav",
-        "data_model": null,
-        "interactions": [
-          "open-drawer",
-          "navigate",
-          "toggle-theme"
-        ],
-        "styling_approach": "Tailwind",
-        "dependencies": [
-          "src/app/providers/AppProviders.tsx",
-          "src/features/auth/ui/SignInForm.tsx"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "sign-in-form",
-      "title": "Sign In Form",
-      "description": "Authentication UI for login. Built with React Hook Form for validation and accessibility. Connects to Auth context for login flow.",
-      "file_to_implement": "src/features/auth/ui/SignInForm.tsx",
-      "acceptance": [
-        "Exports a SignInForm component with email and password fields and client-side validation.",
-        "On submit, calls login function from useAuth hook and handles loading / success / error states.",
-        "Displays real-time validation feedback and screen-reader-friendly error messages.",
-        "Styling follows Tailwind conventions and matches the design system."
-      ],
-      "implementation_steps": [
-        "1) Create a form with fields: email, password, (optionally remember me).",
-        "2) Integrate React Hook Form (or basic controlled components) with validation rules (required, email format, min length).",
-        "3) On submit, invoke login with credentials via useAuth context.",
-        "4) Show loading indicator while processing; show error banner if login fails.",
-        "5) Ensure ARIA attributes (aria-invalid, aria-live for dynamic messages).",
-        "6) Use Tailwind to align with the project\u2019s design system."
-      ],
-      "integration_points": [
-        "Depends on useAuth hook for performing login and storing tokens.",
-        "Redirect on successful login via ProtectedRoute logic or main routing after login."
-      ],
-      "prompt_context": {
-        "component_type": "form",
-        "data_model": "user_credentials",
-        "interactions": [
-          "submit",
-          "validate",
-          "error"
-        ],
-        "styling_approach": "Tailwind",
-        "dependencies": [
-          "src/features/auth/hooks/useAuth.ts"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "use-auth",
-      "title": "Auth Hook and Provider",
-      "description": "Custom hook and provider to manage authentication state, token storage, and user data. Exposes login/logout and isAuthenticated.",
-      "file_to_implement": "src/features/auth/hooks/useAuth.ts",
-      "acceptance": [
-        "Exports AuthProvider and useAuth hook.",
-        "AuthProvider stores token in localStorage and exposes isAuthenticated and user data.",
-        "login(payload) stores token and updates state; logout clears data.",
-        "Provides a mechanism to refresh tokens if necessary (stubbed for extension)."
-      ],
-      "implementation_steps": [
-        "1) Define AuthState type { token?: string; user?: User; loading?: boolean; error?: string }.",
-        "2) Create AuthContext with default values and a reducer to handle login/logout actions.",
-        "3) Implement AuthProvider that initializes state from localStorage and provides context value.",
-        "4) Implement login(userCredentials) to call a mock/real auth API, store token on success, and update state.",
-        "5) Implement logout() to clear token and reset state.",
-        "6) Expose useAuth() to access isAuthenticated, user, login/logout, and loading states.",
-        "7) Ensure type-safe exports and easy consumption by SignInForm and ProtectedRoute."
-      ],
-      "integration_points": [
-        "Used by SignInForm for login flow and by ProtectedRoute to gate access.",
-        "Token presence informs isAuthenticated used by routing logic."
-      ],
-      "prompt_context": {
-        "component_type": "hook/provider",
-        "data_model": "auth_user",
-        "interactions": [
-          "login",
-          "logout",
-          "state-update"
-        ],
-        "styling_approach": "Tailwind",
-        "dependencies": [
-          "src/app/providers/AppProviders.tsx"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "use-realtime",
-      "title": "Real-time Data Hook",
-      "description": "WebSocket-based hook to subscribe to real-time dashboard events and propagate updates to the UI and cache.",
-      "file_to_implement": "src/features/dashboard/hooks/useRealtime.ts",
-      "acceptance": [
-        "Exports a hook that opens a WebSocket to a configured endpoint and handles connect/reconnect logic.",
-        "On message, updates React Query caches or dispatches local state updates to reflect new data.",
-        "Cleans up connection on unmount and handles error states gracefully."
-      ],
-      "implementation_steps": [
-        "1) Establish WebSocket connection to a configurable URL (from env or config module).",
-        "2) Implement onopen, onmessage, onclose, and onerror handlers with automatic reconnection strategy.",
-        "3) Parse incoming messages and update the relevant query data via queryClient.setQueryData or invalidateQueries.",
-        "4) Expose a subscribe/unsubscribe API surface if needed; ensure cleanup in useEffect return.",
-        "5) Provide a status return value (connected: boolean, lastMessage: string | undefined)."
-      ],
-      "integration_points": [
-        "DashboardPage subscribes to useRealtime to keep charts/metrics up-to-date.",
-        "Updates can be optimistic or derived from server state depending on message type."
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": "real_time_events",
+        "component_type": "file",
+        "data_model": "real-time websocket",
         "interactions": [
           "connect",
-          "message",
-          "disconnect"
+          "disconnect",
+          "send",
+          "receive"
         ],
-        "styling_approach": "Tailwind",
+        "styling_approach": "tailwind",
         "dependencies": [
-          "src/libs/api/client.ts",
-          "src/features/dashboard/pages/DashboardPage.tsx"
+          "src/features/dashboard/components/ChartPanel.tsx"
         ]
       },
-      "priority": 1
+      "priority": 2
     },
     {
       "id": "error-boundary",
-      "title": "Error Boundary",
-      "description": "Generic error boundary to gracefully handle runtime errors in the component tree, with retry/reset capability.",
+      "title": "Error Boundary component",
+      "description": "Reusable error boundary to catch rendering errors in React tree with fallback UI and recovery.",
       "file_to_implement": "src/shared/components/ErrorBoundary.tsx",
       "acceptance": [
-        "Exports a class-based ErrorBoundary component that catches errors in its subtree.",
-        "Renders a fallback UI with a Reset button to recover from errors.",
-        "Supports component stack trace display for debugging in non-prod environments.",
-        "Ensures no memory leaks and restart-safe rendering on reset."
+        "Catches errors in child components and renders a fallback UI with a reset option.",
+        "Does not crash the entire app; provides a mechanism to retry/recover.",
+        "Supports custom fallback UI if provided through props."
       ],
       "implementation_steps": [
-        "1) Implement a class component extending React.Component with state { hasError: boolean, error?: Error }.",
-        "2) Implement static getDerivedStateFromError and componentDidCatch to capture error details.",
-        "3) Render a user-friendly fallback UI (title, message, retry button) and an optional stack trace in dev.",
-        "4) Provide a reset method and wire it to the Retry button to restore state.",
-        "5) Export as ErrorBoundary and use it to wrap app routes in AppProviders or DashboardPage as needed."
+        "1. Implement a class component extending React.Component with state { hasError:boolean }.",
+        "2. Implement componentDidCatch to log error and set state.",
+        "3. Render either children or a fallback UI with a reset button.",
+        "4. Expose a resetErrorBoundary method to reset state and trigger a re-render.",
+        "5. Add ability to customize the fallback UI via props."
       ],
       "integration_points": [
-        "Wrap top-level routes or major feature sections to capture errors without crashing the whole app.",
-        "Works in tandem with Suspense boundaries for a resilient UX."
+        "Used at App.tsx to wrap the app and catch errors from any child route or component."
       ],
       "prompt_context": {
-        "component_type": "class-component",
-        "data_model": null,
+        "component_type": "file",
+        "data_model": "ui/error-handling",
         "interactions": [
-          "error-caught",
-          "retry"
+          "catch",
+          "recover"
         ],
-        "styling_approach": "Tailwind",
+        "styling_approach": "tailwind",
         "dependencies": [
-          "src/app/providers/AppProviders.tsx"
+          "src/app/App.tsx"
         ]
       },
       "priority": 1

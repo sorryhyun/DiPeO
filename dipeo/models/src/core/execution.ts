@@ -101,6 +101,7 @@ export interface ExecutionState {
   token_usage: TokenUsage;
   error?: string | null;
   variables?: JsonDict;
+  metadata?: JsonDict;
   duration_seconds?: number | null;
   is_active?: boolean;
   exec_counts: Record<string, number>;
@@ -178,6 +179,7 @@ export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: 
     token_usage: { input: 0, output: 0, cached: null, total: 0 },
     error: null,
     variables: {},
+    metadata: {},
     is_active: true,
     exec_counts: {},
     executed_nodes: []

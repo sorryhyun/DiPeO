@@ -65,14 +65,15 @@ class PromptBuilder:
         for special_key in ['default', 'first']:
             if special_key in inputs and isinstance(inputs[special_key], dict):
                 special_value = inputs[special_key]
-                # First, add all properties from the special input to the root context
+                
+                # Add all properties from the special input to the root context
                 for prop_key, prop_value in special_value.items():
                     if prop_key not in template_values:  # Don't overwrite existing values
                         template_values[prop_key] = prop_value
                 # Also keep the special object itself for backward compatibility
                 template_values[special_key] = special_value
         
-        # Process remaining inputs (skip already processed 'default' and 'first')
+        # Process remaining inputs (skip already processed special keys)
         for key, value in inputs.items():
             if key in ['default', 'first']:
                 continue  # Already processed above

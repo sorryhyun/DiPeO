@@ -239,7 +239,7 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 kwargs['response_format'] = options.response_format
         # Prepare request
         input_messages, api_tools, api_params = self._prepare_api_request(messages, **kwargs)
-        print(input_messages)
+        # print(input_messages)
         if not input_messages:
             return ChatResult(text='', raw_response=None)
         

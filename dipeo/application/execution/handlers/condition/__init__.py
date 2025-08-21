@@ -141,8 +141,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             execution_count = context.get_node_execution_count(node.id)
             loop_index = execution_count - 1  # Convert to 0-based index
             
-            # Store in execution metadata for downstream nodes to access
-            context.set_execution_metadata(f"loop_index_{node.expose_index_as}", loop_index)
+            # Store in variables for downstream nodes to access (persisted across executions)
+            context.set_variable(node.expose_index_as, loop_index)
             
             logger.debug(
                 f"ConditionNode {node.id}: Exposing loop index as '{node.expose_index_as}' = {loop_index}"
@@ -156,23 +156,20 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Store evaluation metadata in instance variable for later use
         self._current_evaluation_metadata = eval_result["metadata"]
         
-        # Pass through data on the active branch without wrapping
-        # The output_value is now the raw data to pass through
-        true_output = output_value if result else None
-        false_output = output_value if not result else None
+        # Return only the active branch data
+        active_branch = "condtrue" if result else "condfalse"
         
         logger.debug(
             f"ConditionNode {node.id}: type={node.condition_type}, "
-            f"result={result}, has_true_output={true_output is not None}, "
-            f"has_false_output={false_output is not None}"
+            f"result={result}, active_branch={active_branch}"
         )
         
         # Return structured result for serialization
+        # The output_value goes directly in the response, not wrapped
         return {
             "result": result,
-            "condtrue": true_output,
-            "condfalse": false_output,
-            "active_branch": "condtrue" if result else "condfalse",
+            "active_branch": active_branch,
+            "branch_data": output_value,  # Direct pass-through of active branch data
             "condition_type": node.condition_type,
             "evaluation_metadata": self._current_evaluation_metadata,
             "timestamp": time.time()
@@ -183,19 +180,27 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         result: Any,
         request: ExecutionRequest[ConditionNode]
     ) -> Envelope:
-        """Serialize condition result to special condition envelope."""
+        """Serialize condition result to envelope with active branch data in body."""
         node = request.node
         
-        # Extract result data
-        condition_result = result["result"]
-        meta = {k: v for k, v in result.items() if k != "result"}
+        # Extract the active branch data
+        branch_data = result.get("branch_data", {})
+        active_branch = result.get("active_branch", "condfalse")
         
-        # Create Envelope directly for proper branch routing
-        from dipeo.domain.execution.envelope import Envelope
+        # Create metadata without the actual data (just control flow info)
+        meta = {
+            "condition_result": result["result"],
+            "active_branch": active_branch,
+            "condition_type": result.get("condition_type"),
+            "evaluation_metadata": result.get("evaluation_metadata", {}),
+            "timestamp": result.get("timestamp", time.time())
+        }
         
+        # Create envelope with special content_type for condition routing
+        # The body contains the actual data to pass through
         output = Envelope(
-            content_type="condition_result",  # Special content type for conditions
-            body=condition_result,
+            content_type="condition_result",  # Special type for routing
+            body=branch_data,  # Actual data to pass through
             produced_by=str(node.id),
             meta=meta
         )

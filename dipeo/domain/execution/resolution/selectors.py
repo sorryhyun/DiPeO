@@ -119,13 +119,14 @@ def compute_special_inputs(node: ExecutableNode, ctx: ExecutionContext) -> Dict[
     from dipeo.diagram_generated import NodeType
     
     # Check for exposed loop indices from condition nodes
-    # These are stored in execution metadata with the prefix "loop_index_"
-    metadata = ctx.get_execution_metadata()
-    for key, value in metadata.items():
-        if key.startswith("loop_index_"):
-            # Extract the variable name (everything after "loop_index_")
-            var_name = key.replace("loop_index_", "")
-            special_inputs[var_name] = value
+    # These are stored in variables (which persist across executions)
+    # Add all variables to special inputs so they're available to nodes
+    if hasattr(ctx, 'get_variables'):
+        variables = ctx.get_variables()
+        for key, value in variables.items():
+            # Don't override explicit inputs with variables
+            if key not in special_inputs:
+                special_inputs[key] = value
     
     # PersonJob nodes may have default conversation context
     if node.type == NodeType.PERSON_JOB:

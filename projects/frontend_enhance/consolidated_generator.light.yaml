@@ -24,12 +24,12 @@ persons:
       Follow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.
 
   Frontend Generator:
-    service: openai
-    model: gpt-5-nano-2025-08-07
-    api_key_id: APIKEY_52609F
-#    service: claude-code
-#    model: claude-code
-#    api_key_id: APIKEY_CLAUDE
+#    service: openai
+#    model: gpt-5-nano-2025-08-07
+#    api_key_id: APIKEY_52609F
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer building a cohesive frontend application.
       
