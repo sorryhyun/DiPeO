@@ -92,7 +92,6 @@ export const FIELD_SPECIAL_HANDLING: Record<string, Record<string, any>> = {
   'person_job': {
     'person': { py_name: 'person_id' },
     'first_only_prompt': { default: '""' },
-    'max_iteration': { default: '1' },
     'memory_config': { special: 'MemoryConfig(**data.get("memory_config")) if data.get("memory_config") else None' },
     'memory_settings': { special: 'MemorySettings(**data.get("memory_settings")) if data.get("memory_settings") else None' },
     'tools': { special: '[ToolConfig(**tool) if isinstance(tool, dict) else tool for tool in data.get("tools", [])] if data.get("tools") else None' }

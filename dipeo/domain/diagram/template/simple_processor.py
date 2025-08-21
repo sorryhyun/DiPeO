@@ -17,10 +17,10 @@ class SimpleTemplateProcessor(TemplateProcessorPort):
     """
     
     # Regex patterns for different template syntaxes
-    VARIABLE_PATTERN = re.compile(r'\{\{(\s*[\w\.]+\s*)\}\}')
-    CONDITIONAL_PATTERN = re.compile(r'\{\{#(if|unless)\s+([\w\.]+)\}\}(.*?)\{\{/\1\}\}', re.DOTALL)
-    LOOP_PATTERN = re.compile(r'\{\{#each\s+([\w\.]+)\}\}(.*?)\{\{/each\}\}', re.DOTALL)
-    SINGLE_BRACE_PATTERN = re.compile(r'\{([\w\.]+)\}')  # For arrow transformations, supports dot notation
+    VARIABLE_PATTERN = re.compile(r'\{\{(\s*[\w\.\[\]]+\s*)\}\}')
+    CONDITIONAL_PATTERN = re.compile(r'\{\{#(if|unless)\s+([\w\.\[\]]+)\}\}(.*?)\{\{/\1\}\}', re.DOTALL)
+    LOOP_PATTERN = re.compile(r'\{\{#each\s+([\w\.\[\]]+)\}\}(.*?)\{\{/each\}\}', re.DOTALL)
+    SINGLE_BRACE_PATTERN = re.compile(r'\{([\w\.\[\]]+)\}')  # For arrow transformations, supports dot and bracket notation
     
     def process(self, template: str, context: dict[str, Any]) -> TemplateResult:
         # Process template and return detailed result
@@ -57,8 +57,8 @@ class SimpleTemplateProcessor(TemplateProcessorPort):
         # Process single brace variables (for arrow transformations)
         def replace_var(match):
             var_path = match.group(1)
-            # Support nested values with dot notation
-            value = self._get_nested_value(context, var_path)
+            # Support nested values with dot notation and bracket notation
+            value = self._get_nested_value(context, var_path, context)
             return self._format_value(value) if value is not None else match.group(0)
         
         return self.SINGLE_BRACE_PATTERN.sub(replace_var, template)
@@ -95,7 +95,7 @@ class SimpleTemplateProcessor(TemplateProcessorPort):
             var_path = match.group(1).strip()
             used_keys.append(var_path)
             
-            value = self._get_nested_value(context, var_path)
+            value = self._get_nested_value(context, var_path, context)
             
             if value is None:
                 missing_keys.append(var_path)
@@ -116,8 +116,17 @@ class SimpleTemplateProcessor(TemplateProcessorPort):
         else:
             return str(value)
     
-    def _get_nested_value(self, obj: dict[str, Any], path: str) -> Any:
-        # Get nested value from dict using dot notation
+    def _get_nested_value(self, obj: dict[str, Any], path: str, root_context: dict[str, Any] = None) -> Any:
+        # Get nested value from dict using dot notation and bracket notation
+        # root_context is used for resolving index variables
+        if root_context is None:
+            root_context = obj
+        
+        # Check if path contains brackets (array indexing)
+        if '[' in path:
+            return self._resolve_path_with_indices(obj, path, root_context)
+        
+        # Original logic for simple dot notation
         keys = path.split('.')
         value = obj
         
@@ -126,6 +135,78 @@ class SimpleTemplateProcessor(TemplateProcessorPort):
                 value = value[key]
             else:
                 return None
+        
+        return value
+    
+    def _resolve_path_with_indices(self, obj: dict[str, Any], path: str, root_context: dict[str, Any]) -> Any:
+        """Resolve a path that may contain array indices like 'sections[current_index].field'."""
+        import re
+        
+        # Parse the path into segments, handling both dots and brackets
+        # e.g., "sections[current_index].file_to_implement" -> ["sections", "[current_index]", "file_to_implement"]
+        segments = []
+        current = ""
+        
+        i = 0
+        while i < len(path):
+            if path[i] == '[':
+                # Save current segment if any
+                if current:
+                    segments.append(current)
+                    current = ""
+                # Find the closing bracket
+                j = path.find(']', i)
+                if j == -1:
+                    return None  # Invalid syntax
+                segments.append(path[i:j+1])  # Include the brackets
+                i = j + 1
+                # Skip dot after bracket if present
+                if i < len(path) and path[i] == '.':
+                    i += 1
+            elif path[i] == '.':
+                if current:
+                    segments.append(current)
+                    current = ""
+                i += 1
+            else:
+                current += path[i]
+                i += 1
+        
+        if current:
+            segments.append(current)
+        
+        # Now resolve the path segments
+        value = obj
+        for segment in segments:
+            if segment.startswith('[') and segment.endswith(']'):
+                # Handle array indexing
+                index_expr = segment[1:-1]  # Remove brackets
+                
+                # Check if it's a number or a variable
+                if index_expr.isdigit():
+                    # Direct numeric index
+                    index = int(index_expr)
+                else:
+                    # Variable reference - resolve it from root context, not current object
+                    index_value = self._get_nested_value(root_context, index_expr)
+                    if index_value is None or not isinstance(index_value, (int, str)):
+                        return None
+                    try:
+                        index = int(index_value)
+                    except (ValueError, TypeError):
+                        return None
+                
+                # Apply the index
+                if isinstance(value, (list, tuple)) and 0 <= index < len(value):
+                    value = value[index]
+                else:
+                    return None
+            else:
+                # Regular property access
+                if isinstance(value, dict) and segment in value:
+                    value = value[segment]
+                else:
+                    return None
         
         return value
     
@@ -159,7 +240,7 @@ class SimpleTemplateProcessor(TemplateProcessorPort):
     
     def _evaluate_condition(self, expr: str, context: dict[str, Any]) -> bool:
         # Safely evaluate a condition expression
-        value = self._get_nested_value(context, expr)
+        value = self._get_nested_value(context, expr, context)
         
         # Handle various truthy values
         if value is None:
@@ -189,7 +270,7 @@ class SimpleTemplateProcessor(TemplateProcessorPort):
             
             used_keys.append(items_path)
             
-            items = self._get_nested_value(context, items_path)
+            items = self._get_nested_value(context, items_path, context)
             if not isinstance(items, list):
                 if items is not None:
                     errors.append(f"Loop variable '{items_path}' is not a list")

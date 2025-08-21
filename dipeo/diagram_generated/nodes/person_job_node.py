@@ -35,6 +35,8 @@ class PersonJobNode:
     first_prompt_file: str = ""
     default_prompt: str = ""
     prompt_file: str = ""
+    memorize_to: str = ""
+    at_most: float = 0
     memory_profile: str = None
     tools: List[ToolConfig] = ""
     text_format: str = ""
@@ -59,6 +61,8 @@ class PersonJobNode:
         data["default_prompt"] = self.default_prompt
         data["prompt_file"] = self.prompt_file
         data["max_iteration"] = self.max_iteration
+        data["memorize_to"] = self.memorize_to
+        data["at_most"] = self.at_most
         data["memory_profile"] = self.memory_profile
         data["tools"] = self.tools
         data["text_format"] = self.text_format

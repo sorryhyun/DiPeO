@@ -105,6 +105,7 @@ def compute_special_inputs(node: ExecutableNode, ctx: ExecutionContext) -> Dict[
     - Default values for certain node types
     - Context-dependent inputs
     - Node-specific computed values
+    - Loop indices exposed by condition nodes
     
     Args:
         node: The node to compute special inputs for
@@ -116,6 +117,15 @@ def compute_special_inputs(node: ExecutableNode, ctx: ExecutionContext) -> Dict[
     special_inputs: Dict[str, Any] = {}
     
     from dipeo.diagram_generated import NodeType
+    
+    # Check for exposed loop indices from condition nodes
+    # These are stored in execution metadata with the prefix "loop_index_"
+    metadata = ctx.get_execution_metadata()
+    for key, value in metadata.items():
+        if key.startswith("loop_index_"):
+            # Extract the variable name (everything after "loop_index_")
+            var_name = key.replace("loop_index_", "")
+            special_inputs[var_name] = value
     
     # PersonJob nodes may have default conversation context
     if node.type == NodeType.PERSON_JOB:

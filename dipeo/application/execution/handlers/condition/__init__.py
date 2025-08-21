@@ -135,6 +135,19 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         evaluator = self._current_evaluator
         diagram = self._current_diagram
         
+        # Track and expose loop index if configured
+        if hasattr(node, 'expose_index_as') and node.expose_index_as:
+            # Get execution count for loop index (0-based)
+            execution_count = context.get_node_execution_count(node.id)
+            loop_index = execution_count - 1  # Convert to 0-based index
+            
+            # Store in execution metadata for downstream nodes to access
+            context.set_execution_metadata(f"loop_index_{node.expose_index_as}", loop_index)
+            
+            logger.debug(
+                f"ConditionNode {node.id}: Exposing loop index as '{node.expose_index_as}' = {loop_index}"
+            )
+        
         # Execute evaluation with pre-selected evaluator
         eval_result = await evaluator.evaluate(node, context, diagram, legacy_inputs)
         result = eval_result["result"]
@@ -143,8 +156,10 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Store evaluation metadata in instance variable for later use
         self._current_evaluation_metadata = eval_result["metadata"]
         
-        true_output = output_value.get("condtrue") if result else None
-        false_output = output_value.get("condfalse") if not result else None
+        # Pass through data on the active branch without wrapping
+        # The output_value is now the raw data to pass through
+        true_output = output_value if result else None
+        false_output = output_value if not result else None
         
         logger.debug(
             f"ConditionNode {node.id}: type={node.condition_type}, "

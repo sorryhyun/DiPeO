@@ -256,7 +256,42 @@ class DomainDynamicOrderCalculator:
         """Check if node dependencies are satisfied."""
         # For nodes with multiple inputs (potential loops)
         if len(incoming_edges) > 1:
-            # Check if any edge is from a condition node (potential loop edge)
+            # Check if any source nodes haven't executed yet (indicating a loop scenario)
+            # This handles both conditional loops and regular feedback loops
+            unexecuted_edges = []
+            executed_edges = []
+            
+            for edge in incoming_edges:
+                source_state = node_states.get(edge.source_node_id)
+                # Check if source has never executed (no state or still pending with no executions)
+                source_exec_count = context.get_node_execution_count(edge.source_node_id) if context else 0
+                
+                if source_exec_count == 0 and (not source_state or source_state.status == Status.PENDING):
+                    unexecuted_edges.append(edge)
+                else:
+                    executed_edges.append(edge)
+            
+            # If we have both executed and unexecuted edges, this is a loop scenario
+            if executed_edges and unexecuted_edges:
+                # Get the target node's execution count
+                target_exec_count = context.get_node_execution_count(node.id) if context else 0
+                
+                if target_exec_count == 0:
+                    # First execution: only require executed edges to be satisfied
+                    # This prevents deadlock by not waiting for feedback edges that haven't run yet
+                    if executed_edges:
+                        return all(
+                            self._is_dependency_satisfied(edge, node_states, context)
+                            for edge in executed_edges
+                        )
+                else:
+                    # Subsequent executions: require at least one dependency (loop logic)
+                    return any(
+                        self._is_dependency_satisfied(edge, node_states, context)
+                        for edge in incoming_edges
+                    )
+            
+            # Check if any edge is from a condition node (backward compatibility)
             has_conditional_edge = any(
                 edge.source_output in ["condtrue", "condfalse"]
                 for edge in incoming_edges

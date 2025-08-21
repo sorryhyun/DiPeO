@@ -14,8 +14,8 @@ export const hookConfig: UnifiedNodeConfig = {
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
-      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
+      { label: HandleLabel.SUCCESS, displayLabel: '', position: 'right' },
+      { label: HandleLabel.ERROR, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

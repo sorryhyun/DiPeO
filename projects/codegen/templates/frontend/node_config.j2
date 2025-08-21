@@ -19,14 +19,22 @@ export const {{ nodeType | camel_case }}Config: UnifiedNodeConfig = {
 {%- if handles and handles.inputs %}
     input: [
 {%- for input in handles.inputs %}
+{%- if input is string %}
+      { label: HandleLabel.{{ input | upper }}, displayLabel: '', position: 'left' },
+{%- else %}
       { label: HandleLabel.{{ input.label | default('default') | upper }}, displayLabel: '{{ input.displayLabel | default('') }}', position: '{{ input.position | default('left') }}' },
+{%- endif %}
 {%- endfor %}
     ],
 {%- endif %}
 {%- if handles and handles.outputs %}
     output: [
 {%- for output in handles.outputs %}
+{%- if output is string %}
+      { label: HandleLabel.{{ output | upper }}, displayLabel: '', position: 'right' },
+{%- else %}
       { label: HandleLabel.{{ output.label | default('default') | upper }}, displayLabel: '{{ output.displayLabel | default('') }}', position: '{{ output.position | default('right') }}' },
+{%- endif %}
 {%- endfor %}
     ],
 {%- endif %}

@@ -19,7 +19,7 @@ export const integratedApiConfig: UnifiedNodeConfig = {
     ],
     output: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
-      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
+      { label: HandleLabel.ERROR, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

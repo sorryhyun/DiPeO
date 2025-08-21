@@ -56,9 +56,37 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     type: 'number',
     label: 'Max iteration',
     required: true,
-    defaultValue: 1,
+    defaultValue: 100,
     description: 'Maximum execution iterations',
     min: 1,
+  },
+  {
+    name: 'memorize_to',
+    type: 'text',
+    label: 'Memorize to',
+    required: false,
+    placeholder: 'e.g., requirements, acceptance criteria, API keys',
+    description: 'Criteria used to select helpful messages for this task. Empty = memorize all. Special: \'GOLDFISH\' for goldfish mode. Comma-separated for multiple criteria.',
+    column: 2,
+  },
+  {
+    name: 'at_most',
+    type: 'number',
+    label: 'At most',
+    required: false,
+    description: 'Select at most N messages to keep (system messages may be preserved in addition).',
+    column: 1,
+    min: 1,
+    max: 500,
+    validate: (value: unknown) => {
+      if (typeof value === 'number' && value < 1) {
+        return { isValid: false, error: 'Value must be at least 1' };
+      }
+      if (typeof value === 'number' && value > 500) {
+        return { isValid: false, error: 'Value must be at most 500' };
+      }
+      return { isValid: true };
+    },
   },
   {
     name: 'memory_profile',
@@ -66,7 +94,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     label: 'Memory profile',
     required: false,
     defaultValue: "FOCUSED",
-    description: 'Memory profile for conversation context',
+    description: 'Memory profile for conversation context (Deprecated: prefer \'memorize_to\' + \'at_most\')',
     options: [
       { value: 'FULL', label: 'Full 🧠 - No limits, see everything' },
       { value: 'FOCUSED', label: 'Focused 🎯 - Last 20 messages, conversation pairs' },
@@ -108,7 +136,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     type: 'group',
     label: 'Memory settings',
     required: false,
-    description: 'Custom memory settings (when memory_profile is CUSTOM)',
+    description: 'Custom memory settings (when memory_profile is CUSTOM) (Deprecated: prefer \'memorize_to\' + \'at_most\')',
     nestedFields: [
       {
         name: 'view',

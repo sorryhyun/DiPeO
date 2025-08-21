@@ -38,4 +38,12 @@ export const conditionFields: UnifiedFieldDefinition[] = [
       return { isValid: true };
     },
   },
+  {
+    name: 'expose_index_as',
+    type: 'text',
+    label: 'Expose index as',
+    required: false,
+    placeholder: 'e.g., current_index, loop_counter',
+    description: 'Variable name to expose the condition node\'s execution count (0-based index) to downstream nodes',
+  },
 ];

@@ -14,8 +14,8 @@ export const conditionConfig: UnifiedNodeConfig = {
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
     ],
     output: [
-      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
-      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },
+      { label: HandleLabel.CONDTRUE, displayLabel: '', position: 'right' },
+      { label: HandleLabel.CONDFALSE, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

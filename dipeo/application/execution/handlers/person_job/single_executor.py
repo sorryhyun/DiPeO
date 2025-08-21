@@ -149,13 +149,21 @@ class SinglePersonJobExecutor:
         conversation_context = person.get_conversation_context(all_messages)
         
         # Prepare template values from inputs
+        logger.debug(f"[PersonJob] transformed_inputs keys: {list(transformed_inputs.keys())}")
+        if 'default' in transformed_inputs:
+            logger.debug(f"[PersonJob] default keys: {list(transformed_inputs['default'].keys()) if isinstance(transformed_inputs['default'], dict) else 'not a dict'}")
+        if 'current_index' in transformed_inputs:
+            logger.debug(f"[PersonJob] current_index value: {transformed_inputs['current_index']}")
+        
         input_values = self._prompt_builder.prepare_template_values(transformed_inputs)
+        logger.debug(f"[PersonJob] input_values keys after prepare: {list(input_values.keys())}")
         
         # Combine input values with conversation context
         template_values = {
             **input_values,
             **conversation_context
         }
+        logger.debug(f"[PersonJob] final template_values keys: {list(template_values.keys())}")
         
         # Handle memorize_to feature for intelligent memory selection
         memorize_to = getattr(node, "memorize_to", None)

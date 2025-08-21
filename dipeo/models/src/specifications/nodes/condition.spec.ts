@@ -61,6 +61,16 @@ export const conditionSpec: NodeSpecification = {
         inputType: "nodeSelect",
         placeholder: "Select nodes to monitor"
       }
+    },
+    {
+      name: "expose_index_as",
+      type: "string",
+      required: false,
+      description: "Variable name to expose the condition node's execution count (0-based index) to downstream nodes",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "e.g., current_index, loop_counter"
+      }
     }
   ],
   

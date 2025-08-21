@@ -42,6 +42,8 @@ nodes:
       source_details:
         # Dynamically discover all node data files
         - "temp/core/nodes/*.data.ts.json"
+        # Also load spec files to get defaultValues
+        - "temp/specifications/nodes/*.spec.ts.json"
 
   # Load cached diagram AST for BaseNodeData
   - label: Load Diagram AST

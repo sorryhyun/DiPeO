@@ -439,6 +439,7 @@ class ConditionNodeData(BaseNodeData):
     condition_type: Optional[ConditionType] = Field(default=None, description="Condition type: detect_max_iterations, nodes_executed, or custom")
     expression: Optional[str] = Field(default=None, description="Python expression for custom type (access to all variables)")
     node_indices: Optional[List[str]] = Field(default=None, description="List of node indices for nodes_executed condition type")
+    expose_index_as: Optional[str] = Field(default=None, description="Variable name to expose the condition node\u0027s execution count (0-based index) to downstream nodes")
 
 
 class DBNodeData(BaseNodeData):

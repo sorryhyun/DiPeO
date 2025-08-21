@@ -15,6 +15,10 @@
           ],
           "type": "string"
         },
+        "expose_index_as": {
+          "description": "Variable name to expose the condition node's execution count (0-based index) to downstream nodes",
+          "type": "string"
+        },
         "expression": {
           "description": "Python expression for custom type (access to all variables)",
           "type": "string"

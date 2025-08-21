@@ -33,20 +33,25 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
             return EvaluationResult(
                 result=False,
                 metadata={"reason": "No expression provided"},
-                output_data={"condfalse": inputs if inputs else {}}
+                output_data=inputs if inputs else {}
             )
         
         eval_context = inputs.copy() if inputs else {}
+        
+        # Add exposed loop indices to evaluation context
+        metadata = context.get_execution_metadata()
+        for key, value in metadata.items():
+            if key.startswith("loop_index_"):
+                var_name = key.replace("loop_index_", "")
+                eval_context[var_name] = value
         
         result = self._expression_evaluator.evaluate_custom_expression(
             expression=expression,
             context_values=eval_context
         )
         
-        if result:
-            output_data = {"condtrue": inputs if inputs else {}}
-        else:
-            output_data = {"condfalse": inputs if inputs else {}}
+        # Pass through inputs directly without wrapping
+        output_data = inputs if inputs else {}
 
         return EvaluationResult(
             result=result,

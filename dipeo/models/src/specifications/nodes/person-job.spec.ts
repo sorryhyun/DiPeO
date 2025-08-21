@@ -76,7 +76,7 @@ export const personJobSpec: NodeSpecification = {
       name: "max_iteration",
       type: "number",
       required: true,
-      defaultValue: 1,
+      defaultValue: 100,
       description: "Maximum execution iterations",
       uiConfig: {
         inputType: "number",

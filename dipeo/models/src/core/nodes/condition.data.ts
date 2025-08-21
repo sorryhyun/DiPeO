@@ -12,4 +12,6 @@ export interface ConditionNodeData extends BaseNodeData {
   expression?: string;
   /** List of node indices for nodes_executed condition type */
   node_indices?: string[];
+  /** Variable name to expose the condition node's execution count (0-based index) to downstream nodes */
+  expose_index_as?: string;
 }

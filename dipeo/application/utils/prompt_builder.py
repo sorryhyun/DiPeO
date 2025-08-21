@@ -33,14 +33,23 @@ class PromptBuilder:
             logger.warning("No prompt provided to PromptBuilder - returning empty string")
             return ""
         
+        logger.debug(f"[PromptBuilder] template_values keys: {list(template_values.keys())}")
+        if 'current_index' in template_values:
+            logger.debug(f"[PromptBuilder] current_index: {template_values['current_index']}")
+        if 'sections' in template_values:
+            logger.debug(f"[PromptBuilder] sections type: {type(template_values['sections'])}, len: {len(template_values['sections']) if isinstance(template_values['sections'], list) else 'N/A'}")
+        
         # Use template processing to support variable substitution
         if self._processor:
             result = self._processor.process(selected_prompt, template_values)
             if result.errors:
                 logger.warning(f"Template processing errors: {result.errors}")
+            if result.missing_keys:
+                logger.warning(f"Template missing keys: {result.missing_keys}")
             return result.content
         else:
             # Return raw prompt if no processor available
+            logger.warning("No template processor available!")
             return selected_prompt
     
     def prepare_template_values(self, inputs: dict[str, Any]) -> dict[str, Any]:
@@ -63,7 +72,10 @@ class PromptBuilder:
                 # Also keep the special object itself for backward compatibility
                 template_values[special_key] = special_value
         
+        # Process remaining inputs (skip already processed 'default' and 'first')
         for key, value in inputs.items():
+            if key in ['default', 'first']:
+                continue  # Already processed above
             if isinstance(value, (str, int, float, bool, type(None))):
                 template_values[key] = value
             

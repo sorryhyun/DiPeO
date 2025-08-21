@@ -23,7 +23,21 @@ class Architecture(BaseModel):
         description="How data flows through the application (state management, API calls, caching)"
     )
     folder_structure: str = Field(
-        description="Recommended folder/file organization for scalability"
+        description="Detailed folder/file organization with example file paths. Be specific with actual file names, e.g.:\n"
+        "src/\n"
+        "  shared/\n"
+        "    components/\n"
+        "      Button.tsx\n"
+        "      Card.tsx\n"
+        "      Input.tsx\n"
+        "    hooks/\n"
+        "      useAuth.ts\n"
+        "      useForm.ts\n"
+        "  features/\n"
+        "    dashboard/\n"
+        "      components/\n"
+        "        DashboardLayout.tsx\n"
+        "        MetricCard.tsx"
     )
     tech_stack: List[str] = Field(
         description="Core technologies and their purpose (e.g., {'Zustand', 'React Query', 'React Hook Form'})"
@@ -69,6 +83,9 @@ class Section(BaseModel):
     description: str = Field(
         description="Detailed description of what this section does"
     )
+    file_to_implement: str = Field(
+        description="Exact file path to implement (e.g., 'src/shared/components/Button.tsx', 'src/features/dashboard/components/DashboardLayout.tsx')"
+    )
     acceptance: List[str] = Field(
         min_items=2,
         max_items=8,
@@ -77,7 +94,7 @@ class Section(BaseModel):
     implementation_steps: List[str] = Field(
         min_items=3,
         max_items=10,
-        description="Concrete implementation steps in order (e.g., '1. Define TypeScript interfaces', '2. Create base component', '3. Add state management')"
+        description="Concrete implementation steps for THIS specific file (e.g., '1. Define component props interface', '2. Implement component logic', '3. Add event handlers')"
     )
     integration_points: List[str] = Field(
         default_factory=list,
@@ -130,6 +147,7 @@ EXAMPLE_RESPONSE = Response(
             id="task-list",
             title="Task List Component",
             description="Display all tasks with status indicators and actions",
+            file_to_implement="src/features/tasks/components/TaskList.tsx",
             acceptance=[
                 "Shows all tasks in a clean list format",
                 "Each task displays title, status, and actions",
@@ -161,6 +179,7 @@ EXAMPLE_RESPONSE = Response(
             id="add-task",
             title="Add Task Form",
             description="Form component to create new tasks",
+            file_to_implement="src/features/tasks/components/AddTaskForm.tsx",
             acceptance=[
                 "Input field for task title",
                 "Optional description field",

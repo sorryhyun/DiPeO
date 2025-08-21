@@ -12,7 +12,7 @@ export const personJobConfig: UnifiedNodeConfig = {
   handles: {
     input: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
-      { label: HandleLabel.DEFAULT, displayLabel: '', position: 'left' },
+      { label: HandleLabel.FIRST, displayLabel: '', position: 'left' },
     ],
     output: [
       { label: HandleLabel.DEFAULT, displayLabel: '', position: 'right' },

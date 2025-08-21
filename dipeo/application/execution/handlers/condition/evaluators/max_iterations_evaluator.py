@@ -72,11 +72,11 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
         if result:
             # Aggregate all conversation states when max iterations reached
             aggregated = self._aggregator.aggregate_conversations(context, diagram)
-            output_data = {"condtrue": aggregated if aggregated else inputs}
+            output_data = aggregated if aggregated else inputs
         else:
             # Get latest conversation state for false branch
             latest_conversation = self._aggregator.get_latest_conversation(context, diagram)
-            output_data = {"condfalse": latest_conversation if latest_conversation else inputs}
+            output_data = latest_conversation if latest_conversation else inputs
         
         # Log evaluation details
         logger.debug(

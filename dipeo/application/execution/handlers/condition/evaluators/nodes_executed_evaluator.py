@@ -34,7 +34,7 @@ class NodesExecutedEvaluator(BaseConditionEvaluator):
             return EvaluationResult(
                 result=False,
                 metadata={"reason": "No target nodes specified"},
-                output_data={"condfalse": inputs if inputs else {}}
+                output_data=inputs if inputs else {}
             )
         
         # Build node_outputs dict from context
@@ -46,11 +46,8 @@ class NodesExecutedEvaluator(BaseConditionEvaluator):
             node_outputs=node_outputs
         )
         
-        # Prepare output data based on result
-        if result:
-            output_data = {"condtrue": inputs if inputs else {}}
-        else:
-            output_data = {"condfalse": inputs if inputs else {}}
+        # Pass through inputs directly without wrapping
+        output_data = inputs if inputs else {}
         
         logger.debug(
             f"NodesExecutedEvaluator: target_nodes={target_nodes}, "
