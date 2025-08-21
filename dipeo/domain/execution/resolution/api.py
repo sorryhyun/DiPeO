@@ -15,8 +15,8 @@ from dipeo.domain.diagram.models.executable_diagram import (
     StandardNodeOutput
 )
 from dipeo.domain.execution.transform_rules import DataTransformRules
-from dipeo.domain.diagram.resolution.transformation_engine import StandardTransformationEngine
 
+from .transformation_engine import StandardTransformationEngine
 from .selectors import select_incoming_edges, compute_special_inputs
 from .defaults import apply_defaults
 from .errors import TransformationError, SpreadCollisionError

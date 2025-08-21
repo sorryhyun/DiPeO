@@ -1,7 +1,7 @@
-"""Domain-owned data structures for resolution system.
+"""Runtime data structures for resolution system.
 
-This module provides value objects and data structures used throughout
-the resolution system.
+This module provides value objects and data structures used during
+runtime input resolution.
 """
 
 from dataclasses import dataclass, field

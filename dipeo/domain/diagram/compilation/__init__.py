@@ -10,6 +10,11 @@ from .domain_compiler import (
     CompilationPhase,
     CompilationContext,
 )
+from .compile_time_resolution import (
+    Connection,
+    TransformRules,
+    CompileTimeResolver,
+)
 
 __all__ = [
     "NodeFactory",
@@ -22,4 +27,8 @@ __all__ = [
     "CompilationError",
     "CompilationPhase",
     "CompilationContext",
+    # Compile-time resolution
+    "Connection",
+    "TransformRules",
+    "CompileTimeResolver",
 ]

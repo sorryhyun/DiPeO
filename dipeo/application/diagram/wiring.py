@@ -17,10 +17,10 @@ from dipeo.application.registry.keys import (
 if TYPE_CHECKING:
     from dipeo.domain.diagram.compilation import DiagramCompiler
     from dipeo.domain.diagram.ports import DiagramStorageSerializer
-    from dipeo.domain.diagram.resolution.interfaces import (
-        CompileTimeResolverV2,
-        RuntimeInputResolverV2,
-        TransformationEngineV2,
+    from dipeo.domain.diagram.compilation import CompileTimeResolver
+    from dipeo.domain.execution.resolution import (
+        RuntimeInputResolver,
+        TransformationEngine,
     )
     from dipeo.application.diagram.use_cases import (
         CompileDiagramUseCase,
@@ -174,36 +174,27 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
     Args:
         registry: Service registry to register resolvers with
     """
-    from dipeo.infrastructure.diagram.adapters import (
-        StandardCompileTimeResolverAdapter,
-        StandardRuntimeResolverAdapter,
-        StandardTransformationEngineAdapter,
-        CompositeResolverAdapter,
-        CachingRuntimeResolverAdapter,
-    )
+    from dipeo.domain.execution.resolution import StandardTransformationEngine
     
-    # Create compile-time resolver
-    compile_resolver = StandardCompileTimeResolverAdapter()
+    # For now, we'll use a simple runtime resolver placeholder
+    # The actual runtime resolution is handled by domain logic
+    # in dipeo.domain.execution.resolution.api.resolve_inputs
+    class SimpleRuntimeResolver:
+        """Placeholder runtime resolver.
+        
+        The actual resolution logic is in domain.execution.resolution.api.resolve_inputs
+        which is called directly by handlers.
+        """
+        async def resolve_input_value(self, *args, **kwargs):
+            # This is not actually used - resolution happens in domain layer
+            raise NotImplementedError("Use domain.execution.resolution.api.resolve_inputs")
     
-    # Optionally use composite resolver for fallback
-    use_composite = os.getenv("DIAGRAM_USE_COMPOSITE_RESOLVER", "0") == "1"
-    if use_composite:
-        # Could add multiple resolvers here for fallback
-        compile_resolver = CompositeResolverAdapter([compile_resolver])
-
-    # Create runtime resolver
-    runtime_resolver = StandardRuntimeResolverAdapter()
+    runtime_resolver = SimpleRuntimeResolver()
     
-    # Optionally add caching
-    enable_runtime_cache = os.getenv("DIAGRAM_RUNTIME_RESOLVER_CACHE", "1") == "1"
-    if enable_runtime_cache:
-        runtime_resolver = CachingRuntimeResolverAdapter(runtime_resolver)
-
     # Create transformation engine
-    transform_engine = StandardTransformationEngineAdapter()
+    transform_engine = StandardTransformationEngine()
     
     # Register all resolution services
-    # Note: compile_resolver is internal to compilation, not exposed as a service
     registry.register(RUNTIME_RESOLVER, runtime_resolver)
     registry.register(TRANSFORMATION_ENGINE, transform_engine)
 

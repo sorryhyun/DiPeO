@@ -1,19 +1,15 @@
-"""Domain-owned node-specific strategy interfaces.
+"""Runtime node-specific strategy interfaces.
 
 This module defines strategies for handling different node types during
-input resolution, both at compile-time and runtime.
+runtime input resolution.
 """
 
 from typing import Any, Protocol
 from abc import ABC, abstractmethod
 from dipeo.diagram_generated import DomainNode, NodeID
 from dipeo.diagram_generated.enums import NodeType, ContentType
-from .interfaces import Connection, TransformRules
+from dipeo.domain.diagram.compilation import Connection, TransformRules
 
-
-# ============================================================================
-# Node Type Strategy Protocol
-# ============================================================================
 
 class NodeTypeStrategy(Protocol):
     """Strategy for handling node-type-specific input resolution logic.
@@ -79,10 +75,6 @@ class NodeTypeStrategy(Protocol):
         ...
 
 
-# ============================================================================
-# Strategy Registry
-# ============================================================================
-
 class NodeTypeStrategyRegistry:
     """Registry for node-type-specific strategies.
     
@@ -110,10 +102,6 @@ class NodeTypeStrategyRegistry:
         """Check if a specific strategy exists for a node type."""
         return node_type in self._strategies
 
-
-# ============================================================================
-# Common Node Type Strategies (Abstract Base Classes)
-# ============================================================================
 
 class BaseNodeTypeStrategy(ABC):
     """Base class for node type strategies with common functionality."""
@@ -216,10 +204,6 @@ class CollectNodeStrategy(BaseNodeTypeStrategy):
         """Collect nodes gather all available inputs."""
         return False  # They use ALL inputs, not just first
 
-
-# ============================================================================
-# Strategy Factory
-# ============================================================================
 
 def create_default_strategy_registry() -> NodeTypeStrategyRegistry:
     """Create a registry with default strategies for common node types."""

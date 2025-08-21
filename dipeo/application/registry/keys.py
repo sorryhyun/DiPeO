@@ -31,10 +31,10 @@ if TYPE_CHECKING:
     from dipeo.domain.diagram.ports import TemplateProcessorPort
     from dipeo.domain.events import EventEmitter
     from dipeo.domain.llm import LLMClient, LLMService, MemoryService
-    from dipeo.domain.diagram.resolution.interfaces import (
-        CompileTimeResolverV2,
-        RuntimeInputResolverV2,
-        TransformationEngineV2,
+    from dipeo.domain.diagram.compilation import CompileTimeResolver
+    from dipeo.domain.execution.resolution import (
+        RuntimeInputResolver,
+        TransformationEngine,
     )
     from dipeo.application.utils import PromptBuilder
     from dipeo.application.execution.handlers.condition.evaluators.expression_evaluator import ConditionEvaluator
@@ -100,8 +100,8 @@ API_INVOKER = ServiceKey["ApiInvoker"]("api_invoker")  # From registry_tokens.py
 AST_PARSER = ServiceKey["ASTParserPort"]("ast_parser")
 
 # Resolution Services (from registry_tokens.py)
-RUNTIME_RESOLVER = ServiceKey["RuntimeInputResolverV2"]("runtime_resolver")
-TRANSFORMATION_ENGINE = ServiceKey["TransformationEngineV2"]("transformation_engine")
+RUNTIME_RESOLVER = ServiceKey["RuntimeInputResolver"]("runtime_resolver")
+TRANSFORMATION_ENGINE = ServiceKey["TransformationEngine"]("transformation_engine")
 
 # Execution Context Services
 DIAGRAM = ServiceKey["ExecutableDiagram"]("diagram")

@@ -16,13 +16,7 @@ from .serializer_adapter import (
     CachingSerializerAdapter,
 )
 
-from .resolution_adapter import (
-    StandardCompileTimeResolverAdapter,
-    StandardRuntimeResolverAdapter,
-    StandardTransformationEngineAdapter,
-    CompositeResolverAdapter,
-    CachingRuntimeResolverAdapter,
-)
+# Resolution adapters removed - use domain implementations directly
 
 __all__ = [
     # Compiler Adapters
@@ -33,10 +27,5 @@ __all__ = [
     "UnifiedSerializerAdapter",
     "FormatStrategyAdapter",
     "CachingSerializerAdapter",
-    # Resolution Adapters
-    "StandardCompileTimeResolverAdapter",
-    "StandardRuntimeResolverAdapter",
-    "StandardTransformationEngineAdapter",
-    "CompositeResolverAdapter",
-    "CachingRuntimeResolverAdapter",
+    # Resolution adapters removed - use domain implementations directly
 ]

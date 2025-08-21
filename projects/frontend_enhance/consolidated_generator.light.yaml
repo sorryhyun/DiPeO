@@ -74,8 +74,6 @@ nodes:
     position: {x: 400, y: 240}
     props:
       person: Section Planner
-      max_iteration: 1
-      memory_profile: MINIMAL
       text_format_file: projects/frontend_enhance/section_models.py
       default_prompt: |
         Analyze the requirements and create a comprehensive development plan:
@@ -163,7 +161,7 @@ nodes:
         from memory_selector import build_memorize_criteria, calculate_memory_limit
         
         section = iterator_data['current_section']
-        section_index = iterator_data['section_index']
+        section_index = iterator_data['current_index']
         architecture = iterator_data['architecture']
         
         # Build memorize_to criteria based on dependencies
@@ -215,10 +213,8 @@ nodes:
     position: {x: 1600, y: 240}
     props:
       person: Prompt Designer
-      first_prompt_file: projects/frontend_enhance/prompts/prompt_generator_first.txt
-      prompt_file: projects/frontend_enhance/prompts/prompt_generator.txt
-      max_iteration: 1
-      memory_profile: ONLY_I_SENT
+      first_prompt_file: prompt_generator_first.txt
+      prompt_file: prompt_generator.txt
       default_prompt: |
         Generate a prompt for section {{section_index + 1}}/{{total_sections}}: {{section_title}}
         
@@ -297,17 +293,8 @@ nodes:
       code: |
         # Increment the section index for next iteration
         result = {
-          'current_index': iterator_data['section_index'] + 1
+          'current_index': iterator_data['current_index'] + 1
         }
-
-  - label: Loop Back
-    type: code_job
-    position: {x: 1000, y: 400}
-    props:
-      language: python
-      code: |
-        # Pass through the iteration state
-        result = iteration_state
 
   - label: Compile Results
     type: code_job
@@ -353,22 +340,20 @@ connections:
   
   # Start iteration
   - {from: Sort Sections by Priority, to: Process Section Iterator, label: sorted_data, content_type: object}
-  - {from: Process Section Iterator, to: Check Continue, label: iterator_data, content_type: object}
+  - {from: Process Section Iterator, to: Check Continue, content_type: object}
   
-  # Process section (continue = true)
-  - {from: Check Continue, to: Prepare Context with Memory, condition: "true"}
+  # Process section (condition true - continue processing)
+  - {from: Check Continue, to: Prepare Context with Memory}
   - {from: Process Section Iterator, to: Prepare Context with Memory, label: iterator_data, content_type: object}
   - {from: Sort Sections by Priority, to: Prepare Context with Memory, label: sorted_data, content_type: object}
   - {from: Load Config, to: Prepare Context with Memory, label: config, content_type: object}
   
   # Generate code
   - {from: Prepare Context with Memory, to: Generate Prompt_first, content_type: object}
-  - {from: Generate Prompt, to: Generate Frontend Code, label: generated_prompt, content_type: raw_text}
   - {from: Prepare Context with Memory, to: Generate Frontend Code, label: context_data, content_type: object}
   
   # Save results
   - {from: Generate Frontend Code, to: Save Section Output, label: generated_code, content_type: object}
-  - {from: Generate Prompt, to: Save Section Output, label: prompt_text, content_type: raw_text}
   - {from: Prepare Context with Memory, to: Save Section Output, label: context_data, content_type: object}
   - {from: Save Section Output, to: Write Section Result, label: section_data, content_type: object}
   
@@ -378,8 +363,6 @@ connections:
   - {from: Update Iterator State, to: Loop Back, label: iteration_state, content_type: object}
   - {from: Loop Back, to: Process Section Iterator, label: iteration_state, content_type: object}
   - {from: Sort Sections by Priority, to: Loop Back, label: sorted_data, content_type: object}
-  
-  # Complete (continue = false)
-  - {from: Check Continue, to: Compile Results, condition: "false"}
+
   - {from: Sort Sections by Priority, to: Compile Results, label: sorted_data, content_type: object}
   - {from: Compile Results, to: End}

@@ -123,7 +123,7 @@ class InfrastructureContainer:
             integrated_api_service
         )
 
-        from dipeo.infrastructure.diagram.drivers.parser_service import get_parser_service
+        from dipeo.infrastructure.codegen.parsers.parser_service import get_parser_service
         import logging
         logger = logging.getLogger(__name__)
         parser_service = get_parser_service(
