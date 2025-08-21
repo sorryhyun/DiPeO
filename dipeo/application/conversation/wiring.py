@@ -27,8 +27,6 @@ def wire_conversation(registry: ServiceRegistry) -> None:
     - Person repository
     - Use cases for conversation and memory management
     """
-    logger.info("🔧 Wiring conversation bounded context")
-    
     # Wire conversation repository (from infrastructure)
     from dipeo.infrastructure.repositories.conversation import InMemoryConversationRepository
     
@@ -71,4 +69,3 @@ def wire_conversation(registry: ServiceRegistry) -> None:
     
     registry.register(UPDATE_MEMORY_USE_CASE, create_update_memory_use_case)
     
-    logger.info("✅ Conversation bounded context wired")

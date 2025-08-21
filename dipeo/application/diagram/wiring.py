@@ -48,8 +48,6 @@ def wire_diagram(registry: ServiceRegistry) -> None:
     - Transformation engine
     - GraphQL resolvers
     """
-    logger.info("🔧 Wiring diagram bounded context")
-    
     # Wire core diagram services
     wire_diagram_compiler(registry)
     wire_diagram_serializer(registry)
@@ -61,8 +59,6 @@ def wire_diagram(registry: ServiceRegistry) -> None:
     
     # Wire diagram GraphQL resolvers
     wire_diagram_resolvers(registry)
-    
-    logger.info("✅ Diagram bounded context wired")
 
 
 def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
@@ -136,15 +132,12 @@ def wire_diagram_compiler(registry: ServiceRegistry) -> None:
     # Apply decorators
     if enable_validation:
         compiler = ValidatingCompilerAdapter(compiler)
-        logger.info("Diagram compiler validation enabled")
-    
+
     if enable_caching:
         cache_size = int(os.getenv("DIAGRAM_COMPILER_CACHE_SIZE", "100"))
         compiler = CachingCompilerAdapter(compiler, cache_size=cache_size)
-        logger.info(f"Diagram compiler caching enabled (size={cache_size})")
-    
+
     registry.register(DIAGRAM_COMPILER, compiler)
-    logger.info(f"Registered diagram compiler (interface_based={use_interface_based})")
 
 
 def wire_diagram_serializer(registry: ServiceRegistry) -> None:

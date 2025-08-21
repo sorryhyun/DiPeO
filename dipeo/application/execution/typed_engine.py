@@ -96,6 +96,10 @@ class TypedExecutionEngine:
                 container=container
             )
             
+            # Store parent metadata from options for nested sub-diagrams
+            if 'parent_metadata' in options:
+                context._parent_metadata = options['parent_metadata']
+            
             # Set up execution logging to emit EXECUTION_LOG events
             from dipeo.infrastructure.execution.logging_handler import setup_execution_logging
             log_handler = setup_execution_logging(
@@ -383,11 +387,15 @@ class TypedExecutionEngine:
         """Create an ExecutionRequest for the handler."""
         from dipeo.application.execution.execution_request import ExecutionRequest
         
-        # Include diagram metadata
+        # Include diagram metadata and parent metadata from context
         request_metadata = {}
         if hasattr(context.diagram, 'metadata') and context.diagram.metadata:
             request_metadata['diagram_source_path'] = context.diagram.metadata.get('diagram_source_path')
             request_metadata['diagram_id'] = context.diagram.metadata.get('diagram_id')
+        
+        # Propagate parent metadata if we're in a nested sub-diagram
+        if hasattr(context, '_parent_metadata') and context._parent_metadata:
+            request_metadata.update(context._parent_metadata)
         
         return ExecutionRequest(
             node=node,

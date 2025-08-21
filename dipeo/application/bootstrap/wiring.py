@@ -29,7 +29,6 @@ logger = logging.getLogger(__name__)
 def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> None:
     """Wire state management services."""
     
-    logger.info("🔄 Wiring state services with domain ports")
     from dipeo.infrastructure.execution.adapters import (
         StateRepositoryAdapter,
         StateServiceAdapter,
@@ -61,8 +60,6 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
     registry.register(STATE_REPOSITORY, repository)
     registry.register(STATE_SERVICE, service)
     registry.register(STATE_CACHE, cache)
-    
-    logger.info(f"✅ State services wired: backend={use_redis and 'redis' or 'memory'}")
 
 
 def wire_messaging_services(registry: ServiceRegistry) -> None:
@@ -83,7 +80,6 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
         )
     elif event_bus_backend == "redis":
         # Redis not yet implemented, use in-memory fallback
-        logger.info("Redis event bus not yet implemented, using in-memory fallback")
         domain_event_bus = InMemoryEventBus(
             max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
             enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true"
@@ -228,8 +224,6 @@ def wire_event_services(registry: ServiceRegistry) -> None:
         
         # Store the coroutine to be executed later when event loop is available
         registry.register(ServiceKey("router_subscription"), subscribe_router)
-    
-    logger.info("Event services wired: Domain events connected to message router")
 
 
 def wire_storage_services(registry: ServiceRegistry) -> None:
@@ -297,8 +291,6 @@ def wire_minimal(registry: ServiceRegistry, redis_client: Optional[object] = Non
     # Check if PersonJob nodes exist in the diagram before wiring
     # This can be determined at runtime based on diagram content
     wire_conversation(registry)
-    
-    logger.info("✅ Minimal application services wired")
 
 
 

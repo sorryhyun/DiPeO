@@ -126,10 +126,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     def _get_template_service(self):
         """Get or create the template service."""
         if self._template_service is None:
-            print("[DEBUG] Creating template service...")
             try:
                 self._template_service = get_enhanced_template_service()
-                print("[DEBUG] Template service created successfully")
             except Exception as e:
                 print(f"[ERROR] Failed to create template service: {e}")
                 import traceback

@@ -29,6 +29,14 @@ def combine_node_data_ast(inputs):
     # Read all node data AST files from cache
     cache_dir = base_dir / 'temp'
     
+    # Import file locking for safe concurrent access
+    try:
+        from dipeo.infrastructure.filesystem.file_lock import get_cache_lock_manager
+        cache_lock = get_cache_lock_manager(cache_dir)
+    except ImportError:
+        # Fallback if file locking not available
+        cache_lock = None
+    
     # Combine all interfaces, types, and enums from node data files
     all_interfaces = []
     all_types = []
@@ -49,12 +57,22 @@ def combine_node_data_ast(inputs):
         file_path = cache_dir / filename
         if file_path.exists():
             try:
-                with open(file_path, 'r') as f:
-                    data = json.load(f)
-                    all_interfaces.extend(data.get('interfaces', []))
-                    all_types.extend(data.get('types', []))
-                    all_enums.extend(data.get('enums', []))
-                    pass  # File loaded
+                if cache_lock:
+                    # Use file locking for safe concurrent access
+                    with cache_lock.read(file_path) as f:
+                        if f:
+                            data = json.load(f)
+                            all_interfaces.extend(data.get('interfaces', []))
+                            all_types.extend(data.get('types', []))
+                            all_enums.extend(data.get('enums', []))
+                else:
+                    # Fallback to direct file access
+                    with open(file_path, 'r') as f:
+                        data = json.load(f)
+                        all_interfaces.extend(data.get('interfaces', []))
+                        all_types.extend(data.get('types', []))
+                        all_enums.extend(data.get('enums', []))
+                pass  # File loaded
             except Exception as e:
                 pass  # Error handled
         else:

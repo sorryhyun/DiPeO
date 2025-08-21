@@ -30,8 +30,6 @@ def wire_execution(registry: ServiceRegistry) -> None:
     - CLI session service
     - Handler auto-registration
     """
-    logger.info("🔧 Wiring execution bounded context")
-    
     # Ensure handlers are auto-registered
     # This import triggers the auto-registration in handlers/__init__.py
     import dipeo.application.execution.handlers  # noqa: F401
@@ -82,5 +80,3 @@ def wire_execution(registry: ServiceRegistry) -> None:
         return CliSessionService()
     
     registry.register(CLI_SESSION_USE_CASE, create_cli_session_service)
-    
-    logger.info("✅ Execution bounded context wired")

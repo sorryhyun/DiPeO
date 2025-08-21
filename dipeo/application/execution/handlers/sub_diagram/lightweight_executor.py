@@ -4,11 +4,13 @@ This executor treats sub-diagrams as running "inside" the parent node,
 without creating separate execution contexts or state persistence.
 """
 
+import copy
 import json
 import logging
+import os
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -17,6 +19,7 @@ from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 from dipeo.infrastructure.execution.messaging import NullEventBus
 
 from .base_executor import BaseSubDiagramExecutor
+from .parallel_executor import ParallelExecutionManager
 
 if TYPE_CHECKING:
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
@@ -30,6 +33,10 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
     def __init__(self):
         """Initialize executor."""
         super().__init__()
+        # Parallel execution manager (shared across all lightweight executions)
+        self._parallel_manager: Optional[ParallelExecutionManager] = None
+        # Track if fail_fast is enabled
+        self._fail_fast = os.getenv("DIPEO_FAIL_FAST", "false").lower() == "true"
     
     def set_services(self, prepare_use_case, diagram_service):
         """Set services for the executor to use."""
@@ -46,41 +53,58 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         node = request.node
         trace_id = request.execution_id or ""
         
+        # Mark that we're in a sub-diagram context for nested sub-diagrams
+        request.metadata['is_sub_diagram'] = True
+        request.metadata['parent_diagram'] = node.diagram_name or 'inline'
+        
         try:
             # Load and compile the diagram
             executable_diagram = await self._prepare_diagram(node, request)
             
-            # Create minimal in-memory execution state
+            # Create minimal in-memory execution state with isolated service registry
             execution_state = self._create_in_memory_state(
                 diagram=executable_diagram,
                 inputs=request.inputs or {}
             )
             
             # Run the engine without observers or state persistence
-            execution_results = await self._run_lightweight_execution(
+            execution_results, execution_errors = await self._run_lightweight_execution(
                 diagram=executable_diagram,
                 execution_state=execution_state,
                 request=request
             )
             
+            # Check for fail_fast mode
+            if self._fail_fast and execution_errors:
+                first_error = execution_errors[0]
+                logger.error(
+                    f"Fail-fast triggered in sub-diagram '{node.diagram_name}' "
+                    f"(node: {node.id}): {first_error['error']}"
+                )
+                # Return error envelope with all error details
+                return self._create_error_envelope(
+                    node=node,
+                    trace_id=trace_id,
+                    error_message=first_error['error'],
+                    error_type="SubDiagramFailFastError",
+                    execution_errors=execution_errors
+                )
+            
             # Build and return output with envelope
             return self._build_node_output(
                 node=node,
                 execution_results=execution_results,
-                trace_id=trace_id
+                trace_id=trace_id,
+                execution_errors=execution_errors
             )
             
         except Exception as e:
             logger.error(f"Error in lightweight sub-diagram execution for node {node.id}: {e}", exc_info=True)
-            error_data = {"error": str(e)}
-            # Return error envelope directly
-            return EnvelopeFactory.json(
-                error_data,
-                produced_by=node.id,
-                trace_id=trace_id
-            ).with_meta(
-                execution_mode="lightweight",
-                execution_status="failed",
+            # Return standardized error envelope
+            return self._create_error_envelope(
+                node=node,
+                trace_id=trace_id,
+                error_message=str(e),
                 error_type=type(e).__name__
             )
     
@@ -225,50 +249,67 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         diagram: "ExecutableDiagram",
         execution_state: ExecutionState,
         request: ExecutionRequest
-    ) -> dict[str, Any]:
-        """Run the execution engine without observers or state persistence."""
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        """Run the execution engine without observers or state persistence.
+        
+        Returns:
+            Tuple of (execution_results, execution_errors)
+        """
         from dipeo.application.execution.resolvers import StandardRuntimeResolver
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
+        from dipeo.application.registry import ServiceRegistry
         
         # Create a minimal runtime resolver
         runtime_resolver = StandardRuntimeResolver()
         
+        # Create isolated service registry (copy from parent but independent)
+        parent_registry = request.parent_registry or request.services
+        isolated_registry = self._create_isolated_registry(parent_registry)
+        
         # Create engine with null event bus (no events emitted)
         engine = TypedExecutionEngine(
-            service_registry=request.parent_registry or request.services,
+            service_registry=isolated_registry,
             runtime_resolver=runtime_resolver,
             event_bus=NullEventBus(),  # No event emission
             observers=None  # No observers
         )
         
-        # Run execution and collect outputs
+        # Run execution and collect outputs and errors
         execution_results = {}
+        execution_errors = []
         
         async for update in engine.execute(
             diagram=diagram,
             execution_state=execution_state,
             options={
                 "is_lightweight": True,
-                "parent_node_id": str(request.node.id)
+                "parent_node_id": str(request.node.id),
+                "parent_metadata": request.metadata  # Pass parent metadata to nested executions
             },
             container=request.parent_container,
             interactive_handler=None
         ):
             # Process updates and collect outputs
-            self._process_execution_update(update, execution_state, execution_results)
+            self._process_execution_update(update, execution_state, execution_results, execution_errors)
+            
+            # Check for fail_fast
+            if self._fail_fast and execution_errors:
+                logger.warning(f"Fail-fast triggered, stopping execution of sub-diagram")
+                break
         
         # Collect any remaining outputs after execution completes
-        self._collect_final_outputs(execution_state, execution_results)
+        self._collect_final_outputs(execution_state, execution_results, execution_errors)
         
-        return execution_results
+        return execution_results, execution_errors
     
     def _process_execution_update(
         self,
         update: dict[str, Any],
         execution_state: ExecutionState,
-        execution_results: dict[str, Any]
+        execution_results: dict[str, Any],
+        execution_errors: list[dict[str, Any]]
     ) -> None:
-        """Process execution updates and collect completed outputs.
+        """Process execution updates and collect completed outputs and errors.
         
         Handles both envelope-based and legacy outputs from nodes.
         """
@@ -283,13 +324,23 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
                             execution_results[node_id_str] = output.value
                         else:
                             execution_results[node_id_str] = output
+                elif node_state.status == Status.FAILED:
+                    # Track failed nodes
+                    error_info = {
+                        "node_id": node_id_str,
+                        "error": str(node_state.error) if node_state.error else "Unknown error",
+                        "status": "failed"
+                    }
+                    if error_info not in execution_errors:
+                        execution_errors.append(error_info)
     
     def _collect_final_outputs(
         self,
         execution_state: ExecutionState,
-        execution_results: dict[str, Any]
+        execution_results: dict[str, Any],
+        execution_errors: list[dict[str, Any]]
     ) -> None:
-        """Collect any remaining outputs after execution completes.
+        """Collect any remaining outputs and errors after execution completes.
         
         Handles both envelope-based and legacy outputs from nodes.
         """
@@ -302,16 +353,30 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
                         execution_results[node_id_str] = output.value
                     else:
                         execution_results[node_id_str] = output
+            elif node_state.status == Status.FAILED:
+                # Track failed nodes
+                error_info = {
+                    "node_id": node_id_str,
+                    "error": str(node_state.error) if node_state.error else "Unknown error",
+                    "status": "failed"
+                }
+                # Check if not already added
+                already_added = any(
+                    e["node_id"] == node_id_str for e in execution_errors
+                )
+                if not already_added:
+                    execution_errors.append(error_info)
     
     def _build_node_output(
         self,
         node: SubDiagramNode,
         execution_results: dict[str, Any],
-        trace_id: str = ""
+        trace_id: str = "",
+        execution_errors: Optional[list[dict[str, Any]]] = None
     ) -> Envelope:
         """Build and return an Envelope with execution results.
         
-        Creates an Envelope containing the execution results.
+        Creates an Envelope containing the execution results and errors summary.
         """
         # Process output mapping
         output_value = self._process_output_mapping(node, execution_results)
@@ -337,11 +402,75 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
                 trace_id=trace_id
             )
         
+        # Build metadata including error summary
+        metadata = {
+            "execution_mode": "lightweight",
+            "execution_status": "completed" if not execution_errors else "completed_with_errors",
+            "diagram_name": node.diagram_name or "inline",
+            "node_count": len(execution_results)
+        }
+        
+        # Include error summary if there were errors
+        if execution_errors:
+            metadata["errors"] = execution_errors
+            metadata["error_count"] = len(execution_errors)
+        
         # Add execution metadata to envelope
-        return envelope.with_meta(
+        return envelope.with_meta(**metadata)
+    
+    def _create_isolated_registry(self, parent_registry):
+        """Create an isolated service registry for sub-diagram execution.
+        
+        This creates a copy of the parent registry to prevent state contamination
+        between parallel sub-diagram executions.
+        """
+        from dipeo.application.registry import ServiceRegistry
+        
+        # Create new registry instance
+        isolated_registry = ServiceRegistry()
+        
+        # Copy services from parent registry if possible
+        if hasattr(parent_registry, '_services'):
+            # Deep copy the services to ensure isolation
+            # The registry stores keys as strings internally
+            for key_str, service in parent_registry._services.items():
+                # Directly assign to internal dict since keys are already strings
+                isolated_registry._services[key_str] = service
+        
+        return isolated_registry
+    
+    def _create_error_envelope(
+        self,
+        node: SubDiagramNode,
+        trace_id: str,
+        error_message: str,
+        error_type: str,
+        execution_errors: Optional[list[dict[str, Any]]] = None
+    ) -> Envelope:
+        """Create a standardized error envelope for sub-diagram failures.
+        
+        This ensures consistent error reporting with proper metadata.
+        """
+        error_data = {
+            "error": error_message,
+            "error_type": error_type,
+            "diagram_name": node.diagram_name or "inline",
+            "node_id": str(node.id)
+        }
+        
+        # Include detailed execution errors if available
+        if execution_errors:
+            error_data["execution_errors"] = execution_errors
+        
+        # Create error envelope
+        return EnvelopeFactory.json(
+            error_data,
+            produced_by=node.id,
+            trace_id=trace_id
+        ).with_meta(
             execution_mode="lightweight",
-            execution_status="completed",
-            diagram_name=node.diagram_name or "inline",
-            node_count=len(execution_results)
+            execution_status="failed",
+            error_type=error_type,
+            has_sub_errors=bool(execution_errors)
         )
     

@@ -112,8 +112,7 @@ class CodegenTemplateService:
         # Register all filters from the profile
         for name, func in filters.items():
             self._adapter.register_filter(name, func)
-        
-        logger.debug(f"Set filter profile to '{profile_name}' with {len(filters)} filters")
+
     
     def add_filter_collection(self, collection_name: str) -> None:
         """Add a filter collection to the active set.
@@ -151,8 +150,7 @@ class CodegenTemplateService:
             directory: Directory path to add
         """
         self._adapter.add_template_directory(directory)
-        logger.debug(f"Added template directory: {directory}")
-    
+
     def register_macro(self, macro: MacroDefinition) -> None:
         """Register a custom macro.
         
@@ -162,13 +160,11 @@ class CodegenTemplateService:
         self._macro_library.register(macro)
         # Also register with adapter for direct use
         self._adapter.register_macro(macro.name, macro.template)
-        logger.debug(f"Registered macro: {macro.name}")
-    
+
     def clear_cache(self) -> None:
         """Clear all template caches."""
         self._adapter.clear_cache()
-        logger.debug("Cleared template cache")
-    
+
     async def render_with_defaults(
         self,
         template_path: str,

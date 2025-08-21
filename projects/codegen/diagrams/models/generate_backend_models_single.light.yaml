@@ -16,15 +16,28 @@ nodes:
     props:
       language: python
       code: |
-        # Handle both direct input (from CLI) and nested input (from sub_diagram)
-        if "node_spec_path" in default:
-            # Direct case - pass through
-            result = {"node_spec_path": default["node_spec_path"]}
-        elif "default" in default and isinstance(default["default"], dict) and "node_spec_path" in default["default"]:
-            # Nested case from sub_diagram
-            result = {"node_spec_path": default["default"]["node_spec_path"]}
+        # Handle batch mode, direct input (from CLI) and nested input (from sub_diagram)
+        # In batch mode, input comes directly without 'default' wrapper
+        if 'default' in locals():
+            # Standard sub_diagram case - input is in 'default' variable
+            if "node_spec_path" in default:
+                # Direct case - pass through
+                result = {"node_spec_path": default["node_spec_path"]}
+            elif "default" in default and isinstance(default["default"], dict) and "node_spec_path" in default["default"]:
+                # Nested case from sub_diagram
+                result = {"node_spec_path": default["default"]["node_spec_path"]}
+            else:
+                raise ValueError(f"node_spec_path not found in input: {default}")
+        elif 'node_spec_path' in locals():
+            # Batch mode case - input comes directly as node_spec_path
+            result = {"node_spec_path": node_spec_path}
         else:
-            raise ValueError(f"node_spec_path not found in input: {default}")
+            # Try to find node_spec_path in globals/locals
+            all_vars = {**globals(), **locals()}
+            if 'node_spec_path' in all_vars:
+                result = {"node_spec_path": all_vars['node_spec_path']}
+            else:
+                raise ValueError(f"node_spec_path not found in any available variables: {list(locals().keys())}")
       
   # Extract node type from input
   - label: Extract Node Type
