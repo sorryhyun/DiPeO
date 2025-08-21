@@ -1,0 +1,69 @@
+version: light
+persons:
+  Analyst:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+
+nodes:
+  - label: "Start"
+    type: start
+    position: {x: 50, y: 100}
+    
+  - label: "Initial Context"
+    type: person_job
+    position: {x: 200, y: 100}
+    props:
+      person: Analyst
+      default_prompt: |
+        Remember these important requirements:
+        1. The system must handle 1000 concurrent users
+        2. Response time should be under 200ms
+        3. The API must use OAuth2 authentication
+        
+        Also note these technical constraints:
+        - Database is PostgreSQL 15
+        - Backend is Python with FastAPI
+        - Frontend is React with TypeScript
+      max_iteration: 1
+
+  - label: "Add More Context"
+    type: person_job
+    position: {x: 400, y: 100}
+    props:
+      person: Analyst
+      default_prompt: |
+        Here's some additional discussion about the project:
+        - The marketing team wants a blue theme
+        - The CEO likes rounded buttons
+        - We discussed using AWS for hosting
+        - Someone mentioned Docker containers
+        - There was talk about microservices
+      max_iteration: 1
+
+  - label: "Technical Task with Memory Selection"
+    type: person_job
+    position: {x: 600, y: 100}
+    props:
+      person: Analyst
+      default_prompt: |
+        Based on our discussion, what are the key technical requirements 
+        for the API implementation? Focus only on performance and security aspects.
+      memorize_to: "requirements, API, authentication, response time, concurrent users"
+      at_most: 5
+      max_iteration: 1
+
+  - label: "Goldfish Mode Test"
+    type: person_job
+    position: {x: 800, y: 100}
+    props:
+      person: Analyst
+      default_prompt: "What is 2 + 2?"
+      memorize_to: "GOLDFISH"
+      max_iteration: 1
+
+connections:
+  - { from: "Start", to: "Initial Context" }
+  - { from: "Initial Context", to: "Add More Context" }
+  - { from: "Add More Context", to: "Technical Task with Memory Selection" }
+  - { from: "Technical Task with Memory Selection", to: "Goldfish Mode Test" }

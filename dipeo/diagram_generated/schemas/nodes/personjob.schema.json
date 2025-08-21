@@ -2,6 +2,27 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonJobNodeData",
   "definitions": {
+    "MemorySettings": {
+      "additionalProperties": false,
+      "properties": {
+        "max_messages": {
+          "type": [
+            "null",
+            "number"
+          ]
+        },
+        "preserve_system": {
+          "type": "boolean"
+        },
+        "view": {
+          "$ref": "#/definitions/MemoryView"
+        }
+      },
+      "required": [
+        "view"
+      ],
+      "type": "object"
+    },
     "PersonID": {
       "additionalProperties": false,
       "properties": {
@@ -123,27 +144,6 @@
         "all_messages"
       ],
       "type": "string"
-    },
-    "MemorySettings": {
-      "additionalProperties": false,
-      "properties": {
-        "max_messages": {
-          "type": [
-            "null",
-            "number"
-          ]
-        },
-        "preserve_system": {
-          "type": "boolean"
-        },
-        "view": {
-          "$ref": "#/definitions/MemoryView"
-        }
-      },
-      "required": [
-        "view"
-      ],
-      "type": "object"
     }
   }
 }

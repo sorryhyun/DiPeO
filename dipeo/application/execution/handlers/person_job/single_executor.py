@@ -14,6 +14,7 @@ from dipeo.diagram_generated.domain_models import Message, PersonID
 from .prompt_resolver import PromptFileResolver
 from .text_format_handler import TextFormatHandler
 from .conversation_handler import ConversationHandler
+from .memory_selector import MemorySelector
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -156,6 +157,51 @@ class SinglePersonJobExecutor:
             **conversation_context
         }
         
+        # Handle memorize_to feature for intelligent memory selection
+        memorize_to = getattr(node, "memorize_to", None)
+        at_most = getattr(node, "at_most", None)
+        selected_messages = None
+        
+        # Special goldfish shortcut via memorize_to
+        if isinstance(memorize_to, str) and memorize_to.strip().upper() == "GOLDFISH":
+            # Reuse existing goldfish handling path
+            is_goldfish = True
+            if hasattr(self._conversation_manager, 'clear_person_messages'):
+                self._conversation_manager.clear_person_messages(person.id)
+            person.reset_memory()
+        elif memorize_to and isinstance(memorize_to, str) and memorize_to.strip():
+            # Use memory selector for intelligent message selection
+            # Get candidates = person's current filtered view (respects legacy memory_profile if set)
+            candidate_msgs = person.filter_messages(all_messages)
+            
+            # Prepare a short preview of the prompt we're about to run
+            prompt_preview = (node.first_only_prompt if execution_count == 0 else (node.default_prompt or "")) or ""
+            prompt_preview = self._prompt_builder.build(
+                prompt=prompt_preview,
+                template_values=template_values,
+                first_only_prompt=None,
+                execution_count=execution_count
+            ) or ""
+            
+            selector = MemorySelector(self._llm_service)
+            selected_ids = await selector.select(
+                candidate_messages=candidate_msgs,
+                task_prompt_preview=prompt_preview,
+                criteria=memorize_to,
+                at_most=at_most
+            )
+            
+            if selected_ids:
+                # Build selected message list; always preserve system messages
+                system_msgs = [m for m in candidate_msgs if str(m.from_person_id) == "system"]
+                selected = [m for m in candidate_msgs if m.id and m.id in set(selected_ids)]
+                # Apply at_most if provided
+                if at_most is not None and at_most > 0:
+                    selected = selected[-int(at_most):]
+                
+                selected_messages = system_msgs + selected
+                logger.info(f"[MemorySelector] Selected {len(selected)} messages from {len(candidate_msgs)} candidates")
+        
         # Load prompts using the prompt resolver
         prompt_content = node.default_prompt
         first_only_content = node.first_only_prompt
@@ -244,22 +290,73 @@ class SinglePersonJobExecutor:
         if pydantic_model:
             complete_kwargs["text_format"] = pydantic_model
             
+        # Use selected messages if memory selection was performed
+        messages_for_completion = selected_messages if selected_messages is not None else all_messages
+        
         # Check if orchestrator has the new helper method
         if hasattr(self._conversation_manager, 'execute_person_completion'):
-            # Use the orchestrator's helper method which handles the new Person API
-            result = await self._conversation_manager.execute_person_completion(
-                person=person,
-                execution_id=trace_id,
-                node_id=str(node.id),
-                **complete_kwargs
-            )
+            # If we have selected messages, we need to handle this differently
+            if selected_messages is not None:
+                # Temporarily override person's memory filter to use only selected messages
+                from dipeo.domain.conversation.memory_filters import MemoryFilterFactory
+                from dipeo.diagram_generated import MemoryView
+                
+                original_filter = person._memory_filter
+                original_limiter = person._memory_limiter
+                try:
+                    # Set to ALL_MESSAGES view with no limiter to use exactly what we pass
+                    person._memory_filter = MemoryFilterFactory.create(MemoryView.ALL_MESSAGES)
+                    person._memory_limiter = None
+                    
+                    # Execute with selected messages
+                    result = await self._conversation_manager.execute_person_completion(
+                        person=person,
+                        execution_id=trace_id,
+                        node_id=str(node.id),
+                        all_messages=messages_for_completion,
+                        **complete_kwargs
+                    )
+                finally:
+                    # Restore original memory settings
+                    person._memory_filter = original_filter
+                    person._memory_limiter = original_limiter
+            else:
+                # Use the orchestrator's helper method with normal messages
+                result = await self._conversation_manager.execute_person_completion(
+                    person=person,
+                    execution_id=trace_id,
+                    node_id=str(node.id),
+                    **complete_kwargs
+                )
         else:
             # Fallback: handle the new Person API directly
-            # Execute LLM call - now returns tuple (result, incoming_msg, response_msg)
-            result, incoming_msg, response_msg = await person.complete(
-                all_messages=all_messages,
-                **complete_kwargs
-            )
+            if selected_messages is not None:
+                # Temporarily override person's memory filter
+                from dipeo.domain.conversation.memory_filters import MemoryFilterFactory
+                from dipeo.diagram_generated import MemoryView
+                
+                original_filter = person._memory_filter
+                original_limiter = person._memory_limiter
+                try:
+                    # Set to ALL_MESSAGES view with no limiter to use exactly what we pass
+                    person._memory_filter = MemoryFilterFactory.create(MemoryView.ALL_MESSAGES)
+                    person._memory_limiter = None
+                    
+                    # Execute LLM call with selected messages
+                    result, incoming_msg, response_msg = await person.complete(
+                        all_messages=messages_for_completion,
+                        **complete_kwargs
+                    )
+                finally:
+                    # Restore original memory settings
+                    person._memory_filter = original_filter
+                    person._memory_limiter = original_limiter
+            else:
+                # Execute LLM call with normal messages
+                result, incoming_msg, response_msg = await person.complete(
+                    all_messages=messages_for_completion,
+                    **complete_kwargs
+                )
             
             # Add messages to conversation via orchestrator
             if hasattr(self._conversation_manager, 'add_message'):
@@ -284,7 +381,8 @@ class SinglePersonJobExecutor:
             node=node,
             diagram=self._diagram,
             model=person.llm_config.model,
-            trace_id=trace_id
+            trace_id=trace_id,
+            selected_messages=selected_messages
         )
     
     def _get_or_create_person(
@@ -327,7 +425,7 @@ class SinglePersonJobExecutor:
     
     
     
-    def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str, trace_id: str = "") -> Envelope:
+    def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str, trace_id: str = "", selected_messages: Optional[list] = None) -> Envelope:
         """Build node output with envelope support for proper conversion."""
         from dipeo.diagram_generated import TokenUsage
         
@@ -348,10 +446,14 @@ class SinglePersonJobExecutor:
         # Check if conversation output is needed
         if self._conversation_handler.needs_conversation_output(str(node.id), diagram):
             # Return PersonJobOutput with messages
-            # Get all messages from conversation repository
-            all_conv_messages = self._conversation_manager.get_conversation().messages if hasattr(self._conversation_manager, 'get_conversation') else []
-            # Filter messages from person's perspective
-            messages = person.get_messages(all_conv_messages)
+            # If memorize_to was used, return the selected subset
+            if selected_messages is not None:
+                messages = selected_messages
+            else:
+                # Get all messages from conversation repository
+                all_conv_messages = self._conversation_manager.get_conversation().messages if hasattr(self._conversation_manager, 'get_conversation') else []
+                # Filter messages from person's perspective
+                messages = person.get_messages(all_conv_messages)
             
             # Return conversation envelope directly
             conversation_state = {

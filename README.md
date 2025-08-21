@@ -149,9 +149,9 @@ read [example](examples/simple_diagrams/simple_iter_ollama.light.yaml)
 #### Run existing diagrams
 ```bash
 # run diagram with automatically running server
-dipeo run diagrams/examples/simple_iter --debug --light --timeout=10
+dipeo run examples/simple_iter --debug --light --timeout=10
 # or, feed actual directory
-dipeo run files/diagrams/examples/simple_iter.light.yaml --light --debug
+dipeo run examples/simple_iter.light.yaml --light --debug
 ```
 
 #### Generate diagrams from natural language

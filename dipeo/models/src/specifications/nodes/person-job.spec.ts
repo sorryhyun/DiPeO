@@ -84,10 +84,37 @@ export const personJobSpec: NodeSpecification = {
       }
     },
     {
+      name: "memorize_to",
+      type: "string",
+      required: false,
+      description: "Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria.",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "e.g., requirements, acceptance criteria, API keys",
+        column: 2
+      }
+    },
+    {
+      name: "at_most",
+      type: "number",
+      required: false,
+      description: "Select at most N messages to keep (system messages may be preserved in addition).",
+      validation: {
+        min: 1,
+        max: 500
+      },
+      uiConfig: {
+        inputType: "number",
+        min: 1,
+        max: 500,
+        column: 1
+      }
+    },
+    {
       name: "memory_profile",
       type: "enum",
       required: false,
-      description: "Memory profile for conversation context",
+      description: "Memory profile for conversation context (Deprecated: prefer 'memorize_to' + 'at_most')",
       defaultValue: "FOCUSED",
       validation: {
         allowedValues: Object.values(MemoryProfile)
@@ -136,7 +163,7 @@ export const personJobSpec: NodeSpecification = {
       name: "memory_settings",
       type: "object",
       required: false,
-      description: "Custom memory settings (when memory_profile is CUSTOM)",
+      description: "Custom memory settings (when memory_profile is CUSTOM) (Deprecated: prefer 'memorize_to' + 'at_most')",
       conditional: {
         field: "memory_profile",
         values: ["CUSTOM"]

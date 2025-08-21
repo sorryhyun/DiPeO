@@ -1,0 +1,385 @@
+version: light
+
+persons:
+  Section Planner:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.
+      
+      Your task is to:
+      1. FIRST define the overall application architecture that will guide all sections
+      2. THEN split the work into independent sections that fit within this architecture
+      3. For EACH section, provide concrete implementation steps and integration points
+      
+      Focus on:
+      - Clear architectural patterns and principles
+      - How data flows through the application
+      - Specific, actionable implementation steps (not vague descriptions)
+      - How sections communicate and integrate with each other
+      - Modern React 18+ best practices and TypeScript patterns
+      
+      Each section should be a cohesive unit that can be developed independently but integrates smoothly.
+      Follow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.
+
+  Prompt Designer:
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: |
+      You are an expert in prompt engineering for code generation. Create clear, comprehensive prompts for frontend code generation.
+      
+      IMPORTANT: Consider the previously generated code context when creating prompts. Build upon existing patterns and maintain consistency.
+
+  Frontend Generator:
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: |
+      You are an expert React/TypeScript engineer building a cohesive frontend application.
+      
+      CRITICAL RULES:
+      1. Return ONLY the raw code files in the exact format specified in the prompt
+      2. Do NOT include any conversational text, explanations, or commentary
+      3. Generate production-ready code that integrates with previously generated sections
+      4. Follow established patterns from earlier sections for consistency
+      5. Import and use components/utilities from previous sections when referenced
+      
+      You are building sections iteratively. Use the context from previous sections to maintain consistency in:
+      - Naming conventions
+      - Import paths
+      - Type definitions
+      - Component patterns
+      - State management approach
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 60, y: 240}
+    props:
+      trigger_mode: manual
+      
+  - label: Load Config
+    type: db
+    position: {x: 200, y: 240}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_enhance/frontend_enhance_config.json
+
+  - label: Plan Sections
+    type: person_job
+    position: {x: 400, y: 240}
+    props:
+      person: Section Planner
+      max_iteration: 1
+      memory_profile: MINIMAL
+      text_format_file: projects/frontend_enhance/section_models.py
+      default_prompt: |
+        Analyze the requirements and create a comprehensive development plan:
+        
+        App config: {{config}}
+        
+        Your response MUST include:
+        1. An overall architecture that defines:
+           - How all sections work together as a cohesive system
+           - Core architectural patterns and principles
+           - Data flow and state management strategy
+           - Folder structure and tech stack decisions
+        
+        2. Independent sections that each include:
+           - Clear acceptance criteria
+           - Specific implementation steps (3-10 concrete steps)
+           - Integration points showing how this section connects with others
+           - Proper dependencies and priority
+        
+        Think like you're planning a real production React application.
+        Ensure sections can be developed in parallel but integrate seamlessly.
+
+  - label: Save Sections Data
+    type: db
+    position: {x: 600, y: 240}
+    props:
+      operation: write
+      sub_type: file
+      format: json
+      source_details: projects/frontend_enhance/generated/sections_data.json
+
+  - label: Sort Sections by Priority
+    type: code_job
+    position: {x: 800, y: 240}
+    props:
+      language: python
+      code: |
+        import sys
+        sys.path.append('projects/frontend_enhance/code')
+        from memory_selector import get_section_priority_order
+        
+        # Sort sections by priority for sequential processing
+        sorted_sections = get_section_priority_order(sections_plan['sections'])
+        
+        result = {
+          'architecture': sections_plan['architecture'],
+          'sections': sorted_sections,
+          'total_sections': len(sorted_sections)
+        }
+
+  - label: Process Section Iterator
+    type: code_job
+    position: {x: 1000, y: 240}
+    props:
+      language: python
+      code: |
+        # Initialize or increment section index
+        current_index = iteration_state.get('current_index', 0) if 'iteration_state' in locals() else 0
+        total_sections = len(sorted_data['sections'])
+        
+        # Always output the current state
+        result = {
+          'current_index': current_index,
+          'total_sections': total_sections,
+          'current_section': sorted_data['sections'][current_index] if current_index < total_sections else None,
+          'architecture': sorted_data['architecture']
+        }
+
+  - label: Check Continue
+    type: condition
+    position: {x: 1200, y: 240}
+    props:
+      condition_type: custom
+      expression: current_index < total_sections
+      flipped: [false, true]
+
+  - label: Prepare Context with Memory
+    type: code_job
+    position: {x: 1400, y: 240}
+    props:
+      language: python
+      code: |
+        import sys
+        sys.path.append('projects/frontend_enhance/code')
+        from memory_selector import build_memorize_criteria, calculate_memory_limit
+        
+        section = iterator_data['current_section']
+        section_index = iterator_data['section_index']
+        architecture = iterator_data['architecture']
+        
+        # Build memorize_to criteria based on dependencies
+        memorize_criteria = build_memorize_criteria(
+          section, 
+          sorted_data['sections'],
+          include_keywords=True
+        )
+        
+        # Calculate appropriate memory limit
+        at_most_value = calculate_memory_limit(section_index, iterator_data['total_sections'])
+        
+        # Extract prompt context
+        prompt_ctx = section.get("prompt_context", {})
+        prompt_reqs = config.get("prompt_requirements", [])
+        prompt_requirements_text = "\n".join(f"- {req}" for req in prompt_reqs)
+        
+        # Add previous sections summary for context
+        previous_sections = sorted_data['sections'][:section_index]
+        previous_work = "\n".join([f"- {s['id']}: {s['title']}" for s in previous_sections])
+        
+        result = {
+          "architecture": architecture,
+          "section": section,
+          "section_id": section["id"],
+          "section_title": section["title"],
+          "section_description": section["description"],
+          "acceptance_criteria": section["acceptance"],
+          "implementation_steps": section.get("implementation_steps", []),
+          "integration_points": section.get("integration_points", []),
+          "component_type": prompt_ctx.get("component_type", "component"),
+          "data_model": prompt_ctx.get("data_model", ""),
+          "interactions": prompt_ctx.get("interactions", []),
+          "styling_approach": prompt_ctx.get("styling_approach", "tailwind"),
+          "target_score": config.get("target_score", 85),
+          "prompt_requirements": prompt_requirements_text,
+          "framework": config.get("framework", "react"),
+          "app_type": config.get("app_type", "dashboard"),
+          "section_index": section_index,
+          "total_sections": iterator_data['total_sections'],
+          "memorize_criteria": memorize_criteria,
+          "at_most": at_most_value,
+          "previous_sections_completed": previous_work if previous_work else "This is the first section",
+          "dependencies": prompt_ctx.get("dependencies", [])
+        }
+
+  - label: Generate Prompt
+    type: person_job
+    position: {x: 1600, y: 240}
+    props:
+      person: Prompt Designer
+      first_prompt_file: projects/frontend_enhance/prompts/prompt_generator_first.txt
+      prompt_file: projects/frontend_enhance/prompts/prompt_generator.txt
+      max_iteration: 1
+      memory_profile: ONLY_I_SENT
+      default_prompt: |
+        Generate a prompt for section {{section_index + 1}}/{{total_sections}}: {{section_title}}
+        
+        Context from planning:
+        {{architecture}}
+        
+        Section details:
+        {{section}}
+        
+        Previous sections completed:
+        {{previous_sections_completed}}
+        
+        This section depends on: {{dependencies}}
+        
+        Create a prompt that:
+        1. Builds upon the established patterns from dependencies
+        2. Implements the specific requirements for this section
+        3. Integrates smoothly with previous work
+
+  - label: Generate Frontend Code
+    type: person_job
+    position: {x: 1800, y: 240}
+    props:
+      person: Frontend Generator
+      max_iteration: 1
+      memorize_to: "{{memorize_criteria}}"
+      at_most: "{{at_most}}"
+      default_prompt: "{{generated_prompt}}"
+      max_turns: 1
+
+  - label: Save Section Output
+    type: code_job
+    position: {x: 2000, y: 240}
+    props:
+      language: python
+      code: |
+        import json
+        import os
+        from pathlib import Path
+        
+        # Extract keywords from generated code for future memory selection
+        import sys
+        sys.path.append('projects/frontend_enhance/code')
+        from memory_selector import extract_generated_files_keywords
+        
+        section_id = context_data.get("section_id")
+        section_index = context_data.get("section_index")
+        
+        # Extract keywords for future reference
+        keywords = extract_generated_files_keywords(generated_code)
+        
+        result = {
+          "section_id": section_id,
+          "section_index": section_index,
+          "prompt_text": prompt_text,
+          "code_content": generated_code,
+          "extracted_keywords": keywords,
+          "memorize_criteria_used": context_data.get("memorize_criteria"),
+          "at_most_used": context_data.get("at_most")
+        }
+
+  - label: Write Section Result
+    type: db
+    position: {x: 2200, y: 240}
+    props:
+      operation: write
+      sub_type: file
+      format: json
+      source_details: "projects/frontend_enhance/generated/consolidated_section_{section_data.section_index}_{section_data.section_id}.json"
+
+  - label: Update Iterator State
+    type: code_job
+    position: {x: 2400, y: 240}
+    props:
+      language: python
+      code: |
+        # Increment the section index for next iteration
+        result = {
+          'current_index': iterator_data['section_index'] + 1
+        }
+
+  - label: Loop Back
+    type: code_job
+    position: {x: 1000, y: 400}
+    props:
+      language: python
+      code: |
+        # Pass through the iteration state
+        result = iteration_state
+
+  - label: Compile Results
+    type: code_job
+    position: {x: 1400, y: 600}
+    props:
+      language: python
+      code: |
+        import json
+        import os
+        from pathlib import Path
+        
+        # Read all generated section files
+        generated_dir = Path("projects/frontend_enhance/generated")
+        section_files = sorted(generated_dir.glob("consolidated_section_*.json"))
+        
+        all_sections = []
+        for file in section_files:
+          with open(file, 'r') as f:
+            all_sections.append(json.load(f))
+        
+        result = {
+          "success": True,
+          "total_sections_processed": len(all_sections),
+          "sections": all_sections,
+          "architecture": sorted_data.get('architecture', {}),
+          "approach": "Sequential processing with intelligent memory selection"
+        }
+
+  - label: End
+    type: endpoint
+    position: {x: 1600, y: 600}
+    props:
+      file_format: json
+      save_to_file: true
+      file_path: projects/frontend_enhance/generated/consolidated_results.json
+
+connections:
+  # Initial setup
+  - {from: Start, to: Load Config}
+  - {from: Load Config, to: Plan Sections, label: config, content_type: object}
+  - {from: Plan Sections, to: Save Sections Data, content_type: object}
+  - {from: Plan Sections, to: Sort Sections by Priority, label: sections_plan, content_type: object}
+  
+  # Start iteration
+  - {from: Sort Sections by Priority, to: Process Section Iterator, label: sorted_data, content_type: object}
+  - {from: Process Section Iterator, to: Check Continue, label: iterator_data, content_type: object}
+  
+  # Process section (continue = true)
+  - {from: Check Continue, to: Prepare Context with Memory, condition: "true"}
+  - {from: Process Section Iterator, to: Prepare Context with Memory, label: iterator_data, content_type: object}
+  - {from: Sort Sections by Priority, to: Prepare Context with Memory, label: sorted_data, content_type: object}
+  - {from: Load Config, to: Prepare Context with Memory, label: config, content_type: object}
+  
+  # Generate code
+  - {from: Prepare Context with Memory, to: Generate Prompt_first, content_type: object}
+  - {from: Generate Prompt, to: Generate Frontend Code, label: generated_prompt, content_type: raw_text}
+  - {from: Prepare Context with Memory, to: Generate Frontend Code, label: context_data, content_type: object}
+  
+  # Save results
+  - {from: Generate Frontend Code, to: Save Section Output, label: generated_code, content_type: object}
+  - {from: Generate Prompt, to: Save Section Output, label: prompt_text, content_type: raw_text}
+  - {from: Prepare Context with Memory, to: Save Section Output, label: context_data, content_type: object}
+  - {from: Save Section Output, to: Write Section Result, label: section_data, content_type: object}
+  
+  # Loop back
+  - {from: Write Section Result, to: Update Iterator State}
+  - {from: Process Section Iterator, to: Update Iterator State, label: iterator_data, content_type: object}
+  - {from: Update Iterator State, to: Loop Back, label: iteration_state, content_type: object}
+  - {from: Loop Back, to: Process Section Iterator, label: iteration_state, content_type: object}
+  - {from: Sort Sections by Priority, to: Loop Back, label: sorted_data, content_type: object}
+  
+  # Complete (continue = false)
+  - {from: Check Continue, to: Compile Results, condition: "false"}
+  - {from: Sort Sections by Priority, to: Compile Results, label: sorted_data, content_type: object}
+  - {from: Compile Results, to: End}
