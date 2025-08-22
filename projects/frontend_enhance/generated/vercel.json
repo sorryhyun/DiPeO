@@ -38,15 +38,6 @@
       ]
     }
   ],
-  "env": {
-    "VITE_API_BASE_URL": "@api_base_url",
-    "VITE_WS_URL": "@ws_url",
-    "VITE_ENABLE_ANALYTICS": "@enable_analytics",
-    "VITE_FEATURE_REAL_TIME_UPDATES": "@feature_real_time",
-    "VITE_FEATURE_DATA_VISUALIZATION": "@feature_data_viz",
-    "VITE_FEATURE_ADVANCED_FILTERING": "@feature_filtering",
-    "VITE_FEATURE_EXPORT": "@feature_export"
-  },
   "functions": {
     "api/health": {
       "maxDuration": 10
