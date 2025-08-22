@@ -1,8 +1,8 @@
 {
   "buildCommand": "pnpm build",
   "outputDirectory": "dist",
-  "framework": "vite",
-  "installCommand": "corepack enable && pnpm install",
+  "framework": null,
+  "installCommand": "corepack enable && pnpm install --ignore-workspace",
   "devCommand": "pnpm dev",
   "rewrites": [
     {

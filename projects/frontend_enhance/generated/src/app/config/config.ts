@@ -28,13 +28,8 @@ interface Config {
 
 // Helper function to get environment variable with fallback
 function getEnvVar(key: string, fallback: string): string {
-  // Support both Vite (import.meta.env) and other bundlers (process.env)
-  const value = typeof window !== 'undefined' && (window as any).import?.meta?.env
-    ? (window as any).import.meta.env[`VITE_${key}`]
-    : typeof process !== 'undefined' && process.env
-    ? process.env[`REACT_APP_${key}`]
-    : undefined;
-  
+  // Use Vite's import.meta.env
+  const value = import.meta.env[`VITE_${key}`];
   return value || fallback;
 }
 
@@ -81,7 +76,7 @@ const config: Config = {
 };
 
 // Validation for required fields in development
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   const requiredFields: (keyof Config)[] = ['apiBaseUrl'];
   
   for (const field of requiredFields) {
@@ -106,9 +101,9 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Helper functions for runtime decisions
-export const isDevelopment = (): boolean => process.env.NODE_ENV === 'development';
+export const isDevelopment = (): boolean => import.meta.env.DEV;
 
-export const isProduction = (): boolean => process.env.NODE_ENV === 'production';
+export const isProduction = (): boolean => import.meta.env.PROD;
 
 export const getApiBaseUrl = (): string => config.apiBaseUrl;
 

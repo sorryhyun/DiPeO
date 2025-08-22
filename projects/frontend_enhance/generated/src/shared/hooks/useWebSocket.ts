@@ -60,7 +60,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
   const [lastMessage, setLastMessage] = useState<MessageEvent | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptCountRef = useRef(0);
   const currentIntervalRef = useRef(reconnectInterval);
   const isMountedRef = useRef(true);

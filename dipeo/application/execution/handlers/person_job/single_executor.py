@@ -228,7 +228,7 @@ class SinglePersonJobExecutor:
             "llm_service": llm_service,
             "from_person_id": "system",
             "temperature": 0.2,
-            "max_tokens": 128000,
+            "max_tokens": 256000,
         }
         
         # Handle tools configuration

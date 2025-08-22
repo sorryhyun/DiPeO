@@ -1,0 +1,971 @@
+{
+  "architecture": {
+    "overview": "A modular React 18+ dashboard application for Professional Fund Managers that cleanly separates presentation, domain logic, and infrastructure. The app uses feature folders for domain cohesion (dashboard, auth), a shared/core layer for cross-cutting concerns (api, auth context, i18n, hooks), and atomic/shared UI components. Server state is managed by React Query with Suspense-enabled loading and error states; client-only state (theme, local UI) is via React Context + small hooks. In development mode a mock API + mock WebSocket provide all data so the app runs standalone. All components are written in TypeScript and styled using Tailwind with dark-mode support.",
+    "patterns": [
+      "Feature-folder architecture (src/features/*) for domain encapsulation",
+      "Container / Presentational separation: feature pages (containers) coordinate data and compose presentational components",
+      "Atomic Design for reusable UI (src/components/*)",
+      "Single source of truth for auth via AuthContext (Context API) with token management and localStorage persistence",
+      "React Query for server-state, caching, background refetching, and optimistic updates",
+      "Use Suspense + Error Boundaries around data loaded by React Query (via suspense mode) for consistent UX",
+      "Mock-first development using MSW-like mock server + mock WebSocket allowing feature development without backend",
+      "Accessibility-first components (ARIA attributes, keyboard navigation) and i18n-ready strings"
+    ],
+    "data_flow": "UI components call hooks (useDashboardData, useDashboardMetrics) which delegate to API clients (apiClient) that use React Query. React Query caches and globally manages loading/error states; components rely on Suspense for loading UI and ErrorBoundary for error UI. Auth flow stores tokens in localStorage (via utils/localStorage.ts) and exposes currentUser via AuthContext + useAuth hook. WebSocket mock emits real-time updates into a central event emitter or hook (useWebSocket) which updates React Query cache via queryClient.setQueryData to reflect real-time changes. Development mode routes API calls to the mockServer which returns deterministic mock responses. All network failures are handled by React Query retry/fallbacks and by fallback components in the UI.",
+    "folder_structure": "src/\n  main.tsx\n  App.tsx\n  index.css\n  styles/tailwind.css\n  types/\n    index.ts\n  core/\n    api/\n      reactQueryClient.ts\n      apiClient.ts\n      mockServer.ts\n    auth/\n      AuthContext.tsx\n      useAuth.ts\n      authService.ts\n    i18n/\n      i18n.ts\n    hooks/\n      useDarkMode.ts\n      useWebSocket.ts\n  components/\n    ErrorBoundary.tsx\n    SuspenseFallback.tsx\n    ProtectedRoute.tsx\n    Navbar.tsx\n    Sidebar.tsx\n    Toggle.tsx\n    LoginForm.tsx\n    ChartCard.tsx\n    MetricCard.tsx\n  features/\n    dashboard/\n      DashboardPage.tsx\n      DashboardLayout.tsx\n      hooks/\n        useDashboardMetrics.ts\n        useDashboardData.ts\n  services/\n    mockWs.ts\n  utils/\n    localStorage.ts\n    validators.ts\n  generated/  <-- output dir for artifacts and mocks\n  i18n/\n    locales/en.json\n    locales/es.json\n  mock/\n    mock-data.json\n  playground/\n    (integration test pages)\n\nExample important files explicitly:\n  src/main.tsx\n  src/App.tsx\n  src/core/api/reactQueryClient.ts\n  src/core/api/apiClient.ts\n  src/core/api/mockServer.ts\n  src/core/auth/AuthContext.tsx\n  src/core/auth/useAuth.ts\n  src/components/Navbar.tsx\n  src/components/Sidebar.tsx\n  src/components/ProtectedRoute.tsx\n  src/components/ErrorBoundary.tsx\n  src/components/SuspenseFallback.tsx\n  src/components/LoginForm.tsx\n  src/features/dashboard/DashboardPage.tsx\n  src/features/dashboard/hooks/useDashboardMetrics.ts\n  src/features/dashboard/hooks/useDashboardData.ts\n  src/components/ChartCard.tsx\n  src/components/MetricCard.tsx\n  src/hooks/useWebSocket.ts\n  src/services/mockWs.ts\n  src/utils/localStorage.ts\n  src/i18n/i18n.ts\n  src/types/index.ts",
+    "tech_stack": [
+      "React 18+ (functional components, Suspense)",
+      "TypeScript (strict mode recommended)",
+      "React Query (server state, caching, suspense)",
+      "Tailwind CSS (utility-first styling + dark mode)",
+      "Context API for auth & theme",
+      "MSW-like mock server (mockServer.ts) for dev endpoints",
+      "Simple mock WebSocket emitter for real-time dev",
+      "i18next for internationalization (i18n.ts)",
+      "Vite or Create React App (Vite recommended)",
+      "LocalStorage for persistence utilities"
+    ]
+  },
+  "sections": [
+    {
+      "id": "main-entry",
+      "title": "Main entry - src/main.tsx",
+      "description": "Bootstraps React app, initializes React Query client, i18n, mock server (in dev), and renders App inside Auth and Theme providers with Suspense and ErrorBoundary wrappers.",
+      "file_to_implement": "src/main.tsx",
+      "acceptance": [
+        "Renders App into document root",
+        "Initializes React Query client and wraps application with QueryClientProvider",
+        "Starts mockServer in development mode when enable_mock_data is true",
+        "Wraps App with AuthContext provider and a Theme provider/hook",
+        "Suspense fallback and ErrorBoundary wrap top-level component"
+      ],
+      "implementation_steps": [
+        "1. Import React, createRoot from react-dom/client, QueryClientProvider and queryClient from src/core/api/reactQueryClient.ts, AuthContext provider from src/core/auth/AuthContext.tsx, i18n initialization from src/i18n/i18n.ts, ErrorBoundary and SuspenseFallback components.",
+        "2. In development (process.env.NODE_ENV !== 'production' && development_mode.enable_mock_data) import and start mockServer from src/core/api/mockServer.ts.",
+        "3. Create root via createRoot(document.getElementById('root')!) and render <QueryClientProvider client={queryClient}><AuthProvider><ErrorBoundary><Suspense fallback={<SuspenseFallback/>}><App/></Suspense></ErrorBoundary></AuthProvider></QueryClientProvider>.",
+        "4. Ensure index.css (Tailwind) is imported to enable styles.",
+        "5. Export nothing; this file only boots app."
+      ],
+      "integration_points": [
+        "Uses src/core/api/reactQueryClient.ts to get queryClient",
+        "Starts mockServer from src/core/api/mockServer.ts in dev mode",
+        "Wraps src/App.tsx and uses src/core/auth/AuthContext.tsx as provider",
+        "Uses src/components/ErrorBoundary.tsx and src/components/SuspenseFallback.tsx"
+      ],
+      "prompt_context": {
+        "component_type": "bootstrap",
+        "data_model": null,
+        "interactions": [
+          "initialize",
+          "wrap"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/core/api/reactQueryClient.ts",
+          "src/core/api/mockServer.ts",
+          "src/core/auth/AuthContext.tsx",
+          "src/components/ErrorBoundary.tsx"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "app-root",
+      "title": "Application root - src/App.tsx",
+      "description": "Top-level router and layout orchestration. Configures routes, protected routes, dark mode toggle, and global layout (Navbar + Sidebar + main content).",
+      "file_to_implement": "src/App.tsx",
+      "acceptance": [
+        "Defines routes: /login (public), /dashboard (protected), catch-all redirect to /dashboard",
+        "Implements ProtectedRoute to guard /dashboard",
+        "Includes Navbar and Sidebar components and supports responsive layout",
+        "Exposes dark mode toggle and reacts to context/hook",
+        "Loads DashboardPage with Suspense and ErrorBoundary around lazy-loaded feature"
+      ],
+      "implementation_steps": [
+        "1. Import React, lazy, Suspense; BrowserRouter, Routes, Route, Navigate from react-router-dom.",
+        "2. Lazy-load DashboardPage: const DashboardPage = React.lazy(() => import('./features/dashboard/DashboardPage')) and import LoginForm component.",
+        "3. Compose layout: Navbar at top, Sidebar on left (responsive), main content area for Routes.",
+        "4. Add ProtectedRoute on /dashboard; route /login renders LoginForm; default route redirects to /dashboard.",
+        "5. Wrap lazy DashboardPage with <Suspense fallback={<SuspenseFallback/>}><ErrorBoundary>..</ErrorBoundary></Suspense>.",
+        "6. Use useDarkMode hook to ensure body class toggles for tailwind dark.",
+        "7. Export default App component."
+      ],
+      "integration_points": [
+        "Uses src/components/Navbar.tsx and src/components/Sidebar.tsx for layout",
+        "Uses src/components/ProtectedRoute.tsx for route guarding",
+        "Loads src/features/dashboard/DashboardPage.tsx lazily",
+        "Uses src/hooks/useDarkMode.ts to control theme"
+      ],
+      "prompt_context": {
+        "component_type": "app",
+        "data_model": null,
+        "interactions": [
+          "route",
+          "toggle"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/components/Navbar.tsx",
+          "src/components/Sidebar.tsx",
+          "src/components/ProtectedRoute.tsx",
+          "src/features/dashboard/DashboardPage.tsx",
+          "src/hooks/useDarkMode.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "react-query-client",
+      "title": "React Query client setup - src/core/api/reactQueryClient.ts",
+      "description": "Creates and exports a configured QueryClient for React Query with sensible defaults for retries, staleTime, and devtools. Exports a wrapper to access the client in non-React code.",
+      "file_to_implement": "src/core/api/reactQueryClient.ts",
+      "acceptance": [
+        "Exports a configured QueryClient instance named 'queryClient'",
+        "Configures defaultOptions: queries use suspense when enabled, retries: 1 (dev), staleTime appropriate for financial data",
+        "Exports ReactQueryDevtools import gated behind development check (optional)",
+        "Provides helper to access queryClient in services (export default or named export)"
+      ],
+      "implementation_steps": [
+        "1. Import QueryClient from '@tanstack/react-query' (or 'react-query' depending on version), and set defaultOptions: queries: { suspense: true, retry: 1, staleTime: 5_000 } for near-real-time data.",
+        "2. Instantiate: export const queryClient = new QueryClient({ defaultOptions: {...} });",
+        "3. Optionally export a function mountReactQueryDevtools that conditionally imports devtools in development.",
+        "4. Add typed helper to getQueryClient to be used in WebSocket/service to update cache: export const getQueryClient = () => queryClient;",
+        "5. Ensure file is fully typed with TypeScript."
+      ],
+      "integration_points": [
+        "Imported by src/main.tsx to wrap the app with QueryClientProvider",
+        "Used by src/hooks/useWebSocket.ts and src/services/mockWs.ts to update cache with real-time updates",
+        "Used by data hooks in src/features/dashboard/hooks/* to fetch/update cached data"
+      ],
+      "prompt_context": {
+        "component_type": "infrastructure",
+        "data_model": null,
+        "interactions": [
+          "configure",
+          "provide"
+        ],
+        "styling_approach": null,
+        "dependencies": null
+      },
+      "priority": 1
+    },
+    {
+      "id": "mock-server",
+      "title": "Mock API server - src/core/api/mockServer.ts",
+      "description": "Provides a lightweight mock server for development mode that intercepts the configured endpoints and returns deterministic mock data. Exports a startMockServer() function that the main entry will call in dev mode.",
+      "file_to_implement": "src/core/api/mockServer.ts",
+      "acceptance": [
+        "Exports startMockServer() which registers handlers for /api/dashboard/metrics, /api/dashboard/data, /api/dashboard/charts",
+        "Reads mock data from src/mock/mock-data.json or inline mocked responses",
+        "Respects disable_websocket_in_dev flag (does not start mock WebSocket if disabled) but still provides endpoints",
+        "Provides a stopMockServer() that can be called in teardown (optional)",
+        "Uses TypeScript types from src/types/index.ts"
+      ],
+      "implementation_steps": [
+        "1. Implement an in-file minimal mock server using fetch interception (for simplicity, export functions that monkey-patch window.fetch in dev) or use a simple service worker registration flow. For this plan implement a fetch wrapper that intercepts requests matching /api/* patterns.",
+        "2. Add handlers for the endpoints: '/api/dashboard/metrics' -> returns metrics JSON; '/api/dashboard/data' -> time-series or table data; '/api/dashboard/charts' -> chart series. Use development mock data declared in this file or from src/mock/mock-data.json.",
+        "3. Export startMockServer() to install the fetch shim and stopMockServer() to restore original fetch.",
+        "4. Ensure responses emulate latency (e.g., setTimeout) and error/failure scenarios for fallback testing.",
+        "5. Ensure Content-Type headers and proper status codes are sent.",
+        "6. Type the mock responses with interfaces from src/types/index.ts."
+      ],
+      "integration_points": [
+        "Called by src/main.tsx to start server in development mode",
+        "Used implicitly by apiClient to service requests from data hooks in src/features/dashboard/hooks/*",
+        "Mock responses align with types in src/types/index.ts"
+      ],
+      "prompt_context": {
+        "component_type": "mock",
+        "data_model": "dashboard",
+        "interactions": [
+          "get",
+          "simulate"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/types/index.ts",
+          "src/mock/mock-data.json"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "api-client",
+      "title": "API client wrapper - src/core/api/apiClient.ts",
+      "description": "Small typed abstraction over fetch to call API endpoints; handles token attachment (when present), base URL, timeouts, and unified JSON error handling.",
+      "file_to_implement": "src/core/api/apiClient.ts",
+      "acceptance": [
+        "Exports typed functions: get<T>(url), post<T>(url, body), put<T>(url, body), del<T>(url)",
+        "Automatically attaches Authorization header when token provided by AuthContext or localStorage util",
+        "Throws typed errors for non-2xx responses with shape {status, message, data}",
+        "Works with the mockServer in development"
+      ],
+      "implementation_steps": [
+        "1. Implement helper getAuthToken(): string | null that reads token from src/utils/localStorage.ts or from AuthContext (avoid circular dependency; prefer localStorage util).",
+        "2. Implement generic request<T>(method, url, body?) that builds headers (Content-Type: application/json), attaches Authorization if token present, calls fetch, awaits response, parses JSON, and throws on !response.ok a typed error.",
+        "3. Export convenience wrappers: export const get = <T>(url: string) => request<T>('GET', url), etc.",
+        "4. Add small retry/backoff logic is optional (React Query handles retries).",
+        "5. Ensure file and functions are fully type annotated."
+      ],
+      "integration_points": [
+        "Used by feature hooks like src/features/dashboard/hooks/useDashboardData.ts and useDashboardMetrics.ts",
+        "Works against src/core/api/mockServer.ts in development mode",
+        "Reads token persisted via src/utils/localStorage.ts for auth"
+      ],
+      "prompt_context": {
+        "component_type": "infrastructure",
+        "data_model": "dashboard",
+        "interactions": [
+          "get",
+          "post"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/utils/localStorage.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "auth-context",
+      "title": "Auth context provider - src/core/auth/AuthContext.tsx",
+      "description": "Implements AuthProvider using React Context that holds currentUser, token, login, logout, and checkAuth. Uses localStorage persistence in development. Provides typed context and hook consumer (useAuth in separate file).",
+      "file_to_implement": "src/core/auth/AuthContext.tsx",
+      "acceptance": [
+        "Exports AuthProvider component that wraps children",
+        "Persists mock-authenticated user when development_mode.use_localstorage_persistence true",
+        "Exposes login(email,password) that uses authService (mock) and stores token + user in localStorage",
+        "Exposes logout() that clears stored data and resets context",
+        "Types the user object and token shape from src/types/index.ts",
+        "Provides currentUser and isAuthenticated booleans"
+      ],
+      "implementation_steps": [
+        "1. Define AuthContextValue Type: { user: User | null; token: string | null; login: (email,password)=>Promise<void>; logout: ()=>void; isAuthenticated: boolean } referencing types from src/types/index.ts.",
+        "2. Implement AuthProvider component: initialize state from localStorage (via utils/localStorage.ts).",
+        "3. Implement login using src/core/auth/authService.ts to validate credentials (mock in dev); on success set state and persist to localStorage.",
+        "4. Implement logout which clears state and localStorage.",
+        "5. Export AuthProvider and AuthContext (React.createContext) and also default export maybe; avoid usage of useContext in this file (useAuth hook will wrap it).",
+        "6. Ensure provider is used in src/main.tsx."
+      ],
+      "integration_points": [
+        "Wrapped around App in src/main.tsx",
+        "LoginForm (src/components/LoginForm.tsx) consumes login() via useAuth.ts",
+        "apiClient attaches Authorization header from stored token via src/utils/localStorage.ts",
+        "ProtectedRoute uses isAuthenticated exposed by useAuth hook"
+      ],
+      "prompt_context": {
+        "component_type": "context",
+        "data_model": "user",
+        "interactions": [
+          "login",
+          "logout"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/core/auth/authService.ts",
+          "src/utils/localStorage.ts",
+          "src/types/index.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "use-auth-hook",
+      "title": "useAuth hook - src/core/auth/useAuth.ts",
+      "description": "Typed hook to access AuthContext. Adds helpers for protecting components and retrieving current user/role.",
+      "file_to_implement": "src/core/auth/useAuth.ts",
+      "acceptance": [
+        "Exports a useAuth() hook that returns context with proper TypeScript inference",
+        "Throws a helpful error if used outside AuthProvider",
+        "Provides helper isAdmin() that returns boolean if user.role === 'admin'"
+      ],
+      "implementation_steps": [
+        "1. Import AuthContext from src/core/auth/AuthContext.tsx and implement useAuth() that calls useContext(AuthContext).",
+        "2. Add runtime check to throw if context is undefined (not within provider).",
+        "3. Add convenience helpers: const isAdmin = () => !!context.user && context.user.role === 'admin'.",
+        "4. Export the hook and helper types."
+      ],
+      "integration_points": [
+        "Used by src/components/ProtectedRoute.tsx to decide access",
+        "Used by Navbar and LoginForm to render user-specific UI",
+        "Used by apiClient indirectly through localStorage if token present"
+      ],
+      "prompt_context": {
+        "component_type": "hook",
+        "data_model": "user",
+        "interactions": [
+          "read",
+          "guard"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/core/auth/AuthContext.tsx"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "auth-service",
+      "title": "Auth service (mock) - src/core/auth/authService.ts",
+      "description": "Implements authentication logic for development mode: validates credentials against configured mock_auth_users and returns a mock token and user profile.",
+      "file_to_implement": "src/core/auth/authService.ts",
+      "acceptance": [
+        "Exports async function authenticate(email,password) that resolves with { token, user } if credentials match a mock user, otherwise rejects with a typed error",
+        "Simulates network latency and possible failures",
+        "Provides a function getUserFromToken(token) returning user or null"
+      ],
+      "implementation_steps": [
+        "1. Define types: AuthResponse { token: string; user: User } and AuthError type.",
+        "2. Implement authenticate(email,password) which checks the provided credentials against the mock list defined in the provided app config (could be in-file constant or imported from a mock JSON).",
+        "3. On success return token (random string) and user object (email, role, name), after a small delay (e.g., 300-600ms).",
+        "4. Implement getUserFromToken(token) that maps tokens to stored mock users (store mapping in-memory when authenticate called).",
+        "5. Export these functions."
+      ],
+      "integration_points": [
+        "Called by src/core/auth/AuthContext.tsx login implementation",
+        "Used in development mode only; non-dev would replace with real auth endpoints",
+        "LoginForm will call login which uses authService"
+      ],
+      "prompt_context": {
+        "component_type": "service",
+        "data_model": "user",
+        "interactions": [
+          "authenticate",
+          "map-token"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/types/index.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "login-form",
+      "title": "Login form - src/components/LoginForm.tsx",
+      "description": "Accessible login form with email/password inputs, validation, error display, remember-me toggle, and calls useAuth().login on submit. Uses React Hook Form for validation (or a simple typed form if not adding dependency).",
+      "file_to_implement": "src/components/LoginForm.tsx",
+      "acceptance": [
+        "Renders labelled inputs for email and password with ARIA attributes and keyboard accessible submit",
+        "Validates required fields and email format; shows friendly error messages",
+        "Calls useAuth().login(email,password) and navigates to /dashboard on success",
+        "Shows loading state during authentication and shows error message on failure",
+        "Persists remember-me choice to localStorage via src/utils/localStorage.ts"
+      ],
+      "implementation_steps": [
+        "1. Implement form using controlled inputs or react-hook-form; include email, password, rememberMe checkbox.",
+        "2. Add client-side validation: email required + pattern, password required + min length 6.",
+        "3. On submit call auth.login(email,password) from useAuth() and handle Promise: on success navigate to /dashboard using useNavigate from react-router-dom; on error display a dismissable error alert.",
+        "4. Add aria-invalid on invalid fields, aria-describedby linking to error text for accessibility.",
+        "5. Add keyboard support: submit on Enter and focus management for errors.",
+        "6. Style with Tailwind classes and support dark mode by using dark: variants."
+      ],
+      "integration_points": [
+        "Calls src/core/auth/useAuth.ts for login()",
+        "Navigates to /dashboard from react-router-dom",
+        "Persists remember-me via src/utils/localStorage.ts"
+      ],
+      "prompt_context": {
+        "component_type": "form",
+        "data_model": "user",
+        "interactions": [
+          "create",
+          "validate"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/core/auth/useAuth.ts",
+          "src/utils/localStorage.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "protected-route",
+      "title": "ProtectedRoute component - src/components/ProtectedRoute.tsx",
+      "description": "Route wrapper that checks auth state via useAuth and either renders children or redirects to /login. Supports role-based guards via props.",
+      "file_to_implement": "src/components/ProtectedRoute.tsx",
+      "acceptance": [
+        "Accepts children and optional roles array prop to restrict access",
+        "Redirects to /login if not authenticated",
+        "Shows a friendly message or 403 UI if user role not permitted",
+        "Accessible and type-safe props"
+      ],
+      "implementation_steps": [
+        "1. Implement component props interface: { children: ReactNode; roles?: string[] }.",
+        "2. Use useAuth() to read isAuthenticated and user.role.",
+        "3. If not authenticated, return <Navigate to=\"/login\" replace />.",
+        "4. If roles provided and user role not in roles, return a 403 simple UI (or navigate to a /403 route).",
+        "5. Otherwise render children.",
+        "6. Add unit-friendly exports and types."
+      ],
+      "integration_points": [
+        "Used in src/App.tsx to guard /dashboard route",
+        "Depends on src/core/auth/useAuth.ts and react-router-dom Navigate",
+        "403 UI can be replaced by a global Error Boundary or dedicated page"
+      ],
+      "prompt_context": {
+        "component_type": "route",
+        "data_model": "user",
+        "interactions": [
+          "guard",
+          "redirect"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/core/auth/useAuth.ts",
+          "react-router-dom"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "error-boundary",
+      "title": "ErrorBoundary component - src/components/ErrorBoundary.tsx",
+      "description": "React Error Boundary component that catches render-time errors and renders fallback UI with retry capability. Logs errors to console and optionally to a mock telemetry service.",
+      "file_to_implement": "src/components/ErrorBoundary.tsx",
+      "acceptance": [
+        "Catches child component errors and renders fallback UI",
+        "Provides a Retry button that resets the boundary",
+        "Accepts an optional onError callback for logging",
+        "Accessible fallback UI (role='alert', descriptive text)"
+      ],
+      "implementation_steps": [
+        "1. Implement class component ErrorBoundary extends React.Component with state { hasError: boolean, error?: Error }.",
+        "2. Implement static getDerivedStateFromError and componentDidCatch to set state and call onError prop.",
+        "3. Render children when no error; otherwise render fallback with message and Retry button that resets state.",
+        "4. Expose a typed prop interface: { children, fallback?: ReactNode, onError?: (err, info)=>void }.",
+        "5. Use role and aria-live attributes for accessibility."
+      ],
+      "integration_points": [
+        "Used to wrap Suspense boundaries in src/main.tsx and src/App.tsx",
+        "Optional onError can call a mock telemetry service or console.error"
+      ],
+      "prompt_context": {
+        "component_type": "error-boundary",
+        "data_model": null,
+        "interactions": [
+          "catch",
+          "reset"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": null
+      },
+      "priority": 1
+    },
+    {
+      "id": "suspense-fallback",
+      "title": "Suspense fallback - src/components/SuspenseFallback.tsx",
+      "description": "Small presentational component used as Suspense fallback showing loading skeletons for dashboard widgets.",
+      "file_to_implement": "src/components/SuspenseFallback.tsx",
+      "acceptance": [
+        "Renders skeleton placeholders mimicking MetricCard and ChartCard shapes",
+        "Accessible: uses aria-busy and appropriate labels",
+        "Styled with Tailwind and supports dark mode"
+      ],
+      "implementation_steps": [
+        "1. Create a functional component that returns a small grid of divs with Tailwind animate-pulse classes representing skeleton metric cards and a chart area.",
+        "2. Add aria-busy=\"true\" and aria-label=\"Loading dashboard\" to the root element.",
+        "3. Ensure minimal DOM and SSR-friendly markup.",
+        "4. Export default component."
+      ],
+      "integration_points": [
+        "Used by src/main.tsx and src/App.tsx as Suspense fallback when lazy-loading features",
+        "Design visually matches src/components/MetricCard.tsx and ChartCard"
+      ],
+      "prompt_context": {
+        "component_type": "presentational",
+        "data_model": null,
+        "interactions": [
+          "loading"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": null
+      },
+      "priority": 2
+    },
+    {
+      "id": "navbar",
+      "title": "Navbar component - src/components/Navbar.tsx",
+      "description": "Top navigation bar containing app title, dark mode toggle, user menu with accessible keyboard navigation, and a responsive hamburger that toggles the Sidebar on small screens.",
+      "file_to_implement": "src/components/Navbar.tsx",
+      "acceptance": [
+        "Displays app name 'Stock Price Analyzer' and current page title",
+        "Includes dark mode Toggle using useDarkMode hook",
+        "Shows current user's email/name from useAuth hook and a menu with Logout action",
+        "Hamburger toggles a responsive state (calls a prop or emits an event) for Sidebar visibility",
+        "Accessible: menu has proper aria attributes and keyboard support"
+      ],
+      "implementation_steps": [
+        "1. Implement Navbar as a functional component accepting optional onToggleSidebar prop: () => void.",
+        "2. Use useAuth() to display currentUser.email if present; show Login link if not authenticated.",
+        "3. Use useDarkMode() to show and toggle dark mode; create a small Toggle control or reuse src/components/Toggle.tsx.",
+        "4. Implement a user menu using a button and accessible menu roles; provide Logout() which calls useAuth().logout().",
+        "5. Add a hamburger button visible on sm: screens that calls onToggleSidebar prop.",
+        "6. Style with Tailwind, include dark: variants."
+      ],
+      "integration_points": [
+        "Used in src/App.tsx as top nav",
+        "Toggles Sidebar via parent state or context",
+        "Calls useAuth from src/core/auth/useAuth.ts and useDarkMode from src/hooks/useDarkMode.ts"
+      ],
+      "prompt_context": {
+        "component_type": "navigation",
+        "data_model": "user",
+        "interactions": [
+          "toggle",
+          "logout"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/core/auth/useAuth.ts",
+          "src/hooks/useDarkMode.ts",
+          "src/components/Toggle.tsx"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "sidebar",
+      "title": "Sidebar component - src/components/Sidebar.tsx",
+      "description": "Responsive sidebar with navigation items to Dashboard and other future pages. Collapsible and accessible using keyboard; shows role-based links if user is admin.",
+      "file_to_implement": "src/components/Sidebar.tsx",
+      "acceptance": [
+        "Renders navigation links: Dashboard (always) and Admin if user.role === 'admin'",
+        "Supports collapse/expand and responsive behavior (hidden on mobile unless toggled)",
+        "Keyboard navigable and ARIA attributes for nav landmarks",
+        "Integrates with App layout to push main content"
+      ],
+      "implementation_steps": [
+        "1. Implement Sidebar component that accepts props: isOpen?: boolean, onClose?: ()=>void.",
+        "2. Use useAuth() to determine role and show Admin link conditionally.",
+        "3. Provide keyboard focus trap or simple keyboard close on Escape when open in mobile.",
+        "4. Use Tailwind classes to handle responsiveness and dark mode.",
+        "5. Export component and types."
+      ],
+      "integration_points": [
+        "Used by src/App.tsx; toggled by Navbar hamburger",
+        "Links use react-router-dom Link to /dashboard and /admin (admin optional)",
+        "Reads user role via src/core/auth/useAuth.ts"
+      ],
+      "prompt_context": {
+        "component_type": "navigation",
+        "data_model": "user",
+        "interactions": [
+          "navigate",
+          "toggle"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "react-router-dom",
+          "src/core/auth/useAuth.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "dashboard-page",
+      "title": "Dashboard page - src/features/dashboard/DashboardPage.tsx",
+      "description": "Main dashboard page that composes MetricCard(s) and ChartCard(s), uses React Query hooks to fetch metrics and chart data, and subscribes to mock WebSocket updates for real-time changes.",
+      "file_to_implement": "src/features/dashboard/DashboardPage.tsx",
+      "acceptance": [
+        "Fetches metrics via useDashboardMetrics hook and chart series via useDashboardData hook",
+        "Renders MetricCard components for key KPIs and ChartCard for time-series charts",
+        "Subscribes to useWebSocket to receive updates and applies them to QueryClient cache",
+        "Uses Suspense fallback and ErrorBoundary at component boundaries for robust UX",
+        "Responsive grid layout with Tailwind, accessible chart container labels"
+      ],
+      "implementation_steps": [
+        "1. Import MetricCard and ChartCard components and hooks: useDashboardMetrics and useDashboardData.",
+        "2. Use those hooks to obtain data (hooks should be React Query enabled and use suspense: true).",
+        "3. Layout cards in a responsive grid: metrics in a small grid, charts in larger rows; use Tailwind classes.",
+        "4. Use useWebSocket() hook to subscribe to real-time updates; on update call queryClient.setQueryData for relevant queries to update UI.",
+        "5. Provide aria-labels for the chart containers and ensure keyboard focusable elements where necessary.",
+        "6. Export default DashboardPage component."
+      ],
+      "integration_points": [
+        "Uses src/features/dashboard/hooks/useDashboardMetrics.ts and useDashboardData.ts",
+        "Renders presentational components src/components/MetricCard.tsx and src/components/ChartCard.tsx",
+        "Uses src/hooks/useWebSocket.ts to receive mock real-time updates which update QueryClient from src/core/api/reactQueryClient.ts"
+      ],
+      "prompt_context": {
+        "component_type": "dashboard",
+        "data_model": "dashboard",
+        "interactions": [
+          "view",
+          "subscribe"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/features/dashboard/hooks/useDashboardMetrics.ts",
+          "src/features/dashboard/hooks/useDashboardData.ts",
+          "src/components/MetricCard.tsx",
+          "src/components/ChartCard.tsx",
+          "src/hooks/useWebSocket.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "use-dashboard-metrics",
+      "title": "useDashboardMetrics hook - src/features/dashboard/hooks/useDashboardMetrics.ts",
+      "description": "React Query hook to fetch dashboard metrics (KPIs) from /api/dashboard/metrics. Uses suspense mode and returns typed metrics.",
+      "file_to_implement": "src/features/dashboard/hooks/useDashboardMetrics.ts",
+      "acceptance": [
+        "Exports useDashboardMetrics hook that returns typed metrics data",
+        "Uses react-query useQuery with key ['dashboard','metrics'] and suspense enabled",
+        "Handles polling/freshness appropriate for near real-time (e.g., refetchInterval when not in dev disable?)",
+        "Graceful error propagation to ErrorBoundary"
+      ],
+      "implementation_steps": [
+        "1. Import useQuery from React Query and apiClient.get helper from src/core/api/apiClient.ts.",
+        "2. Define the query key const metricsKey = ['dashboard','metrics'] and implement fetcher: apiClient.get<Metrics>('/api/dashboard/metrics').",
+        "3. Call useQuery(metricsKey, fetcher, { suspense: true, refetchInterval: 5000, staleTime: 3000 }).",
+        "4. Type the returned data using types from src/types/index.ts.",
+        "5. Export the hook function."
+      ],
+      "integration_points": [
+        "Called by src/features/dashboard/DashboardPage.tsx to render MetricCard(s)",
+        "Data shape aligns with src/types/index.ts",
+        "Real-time updates via src/hooks/useWebSocket.ts can call queryClient.setQueryData(metricsKey, newData)"
+      ],
+      "prompt_context": {
+        "component_type": "hook",
+        "data_model": "metrics",
+        "interactions": [
+          "fetch",
+          "poll"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/core/api/apiClient.ts",
+          "src/core/api/reactQueryClient.ts",
+          "src/types/index.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "use-dashboard-data",
+      "title": "useDashboardData hook - src/features/dashboard/hooks/useDashboardData.ts",
+      "description": "React Query hook to fetch time-series chart data from /api/dashboard/charts and /api/dashboard/data (if applicable). Provides typed series and helper to refetch or append real-time datapoints.",
+      "file_to_implement": "src/features/dashboard/hooks/useDashboardData.ts",
+      "acceptance": [
+        "Exports useDashboardData returning chart series and metadata",
+        "Uses useQuery with key ['dashboard','charts'] and suspense enabled",
+        "Provides an exported queryKey constant so other modules can reference it for cache updates",
+        "Proper typing via src/types/index.ts"
+      ],
+      "implementation_steps": [
+        "1. Define and export chartsQueryKey = ['dashboard','charts'].",
+        "2. Implement fetcher using apiClient.get<ChartSeries[]>('/api/dashboard/charts').",
+        "3. Call useQuery(chartsQueryKey, fetcher, { suspense: true, refetchInterval: 5000, staleTime: 3000 }).",
+        "4. Export hook and types. Provide helper function updateChartData(newPoint) that can be used by WebSocket to append data using queryClient.setQueryData.",
+        "5. Ensure TypeScript types are used for series points and metadata."
+      ],
+      "integration_points": [
+        "Used by src/features/dashboard/DashboardPage.tsx to render ChartCard(s)",
+        "chartsQueryKey exported will be used by src/hooks/useWebSocket.ts or src/services/mockWs.ts to update cache in real-time",
+        "Matches mock responses from src/core/api/mockServer.ts"
+      ],
+      "prompt_context": {
+        "component_type": "hook",
+        "data_model": "chart",
+        "interactions": [
+          "fetch",
+          "update-cache"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/core/api/apiClient.ts",
+          "src/core/api/reactQueryClient.ts",
+          "src/types/index.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "metric-card",
+      "title": "MetricCard presentational - src/components/MetricCard.tsx",
+      "description": "Reusable metric KPI card showing title, value, delta and sparkline with accessible structure. Minimal chart can be SVG path or small sparkline using inline SVG.",
+      "file_to_implement": "src/components/MetricCard.tsx",
+      "acceptance": [
+        "Accepts props: title, value, delta (number or percentage), trendSeries (optional) and aria-label",
+        "Displays delta with color coding (green/red) and accessible text for screen readers",
+        "Responsive layout with Tailwind and dark mode support",
+        "No external charting library required for small sparkline (use SVG)"
+      ],
+      "implementation_steps": [
+        "1. Define prop types interface with appropriate types and optional props.",
+        "2. Render a card element with title, formatted value, delta badge (aria-hidden) and visually-hidden text describing change for screen readers.",
+        "3. If trendSeries provided, render a simple inline SVG sparkline path (compute min/max/scale).",
+        "4. Add Tailwind classes including dark: variants and focus styles for keyboard navigation.",
+        "5. Export component as default with generic typing if necessary."
+      ],
+      "integration_points": [
+        "Used by src/features/dashboard/DashboardPage.tsx to show KPIs from useDashboardMetrics hook",
+        "Designed to be small and reused across multiple dashboards/ pages"
+      ],
+      "prompt_context": {
+        "component_type": "card",
+        "data_model": "metrics",
+        "interactions": [
+          "display"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": null
+      },
+      "priority": 3
+    },
+    {
+      "id": "chart-card",
+      "title": "ChartCard presentational - src/components/ChartCard.tsx",
+      "description": "Card component that renders a larger time-series chart using a lightweight charting approach (SVG or Canvas) suitable for interactive hover tooltips. Accessible labels and keyboard focusable area.",
+      "file_to_implement": "src/components/ChartCard.tsx",
+      "acceptance": [
+        "Accepts props: title, series: {x:number|Date, y:number}[], height, aria-label",
+        "Renders a time-series chart as SVG with axes simplification and a hover tooltip (on mouse move and keyboard focus)",
+        "Responsive width and height handling using viewBox",
+        "Accessible: aria-label and role='img' with descriptive title/desc elements"
+      ],
+      "implementation_steps": [
+        "1. Define props and types for series points and optional dimensions.",
+        "2. Compute scales (min/max) and generate an SVG polyline/path representing series.",
+        "3. Implement mouse handlers to compute nearest point and show a tooltip using absolute positioned div; also support keyboard navigation by making the chart focusable and enabling left/right arrow navigation between points.",
+        "4. Add title and desc inside SVG for screen readers and expose aria-label prop.",
+        "5. Style container and tooltip with Tailwind, including dark mode variants.",
+        "6. Export default component."
+      ],
+      "integration_points": [
+        "Used by src/features/dashboard/DashboardPage.tsx to render chart series from useDashboardData hook",
+        "Real-time updates cause props.series to change; component should be purely presentational",
+        "Can be reused for other chart types later"
+      ],
+      "prompt_context": {
+        "component_type": "chart",
+        "data_model": "chart",
+        "interactions": [
+          "hover",
+          "keyboard"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": null
+      },
+      "priority": 3
+    },
+    {
+      "id": "use-dark-mode",
+      "title": "useDarkMode hook - src/hooks/useDarkMode.ts",
+      "description": "Hook to read and toggle dark-mode preference. Persists choice to localStorage and applies class on document.documentElement for Tailwind dark mode.",
+      "file_to_implement": "src/hooks/useDarkMode.ts",
+      "acceptance": [
+        "Exports useDarkMode hook returning [isDark, toggleDark] or {isDark, setDark, toggleDark}",
+        "Initializes state from localStorage (if present) or system preference",
+        "Applies or removes 'dark' class on document.documentElement",
+        "Works server-side safe (guards document usage)"
+      ],
+      "implementation_steps": [
+        "1. Implement a hook that checks window.matchMedia('(prefers-color-scheme: dark)') as fallback and localStorage for stored preference via src/utils/localStorage.ts.",
+        "2. On mount, set document.documentElement.classList.add('dark') if dark true; remove otherwise.",
+        "3. Provide toggleDark() and setDark(value:boolean) functions that update state and persist to localStorage.",
+        "4. Return stable callback refs using useCallback and ensure types are clear."
+      ],
+      "integration_points": [
+        "Used by src/components/Navbar.tsx to render a toggle control",
+        "Used by src/App.tsx to ensure initial theme is applied",
+        "Persists to src/utils/localStorage.ts"
+      ],
+      "prompt_context": {
+        "component_type": "hook",
+        "data_model": "ui",
+        "interactions": [
+          "read",
+          "write"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/utils/localStorage.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "use-websocket",
+      "title": "useWebSocket hook (mock-ready) - src/hooks/useWebSocket.ts",
+      "description": "Hook to subscribe to a WebSocket or a mock emitter. In development mode uses src/services/mockWs.ts; exposes subscribe/unsubscribe and emits payloads to a callback. Integrates with React Query to update cache.",
+      "file_to_implement": "src/hooks/useWebSocket.ts",
+      "acceptance": [
+        "Exports useWebSocket hook which accepts channel/topic and a callback to receive messages",
+        "In development uses mock emitter (src/services/mockWs.ts) when disable_websocket_in_dev is false; otherwise no-op",
+        "Returns unsubscribe function and handles cleanup on unmount",
+        "Typed messages via src/types/index.ts"
+      ],
+      "implementation_steps": [
+        "1. Provide interface for subscribe(channel:string, cb:(msg)=>void): () => void.",
+        "2. Internally check environment/development flags; if development_mode.disable_websocket_in_dev is true, rely on mock emitter that can be toggled on/off (mockWs emits via setInterval).",
+        "3. Implement useEffect to subscribe on mount and cleanup on unmount returning unsubscribe.",
+        "4. Use useRef to store callback to avoid re-subscribing on each render.",
+        "5. Export hook and helper functions."
+      ],
+      "integration_points": [
+        "Used by src/features/dashboard/DashboardPage.tsx to subscribe to real-time updates and call queryClient.setQueryData to patch caches from src/core/api/reactQueryClient.ts",
+        "Relies on src/services/mockWs.ts in development mode"
+      ],
+      "prompt_context": {
+        "component_type": "hook",
+        "data_model": "realtime",
+        "interactions": [
+          "subscribe",
+          "receive"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/services/mockWs.ts",
+          "src/core/api/reactQueryClient.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "mock-ws-service",
+      "title": "Mock WebSocket service - src/services/mockWs.ts",
+      "description": "Provides a simple event emitter that simulates real-time updates for development. Exposes start, stop, and subscribe APIs. Emits update payloads for metrics and chart points.",
+      "file_to_implement": "src/services/mockWs.ts",
+      "acceptance": [
+        "Exports startMockWs(), stopMockWs(), and subscribe(channel, cb) functions",
+        "Emits simulated messages every configurable interval for channels 'metrics' and 'charts'",
+        "Allows subscribers to unsubscribe cleanly",
+        "Does not run when development_mode.disable_websocket_in_dev is true"
+      ],
+      "implementation_steps": [
+        "1. Implement an in-memory event emitter with map of channel -> Set<cb>.",
+        "2. Implement startMockWs that starts setInterval timers that generate synthetic updates (small random deltas) and call all subscribers for the relevant channel.",
+        "3. Implement stopMockWs to clear intervals and reset subscribers.",
+        "4. Implement subscribe(channel, cb) that adds cb to the set and returns an unsubscribe function.",
+        "5. Export functions and ensure typed payload shapes using src/types/index.ts."
+      ],
+      "integration_points": [
+        "Used by src/hooks/useWebSocket.ts to connect to mock emitter in development",
+        "Emits messages that are applied to React Query cache via getQueryClient() from src/core/api/reactQueryClient.ts"
+      ],
+      "prompt_context": {
+        "component_type": "service",
+        "data_model": "realtime",
+        "interactions": [
+          "emit",
+          "subscribe"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/types/index.ts",
+          "src/core/api/reactQueryClient.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "localstorage-utils",
+      "title": "LocalStorage utilities - src/utils/localStorage.ts",
+      "description": "Small helpers to get/set/remove JSON items from localStorage using a consistent prefix. Handles JSON parsing errors and optional expiry handling.",
+      "file_to_implement": "src/utils/localStorage.ts",
+      "acceptance": [
+        "Exports getItem<T>(key), setItem<T>(key, value), removeItem(key)",
+        "Uses a consistent prefix (e.g., 'spa__') to avoid collisions",
+        "Gracefully handles JSON parse errors and returns null",
+        "Works in SSR-safe manner (guards typeof window !== 'undefined')"
+      ],
+      "implementation_steps": [
+        "1. Implement a prefix constant and typed functions: getItem, setItem, removeItem.",
+        "2. Use try/catch for JSON.parse and JSON.stringify; on error remove the broken key and return null.",
+        "3. Optionally implement setItem with expiry metadata (optional but document).",
+        "4. Export functions with TypeScript generics."
+      ],
+      "integration_points": [
+        "Used by src/core/auth/AuthContext.tsx to persist token/user",
+        "Used by src/hooks/useDarkMode.ts to persist theme choice",
+        "Used by LoginForm remember-me option"
+      ],
+      "prompt_context": {
+        "component_type": "utility",
+        "data_model": "persistence",
+        "interactions": [
+          "read",
+          "write"
+        ],
+        "styling_approach": null,
+        "dependencies": null
+      },
+      "priority": 1
+    },
+    {
+      "id": "types-index",
+      "title": "Type definitions - src/types/index.ts",
+      "description": "Centralized TypeScript types for User, Metrics, ChartSeries, ApiError, AuthResponse, etc.",
+      "file_to_implement": "src/types/index.ts",
+      "acceptance": [
+        "Exports interfaces: User, Metrics, ChartPoint, ChartSeries, ApiError, AuthResponse",
+        "Used consistently across hooks, services, and components",
+        "Enables strict typing in other modules"
+      ],
+      "implementation_steps": [
+        "1. Define and export interface User { id: string; email: string; name?: string; role: 'admin'|'user' }.",
+        "2. Define Metrics interface with properties like aum, pnl, positionsCount, etc., including types and optional delta properties.",
+        "3. Define ChartPoint { ts: number; value: number } and ChartSeries = ChartPoint[].",
+        "4. Define ApiError { status: number; message: string; details?: any } and AuthResponse type.",
+        "5. Export types for reuse."
+      ],
+      "integration_points": [
+        "Imported by src/core/auth/authService.ts, src/core/api/mockServer.ts, hooks, components",
+        "Forms the contract for mock responses and real API consumers"
+      ],
+      "prompt_context": {
+        "component_type": "types",
+        "data_model": "user|metrics|chart",
+        "interactions": [
+          "type"
+        ],
+        "styling_approach": null,
+        "dependencies": null
+      },
+      "priority": 1
+    },
+    {
+      "id": "i18n-setup",
+      "title": "i18n initialization - src/i18n/i18n.ts",
+      "description": "Initialize i18next with English (en) as default and support for additional locales. Expose a helper useTranslation or export i18n instance ready to import by components.",
+      "file_to_implement": "src/i18n/i18n.ts",
+      "acceptance": [
+        "Initializes i18next with at least English strings and pluralization support",
+        "Loads resources from src/i18n/locales/*.json",
+        "Exports initialized i18n instance and ensures use in components via useTranslation from react-i18next",
+        "Supports changeLanguage and persists selected locale to localStorage"
+      ],
+      "implementation_steps": [
+        "1. Import i18next and react-i18next initReactI18next, load locales from src/i18n/locales/en.json (and an example es.json).",
+        "2. Initialize with fallbackLng: 'en', resources object, interpolation: { escapeValue: false }.",
+        "3. Optionally persist selected language to localStorage via src/utils/localStorage.ts and restore on init.",
+        "4. Export i18n.",
+        "5. Provide minimal translation keys for UI strings used across components (e.g., 'app.title', 'login.email')."
+      ],
+      "integration_points": [
+        "Imported by src/main.tsx to initialize before rendering",
+        "Components use react-i18next useTranslation() to get strings and keys",
+        "LocalStorage persistence via src/utils/localStorage.ts"
+      ],
+      "prompt_context": {
+        "component_type": "i18n",
+        "data_model": null,
+        "interactions": [
+          "translate",
+          "persist"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/utils/localStorage.ts",
+          "src/i18n/locales/en.json"
+        ]
+      },
+      "priority": 2
+    }
+  ]
+}

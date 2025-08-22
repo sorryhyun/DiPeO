@@ -23,7 +23,7 @@
       },
       "data": {
         "condition_type": "custom",
-        "expression": "current_index >= 10",
+        "expression": "current_index >= 25",
         "expose_index_as": "current_index",
         "flipped": [
           false,
@@ -43,7 +43,7 @@
         "operation": "read",
         "sub_type": "file",
         "format": "json",
-        "file": "projects/frontend_enhance/generated/sections_data.json",
+        "file": "projects/frontend_auto/generated/sections_data.json",
         "label": "load sections data"
       }
     },
@@ -58,7 +58,7 @@
         "person": "Frontend Generator",
         "max_iteration": 100,
         "memorize_to": "Necessary codes to implement or which are dependent to",
-        "at_most": 1,
+        "at_most": 2,
         "prompt_file": "frontend_generator.txt",
         "label": "generate frontend code",
         "first_only_prompt": ""
@@ -75,7 +75,7 @@
         "operation": "write",
         "sub_type": "file",
         "format": "text",
-        "file": "projects/frontend_enhance/generated/temp_section_{current_index}.tsx",
+        "file": "projects/frontend_auto/generated/temp_section_{current_index}.tsx",
         "label": "write section result"
       }
     },
@@ -88,7 +88,7 @@
       },
       "data": {
         "language": "python",
-        "filePath": "projects/frontend_enhance/rename_generated_files.py",
+        "filePath": "projects/frontend_auto/rename_generated_files.py",
         "functionName": "rename_generated_files",
         "label": "rename files"
       }
@@ -103,7 +103,7 @@
       "data": {
         "file_format": "json",
         "save_to_file": true,
-        "file_name": "projects/frontend_enhance/generated/consolidated_results.json",
+        "file_name": "projects/frontend_auto/generated/consolidated_results.json",
         "label": "end"
       }
     }
@@ -183,7 +183,7 @@
       "label": "section planner",
       "llm_config": {
         "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
+        "model": "gpt-5-mini-2025-08-07",
         "api_key_id": "APIKEY_52609F",
         "system_prompt": "You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.\n\nYour task is to:\n1. FIRST define the overall application architecture that will guide all sections\n2. THEN split the work into independent sections that fit within this architecture\n3. For EACH section, provide concrete implementation steps and integration points\n\nFocus on:\n- Clear architectural patterns and principles\n- How data flows through the application\n- Specific, actionable implementation steps (not vague descriptions)\n- How sections communicate and integrate with each other\n- Modern React 18+ best practices and TypeScript patterns\n\nEach section should be a cohesive unit that can be developed independently but integrates smoothly.\nFollow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.\n",
         "prompt_file": null
@@ -322,9 +322,9 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-22T09:10:30.427Z",
-    "modified": "2025-08-22T09:10:30.427Z",
+    "created": "2025-08-22T12:15:02.213Z",
+    "modified": "2025-08-22T12:15:02.213Z",
     "version": "1.0.0",
-    "id": "projects/frontend_enhance/consolidated_generator"
+    "id": "projects/frontend_auto/consolidated_generator"
   }
 }

@@ -110,7 +110,7 @@ i18n
     },
 
     // Debug in development
-    debug: process.env.NODE_ENV === 'development',
+    debug: import.meta.env.DEV,
   });
 
 export { i18n };

@@ -1,0 +1,204 @@
+version: light
+
+persons:
+  Section Planner:
+    service: openai
+    model: gpt-5-mini-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.
+      
+      Your task is to:
+      1. FIRST define the overall application architecture that will guide all sections
+      2. THEN split the work into independent sections that fit within this architecture
+      3. For EACH section, provide concrete implementation steps and integration points
+      
+      Focus on:
+      - Clear architectural patterns and principles
+      - How data flows through the application
+      - Specific, actionable implementation steps (not vague descriptions)
+      - How sections communicate and integrate with each other
+      - Modern React 18+ best practices and TypeScript patterns
+      
+      Each section should be a cohesive unit that can be developed independently but integrates smoothly.
+      Follow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.
+
+  Frontend Generator:
+#    service: openai
+#    model: gpt-5-nano-2025-08-07
+#    api_key_id: APIKEY_52609F
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: |
+      You are an expert React/TypeScript engineer building a cohesive frontend application.
+      
+      CRITICAL RULES:
+      1. Return ONLY the raw code files in the exact format specified in the prompt. You MUST NOT attempt to examine any existing codes.
+      2. Do NOT include any conversational text, explanations, or commentary
+      3. Generate production-ready code that integrates with previously generated sections
+      4. Follow established patterns from earlier sections for consistency
+      5. Import and use components/utilities from previous sections when referenced
+      
+      You are building sections iteratively. Use the context from previous sections to maintain consistency in:
+      - Naming conventions
+      - Import paths
+      - Type definitions
+      - Component patterns
+      - State management approach
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 60, y: 240}
+    props:
+      trigger_mode: manual
+      
+#  - label: Load Config
+#    type: db
+#    position: {x: 300, y: 240}
+#    props:
+#      operation: read
+#      sub_type: file
+#      format: json
+#      source_details: projects/frontend_auto/frontend_enhance_config.json
+
+#  - label: Plan Sections
+#    type: person_job
+#    position: {x: 400, y: 240}
+#    props:
+#      person: Section Planner
+#      text_format_file: projects/frontend_auto/section_models.py
+#      default_prompt: |
+#        Analyze the requirements and create a comprehensive development plan:
+#
+#        App config: {{config}}
+#
+#        Your response MUST include:
+#        1. An overall architecture that defines:
+#           - How all sections work together as a cohesive system
+#           - Core architectural patterns and principles
+#           - Data flow and state management strategy
+#           - DETAILED folder structure with ACTUAL FILE NAMES (e.g., src/components/Button.tsx)
+#           - Tech stack decisions
+#
+#        2. Independent sections where EACH section represents ONE SPECIFIC FILE:
+#           - file_to_implement: EXACT file path (e.g., "src/features/dashboard/components/MetricCard.tsx")
+#           - Clear acceptance criteria for that specific file
+#           - Implementation steps for THAT FILE ONLY (what goes inside it)
+#           - Integration points showing how this file connects with others
+#           - Proper dependencies and priority
+#
+#        CRITICAL: Each section MUST specify the exact file path in file_to_implement field.
+#        THE WHOLE FILES NEEDED should be arranged.
+#        Think like you're planning a real production React application.
+#        Ensure files can be developed independently but integrate seamlessly.
+#
+#  - label: Save Sections Data
+#    type: db
+#    position: {x: 800, y: 240}
+#    props:
+#      operation: write
+#      sub_type: file
+#      format: json
+#      source_details: projects/frontend_auto/generated/sections_data.json
+
+  - label: Check Continue
+    type: condition
+    position: {x: 1450, y: 240}
+    props:
+      condition_type: custom
+#      expression: current_index >= 4
+      expression: current_index >= 25
+      expose_index_as: current_index
+      flipped: [false, true]
+
+  - label: Load Sections Data
+    type: db
+    position: {x: 1100, y: 240}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_auto/generated/sections_data.json
+
+  - label: Generate Frontend Code
+    type: person_job
+    position: {x: 1800, y: 240}
+    props:
+      person: Frontend Generator
+      max_iteration: 100
+      memorize_to: "Necessary codes to implement or which are dependent to"
+      at_most: 2
+      prompt_file: frontend_generator.txt
+
+  - label: Write Section Result
+    type: db
+    position: {x: 2200, y: 240}
+    props:
+      operation: write
+      sub_type: file
+      format: text
+      source_details: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
+
+  - label: Rename Files
+    type: code_job
+    position: {x: 1500, y: 600}
+    props:
+      language: python
+      filePath: projects/frontend_auto/rename_generated_files.py
+      functionName: rename_generated_files
+
+#  - label: Compile Results
+#    type: code_job
+#    position: {x: 1400, y: 600}
+#    props:
+#      language: python
+#      code: |
+#        import json
+#        import os
+#        from pathlib import Path
+#
+#        # Read all generated section files
+#        generated_dir = Path("projects/frontend_enhance/generated")
+#        section_files = sorted(generated_dir.glob("consolidated_section_*.json"))
+#
+#        all_sections = []
+#        for file in section_files:
+#          with open(file, 'r') as f:
+#            all_sections.append(json.load(f))
+#
+#        result = {
+#          "success": True,
+#          "total_sections_processed": len(all_sections),
+#          "sections": all_sections,
+#          "architecture": sorted_data.get('architecture', {}),
+#          "approach": "Sequential processing with intelligent memory selection"
+#        }
+
+  -
+  - label: End
+    type: endpoint
+    position: {x: 1800, y: 600}
+    props:
+      file_format: json
+      save_to_file: true
+      file_path: projects/frontend_auto/generated/consolidated_results.json
+
+connections:
+  # Initial setup
+#  - {from: Start, to: Load Config}
+#  - {from: Load Config, to: Plan Sections, label: config, content_type: object}
+#  - {from: Plan Sections, to: Save Sections Data, content_type: object}
+#  - {from: Save Sections Data, to: Check Continue, content_type: object}
+
+  - {from: Start, to: Check Continue}
+
+  - { from: Check Continue_condfalse, to: Load Sections Data, content_type: object }
+  - { from: Check Continue_condtrue, to: Rename Files, content_type: object }
+
+  - {from: Load Sections Data, to: Generate Frontend Code, content_type: object}
+  - {from: Generate Frontend Code, to: Write Section Result, content_type: object}
+  - {from: Write Section Result, to: Check Continue, content_type: object}
+
+  - { from: Rename Files, to: End, content_type: object }

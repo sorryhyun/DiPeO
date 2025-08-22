@@ -123,24 +123,43 @@ class MemorySelector:
         
         # We pass a concise structured listing to improve determinism:
         # IDs + short snippet of each candidate (ID must be stable in repo)
-        # Deduplicate messages with same content to avoid clutter
+        # Deduplicate messages with similar content to avoid clutter
         lines = []
-        seen_content = {}  # Track content we've already seen
+        seen_messages = []  # Track messages we've already included
+        
+        def calculate_word_overlap(text1: str, text2: str, threshold: float = 0.8) -> bool:
+            """Check if two texts have sufficient word overlap (default 80%)"""
+            words1 = set(text1.lower().split())
+            words2 = set(text2.lower().split())
+            
+            if not words1 or not words2:
+                return text1 == text2
+            
+            intersection = len(words1 & words2)
+            smaller_set = min(len(words1), len(words2))
+            
+            return (intersection / smaller_set) >= threshold
         
         for m in candidate_messages:
             if not getattr(m, "id", None):
                 continue
             
-            # Create a normalized content key for deduplication
+            # Get content for deduplication check
             content_key = (m.content or "")[:450].strip()
             
-            # Skip if we've seen this exact content before
-            if content_key in seen_content:
-                # Keep track of all IDs with this content for potential future use
-                seen_content[content_key].append(m.id)
+            # Skip if we've seen similar content before (80% word overlap)
+            is_duplicate = False
+            for seen_content, seen_ids in seen_messages:
+                if calculate_word_overlap(content_key, seen_content):
+                    # Keep track of all IDs with similar content for potential future use
+                    seen_ids.append(m.id)
+                    is_duplicate = True
+                    break
+            
+            if is_duplicate:
                 continue
             
-            seen_content[content_key] = [m.id]
+            seen_messages.append((content_key, [m.id]))
             snippet = content_key.replace("\n", " ")
             
             # Get sender name/label
@@ -160,7 +179,7 @@ class MemorySelector:
             
             lines.append(f"- {m.id} ({sender_label}): {snippet}")
         listing = "\n".join(lines[:100])  # hard cap
-        
+        print(f"\nSelecting memory among {len(lines)} messages:\n")
         # Build prompt with at_most constraint if specified
         constraint_text = ""
         if at_most and at_most > 0:
