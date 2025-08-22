@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
 import { ErrorBoundary } from 'react-error-boundary';
-import { config } from './config/config';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { SignIn } from '../features/auth/components/SignIn';
 import { Dashboard } from '../features/dashboard/pages/Dashboard';

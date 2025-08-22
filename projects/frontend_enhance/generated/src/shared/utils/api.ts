@@ -81,7 +81,7 @@ const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
 };
 
 // Mock data for development
-const getMockData = (url: string, method: string = 'GET'): any => {
+const getMockData = (url: string): any => {
   const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   
   if (!isDev) return null;
@@ -130,7 +130,7 @@ const makeRequest = async <T>(
   const fullUrl = url.startsWith('http') ? url : `${getApiBaseUrl()}${url}`;
   
   // Check for mock data in development
-  const mockData = getMockData(fullUrl, fetchOptions.method || 'GET');
+  const mockData = getMockData(fullUrl);
   if (mockData !== null) {
     if (isDevelopment()) {
       console.log(`[API] [MOCK] ${fetchOptions.method || 'GET'} ${fullUrl}`, mockData);

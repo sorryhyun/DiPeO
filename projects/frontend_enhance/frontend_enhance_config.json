@@ -15,6 +15,21 @@
   "max_iterations": 3,
   "output_dir": "./generated_frontend_enhanced",
   "prompt_type": "frontend_component_generator",
+  "development_mode": {
+    "enable_mock_data": true,
+    "mock_auth_users": [
+      {"email": "admin@example.com", "password": "admin123", "role": "admin"},
+      {"email": "user@example.com", "password": "user123", "role": "user"},
+      {"email": "test@test.com", "password": "test123", "role": "user"}
+    ],
+    "mock_api_endpoints": [
+      "/api/dashboard/metrics",
+      "/api/dashboard/data", 
+      "/api/dashboard/charts"
+    ],
+    "disable_websocket_in_dev": true,
+    "use_localstorage_persistence": true
+  },
   "prompt_requirements": [
     "Generate modern, production-ready React components with TypeScript",
     "Use React 18+ features: Suspense, Error Boundaries, Context API",

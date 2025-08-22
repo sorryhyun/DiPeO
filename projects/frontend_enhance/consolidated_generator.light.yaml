@@ -3,7 +3,7 @@ version: light
 persons:
   Section Planner:
     service: openai
-    model: gpt-5-nano-2025-08-07
+    model: gpt-5-mini-2025-08-07
     api_key_id: APIKEY_52609F
     system_prompt: |
       You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.
@@ -90,6 +90,7 @@ nodes:
 #           - Proper dependencies and priority
 #
 #        CRITICAL: Each section MUST specify the exact file path in file_to_implement field.
+#        THE WHOLE FILES NEEDED should be arranged.
 #        Think like you're planning a real production React application.
 #        Ensure files can be developed independently but integrate seamlessly.
 #

@@ -17,14 +17,6 @@ interface FormErrors {
   general?: string;
 }
 
-interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-  };
-}
 
 export const SignIn: React.FC = () => {
   const { t } = useTranslation();

@@ -49,6 +49,7 @@ multiprocess==0.70.16
 notion-client==2.4.0
 numpy==2.3.0
 openai==1.88.0
+ollama==0.5.3
 packaging==25.0
 pandas==2.3.0
 pre-commit==4.2.0

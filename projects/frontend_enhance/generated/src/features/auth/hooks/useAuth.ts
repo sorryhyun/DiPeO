@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAuthContext, AuthContextType, User } from '../context/AuthContext';
+import { useAuthContext, AuthContextType } from '../context/AuthContext';
 import { logger } from '../../../shared/utils/logger';
 
 // Extended auth hook interface with additional utility methods
@@ -59,7 +59,7 @@ export const useAuth = (): UseAuthReturn => {
     if (!user || !user.role) return false;
     
     const userRoles = ROLE_HIERARCHY[user.role as keyof typeof ROLE_HIERARCHY] || [user.role];
-    return userRoles.includes(role);
+    return userRoles.some(r => r === role);
   }, [user]);
 
   const hasAnyRole = useCallback((roles: string[]): boolean => {
@@ -157,7 +157,7 @@ export const useAuth = (): UseAuthReturn => {
 
   // Enhanced token refresh with retry logic
   const enhancedRefreshToken = useCallback(async (retries: number = 1): Promise<void> => {
-    let lastError: Error;
+    let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
@@ -175,7 +175,7 @@ export const useAuth = (): UseAuthReturn => {
     }
 
     logger.error('Token refresh failed after all retries', lastError, 'auth');
-    throw lastError!;
+    throw lastError || new Error('Token refresh failed');
   }, [refreshToken]);
 
   return {
@@ -218,5 +218,3 @@ export const useAuth = (): UseAuthReturn => {
 
 export default useAuth;
 
-// Export types for external use
-export type { UseAuthReturn };

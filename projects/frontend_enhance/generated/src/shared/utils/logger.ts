@@ -286,7 +286,8 @@ class Logger {
 const logger = new Logger();
 
 // Export both the instance and the class for testing
-export { Logger, LogLevel, LogEntry };
+export { Logger };
+export type { LogLevel, LogEntry };
 export default logger;
 
 // Named export for convenience

@@ -48,10 +48,14 @@ const Dashboard: React.FC = () => {
     queryFn: () => api.get('/api/dashboard/metrics'),
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 30 * 1000, // 30 seconds
-    onError: (error) => {
-      logger.error('Failed to fetch dashboard metrics', error);
-    },
   });
+
+  // Log metrics error if it occurs
+  React.useEffect(() => {
+    if (metricsError) {
+      logger.error('Failed to fetch dashboard metrics', metricsError);
+    }
+  }, [metricsError]);
 
   // Fetch dashboard table data
   const {
@@ -63,10 +67,14 @@ const Dashboard: React.FC = () => {
     queryFn: () => api.get('/api/dashboard/data'),
     staleTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 60 * 1000, // 1 minute
-    onError: (error) => {
-      logger.error('Failed to fetch dashboard data', error);
-    },
   });
+
+  // Log table error if it occurs
+  React.useEffect(() => {
+    if (tableError) {
+      logger.error('Failed to fetch dashboard data', tableError);
+    }
+  }, [tableError]);
 
   // Fetch chart data
   const {
@@ -78,10 +86,14 @@ const Dashboard: React.FC = () => {
     queryFn: () => api.get('/api/dashboard/charts'),
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 30 * 1000, // 30 seconds
-    onError: (error) => {
-      logger.error('Failed to fetch chart data', error);
-    },
   });
+
+  // Log chart error if it occurs
+  React.useEffect(() => {
+    if (chartError) {
+      logger.error('Failed to fetch chart data', chartError);
+    }
+  }, [chartError]);
 
   const isLoading = metricsLoading || tableLoading || chartLoading;
   const hasError = metricsError || tableError || chartError;
@@ -152,7 +164,7 @@ const Dashboard: React.FC = () => {
           role="region"
           aria-label={t('dashboard.metrics.label', 'Key Performance Metrics')}
         >
-          {metricsCards.map((metric, index) => (
+          {metricsCards.map((metric) => (
             <Card 
               key={metric.title} 
               className="p-6 hover:shadow-lg transition-shadow duration-200"
@@ -253,10 +265,16 @@ const Dashboard: React.FC = () => {
                   {t('dashboard.table.error', 'Failed to load table data')}
                 </p>
               </div>
+            ) : tableLoading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-gray-600 dark:text-gray-300">
+                  {t('dashboard.table.loading', 'Loading table data...')}
+                </p>
+              </div>
             ) : (
               <DataTable 
-                data={tableData || []} 
-                loading={tableLoading}
+                data={tableData || []}
                 columns={[
                   {
                     key: 'name',

@@ -215,10 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: Math.random().toString(36).substr(2, 9),
             email,
             name: mockUsers[email].name,
-            role: mockUsers[email].role as 'user' | 'admin' | 'manager',
-            permissions: mockUsers[email].role === 'admin' 
-              ? ['read', 'write', 'delete', 'admin'] 
-              : ['read', 'write'],
+            role: mockUsers[email].role,
             preferences: {},
           };
           const tokenExpiry = Date.now() + 24 * 60 * 60 * 1000; // 24 hours from now
