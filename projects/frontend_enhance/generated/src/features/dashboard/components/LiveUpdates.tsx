@@ -25,7 +25,7 @@ const LiveUpdates: React.FC<LiveUpdatesProps> = ({
   const listRef = useRef<HTMLDivElement>(null);
 
   // Don't connect to WebSocket in development (no backend available)
-  const isDev = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+  const isDev = import.meta.env.DEV || window.location.hostname === 'localhost';
   const wsUrl = isDev 
     ? '' // Empty URL to prevent connection in development
     : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/updates`;
@@ -63,7 +63,7 @@ const LiveUpdates: React.FC<LiveUpdatesProps> = ({
 
   // Generate mock updates in development mode
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && status === 'disconnected') {
+    if (import.meta.env.DEV && status === 'disconnected') {
       // Create some mock updates for development
       const mockUpdates: LiveUpdate[] = [
         {
