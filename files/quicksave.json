@@ -23,7 +23,7 @@
       },
       "data": {
         "condition_type": "custom",
-        "expression": "current_index >= 4",
+        "expression": "current_index >= 10",
         "expose_index_as": "current_index",
         "flipped": [
           false,
@@ -194,9 +194,9 @@
       "id": "Frontend Generator",
       "label": "frontend generator",
       "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
+        "service": "claude-code",
+        "model": "claude-code",
+        "api_key_id": "APIKEY_CLAUDE",
         "system_prompt": "You are an expert React/TypeScript engineer building a cohesive frontend application.\n\nCRITICAL RULES:\n1. Return ONLY the raw code files in the exact format specified in the prompt. You MUST NOT attempt to examine any existing codes.\n2. Do NOT include any conversational text, explanations, or commentary\n3. Generate production-ready code that integrates with previously generated sections\n4. Follow established patterns from earlier sections for consistency\n5. Import and use components/utilities from previous sections when referenced\n\nYou are building sections iteratively. Use the context from previous sections to maintain consistency in:\n- Naming conventions\n- Import paths\n- Type definitions\n- Component patterns\n- State management approach\n",
         "prompt_file": null
       },
@@ -322,8 +322,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-22T08:34:21.802Z",
-    "modified": "2025-08-22T08:34:21.802Z",
+    "created": "2025-08-22T09:10:30.427Z",
+    "modified": "2025-08-22T09:10:30.427Z",
     "version": "1.0.0",
     "id": "projects/frontend_enhance/consolidated_generator"
   }

@@ -123,12 +123,42 @@ class MemorySelector:
         
         # We pass a concise structured listing to improve determinism:
         # IDs + short snippet of each candidate (ID must be stable in repo)
+        # Deduplicate messages with same content to avoid clutter
         lines = []
+        seen_content = {}  # Track content we've already seen
+        
         for m in candidate_messages:
             if not getattr(m, "id", None):
                 continue
-            snippet = (m.content or "")[:450].replace("\n", " ")
-            lines.append(f"- {m.id}: {snippet}")
+            
+            # Create a normalized content key for deduplication
+            content_key = (m.content or "")[:450].strip()
+            
+            # Skip if we've seen this exact content before
+            if content_key in seen_content:
+                # Keep track of all IDs with this content for potential future use
+                seen_content[content_key].append(m.id)
+                continue
+            
+            seen_content[content_key] = [m.id]
+            snippet = content_key.replace("\n", " ")
+            
+            # Get sender name/label
+            if m.from_person_id == "system":
+                sender_label = "system"
+            elif m.from_person_id == person.id:
+                # Use the current person's name directly
+                sender_label = person.name
+            else:
+                # For other persons, try to look them up
+                sender_label = str(m.from_person_id)
+                if hasattr(self._orchestrator, 'get_all_persons'):
+                    persons = self._orchestrator.get_all_persons()
+                    from_person_id = PersonID(str(m.from_person_id))
+                    if from_person_id in persons:
+                        sender_label = persons[from_person_id].name or str(m.from_person_id)
+            
+            lines.append(f"- {m.id} ({sender_label}): {snippet}")
         listing = "\n".join(lines[:100])  # hard cap
         
         # Build prompt with at_most constraint if specified
@@ -137,7 +167,7 @@ class MemorySelector:
             constraint_text = f"\nCONSTRAINT: Select at most {at_most} messages that best match the criteria.\n"
         
         prompt = (
-            "CANDIDATE MESSAGES (id: snippet):\n"
+            "CANDIDATE MESSAGES (id (sender): snippet):\n"
             f"{listing}\n\n===\n\n"
             f"TASK PREVIEW:\n===\n\n{preview}\n\n===\n\n"
             f"CRITERIA:\n{crit}\n\n"

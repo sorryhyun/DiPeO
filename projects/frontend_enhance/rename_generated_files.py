@@ -9,8 +9,16 @@ import shutil
 from pathlib import Path
 
 def rename_generated_files(inputs):
+    # Get base directory from environment or use current file's location
+    dipeo_base = os.environ.get('DIPEO_BASE_DIR')
+    if dipeo_base:
+        project_dir = Path(dipeo_base) / "projects" / "frontend_enhance"
+    else:
+        # Fallback to relative path from script location
+        project_dir = Path(__file__).parent
+    
     # Read sections data
-    sections_file = Path("projects/frontend_enhance/generated/sections_data.json")
+    sections_file = project_dir / "generated" / "sections_data.json"
     if not sections_file.exists():
         print(f"Error: {sections_file} not found")
         return
@@ -19,7 +27,7 @@ def rename_generated_files(inputs):
         data = json.load(f)
     
     sections = data.get('sections', [])
-    generated_dir = Path("projects/frontend_enhance/generated")
+    generated_dir = project_dir / "generated"
     
     renamed_count = 0
     for i, section in enumerate(sections):
@@ -42,4 +50,5 @@ def rename_generated_files(inputs):
     print(f"\n✅ Renamed {renamed_count} files")
 
 if __name__ == "__main__":
-    rename_generated_files()
+    dummy =1
+    rename_generated_files(dummy)

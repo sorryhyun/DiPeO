@@ -123,6 +123,23 @@ class SinglePersonJobExecutor:
         memorize_to = getattr(node, "memorize_to", None)
         at_most = getattr(node, "at_most", None)
         
+        # Prepare template values early for task preview
+        input_values = self._prompt_builder.prepare_template_values(transformed_inputs)
+        logger.debug(f"[PersonJob] input_values keys after prepare: {list(input_values.keys())}")
+        
+        # Get conversation context with all messages first (will be filtered later)
+        conversation_context = person.get_conversation_context(all_messages)
+        
+        # Combine input values with conversation context
+        template_values = {
+            **input_values,
+            **conversation_context
+        }
+        
+        # Merge global variables from context to make them available in templates
+        variables = context.get_variables() if hasattr(context, "get_variables") else {}
+        template_values = {**variables, **template_values}
+        
         # Apply memory settings through the unified selector
         if memorize_to or at_most:
             # Get the memory selector from orchestrator
@@ -131,8 +148,14 @@ class SinglePersonJobExecutor:
                 from .memory_selector import MemorySelector
                 memory_selector = MemorySelector(self._conversation_manager)
             
-            # Use loaded prompt_content (or first_only_content) for task_prompt_preview
-            task_preview = prompt_content or first_only_content or ""
+            # Build task preview with template substitution
+            task_preview_raw = prompt_content or first_only_content or ""
+            task_preview = self._prompt_builder.build(
+                prompt=task_preview_raw,
+                template_values=template_values,
+                first_only_prompt=None,
+                execution_count=execution_count
+            )
             
             # Apply memory settings to get filtered messages
             filtered_messages = await memory_selector.apply_memory_settings(
@@ -153,20 +176,16 @@ class SinglePersonJobExecutor:
             # Default behavior - use person's standard filtering
             filtered_messages = person.filter_messages(all_messages)
         
-        # Get conversation context with filtered messages
+        # Update conversation context with filtered messages
         conversation_context = person.get_conversation_context(filtered_messages)
         
-        input_values = self._prompt_builder.prepare_template_values(transformed_inputs)
-        logger.debug(f"[PersonJob] input_values keys after prepare: {list(input_values.keys())}")
-        
-        # Combine input values with conversation context
+        # Update template values with the filtered conversation context
         template_values = {
             **input_values,
             **conversation_context
         }
         
-        # Merge global variables from context to make them available in templates
-        variables = context.get_variables() if hasattr(context, "get_variables") else {}
+        # Re-merge global variables to ensure they're still available
         template_values = {**variables, **template_values}
         
         logger.debug(f"[PersonJob] final template_values keys: {list(template_values.keys())}")
