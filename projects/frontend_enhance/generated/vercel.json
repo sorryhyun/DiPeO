@@ -2,7 +2,7 @@
   "buildCommand": "pnpm build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "installCommand": "pnpm install",
+  "installCommand": "corepack enable && pnpm install --frozen-lockfile",
   "devCommand": "pnpm dev",
   "rewrites": [
     {
