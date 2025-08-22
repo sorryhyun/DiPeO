@@ -175,11 +175,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
 
         # Get conversation state if needed (based on memory_profile)
         conversation_state = None
-        # Check if memory is enabled (memory_profile is not None or 'NONE')
-        memory_enabled = node.memory_profile and node.memory_profile != 'NONE'
-        if memory_enabled:
-            if conv_envelope := self.get_optional_input(inputs, '_conversation'):
-                conversation_state = conv_envelope.as_conversation()
+        if conv_envelope := self.get_optional_input(inputs, '_conversation'):
+            conversation_state = conv_envelope.as_conversation()
             
         # Prepare request with extracted inputs
         # Only override inputs if we extracted them from envelopes

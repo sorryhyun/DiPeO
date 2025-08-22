@@ -2,6 +2,10 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/DBNodeData",
   "definitions": {
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "DBNodeData": {
       "additionalProperties": false,
       "description": "Configuration data for DB nodes that handle file system operations",
@@ -75,10 +79,6 @@
         "api_tool"
       ],
       "type": "string"
-    },
-    "JsonDict": {
-      "additionalProperties": false,
-      "type": "object"
     }
   }
 }

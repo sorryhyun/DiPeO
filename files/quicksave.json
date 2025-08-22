@@ -16,52 +16,6 @@
     },
     {
       "id": "node_1",
-      "type": "db",
-      "position": {
-        "x": 300,
-        "y": 240
-      },
-      "data": {
-        "operation": "read",
-        "sub_type": "file",
-        "format": "json",
-        "file": "projects/frontend_enhance/frontend_enhance_config.json",
-        "label": "load config"
-      }
-    },
-    {
-      "id": "node_2",
-      "type": "person_job",
-      "position": {
-        "x": 400,
-        "y": 240
-      },
-      "data": {
-        "person": "Section Planner",
-        "text_format_file": "projects/frontend_enhance/section_models.py",
-        "default_prompt": "Analyze the requirements and create a comprehensive development plan:\n\nApp config: {{config}}\n\nYour response MUST include:\n1. An overall architecture that defines:\n   - How all sections work together as a cohesive system\n   - Core architectural patterns and principles\n   - Data flow and state management strategy\n   - DETAILED folder structure with ACTUAL FILE NAMES (e.g., src/components/Button.tsx)\n   - Tech stack decisions\n\n2. Independent sections where EACH section represents ONE SPECIFIC FILE:\n   - file_to_implement: EXACT file path (e.g., \"src/features/dashboard/components/MetricCard.tsx\")\n   - Clear acceptance criteria for that specific file\n   - Implementation steps for THAT FILE ONLY (what goes inside it)\n   - Integration points showing how this file connects with others\n   - Proper dependencies and priority\n\nCRITICAL: Each section MUST specify the exact file path in file_to_implement field.\nThink like you're planning a real production React application.\nEnsure files can be developed independently but integrate seamlessly.\n",
-        "label": "plan sections",
-        "first_only_prompt": "",
-        "max_iteration": 1
-      }
-    },
-    {
-      "id": "node_3",
-      "type": "db",
-      "position": {
-        "x": 800,
-        "y": 240
-      },
-      "data": {
-        "operation": "write",
-        "sub_type": "file",
-        "format": "json",
-        "file": "projects/frontend_enhance/generated/sections_data.json",
-        "label": "save sections data"
-      }
-    },
-    {
-      "id": "node_4",
       "type": "condition",
       "position": {
         "x": 1450,
@@ -69,7 +23,7 @@
       },
       "data": {
         "condition_type": "custom",
-        "expression": "current_index >= 2",
+        "expression": "current_index >= 4",
         "expose_index_as": "current_index",
         "flipped": [
           false,
@@ -79,7 +33,7 @@
       }
     },
     {
-      "id": "node_5",
+      "id": "node_2",
       "type": "db",
       "position": {
         "x": 1100,
@@ -94,7 +48,7 @@
       }
     },
     {
-      "id": "node_6",
+      "id": "node_3",
       "type": "person_job",
       "position": {
         "x": 1800,
@@ -104,14 +58,14 @@
         "person": "Frontend Generator",
         "max_iteration": 100,
         "memorize_to": "Necessary codes to implement or which are dependent to",
-        "at_most": 5,
+        "at_most": 1,
         "prompt_file": "frontend_generator.txt",
         "label": "generate frontend code",
         "first_only_prompt": ""
       }
     },
     {
-      "id": "node_7",
+      "id": "node_4",
       "type": "db",
       "position": {
         "x": 2200,
@@ -126,7 +80,7 @@
       }
     },
     {
-      "id": "node_8",
+      "id": "node_5",
       "type": "endpoint",
       "position": {
         "x": 1800,
@@ -152,35 +106,8 @@
     },
     {
       "id": "arrow_1",
-      "source": "node_1_default_output",
+      "source": "node_1_condfalse_output",
       "target": "node_2_default_input",
-      "label": "config",
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_2",
-      "source": "node_2_default_output",
-      "target": "node_3_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_3",
-      "source": "node_3_default_output",
-      "target": "node_4_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_4",
-      "source": "node_4_condfalse_output",
-      "target": "node_5_default_input",
       "label": null,
       "packing": null,
       "data": {
@@ -189,9 +116,9 @@
       "content_type": "object"
     },
     {
-      "id": "arrow_5",
-      "source": "node_4_condtrue_output",
-      "target": "node_8_default_input",
+      "id": "arrow_2",
+      "source": "node_1_condtrue_output",
+      "target": "node_5_default_input",
       "label": null,
       "packing": null,
       "data": {
@@ -200,27 +127,27 @@
       "content_type": "object"
     },
     {
-      "id": "arrow_6",
-      "source": "node_5_default_output",
-      "target": "node_6_default_input",
+      "id": "arrow_3",
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
       "label": null,
       "packing": null,
       "data": null,
       "content_type": "object"
     },
     {
-      "id": "arrow_7",
-      "source": "node_6_default_output",
-      "target": "node_7_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_8",
-      "source": "node_7_default_output",
+      "id": "arrow_4",
+      "source": "node_3_default_output",
       "target": "node_4_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_4_default_output",
+      "target": "node_1_default_input",
       "label": null,
       "packing": null,
       "data": null,
@@ -244,9 +171,9 @@
       "id": "Frontend Generator",
       "label": "frontend generator",
       "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
+        "service": "claude-code",
+        "model": "claude-code",
+        "api_key_id": "APIKEY_CLAUDE",
         "system_prompt": "You are an expert React/TypeScript engineer building a cohesive frontend application.\n\nCRITICAL RULES:\n1. Return ONLY the raw code files in the exact format specified in the prompt. You MUST NOT attempt to examine any existing codes.\n2. Do NOT include any conversational text, explanations, or commentary\n3. Generate production-ready code that integrates with previously generated sections\n4. Follow established patterns from earlier sections for consistency\n5. Import and use components/utilities from previous sections when referenced\n\nYou are building sections iteratively. Use the context from previous sections to maintain consistency in:\n- Naming conventions\n- Import paths\n- Type definitions\n- Component patterns\n- State management approach\n",
         "prompt_file": null
       },
@@ -271,20 +198,20 @@
       "position": "left"
     },
     {
-      "id": "node_1_default_output",
+      "id": "node_1_condtrue_output",
       "node_id": "node_1",
-      "label": "default",
+      "label": "condtrue",
       "direction": "output",
-      "data_type": "any",
+      "data_type": "boolean",
       "position": "right"
     },
     {
-      "id": "node_2_first_input",
-      "node_id": "node_2",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
+      "id": "node_1_condfalse_output",
+      "node_id": "node_1",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
     },
     {
       "id": "node_2_default_input",
@@ -301,6 +228,14 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_3_first_input",
+      "node_id": "node_3",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     },
     {
       "id": "node_3_default_input",
@@ -327,80 +262,16 @@
       "position": "left"
     },
     {
-      "id": "node_4_condtrue_output",
+      "id": "node_4_default_output",
       "node_id": "node_4",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_4_condfalse_output",
-      "node_id": "node_4",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
       "id": "node_5_default_input",
       "node_id": "node_5",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_5_default_output",
-      "node_id": "node_5",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_6_first_input",
-      "node_id": "node_6",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_6_default_input",
-      "node_id": "node_6",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_6_default_output",
-      "node_id": "node_6",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_7_default_input",
-      "node_id": "node_7",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_7_default_output",
-      "node_id": "node_7",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_8_default_input",
-      "node_id": "node_8",
       "label": "default",
       "direction": "input",
       "data_type": "any",
@@ -412,8 +283,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-21T13:40:36.169Z",
-    "modified": "2025-08-21T13:40:36.169Z",
+    "created": "2025-08-22T04:35:58.511Z",
+    "modified": "2025-08-22T04:35:58.511Z",
     "version": "1.0.0",
     "id": "projects/frontend_enhance/consolidated_generator"
   }

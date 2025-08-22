@@ -171,7 +171,7 @@ class ValidatingCompilerAdapter(DiagramCompiler):
                 raise ValueError(f"Arrow references non-existent source node: {source_node_id} (from handle: {arrow.source})")
             if target_node_id not in node_id_set:
                 raise ValueError(f"Arrow references non-existent target node: {target_node_id} (from handle: {arrow.target})")
-        
+
         # Get diagram identifier for logging
         diagram_id = "unknown"
         if domain_diagram.metadata:
@@ -179,8 +179,7 @@ class ValidatingCompilerAdapter(DiagramCompiler):
                 diagram_id = domain_diagram.metadata.id
             elif hasattr(domain_diagram.metadata, 'name') and domain_diagram.metadata.name:
                 diagram_id = domain_diagram.metadata.name
-        logger.debug(f"Diagram validation passed for {diagram_id}")
-    
+
     def compile(self, domain_diagram: "DomainDiagram") -> "ExecutableDiagram":
         """Compile with validation.
         

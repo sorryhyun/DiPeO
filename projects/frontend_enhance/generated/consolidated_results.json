@@ -1,9 +1,11 @@
 {
   "default": {
-    "default": "Writed to projects/frontend_enhance/generated/sections_data.json (30933 bytes)",
-    "current_index": 1,
-    "branch[node_4]": "condfalse"
+    "default": {
+      "default": {}
+    },
+    "current_index": 3,
+    "branch[node_1]": "condfalse"
   },
-  "current_index": 2,
-  "branch[node_4]": "condtrue"
+  "current_index": 4,
+  "branch[node_1]": "condtrue"
 }

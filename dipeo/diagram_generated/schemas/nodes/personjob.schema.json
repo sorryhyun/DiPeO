@@ -2,44 +2,13 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/PersonJobNodeData",
   "definitions": {
-    "MemorySettings": {
-      "additionalProperties": false,
-      "properties": {
-        "max_messages": {
-          "type": [
-            "null",
-            "number"
-          ]
-        },
-        "preserve_system": {
-          "type": "boolean"
-        },
-        "view": {
-          "$ref": "#/definitions/MemoryView"
-        }
-      },
-      "required": [
-        "view"
-      ],
-      "type": "object"
-    },
-    "PersonID": {
-      "additionalProperties": false,
-      "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "__brand"
-      ],
-      "type": "object"
-    },
     "PersonJobNodeData": {
       "additionalProperties": false,
       "description": "Configuration data for PersonJob nodes that execute LLM agents",
       "properties": {
+        "at_most": {
+          "type": "number"
+        },
         "batch": {
           "description": "Enable batch processing for arrays",
           "type": "boolean"
@@ -78,27 +47,8 @@
           "description": "Maximum conversation turns (default: 1)",
           "type": "number"
         },
-        "memory_profile": {
-          "description": "Memory profile: GOLDFISH (2 msgs), MINIMAL (5), FOCUSED (20), FULL (all)",
-          "enum": [
-            "CUSTOM",
-            "FOCUSED",
-            "FULL",
-            "GOLDFISH",
-            "MINIMAL"
-          ],
+        "memorize_to": {
           "type": "string"
-        },
-        "memory_settings": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/MemorySettings"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Advanced memory configuration when memory_profile is CUSTOM"
         },
         "person": {
           "$ref": "#/definitions/PersonID",
@@ -127,23 +77,26 @@
         }
       },
       "required": [
+        "at_most",
         "first_only_prompt",
         "label",
-        "max_iteration"
+        "max_iteration",
+        "memorize_to"
       ],
       "type": "object"
     },
-    "MemoryView": {
-      "description": "Memory management enumerations",
-      "enum": [
-        "all_involved",
-        "sent_by_me",
-        "sent_to_me",
-        "system_and_me",
-        "conversation_pairs",
-        "all_messages"
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
       ],
-      "type": "string"
+      "type": "object"
     }
   }
 }

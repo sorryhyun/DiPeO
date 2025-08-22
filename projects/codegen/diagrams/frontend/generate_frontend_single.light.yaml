@@ -98,7 +98,7 @@ connections:
   
   # Pass AST data and original input to prepare
   - {from: Load AST, to: Prepare Extractor Inputs, label: ast_data, content_type: object}
-  - {from: Start, to: Prepare Extractor Inputs, label: default}
+  - {from: Start, to: Prepare Extractor Inputs}
 
   # Extract all data
   - {from: Prepare Extractor Inputs, to: Extract Frontend Data}

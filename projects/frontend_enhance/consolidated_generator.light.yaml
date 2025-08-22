@@ -24,12 +24,12 @@ persons:
       Follow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.
 
   Frontend Generator:
-    service: openai
-    model: gpt-5-nano-2025-08-07
-    api_key_id: APIKEY_52609F
-#    service: claude-code
-#    model: claude-code
-#    api_key_id: APIKEY_CLAUDE
+#    service: openai
+#    model: gpt-5-nano-2025-08-07
+#    api_key_id: APIKEY_52609F
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer building a cohesive frontend application.
       
@@ -54,60 +54,60 @@ nodes:
     props:
       trigger_mode: manual
       
-  - label: Load Config
-    type: db
-    position: {x: 300, y: 240}
-    props:
-      operation: read
-      sub_type: file
-      format: json
-      source_details: projects/frontend_enhance/frontend_enhance_config.json
-
-  - label: Plan Sections
-    type: person_job
-    position: {x: 400, y: 240}
-    props:
-      person: Section Planner
-      text_format_file: projects/frontend_enhance/section_models.py
-      default_prompt: |
-        Analyze the requirements and create a comprehensive development plan:
-        
-        App config: {{config}}
-        
-        Your response MUST include:
-        1. An overall architecture that defines:
-           - How all sections work together as a cohesive system
-           - Core architectural patterns and principles
-           - Data flow and state management strategy
-           - DETAILED folder structure with ACTUAL FILE NAMES (e.g., src/components/Button.tsx)
-           - Tech stack decisions
-        
-        2. Independent sections where EACH section represents ONE SPECIFIC FILE:
-           - file_to_implement: EXACT file path (e.g., "src/features/dashboard/components/MetricCard.tsx")
-           - Clear acceptance criteria for that specific file
-           - Implementation steps for THAT FILE ONLY (what goes inside it)
-           - Integration points showing how this file connects with others
-           - Proper dependencies and priority
-        
-        CRITICAL: Each section MUST specify the exact file path in file_to_implement field.
-        Think like you're planning a real production React application.
-        Ensure files can be developed independently but integrate seamlessly.
-
-  - label: Save Sections Data
-    type: db
-    position: {x: 800, y: 240}
-    props:
-      operation: write
-      sub_type: file
-      format: json
-      source_details: projects/frontend_enhance/generated/sections_data.json
+#  - label: Load Config
+#    type: db
+#    position: {x: 300, y: 240}
+#    props:
+#      operation: read
+#      sub_type: file
+#      format: json
+#      source_details: projects/frontend_enhance/frontend_enhance_config.json
+#
+#  - label: Plan Sections
+#    type: person_job
+#    position: {x: 400, y: 240}
+#    props:
+#      person: Section Planner
+#      text_format_file: projects/frontend_enhance/section_models.py
+#      default_prompt: |
+#        Analyze the requirements and create a comprehensive development plan:
+#
+#        App config: {{config}}
+#
+#        Your response MUST include:
+#        1. An overall architecture that defines:
+#           - How all sections work together as a cohesive system
+#           - Core architectural patterns and principles
+#           - Data flow and state management strategy
+#           - DETAILED folder structure with ACTUAL FILE NAMES (e.g., src/components/Button.tsx)
+#           - Tech stack decisions
+#
+#        2. Independent sections where EACH section represents ONE SPECIFIC FILE:
+#           - file_to_implement: EXACT file path (e.g., "src/features/dashboard/components/MetricCard.tsx")
+#           - Clear acceptance criteria for that specific file
+#           - Implementation steps for THAT FILE ONLY (what goes inside it)
+#           - Integration points showing how this file connects with others
+#           - Proper dependencies and priority
+#
+#        CRITICAL: Each section MUST specify the exact file path in file_to_implement field.
+#        Think like you're planning a real production React application.
+#        Ensure files can be developed independently but integrate seamlessly.
+#
+#  - label: Save Sections Data
+#    type: db
+#    position: {x: 800, y: 240}
+#    props:
+#      operation: write
+#      sub_type: file
+#      format: json
+#      source_details: projects/frontend_enhance/generated/sections_data.json
 
   - label: Check Continue
     type: condition
     position: {x: 1450, y: 240}
     props:
       condition_type: custom
-      expression: current_index >= 2
+      expression: current_index >= 4
 #      expression: current_index >= len(sections)
       expose_index_as: current_index
       flipped: [false, true]
@@ -128,7 +128,7 @@ nodes:
       person: Frontend Generator
       max_iteration: 100
       memorize_to: "Necessary codes to implement or which are dependent to"
-      at_most: 5
+      at_most: 1
       prompt_file: frontend_generator.txt
 
   - label: Write Section Result
@@ -178,11 +178,13 @@ nodes:
 
 connections:
   # Initial setup
-  - {from: Start, to: Load Config}
-  - {from: Load Config, to: Plan Sections, label: config, content_type: object}
-  - {from: Plan Sections, to: Save Sections Data, content_type: object}
-  - {from: Save Sections Data, to: Check Continue, content_type: object}
+#  - {from: Start, to: Load Config}
+#  - {from: Load Config, to: Plan Sections, label: config, content_type: object}
+#  - {from: Plan Sections, to: Save Sections Data, content_type: object}
+#  - {from: Save Sections Data, to: Check Continue, content_type: object}
 
+  - {from: Start, to: Check Continue}
+  -
   - { from: Check Continue_condfalse, to: Load Sections Data, content_type: object }
   - { from: Check Continue_condtrue, to: End, content_type: object }
   - {from: Load Sections Data, to: Generate Frontend Code, content_type: object}

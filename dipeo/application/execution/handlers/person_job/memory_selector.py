@@ -36,6 +36,7 @@ class MemorySelector:
         # Build a compact, ID-driven listing to keep tokens low
         # (truncate content per message to ~300-500 chars to fit large histories)
         lines = []
+
         for m in candidate_messages:
             content = (m.content or "")[:500]
             role = "system" if str(m.from_person_id) == "system" else (
@@ -62,7 +63,6 @@ class MemorySelector:
                 {"role": "system", "content": sys_msg},
                 {"role": "user", "content": user_msg},
             ], 
-            response_format="json"  # driver accepts passthrough kwargs
         )
 
         # Robust parse: accept either JSON array or any text containing it

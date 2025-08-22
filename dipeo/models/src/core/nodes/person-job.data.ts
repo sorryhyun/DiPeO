@@ -20,10 +20,10 @@ export interface PersonJobNodeData extends BaseNodeData {
   prompt_file?: string;
   /** Maximum conversation turns (default: 1) */
   max_iteration: number;
-  /** Memory profile: GOLDFISH (2 msgs), MINIMAL (5), FOCUSED (20), FULL (all) */
-  memory_profile?: MemoryProfile;
-  /** Advanced memory configuration when memory_profile is CUSTOM */
-  memory_settings?: MemorySettings | null;
+
+  memorize_to: string;
+  at_most: number;
+
   /** LLM tools to enable (web_search_preview, etc.) */
   tools?: ToolSelection;
   /** Pydantic model name for structured output */

@@ -190,7 +190,7 @@ diff-staged:
 		echo "No staged directory found. Run 'make codegen' first."; \
 		exit 1; \
 	fi
-	@diff -rq dipeo/diagram_generated dipeo/diagram_generated_staged 2>/dev/null || true
+	@diff -rq -x '*.pyc' dipeo/diagram_generated dipeo/diagram_generated_staged 2>/dev/null || true
 	@echo ""
 	@echo "For detailed diffs, run:"
 	@echo "  diff -r dipeo/diagram_generated dipeo/diagram_generated_staged | less"

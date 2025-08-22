@@ -158,6 +158,7 @@ def main(inputs: dict) -> dict:
         # Parse AST data from the files
         diagram_ast = None
         all_interfaces = []
+        all_enums = []
         
         for filepath, content in file_dict.items():
             if filepath == 'default':
@@ -167,20 +168,33 @@ def main(inputs: dict) -> dict:
             
             if filename == 'diagram.ts.json':
                 diagram_ast = content if isinstance(content, dict) else json.loads(content)
-            elif filename.endswith('.data.ts.json'):
-                # This is a node data file
+            elif filename.endswith('.data.ts.json') or filename.endswith('.ts.json'):
+                # This is a node data file or other TypeScript file
                 ast_data = content if isinstance(content, dict) else json.loads(content)
                 interfaces = ast_data.get('interfaces', [])
+                enums = ast_data.get('enums', [])
                 all_interfaces.extend(interfaces)
+                all_enums.extend(enums)
         
-        # Get mappings
-        mappings = inputs.get('mappings', {})
+        # Get mappings - the extract_mappings output comes through 'default' key
+        # (because the connection from extract_mappings has label 'mappings' but arrives as 'default')
+        mappings = inputs.get('default', {})
+        
+        # If not found, check other possible locations
+        if not mappings:
+            mappings = inputs.get('mappings', {})
+        
+        # If still not found and we have 'inputs' dict, check there
+        if not mappings and 'inputs' in inputs and isinstance(inputs['inputs'], dict):
+            mappings = inputs['inputs'].get('default', {})
+            if not mappings:
+                mappings = inputs['inputs'].get('mappings', {})
         
         # Create aggregated AST data from collected interfaces
         node_data_ast = {
             'interfaces': all_interfaces,
             'types': [],
-            'enums': [],
+            'enums': all_enums,
             'constants': []
         }
     else:
@@ -188,10 +202,9 @@ def main(inputs: dict) -> dict:
         node_data_ast = inputs.get('node_data', {})
         diagram_ast = inputs.get('default', {})
         mappings = inputs.get('mappings', {})
-        all_interfaces = []
     
-    
-    mappings = inputs.get('mappings', {})
+    # Now use the node_data_ast and mappings we prepared above
     result = extract_zod_schemas(node_data_ast, mappings)
     result['now'] = datetime.now().isoformat()
+    
     return result

@@ -89,24 +89,6 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     },
   },
   {
-    name: 'memory_profile',
-    type: 'select',
-    label: 'Memory profile',
-    required: false,
-    defaultValue: "FOCUSED",
-    description: 'Memory profile for conversation context (Deprecated: prefer \'memorize_to\' + \'at_most\')',
-    options: [
-      { value: 'FULL', label: 'Full 🧠 - No limits, see everything' },
-      { value: 'FOCUSED', label: 'Focused 🎯 - Last 20 messages, conversation pairs' },
-      { value: 'MINIMAL', label: 'Minimal 💭 - Last 5 messages, system + direct only' },
-      { value: 'GOLDFISH', label: 'Goldfish 🐠 - Last 1-2 exchanges only' },
-      { value: 'CUSTOM', label: 'Custom ⚙️ - Use memory_settings below' },
-    ],
-    validate: (value: unknown) => {
-      return { isValid: true };
-    },
-  },
-  {
     name: 'tools',
     type: 'select',
     label: 'Tools',
@@ -130,53 +112,5 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     rows: 6,
     column: 2,
     adjustable: true,
-  },
-  {
-    name: 'memory_settings',
-    type: 'group',
-    label: 'Memory settings',
-    required: false,
-    description: 'Custom memory settings (when memory_profile is CUSTOM) (Deprecated: prefer \'memorize_to\' + \'at_most\')',
-    nestedFields: [
-      {
-        name: 'view',
-        type: 'select',
-        label: 'View',
-        required: true,
-        description: 'Memory view type',
-        uiConfig: {
-          inputType: 'select',
-          options: [
-            { value: 'FULL_CONVERSATION', label: 'Full Conversation' },
-            { value: 'RELATED_CONVERSATION_PAIRS', label: 'Related Conversation Pairs' },
-            { value: 'DIRECT_MESSAGES', label: 'Direct Messages' },
-            { value: 'SYSTEM_AND_DIRECT', label: 'System and Direct' },
-          ],
-        },
-      },
-      {
-        name: 'max_messages',
-        type: 'number',
-        label: 'Max messages',
-        required: false,
-        description: 'Maximum number of messages to retain',
-        uiConfig: {
-          inputType: 'number',
-          min: 1,
-          max: 100,
-        },
-      },
-      {
-        name: 'preserve_system',
-        type: 'checkbox',
-        label: 'Preserve system',
-        required: false,
-        description: 'Always preserve system messages',
-        defaultValue: true,
-        uiConfig: {
-          inputType: 'checkbox',
-        },
-      },
-    ],
   },
 ];

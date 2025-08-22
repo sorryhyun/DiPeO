@@ -216,6 +216,15 @@ def extract_field_configs(inputs: dict) -> dict:
     # Get mappings if provided
     mappings = inputs.get('mappings', {})
     
+    # Handle case where mappings might be wrapped in 'default'
+    if 'default' in mappings and isinstance(mappings['default'], dict):
+        mappings = mappings['default']
+    
+    # Handle case where mappings came from unified extractor (nested in result.mappings)
+    if 'mappings' in mappings:
+        mappings = mappings['mappings']
+    
+    
     # Collect all interfaces and enums from glob results
     all_interfaces = []
     all_enums = []

@@ -84,36 +84,6 @@ class SinglePersonJobExecutor:
         
         # Check if memory_profile is set (new way)
         is_goldfish = False
-        if hasattr(node, 'memory_profile') and node.memory_profile:
-            try:
-                # Convert string to MemoryProfile enum
-                profile_enum = MemoryProfile[node.memory_profile]
-                if profile_enum == MemoryProfile.GOLDFISH:
-                    is_goldfish = True
-                    # For GOLDFISH, we'll handle memory specially
-                    memory_settings = MemoryProfileFactory.get_settings(profile_enum)
-                elif profile_enum != MemoryProfile.CUSTOM:
-                    # Get settings from profile
-                    memory_settings = MemoryProfileFactory.get_settings(profile_enum)
-                else:
-                    # Use custom memory_settings if profile is CUSTOM
-                    memory_settings = node.memory_settings
-            except (KeyError, AttributeError):
-                logger.warning(f"Invalid memory profile: {node.memory_profile}")
-                # Fall back to memory_settings
-                memory_settings = node.memory_settings
-        else:
-            # Fall back to legacy memory_settings
-            memory_settings = node.memory_settings
-        
-        if memory_settings:
-            # Convert dict to MemorySettings object if needed
-            if isinstance(memory_settings, dict):
-                from dipeo.diagram_generated import MemorySettings as MemorySettingsModel
-                memory_settings = MemorySettingsModel(**memory_settings)
-                person.apply_memory_settings(memory_settings)
-            else:
-                person.apply_memory_settings(memory_settings)
         
         # Special handling for GOLDFISH - ensure no memory at all
         if is_goldfish:
@@ -147,13 +117,6 @@ class SinglePersonJobExecutor:
         
         # Get conversation context from person (respects memory profile)
         conversation_context = person.get_conversation_context(all_messages)
-        
-        # Prepare template values from inputs
-        logger.debug(f"[PersonJob] transformed_inputs keys: {list(transformed_inputs.keys())}")
-        if 'default' in transformed_inputs:
-            logger.debug(f"[PersonJob] default keys: {list(transformed_inputs['default'].keys()) if isinstance(transformed_inputs['default'], dict) else 'not a dict'}")
-        if 'current_index' in transformed_inputs:
-            logger.debug(f"[PersonJob] current_index value: {transformed_inputs['current_index']}")
         
         input_values = self._prompt_builder.prepare_template_values(transformed_inputs)
         logger.debug(f"[PersonJob] input_values keys after prepare: {list(input_values.keys())}")

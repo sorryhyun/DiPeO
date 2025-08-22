@@ -241,6 +241,7 @@ class ExecutionState(BaseModel):
     token_usage: TokenUsage
     error: Optional[str] = Field(default=None)
     variables: Optional[JsonDict] = Field(default=None)
+    metadata: Optional[JsonDict] = Field(default=None)
     duration_seconds: Optional[float] = Field(default=None)
     is_active: Optional[bool] = Field(default=None)
     exec_counts: Dict[str, float]
@@ -519,8 +520,8 @@ class PersonJobNodeData(BaseNodeData):
     default_prompt: Optional[str] = Field(default=None, description="Prompt template using {{variable}} syntax for subsequent iterations")
     prompt_file: Optional[str] = Field(default=None, description="External prompt file in files/prompts/ (overrides inline prompts)")
     max_iteration: float = Field(description="Maximum conversation turns (default: 1)")
-    memory_profile: Optional[MemoryProfile] = Field(default=None, description="Memory profile: GOLDFISH (2 msgs), MINIMAL (5), FOCUSED (20), FULL (all)")
-    memory_settings: Optional[MemorySettings] = Field(default=None, description="Advanced memory configuration when memory_profile is CUSTOM")
+    memorize_to: str
+    at_most: float
     tools: Optional[ToolSelection] = Field(default=None, description="LLM tools to enable (web_search_preview, etc.)")
     text_format: Optional[str] = Field(default=None, description="Pydantic model name for structured output")
     text_format_file: Optional[str] = Field(default=None, description="External Python file with Pydantic models (overrides text_format)")
