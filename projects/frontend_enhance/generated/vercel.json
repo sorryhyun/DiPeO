@@ -38,11 +38,6 @@
       ]
     }
   ],
-  "functions": {
-    "api/health": {
-      "maxDuration": 10
-    }
-  },
   "regions": ["iad1"],
   "trailingSlash": false
 }
