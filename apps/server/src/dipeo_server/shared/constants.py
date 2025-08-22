@@ -14,7 +14,7 @@ from dipeo.domain.constants import (
 
 API_BASE_PATH: Final[str] = "/api"
 DIAGRAM_VERSION: Final[str] = "2.0.0"
-DEFAULT_MAX_TOKENS: Final[int] = 128000
+DEFAULT_MAX_TOKENS: Final[int] = 256000
 DEFAULT_TEMPERATURE: Final[float] = 0.2
 SUPPORTED_DOC_EXTENSIONS: Final[set[str]] = {".txt", ".md", ".docx", ".pdf"}
 SUPPORTED_CODE_EXTENSIONS: Final[set[str]] = {

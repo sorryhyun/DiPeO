@@ -1,268 +1,399 @@
-# DiPeO의 메모리 시스템 설계&#x20;
+# DiPeO의 메모리 시스템 설계
 
 ## 개요
 
-DiPeO는 LLM 에이전트(“Person”)가 **공유 전역 대화**를 서로 다르게 바라볼 수 있도록 하는 정교한 메모리 관리 시스템을 구현합니다. 이 설계는 동일한 에이전트가 워크플로의 시점에 따라 서로 **다른 메모리 컨텍스트**를 갖도록 하여 강력한 워크플로 패턴을 가능하게 합니다.
+DiPeO는 LLM 에이전트(Person)가 공유되는 전역 대화를 서로 다르게 바라볼 수 있도록 하는 지능형 메모리 관리 시스템을 구현합니다. 이 시스템은 사용자에게는 단순하지만, LLM 기반 선택을 통해 강력하게 동작하도록 설계되었습니다.
+
+## 듀얼 퍼소나(Dual-Persona) 메모리 셀렉터
+
+지능형 선택이 필요할 때 메모리 시스템은 “듀얼 퍼소나” 방식을 사용합니다:
+
+```
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                     메모리 선택 프로세스                             │
+│                                                                      │
+│  전역 대화(Global Conversation)                                      │
+│  ┌─────────────┐                                                    │
+│  │ Message 1   │     ┌──────────────────────┐                      │
+│  │ Message 2   │────▶│  셀렉터 파셋 🧠       │                      │
+│  │ Message 3   │     │  (Alice.\_\_selector)  │                      │
+│  │ Message 4   │     │                      │                      │
+│  │ Message 5   │     │ "요구사항과 API       │                      │
+│  │ ...         │     │  설계 관련 메시지를   │                      │
+│  │ Message N   │     │  찾아라"             │                      │
+│  └─────────────┘     └──────────┬───────────┘                      │
+│                                  │                                  │
+│                                  ▼                                  │
+│                          분석 & 선택                                │
+│                                  │                                  │
+│                                  ▼                                  │
+│                      선택된 메시지 \[2,5,7]                           │
+│                                  │                                  │
+│                                  ▼                                  │
+│                      ┌──────────────────────┐                      │
+│                      │   기본 퍼슨 👤        │                      │
+│                      │      (Alice)         │                      │
+│                      │                      │                      │
+│                      │  다음만 봄:          │                      │
+│                      │  - Message 2         │                      │
+│                      │  - Message 5         │                      │
+│                      │  - Message 7         │                      │
+│                      └──────────────────────┘                      │
+│                                  │                                  │
+│                                  ▼                                  │
+│                          작업 실행                                  │
+└─────────────────────────────────────────────────────────────────────┘
+
+````
+
+**핵심 인사이트**: 동일한 퍼슨이 두 개의 존재로 분리됩니다:
+- **셀렉터 파셋**(`{person_id}.__selector`): 모든 메시지를 검토하는 지능형 분석가
+- **기본 퍼슨**(`{person_id}`): 선택된 메시지만 보고 작업을 수행하는 실행자
+
+## 간단한 메모리 구성
+
+### 사용자 옵션은 단 두 가지
+
+1. **자연어 선택**(키워드가 아닌 문자열에 대한 기본값)
+   ```yaml
+   memorize_to: "requirements, API design, authentication"
+````
+
+LLM이 지정한 기준을 바탕으로 관련 메시지를 지능적으로 선택합니다.
+
+2. **GOLDFISH 모드**(특수 키워드)
+
+   ```yaml
+   memorize_to: "GOLDFISH"
+   ```
+
+   완전한 메모리 리셋 — 대화 히스토리를 전혀 사용하지 않습니다.
+
+3. **기본 동작**(`memorize_to`를 지정하지 않은 경우)
+
+   ```yaml
+   # memorize_to가 지정되지 않음 - 내부 ALL_INVOLVED 필터 사용
+   ```
+
+   해당 퍼슨이 발신자 또는 수신자인 메시지를 보여줍니다.
+
+### 끝!
+
+복잡한 enum도, 외워야 할 규칙 이름도 없습니다. 원하는 것을 자연어로 설명하거나, 메모리를 쓰지 않으려면 GOLDFISH만 사용하면 됩니다.
 
 ## 핵심 개념
 
-### 1. 전역 대화 모델
+### 전역 대화 모델
 
-DiPeO 워크플로의 모든 메시지는 **단일 전역 대화**에 저장되며, 이것이 진실의 근원(source of truth)이 됩니다:
+모든 메시지는 단일, 불변의 전역 대화에 저장됩니다:
 
 ```
 ┌─────────────────────────────┐
-│       전역 대화(Global)     │
+│   전역 대화(Global)         │
 │ ┌─────────────────────────┐ │
-│ │ 메시지 1: A → B         │ │
-│ │ 메시지 2: B → A         │ │
-│ │ 메시지 3: System → C    │ │
-│ │ 메시지 4: C → A         │ │
+│ │ Message 1: A → B        │ │
+│ │ Message 2: B → A        │ │
+│ │ Message 3: System → C   │ │
+│ │ Message 4: C → A        │ │
 │ │ ...                     │ │
 │ └─────────────────────────┘ │
 └─────────────────────────────┘
 ```
 
-**핵심 속성:**
+**특성:**
 
-* **불변(Immutable)**: 메시지는 삭제되지 않으며, 오직 필터링만 됩니다.
-* **감사 가능(Auditable)**: 전체 이력이 항상 보존됩니다.
-* **공유됨(Shared)**: 모든 person이 동일한 대화에 접근합니다.
+* **불변성**: 메시지는 삭제되지 않습니다.
+* **공유성**: 모든 퍼슨이 동일한 대화에 접근합니다.
+* **필터링**: 각 퍼슨은 메모리 설정에 따라 필터링된 뷰만 봅니다.
 
-### 2. 메모리 뷰(필터)
+### 작업(Job) 단위 구성
 
-각 person은 전역 대화를 **구성 가능한 필터**를 통해 봅니다:
-
-| View                 | 설명                         | 사용 사례            |
-| -------------------- | -------------------------- | ---------------- |
-| `ALL_INVOLVED`       | 해당 person이 발신자 또는 수신자인 메시지 | 일반 대화 참여         |
-| `SENT_BY_ME`         | 이 person이 보낸 메시지만          | 자기 점검, 출력 검토     |
-| `SENT_TO_ME`         | 이 person에게 보낸 메시지만         | 입력 처리, 분류        |
-| `SYSTEM_AND_ME`      | 시스템 메시지와 person의 응답        | 작업 중심 실행         |
-| `CONVERSATION_PAIRS` | 요청/응답 쌍                    | 토론, Q\&A 시나리오    |
-| `ALL_MESSAGES`       | 대화의 모든 메시지                 | 코디네이터를 위한 완전 가시성 |
-
-### 3. 메모리 한계(윈도우)
-
-필터링 후, **슬라이딩 윈도우**로 메시지 수를 제한할 수 있습니다:
-
-```python
-# 예시: 필터된 뷰에서 마지막 10개 메시지만 보기
-memory_settings = MemorySettings(
-    view=MemoryView.ALL_INVOLVED,
-    max_messages=10,
-    preserve_system=True  # 시스템 메시지는 항상 유지
-)
-```
-
-### 4. 작업(Job) 단위 구성
-
-메모리 설정은 **person 수준이 아니라 작업(Job) 수준**에서 구성됩니다:
+메모리는 **퍼슨 단위가 아니라 작업 단위**로 구성합니다:
 
 ```yaml
 nodes:
   - id: analyzer
     type: person_job
     person: alice
-    memory_profile: FULL  # 모든 것을 봄
+    memorize_to: "technical requirements, constraints"
     
   - id: summarizer
     type: person_job  
-    person: alice  # 같은 person!
-    memory_profile: MINIMAL  # 제한된 컨텍스트(5개 메시지)
+    person: alice  # 동일 퍼슨이지만, 다른 메모리!
+    memorize_to: "key findings, conclusions"
+    at_most: 5
 ```
 
-## 메모리 구성 문법
+## 동작 방식
 
-메모리 구성에는 두 가지 방법이 있습니다:
+### LLM 기반 선택 프로세스
 
-1. **메모리 프로파일(권장)** — 미리 정의된 구성:
+자연어 기준을 지정하면:
+
+1. **셀렉터 생성**: 시스템이 `{person_id}.__selector` 파셋을 생성
+2. **지능형 분석**: 셀렉터가 모든 관련 메시지를 분석
+3. **의미론적 이해**: 자연어 이해로 관련 콘텐츠 식별
+4. **메시지 선택**: 가장 관련 있는 메시지 ID 반환
+5. **작업 실행**: 기본 퍼슨이 선택된 메시지만으로 실행
+
+### 구성 파라미터
 
 ```yaml
-- label: PersonNode
+- label: "Technical Analysis"
   type: person_job
   props:
-    memory_profile: FOCUSED  # 옵션: GOLDFISH, MINIMAL, FOCUSED, FULL, ONLY_ME, ONLY_I_SENT, CUSTOM
+    person: Analyst
+    memorize_to: "requirements, API design, performance constraints"
+    at_most: 8  # 선택 메시지 최대 8개로 제한(옵션)
 ```
 
-2. **사용자 지정 메모리 설정** — 세밀 제어(`memory_profile: CUSTOM`일 때 사용):
+**파라미터:**
+
+* `memorize_to`: 자연어 기준 또는 "GOLDFISH"
+* `at_most`: 최대 메시지 수(옵션)
+
+## 예시 패턴
+
+### 1. 점진적 정련 파이프라인
 
 ```yaml
-- label: PersonNode
-  type: person_job
-  props:
-    memory_profile: CUSTOM
-    memory_settings:
-      view: conversation_pairs
-      max_messages: 10
-      preserve_system: true
-```
-
-### 메모리 프로파일 정의
-
-* **GOLDFISH**: 2개 메시지, conversation pairs 뷰(실행 간 완전 리셋)
-* **MINIMAL**: 5개 메시지, conversation pairs 뷰
-* **FOCUSED**: 20개 메시지, conversation pairs 뷰
-* **FULL**: 제한 없음, all messages 뷰
-* **ONLY\_ME**: 이 person에게 **보낸** 메시지만
-* **ONLY\_I\_SENT**: 이 person이 **보낸** 메시지만
-* **CUSTOM**: 명시적 `memory_settings` 사용
-
-## 일반 패턴
-
-### 1. 토론 패턴
-
-참가자는 현재 교환에 집중하고, 심판(judge)은 전체 컨텍스트를 봅니다:
-
-```yaml
-- label: Optimist
-  type: person_job
-  props:
-    memory_profile: FOCUSED  # 제한된 대화 컨텍스트
-    max_iteration: 3
-
-- label: Judge
-  type: person_job
-  props:
-    memory_profile: FULL     # 전체를 조회
-```
-
-### 2. 파이프라인 패턴
-
-컨텍스트를 점차 줄이며 정제하는 흐름:
-
-```yaml
-# 1단계: 전체 분석
+# 1단계: 광범위 분석
 - label: Analyze
-  memory_profile: FULL
+  type: person_job
+  props:
+    memorize_to: "user requirements, specifications, constraints"
+    at_most: 30
     
 # 2단계: 집중 요약
 - label: Summarize  
-  memory_profile: FOCUSED   # 최근 교환에 집중
+  type: person_job
+  props:
+    memorize_to: "key decisions, analysis results"
+    at_most: 15
     
 # 3단계: 최종 추출
 - label: Extract
-  memory_profile: MINIMAL   # 최신 소수 메시지만
+  type: person_job
+  props:
+    memorize_to: "final conclusions, action items"
+    at_most: 5
 ```
 
-### 3. 다중 에이전트 협업
-
-같은 대화를 서로 다른 관점에서 보는 다양한 에이전트:
+### 2. 멀티 에이전트 협업
 
 ```yaml
-persons:
-  researcher:
-    # 포괄적 분석을 위해 모든 메시지 참조
-  critic:
-    # 집중된 비평을 위해 대화 쌍에만 초점
-  moderator:
-    # 토론 관리를 위해 전체를 참조
+- label: Researcher
+  type: person_job
+  props:
+    memorize_to: "research findings, data, evidence"
+    at_most: 25
+    
+- label: Critic
+  type: person_job
+  props:
+    memorize_to: "arguments, counterpoints, rebuttals"
+    at_most: 10
+    
+- label: Moderator
+  type: person_job
+  props:
+    # memorize_to 없음 - 본인이 관여한 모든 메시지를 봄
+    at_most: 50
 ```
 
-## 구현 세부사항
+### 3. 새 출발 분석
 
-### 메시지 라우팅
-
-메시지가 대화에 추가되면:
-
-1. 전역 대화에 저장됩니다.
-2. 각 person의 필터에 따라 자동으로 포함/제외됩니다.
-3. person별 중복 저장이 필요 없습니다.
-
-### 메모리 적용 시점
-
-선택한 프로파일에 따라 메모리 설정이 적용됩니다:
-
-* **GOLDFISH**: 실행 간 완전 리셋(대화 이력 초기화)
-* **그 외 프로파일**: 노드 초기화 시 적용되어 실행 내내 유지
-* **사용자 지정 설정**: `memory_profile: CUSTOM`일 때 적용
-
-### 비파괴적 망각(Non-Destructive Forgetting)
-
-DiPeO에서의 “망각”은 **데이터 삭제가 아니라 가시성 제한**을 의미합니다:
-
-* 원본 메시지는 전역 대화에 남아 있습니다.
-* person의 뷰는 필터와 제한으로 축소됩니다.
-* 설정 변경으로 언제든 되돌릴 수 있습니다.
+```yaml
+- label: "Unbiased Review"
+  type: person_job
+  props:
+    person: Reviewer
+    memorize_to: "GOLDFISH"  # 메모리 없음 - 편견 최소화
+```
 
 ## 모범 사례
 
-### 1. 적절한 메모리 뷰 선택
+### 1. 자연어를 자유롭게 사용
 
-* **토론/논증**: `conversation_pairs`로 교환에 집중
-* **분석 작업**: `all_involved`로 충분한 컨텍스트 확보
-* **분류/판별**: `sent_to_me`로 입력에만 집중
-* **모니터링**: `system_and_me`로 작업 지시에만 초점
+LLM은 맥락과 의미를 이해합니다:
 
-### 2. 합리적 한계 설정
+* ✅ `"requirements and constraints"`
+* ✅ `"technical decisions, architecture choices"`
+* ✅ `"user feedback, bug reports, feature requests"`
+* ✅ `"everything about authentication and security"`
 
-* **무제한**: 심판, 분석자, 최종 검토자
-* **10–20개**: 일반 대화 작업
-* **1–5개**: 빠른 반응, 분류기
-* **0개**: 완전 리셋(드묾)
+### 2. 합리적 한도 설정
 
-### 3. 워크플로 흐름 고려
+* **무제한**: 포괄적 분석(`at_most` 생략)
+* **20–30개**: 상세한 맥락
+* **10–15개**: 집중 토론
+* **3–5개**: 빠른 요약
+* **0개**: `"GOLDFISH"` 사용
 
-각 단계의 인지 요구에 맞게 메모리를 설계하세요:
+### 3. 인지 부하에 맞춘 메모리 설계
 
-```
-전체 컨텍스트 → 필터된 컨텍스트 → 최소 컨텍스트 → 의사결정
-```
-
-### 4. 시스템 메시지 보존
-
-대개 `preserve_system=True`로 지시를 유지합니다:
+작업 복잡도에 맞추어 설정:
 
 ```yaml
-memory_config:
-  max_messages: 5
-  preserve_system: true  # 시스템 프롬프트 유지
+# 복잡한 분석은 더 많은 컨텍스트 필요
+memorize_to: "all technical discussions, decisions, trade-offs"
+at_most: 40
+
+# 단순 분류는 더 적게
+memorize_to: "current request and its context"
+at_most: 3
 ```
 
-## 고급 구성
+## 주요 이점
 
-### 코드에서 메모리 프로파일 사용
+1. **단순성**: 평범한 영어(자연어)로 원하는 것을 설명하면 됨
+2. **지능성**: LLM이 의미 기반 연관성을 이해
+3. **유연성**: 동일 퍼슨도 작업마다 다른 메모리를 가짐
+4. **효율성**: 관련 정보만 처리
+5. **명확성**: 복잡한 enum이나 규칙이 필요 없음
 
-시스템은 `MemoryProfileFactory`를 통해 사전 정의된 프로파일을 제공합니다:
+## 흔한 사용 사례
+
+### 기술 리뷰
+
+```yaml
+memorize_to: "code changes, review comments, technical debt"
+```
+
+### 고객 지원
+
+```yaml
+memorize_to: "customer issue, previous solutions, related tickets"
+```
+
+### 프로젝트 관리
+
+```yaml
+memorize_to: "deadlines, blockers, team decisions"
+```
+
+### 크리에이티브 라이팅
+
+```yaml
+memorize_to: "character development, plot points, themes"
+```
+
+## 메모리 적용 플로우
+
+```
+사용자 구성
+       │
+       ▼
+"requirements, API design"  ──┐
+                              │
+       또는                   ├──→ MemorySelector.apply_memory_settings()
+                              │
+"GOLDFISH"  ──────────────────┘
+       │
+       ▼
+   메모리 없음                   지능형 선택
+                                        │
+                                        ▼
+                                 셀렉터 파셋 생성
+                                        │
+                                        ▼
+                                 모든 메시지 분석
+                                        │
+                                        ▼
+                                 관련 ID 선택
+                                        │
+                                        ▼
+                                 메시지 필터링
+                                        │
+                                        ▼
+                                 at_most 제한 적용
+                                        │
+                                        ▼
+                                 필터링된 메모리로 실행
+```
+
+## 비파괴적(Non-Destructive) 메모리
+
+DiPeO에서의 “잊기”는 비파괴적입니다:
+
+* 원본 메시지는 전역 대화에 그대로 유지됩니다.
+* 퍼슨의 뷰만 일시적으로 필터링됩니다.
+* 메모리 설정 변경으로 언제든 되돌릴 수 있습니다.
+* 항상 전체 감사 추적(audit trail)이 보존됩니다.
+
+## 시스템 메시지 보존
+
+`at_most` 제한을 사용할 때도 시스템 메시지는 자동으로 보존됩니다 — 별도 설정이 필요 없습니다. 이는 중요한 시스템 컨텍스트가 절대 손실되지 않도록 보장합니다.
+
+---
+
+## 내부 구현 세부사항
+
+### 아키텍처 컴포넌트
+
+메모리 시스템은 `MemorySelector` 클래스로 구현됩니다:
 
 ```python
-from dipeo.domain.conversation.memory_profiles import MemoryProfile, MemoryProfileFactory
+from dipeo.application.execution.handlers.person_job.memory_selector import MemorySelector
 
-# 프로파일의 설정 가져오기
-settings = MemoryProfileFactory.get_settings(MemoryProfile.FOCUSED)
-# 반환: MemorySettings(view=CONVERSATION_PAIRS, max_messages=20, preserve_system=True)
+# 메모리 설정 적용
+selector = MemorySelector(orchestrator)
+filtered_messages = await selector.apply_memory_settings(
+    person=person,
+    all_messages=all_messages,
+    memorize_to="requirements, API design",
+    at_most=10,
+    task_prompt_preview=task_preview,
+    llm_service=llm_service,
+)
 ```
 
-### 사용 가능한 메모리 프로파일
+### 내부 필터 메서드
 
-```python
-class MemoryProfile(Enum):
-    FULL = auto()        # 제한 없음, 모든 메시지
-    FOCUSED = auto()     # 20개, conversation_pairs
-    MINIMAL = auto()     # 5개, conversation_pairs  
-    GOLDFISH = auto()    # 2개, conversation_pairs (리셋 포함)
-    ONLY_ME = auto()     # person에게 보낸 메시지만
-    ONLY_I_SENT = auto() # person이 보낸 메시지만
-    CUSTOM = auto()      # 명시적 memory_settings 사용
-```
+시스템은 다음의 내부 필터를 사용합니다(사용자에게 노출되지 않음):
 
-### 동적 메모리 관리
+* `_filter_all_involved()`: 퍼슨이 발신자 또는 수신자인 메시지(기본)
+* `_filter_sent_by_me()`: 해당 퍼슨이 보낸 메시지만
+* `_filter_sent_to_me()`: 해당 퍼슨에게 전송된 메시지만
+* `_filter_system_and_me()`: 시스템 메시지와 퍼슨의 응답
+* `_filter_conversation_pairs()`: 요청/응답 페어
+* `_apply_limit()`: 메시지 수 제한 적용
 
-보통 메모리는 작업 수준에서 설정하지만, 프로그램적으로 조정할 수도 있습니다:
+이들은 기본 동작을 가능하게 하는 구현 디테일이며, 향후 확장의 토대가 됩니다.
 
-```python
-# person에 메모리 설정 적용
-person.set_memory_view(MemoryView.CONVERSATION_PAIRS)
-person.set_memory_limit(max_messages=10, preserve_system=True)
-```
+### 셀렉터 파셋 상세
+
+LLM 기반 선택의 경우:
+
+* 파셋 ID: `{base_person_id}.__selector`
+* 기본 퍼슨의 LLM 설정을 상속
+* 특화된 선택 프롬프트를 추가
+* 구조화된 목록으로 후보 메시지를 입력받음
+* 메시지 ID의 JSON 배열을 반환
+* 일관성을 위해 temperature는 0.1로 설정
+
+### 메시지 ID 매핑
+
+시스템은 선택을 위해 메시지 ID를 유지합니다:
+
+1. 셀렉터가 ID가 포함된 메시지를 입력으로 받음
+2. 선택된 ID를 JSON 배열로 반환
+3. ID를 메시지 객체로 다시 매핑
+4. 최종 필터링 및 제한 적용
 
 ## 향후 개선
 
-1. **의미 기반 필터링**: 메시지 내용/주제에 따른 필터
-2. **시간 기반 윈도우**: 최근 N분의 메시지만 유지
-3. **우선순위 보존**: 중요한 메시지는 한계와 무관하게 유지
-4. **메모리 프로파일 확장**: 일반 패턴에 대한 추가 사전 설정
+1. **시간 기반 윈도우**: 최근 N분의 메시지 유지
+2. **우선순위 보존**: 중요 메시지 항상 유지
+3. **캐싱**: 반복 패턴에 대한 선택 결과 캐시
+4. **하이브리드 선택**: 다중 선택 전략 결합
+5. **컨텍스트 주입**: 외부 컨텍스트를 선택 기준에 추가
 
 ## 요약
 
-DiPeO의 메모리 시스템은 **공유 전역 대화**에서 각 LLM 에이전트가 볼 수 있는 정보를 **작업 단위**로 유연하게 제어합니다. 이를 통해 단순성과 감사 가능성을 유지하면서도 정교한 **멀티에이전트 워크플로**를 구성할 수 있습니다. 핵심 통찰은 **메모리 구성이 person(에이전트) 단위가 아니라 job(작업) 단위**에 속한다는 점이며, 같은 에이전트라도 작업에 따라 서로 다른 메모리 컨텍스트를 가질 수 있다는 것입니다.&#x20;
+DiPeO의 메모리 시스템은 자연어를 통한 직관적 제어를 제공합니다. 셀렉터 파셋 + 기본 퍼슨의 듀얼 퍼소나 접근은 복잡함 없이 지능형 메모리 관리를 가능하게 합니다. 사용자는 기억하고 싶은 것을 자연어로 설명하기만 하면, 시스템이 LLM 기반 이해를 통해 나머지를 처리합니다.
+
+자연어 또는 GOLDFISH의 두 가지 옵션만으로도 의미 기반 선택의 모든 강점을 유지할 수 있습니다. “단순한 인터페이스, 지능적인 구현”이라는 설계 철학이 전체 메모리 시스템 아키텍처를 이끌고 있습니다.
+
+```

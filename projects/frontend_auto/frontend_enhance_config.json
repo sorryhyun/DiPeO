@@ -3,6 +3,7 @@
   "framework": "react",
   "target_framework": "react",
   "styling_approach": "tailwind",
+  "objective": "Stock Price Analyzer",
   "features": [
     "responsive navigation",
     "data visualization charts",
@@ -10,11 +11,8 @@
     "dark mode toggle",
     "user authentication UI"
   ],
-  "target_audience": "business analysts",
-  "target_score": 85,
-  "max_iterations": 3,
-  "output_dir": "./generated_frontend_enhanced",
-  "prompt_type": "frontend_component_generator",
+  "target_audience": "Professional Fund Managers",
+  "output_dir": "./generated",
   "development_mode": {
     "enable_mock_data": true,
     "mock_auth_users": [

@@ -61,8 +61,8 @@ nodes:
 #      operation: read
 #      sub_type: file
 #      format: json
-#      source_details: projects/frontend_enhance/frontend_enhance_config.json
-#
+#      source_details: projects/frontend_auto/frontend_enhance_config.json
+
 #  - label: Plan Sections
 #    type: person_job
 #    position: {x: 400, y: 240}
@@ -101,7 +101,7 @@ nodes:
 #      operation: write
 #      sub_type: file
 #      format: json
-#      source_details: projects/frontend_enhance/generated/sections_data.json
+#      source_details: projects/frontend_auto/generated/sections_data.json
 
   - label: Check Continue
     type: condition
@@ -109,7 +109,7 @@ nodes:
     props:
       condition_type: custom
 #      expression: current_index >= 4
-      expression: current_index >= 10
+      expression: current_index >= 25
       expose_index_as: current_index
       flipped: [false, true]
 
@@ -129,7 +129,7 @@ nodes:
       person: Frontend Generator
       max_iteration: 100
       memorize_to: "Necessary codes to implement or which are dependent to"
-      at_most: 1
+      at_most: 2
       prompt_file: frontend_generator.txt
 
   - label: Write Section Result
@@ -193,7 +193,7 @@ connections:
 #  - {from: Save Sections Data, to: Check Continue, content_type: object}
 
   - {from: Start, to: Check Continue}
-  -
+
   - { from: Check Continue_condfalse, to: Load Sections Data, content_type: object }
   - { from: Check Continue_condtrue, to: Rename Files, content_type: object }
 

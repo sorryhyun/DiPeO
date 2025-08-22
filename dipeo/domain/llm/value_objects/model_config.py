@@ -10,7 +10,7 @@ class ModelConfig:
     
     provider: str
     model: str
-    temperature: float | None = 0.7
+    temperature: float | None = 0.2
     max_tokens: int | None = None
     top_p: float | None = 1.0
     frequency_penalty: float | None = 0.0
