@@ -11,7 +11,7 @@ nodes:
   props:
     default_prompt: Tell me a short, funny joke about programming.
     max_iteration: 1
-    memory_profile: SIMPLE
+    memorize_to: SYSTEM_AND_ME
     person: assistant
 - label: end
   type: endpoint

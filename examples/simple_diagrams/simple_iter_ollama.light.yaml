@@ -11,7 +11,7 @@ nodes:
   props:
     default_prompt: say hi
     max_iteration: 3
-    memory_profile: FULL
+    memorize_to: ALL_MESSAGES
     person: person 1
 - label: condition
   type: condition
@@ -34,7 +34,7 @@ nodes:
     default_prompt: How many times did you respond?
     flipped: [true, false]
     max_iteration: 1
-    memory_profile: FULL
+    memorize_to: ALL_MESSAGES
     person: person 1
 connections:
 - from: start

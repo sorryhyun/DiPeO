@@ -1,0 +1,57 @@
+{
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "installCommand": "pnpm install",
+  "devCommand": "pnpm dev",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  "env": {
+    "VITE_API_BASE_URL": "@api_base_url",
+    "VITE_WS_URL": "@ws_url",
+    "VITE_ENABLE_ANALYTICS": "@enable_analytics",
+    "VITE_FEATURE_REAL_TIME_UPDATES": "@feature_real_time",
+    "VITE_FEATURE_DATA_VISUALIZATION": "@feature_data_viz",
+    "VITE_FEATURE_ADVANCED_FILTERING": "@feature_filtering",
+    "VITE_FEATURE_EXPORT": "@feature_export"
+  },
+  "functions": {
+    "api/health": {
+      "maxDuration": 10
+    }
+  },
+  "regions": ["iad1"],
+  "trailingSlash": false
+}

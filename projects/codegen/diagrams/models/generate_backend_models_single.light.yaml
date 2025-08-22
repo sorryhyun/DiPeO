@@ -1,4 +1,4 @@
-# Backend Single Node Generation from TypeScript - Simplified with template_job
+# Backend Single Node Generation from TypeScript - Simplified version
 # Generates Pydantic model and static node from TypeScript specifications
 
 version: light
@@ -9,58 +9,35 @@ nodes:
     type: start
     position: {x: 50, y: 100}
 
-  # Parse input to handle both direct variables and nested inputs
-  - label: Parse Input
+  # Parse batch input to get node type 
+  - label: Parse Node Type
     type: code_job
-    position: {x: 50, y: 150}
+    position: {x: 200, y: 100}
     props:
       language: python
       code: |
-        # Handle batch mode, direct input (from CLI) and nested input (from sub_diagram)
-        # In batch mode, input comes directly without 'default' wrapper
-        if 'default' in locals():
-            # Standard sub_diagram case - input is in 'default' variable
-            if "node_spec_path" in default:
-                # Direct case - pass through
-                result = {"node_spec_path": default["node_spec_path"]}
-            elif "default" in default and isinstance(default["default"], dict) and "node_spec_path" in default["default"]:
-                # Nested case from sub_diagram
-                result = {"node_spec_path": default["default"]["node_spec_path"]}
-            else:
-                raise ValueError(f"node_spec_path not found in input: {default}")
-        elif 'node_spec_path' in locals():
-            # Batch mode case - input comes directly as node_spec_path
-            result = {"node_spec_path": node_spec_path}
-        else:
-            # Try to find node_spec_path in globals/locals
-            all_vars = {**globals(), **locals()}
-            if 'node_spec_path' in all_vars:
-                result = {"node_spec_path": all_vars['node_spec_path']}
-            else:
-                raise ValueError(f"node_spec_path not found in any available variables: {list(locals().keys())}")
-      
-  # Extract node type from input
-  - label: Extract Node Type
-    type: code_job
-    position: {x: 200, y: 200}
-    props:
-      language: python
-      code: |
-        # Extract node type from input
-        # node_spec_path comes as a dict from Parse Input
-        if isinstance(node_spec_path, dict):
-            node_type = node_spec_path.get('node_spec_path', 'unknown')
-        else:
+        # In batch mode, input comes directly as node_spec_path
+        # It can be a string or in a dict under 'node_spec_path' key
+        if 'node_spec_path' in locals():
             node_type = node_spec_path
-            
-        # Keep the node type with hyphens for file loading
-        # Output just the string node type for typescript_spec_parser
+        elif 'default' in locals():
+            # Sometimes wrapped in default
+            if isinstance(default, dict):
+                node_type = default.get('node_spec_path', 'unknown')
+            else:
+                node_type = default
+        else:
+            # Try to find it in all available variables
+            all_vars = {**globals(), **locals()}
+            node_type = all_vars.get('node_spec_path', 'unknown')
+        
+        # node_type is like "api-job", "person-job", etc.
         result = node_type
   
   # Load cached AST data for this node spec
   - label: Load Cached AST
     type: db
-    position: {x: 350, y: 200}
+    position: {x: 350, y: 100}
     props:
       operation: read
       sub_type: file
@@ -70,7 +47,7 @@ nodes:
   # Load codegen mappings
   - label: Load Codegen Mappings
     type: db
-    position: {x: 350, y: 100}
+    position: {x: 350, y: 200}
     props:
       operation: read
       sub_type: file
@@ -80,7 +57,7 @@ nodes:
   # Extract mappings
   - label: Extract Mappings
     type: code_job
-    position: {x: 500, y: 100}
+    position: {x: 500, y: 200}
     props:
       language: python
       filePath: projects/codegen/code/shared/extract_mappings.py
@@ -89,71 +66,29 @@ nodes:
   # Extract specification from AST
   - label: Extract Specification
     type: code_job
-    position: {x: 500, y: 200}
+    position: {x: 500, y: 100}
     props:
       language: python
       filePath: projects/codegen/code/shared/typescript_spec_parser.py
       functionName: main
       
-  # Unwrap spec_data from nested structure
-  - label: Unwrap Spec Data
+  # Prepare complete context for templates
+  - label: Prepare Context
     type: code_job
-    position: {x: 600, y: 200}
+    position: {x: 700, y: 150}
     props:
       language: python
       code: |
-        # The typescript_spec_parser returns {"spec_data": spec}, unwrap it
-        if isinstance(spec_data, dict) and 'spec_data' in spec_data:
-            result = spec_data['spec_data']
+        # Access labeled inputs from the inputs dictionary
+        spec_result = inputs.get('spec_data', {})
+        mappings = inputs.get('mappings', {})
+        node_type_str = inputs.get('node_type', 'unknown')
+        
+        # Extract the actual spec data (typescript_spec_parser returns {"spec_data": spec})
+        if isinstance(spec_result, dict) and 'spec_data' in spec_result:
+            spec_data = spec_result['spec_data']
         else:
-            result = spec_data
-
-  # Extract node naming for file paths
-  - label: Extract Node Naming
-    type: code_job
-    position: {x: 700, y: 200}
-    props:
-      language: python
-      code: |
-        # Extract node type from spec for use in file paths
-        # When typescript_spec_parser returns {"spec_data": spec_data}, 
-        # and it's passed with label "spec_data", we get the actual spec dict
-        spec = inputs.get('spec_data', spec_data if 'spec_data' in locals() else {})
-        
-        # Ensure spec is a dict
-        if not isinstance(spec, dict):
-            raise ValueError(f"Expected dict, got {type(spec)}")
-            
-        # The nodeType comes as "NodeType.PERSON_JOB" format from TypeScript
-        # We need to extract just the enum value and convert to snake_case
-        node_type_raw = spec.get('nodeType', 'unknown')
-        
-        # Remove "NodeType." prefix if present
-        if node_type_raw.startswith('NodeType.'):
-            node_type_enum = node_type_raw.replace('NodeType.', '')
-        else:
-            node_type_enum = node_type_raw
-            
-        # Convert from UPPER_SNAKE_CASE to lower_snake_case
-        node_type = node_type_enum.lower()
-        
-        # Create node_name in PascalCase for class names
-        node_name = ''.join(word.title() for word in node_type.split('_'))
-        print(node_name)
-        result = {
-            'node_type': node_type,
-            'node_name': node_name
-        }
-
-  # Prepare context for templates
-  - label: Prepare Template Context
-    type: code_job
-    position: {x: 700, y: 300}
-    props:
-      language: python
-      code: |
-        # Combine all data needed for templates
-        # Keep node_naming as nested object for path interpolation
+            spec_data = spec_result
         
         # Clean up nodeType by removing "NodeType." prefix and convert to lowercase
         cleaned_spec_data = dict(spec_data)
@@ -167,64 +102,65 @@ nodes:
             # Convert UPPER_SNAKE_CASE to lower_snake_case for filters to work properly
             cleaned_spec_data['nodeType'] = node_type_enum.lower()
         
+        # Convert node type from hyphenated to snake_case for file names
+        # e.g., "api-job" -> "api_job"
+        node_type_snake = node_type_str.replace('-', '_')
+        
+        # Create node_name in PascalCase for class names
+        node_name = ''.join(word.title() for word in node_type_snake.split('_'))
+        
+        # Build the context with everything needed for templates
         context = {
             **cleaned_spec_data,  # All spec fields with cleaned nodeType
             'mappings': mappings,  # Type mappings for python_type_with_context filter
-            'node_naming': node_naming,  # Keep as nested object for {node_naming.node_type} interpolation
+            'node_type': node_type_snake,  # For file names (api_job)
+            'node_name': node_name,  # For class names (ApiJob)
+            'node_naming': {  # Keep for backward compatibility with templates
+                'node_type': node_type_snake,
+                'node_name': node_name
+            }
         }
         
+        print(f"Generating {node_name} ({node_type_snake})")
         result = context
 
   # Generate backend code using template_job nodes
   - label: Generate Pydantic Model
     type: template_job
-    position: {x: 900, y: 300}
+    position: {x: 900, y: 100}
     props:
       engine: jinja2
       template_path: projects/codegen/templates/backend/pydantic_single_model.j2
-      output_path: dipeo/diagram_generated_staged/models/{{ node_naming.node_type }}_model.py
+      output_path: dipeo/diagram_generated_staged/models/{{ node_type }}_model.py
 
   - label: Generate Static Node
     type: template_job
-    position: {x: 900, y: 400}
+    position: {x: 900, y: 200}
     props:
       engine: jinja2
       template_path: projects/codegen/templates/backend/static_nodes.j2
-      output_path: dipeo/diagram_generated_staged/nodes/{{ node_naming.node_type }}_node.py
+      output_path: dipeo/diagram_generated_staged/nodes/{{ node_type }}_node.py
 
 connections:
   # Parse input first
-  - {from: Start, to: Parse Input}
+  - {from: Start, to: Parse Node Type}
     
-  # Load codegen mappings early (independent of node type)
-  - {from: Start, to: Load Codegen Mappings}
-    
-  # Extract node type
-  - {from: Parse Input, to: Extract Node Type, label: node_spec_path}
-    
-  # Load the cached AST
-  - {from: Extract Node Type, to: Load Cached AST, label: node_type, content_type: object}
+  # Load resources in parallel
+  - {from: Parse Node Type, to: Load Cached AST, label: node_type, content_type: object}
+  - {from: Parse Node Type, to: Load Codegen Mappings}
     
   # Extract specification from AST
   - {from: Load Cached AST, to: Extract Specification, label: ast_data}
+  - {from: Parse Node Type, to: Extract Specification, label: node_type}
     
-  # Pass node_type to Extract Specification
-  - {from: Extract Node Type, to: Extract Specification, label: node_type}
-    
-  # Unwrap the spec data
-  - {from: Extract Specification, to: Unwrap Spec Data, label: spec_data}
-    
-  # Pass unwrapped spec to extract node naming
-  - {from: Unwrap Spec Data, to: Extract Node Naming, label: spec_data}
-    
-  # Pass mappings from Load Codegen Mappings to Extract Mappings
+  # Extract mappings
   - {from: Load Codegen Mappings, to: Extract Mappings, content_type: object}
     
-  # Prepare template context with all data
-  - {from: Unwrap Spec Data, to: Prepare Template Context, label: spec_data}
-  - {from: Extract Mappings, to: Prepare Template Context, label: mappings}
-  - {from: Extract Node Naming, to: Prepare Template Context, label: node_naming}
+  # Prepare context with all data
+  - {from: Extract Specification, to: Prepare Context, label: spec_data, content_type: object}
+  - {from: Extract Mappings, to: Prepare Context, label: mappings, content_type: object}
+  - {from: Parse Node Type, to: Prepare Context, label: node_type}
   
-  # Pass context to template_job nodes (no label = auto unwrap)
-  - {from: Prepare Template Context, to: Generate Pydantic Model, content_type: object}
-  - {from: Prepare Template Context, to: Generate Static Node, content_type: object}
+  # Pass context to template_job nodes
+  - {from: Prepare Context, to: Generate Pydantic Model, content_type: object}
+  - {from: Prepare Context, to: Generate Static Node, content_type: object}

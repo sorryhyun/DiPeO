@@ -37,10 +37,8 @@ class PersonJobNode:
     prompt_file: str = ""
     memorize_to: str = ""
     at_most: float = 0
-    memory_profile: str = None
     tools: List[ToolConfig] = ""
     text_format: str = ""
-    memory_settings: MemorySettings = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -63,8 +61,6 @@ class PersonJobNode:
         data["max_iteration"] = self.max_iteration
         data["memorize_to"] = self.memorize_to
         data["at_most"] = self.at_most
-        data["memory_profile"] = self.memory_profile
         data["tools"] = self.tools
         data["text_format"] = self.text_format
-        data["memory_settings"] = self.memory_settings
         return data

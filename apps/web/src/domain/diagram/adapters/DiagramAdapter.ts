@@ -22,7 +22,7 @@
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram, diagramArraysToMaps, NodeType, MemoryView } from '@/infrastructure/types';
+import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram, diagramArraysToMaps, NodeType } from '@/infrastructure/types';
 import { JsonDict } from '@dipeo/models';
 
 import { generateId } from '@/infrastructure/types/utilities';
@@ -176,17 +176,17 @@ export class DiagramAdapter {
       const memorySettings = nodeData.memory_settings as any;
       
       // Determine memory profile based on memory settings
-      if (memorySettings.view === MemoryView.ALL_MESSAGES && !memorySettings.max_messages) {
-        nodeData.memory_profile = 'FULL';
-      } else if (memorySettings.view === MemoryView.CONVERSATION_PAIRS && memorySettings.max_messages === 20) {
-        nodeData.memory_profile = 'FOCUSED';
-      } else if (memorySettings.view === MemoryView.SYSTEM_AND_ME && memorySettings.max_messages === 5) {
-        nodeData.memory_profile = 'MINIMAL';
-      } else if (memorySettings.view === MemoryView.CONVERSATION_PAIRS && memorySettings.max_messages === 1 && !memorySettings.preserve_system) {
-        nodeData.memory_profile = 'GOLDFISH';
-      } else {
-        nodeData.memory_profile = 'CUSTOM';
-      }
+      // if (memorySettings.view === MemoryView.ALL_MESSAGES && !memorySettings.max_messages) {
+      //   nodeData.memory_profile = 'FULL';
+      // } else if (memorySettings.view === MemoryView.CONVERSATION_PAIRS && memorySettings.max_messages === 20) {
+      //   nodeData.memory_profile = 'FOCUSED';
+      // } else if (memorySettings.view === MemoryView.SYSTEM_AND_ME && memorySettings.max_messages === 5) {
+      //   nodeData.memory_profile = 'MINIMAL';
+      // } else if (memorySettings.view === MemoryView.CONVERSATION_PAIRS && memorySettings.max_messages === 1 && !memorySettings.preserve_system) {
+      //   nodeData.memory_profile = 'GOLDFISH';
+      // } else {
+      //   nodeData.memory_profile = 'CUSTOM';
+      // }
     }
 
     return {

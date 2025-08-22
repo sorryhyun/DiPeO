@@ -14,7 +14,6 @@ from dipeo.diagram_generated import (
     NodeType,
 )
 from .handle_utils import create_handle_id
-from dipeo.diagram_generated import MemoryView
 
 log = logging.getLogger(__name__)
 
@@ -50,36 +49,32 @@ class NodeFieldMapper:
             if "strict" in props and "strict_mode" not in props:
                 props["strict_mode"] = props.pop("strict")
         elif node_type == NodeType.PERSON_JOB.value:
+            # Remove deprecated memory fields
             if "memory_config" in props:
                 props.pop("memory_config")
             
+            # Convert legacy memory_profile to memorize_to if present
             if "memory_profile" in props:
-                profile_str = props.get("memory_profile")
-                profile_to_settings = {
-                    "FULL": {
-                        "view": MemoryView.ALL_INVOLVED,
-                        "max_messages": None,
-                        "preserve_system": True
-                    },
-                    "FOCUSED": {
-                        "view": MemoryView.CONVERSATION_PAIRS,
-                        "max_messages": 20,
-                        "preserve_system": True
-                    },
-                    "MINIMAL": {
-                        "view": MemoryView.SYSTEM_AND_ME,
-                        "max_messages": 5,
-                        "preserve_system": True
-                    },
-                    "GOLDFISH": {
-                        "view": MemoryView.CONVERSATION_PAIRS,
-                        "max_messages": 2,
-                        "preserve_system": False
-                    }
+                profile_str = props.pop("memory_profile")
+                
+                # Map legacy profiles to new memorize_to values
+                profile_to_memorize = {
+                    "FULL": "ALL_MESSAGES",
+                    "FOCUSED": "CONVERSATION_PAIRS", 
+                    "MINIMAL": "SYSTEM_AND_ME",
+                    "GOLDFISH": "GOLDFISH",
+                    "ONLY_ME": "SENT_TO_ME",
+                    "ONLY_I_SENT": "SENT_BY_ME"
                 }
                 
-                if profile_str in profile_to_settings:
-                    props["memory_settings"] = profile_to_settings[profile_str]
+                if profile_str in profile_to_memorize:
+                    # Only set memorize_to if not already set
+                    if "memorize_to" not in props:
+                        props["memorize_to"] = profile_to_memorize[profile_str]
+            
+            # Remove memory_settings if present (no longer used)
+            if "memory_settings" in props:
+                props.pop("memory_settings")
 
         return props
     
@@ -101,10 +96,12 @@ class NodeFieldMapper:
             if "strict_mode" in props and "strict" not in props:
                 props["strict"] = props["strict_mode"]
         elif node_type == NodeType.PERSON_JOB.value:
+            # Remove deprecated memory fields during export
             if "memory_config" in props:
                 props.pop("memory_config")
-            if "memory_profile" in props and "memory_settings" in props:
+            if "memory_settings" in props:
                 props.pop("memory_settings")
+            # Keep memorize_to and at_most as is - they're the new approach
         
         return props
 

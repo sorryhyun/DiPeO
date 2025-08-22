@@ -200,24 +200,22 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         elif not file_paths:
             file_paths = []
         
+        # Use PromptBuilder to properly prepare template values from inputs
+        # This handles nested structures and makes node outputs available
+        from dipeo.application.utils import PromptBuilder
+        prompt_builder = PromptBuilder(template_processor)
+        template_values = prompt_builder.prepare_template_values(inputs)
+        
+        # Merge with global variables from context
+        if hasattr(context, 'get_variables'):
+            variables = context.get_variables()
+            template_values = {**variables, **template_values}
+        
         processed_paths = []
         for file_path in file_paths:
             if file_path and '{' in file_path and '}' in file_path:
-                variables = {}
-                if hasattr(context, 'get_variables'):
-                    variables = context.get_variables()
-                
-                # Flatten nested 'default' structure if present
-                if 'default' in inputs and isinstance(inputs['default'], dict):
-                    # Add contents of 'default' directly as variables
-                    flattened_inputs = {**inputs['default'], **inputs}
-                else:
-                    flattened_inputs = inputs
-                
-                merged_variables = {**variables, **flattened_inputs}
-
                 if template_processor:
-                    resolved_path = template_processor.process_single_brace(file_path, merged_variables)
+                    resolved_path = template_processor.process_single_brace(file_path, template_values)
                     file_path = resolved_path
                 else:
                     logger.warning(f"No template processor available for path: {file_path}")

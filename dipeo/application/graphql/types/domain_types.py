@@ -22,7 +22,6 @@ from dipeo.diagram_generated.domain_models import (
     TokenUsage,
     DiagramMetadata,
     PersonLLMConfig,
-    MemorySettings,
     Vec2,
     ExecutionOptions,
     SerializedNodeOutput,
@@ -48,7 +47,6 @@ from .scalars import (
 
 # Import generated types - these are the base types we'll extend
 from dipeo.diagram_generated.graphql.strawberry_domain import (
-    MemorySettingsType,
     ToolConfigType,
 )
 
@@ -237,7 +235,6 @@ __all__ = [
     'DomainNodeType',
     'DomainArrowType',
     'PersonLLMConfigType',
-    'MemorySettingsType',  # Re-exported from generated code
     'ToolConfigType',  # Re-exported from generated code
     'DomainPersonType',
     'DomainApiKeyType',

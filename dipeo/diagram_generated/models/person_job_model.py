@@ -20,10 +20,8 @@ class PersonJobNodeData(BaseModel):
     max_iteration: int = Field(description="Maximum execution iterations")
     memorize_to: Optional[str] = Field(description="Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria.")
     at_most: Optional[float] = Field(description="Select at most N messages to keep (system messages may be preserved in addition).")
-    memory_profile: Optional[str] = Field(description="Memory profile for conversation context (Deprecated: prefer 'memorize_to' + 'at_most')")
     tools: Optional[List[ToolConfig]] = Field(description="Tools available to the AI agent")
     text_format: Optional[str] = Field(description="JSON schema or response format for structured outputs")
-    memory_settings: Optional[MemorySettings] = Field(description="Custom memory settings (when memory_profile is CUSTOM) (Deprecated: prefer 'memorize_to' + 'at_most')")
 
     class Config:
         extra = "forbid"

@@ -192,8 +192,12 @@ class ExecutionOrchestrator:
         Returns:
             ChatResult from the LLM completion
         """
-        # Get current conversation state
-        all_messages = self._conversation_repo.get_messages()
+        # Get current conversation state or use provided messages
+        # Check if all_messages was provided in llm_options (e.g., for memory selection)
+        if 'all_messages' in llm_options:
+            all_messages = llm_options.pop('all_messages')
+        else:
+            all_messages = self._conversation_repo.get_messages()
         
         # Execute completion (Person returns messages but doesn't add them)
         result, incoming, response = await person.complete(

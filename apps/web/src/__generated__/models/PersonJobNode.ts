@@ -10,10 +10,8 @@ export interface PersonJobNodeData {
   max_iteration: number;
   memorize_to?: string;
   at_most?: number;
-  memory_profile?: 'FULL' | 'FOCUSED' | 'MINIMAL' | 'GOLDFISH' | 'CUSTOM';
   tools?: string;
   text_format?: string;
-  memory_settings?: Record<string, any>;
 }
 
 // Zod schema for validation
@@ -26,8 +24,6 @@ export const PersonJobNodeDataSchema = z.object({
   max_iteration: z.number(),
   memorize_to: z.string().optional(),
   at_most: z.number().min(1).max(500).optional(),
-  memory_profile: z.enum(["FULL", "FOCUSED", "MINIMAL", "GOLDFISH", "CUSTOM"]).optional(),
   tools: z.string().optional(),
   text_format: z.string().optional(),
-  memory_settings: z.record(z.any()).optional(),
 });

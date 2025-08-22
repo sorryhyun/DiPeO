@@ -214,8 +214,7 @@ class InMemoryEventBus(DomainEventBus):
     async def start(self) -> None:
         """Start the event bus."""
         self._running = True
-        logger.info("In-memory event bus started")
-    
+
     async def stop(self) -> None:
         """Stop the event bus and clean up resources."""
         self._running = False
@@ -236,9 +235,7 @@ class InMemoryEventBus(DomainEventBus):
         
         if self._enable_event_store:
             logger.info(f"Event store contains {len(self._event_store)} events")
-        
-        logger.info("In-memory event bus stopped")
-    
+
     async def _process_queue(
         self,
         subscription: EventSubscription,

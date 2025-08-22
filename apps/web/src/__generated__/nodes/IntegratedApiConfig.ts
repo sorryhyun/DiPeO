@@ -1,6 +1,6 @@
 // Auto-generated node configuration for integrated_api
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
+import { NodeType, HandleLabel, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { integratedApiFields } from '../fields/IntegratedApiFields';
 import { mergeFieldConfigs } from '@/domain/diagram/config/nodes/fieldOverrides';
 

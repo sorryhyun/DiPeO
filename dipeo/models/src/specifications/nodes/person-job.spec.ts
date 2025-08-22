@@ -1,7 +1,5 @@
 
 import { NodeType } from '../../core/enums/node-types.js';
-import { MemoryView } from '../../core/enums/memory.js';
-import { MemoryProfile } from '../../core/enums/memory.js';
 import { NodeSpecification } from '../types.js';
 
 export const personJobSpec: NodeSpecification = {
@@ -111,26 +109,6 @@ export const personJobSpec: NodeSpecification = {
       }
     },
     {
-      name: "memory_profile",
-      type: "enum",
-      required: false,
-      description: "Memory profile for conversation context (Deprecated: prefer 'memorize_to' + 'at_most')",
-      defaultValue: "FOCUSED",
-      validation: {
-        allowedValues: Object.values(MemoryProfile)
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: "FULL", label: "Full 🧠 - No limits, see everything" },
-          { value: "FOCUSED", label: "Focused 🎯 - Last 20 messages, conversation pairs" },
-          { value: "MINIMAL", label: "Minimal 💭 - Last 5 messages, system + direct only" },
-          { value: "GOLDFISH", label: "Goldfish 🐠 - Last 1-2 exchanges only" },
-          { value: "CUSTOM", label: "Custom ⚙️ - Use memory_settings below" }
-        ]
-      }
-    },
-    {
       name: "tools",
       type: "string",
       required: false,
@@ -159,61 +137,6 @@ export const personJobSpec: NodeSpecification = {
         adjustable: true
       }
     },
-    {
-      name: "memory_settings",
-      type: "object",
-      required: false,
-      description: "Custom memory settings (when memory_profile is CUSTOM) (Deprecated: prefer 'memorize_to' + 'at_most')",
-      conditional: {
-        field: "memory_profile",
-        values: ["CUSTOM"]
-      },
-      nestedFields: [
-        {
-          name: "view",
-          type: "enum",
-          required: true,
-          description: "Memory view type",
-          validation: {
-            allowedValues: ["FULL_CONVERSATION", "RELATED_CONVERSATION_PAIRS", "DIRECT_MESSAGES", "SYSTEM_AND_DIRECT"]
-          },
-          uiConfig: {
-            inputType: "select",
-            options: [
-              { value: "FULL_CONVERSATION", label: "Full Conversation" },
-              { value: "RELATED_CONVERSATION_PAIRS", label: "Related Conversation Pairs" },
-              { value: "DIRECT_MESSAGES", label: "Direct Messages" },
-              { value: "SYSTEM_AND_DIRECT", label: "System and Direct" }
-            ]
-          }
-        },
-        {
-          name: "max_messages",
-          type: "number",
-          required: false,
-          description: "Maximum number of messages to retain",
-          uiConfig: {
-            inputType: "number",
-            min: 1,
-            max: 100
-          }
-        },
-        {
-          name: "preserve_system",
-          type: "boolean",
-          required: false,
-          description: "Always preserve system messages",
-          defaultValue: true,
-          uiConfig: {
-            inputType: "checkbox"
-          }
-        }
-      ],
-      uiConfig: {
-        inputType: "group",
-        collapsible: true
-      }
-    }
   ],
   
   handles: {

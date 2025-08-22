@@ -1,6 +1,6 @@
 // Auto-generated node configuration for endpoint
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
+import { NodeType, HandleLabel, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { endpointFields } from '../fields/EndpointFields';
 
 export const endpointConfig: UnifiedNodeConfig = {

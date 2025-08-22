@@ -1,6 +1,6 @@
 // Auto-generated node configuration for person_batch_job
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
+import { NodeType, HandleLabel, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { personBatchJobFields } from '../fields/PersonBatchJobFields';
 
 export const personBatchJobConfig: UnifiedNodeConfig = {

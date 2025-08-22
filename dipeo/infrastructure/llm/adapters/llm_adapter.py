@@ -34,7 +34,7 @@ class LLMClientAdapter(LLMClient):
         **kwargs,
     ) -> ChatResult:
         """Complete a chat prompt using the underlying service."""
-        return await self._service.chat(
+        return await self._service.complete(
             messages=messages,
             model=model,
             api_key_id=api_key_id,
@@ -123,7 +123,7 @@ class LLMServiceAdapter(LLMService):
             model = "gpt-5-nano-2025-08-07"  # Default model
         
         # Let the service determine the provider from the model
-        return await self._service.chat(
+        return await self._service.complete(
             messages=messages,
             model=model,
             api_key_id=api_key_id or "default",

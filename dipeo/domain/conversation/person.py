@@ -1,72 +1,62 @@
 """Person dynamic object representing an LLM agent with evolving conversation state."""
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Callable
 
 from dipeo.diagram_generated import (
     ChatResult,
-    MemorySettings,
     Message,
     PersonLLMConfig,
 )
-from dipeo.diagram_generated import (
-    MemoryView as MemoryViewEnum,
-)
 from dipeo.diagram_generated.domain_models import PersonID
-
-from .memory_filters import MemoryFilterFactory, MemoryLimiter, MemoryView
 
 if TYPE_CHECKING:
     from dipeo.domain.llm.ports import LLMService as LLMServicePort
 
 
 class Person:
-    """LLM agent with filtered view of conversation messages.
+    """LLM agent with flexible message filtering.
     
-    This entity manages its own memory filters and view settings,
-    but does not directly interact with conversations or repositories.
+    This entity represents an agent but delegates memory filtering
+    to external components for maximum flexibility.
     """
     
-    def __init__(self, id: PersonID, name: str, llm_config: PersonLLMConfig, 
-                 memory_view: MemoryView = MemoryView.ALL_INVOLVED):
+    def __init__(self, id: PersonID, name: str, llm_config: PersonLLMConfig):
         self.id = id
         self.name = name
         self.llm_config = llm_config
         
-        self.memory_view = memory_view
-        self._memory_filter = MemoryFilterFactory.create(memory_view)
-        self._memory_limiter: MemoryLimiter | None = None
+        # Simple default filter function - can be overridden
+        self._filter_func: Optional[Callable[[list[Message]], list[Message]]] = None
     
-    def filter_messages(self, messages: list[Message], memory_view: MemoryView | None = None) -> list[Message]:
-        """Filter messages based on this person's memory view and limits.
+    def filter_messages(self, messages: list[Message]) -> list[Message]:
+        """Filter messages using configured filter function.
         
         Args:
             messages: The full list of messages to filter
-            memory_view: Optional override for memory view (uses person's default if None)
             
         Returns:
-            Filtered list of messages based on person's perspective
+            Filtered list of messages (defaults to ALL_INVOLVED behavior)
         """
-        view = memory_view or self.memory_view
-        filter = self._memory_filter if view == self.memory_view else MemoryFilterFactory.create(view)
+        if self._filter_func:
+            return self._filter_func(messages)
         
-        filtered_messages = filter.filter(messages, self.id)
-        if self._memory_limiter:
-            filtered_messages = self._memory_limiter.limit(filtered_messages)
-        
-        return filtered_messages
+        # Default behavior: ALL_INVOLVED (messages where person is sender or recipient)
+        return [
+            msg for msg in messages
+            if msg.from_person_id == self.id or msg.to_person_id == self.id
+        ]
     
     
-    def get_messages(self, all_messages: list[Message], memory_view: MemoryView | None = None) -> list[Message]:
+    def get_messages(self, all_messages: list[Message]) -> list[Message]:
         """Get filtered messages from the provided message list.
         
         Args:
             all_messages: The complete list of messages
-            memory_view: Optional override for memory view
             
         Returns:
             Filtered messages based on person's view
         """
-        return self.filter_messages(all_messages, memory_view)
+        return self.filter_messages(all_messages)
     
     
     def get_latest_message(self, all_messages: list[Message]) -> Message | None:
@@ -81,17 +71,12 @@ class Person:
         messages = self.filter_messages(all_messages)
         return messages[-1] if messages else None
     
-    def forget_all_messages(self) -> None:
-        """Set memory limit to 0 - person can't see messages but they still exist."""
-        self._memory_limiter = MemoryLimiter(0, preserve_system=False)
-    
     def reset_memory(self) -> None:
         """Reset memory to forget all messages.
         
-        This is used for GOLDFISH memory profile. Instead of clearing messages
-        from storage, we just set the memory limit to 0 so the person can't see them.
+        This is used for GOLDFISH mode. Sets filter to return empty list.
         """
-        self._memory_limiter = MemoryLimiter(0, preserve_system=False)
+        self._filter_func = lambda messages: []
     
     def get_message_count(self, all_messages: list[Message]) -> int:
         """Get count of messages visible to this person.
@@ -104,22 +89,23 @@ class Person:
         """
         return len(self.filter_messages(all_messages))
     
-    def set_memory_view(self, view: MemoryView) -> None:
-        self.memory_view = view
-        self._memory_filter = MemoryFilterFactory.create(view)
-    
-    def set_memory_limit(self, max_messages: int, preserve_system: bool = True) -> None:
-        if max_messages <= 0:
-            self._memory_limiter = None
-        else:
-            self._memory_limiter = MemoryLimiter(max_messages, preserve_system)
+    def set_filter_function(self, filter_func: Optional[Callable[[list[Message]], list[Message]]]) -> None:
+        """Set a custom filter function for this person.
+        
+        Args:
+            filter_func: Function that takes messages and returns filtered messages
+        """
+        self._filter_func = filter_func
     
     def get_memory_config(self) -> dict[str, Any]:
+        """Get memory configuration information.
+        
+        Returns:
+            Dictionary with memory configuration details
+        """
         return {
-            "view": self.memory_view.value,
-            "filter_description": self._memory_filter.describe(),
-            "max_messages": self._memory_limiter.max_messages if self._memory_limiter else None,
-            "preserve_system": self._memory_limiter.preserve_system if self._memory_limiter else None
+            "has_custom_filter": self._filter_func is not None,
+            "description": "Custom filter applied" if self._filter_func else "Default ALL_INVOLVED filter",
         }
     
     
@@ -231,30 +217,12 @@ class Person:
             'last_message_from': str(messages[-1].from_person_id) if messages else None,
             'last_message_to': str(messages[-1].to_person_id) if messages else None
         }
-    
-    def apply_memory_settings(self, settings: MemorySettings) -> None:
-        """Apply memory settings - main method for person memory configuration."""
-        view_mapping = {
-            MemoryViewEnum.ALL_INVOLVED: MemoryView.ALL_INVOLVED,
-            MemoryViewEnum.SENT_BY_ME: MemoryView.SENT_BY_ME,
-            MemoryViewEnum.SENT_TO_ME: MemoryView.SENT_TO_ME,
-            MemoryViewEnum.SYSTEM_AND_ME: MemoryView.SYSTEM_AND_ME,
-            MemoryViewEnum.CONVERSATION_PAIRS: MemoryView.CONVERSATION_PAIRS,
-        }
-        
-        memory_view = view_mapping.get(settings.view, MemoryView.ALL_INVOLVED)
-        self.set_memory_view(memory_view)
-        
-        if settings.max_messages is not None and settings.max_messages > 0:
-            self.set_memory_limit(
-                int(settings.max_messages), 
-                preserve_system=settings.preserve_system if settings.preserve_system is not None else True
-            )
-        else:
-            self._memory_limiter = None
+
+
     
     
     def __repr__(self) -> str:
+        filter_info = "custom_filter" if self._filter_func else "default_filter"
         return (f"Person(id={self.id}, name={self.name}, "
-                f"memory_view={self.memory_view.value}, "
+                f"filter={filter_info}, "
                 f"llm={self.llm_config.service}:{self.llm_config.model})")

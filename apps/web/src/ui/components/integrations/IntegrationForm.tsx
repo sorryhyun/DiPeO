@@ -4,7 +4,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntegrations } from '@/domain/integrations/hooks';
-import { Button } from '@/ui/components/common/forms';
+import { Button } from '@/ui/components/common/forms/buttons';
 import { Select } from '@/ui/components/common/forms';
 import { Spinner } from '@/ui/components/common/feedback';
 import { IntegrationConfigEditor } from './IntegrationConfigEditor';
@@ -136,7 +136,7 @@ export const IntegrationForm: React.FC<IntegrationFormProps> = ({
 
   // Get operation metadata
   const currentOperation = useMemo(() => {
-    return operationOptions?.find(op => op.value === selectedOperation);
+    return operationOptions?.find((op: { value: string; label: string; description?: string }) => op.value === selectedOperation);
   }, [operationOptions, selectedOperation]);
 
   if (providersLoading) {
@@ -152,11 +152,16 @@ export const IntegrationForm: React.FC<IntegrationFormProps> = ({
         </label>
         <Select
           value={selectedProvider || ''}
-          onChange={handleProviderChange}
-          options={providerOptions}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleProviderChange(e.target.value)}
           disabled={readOnly}
-          placeholder="Select a provider..."
-        />
+        >
+          <option value="">Select a provider...</option>
+          {providerOptions?.map((option: { value: string; label: string }) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
         {currentProvider?.metadata?.description && (
           <p className="mt-1 text-sm text-gray-500">
             {currentProvider.metadata.description}
@@ -176,11 +181,16 @@ export const IntegrationForm: React.FC<IntegrationFormProps> = ({
             <>
               <Select
                 value={selectedOperation || ''}
-                onChange={handleOperationChange}
-                options={operationOptions}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleOperationChange(e.target.value)}
                 disabled={readOnly}
-                placeholder="Select an operation..."
-              />
+              >
+                <option value="">Select an operation...</option>
+                {operationOptions?.map((option: { value: string; label: string }) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
               {currentOperation?.description && (
                 <p className="mt-1 text-sm text-gray-500">
                   {currentOperation.description}
@@ -281,7 +291,7 @@ export const IntegrationForm: React.FC<IntegrationFormProps> = ({
             size="sm"
             disabled={testLoading || !apiKeyId}
           >
-            {testLoading ? <Spinner size="xs" /> : 'Test Integration'}
+            {testLoading ? <Spinner size="sm" /> : 'Test Integration'}
           </Button>
           {!apiKeyId && (
             <span className="text-sm text-yellow-600 self-center">
