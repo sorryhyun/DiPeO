@@ -75,12 +75,26 @@
         "operation": "write",
         "sub_type": "file",
         "format": "text",
-        "file": "projects/frontend_enhance/generated/{sections[current_index].file_to_implement}.tsx",
+        "file": "projects/frontend_enhance/generated/temp_section_{current_index}.tsx",
         "label": "write section result"
       }
     },
     {
       "id": "node_5",
+      "type": "code_job",
+      "position": {
+        "x": 1500,
+        "y": 600
+      },
+      "data": {
+        "language": "python",
+        "filePath": "projects/frontend_enhance/rename_generated_files.py",
+        "functionName": "rename_generated_files",
+        "label": "rename files"
+      }
+    },
+    {
+      "id": "node_6",
       "type": "endpoint",
       "position": {
         "x": 1800,
@@ -146,8 +160,8 @@
     },
     {
       "id": "arrow_5",
-      "source": "node_2_default_output",
-      "target": "node_4_default_input",
+      "source": "node_4_default_output",
+      "target": "node_1_default_input",
       "label": null,
       "packing": null,
       "data": null,
@@ -155,8 +169,8 @@
     },
     {
       "id": "arrow_6",
-      "source": "node_4_default_output",
-      "target": "node_1_default_input",
+      "source": "node_5_default_output",
+      "target": "node_6_default_input",
       "label": null,
       "packing": null,
       "data": null,
@@ -285,6 +299,22 @@
       "direction": "input",
       "data_type": "any",
       "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
@@ -292,8 +322,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-22T07:33:07.998Z",
-    "modified": "2025-08-22T07:33:07.998Z",
+    "created": "2025-08-22T08:34:21.802Z",
+    "modified": "2025-08-22T08:34:21.802Z",
     "version": "1.0.0",
     "id": "projects/frontend_enhance/consolidated_generator"
   }

@@ -1,11 +1,5 @@
 {
-  "default": {
-    "default": {
-      "default": {}
-    },
-    "current_index": 3,
-    "branch[node_1]": "condfalse"
-  },
+  "default": "",
   "current_index": 4,
   "branch[node_1]": "condtrue"
 }

@@ -59,6 +59,10 @@ class MemorySelector:
               "- Output: a pure JSON array of message IDs to keep (e.g., [\"m1\",\"m7\"]). "
               "No extra text.\n"
               "- Preserve system messages is handled by the caller; do not re-list them.\n"
+              "- IMPORTANT: Do NOT select messages whose content is already included in or duplicated by "
+              "the task preview. Avoid redundancy.\n"
+              "- When a CONSTRAINT specifies maximum messages, respect it strictly and select "
+              "the MOST relevant messages within that limit.\n"
               "- Favor precision over recall; choose the smallest set that satisfies the criteria.\n"
               "- If uncertain, return an empty array."
         )
@@ -115,7 +119,7 @@ class MemorySelector:
         # Build a compact selection prompt
         # Keep content small; the facet sees ALL_MESSAGES anyway, this gives strong hints
         preview = (task_prompt_preview or "")[:1200]
-        crit = (criteria or "").strip()[:300]
+        crit = (criteria or "").strip()[:750]
         
         # We pass a concise structured listing to improve determinism:
         # IDs + short snippet of each candidate (ID must be stable in repo)
@@ -123,15 +127,22 @@ class MemorySelector:
         for m in candidate_messages:
             if not getattr(m, "id", None):
                 continue
-            snippet = (m.content or "")[:180].replace("\n", " ")
+            snippet = (m.content or "")[:450].replace("\n", " ")
             lines.append(f"- {m.id}: {snippet}")
-        listing = "\n".join(lines[:400])  # hard cap
+        listing = "\n".join(lines[:100])  # hard cap
+        
+        # Build prompt with at_most constraint if specified
+        constraint_text = ""
+        if at_most and at_most > 0:
+            constraint_text = f"\nCONSTRAINT: Select at most {at_most} messages that best match the criteria.\n"
         
         prompt = (
             "CANDIDATE MESSAGES (id: snippet):\n"
-            f"{listing}\n\n"
-            f"TASK PREVIEW:\n{preview}\n\n"
+            f"{listing}\n\n===\n\n"
+            f"TASK PREVIEW:\n===\n\n{preview}\n\n===\n\n"
             f"CRITERIA:\n{crit}\n\n"
+            f"{constraint_text}"
+            "IMPORTANT: Exclude messages that duplicate content already in the task preview.\n"
             "Return a JSON array of message IDs only."
         )
 

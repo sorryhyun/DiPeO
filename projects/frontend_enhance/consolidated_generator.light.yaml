@@ -133,41 +133,20 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 2000, y: 240}
+    position: {x: 2200, y: 240}
     props:
       operation: write
       sub_type: file
       format: text
       source_details: "projects/frontend_enhance/generated/temp_section_{current_index}.tsx"
 
-  - label: Rename File
+  - label: Rename Files
     type: code_job
-    position: {x: 2200, y: 240}
+    position: {x: 1500, y: 600}
     props:
       language: python
-      code: |
-        import os
-        import shutil
-        
-        # Get the current index and sections data
-        current_index = variables.get('current_index', 0)
-        sections_data = inputs.get('sections_data', {})
-        sections = sections_data.get('sections', [])
-        
-        target_filename = sections[current_index]['file_to_implement']
-        # Rename the temp file to the correct name
-        temp_path = f"projects/frontend_enhance/generated/temp_section_{current_index}.tsx"
-        final_path = f"projects/frontend_enhance/generated/{target_filename}"
-        
-        if os.path.exists(temp_path):
-            # Create directory if needed
-            os.makedirs(os.path.dirname(final_path), exist_ok=True)
-            # Move the file
-            shutil.move(temp_path, final_path)
-            result = f"Renamed to {target_filename}"
-        else:
-            result = f"Warning: temp file not found"
-
+      filePath: projects/frontend_enhance/rename_generated_files.py
+      functionName: rename_generated_files
 
 #  - label: Compile Results
 #    type: code_job
@@ -196,6 +175,7 @@ nodes:
 #          "approach": "Sequential processing with intelligent memory selection"
 #        }
 
+  -
   - label: End
     type: endpoint
     position: {x: 1800, y: 600}
@@ -214,11 +194,10 @@ connections:
   - {from: Start, to: Check Continue}
   -
   - { from: Check Continue_condfalse, to: Load Sections Data, content_type: object }
-  - { from: Check Continue_condtrue, to: End, content_type: object }
+  - { from: Check Continue_condtrue, to: Rename Files, content_type: object }
 
   - {from: Load Sections Data, to: Generate Frontend Code, content_type: object}
   - {from: Generate Frontend Code, to: Write Section Result, content_type: object}
-  - {from: Write Section Result, to: Rename File, content_type: object}
-  - {from: Load Sections Data, to: Rename File, label: sections_data, content_type: object}
-  - {from: Rename File, to: Check Continue, content_type: object}
+  - {from: Write Section Result, to: Check Continue, content_type: object}
 
+  - { from: Rename Files, to: End, content_type: object }

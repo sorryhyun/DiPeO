@@ -97,6 +97,28 @@ class SinglePersonJobExecutor:
         # Get all messages from conversation repository via orchestrator
         all_messages = self._conversation_manager.get_conversation().messages if hasattr(self._conversation_manager, 'get_conversation') else []
         
+        # Load prompts early to use for task_prompt_preview
+        prompt_content = node.default_prompt
+        first_only_content = node.first_only_prompt
+        
+        # Load first_prompt_file if specified (takes precedence over inline first_only_prompt)
+        if hasattr(node, 'first_prompt_file') and node.first_prompt_file:
+            loaded_content = prompt_resolver_for_execution.load_prompt_file(
+                node.first_prompt_file,
+                node.label or node.id
+            )
+            if loaded_content:
+                first_only_content = loaded_content
+        
+        # Load prompt_file if specified (for default prompt)
+        if hasattr(node, 'prompt_file') and node.prompt_file:
+            loaded_content = prompt_resolver_for_execution.load_prompt_file(
+                node.prompt_file,
+                node.label or node.id
+            )
+            if loaded_content:
+                prompt_content = loaded_content
+        
         # Handle memorize_to feature - unified memory management
         memorize_to = getattr(node, "memorize_to", None)
         at_most = getattr(node, "at_most", None)
@@ -109,13 +131,16 @@ class SinglePersonJobExecutor:
                 from .memory_selector import MemorySelector
                 memory_selector = MemorySelector(self._conversation_manager)
             
+            # Use loaded prompt_content (or first_only_content) for task_prompt_preview
+            task_preview = prompt_content or first_only_content or ""
+            
             # Apply memory settings to get filtered messages
             filtered_messages = await memory_selector.apply_memory_settings(
                 person=person,
                 all_messages=all_messages,
                 memorize_to=memorize_to,
                 at_most=at_most,
-                task_prompt_preview=getattr(node, "default_prompt", "") or getattr(node, "first_only_prompt", ""),
+                task_prompt_preview=task_preview,
                 llm_service=self._llm_service,
             )
             
@@ -146,29 +171,7 @@ class SinglePersonJobExecutor:
         
         logger.debug(f"[PersonJob] final template_values keys: {list(template_values.keys())}")
         
-        # Load prompts using the prompt resolver
-        prompt_content = node.default_prompt
-        first_only_content = node.first_only_prompt
-        
-        # Load first_prompt_file if specified (takes precedence over inline first_only_prompt)
-        if hasattr(node, 'first_prompt_file') and node.first_prompt_file:
-            loaded_content = prompt_resolver_for_execution.load_prompt_file(
-                node.first_prompt_file,
-                node.label or node.id
-            )
-            if loaded_content:
-                first_only_content = loaded_content
-        
-        # Load prompt_file if specified (for default prompt)
-        if hasattr(node, 'prompt_file') and node.prompt_file:
-            loaded_content = prompt_resolver_for_execution.load_prompt_file(
-                node.prompt_file,
-                node.label or node.id
-            )
-            if loaded_content:
-                prompt_content = loaded_content
-
-        # Build prompt with template substitution
+        # Build prompt with template substitution (prompts already loaded earlier)
         built_prompt = self._prompt_builder.build(
             prompt=prompt_content,
             template_values=template_values,

@@ -1,6 +1,6 @@
 // Auto-generated node configuration for typescript_ast
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
+import { NodeType, HandleLabel, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { typescriptAstFields } from '../fields/TypescriptAstFields';
 
 export const typescriptAstConfig: UnifiedNodeConfig = {

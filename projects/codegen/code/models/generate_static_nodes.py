@@ -142,7 +142,6 @@ def extract_static_nodes_data(ast_data: dict, mappings: dict, specs_by_node_type
         'hook_type': 'HookType',
         'trigger_mode': 'HookTriggerMode',
         'diagram_format': 'DiagramFormat',
-        'memory_profile': 'MemoryProfile',
         'tools': 'ToolSelection'
     }
     

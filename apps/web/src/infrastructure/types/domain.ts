@@ -17,9 +17,6 @@ export {
   HttpMethod,
   HookType,
   HookTriggerMode,
-  // Memory enums
-  MemoryView,
-  MemoryProfile,
   // Integration enums
   LLMService,
   APIServiceType,
@@ -51,7 +48,6 @@ export type {
   DiagramMetadata,
   DomainDiagram,
   // Memory and config types
-  MemorySettings,
   PersonLLMConfig,
   // Tool config
   ToolConfig,

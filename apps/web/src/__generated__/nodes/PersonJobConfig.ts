@@ -1,6 +1,6 @@
 // Auto-generated node configuration for person_job
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
+import { NodeType, HandleLabel, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { personJobFields } from '../fields/PersonJobFields';
 
 export const personJobConfig: UnifiedNodeConfig = {

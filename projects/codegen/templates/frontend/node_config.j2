@@ -1,6 +1,6 @@
 // Auto-generated node configuration for {{ nodeType }}
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
-import { NodeType, HandleLabel, MemoryProfile, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
+import { NodeType, HandleLabel, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
 import { {{ nodeType | camel_case }}Fields } from '../fields/{{ nodeType | pascal_case }}Fields';
 {%- if nodeType == 'integrated_api' %}
 import { mergeFieldConfigs } from '@/domain/diagram/config/nodes/fieldOverrides';
@@ -41,9 +41,7 @@ export const {{ nodeType | camel_case }}Config: UnifiedNodeConfig = {
   },
   defaults: {
 {%- for field in fields if field.default is defined %}
-{%- if field.name == 'memory_profile' %}
-    {{ field.name }}: MemoryProfile.{{ field.default }},
-{%- elif field.name == 'tools' %}
+{%- if field.name == 'tools' %}
     {{ field.name }}: ToolSelection.{{ field.default | upper }},
 {%- elif field.name == 'hook_type' %}
     {{ field.name }}: HookType.{{ field.default | upper }},

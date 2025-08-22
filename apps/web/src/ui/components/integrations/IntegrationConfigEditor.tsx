@@ -214,7 +214,7 @@ export const IntegrationConfigEditor: React.FC<IntegrationConfigEditorProps> = (
       ))}
 
       {/* Show raw JSON preview */}
-      {fields.length > 1 && fields[0].name !== '_raw' && (
+      {fields.length > 1 && fields[0]?.name !== '_raw' && (
         <details className="border-t pt-3">
           <summary className="cursor-pointer text-sm font-medium text-gray-600">
             View Raw JSON

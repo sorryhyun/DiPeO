@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Any, TypedDict
+from uuid import uuid4
 
 from dipeo.diagram_generated import ConversationMetadata, Message
 
@@ -22,6 +23,10 @@ class Conversation:
     def add_message(self, message: Message) -> None:
         if not message.timestamp:
             message.timestamp = datetime.utcnow().isoformat()
+        
+        # Generate ID if not present
+        if not message.id:
+            message.id = str(uuid4())[:6]
         
         self.messages.append(message)
     
