@@ -11,7 +11,6 @@ from dipeo.diagram_generated import (
     NodeID,
     diagram_maps_to_arrays
 )
-from dipeo.diagram_generated import MemoryView
 from dipeo.domain.diagram.utils import (
     create_handle_id,
     parse_handle_id

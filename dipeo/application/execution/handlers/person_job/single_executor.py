@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.domain.conversation import Person
-from dipeo.domain.conversation.memory_profiles import MemoryProfile, MemoryProfileFactory
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.domain_models import Message, PersonID
@@ -14,7 +13,6 @@ from dipeo.diagram_generated.domain_models import Message, PersonID
 from .prompt_resolver import PromptFileResolver
 from .text_format_handler import TextFormatHandler
 from .conversation_handler import ConversationHandler
-from .memory_selector import MemorySelector
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -77,22 +75,6 @@ class SinglePersonJobExecutor:
         # Get or create person
         person = self._get_or_create_person(person_id, self._conversation_manager)
         
-        # Apply memory settings if configured
-        # Note: We apply memory settings even on first execution because some nodes
-        # (like judge panels) need to see full conversation history from the start
-        memory_settings = None
-        
-        # Check if memory_profile is set (new way)
-        is_goldfish = False
-        
-        # Special handling for GOLDFISH - ensure no memory at all
-        if is_goldfish:
-            # Clear conversation history for this person via repository
-            if hasattr(self._conversation_manager, 'clear_person_messages'):
-                self._conversation_manager.clear_person_messages(person.id)
-            # Reset person's memory limiter
-            person.reset_memory()
-        
         # Use inputs directly
         transformed_inputs = inputs
         
@@ -115,8 +97,39 @@ class SinglePersonJobExecutor:
         # Get all messages from conversation repository via orchestrator
         all_messages = self._conversation_manager.get_conversation().messages if hasattr(self._conversation_manager, 'get_conversation') else []
         
-        # Get conversation context from person (respects memory profile)
-        conversation_context = person.get_conversation_context(all_messages)
+        # Handle memorize_to feature - unified memory management
+        memorize_to = getattr(node, "memorize_to", None)
+        at_most = getattr(node, "at_most", None)
+        
+        # Apply memory settings through the unified selector
+        if memorize_to or at_most:
+            # Get the memory selector from orchestrator
+            memory_selector = getattr(self._conversation_manager, '_memory_selector', None)
+            if not memory_selector:
+                from .memory_selector import MemorySelector
+                memory_selector = MemorySelector(self._conversation_manager)
+            
+            # Apply memory settings to get filtered messages
+            filtered_messages = await memory_selector.apply_memory_settings(
+                person=person,
+                all_messages=all_messages,
+                memorize_to=memorize_to,
+                at_most=at_most,
+                task_prompt_preview=getattr(node, "default_prompt", "") or getattr(node, "first_only_prompt", ""),
+                llm_service=self._llm_service,
+            )
+            
+            # Special handling for GOLDFISH mode - clear conversation for this person
+            if memorize_to and memorize_to.strip().upper() == "GOLDFISH":
+                if hasattr(self._conversation_manager, 'clear_person_messages'):
+                    self._conversation_manager.clear_person_messages(person.id)
+                person.reset_memory()
+        else:
+            # Default behavior - use person's standard filtering
+            filtered_messages = person.filter_messages(all_messages)
+        
+        # Get conversation context with filtered messages
+        conversation_context = person.get_conversation_context(filtered_messages)
         
         input_values = self._prompt_builder.prepare_template_values(transformed_inputs)
         logger.debug(f"[PersonJob] input_values keys after prepare: {list(input_values.keys())}")
@@ -132,51 +145,6 @@ class SinglePersonJobExecutor:
         template_values = {**variables, **template_values}
         
         logger.debug(f"[PersonJob] final template_values keys: {list(template_values.keys())}")
-        
-        # Handle memorize_to feature for intelligent memory selection
-        memorize_to = getattr(node, "memorize_to", None)
-        at_most = getattr(node, "at_most", None)
-        selected_messages = None
-        
-        # Special goldfish shortcut via memorize_to
-        if isinstance(memorize_to, str) and memorize_to.strip().upper() == "GOLDFISH":
-            # Reuse existing goldfish handling path
-            is_goldfish = True
-            if hasattr(self._conversation_manager, 'clear_person_messages'):
-                self._conversation_manager.clear_person_messages(person.id)
-            person.reset_memory()
-        elif memorize_to and isinstance(memorize_to, str) and memorize_to.strip():
-            # Use memory selector for intelligent message selection
-            # Get candidates = person's current filtered view (respects legacy memory_profile if set)
-            candidate_msgs = person.filter_messages(all_messages)
-            
-            # Prepare a short preview of the prompt we're about to run
-            prompt_preview = (node.first_only_prompt if execution_count == 0 else (node.default_prompt or "")) or ""
-            prompt_preview = self._prompt_builder.build(
-                prompt=prompt_preview,
-                template_values=template_values,
-                first_only_prompt=None,
-                execution_count=execution_count
-            ) or ""
-            
-            selector = MemorySelector(self._llm_service)
-            selected_ids = await selector.select(
-                candidate_messages=candidate_msgs,
-                task_prompt_preview=prompt_preview,
-                criteria=memorize_to,
-                at_most=at_most
-            )
-            
-            if selected_ids:
-                # Build selected message list; always preserve system messages
-                system_msgs = [m for m in candidate_msgs if str(m.from_person_id) == "system"]
-                selected = [m for m in candidate_msgs if m.id and m.id in set(selected_ids)]
-                # Apply at_most if provided
-                if at_most is not None and at_most > 0:
-                    selected = selected[-int(at_most):]
-                
-                selected_messages = system_msgs + selected
-                logger.info(f"[MemorySelector] Selected {len(selected)} messages from {len(candidate_msgs)} candidates")
         
         # Load prompts using the prompt resolver
         prompt_content = node.default_prompt
@@ -266,73 +234,25 @@ class SinglePersonJobExecutor:
         if pydantic_model:
             complete_kwargs["text_format"] = pydantic_model
             
-        # Use selected messages if memory selection was performed
-        messages_for_completion = selected_messages if selected_messages is not None else all_messages
+        # Use filtered messages for completion
+        messages_for_completion = filtered_messages
         
         # Check if orchestrator has the new helper method
         if hasattr(self._conversation_manager, 'execute_person_completion'):
-            # If we have selected messages, we need to handle this differently
-            if selected_messages is not None:
-                # Temporarily override person's memory filter to use only selected messages
-                from dipeo.domain.conversation.memory_filters import MemoryFilterFactory
-                from dipeo.diagram_generated import MemoryView
-                
-                original_filter = person._memory_filter
-                original_limiter = person._memory_limiter
-                try:
-                    # Set to ALL_MESSAGES view with no limiter to use exactly what we pass
-                    person._memory_filter = MemoryFilterFactory.create(MemoryView.ALL_MESSAGES)
-                    person._memory_limiter = None
-                    
-                    # Execute with selected messages
-                    result = await self._conversation_manager.execute_person_completion(
-                        person=person,
-                        execution_id=trace_id,
-                        node_id=str(node.id),
-                        all_messages=messages_for_completion,
-                        **complete_kwargs
-                    )
-                finally:
-                    # Restore original memory settings
-                    person._memory_filter = original_filter
-                    person._memory_limiter = original_limiter
-            else:
-                # Use the orchestrator's helper method with normal messages
-                result = await self._conversation_manager.execute_person_completion(
-                    person=person,
-                    execution_id=trace_id,
-                    node_id=str(node.id),
-                    **complete_kwargs
-                )
+            # Pass the filtered messages for completion
+            complete_kwargs['all_messages'] = messages_for_completion
+            result = await self._conversation_manager.execute_person_completion(
+                person=person,
+                execution_id=trace_id,
+                node_id=str(node.id),
+                **complete_kwargs
+            )
         else:
             # Fallback: handle the new Person API directly
-            if selected_messages is not None:
-                # Temporarily override person's memory filter
-                from dipeo.domain.conversation.memory_filters import MemoryFilterFactory
-                from dipeo.diagram_generated import MemoryView
-                
-                original_filter = person._memory_filter
-                original_limiter = person._memory_limiter
-                try:
-                    # Set to ALL_MESSAGES view with no limiter to use exactly what we pass
-                    person._memory_filter = MemoryFilterFactory.create(MemoryView.ALL_MESSAGES)
-                    person._memory_limiter = None
-                    
-                    # Execute LLM call with selected messages
-                    result, incoming_msg, response_msg = await person.complete(
-                        all_messages=messages_for_completion,
-                        **complete_kwargs
-                    )
-                finally:
-                    # Restore original memory settings
-                    person._memory_filter = original_filter
-                    person._memory_limiter = original_limiter
-            else:
-                # Execute LLM call with normal messages
-                result, incoming_msg, response_msg = await person.complete(
-                    all_messages=messages_for_completion,
-                    **complete_kwargs
-                )
+            result, incoming_msg, response_msg = await person.complete(
+                all_messages=messages_for_completion,
+                **complete_kwargs
+            )
             
             # Add messages to conversation via orchestrator
             if hasattr(self._conversation_manager, 'add_message'):
@@ -358,7 +278,7 @@ class SinglePersonJobExecutor:
             diagram=self._diagram,
             model=person.llm_config.model,
             trace_id=trace_id,
-            selected_messages=selected_messages
+            selected_messages=filtered_messages
         )
     
     def _get_or_create_person(

@@ -7,7 +7,6 @@
 import { LLMService, APIServiceType, ToolConfig } from './integration.js';
 import { NodeType } from './enums/node-types.js';
 import { HandleDirection, HandleLabel, DataType, ContentType } from './enums/data-types.js';
-import { MemoryView } from './enums/memory.js';
 import { JsonDict } from './types/json.js';
 
 export { LLMService, APIServiceType };
@@ -51,12 +50,6 @@ export interface DomainArrow {
   label?: string | null;
   packing?: 'pack' | 'spread' | null;
   data?: Record<string, any> | null;
-}
-
-export interface MemorySettings {
-  view: MemoryView;
-  max_messages?: number | null;
-  preserve_system?: boolean;
 }
 
 export interface PersonLLMConfig {

@@ -11,7 +11,7 @@ nodes:
   props:
     flipped: false
     max_iteration: 1
-    memory_profile: FULL
+    memorize_to: ALL_MESSAGES
     person: Searcher
     tools:
     - type: web_search_preview

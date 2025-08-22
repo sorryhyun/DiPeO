@@ -1,7 +1,6 @@
 
 import { BaseNodeData } from './base.js';
-import { PersonID, MemorySettings } from '../diagram.js';
-import { MemoryProfile } from '../enums/memory.js';
+import { PersonID } from '../diagram.js';
 import { ToolSelection } from '../enums/integrations.js';
 
 /**

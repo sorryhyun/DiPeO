@@ -72,15 +72,6 @@ class DomainArrow(BaseModel):
     data: Optional[Dict[str, Any]] = Field(default=None)
 
 
-class MemorySettings(BaseModel):
-    """MemorySettings model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    view: MemoryView
-    max_messages: Optional[float] = Field(default=None)
-    preserve_system: Optional[bool] = Field(default=None)
-
-
 class PersonLLMConfig(BaseModel):
     """PersonLLMConfig model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -636,9 +627,6 @@ def is_domain_node(obj: Any) -> bool:
 def is_domain_arrow(obj: Any) -> bool:
     """Check if object is a DomainArrow."""
     return isinstance(obj, DomainArrow)
-def is_memory_settings(obj: Any) -> bool:
-    """Check if object is a MemorySettings."""
-    return isinstance(obj, MemorySettings)
 def is_person_llm_config(obj: Any) -> bool:
     """Check if object is a PersonLLMConfig."""
     return isinstance(obj, PersonLLMConfig)

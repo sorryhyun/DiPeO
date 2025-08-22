@@ -224,38 +224,6 @@ class AuthType(str, Enum):
     
 
 
-class MemoryView(str, Enum):
-    """Memory management enumerations"""
-    
-    ALL_INVOLVED = "all_involved"
-    
-    SENT_BY_ME = "sent_by_me"
-    
-    SENT_TO_ME = "sent_to_me"
-    
-    SYSTEM_AND_ME = "system_and_me"
-    
-    CONVERSATION_PAIRS = "conversation_pairs"
-    
-    ALL_MESSAGES = "all_messages"
-    
-
-
-class MemoryProfile(str, Enum):
-    """MemoryProfile enum values"""
-    
-    FULL = "FULL"
-    
-    FOCUSED = "FOCUSED"
-    
-    MINIMAL = "MINIMAL"
-    
-    GOLDFISH = "GOLDFISH"
-    
-    CUSTOM = "CUSTOM"
-    
-
-
 class DBBlockSubType(str, Enum):
     """Node-specific enumerations"""
     
@@ -403,10 +371,6 @@ __all__ = [
     "ToolSelection",
     
     "AuthType",
-    
-    "MemoryView",
-    
-    "MemoryProfile",
     
     "DBBlockSubType",
     

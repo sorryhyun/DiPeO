@@ -75,7 +75,7 @@
         "operation": "write",
         "sub_type": "file",
         "format": "text",
-        "file": "projects/frontend_enhance/generated/consolidated_section_{current_index}.tsx",
+        "file": "projects/frontend_enhance/generated/{sections[current_index].file_to_implement}.tsx",
         "label": "write section result"
       }
     },
@@ -146,6 +146,15 @@
     },
     {
       "id": "arrow_5",
+      "source": "node_2_default_output",
+      "target": "node_4_default_input",
+      "label": null,
+      "packing": null,
+      "data": null,
+      "content_type": "object"
+    },
+    {
+      "id": "arrow_6",
       "source": "node_4_default_output",
       "target": "node_1_default_input",
       "label": null,
@@ -171,9 +180,9 @@
       "id": "Frontend Generator",
       "label": "frontend generator",
       "llm_config": {
-        "service": "claude-code",
-        "model": "claude-code",
-        "api_key_id": "APIKEY_CLAUDE",
+        "service": "openai",
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "APIKEY_52609F",
         "system_prompt": "You are an expert React/TypeScript engineer building a cohesive frontend application.\n\nCRITICAL RULES:\n1. Return ONLY the raw code files in the exact format specified in the prompt. You MUST NOT attempt to examine any existing codes.\n2. Do NOT include any conversational text, explanations, or commentary\n3. Generate production-ready code that integrates with previously generated sections\n4. Follow established patterns from earlier sections for consistency\n5. Import and use components/utilities from previous sections when referenced\n\nYou are building sections iteratively. Use the context from previous sections to maintain consistency in:\n- Naming conventions\n- Import paths\n- Type definitions\n- Component patterns\n- State management approach\n",
         "prompt_file": null
       },
@@ -283,8 +292,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-22T04:35:58.511Z",
-    "modified": "2025-08-22T04:35:58.511Z",
+    "created": "2025-08-22T07:33:07.998Z",
+    "modified": "2025-08-22T07:33:07.998Z",
     "version": "1.0.0",
     "id": "projects/frontend_enhance/consolidated_generator"
   }

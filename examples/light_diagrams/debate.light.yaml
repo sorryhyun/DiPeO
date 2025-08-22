@@ -7,7 +7,7 @@ nodes:
     default_prompt: Argue against the argument.
     first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
     max_iteration: 2
-    memory_profile: GOLDFISH
+    memorize_to: GOLDFISH
     person: optimist
     flipped: [false, true]
 - label: end
@@ -32,7 +32,7 @@ nodes:
     default_prompt: Argue against the argument.
     first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
     max_iteration: 3
-    memory_profile: GOLDFISH
+    memorize_to: GOLDFISH
     person: pessimist
     flipped: [false, true]
 - label: start
@@ -45,7 +45,7 @@ nodes:
     default_prompt: Judge which panel is more reasonable.
     flipped: true
     max_iteration: 1
-    memory_profile: FULL
+    memorize_to: ALL_MESSAGES
     person: judge
 - label: condition
   type: condition

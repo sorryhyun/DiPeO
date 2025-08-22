@@ -8,7 +8,7 @@ from dipeo.application.registry.service_registry import ServiceRegistry, Service
 if TYPE_CHECKING:
     from dipeo.infrastructure.repositories.conversation import InMemoryConversationRepository
     from dipeo.infrastructure.repositories.conversation import InMemoryPersonRepository
-    from dipeo.application.conversation.use_cases import ManageConversationUseCase, UpdateMemoryUseCase
+    from dipeo.application.conversation.use_cases import ManageConversationUseCase
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 CONVERSATION_REPOSITORY_KEY = ServiceKey["InMemoryConversationRepository"]("conversation.repository")
 PERSON_REPOSITORY_KEY = ServiceKey["InMemoryPersonRepository"]("person.repository")
 MANAGE_CONVERSATION_USE_CASE = ServiceKey["ManageConversationUseCase"]("conversation.use_case.manage")
-UPDATE_MEMORY_USE_CASE = ServiceKey["UpdateMemoryUseCase"]("conversation.use_case.update_memory")
 
 
 def wire_conversation(registry: ServiceRegistry) -> None:
@@ -56,16 +55,4 @@ def wire_conversation(registry: ServiceRegistry) -> None:
         )
     
     registry.register(MANAGE_CONVERSATION_USE_CASE, create_manage_conversation_use_case)
-    
-    # Wire update memory use case
-    from dipeo.application.conversation.use_cases import UpdateMemoryUseCase
-    
-    def create_update_memory_use_case() -> UpdateMemoryUseCase:
-        """Factory for update memory use case."""
-        person_repo = registry.resolve(PERSON_REPOSITORY_KEY)
-        return UpdateMemoryUseCase(
-            person_repository=person_repo
-        )
-    
-    registry.register(UPDATE_MEMORY_USE_CASE, create_update_memory_use_case)
     

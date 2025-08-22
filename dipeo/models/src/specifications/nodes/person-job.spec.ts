@@ -1,7 +1,5 @@
 
 import { NodeType } from '../../core/enums/node-types.js';
-import { MemoryView } from '../../core/enums/memory.js';
-import { MemoryProfile } from '../../core/enums/memory.js';
 import { NodeSpecification } from '../types.js';
 
 export const personJobSpec: NodeSpecification = {

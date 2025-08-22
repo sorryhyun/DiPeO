@@ -1,1 +1,0 @@
-LLM service llm failed: LLM service llm failed: Parameter 'response_format' not allowed for provider openai

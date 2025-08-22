@@ -82,7 +82,7 @@ nodes:
       
       Format your response as a structured analysis.
     max_iteration: 1
-    memory_profile: FOCUSED
+    memorize_to: CONVERSATION_PAIRS
     person: Data Analyst
 
 - label: format report
