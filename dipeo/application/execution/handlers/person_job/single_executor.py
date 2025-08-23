@@ -151,33 +151,17 @@ class SinglePersonJobExecutor:
                 execution_count=execution_count
             )
             
-            if person.brain:
-                # Use the cleaner Person API that delegates to brain
-                selected_result = await person.select_memories(
-                    candidate_messages=all_messages,
-                    prompt_preview=task_preview,
-                    memorize_to=memorize_to,
-                    at_most=at_most,
-                    llm_service=self._llm_service,
-                )
-                # Brain returns None if no criteria, or list of messages
-                filtered_messages = selected_result if selected_result is not None else person.get_messages(all_messages)
-            else:
-                # Fallback to direct memory selector if brain not available
-                memory_selector = getattr(self._conversation_manager, '_memory_selector', None)
-                if not memory_selector:
-                    from .memory_selector import MemorySelector
-                    memory_selector = MemorySelector(self._conversation_manager)
-                
-                # Apply memory settings to get filtered messages
-                filtered_messages = await memory_selector.apply_memory_settings(
-                    person=person,
-                    all_messages=all_messages,
-                    memorize_to=memorize_to,
-                    at_most=at_most,
-                    task_prompt_preview=task_preview,
-                    llm_service=self._llm_service,
-                )
+            # Use the Person's brain for memory selection
+            # The brain is now properly wired with a memory selector
+            selected_result = await person.select_memories(
+                candidate_messages=all_messages,
+                prompt_preview=task_preview,
+                memorize_to=memorize_to,
+                at_most=at_most,
+                llm_service=self._llm_service,
+            )
+            # Brain returns None if no criteria, or list of messages
+            filtered_messages = selected_result if selected_result is not None else person.get_messages(all_messages)
             
             # Special handling for GOLDFISH mode - clear conversation for this person
             if memorize_to and memorize_to.strip().upper() == "GOLDFISH":

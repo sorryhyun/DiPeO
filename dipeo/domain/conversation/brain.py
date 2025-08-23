@@ -4,15 +4,13 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Optional, TypedDict
 
 from dipeo.diagram_generated.domain_models import Message, PersonID
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.handlers.person_job.memory_selector import MemorySelector
-    from dipeo.application.execution.orchestrators.execution_orchestrator import (
-        ExecutionOrchestrator,
-    )
+    from dipeo.domain.conversation.ports import MemorySelectionPort
+    from dipeo.domain.conversation.person import Person
 
 
 class ScoringWeights(TypedDict):
@@ -189,41 +187,6 @@ class MessageDeduplicator:
         return unique_messages
 
 
-def apply_message_limit(
-    messages: Sequence[Message],
-    limit: int | None
-) -> list[Message]:
-    """Apply message count limit while always preserving system messages.
-    
-    Args:
-        messages: Messages to limit
-        limit: Maximum number of messages (None means no limit)
-        
-    Returns:
-        Limited list of messages with system messages always preserved
-    """
-    if not limit or limit <= 0 or len(messages) <= limit:
-        return list(messages)
-    
-    # Always preserve system messages
-    system_messages = [
-        msg for msg in messages 
-        if msg.from_person_id == PersonID("system")
-    ]
-    non_system_messages = [
-        msg for msg in messages 
-        if msg.from_person_id != PersonID("system")
-    ]
-    
-    # Calculate available slots for non-system messages
-    available_slots = limit - len(system_messages)
-    if available_slots <= 0:
-        # If system messages exceed limit, take the most recent ones
-        return system_messages[-limit:]
-    
-    # Take most recent non-system messages within available slots
-    return system_messages + non_system_messages[-available_slots:]
-
 
 class CognitiveBrain:
     """Cognitive utilities: selection, analysis, planning.
@@ -232,41 +195,30 @@ class CognitiveBrain:
     directly for a cleaner API.
     """
     
-    def __init__(self, orchestrator: "ExecutionOrchestrator", config: MemorySelectionConfig | None = None):
-        """Initialize with orchestrator for proper integration.
+    def __init__(self, memory_selector: Optional["MemorySelectionPort"] = None, config: MemorySelectionConfig | None = None):
+        """Initialize with memory selector port for proper separation.
         
         Args:
-            orchestrator: The execution orchestrator for accessing shared components
+            memory_selector: Optional memory selection implementation
             config: Optional memory selection configuration
         """
-        self._orchestrator = orchestrator
-        
         # Initialize domain memory components directly
         self._config = config or MemorySelectionConfig()
         self._scorer = MessageScorer(self._config)
         self._deduplicator = MessageDeduplicator(self._config)
         
-        # Lazy initialization of LLM-based selector to avoid circular dependencies
-        self._selector: MemorySelector | None = None
-    
-    def _get_selector(self) -> "MemorySelector":
-        """Get or create the memory selector instance for LLM-based selection."""
-        if self._selector is None:
-            from dipeo.application.execution.handlers.person_job.memory_selector import (
-                MemorySelector,
-            )
-            self._selector = MemorySelector(self._orchestrator, self._config)
-        return self._selector
+        # Memory selector port for intelligent selection
+        self._memory_selector = memory_selector
 
     async def select_memories(
         self,
         *,
-        person,  # Add person parameter for proper context
+        person: "Person",
         candidate_messages: Sequence[Message],
         prompt_preview: str,
         memorize_to: str | None,
         at_most: int | None,
-        llm_service=None,  # Add llm_service for selector
+        **kwargs
     ) -> list[Message] | None:
         """Select relevant memories based on criteria.
         
@@ -276,7 +228,7 @@ class CognitiveBrain:
             prompt_preview: Preview of the upcoming task
             memorize_to: Selection criteria (GOLDFISH for empty, string for LLM selection)
             at_most: Maximum messages to select
-            llm_service: LLM service for intelligent selection
+            **kwargs: Additional parameters for the memory selector
             
         Returns:
             Selected messages or None if no criteria specified
@@ -286,27 +238,60 @@ class CognitiveBrain:
         if memorize_to.strip().upper() == "GOLDFISH":
             return []  # Empty context for goldfish mode
         
-        # Use the memory selector for intelligent selection
-        selector = self._get_selector()
-        selected_ids = await selector.select(
-            person=person,
-            candidate_messages=candidate_messages,
-            task_prompt_preview=prompt_preview,
+        # If no memory selector is available, return None to indicate no intelligent selection
+        if not self._memory_selector:
+            return None
+        
+        # Preprocess messages: deduplicate, score, sort, and take top candidates
+        current_time = datetime.now()
+        
+        # Filter out selector facet messages
+        filtered_candidates = []
+        
+        for msg in candidate_messages:
+            # Skip messages from/to selector facets
+            if msg.from_person_id and ".__selector" in str(msg.from_person_id):
+                continue
+            if msg.to_person_id and ".__selector" in str(msg.to_person_id):
+                continue
+            
+            # Include all other messages (including system messages) as candidates
+            filtered_candidates.append(msg)
+        
+        # 1. Deduplicate messages and get frequencies (including system messages)
+        unique_messages, frequencies = self._deduplicator.deduplicate(
+            filtered_candidates, return_frequencies=True
+        )
+        
+        # 2. Score and rank messages
+        scored_messages = self.score_and_rank_messages(
+            unique_messages,
+            frequencies=frequencies,
+            current_time=current_time
+        )
+        
+        # 3. Take top messages based on hard_cap for LLM selection
+        top_candidates = [msg for msg, score in scored_messages[:self._config.hard_cap]]
+        
+        # 4. Pass preprocessed candidates to memory selector
+        selected_ids = await self._memory_selector.select_memories(
+            person_id=person.id,
+            candidate_messages=top_candidates,
+            task_preview=prompt_preview,
             criteria=memorize_to,
             at_most=at_most,
-            llm_service=llm_service,
+            preprocessed=True,  # Indicate messages are already preprocessed
+            **kwargs
         )
         if not selected_ids:
             return None
         
-        # Map IDs back to messages and preserve system messages
+        # Map IDs back to messages
         idset = set(selected_ids)
-        system = [m for m in candidate_messages if str(m.from_person_id) == "system"]
-        selected = [m for m in candidate_messages if m.id and m.id in idset]
+        selected = [m for m in filtered_candidates if m.id and m.id in idset]
         
-        # Apply limit while preserving system messages
-        combined = system + selected
-        return apply_message_limit(combined, at_most)
+        # Return selected messages (which now includes system messages if selected)
+        return selected
 
     
     def score_message(
@@ -378,19 +363,3 @@ class CognitiveBrain:
         ]
         scored_messages.sort(key=lambda x: x[1], reverse=True)
         return scored_messages
-    
-    def apply_message_limit(
-        self,
-        messages: Sequence[Message],
-        at_most: int | None
-    ) -> list[Message]:
-        """Apply message count limit while preserving system messages.
-        
-        Args:
-            messages: Messages to limit
-            at_most: Maximum number of messages
-            
-        Returns:
-            Limited list of messages with system messages preserved
-        """
-        return apply_message_limit(messages, at_most)

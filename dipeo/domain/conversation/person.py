@@ -263,35 +263,6 @@ class Person:
             )
         return 0.0
 
-
-    def apply_message_limit(
-        self,
-        messages: list[Message],
-        at_most: Optional[int],
-        preserve_system: bool = True
-    ) -> list[Message]:
-        """Apply message count limit.
-        
-        Delegates to brain if available.
-        
-        Args:
-            messages: Messages to limit
-            at_most: Maximum number of messages
-            preserve_system: Whether to preserve system messages
-            
-        Returns:
-            Limited list of messages
-        """
-        if self.brain:
-            return self.brain.apply_message_limit(
-                messages,
-                at_most,
-                preserve_system=preserve_system
-            )
-        # Simple fallback - just take the last N messages
-        if at_most and at_most > 0:
-            return messages[-at_most:]
-        return messages
     
     async def complete_with_hand(
         self,

@@ -8,7 +8,6 @@ from .brain import (
     MessageScorer,
     MessageDeduplicator,
     ScoringWeights,
-    apply_message_limit,
 )
 from .hand import ExecutionHand
 
@@ -25,5 +24,4 @@ __all__ = [
     "MessageScorer",
     "MessageDeduplicator",
     "ScoringWeights",
-    "apply_message_limit",
 ]

@@ -63,8 +63,13 @@ class InMemoryPersonRepository(PersonRepository):
         if self._orchestrator:
             from dipeo.domain.conversation.brain import CognitiveBrain
             from dipeo.domain.conversation.hand import ExecutionHand
+            from dipeo.infrastructure.memory import LLMMemorySelector
             
-            person.brain = CognitiveBrain(self._orchestrator)
+            # Create memory selector implementation
+            memory_selector = LLMMemorySelector(self._orchestrator)
+            
+            # Wire brain with memory selector
+            person.brain = CognitiveBrain(memory_selector=memory_selector)
             person.hand = ExecutionHand(self._orchestrator)
         
         self.save(person)
