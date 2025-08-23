@@ -6,6 +6,7 @@ import { useFileOperations } from '@/domain/diagram/hooks';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { useDebouncedSave } from '@/infrastructure/hooks/useDebouncedSave';
 import { useShallow } from 'zustand/react/shallow';
+import { useUIState } from '@/infrastructure/store/hooks';
 import type { ExecutionOptions } from '@/domain/execution/types/execution';
 import { DiagramFormat } from '@dipeo/models';
 
@@ -80,6 +81,9 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   const execution = providedExecution || useExecution({ showToasts: false });
   const fileOps = useFileOperations();
   
+  // Get monitor mode state
+  const { isMonitorMode } = useUIState();
+  
   const storeOps = useUnifiedStore(
     useShallow(state => ({
       nodes: state.nodes,
@@ -117,6 +121,8 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   const { debouncedSave, cancelPendingSave } = useDebouncedSave({
     delay: autoSaveInterval,
     onSave: async (filename: string) => {
+      // Never save in monitor mode
+      if (isMonitorMode) return;
       if (storeOps.nodes.size === 0) return;
       
       try {
@@ -126,7 +132,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
         console.error('Auto-save failed:', error);
       }
     },
-    enabled: autoSave
+    enabled: autoSave && !isMonitorMode // Disable auto-save in monitor mode
   });
   
   const newDiagram = useCallback(() => {
@@ -146,6 +152,12 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
   }, [confirmOnNew, isDirty, storeOps]);
   
   const saveDiagram = useCallback(async (filename?: string) => {
+    // Prevent saving in monitor mode
+    if (isMonitorMode) {
+      console.log('[DiagramManager] Skipping save in monitor mode');
+      return;
+    }
+    
     if (storeOps.nodes.size === 0) {
       toast.error('No diagram to save');
       return;
@@ -163,7 +175,7 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
     } catch (error) {
       console.error('Failed to save diagram:', error);
     }
-  }, [fileOps]);
+  }, [fileOps, isMonitorMode, storeOps.nodes.size]);
   
   const loadDiagramFromFile = useCallback(async (file: File) => {
     if (confirmOnLoad && isDirty) {
@@ -271,11 +283,19 @@ export function useDiagramManager(options: UseDiagramManagerOptions = {}): UseDi
       initialDataVersion.current = dataVersion;
       setIsDirty(true);
       
-      if (autoSave && !execution.isRunning) {
+      // Never trigger auto-save in monitor mode
+      if (autoSave && !execution.isRunning && !isMonitorMode) {
         debouncedSave('quicksave.json');
       }
     }
-  }, [dataVersion, autoSave, execution.isRunning, debouncedSave]);
+  }, [dataVersion, autoSave, execution.isRunning, debouncedSave, isMonitorMode]);
+  
+  // Cancel pending saves when entering monitor mode
+  useEffect(() => {
+    if (isMonitorMode) {
+      cancelPendingSave();
+    }
+  }, [isMonitorMode, cancelPendingSave]);
   
   useEffect(() => {
     return () => {

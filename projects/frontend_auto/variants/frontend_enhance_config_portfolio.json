@@ -1,29 +1,35 @@
 {
-  "app_type": "dashboard",
+  "app_type": "portfolio",
   "framework": "react",
   "target_framework": "react",
   "styling_approach": "tailwind",
-  "objective": "Internet community website Analyzer",
+  "objective": "Creative Portfolio Showcase",
   "features": [
     "responsive navigation",
-    "data visualization charts",
-    "real-time updates",
+    "project gallery with filtering",
+    "interactive project details",
+    "skills and expertise display",
+    "contact form with validation",
+    "testimonials and reviews",
     "dark mode toggle",
-    "user authentication UI"
+    "smooth scroll animations"
   ],
-  "target_audience": "DCInside Users",
+  "target_audience": "Potential Clients and Employers",
   "output_dir": "./generated",
   "development_mode": {
     "enable_mock_data": true,
     "mock_auth_users": [
-      {"email": "admin@example.com", "password": "admin123", "role": "admin"},
-      {"email": "user@example.com", "password": "user123", "role": "user"},
-      {"email": "test@test.com", "password": "test123", "role": "user"}
+      {"email": "owner@portfolio.com", "password": "owner123", "role": "owner"},
+      {"email": "client@company.com", "password": "client123", "role": "client"},
+      {"email": "visitor@example.com", "password": "visitor123", "role": "visitor"}
     ],
     "mock_api_endpoints": [
-      "/api/dashboard/metrics",
-      "/api/dashboard/data", 
-      "/api/dashboard/charts"
+      "/api/projects",
+      "/api/skills",
+      "/api/testimonials",
+      "/api/contact",
+      "/api/experience",
+      "/api/blog-posts"
     ],
     "disable_websocket_in_dev": true,
     "use_localstorage_persistence": true
@@ -37,12 +43,12 @@
     "Implement proper form validation with error handling",
     "Use React Query for data fetching with loading and error states",
     "Implement i18n support for internationalization",
-    "IMPORTANT: Include mock data and mock authentication for development mode",
+    "IMPORTANT: Include mock project data and creative showcase content",
     "Create fallback mechanisms when backend services are unavailable",
-    "Provide mock API responses for all data endpoints in development",
-    "Implement mock WebSocket updates for real-time features",
+    "Provide mock API responses for all portfolio endpoints",
+    "Implement smooth animations and transitions for visual appeal",
     "Ensure the app runs standalone without any backend dependencies",
-    "Use localStorage for mock user persistence in development"
+    "Use localStorage for contact form drafts and user preferences"
   ],
   "evaluation_criteria": [
     "Code quality and maintainability",
@@ -55,8 +61,10 @@
   ],
   "prompt_sections": [
     "Component Structure",
-    "Mock Data Implementation",
-    "Authentication Flow",
+    "Mock Project Data",
+    "Gallery and Filtering",
+    "Contact Form Handling",
+    "Animation Implementation",
     "State Management",
     "Error Handling",
     "Development Mode Features"

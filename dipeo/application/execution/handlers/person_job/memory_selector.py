@@ -1,52 +1,31 @@
 import json
 import re
+from datetime import datetime
 from typing import Sequence, Optional, TYPE_CHECKING
 
 from dipeo.diagram_generated.domain_models import Message, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
+from dipeo.domain.conversation.brain import (
+    MemorySelectionConfig,
+    MessageScorer,
+    MessageDeduplicator
+)
 
 if TYPE_CHECKING:
     from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
 
 
 class MemorySelector:
-    def __init__(self, orchestrator: "ExecutionOrchestrator"):
+    def __init__(self, orchestrator: "ExecutionOrchestrator", config: Optional[MemorySelectionConfig] = None):
         self._orchestrator = orchestrator
         self._facet_cache: dict[str, Person] = {}
+        self._config = config or MemorySelectionConfig()
+        self._scorer = MessageScorer(self._config)
+        self._deduplicator = MessageDeduplicator(self._config)
 
     def _selector_id(self, base: Person) -> PersonID:
         return PersonID(f"{str(base.id)}.__selector")
     
-    def _filter_all_involved(self, messages: list[Message], person_id: PersonID) -> list[Message]:
-        """Filter messages where person is sender or recipient."""
-        return [
-            msg for msg in messages
-            if msg.from_person_id == person_id or msg.to_person_id == person_id
-        ]
-    
-    
-    def _apply_limit(self, messages: list[Message], at_most: Optional[int], preserve_system: bool = True) -> list[Message]:
-        """Apply message count limit."""
-        if not at_most or at_most <= 0 or len(messages) <= at_most:
-            return messages
-        
-        if preserve_system:
-            # Separate system and non-system messages
-            system_messages = [
-                msg for msg in messages 
-                if msg.from_person_id == PersonID("system")
-            ]
-            non_system_messages = [
-                msg for msg in messages 
-                if msg.from_person_id != PersonID("system")
-            ]
-            
-            available_slots = at_most - len(system_messages)
-            if available_slots <= 0:
-                return system_messages[-at_most:]
-            return system_messages + non_system_messages[-available_slots:]
-        else:
-            return messages[-at_most:]
     
     def _selector_system_prompt(self, base_prompt: Optional[str]) -> str:
         base = (base_prompt or "").strip()
@@ -66,6 +45,7 @@ class MemorySelector:
               "- Favor precision over recall; choose the smallest set that satisfies the criteria.\n"
               "- If uncertain, return an empty array."
         )
+    
     
     def _get_or_create_selector_facet(self, base: Person) -> Person:
         sid = self._selector_id(base)
@@ -121,65 +101,55 @@ class MemorySelector:
         preview = (task_prompt_preview or "")[:1200]
         crit = (criteria or "").strip()[:750]
         
-        # We pass a concise structured listing to improve determinism:
-        # IDs + short snippet of each candidate (ID must be stable in repo)
-        # Deduplicate messages with similar content to avoid clutter
+        # Use domain components to deduplicate and score messages
+        current_time = datetime.now()
+        
+        # Deduplicate messages and get frequencies
+        unique_messages, frequencies = self._deduplicator.deduplicate(
+            candidate_messages, return_frequencies=True
+        )
+        
+        # Score the unique messages
+        scores = self._scorer.score_messages(
+            unique_messages,
+            frequencies=frequencies,
+            current_time=current_time
+        )
+        
+        # Sort unique messages by score
+        scored_messages = [
+            (msg, scores.get(msg.id, 0.0))
+            for msg in unique_messages
+            if getattr(msg, "id", None)
+        ]
+        scored_messages.sort(key=lambda x: x[1], reverse=True)
+        
+        # Apply hard cap and create listing
         lines = []
-        seen_messages = []  # Track messages we've already included
         
-        def calculate_word_overlap(text1: str, text2: str, threshold: float = 0.8) -> bool:
-            """Check if two texts have sufficient word overlap (default 80%)"""
-            words1 = set(text1.lower().split())
-            words2 = set(text2.lower().split())
-            
-            if not words1 or not words2:
-                return text1 == text2
-            
-            intersection = len(words1 & words2)
-            smaller_set = min(len(words1), len(words2))
-            
-            return (intersection / smaller_set) >= threshold
-        
-        for m in candidate_messages:
-            if not getattr(m, "id", None):
-                continue
-            
-            # Get content for deduplication check
-            content_key = (m.content or "")[:450].strip()
-            
-            # Skip if we've seen similar content before (80% word overlap)
-            is_duplicate = False
-            for seen_content, seen_ids in seen_messages:
-                if calculate_word_overlap(content_key, seen_content):
-                    # Keep track of all IDs with similar content for potential future use
-                    seen_ids.append(m.id)
-                    is_duplicate = True
-                    break
-            
-            if is_duplicate:
-                continue
-            
-            seen_messages.append((content_key, [m.id]))
+        for msg, score in scored_messages[:self._config.hard_cap]:
+            # Get content snippet
+            content_key = (msg.content or "")[:400].strip()
             snippet = content_key.replace("\n", " ")
             
             # Get sender name/label
-            if m.from_person_id == "system":
+            if msg.from_person_id == PersonID("system"):
                 sender_label = "system"
-            elif m.from_person_id == person.id:
-                # Use the current person's name directly
+            elif msg.from_person_id == person.id:
                 sender_label = person.name
             else:
-                # For other persons, try to look them up
-                sender_label = str(m.from_person_id)
+                sender_label = str(msg.from_person_id)
                 if hasattr(self._orchestrator, 'get_all_persons'):
                     persons = self._orchestrator.get_all_persons()
-                    from_person_id = PersonID(str(m.from_person_id))
+                    from_person_id = PersonID(str(msg.from_person_id))
                     if from_person_id in persons:
-                        sender_label = persons[from_person_id].name or str(m.from_person_id)
+                        sender_label = persons[from_person_id].name or str(msg.from_person_id)
             
-            lines.append(f"- {m.id} ({sender_label}): {snippet}")
-        listing = "\n".join(lines[:100])  # hard cap
-        print(f"\nSelecting memory among {len(lines)} messages:\n")
+            # Include score in debug output for transparency
+            lines.append(f"- {msg.id} ({sender_label}, score:{score:.1f}): {snippet}")
+        
+        listing = "\n".join(lines)
+        print(f"\nSelecting memory: {len(unique_messages)} unique messages from {len(candidate_messages)} total, showing top {len(lines)}:\n")
         # Build prompt with at_most constraint if specified
         constraint_text = ""
         if at_most and at_most > 0:
@@ -251,8 +221,7 @@ class MemorySelector:
         """
         if not memorize_to or not memorize_to.strip():
             # Default behavior: use ALL_INVOLVED filter internally
-            filtered = self._filter_all_involved(list(all_messages), person.id)
-            return self._apply_limit(filtered, at_most)
+            return all_messages
         
         memorize_str = memorize_to.strip().upper()
         
@@ -262,13 +231,10 @@ class MemorySelector:
         
         # Otherwise, use LLM-based intelligent selection
         if llm_service:
-            # First apply a reasonable pre-filter to get candidates
-            candidates = self._filter_all_involved(list(all_messages), person.id)
-            
             # Use LLM to select relevant messages
             selected_ids = await self.select(
                 person=person,
-                candidate_messages=candidates,
+                candidate_messages=all_messages,
                 task_prompt_preview=task_prompt_preview,
                 criteria=memorize_to,  # Use the original string as criteria
                 at_most=at_most,
@@ -276,7 +242,7 @@ class MemorySelector:
             )
             
             # Map IDs back to messages
-            id_to_msg = {str(msg.id): msg for msg in candidates if hasattr(msg, "id")}
+            id_to_msg = {str(msg.id): msg for msg in all_messages if hasattr(msg, "id")}
             selected_messages = [id_to_msg[id] for id in selected_ids if id in id_to_msg]
             
             # Apply limit if needed
@@ -286,5 +252,4 @@ class MemorySelector:
             return selected_messages
         else:
             # Fallback to ALL_INVOLVED if no LLM service available
-            filtered = self._filter_all_involved(list(all_messages), person.id)
-            return self._apply_limit(filtered, at_most)
+            return all_messages

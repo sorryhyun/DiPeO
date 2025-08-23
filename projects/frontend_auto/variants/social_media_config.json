@@ -1,31 +1,37 @@
 {
-  "app_type": "dashboard",
+  "app_type": "social_network",
   "framework": "react",
   "target_framework": "react",
   "styling_approach": "tailwind",
-  "objective": "Internet community website Analyzer",
+  "objective": "Social Media Platform",
   "features": [
-    "responsive navigation",
-    "data visualization charts",
-    "real-time updates",
-    "dark mode toggle",
-    "user authentication UI"
+    "user profile management",
+    "post creation and editing",
+    "real-time feed updates",
+    "commenting system",
+    "like and share functionality",
+    "direct messaging UI",
+    "notification center",
+    "story/status updates"
   ],
-  "target_audience": "DCInside Users",
+  "target_audience": "Social Media Users",
   "output_dir": "./generated",
   "development_mode": {
     "enable_mock_data": true,
     "mock_auth_users": [
-      {"email": "admin@example.com", "password": "admin123", "role": "admin"},
-      {"email": "user@example.com", "password": "user123", "role": "user"},
-      {"email": "test@test.com", "password": "test123", "role": "user"}
+      {"email": "influencer@social.com", "password": "influ123", "role": "verified"},
+      {"email": "regular@user.com", "password": "user123", "role": "user"},
+      {"email": "moderator@social.com", "password": "mod123", "role": "moderator"}
     ],
     "mock_api_endpoints": [
-      "/api/dashboard/metrics",
-      "/api/dashboard/data", 
-      "/api/dashboard/charts"
+      "/api/posts",
+      "/api/comments",
+      "/api/likes",
+      "/api/messages",
+      "/api/notifications",
+      "/api/stories"
     ],
-    "disable_websocket_in_dev": true,
+    "disable_websocket_in_dev": false,
     "use_localstorage_persistence": true
   },
   "prompt_requirements": [

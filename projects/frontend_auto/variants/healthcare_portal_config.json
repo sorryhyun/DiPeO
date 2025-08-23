@@ -1,29 +1,35 @@
 {
-  "app_type": "dashboard",
+  "app_type": "healthcare",
   "framework": "react",
   "target_framework": "react",
   "styling_approach": "tailwind",
-  "objective": "Internet community website Analyzer",
+  "objective": "Patient Healthcare Portal",
   "features": [
-    "responsive navigation",
-    "data visualization charts",
-    "real-time updates",
-    "dark mode toggle",
-    "user authentication UI"
+    "appointment scheduling",
+    "medical records viewer",
+    "prescription management",
+    "telemedicine interface",
+    "health metrics dashboard",
+    "lab results display",
+    "insurance claim tracker",
+    "medication reminders"
   ],
-  "target_audience": "DCInside Users",
+  "target_audience": "Patients and Healthcare Providers",
   "output_dir": "./generated",
   "development_mode": {
     "enable_mock_data": true,
     "mock_auth_users": [
-      {"email": "admin@example.com", "password": "admin123", "role": "admin"},
-      {"email": "user@example.com", "password": "user123", "role": "user"},
-      {"email": "test@test.com", "password": "test123", "role": "user"}
+      {"email": "doctor@hospital.com", "password": "doc123", "role": "doctor"},
+      {"email": "patient@email.com", "password": "patient123", "role": "patient"},
+      {"email": "nurse@hospital.com", "password": "nurse123", "role": "nurse"}
     ],
     "mock_api_endpoints": [
-      "/api/dashboard/metrics",
-      "/api/dashboard/data", 
-      "/api/dashboard/charts"
+      "/api/appointments",
+      "/api/medical-records",
+      "/api/prescriptions",
+      "/api/lab-results",
+      "/api/insurance",
+      "/api/medications"
     ],
     "disable_websocket_in_dev": true,
     "use_localstorage_persistence": true

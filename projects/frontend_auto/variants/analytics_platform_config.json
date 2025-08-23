@@ -1,31 +1,37 @@
 {
-  "app_type": "dashboard",
+  "app_type": "analytics",
   "framework": "react",
   "target_framework": "react",
   "styling_approach": "tailwind",
-  "objective": "Internet community website Analyzer",
+  "objective": "Business Intelligence Analytics Platform",
   "features": [
-    "responsive navigation",
-    "data visualization charts",
-    "real-time updates",
-    "dark mode toggle",
-    "user authentication UI"
+    "interactive data dashboards",
+    "custom report builder",
+    "real-time metrics display",
+    "data export functionality",
+    "predictive analytics charts",
+    "KPI monitoring widgets",
+    "drill-down capabilities",
+    "alert configuration panel"
   ],
-  "target_audience": "DCInside Users",
+  "target_audience": "Business Analysts and Executives",
   "output_dir": "./generated",
   "development_mode": {
     "enable_mock_data": true,
     "mock_auth_users": [
-      {"email": "admin@example.com", "password": "admin123", "role": "admin"},
-      {"email": "user@example.com", "password": "user123", "role": "user"},
-      {"email": "test@test.com", "password": "test123", "role": "user"}
+      {"email": "analyst@corp.com", "password": "analyst123", "role": "analyst"},
+      {"email": "executive@corp.com", "password": "exec123", "role": "executive"},
+      {"email": "viewer@corp.com", "password": "view123", "role": "viewer"}
     ],
     "mock_api_endpoints": [
-      "/api/dashboard/metrics",
-      "/api/dashboard/data", 
-      "/api/dashboard/charts"
+      "/api/analytics/metrics",
+      "/api/analytics/reports",
+      "/api/analytics/dashboards",
+      "/api/analytics/predictions",
+      "/api/analytics/alerts",
+      "/api/analytics/exports"
     ],
-    "disable_websocket_in_dev": true,
+    "disable_websocket_in_dev": false,
     "use_localstorage_persistence": true
   },
   "prompt_requirements": [

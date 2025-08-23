@@ -1,29 +1,35 @@
 {
-  "app_type": "dashboard",
+  "app_type": "e-commerce",
   "framework": "react",
   "target_framework": "react",
   "styling_approach": "tailwind",
-  "objective": "Internet community website Analyzer",
+  "objective": "Modern E-commerce Platform",
   "features": [
     "responsive navigation",
-    "data visualization charts",
-    "real-time updates",
-    "dark mode toggle",
-    "user authentication UI"
+    "product catalog with filters",
+    "shopping cart functionality",
+    "checkout and payment UI",
+    "user authentication UI",
+    "order tracking",
+    "wishlist management",
+    "product reviews and ratings"
   ],
-  "target_audience": "DCInside Users",
+  "target_audience": "Online Shoppers",
   "output_dir": "./generated",
   "development_mode": {
     "enable_mock_data": true,
     "mock_auth_users": [
-      {"email": "admin@example.com", "password": "admin123", "role": "admin"},
-      {"email": "user@example.com", "password": "user123", "role": "user"},
-      {"email": "test@test.com", "password": "test123", "role": "user"}
+      {"email": "admin@shop.com", "password": "admin123", "role": "admin"},
+      {"email": "customer@example.com", "password": "customer123", "role": "customer"},
+      {"email": "vendor@store.com", "password": "vendor123", "role": "vendor"}
     ],
     "mock_api_endpoints": [
-      "/api/dashboard/metrics",
-      "/api/dashboard/data", 
-      "/api/dashboard/charts"
+      "/api/products",
+      "/api/cart",
+      "/api/orders",
+      "/api/checkout",
+      "/api/reviews",
+      "/api/wishlist"
     ],
     "disable_websocket_in_dev": true,
     "use_localstorage_persistence": true
@@ -37,12 +43,12 @@
     "Implement proper form validation with error handling",
     "Use React Query for data fetching with loading and error states",
     "Implement i18n support for internationalization",
-    "IMPORTANT: Include mock data and mock authentication for development mode",
+    "IMPORTANT: Include mock product data and mock payment processing",
     "Create fallback mechanisms when backend services are unavailable",
-    "Provide mock API responses for all data endpoints in development",
-    "Implement mock WebSocket updates for real-time features",
+    "Provide mock API responses for all e-commerce endpoints",
+    "Implement mock payment gateway responses for testing",
     "Ensure the app runs standalone without any backend dependencies",
-    "Use localStorage for mock user persistence in development"
+    "Use localStorage for cart persistence and user sessions"
   ],
   "evaluation_criteria": [
     "Code quality and maintainability",
@@ -55,8 +61,10 @@
   ],
   "prompt_sections": [
     "Component Structure",
-    "Mock Data Implementation",
+    "Mock Product Data",
+    "Shopping Cart Logic",
     "Authentication Flow",
+    "Payment Processing",
     "State Management",
     "Error Handling",
     "Development Mode Features"

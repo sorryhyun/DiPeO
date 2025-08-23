@@ -30,7 +30,6 @@ class BaseApiProvider(BaseService, ApiProviderPort):
 
     async def initialize(self) -> None:
         """Initialize the provider."""
-        logger.info(f"Initializing {self.provider_name} provider")
 
     async def execute(
         self,

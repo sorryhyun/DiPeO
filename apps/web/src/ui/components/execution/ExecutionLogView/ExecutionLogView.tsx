@@ -48,7 +48,8 @@ export const ExecutionLogView: React.FC = () => {
   // Get execution from Canvas context to avoid multiple instances
   const { operations } = useCanvas();
   const { execution, isRunning } = operations.executionOps;
-  const { logs, clearLogs } = useExecutionLogStream(execution.executionId ? executionId(execution.executionId) : null);
+  // execution.executionId is already a string, don't need to wrap it
+  const { logs, clearLogs } = useExecutionLogStream(execution.executionId as ReturnType<typeof executionId> | null);
   const [filter, setFilter] = useState<string>('');
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
   const logsEndRef = useRef<HTMLDivElement>(null);

@@ -1,31 +1,38 @@
 {
-  "app_type": "dashboard",
+  "app_type": "fintech",
   "framework": "react",
   "target_framework": "react",
   "styling_approach": "tailwind",
-  "objective": "Internet community website Analyzer",
+  "objective": "Digital Banking Platform",
   "features": [
-    "responsive navigation",
-    "data visualization charts",
-    "real-time updates",
-    "dark mode toggle",
-    "user authentication UI"
+    "account overview dashboard",
+    "transaction history",
+    "fund transfer interface",
+    "bill payment portal",
+    "investment portfolio tracker",
+    "budget planning tools",
+    "secure messaging center",
+    "card management panel"
   ],
-  "target_audience": "DCInside Users",
+  "target_audience": "Banking Customers",
   "output_dir": "./generated",
   "development_mode": {
     "enable_mock_data": true,
     "mock_auth_users": [
-      {"email": "admin@example.com", "password": "admin123", "role": "admin"},
-      {"email": "user@example.com", "password": "user123", "role": "user"},
-      {"email": "test@test.com", "password": "test123", "role": "user"}
+      {"email": "premium@bank.com", "password": "prem123", "role": "premium"},
+      {"email": "standard@bank.com", "password": "stand123", "role": "standard"},
+      {"email": "business@bank.com", "password": "biz123", "role": "business"}
     ],
     "mock_api_endpoints": [
-      "/api/dashboard/metrics",
-      "/api/dashboard/data", 
-      "/api/dashboard/charts"
+      "/api/accounts",
+      "/api/transactions",
+      "/api/transfers",
+      "/api/payments",
+      "/api/investments",
+      "/api/budgets",
+      "/api/cards"
     ],
-    "disable_websocket_in_dev": true,
+    "disable_websocket_in_dev": false,
     "use_localstorage_persistence": true
   },
   "prompt_requirements": [

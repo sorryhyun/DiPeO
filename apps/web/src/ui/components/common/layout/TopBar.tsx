@@ -37,10 +37,11 @@ const TopBar = () => {
   );
 
   // NOTE: This is the ONLY place where auto-save should be enabled to avoid duplicate saves
+  // Disable auto-save in monitor mode to prevent save errors
   const diagramManager = useDiagramManager({
     confirmOnNew: true,
     confirmOnLoad: false,
-    autoSave: true,
+    autoSave: !isMonitorMode, // Disable auto-save when in monitor mode
     autoSaveInterval: 15000 // Auto-save every 15 seconds
   });
   

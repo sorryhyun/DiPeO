@@ -1,32 +1,28 @@
 {
-  "app_type": "dashboard",
+  "app_type": "landing",
   "framework": "react",
   "target_framework": "react",
   "styling_approach": "tailwind",
-  "objective": "Internet community website Analyzer",
+  "objective": "Simple Landing Page",
   "features": [
-    "responsive navigation",
-    "data visualization charts",
-    "real-time updates",
-    "dark mode toggle",
-    "user authentication UI"
+    "hero section",
+    "contact form",
+    "newsletter signup",
+    "testimonials carousel"
   ],
-  "target_audience": "DCInside Users",
+  "target_audience": "Website Visitors",
   "output_dir": "./generated",
   "development_mode": {
     "enable_mock_data": true,
     "mock_auth_users": [
-      {"email": "admin@example.com", "password": "admin123", "role": "admin"},
-      {"email": "user@example.com", "password": "user123", "role": "user"},
-      {"email": "test@test.com", "password": "test123", "role": "user"}
+      {"email": "admin@site.com", "password": "admin123", "role": "admin"}
     ],
     "mock_api_endpoints": [
-      "/api/dashboard/metrics",
-      "/api/dashboard/data", 
-      "/api/dashboard/charts"
+      "/api/contact",
+      "/api/newsletter"
     ],
     "disable_websocket_in_dev": true,
-    "use_localstorage_persistence": true
+    "use_localstorage_persistence": false
   },
   "prompt_requirements": [
     "Generate modern, production-ready React components with TypeScript",

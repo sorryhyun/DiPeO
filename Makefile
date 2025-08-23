@@ -84,7 +84,7 @@ codegen: parse-typescript
 # Automatic code generation with auto-apply (DANGEROUS - use with caution!)
 codegen-auto: parse-typescript
 	@echo "⚠️  WARNING: Auto-applying all changes!"
-	dipeo run projects/codegen/diagrams/generate_all --light --timeout=30
+	dipeo run projects/codegen/diagrams/generate_all --light --timeout=45
 	@sleep 1
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
 		echo "Error: No staged directory found."; \

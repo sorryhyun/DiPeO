@@ -2,10 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/ApiJobNodeData",
   "definitions": {
-    "JsonDict": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "HttpMethod": {
       "enum": [
         "GET",
@@ -15,6 +11,41 @@
         "PATCH"
       ],
       "type": "string"
+    },
+    "JsonObject": {
+      "additionalProperties": {
+        "$ref": "#/definitions/JsonValue"
+      },
+      "type": "object"
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/JsonObject"
+        },
+        {
+          "items": {
+            "$ref": "#/definitions/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "type": [
+            "null",
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
     },
     "ApiJobNodeData": {
       "additionalProperties": false,
@@ -79,37 +110,6 @@
         "method",
         "url"
       ],
-      "type": "object"
-    },
-    "Record<string,string>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "JsonValue": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/JsonObject"
-        },
-        {
-          "items": {
-            "$ref": "#/definitions/JsonValue"
-          },
-          "type": "array"
-        },
-        {
-          "type": [
-            "null",
-            "string",
-            "number",
-            "boolean"
-          ]
-        }
-      ]
-    },
-    "JsonObject": {
-      "additionalProperties": {
-        "$ref": "#/definitions/JsonValue"
-      },
       "type": "object"
     }
   }

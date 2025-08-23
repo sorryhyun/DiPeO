@@ -52,14 +52,14 @@ class GenericHTTPProvider(BaseApiProvider):
         """
         # Validate manifest if it's a dict
         if isinstance(manifest, dict):
-            self.manifest = validate_manifest(manifest)
+            self._manifest = validate_manifest(manifest)
         else:
-            self.manifest = manifest
+            self._manifest = manifest
         
         # Initialize base provider
         super().__init__(
-            provider_name=self.manifest.name,
-            supported_operations=list(self.manifest.operations.keys())
+            provider_name=self._manifest.name,
+            supported_operations=list(self._manifest.operations.keys())
         )
         
         self.manifest_dir = manifest_dir or Path.cwd()
@@ -74,6 +74,11 @@ class GenericHTTPProvider(BaseApiProvider):
         # Cache for loaded schemas and hooks
         self._schema_cache: dict[str, dict] = {}
         self._hook_cache: dict[str, Any] = {}
+    
+    @property
+    def manifest(self) -> dict:
+        """Provider manifest with schemas and capabilities."""
+        return self._manifest.__dict__ if hasattr(self._manifest, '__dict__') else self._manifest
         
     async def initialize(self) -> None:
         """Initialize the provider."""
@@ -81,16 +86,16 @@ class GenericHTTPProvider(BaseApiProvider):
         
         # Initialize auth strategy
         self.auth_strategy = AuthStrategyFactory.create(
-            self.manifest.auth,
+            self._manifest.auth,
             self.api_key_port
         )
         
         # Initialize rate limiter if configured
-        if self.manifest.rate_limit:
-            self.rate_limiter = RateLimiter(self.manifest.rate_limit)
+        if self._manifest.rate_limit:
+            self.rate_limiter = RateLimiter(self._manifest.rate_limit)
         
         # Load hooks module if specified
-        if self.manifest.hooks_module:
+        if self._manifest.hooks_module:
             await self._load_hooks_module()
     
     async def _execute_operation(
@@ -113,11 +118,11 @@ class GenericHTTPProvider(BaseApiProvider):
         Returns:
             Operation result
         """
-        op_config = self.manifest.operations[operation]
+        op_config = self._manifest.operations[operation]
         
         # Apply rate limiting if configured
         if self.rate_limiter:
-            rate_limit_config = op_config.rate_limit_override or self.manifest.rate_limit
+            rate_limit_config = op_config.rate_limit_override or self._manifest.rate_limit
             if rate_limit_config:
                 await self.rate_limiter.acquire(operation)
         
@@ -154,7 +159,7 @@ class GenericHTTPProvider(BaseApiProvider):
             body=body,
             query_params=query_params,
             timeout=request_timeout,
-            retry_policy=self.manifest.retry_policy
+            retry_policy=self._manifest.retry_policy
         )
         
         # Process response
@@ -195,7 +200,7 @@ class GenericHTTPProvider(BaseApiProvider):
         path = template.render(**context)
         
         # Combine with base URL
-        base_url = str(self.manifest.base_url).rstrip('/')
+        base_url = str(self._manifest.base_url).rstrip('/')
         path = path.lstrip('/')
         
         return f"{base_url}/{path}"
@@ -219,8 +224,8 @@ class GenericHTTPProvider(BaseApiProvider):
         headers = {}
         
         # Add default headers
-        if self.manifest.default_headers:
-            headers.update(self.manifest.default_headers)
+        if self._manifest.default_headers:
+            headers.update(self._manifest.default_headers)
         
         # Add operation-specific headers
         if op_config.request and op_config.request.headers_template:
@@ -479,10 +484,10 @@ class GenericHTTPProvider(BaseApiProvider):
     
     async def _load_hooks_module(self) -> None:
         """Load Python module containing hook implementations."""
-        if not self.manifest.hooks_module:
+        if not self._manifest.hooks_module:
             return
         
-        module_path = self.manifest_dir / self.manifest.hooks_module
+        module_path = self.manifest_dir / self._manifest.hooks_module
         if not module_path.exists():
             logger.warning(f"Hooks module not found: {module_path}")
             return
@@ -551,7 +556,7 @@ class GenericHTTPProvider(BaseApiProvider):
         if not config:
             return True
         
-        op_config = self.manifest.operations.get(operation)
+        op_config = self._manifest.operations.get(operation)
         if not op_config:
             return False
         
@@ -581,7 +586,7 @@ class GenericHTTPProvider(BaseApiProvider):
         Returns:
             Operation schema or None
         """
-        op_config = self.manifest.operations.get(operation)
+        op_config = self._manifest.operations.get(operation)
         if not op_config:
             return None
         
@@ -634,8 +639,8 @@ class GenericHTTPProvider(BaseApiProvider):
             schema_path = schema_ref[9:]
             
             # Look in schemas directory if configured
-            if self.manifest.schemas_directory:
-                full_path = self.manifest_dir / self.manifest.schemas_directory / schema_path
+            if self._manifest.schemas_directory:
+                full_path = self.manifest_dir / self._manifest.schemas_directory / schema_path
             else:
                 full_path = self.manifest_dir / schema_path
             

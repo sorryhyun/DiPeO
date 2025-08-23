@@ -1,6 +1,6 @@
 """Person dynamic object representing an LLM agent with evolving conversation state."""
 
-from typing import TYPE_CHECKING, Any, Optional, Callable
+from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.diagram_generated import (
     ChatResult,
@@ -25,26 +25,10 @@ class Person:
         self.name = name
         self.llm_config = llm_config
         
-        # Simple default filter function - can be overridden
-        self._filter_func: Optional[Callable[[list[Message]], list[Message]]] = None
+        # Brain and Hand components - wired up at runtime by executor
+        self.brain = None
+        self.hand = None
     
-    def filter_messages(self, messages: list[Message]) -> list[Message]:
-        """Filter messages using configured filter function.
-        
-        Args:
-            messages: The full list of messages to filter
-            
-        Returns:
-            Filtered list of messages (defaults to ALL_INVOLVED behavior)
-        """
-        if self._filter_func:
-            return self._filter_func(messages)
-        
-        # Default behavior: ALL_INVOLVED (messages where person is sender or recipient)
-        return [
-            msg for msg in messages
-            if msg.from_person_id == self.id or msg.to_person_id == self.id
-        ]
     
     
     def get_messages(self, all_messages: list[Message]) -> list[Message]:
@@ -56,8 +40,11 @@ class Person:
         Returns:
             Filtered messages based on person's view
         """
-        return self.filter_messages(all_messages)
-    
+
+        return [
+            msg for msg in all_messages
+            if msg.from_person_id == self.id or msg.to_person_id == self.id
+        ]
     
     def get_latest_message(self, all_messages: list[Message]) -> Message | None:
         """Get the latest message from person's filtered view.
@@ -68,15 +55,16 @@ class Person:
         Returns:
             The latest message or None if no messages
         """
-        messages = self.filter_messages(all_messages)
+        messages = self.get_messages(all_messages)
         return messages[-1] if messages else None
     
     def reset_memory(self) -> None:
         """Reset memory to forget all messages.
         
-        This is used for GOLDFISH mode. Sets filter to return empty list.
+        This is used for GOLDFISH mode. Brain should handle this.
         """
-        self._filter_func = lambda messages: []
+        # Memory reset is now handled by Brain component
+        pass
     
     def get_message_count(self, all_messages: list[Message]) -> int:
         """Get count of messages visible to this person.
@@ -87,15 +75,8 @@ class Person:
         Returns:
             Number of messages visible to this person
         """
-        return len(self.filter_messages(all_messages))
+        return len(self.get_messages(all_messages))
     
-    def set_filter_function(self, filter_func: Optional[Callable[[list[Message]], list[Message]]]) -> None:
-        """Set a custom filter function for this person.
-        
-        Args:
-            filter_func: Function that takes messages and returns filtered messages
-        """
-        self._filter_func = filter_func
     
     def get_memory_config(self) -> dict[str, Any]:
         """Get memory configuration information.
@@ -104,10 +85,9 @@ class Person:
             Dictionary with memory configuration details
         """
         return {
-            "has_custom_filter": self._filter_func is not None,
-            "description": "Custom filter applied" if self._filter_func else "Default ALL_INVOLVED filter",
+            "has_brain": self.brain is not None,
+            "description": "Brain-based filtering" if self.brain else "Default ALL_INVOLVED filter",
         }
-    
     
     async def complete(
         self,
@@ -141,7 +121,7 @@ class Person:
         )
         
         # Get messages from this person's filtered view and add the incoming message
-        person_messages = self.filter_messages(all_messages)
+        person_messages = self.get_messages(all_messages)
         person_messages = person_messages + [incoming]
         
         # Delegate to LLM service with person context
@@ -174,7 +154,7 @@ class Person:
         Args:
             all_messages: The complete conversation history
         """
-        messages = self.filter_messages(all_messages)  # Uses memory filters
+        messages = self.get_messages(all_messages)  # Uses memory filters
         
         # Format messages for template use
         formatted_messages = [
@@ -221,8 +201,137 @@ class Person:
 
     
     
+    async def select_memories(
+        self,
+        candidate_messages: list[Message],
+        prompt_preview: str,
+        memorize_to: Optional[str],
+        at_most: Optional[int],
+        llm_service=None,
+        **kwargs
+    ) -> Optional[list[Message]]:
+        """Select relevant memories using brain's cognitive capabilities.
+        
+        Delegates to brain if available, providing a clean API at the Person level.
+        
+        Args:
+            candidate_messages: Messages to select from
+            prompt_preview: Preview of the upcoming task
+            memorize_to: Selection criteria
+            at_most: Maximum messages to select
+            llm_service: LLM service for intelligent selection
+            **kwargs: Additional parameters for the brain
+            
+        Returns:
+            Selected messages or None if brain not available
+        """
+        if self.brain:
+            return await self.brain.select_memories(
+                person=self,
+                candidate_messages=candidate_messages,
+                prompt_preview=prompt_preview,
+                memorize_to=memorize_to,
+                at_most=at_most,
+                llm_service=llm_service,
+                **kwargs
+            )
+        return None
+    
+    def score_message(
+        self,
+        message: Message,
+        frequency_count: int = 1,
+        current_time: Optional[Any] = None
+    ) -> float:
+        """Score a message based on various factors.
+        
+        Delegates to brain if available.
+        
+        Args:
+            message: The message to score
+            frequency_count: How many similar messages exist
+            current_time: Current time for recency calculation
+            
+        Returns:
+            Float score between 0-100, or 0 if brain not available
+        """
+        if self.brain:
+            return self.brain.score_message(
+                message,
+                frequency_count=frequency_count,
+                current_time=current_time
+            )
+        return 0.0
+
+
+    def apply_message_limit(
+        self,
+        messages: list[Message],
+        at_most: Optional[int],
+        preserve_system: bool = True
+    ) -> list[Message]:
+        """Apply message count limit.
+        
+        Delegates to brain if available.
+        
+        Args:
+            messages: Messages to limit
+            at_most: Maximum number of messages
+            preserve_system: Whether to preserve system messages
+            
+        Returns:
+            Limited list of messages
+        """
+        if self.brain:
+            return self.brain.apply_message_limit(
+                messages,
+                at_most,
+                preserve_system=preserve_system
+            )
+        # Simple fallback - just take the last N messages
+        if at_most and at_most > 0:
+            return messages[-at_most:]
+        return messages
+    
+    async def complete_with_hand(
+        self,
+        messages: Optional[list[Message]] = None,
+        execution_id: str = "",
+        node_id: str = "",
+        prompt: Optional[str] = None,
+        llm_service=None,
+        **kwargs: Any
+    ) -> Any:
+        """Execute LLM completion using the hand component.
+        
+        Delegates to hand if available for clean execution API.
+        
+        Args:
+            messages: Optional messages to use
+            execution_id: Unique execution identifier
+            node_id: Node identifier
+            prompt: The prompt to execute
+            llm_service: LLM service to use
+            **kwargs: Additional parameters
+            
+        Returns:
+            ChatResult from the completion or None if hand not available
+        """
+        if self.hand:
+            return await self.hand.complete_with_messages(
+                person=self,
+                messages=messages,
+                execution_id=execution_id,
+                node_id=node_id,
+                prompt=prompt,
+                llm_service=llm_service,
+                **kwargs
+            )
+        return None
+    
     def __repr__(self) -> str:
-        filter_info = "custom_filter" if self._filter_func else "default_filter"
+        brain_info = "with_brain" if self.brain else "no_brain"
+        hand_info = "with_hand" if self.hand else "no_hand"
         return (f"Person(id={self.id}, name={self.name}, "
-                f"filter={filter_info}, "
+                f"{brain_info}, {hand_info}, "
                 f"llm={self.llm_config.service}:{self.llm_config.model})")

@@ -1,31 +1,37 @@
 {
-  "app_type": "dashboard",
+  "app_type": "project_management",
   "framework": "react",
   "target_framework": "react",
   "styling_approach": "tailwind",
-  "objective": "Internet community website Analyzer",
+  "objective": "Agile Project Management Tool",
   "features": [
-    "responsive navigation",
-    "data visualization charts",
-    "real-time updates",
-    "dark mode toggle",
-    "user authentication UI"
+    "kanban board interface",
+    "sprint planning dashboard",
+    "task assignment system",
+    "gantt chart visualization",
+    "time tracking widgets",
+    "team collaboration tools",
+    "burndown charts",
+    "resource allocation view"
   ],
-  "target_audience": "DCInside Users",
+  "target_audience": "Development Teams",
   "output_dir": "./generated",
   "development_mode": {
     "enable_mock_data": true,
     "mock_auth_users": [
-      {"email": "admin@example.com", "password": "admin123", "role": "admin"},
-      {"email": "user@example.com", "password": "user123", "role": "user"},
-      {"email": "test@test.com", "password": "test123", "role": "user"}
+      {"email": "pm@company.com", "password": "pm123", "role": "project_manager"},
+      {"email": "dev@company.com", "password": "dev123", "role": "developer"},
+      {"email": "stakeholder@client.com", "password": "stake123", "role": "stakeholder"}
     ],
     "mock_api_endpoints": [
-      "/api/dashboard/metrics",
-      "/api/dashboard/data", 
-      "/api/dashboard/charts"
+      "/api/projects",
+      "/api/tasks",
+      "/api/sprints",
+      "/api/teams",
+      "/api/reports",
+      "/api/timesheets"
     ],
-    "disable_websocket_in_dev": true,
+    "disable_websocket_in_dev": false,
     "use_localstorage_persistence": true
   },
   "prompt_requirements": [

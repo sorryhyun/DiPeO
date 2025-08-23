@@ -25,6 +25,10 @@ class ExecutionOrchestrator:
         self._person_repo = person_repository
         self._conversation_repo = conversation_repository
         self._execution_logs: dict[str, list[dict[str, Any]]] = {}
+        
+        # Wire orchestrator back to repository for brain/hand components
+        if hasattr(self._person_repo, 'set_orchestrator'):
+            self._person_repo.set_orchestrator(self)
         self._current_execution_id: Optional[str] = None
     
     # ===== Person Management =====

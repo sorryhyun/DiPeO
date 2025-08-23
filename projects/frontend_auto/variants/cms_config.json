@@ -1,29 +1,36 @@
 {
-  "app_type": "dashboard",
+  "app_type": "cms",
   "framework": "react",
   "target_framework": "react",
   "styling_approach": "tailwind",
-  "objective": "Internet community website Analyzer",
+  "objective": "Content Management System",
   "features": [
-    "responsive navigation",
-    "data visualization charts",
-    "real-time updates",
-    "dark mode toggle",
-    "user authentication UI"
+    "content editor with WYSIWYG",
+    "media library management",
+    "page builder interface",
+    "SEO optimization tools",
+    "workflow approval system",
+    "version control UI",
+    "multi-language support",
+    "template management"
   ],
-  "target_audience": "DCInside Users",
+  "target_audience": "Content Creators and Publishers",
   "output_dir": "./generated",
   "development_mode": {
     "enable_mock_data": true,
     "mock_auth_users": [
-      {"email": "admin@example.com", "password": "admin123", "role": "admin"},
-      {"email": "user@example.com", "password": "user123", "role": "user"},
-      {"email": "test@test.com", "password": "test123", "role": "user"}
+      {"email": "editor@content.com", "password": "editor123", "role": "editor"},
+      {"email": "author@content.com", "password": "author123", "role": "author"},
+      {"email": "publisher@content.com", "password": "pub123", "role": "publisher"}
     ],
     "mock_api_endpoints": [
-      "/api/dashboard/metrics",
-      "/api/dashboard/data", 
-      "/api/dashboard/charts"
+      "/api/content",
+      "/api/media",
+      "/api/pages",
+      "/api/templates",
+      "/api/workflows",
+      "/api/versions",
+      "/api/seo"
     ],
     "disable_websocket_in_dev": true,
     "use_localstorage_persistence": true
