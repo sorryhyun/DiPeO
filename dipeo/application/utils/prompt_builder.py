@@ -32,13 +32,7 @@ class PromptBuilder:
         if selected_prompt is None:
             logger.warning("No prompt provided to PromptBuilder - returning empty string")
             return ""
-        
-        logger.debug(f"[PromptBuilder] template_values keys: {list(template_values.keys())}")
-        if 'current_index' in template_values:
-            logger.debug(f"[PromptBuilder] current_index: {template_values['current_index']}")
-        if 'sections' in template_values:
-            logger.debug(f"[PromptBuilder] sections type: {type(template_values['sections'])}, len: {len(template_values['sections']) if isinstance(template_values['sections'], list) else 'N/A'}")
-        
+
         # Use template processing to support variable substitution
         if self._processor:
             result = self._processor.process(selected_prompt, template_values)

@@ -1,166 +1,918 @@
 {
   "architecture": {
-    "overview": "A modular React 18+ TypeScript messaging app focused on real-time team collaboration. The app is split into composable features and shared UI primitives. Core responsibilities are separated into: UI (shared/components), domain services (services/*), type definitions (types/*), hooks & context providers (shared/hooks and shared/context), pages & routing (pages/* and routes/*), utilities (utils/*), and development-only mocks (mocks/*). React Query handles server state and caching; Contexts provide auth, theme, and socket access; a mock HTTP server and a mock WebSocket implement real-time behavior in dev mode. Tailwind CSS provides styling with dark mode utilities. The app runs fully standalone in development mode using localStorage for persistence and mock endpoints for all API routes. Protected routes and token management are implemented via AuthContext and useAuth hook.",
+    "overview": "A modular React + TypeScript memory card game application built with modern patterns: Zustand for state management (persisted), Context providers for cross-cutting concerns (Theme, Sound, WebSocket, Game lifecycle), a centralized typed API client supporting mock-mode and real endpoints, Tailwind CSS for styling, and small focused components in src/shared/components. The app is split into pages (routes) and features (game, leaderboard, multiplayer, settings, daily challenge, achievements). All cross-file contracts are defined by shared type definitions in src/types/index.ts. All network access goes through src/services/apiClient.ts which can route to mock implementations in development. The store persists to localStorage when development_mode.use_localstorage_persistence is true.",
     "patterns": [
-      "Container / Presentational: pages/containers orchestrate data & pass props to presentational shared/components",
-      "Domain-based foldering: services/* model API surface per domain (messages, channels, users, files, presence, reactions, threads)",
-      "Provider Composition: QueryProvider, AuthProvider, SocketProvider, ThemeProvider wrap the app root",
-      "Single Source of Types: src/types/index.ts exports domain interfaces and utility types",
-      "Feature-slice: pages and feature-specific hooks/services collocated under their domain"
+      "Single source of truth for network operations via services/apiClient.ts",
+      "Typed models in src/types/index.ts used across UI, services, and store",
+      "Zustand global store in src/state/store.ts for game/core state -> subscribed by components",
+      "Context providers for Theme, Sound, WebSocket and Game lifecycle that wrap App in src/main.tsx",
+      "Presentational components under src/shared/components with minimal logic; complex logic in hooks and services",
+      "Hooks under src/shared/hooks follow useX naming and return typed values and callbacks",
+      "Mock-mode: apiClient delegates to src/services/mockServer.ts when development_mode.enable_mock_data is true",
+      "Persistence: useLocalStorage hook + store middleware to persist critical slices to localStorage with defined keys"
     ],
-    "data_flow": "UI components call domain services (via React Query) to read/write data. React Query provides caching, background refresh, and optimistic updates. AuthProvider exposes current user and tokens; useAuth hook provides mutation helpers. SocketProvider exposes a websocket instance and emits/receives events; incoming socket events update React Query caches (using queryClient.invalidateQueries or setQueryData). LocalStorage persists auth tokens and user profile in development mode. Mock server handlers return deterministic responses and also emit mock websocket events via mockWebSocket to simulate real-time updates.",
-    "folder_structure": "src/\n  main.tsx\n  App.tsx\n  config.ts\n  index.css\n  types/\n    index.ts\n  pages/\n    LoginPage.tsx\n    ChatPage.tsx\n    ChannelsPage.tsx\n    DirectMessagePage.tsx\n    SettingsPage.tsx\n    NotFoundPage.tsx\n  routes/\n    Routes.tsx\n  shared/\n    components/\n      Button.tsx\n      Input.tsx\n      Textarea.tsx\n      Icon.tsx\n      Avatar.tsx\n      Spinner.tsx\n      Modal.tsx\n      Sidebar.tsx\n      Header.tsx\n      MessageBubble.tsx\n      FileUpload.tsx\n      EmojiPicker.tsx\n      ThreadView.tsx\n      PresenceIndicator.tsx\n      SearchBar.tsx\n    hooks/\n      useAuth.ts\n      useLocalStorage.ts\n      useWebSocket.ts\n      useDebounce.ts\n      useI18n.ts\n    context/\n      AuthContext.tsx\n      SocketProvider.tsx\n      ThemeProvider.tsx\n      QueryProvider.tsx\n      ErrorBoundary.tsx\n  services/\n    apiClient.ts\n    authService.ts\n    messageService.ts\n    channelService.ts\n    fileService.ts\n    presenceService.ts\n    reactionService.ts\n    threadService.ts\n  utils/\n    formatDate.ts\n    generateId.ts\n  mocks/\n    mockServer.ts\n    mockWebSocket.ts\n  i18n/\n    i18n.ts\n  hooks/\n    useInfiniteMessages.tsx\n  pages-layouts/\n    ChatLayout.tsx\n  styles/\n    tailwind.css\n  assets/\n    icons.tsx\n",
+    "data_flow": "UI components dispatch actions via Zustand store or call services. Services use apiClient to fetch/push data. apiClient uses typed request/response shapes (ApiResponse<T>) and handles errors centrally; in dev it routes to mockServer. WebSocketProvider connects to multiplayer endpoints and emits events into the store. ThemeProvider and SoundProvider expose Context values used by components. Game lifecycle uses the store for board, timer, moves; when a game ends, leaderboardService is called to persist scores. Components read data from types and services and update store via typed actions.",
+    "folder_structure": "src/\n  main.tsx\n  App.tsx\n  pages/\n    HomePage.tsx\n    GamePage.tsx\n    LeaderboardPage.tsx\n    MultiplayerPage.tsx\n    SettingsPage.tsx\n    DailyChallengePage.tsx\n  shared/\n    components/\n      Header.tsx\n      Footer.tsx\n      Button.tsx\n      Card.tsx\n      Grid.tsx\n      Timer.tsx\n      MoveCounter.tsx\n      ThemeSelector.tsx\n      SoundToggle.tsx\n      LeaderboardList.tsx\n      AchievementBadge.tsx\n      ErrorBoundary.tsx\n      Confetti.tsx\n    hooks/\n      useLocalStorage.ts\n      useSound.ts\n      useKeyboardShortcuts.ts\n      useConfetti.ts\n      useResponsive.ts\n  providers/\n    GameProvider.tsx\n    ThemeProvider.tsx\n    SoundProvider.tsx\n    WebSocketProvider.tsx\n  state/\n    store.ts\n  services/\n    apiClient.ts\n    mockServer.ts\n    leaderboardService.ts\n    achievementsService.ts\n    themesService.ts\n    dailyChallengeService.ts\n    multiplayerService.ts\n    playerStatsService.ts\n  types/\n    index.ts\n  utils/\n    shuffle.ts\n    scoreCalculator.ts\n    persistence.ts\n    animations.ts\n    accessibility.ts\n  generated/ (output_dir)\n",
     "tech_stack": [
-      "React 18+ (functional components, Suspense, Error Boundaries)",
-      "TypeScript (strict mode recommended)",
-      "Tailwind CSS with dark mode support",
-      "React Query (server-state management, caching, optimistic updates)",
-      "Axios for HTTP client (wrapped in services/apiClient.ts)",
-      "Mock server (dev-mode) \u2014 simple in-project mockServer using fetch interception or MSW-style handlers",
-      "Mock WebSocket implementation for development (mockWebSocket.ts)",
-      "Context API for Auth, Theme, Socket providers",
-      "localStorage for persistence in development",
-      "React Router v6 for routing",
-      "i18next for i18n (minimal setup)",
-      "ARIA attributes and keyboard handlers for accessibility"
+      "React 18+ (Suspense, Error Boundaries, Context API)",
+      "TypeScript",
+      "Tailwind CSS (with dark mode support)",
+      "Framer Motion + React Spring for animations",
+      "Zustand for state management with localStorage persistence",
+      "Web Audio API for sound",
+      "WebSocket (native) for multiplayer",
+      "localStorage for offline persistence",
+      "Mock API server module for dev mode"
     ]
   },
   "sections": [
     {
       "id": "main-entry",
-      "title": "Application entry (main.tsx)",
-      "description": "Root entry that renders the React application, composes providers (QueryProvider, AuthProvider, SocketProvider, ThemeProvider), loads mock server in development, and mounts App component.",
+      "title": "App entry and root providers",
+      "description": "Mount React app, wrap with providers (Theme, Sound, WebSocket, Game) and ErrorBoundary. Enables global Tailwind container and Suspense fallback.",
       "file_to_implement": "src/main.tsx",
       "acceptance": [
-        "Renders <App /> into #root",
-        "Wraps App with QueryProvider, AuthProvider, SocketProvider, ThemeProvider and ErrorBoundary",
-        "Starts mock server when config.developmentMode.enable_mock_data is true",
-        "Imports only files present in sections list"
+        "Renders App inside providers",
+        "ErrorBoundary and Suspense are used",
+        "Providers import paths exist and build correctly"
       ],
       "implementation_steps": [
-        "Import React, createRoot from react-dom/client, App from './App', QueryProvider from './shared/context/QueryProvider', AuthProvider from './shared/context/AuthContext', SocketProvider from './shared/context/SocketProvider', ThemeProvider from './shared/context/ThemeProvider', ErrorBoundary from './shared/context/ErrorBoundary', and config from './config'.",
-        "If config.development_mode.enable_mock_data is true, import and call startMockServer() from './mocks/mockServer' (dynamic import allowed).",
-        "Get the DOM element with id 'root'. Create root and render providers in composition order: ErrorBoundary > QueryProvider > AuthProvider > ThemeProvider > SocketProvider > <App />.",
-        "Ensure export nothing else; file is only responsible for mounting."
+        "1. Import React, createRoot from react-dom/client, App component, ErrorBoundary, ThemeProvider, SoundProvider, WebSocketProvider, GameProvider, and Tailwind CSS entry (assumed to be configured).",
+        "2. Wrap <App/> with <ErrorBoundary><ThemeProvider><SoundProvider><WebSocketProvider><GameProvider>... and a Suspense fallback spinner.",
+        "3. Mount to document.getElementById('root') using createRoot.",
+        "4. Ensure imports reference files: App.tsx, providers/*, shared/components/ErrorBoundary.tsx, shared/components/Spinner (Spinner is used inside Suspense from App import or shared components)."
       ],
       "integration_points": [
-        "Depends on App.tsx which contains the routes and pages",
-        "Uses QueryProvider, AuthProvider, SocketProvider, ThemeProvider, ErrorBoundary",
-        "Starts mocks defined in mocks/mockServer.ts"
+        "Depends on src/App.tsx, src/providers/*, and src/shared/components/ErrorBoundary.tsx",
+        "Must match exported names and default exports from those files"
       ],
       "prompt_context": {
         "component_type": "entry",
         "data_model": null,
         "interactions": [
-          "mount"
+          "render",
+          "provide-context"
         ],
         "styling_approach": "tailwind",
         "dependencies": [
           "src/App.tsx",
-          "src/shared/context/QueryProvider.tsx",
-          "src/shared/context/AuthContext.tsx",
-          "src/shared/context/SocketProvider.tsx",
-          "src/shared/context/ThemeProvider.tsx",
-          "src/shared/context/ErrorBoundary.tsx",
-          "src/mocks/mockServer.ts",
-          "src/config.ts"
+          "src/providers/ThemeProvider.tsx",
+          "src/providers/SoundProvider.tsx",
+          "src/providers/WebSocketProvider.tsx",
+          "src/providers/GameProvider.tsx",
+          "src/shared/components/ErrorBoundary.tsx"
         ]
       },
       "priority": 1
     },
     {
       "id": "app-root",
-      "title": "App component (App.tsx)",
-      "description": "Top-level application component responsible for routing composition, Suspense boundaries, global layout and fallback UI.",
+      "title": "Main App component with routes",
+      "description": "Defines top-level routing (simple client-side route switch). Exposes navigation header and page containers. Uses Suspense for lazy pages.",
       "file_to_implement": "src/App.tsx",
       "acceptance": [
-        "Renders Routes from routes/Routes.tsx inside React.Suspense with a Spinner fallback",
-        "Applies a global layout wrapper and sets up i18n initialization via useI18n hook",
-        "Includes keyboard shortcut to open search (e.g., Cmd/Ctrl+K) and toggles search state"
+        "Renders Header and correct page components based on simple in-memory route (for this scaffold, use a simple router state or window.location hash)",
+        "Uses React.Suspense for page content"
       ],
       "implementation_steps": [
-        "Import React, Suspense, lazy if needed, useEffect from 'react', Routes component from './routes/Routes', Spinner from './shared/components/Spinner', useI18n from './shared/hooks/useI18n', Header from './shared/components/Header'.",
-        "Call useI18n() at top of component to initialize translations.",
-        "Render a container with Header at top and a main area where <Suspense fallback={<Spinner />}><Routes /></Suspense> is mounted.",
-        "Add a useEffect to add a global keydown listener for Cmd/Ctrl+K to open an accessible search (implementation can call a custom event or set a state \u2014 keep simple and documented).",
-        "Export default App."
+        "1. Create a minimal router using window.location.hash or a small useState to simulate route switching (real app could use React Router).",
+        "2. Import pages from src/pages/* and render based on current route ('#/', '#/game', '#/leaderboard', '#/multiplayer', '#/settings', '#/daily').",
+        "3. Place Header component at top and Footer at bottom; wrap page in Suspense with a Spinner fallback.",
+        "4. Ensure all imported page files exist and export default components."
       ],
       "integration_points": [
-        "Uses routes defined in src/routes/Routes.tsx",
-        "Uses shared Header and Spinner components",
-        "Calls useI18n hook",
-        "Mounted by src/main.tsx"
+        "Imports Header/Footer from src/shared/components and page components from src/pages/*",
+        "Should be consistent with page file names to allow lazy rendering"
       ],
       "prompt_context": {
         "component_type": "app",
         "data_model": null,
         "interactions": [
-          "routing",
-          "global shortcuts",
-          "suspense"
+          "navigate"
         ],
         "styling_approach": "tailwind",
         "dependencies": [
-          "src/routes/Routes.tsx",
-          "src/shared/components/Spinner.tsx",
+          "src/pages/HomePage.tsx",
+          "src/pages/GamePage.tsx",
+          "src/pages/LeaderboardPage.tsx",
+          "src/pages/MultiplayerPage.tsx",
+          "src/pages/SettingsPage.tsx",
+          "src/pages/DailyChallengePage.tsx",
           "src/shared/components/Header.tsx",
-          "src/shared/hooks/useI18n.ts"
+          "src/shared/components/Footer.tsx"
         ]
       },
       "priority": 1
     },
     {
-      "id": "config",
-      "title": "Runtime config (config.ts)",
-      "description": "Application-level configuration including development flags, API base URL, and localStorage keys. Single source for toggles used by mock server and providers.",
-      "file_to_implement": "src/config.ts",
+      "id": "home-page",
+      "title": "Home Page",
+      "description": "Landing page with new game buttons, difficulty selector, theme preview, and navigation to other pages.",
+      "file_to_implement": "src/pages/HomePage.tsx",
       "acceptance": [
-        "Exports a config object matching the app's development_mode parameters in the provided app config",
-        "Provides exported constants: API_BASE_URL, ENABLE_MOCKS, LOCALSTORAGE_KEYS",
-        "Used by mocks and providers"
+        "Displays game start controls and links to other pages",
+        "Uses ThemeSelector and Button components",
+        "Dispatches an action to start game using GameProvider/store"
       ],
       "implementation_steps": [
-        "Export a typed config object with fields: apiBaseUrl (string), development_mode matching input (enable_mock_data, disable_websocket_in_dev, use_localstorage_persistence), and localStorage keys object.",
-        "Set defaults: apiBaseUrl = '/api', enable_mock_data from the provided JSON, disable_websocket_in_dev from provided JSON, use_localstorage_persistence from provided JSON.",
-        "Export constants: API_BASE_URL, ENABLE_MOCKS, LOCALSTORAGE_KEYS for common use."
+        "1. Implement a functional component that imports Header, Button, ThemeSelector from shared components and store actions from src/state/store.ts.",
+        "2. Offer difficulty quick-select buttons (4x4, 6x6, 8x8) that call the startGame action with appropriate grid size.",
+        "3. Provide a 'Daily Challenge' and 'Multiplayer' navigation via window.location.hash changes.",
+        "4. Ensure accessibility attributes and keyboard focus are set for key controls."
       ],
       "integration_points": [
-        "Imported by mocks/mockServer.ts, shared/context/AuthContext.tsx, services/apiClient.ts",
-        "Single source of truth for dev-mode toggles"
+        "Reads and calls startGame from src/state/store.ts",
+        "Uses ThemeSelector (src/shared/components/ThemeSelector.tsx) and Button",
+        "Navigation must match App.tsx route handling"
       ],
       "prompt_context": {
-        "component_type": "utility",
+        "component_type": "page",
+        "data_model": "game",
+        "interactions": [
+          "create",
+          "navigate"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/state/store.ts",
+          "src/shared/components/Button.tsx",
+          "src/shared/components/ThemeSelector.tsx",
+          "src/shared/components/Header.tsx"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "game-page",
+      "title": "Game Page",
+      "description": "Main game UI: grid of cards, timer, move counter, sound toggle, and victory state. Uses Card and Grid shared components and subscribes to store for game state.",
+      "file_to_implement": "src/pages/GamePage.tsx",
+      "acceptance": [
+        "Renders Grid and Card components for current board",
+        "Shows Timer and MoveCounter components",
+        "Flips cards on click calling store actions",
+        "On victory, calls leaderboardService to submit score"
+      ],
+      "implementation_steps": [
+        "1. Import Grid, Card, Timer, MoveCounter, SoundToggle, Confetti and store actions/selectors from src/state/store.ts.",
+        "2. Subscribe to needed slices (board, flippedCards, matchedCards, timer, moves, currentTheme, difficulty).",
+        "3. Render the grid using Grid component passing gridSize and mapping over store.cardDeck to render Card components with onClick handlers calling flipCard action.",
+        "4. When store.victory flag becomes true, trigger Confetti component and call leaderboardService.submitScore with typed payload.",
+        "5. Use useEffect to start/stop timer via store actions."
+      ],
+      "integration_points": [
+        "Uses src/shared/components/Card.tsx and Grid.tsx",
+        "Reads / writes to src/state/store.ts",
+        "Calls src/services/leaderboardService.ts on victory"
+      ],
+      "prompt_context": {
+        "component_type": "page",
+        "data_model": "game",
+        "interactions": [
+          "view",
+          "update",
+          "submit"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/state/store.ts",
+          "src/shared/components/Grid.tsx",
+          "src/shared/components/Card.tsx",
+          "src/shared/components/Timer.tsx",
+          "src/shared/components/MoveCounter.tsx",
+          "src/shared/components/Confetti.tsx",
+          "src/services/leaderboardService.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "leaderboard-page",
+      "title": "Leaderboard Page",
+      "description": "Shows high scores from leaderboardService. Supports filters by difficulty and theme, and persistence from API/mock.",
+      "file_to_implement": "src/pages/LeaderboardPage.tsx",
+      "acceptance": [
+        "Fetches leaderboard entries via leaderboardService.getTop",
+        "Renders LeaderboardList component with entries",
+        "Handles loading and error states"
+      ],
+      "implementation_steps": [
+        "1. Implement component that calls leaderboardService.getTop({difficulty, limit}) inside useEffect and manages local loading/error state or use Suspense fallback.",
+        "2. Render LeaderboardList with the received entries.",
+        "3. Provide a refresh button and difficulty filter, calling the service again."
+      ],
+      "integration_points": [
+        "Calls src/services/leaderboardService.ts",
+        "Uses src/shared/components/LeaderboardList.tsx"
+      ],
+      "prompt_context": {
+        "component_type": "page",
+        "data_model": "leaderboard",
+        "interactions": [
+          "view",
+          "filter",
+          "refresh"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/services/leaderboardService.ts",
+          "src/shared/components/LeaderboardList.tsx"
+        ]
+      },
+      "priority": 3
+    },
+    {
+      "id": "multiplayer-page",
+      "title": "Multiplayer Page",
+      "description": "Multiplayer lobby and session UI. Connects to WebSocketProvider/multiplayerService to create/join sessions and show turn-based state.",
+      "file_to_implement": "src/pages/MultiplayerPage.tsx",
+      "acceptance": [
+        "Creates or joins a multiplayer session via multiplayerService",
+        "Shows players, turn, and synchronized board",
+        "Handles live updates from WebSocketProvider"
+      ],
+      "implementation_steps": [
+        "1. Render lobby controls to create/join a session with a session code.",
+        "2. Call multiplayerService.createSession / joinSession and subscribe to session updates (service emits events into store or returns an event emitter).",
+        "3. Show player list and current turn and render Grid with board state from store.",
+        "4. Ensure websocket connection handled by WebSocketProvider and multiplayerService uses provider functions."
+      ],
+      "integration_points": [
+        "Depends on src/services/multiplayerService.ts and src/providers/WebSocketProvider.tsx and src/state/store.ts",
+        "Renders shared Grid and Card components"
+      ],
+      "prompt_context": {
+        "component_type": "page",
+        "data_model": "multiplayer-session",
+        "interactions": [
+          "create",
+          "join",
+          "play",
+          "synchronize"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/services/multiplayerService.ts",
+          "src/providers/WebSocketProvider.tsx",
+          "src/state/store.ts",
+          "src/shared/components/Grid.tsx"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "settings-page",
+      "title": "Settings Page",
+      "description": "Settings UI for toggling sound effects, theme, accessibility options (colorblind mode), and persistence settings.",
+      "file_to_implement": "src/pages/SettingsPage.tsx",
+      "acceptance": [
+        "Shows SoundToggle and ThemeSelector components",
+        "Reads/writes settings to store or providers",
+        "Toggles colorblind mode and localStorage persistence flag"
+      ],
+      "implementation_steps": [
+        "1. Import SoundToggle, ThemeSelector, and read/write user settings from store or ThemeProvider and SoundProvider contexts.",
+        "2. Provide toggles for colorblind-friendly mode, haptic feedback, and local persistence.",
+        "3. Persist settings via useLocalStorage hook or store persistence middleware."
+      ],
+      "integration_points": [
+        "Uses ThemeProvider and SoundProvider contexts (src/providers/*) and src/shared/hooks/useLocalStorage.ts",
+        "Writes settings to src/state/store.ts"
+      ],
+      "prompt_context": {
+        "component_type": "page",
+        "data_model": "settings",
+        "interactions": [
+          "update"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/shared/components/SoundToggle.tsx",
+          "src/shared/components/ThemeSelector.tsx",
+          "src/shared/hooks/useLocalStorage.ts",
+          "src/state/store.ts"
+        ]
+      },
+      "priority": 3
+    },
+    {
+      "id": "daily-challenge-page",
+      "title": "Daily Challenge Page",
+      "description": "Displays the daily challenge, fetched from dailyChallengeService and can start a special game mode with unique card set.",
+      "file_to_implement": "src/pages/DailyChallengePage.tsx",
+      "acceptance": [
+        "Fetches daily challenge metadata from dailyChallengeService.getToday",
+        "Shows unique card set preview and start button",
+        "Starting the challenge sets store state accordingly"
+      ],
+      "implementation_steps": [
+        "1. Call dailyChallengeService.getToday during mount and show preview: difficulty, theme, seed.",
+        "2. Provide a Start Challenge button that calls startChallenge action in store with challenge payload.",
+        "3. Ensure persistence of challenge progress if user leaves mid-game (store handles persistence)."
+      ],
+      "integration_points": [
+        "Calls src/services/dailyChallengeService.ts and uses src/state/store.ts",
+        "Renders shared components like Card/Grid to preview set"
+      ],
+      "prompt_context": {
+        "component_type": "page",
+        "data_model": "daily-challenge",
+        "interactions": [
+          "view",
+          "start"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/services/dailyChallengeService.ts",
+          "src/state/store.ts",
+          "src/shared/components/Grid.tsx"
+        ]
+      },
+      "priority": 4
+    },
+    {
+      "id": "header-component",
+      "title": "Header Component",
+      "description": "Top navigation bar containing logo, navigation links, theme toggle and quick stats.",
+      "file_to_implement": "src/shared/components/Header.tsx",
+      "acceptance": [
+        "Shows navigation links that update window.location.hash",
+        "Shows ThemeSelector and player summary",
+        "Accessible and responsive"
+      ],
+      "implementation_steps": [
+        "1. Build a header component with logo text, nav links to '#/', '#/game', '#/leaderboard', '#/multiplayer', '#/settings', and '#/daily'.",
+        "2. Import and include ThemeSelector and move counter or small stats from store.",
+        "3. Use Tailwind classes for layout and ensure dark mode support via ThemeProvider context.",
+        "4. Export default Header component."
+      ],
+      "integration_points": [
+        "Used by src/App.tsx and imported in src/main.tsx",
+        "Consumes ThemeProvider (src/providers/ThemeProvider.tsx) for styling modes"
+      ],
+      "prompt_context": {
+        "component_type": "component",
         "data_model": null,
-        "interactions": [],
+        "interactions": [
+          "navigate"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/shared/components/ThemeSelector.tsx",
+          "src/state/store.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "footer-component",
+      "title": "Footer Component",
+      "description": "Simple footer with credits and social sharing for achievements.",
+      "file_to_implement": "src/shared/components/Footer.tsx",
+      "acceptance": [
+        "Renders footer content and social share buttons (share via navigator.share when available)",
+        "Accessible"
+      ],
+      "implementation_steps": [
+        "1. Create functional Footer that displays app name, copyright, and a Share button.",
+        "2. Use navigator.share if available to share current score or achievement link.",
+        "3. Provide fallback link copy to clipboard via navigator.clipboard."
+      ],
+      "integration_points": [
+        "Imported in src/App.tsx",
+        "May call social share utilities in src/utils/accessibility.ts"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": null,
+        "interactions": [
+          "share"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/utils/accessibility.ts"
+        ]
+      },
+      "priority": 4
+    },
+    {
+      "id": "button-component",
+      "title": "Reusable Button component",
+      "description": "Accessible button component used across UI with typed props, optional icon slot and className support.",
+      "file_to_implement": "src/shared/components/Button.tsx",
+      "acceptance": [
+        "Accepts children, onClick, aria-label, className, disabled props",
+        "Applies Tailwind styles and forwards ref",
+        "Used in multiple pages/components"
+      ],
+      "implementation_steps": [
+        "1. Define Props interface {children, onClick, className?, disabled?, ariaLabel?} and forwardRef<HTMLButtonElement>.",
+        "2. Render a <button> with appropriate ARIA attributes and Tailwind utility classes.",
+        "3. Export component as default and named type for props."
+      ],
+      "integration_points": [
+        "Used by many pages and components such as HomePage, Header, SettingsPage",
+        "Ensure import path matches other sections"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": null,
+        "interactions": [
+          "click"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": []
+      },
+      "priority": 2
+    },
+    {
+      "id": "card-component",
+      "title": "Card Component (game card)",
+      "description": "Interactive memory game card with flip animation and accessible keyboard support.",
+      "file_to_implement": "src/shared/components/Card.tsx",
+      "acceptance": [
+        "Displays front/back state, animates flip with Framer Motion or CSS transitions",
+        "Supports onClick and keyboard activation (Space to flip)",
+        "Accepts props: id, content (string | SVG), isFlipped, isMatched, onFlip"
+      ],
+      "implementation_steps": [
+        "1. Define CardProps interface based on shared types (src/types/index.ts Card type).",
+        "2. Implement flip animation using CSS transitions or Framer Motion import.",
+        "3. Handle onClick and keyboard handler using useKeyboardShortcuts hook and onKeyDown for Space and Enter.",
+        "4. Render front content (theme asset) and back face with accessible aria attributes."
+      ],
+      "integration_points": [
+        "Used by src/pages/GamePage.tsx and src/shared/components/Grid.tsx",
+        "Depends on src/shared/hooks/useKeyboardShortcuts.ts and src/types/index.ts"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": "card",
+        "interactions": [
+          "flip",
+          "match"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/shared/hooks/useKeyboardShortcuts.ts",
+          "src/types/index.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "grid-component",
+      "title": "Grid Component",
+      "description": "Layout container for card deck. Computes grid template based on gridSize and supports responsive behavior.",
+      "file_to_implement": "src/shared/components/Grid.tsx",
+      "acceptance": [
+        "Arranges children into grid with expected columns and gap",
+        "Adapts layout for mobile (responsive)",
+        "Accepts gridSize prop (e.g., {rows, cols})"
+      ],
+      "implementation_steps": [
+        "1. Define props {rows, cols, children, className}.",
+        "2. Use Tailwind dynamic classes to set grid columns (e.g., grid-cols-{cols}) with fallback to style attribute for dynamic values.",
+        "3. Render children within grid container, ensure accessibility and keyboard navigation support (tabIndex rules)."
+      ],
+      "integration_points": [
+        "Used by GamePage to render Card components",
+        "Should match grid sizing logic inside src/state/store.ts"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": null,
+        "interactions": [
+          "layout"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/state/store.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "timer-component",
+      "title": "Timer Component",
+      "description": "Displays elapsed game time and exposes callbacks to start/pause/reset via store or props.",
+      "file_to_implement": "src/shared/components/Timer.tsx",
+      "acceptance": [
+        "Shows formatted mm:ss elapsed time",
+        "Reads time from store or accepts time prop",
+        "Accessible"
+      ],
+      "implementation_steps": [
+        "1. Accept props {seconds?: number, running?: boolean} with fallback to reading from store.",
+        "2. Format seconds into mm:ss and display.",
+        "3. Subscribe to store timer if props are not provided."
+      ],
+      "integration_points": [
+        "Used in GamePage and reads store (src/state/store.ts) if not passed down",
+        "May use utils/time formatting in src/utils"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": "timer",
+        "interactions": [
+          "display"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/state/store.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "move-counter-component",
+      "title": "Move Counter Component",
+      "description": "Displays the number of moves made in current game and optionally best moves.",
+      "file_to_implement": "src/shared/components/MoveCounter.tsx",
+      "acceptance": [
+        "Displays current moves and optionally best/average from player stats",
+        "Reads from store if not passed a prop"
+      ],
+      "implementation_steps": [
+        "1. Build a component that accepts moves?: number and reads from store fallback.",
+        "2. Use small Tailwind badge style and label for accessibility.",
+        "3. Export default component for use in header and game page."
+      ],
+      "integration_points": [
+        "Reads moves from src/state/store.ts",
+        "Used in Header and GamePage"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": "moves",
+        "interactions": [
+          "display"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/state/store.ts"
+        ]
+      },
+      "priority": 3
+    },
+    {
+      "id": "theme-selector-component",
+      "title": "Theme Selector Component",
+      "description": "List of theme options (animals, emojis, colors, shapes) allowing selection; loads theme metadata from themesService.",
+      "file_to_implement": "src/shared/components/ThemeSelector.tsx",
+      "acceptance": [
+        "Fetches available themes from themesService.getThemes",
+        "Displays preview icons and allows selection",
+        "Updates ThemeProvider context or store"
+      ],
+      "implementation_steps": [
+        "1. Call themesService.getThemes() on mount (supports mock).",
+        "2. Render a list of theme cards (small preview) and a select button for each theme.",
+        "3. When a theme is selected call ThemeProvider.setTheme or store action to set current theme."
+      ],
+      "integration_points": [
+        "Calls src/services/themesService.ts",
+        "Uses src/providers/ThemeProvider.tsx to set theme"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": "theme",
+        "interactions": [
+          "select"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/services/themesService.ts",
+          "src/providers/ThemeProvider.tsx"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "sound-toggle",
+      "title": "Sound Toggle Component",
+      "description": "UI control to enable/disable sound effects; uses SoundProvider context.",
+      "file_to_implement": "src/shared/components/SoundToggle.tsx",
+      "acceptance": [
+        "Toggles sound on/off via SoundProvider",
+        "Reflects current state and persists via provider or localStorage"
+      ],
+      "implementation_steps": [
+        "1. Consume SoundProvider context and render a toggle button.",
+        "2. Call SoundProvider.toggleSound when clicked, and show appropriate icon.",
+        "3. Persist selection via provider or useLocalStorage hook."
+      ],
+      "integration_points": [
+        "Uses src/providers/SoundProvider.tsx and src/shared/hooks/useLocalStorage.ts"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": "sound",
+        "interactions": [
+          "toggle"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/providers/SoundProvider.tsx",
+          "src/shared/hooks/useLocalStorage.ts"
+        ]
+      },
+      "priority": 3
+    },
+    {
+      "id": "leaderboard-list",
+      "title": "LeaderboardList Component",
+      "description": "Presentational list rendering leaderboard entries with avatar, score, and metadata. Allows share and view profiles.",
+      "file_to_implement": "src/shared/components/LeaderboardList.tsx",
+      "acceptance": [
+        "Receives entries array typed from src/types and renders them",
+        "Supports click handlers for share/view (callbacks passed in props)"
+      ],
+      "implementation_steps": [
+        "1. Define props {entries: LeaderboardEntry[], onShare?: (id) => void, onView?: (id) => void}.",
+        "2. Map entries to rows with accessible controls and Tailwind classes.",
+        "3. Provide optional share button that triggers provided callback."
+      ],
+      "integration_points": [
+        "Used by LeaderboardPage which provides entries from src/services/leaderboardService.ts",
+        "Types come from src/types/index.ts"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": "leaderboard",
+        "interactions": [
+          "view",
+          "share"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/types/index.ts"
+        ]
+      },
+      "priority": 3
+    },
+    {
+      "id": "achievement-badge",
+      "title": "Achievement Badge Component",
+      "description": "Visual badge showing achievement icon, title and progress; used in achievements feed and during victory.",
+      "file_to_implement": "src/shared/components/AchievementBadge.tsx",
+      "acceptance": [
+        "Displays badge icon and title",
+        "Shows progress (if not complete) and tooltip for description"
+      ],
+      "implementation_steps": [
+        "1. Define props {achievement: Achievement} where type is from src/types.",
+        "2. Render SVG/icon, title, and progress bar or checkmark for completed.",
+        "3. Make accessible (aria-label with description)."
+      ],
+      "integration_points": [
+        "Used by achievements feed and victory modal, data from src/services/achievementsService.ts",
+        "Types from src/types/index.ts"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": "achievement",
+        "interactions": [
+          "display",
+          "share"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/services/achievementsService.ts",
+          "src/types/index.ts"
+        ]
+      },
+      "priority": 4
+    },
+    {
+      "id": "error-boundary-component",
+      "title": "Error Boundary",
+      "description": "React Error Boundary to catch render errors and show a fallback UI with a reload button.",
+      "file_to_implement": "src/shared/components/ErrorBoundary.tsx",
+      "acceptance": [
+        "Catches errors and renders fallback UI",
+        "Provides reload and report options"
+      ],
+      "implementation_steps": [
+        "1. Implement ES6 class component extends React.Component with componentDidCatch and static getDerivedStateFromError.",
+        "2. Render fallback UI when error present, with a button to reload (window.location.reload()).",
+        "3. Export default ErrorBoundary."
+      ],
+      "integration_points": [
+        "Used in src/main.tsx to wrap App",
+        "No external dependencies other than React"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": null,
+        "interactions": [
+          "error-catch"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": []
+      },
+      "priority": 1
+    },
+    {
+      "id": "confetti-component",
+      "title": "Confetti Component",
+      "description": "Renders confetti effect on victory (can use lightweight library API or CSS + canvas). Offers simple API to trigger animation via props.",
+      "file_to_implement": "src/shared/components/Confetti.tsx",
+      "acceptance": [
+        "Plays confetti animation when mounted and accepts a 'play' prop",
+        "Does not block UI and supports dark mode color sets"
+      ],
+      "implementation_steps": [
+        "1. Implement a component that accepts play?: boolean and renders a canvas or animated SVG using a small internal animation library or CSS.",
+        "2. Use useEffect to start/stop animation when play toggles.",
+        "3. Export default Confetti component for use in GamePage on victory."
+      ],
+      "integration_points": [
+        "Triggered by src/pages/GamePage.tsx when store.victory is true",
+        "May be driven by useConfetti hook (src/shared/hooks/useConfetti.ts)"
+      ],
+      "prompt_context": {
+        "component_type": "component",
+        "data_model": null,
+        "interactions": [
+          "play"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/shared/hooks/useConfetti.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "use-local-storage-hook",
+      "title": "useLocalStorage Hook",
+      "description": "Typed hook to persist/retrieve values in localStorage with JSON serialization and optional expiration.",
+      "file_to_implement": "src/shared/hooks/useLocalStorage.ts",
+      "acceptance": [
+        "Provides get/set/remove API and typed return value",
+        "Handles JSON errors and SSR guard (window check)"
+      ],
+      "implementation_steps": [
+        "1. Export functions setItem<T>(key, value), getItem<T>(key, defaultValue?), removeItem(key).",
+        "2. Use try/catch for JSON.parse/stringify and guard if typeof window === 'undefined'.",
+        "3. Provide a React hook useLocalStorage<T>(key, initial) returning [value, setValue, remove]."
+      ],
+      "integration_points": [
+        "Used by providers and store persistence logic (src/providers/* and src/state/store.ts)",
+        "Ensure key naming convention is used (e.g., 'memorygame:v1:settings')"
+      ],
+      "prompt_context": {
+        "component_type": "hook",
+        "data_model": null,
+        "interactions": [
+          "persist"
+        ],
         "styling_approach": null,
         "dependencies": []
       },
       "priority": 1
     },
     {
-      "id": "types-index",
-      "title": "Type definitions (src/types/index.ts)",
-      "description": "Centralized TypeScript type and interface definitions for Domain models (User, Message, Channel, File, Reaction, Thread, Presence, AuthTokens, API response shapes).",
-      "file_to_implement": "src/types/index.ts",
+      "id": "use-sound-hook",
+      "title": "useSound Hook",
+      "description": "Provides Web Audio API utilities to play sound effects, respecting SoundProvider mute state and volumes.",
+      "file_to_implement": "src/shared/hooks/useSound.ts",
       "acceptance": [
-        "Exports interfaces: User, AuthTokens, Message, Channel, FileItem, Reaction, Thread, Presence, ApiResponse<T>",
-        "Types are comprehensive enough for service and component implementations",
-        "No dependencies on other files"
+        "Plays short sound buffers via Web Audio API",
+        "Respects global mute/volume from SoundProvider context",
+        "Gracefully degrades when audio not supported"
       ],
       "implementation_steps": [
-        "Define and export interface User { id, name, email, avatarUrl?, role }.",
-        "Define and export AuthTokens { accessToken, refreshToken, expiresAt }.",
-        "Define and export Message { id, channelId, threadId?, author: User, content, attachments?: FileItem[], reactions?: Reaction[], createdAt }.",
-        "Define and export Channel { id, name, description?, isPrivate?: boolean, members: User[], createdAt }.",
-        "Define and export FileItem { id, fileName, url, size, mimeType, uploadedBy: User, createdAt }.",
-        "Define and export Reaction { id, emoji, user: User, createdAt } and Thread { id, parentMessageId, messages: Message[] }.",
-        "Define and export Presence { userId, status: 'online' | 'offline' | 'away' | 'dnd', lastActiveAt? }.",
-        "Define generic ApiResponse<T> { data: T, meta?: Record<string, any> }.",
-        "Export all types as named exports."
+        "1. Export a hook that accepts a sound identifier or AudioBuffer and returns play() and stop() functions.",
+        "2. Use AudioContext lazily created and resume context on first user gesture if needed.",
+        "3. Integrate with SoundProvider by reading current volume and muted state via context."
       ],
       "integration_points": [
-        "Imported by services/*, shared/hooks/*, shared/components/*",
-        "Single schema surface for type-safety across the app"
+        "Used by Card component to play flip and match sounds",
+        "Depends on SoundProvider (src/providers/SoundProvider.tsx)"
+      ],
+      "prompt_context": {
+        "component_type": "hook",
+        "data_model": "sound",
+        "interactions": [
+          "play"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/providers/SoundProvider.tsx"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "use-keyboard-shortcuts",
+      "title": "useKeyboardShortcuts Hook",
+      "description": "Global keyboard shortcuts hook mapping keys to handlers (Space to flip focused card, Arrow keys to navigate).",
+      "file_to_implement": "src/shared/hooks/useKeyboardShortcuts.ts",
+      "acceptance": [
+        "Registers global keydown listeners and respects focused element context",
+        "Exposes register/unregister APIs to components"
+      ],
+      "implementation_steps": [
+        "1. Provide a hook useKeyboardShortcuts() that returns registerShortcut(key, handler) and unregisterShortcut(key).",
+        "2. Internally maintain a Map and attach single window keydown listener.",
+        "3. On key event invoke handler with preventDefault where appropriate and respect input elements to avoid interfering with typing."
+      ],
+      "integration_points": [
+        "Used by Card components and GamePage for keyboard flip and navigation",
+        "Ensure consistent key names with accessibility utils (src/utils/accessibility.ts)"
+      ],
+      "prompt_context": {
+        "component_type": "hook",
+        "data_model": null,
+        "interactions": [
+          "register",
+          "handle"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/utils/accessibility.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "use-confetti-hook",
+      "title": "useConfetti Hook",
+      "description": "Hook to trigger confetti animation imperatively; abstracts Confetti component details.",
+      "file_to_implement": "src/shared/hooks/useConfetti.ts",
+      "acceptance": [
+        "Provides triggerConfetti() function",
+        "Works across pages and multiple triggers without memory leaks"
+      ],
+      "implementation_steps": [
+        "1. Provide useConfetti that returns triggerConfetti(options?).",
+        "2. Use window requestAnimationFrame and create/destroy canvas elements as needed.",
+        "3. Ensure cleanup on unmount."
+      ],
+      "integration_points": [
+        "Used by GamePage when victory occurs and Confetti component",
+        "No external dependencies besides DOM"
+      ],
+      "prompt_context": {
+        "component_type": "hook",
+        "data_model": null,
+        "interactions": [
+          "trigger"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/shared/components/Confetti.tsx"
+        ]
+      },
+      "priority": 4
+    },
+    {
+      "id": "use-responsive-hook",
+      "title": "useResponsive Hook",
+      "description": "Hook returning breakpoint info for responsive components; simplifies layout decisions.",
+      "file_to_implement": "src/shared/hooks/useResponsive.ts",
+      "acceptance": [
+        "Returns isMobile/isTablet/isDesktop booleans",
+        "Subscribes to resize events and updates values efficiently"
+      ],
+      "implementation_steps": [
+        "1. Implement a hook that reads window.innerWidth and memoizes breakpoints.",
+        "2. Add resize listener with debounced update and cleanup on unmount.",
+        "3. Export function for use in components like Grid or Header."
+      ],
+      "integration_points": [
+        "Used by Grid and Header for responsive layout",
+        "No other required imports"
+      ],
+      "prompt_context": {
+        "component_type": "hook",
+        "data_model": null,
+        "interactions": [
+          "read"
+        ],
+        "styling_approach": null,
+        "dependencies": []
+      },
+      "priority": 5
+    },
+    {
+      "id": "types-index",
+      "title": "Shared Type Definitions",
+      "description": "Centralized TypeScript types and interfaces used across the app: ApiResponse, Player, LeaderboardEntry, Achievement, Theme, Card, GameState, GridSize, MultiplayerSession.",
+      "file_to_implement": "src/types/index.ts",
+      "acceptance": [
+        "Exports all types used by components, services, and store",
+        "Types are consistent and imported by other files"
+      ],
+      "implementation_steps": [
+        "1. Define ApiResponse<T> generic with success/ error shape.",
+        "2. Define Player, LeaderboardEntry, Achievement, Theme, Card, GridSize, GameState, MultiplayerSession, Difficulty enums.",
+        "3. Export all types as named exports."
+      ],
+      "integration_points": [
+        "Imported by many components, store, and services (verify other files reference exported type names exactly)"
       ],
       "prompt_context": {
         "component_type": "types",
@@ -172,112 +924,275 @@
       "priority": 1
     },
     {
-      "id": "api-client",
-      "title": "HTTP API client wrapper (services/apiClient.ts)",
-      "description": "Axios wrapper configured with base URL, request/response interceptors to attach auth tokens, and fallback logic for offline/mock mode.",
-      "file_to_implement": "src/services/apiClient.ts",
+      "id": "game-provider",
+      "title": "GameProvider (Context wrapper)",
+      "description": "High-level provider to initialize game lifecycle and expose helper functions. While store is in Zustand, this provider offers lifecycle hooks (start/pause/resume/end) and telemetry hooks (analytics) for child components.",
+      "file_to_implement": "src/providers/GameProvider.tsx",
       "acceptance": [
-        "Exports a configured axios instance named apiClient",
-        "Attaches Authorization header when token available from localStorage key in config",
-        "Provides a safe request wrapper that catches network errors and returns a consistent error shape"
+        "Provides a React Context with startGame, pauseGame, resumeGame, endGame functions",
+        "Hooks into Zustand store to call actions",
+        "Used in main.tsx to wrap App"
       ],
       "implementation_steps": [
-        "Import axios and AxiosInstance from 'axios', config from '../config', and LOCALSTORAGE_KEYS from config if exported separately.",
-        "Create axios instance with baseURL = config.apiBaseUrl and timeout 10000.",
-        "Add request interceptor: read accessToken from localStorage (if use_localstorage_persistence) and set Authorization header 'Bearer <token>' if present.",
-        "Add response interceptor: pass through data or throw an Error with standardized { message, status } shape.",
-        "Export the axios instance as apiClient and additionally export a safeRequest helper wrapping apiClient.request in try/catch returning { data, error }. Keep types generic.",
-        "Avoid importing services that would cause circular dependencies."
+        "1. Create GameContext with typed interface exposing game lifecycle functions and currentGame metadata.",
+        "2. Implement provider component that uses store actions from src/state/store.ts and exposes functions.",
+        "3. Export useGameContext hook for consumers."
       ],
       "integration_points": [
-        "Used by all domain services: authService, messageService, channelService, fileService, presenceService, reactionService, threadService",
-        "Relies on config.ts and LOCALSTORAGE_KEYS"
+        "Used by pages to start games (HomePage, DailyChallengePage) and by App wrapper in src/main.tsx",
+        "Calls actions defined in src/state/store.ts"
+      ],
+      "prompt_context": {
+        "component_type": "provider",
+        "data_model": "game",
+        "interactions": [
+          "start",
+          "pause",
+          "end"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/state/store.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "theme-provider",
+      "title": "ThemeProvider",
+      "description": "Context provider exposing current UI theme (light/dark) and selected game theme (animals/emojis/etc). Persists selection using useLocalStorage.",
+      "file_to_implement": "src/providers/ThemeProvider.tsx",
+      "acceptance": [
+        "Provides current UI mode (dark/light) and current game theme",
+        "Allows toggling UI mode and selecting game theme",
+        "Persists selection via useLocalStorage"
+      ],
+      "implementation_steps": [
+        "1. Create ThemeContext with {mode, setMode, currentTheme, setTheme}.",
+        "2. Use useLocalStorage to persist mode and currentTheme using keys following convention 'memorygame:v1:theme'.",
+        "3. Wrap children and provide hook useTheme() for consumers."
+      ],
+      "integration_points": [
+        "Used by Header, ThemeSelector, and Tailwind classes to enable dark mode",
+        "Dependent on useLocalStorage hook"
+      ],
+      "prompt_context": {
+        "component_type": "provider",
+        "data_model": "theme",
+        "interactions": [
+          "toggle",
+          "select"
+        ],
+        "styling_approach": "tailwind",
+        "dependencies": [
+          "src/shared/hooks/useLocalStorage.ts",
+          "src/services/themesService.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "sound-provider",
+      "title": "SoundProvider",
+      "description": "Context provider managing global sound settings and exposing playSound helper that uses Web Audio API via useSound hook.",
+      "file_to_implement": "src/providers/SoundProvider.tsx",
+      "acceptance": [
+        "Provides muted and volume state and a playSound(identifier) method",
+        "Persists settings via localStorage key 'memorygame:v1:sound'"
+      ],
+      "implementation_steps": [
+        "1. Create SoundContext and provider component.",
+        "2. Use useLocalStorage to store {muted, volume}.",
+        "3. Provide playSound function which internally uses the shared useSound hook or service to play named effects.",
+        "4. Export useSoundContext for components to call."
+      ],
+      "integration_points": [
+        "Used by Card to play flip/match sounds, SoundToggle component, and GamePage",
+        "Depends on src/shared/hooks/useLocalStorage.ts and src/shared/hooks/useSound.ts"
+      ],
+      "prompt_context": {
+        "component_type": "provider",
+        "data_model": "sound",
+        "interactions": [
+          "play",
+          "toggle"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/shared/hooks/useLocalStorage.ts",
+          "src/shared/hooks/useSound.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "websocket-provider",
+      "title": "WebSocketProvider",
+      "description": "Provides WebSocket connection management for multiplayer; exposes methods for subscribe/unsubscribe and sendMessage. Honors development_mode.disable_websocket_in_dev flag via mock.",
+      "file_to_implement": "src/providers/WebSocketProvider.tsx",
+      "acceptance": [
+        "Establishes WebSocket connection and provides send/subscribe methods",
+        "Uses mock socket when dev flag disables real websockets",
+        "Cleans up connection on unmount"
+      ],
+      "implementation_steps": [
+        "1. Create WebSocketContext exposing sendMessage, onMessage (subscribe), readyState, and reconnect function.",
+        "2. On mount, if process.env.USE_MOCK_WS or config indicates mock, create a mock event emitter imported from src/services/mockServer.ts; otherwise create native WebSocket to ws:// endpoint.",
+        "3. Wire incoming messages to subscribers and expose sendMessage that serializes messages.",
+        "4. Export useWebSocket hook for consumers like multiplayerService and MultiplayerPage."
+      ],
+      "integration_points": [
+        "Used by multiplayerService (src/services/multiplayerService.ts) and MultiplayerPage",
+        "Must support same message formats specified in src/types/index.ts MultiplayerSession"
+      ],
+      "prompt_context": {
+        "component_type": "provider",
+        "data_model": "multiplayer-session",
+        "interactions": [
+          "connect",
+          "send",
+          "receive"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/services/mockServer.ts",
+          "src/types/index.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "state-store",
+      "title": "Zustand Store (global state)",
+      "description": "Zustand store for game state: deck, flips, matched, moves, timer, player stats, settings. Uses middleware for persistence to localStorage and typed actions.",
+      "file_to_implement": "src/state/store.ts",
+      "acceptance": [
+        "Exports typed hooks to select and act (useGameStore for actions/selectors)",
+        "Persists critical slices (settings, bestScores, lastGame) using useLocalStorage convention",
+        "Provides actions: startGame, flipCard, endGame, resetGame, startTimer, stopTimer"
+      ],
+      "implementation_steps": [
+        "1. Define GameState interface using types from src/types/index.ts.",
+        "2. Create Zustand store with initial state, actions, and subscribe middleware to persist to localStorage key 'memorygame:v1:store'.",
+        "3. Implement startGame which builds deck using themesService and utils/shuffle, setting timer/moves to zero.",
+        "4. Implement flipCard to flip card and check matches; update matchedCards and moves; determine victory and set victory flag.",
+        "5. Export useGameStore hook for components to consume typed selectors and actions."
+      ],
+      "integration_points": [
+        "Used by GamePage, HomePage, GameProvider and other components",
+        "Calls services/themesService.ts and utils/shuffle.ts"
+      ],
+      "prompt_context": {
+        "component_type": "state",
+        "data_model": "game",
+        "interactions": [
+          "start",
+          "flip",
+          "end",
+          "persist"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/types/index.ts",
+          "src/services/themesService.ts",
+          "src/utils/shuffle.ts",
+          "src/shared/hooks/useLocalStorage.ts"
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "id": "api-client",
+      "title": "Central API client",
+      "description": "Typed wrapper around fetch with centralized error handling, API patterns for GET/POST/PUT/DELETE and integration with mockServer in dev mode.",
+      "file_to_implement": "src/services/apiClient.ts",
+      "acceptance": [
+        "Exports typed get/post methods returning ApiResponse<T>",
+        "Routes to mockServer when development_mode.enable_mock_data flag is set",
+        "Implements timeout and common error handling"
+      ],
+      "implementation_steps": [
+        "1. Define ApiError and ApiResponse<T> types (or import from types) and implement helper handleResponse(resp).",
+        "2. Provide exported functions get<T>(path, params?), post<T>(path, body), put<T>(), del<T>().",
+        "3. Read a global config constant enableMock from import or process.env (use a local const set by mockServer config in mockServer.ts) and when true call into mockServer.request(path, method, payload) instead of fetch.",
+        "4. Implement default headers and JSON body handling and throw structured errors for consumers."
+      ],
+      "integration_points": [
+        "Used by all services: leaderboardService, achievementsService, themesService, dailyChallengeService, playerStatsService, multiplayerService when hitting REST endpoints",
+        "Must import mock flag from src/services/mockServer.ts"
       ],
       "prompt_context": {
         "component_type": "service",
         "data_model": null,
         "interactions": [
-          "http requests",
-          "token injection"
+          "request"
         ],
         "styling_approach": null,
         "dependencies": [
-          "src/config.ts",
+          "src/services/mockServer.ts",
           "src/types/index.ts"
         ]
       },
       "priority": 1
     },
     {
-      "id": "auth-service",
-      "title": "Authentication service (services/authService.ts)",
-      "description": "Domain service that handles login, logout, token refresh, and mock-auth behavior in development mode.",
-      "file_to_implement": "src/services/authService.ts",
+      "id": "mock-server",
+      "title": "Mock Server (development)",
+      "description": "Client-side mock implementations for REST endpoints and a lightweight in-memory WebSocket emulator. Enabled when development_mode.enable_mock_data is true.",
+      "file_to_implement": "src/services/mockServer.ts",
       "acceptance": [
-        "Exports functions: login(email, password), logout(), getCurrentUser(), refreshToken()",
-        "login persists tokens and user to localStorage when dev-mode persistence enabled",
-        "Works with mock server endpoints in development"
+        "Implements endpoints: /api/leaderboard, /api/achievements, /api/daily-challenge, /api/player-stats, /api/themes, /api/multiplayer-session",
+        "Exports request(path, method, payload) used by apiClient when mock mode is active",
+        "Exports a createMockWebSocket() factory for WebSocketProvider when real ws disabled"
       ],
       "implementation_steps": [
-        "Import apiClient from './apiClient', config from '../config', and types User/AuthTokens from '../types'.",
-        "Export async function login(email, password) that posts to '/auth/login' via apiClient and on success stores tokens and user to localStorage (if enabled) using keys from config, returning user and tokens.",
-        "Export logout() to remove tokens and user from localStorage and optionally post to '/auth/logout'.",
-        "Export getCurrentUser() that reads user JSON from localStorage and returns typed User | null.",
-        "Export refreshToken() that posts to '/auth/refresh' and updates stored tokens.",
-        "Include in-code comments about mock behavior; do not import mock files here to avoid circular imports."
+        "1. Implement an in-memory data store seeded with development_mode.mock_auth_users and default leaderboard/achievements/themes.",
+        "2. Export a request function that returns Promise<ApiResponse<T>> for each path and handles route logic (GET/POST).",
+        "3. Implement simple mock WebSocket emitter createMockWebSocket() that mimics send and onmessage registration.",
+        "4. Export const ENABLE_MOCK = true to be consumed by apiClient and WebSocketProvider."
       ],
       "integration_points": [
-        "Used by AuthContext and pages/LoginPage.tsx",
-        "Relies on apiClient and config"
+        "apiClient will import ENABLE_MOCK and use request to get mock responses",
+        "WebSocketProvider imports createMockWebSocket for mock ws in dev"
       ],
       "prompt_context": {
         "component_type": "service",
-        "data_model": "user, auth tokens",
+        "data_model": null,
         "interactions": [
-          "login",
-          "logout",
-          "refresh"
+          "respond"
         ],
         "styling_approach": null,
         "dependencies": [
-          "src/services/apiClient.ts",
-          "src/config.ts",
           "src/types/index.ts"
         ]
       },
       "priority": 1
     },
     {
-      "id": "message-service",
-      "title": "Message service (services/messageService.ts)",
-      "description": "CRUD and query operations for messages, including sending, editing, deleting, fetching by channel, and searching.",
-      "file_to_implement": "src/services/messageService.ts",
+      "id": "leaderboard-service",
+      "title": "Leaderboard Service",
+      "description": "Service that fetches and submits leaderboard entries using apiClient. Exposes getTop and submitScore.",
+      "file_to_implement": "src/services/leaderboardService.ts",
       "acceptance": [
-        "Exports functions: fetchMessages(channelId, params), sendMessage(payload), editMessage(id, content), deleteMessage(id), searchMessages(query)",
-        "Uses apiClient to call '/messages' endpoints",
-        "Returns typed ApiResponse<Message[]> or single Message as appropriate"
+        "getTop returns typed LeaderboardEntry[]",
+        "submitScore posts to /api/leaderboard and returns updated entry or success",
+        "Works in mock and real modes via apiClient"
       ],
       "implementation_steps": [
-        "Import apiClient from './apiClient' and types Message, ApiResponse from '../types'.",
-        "Implement fetchMessages(channelId, { page, pageSize }) that GETs `/messages?channelId=${channelId}` with pagination params.",
-        "Implement sendMessage({ channelId, content, attachments, threadId }) POSTing to '/messages'.",
-        "Implement editMessage(id, content) PATCH to `/messages/${id}` and deleteMessage(id) DELETE `/messages/${id}`.",
-        "Implement searchMessages(query) GET `/messages/search?q=${encodeURIComponent(query)}`.",
-        "Export all functions."
+        "1. Implement getTop({difficulty, limit}) that calls apiClient.get('/api/leaderboard?difficulty=...').",
+        "2. Implement submitScore(entry) that posts to /api/leaderboard and returns the server-confirmed record.",
+        "3. Use types LeaderboardEntry from src/types/index.ts and export the functions."
       ],
       "integration_points": [
-        "Used by message-related hooks (useInfiniteMessages) and components (MessageBubble, ChatPage)",
-        "Mocks provided by mocks/mockServer.ts will handle these endpoints"
+        "Called by GamePage on victory and LeaderboardPage to display results",
+        "Relies on apiClient and mockServer in dev"
       ],
       "prompt_context": {
         "component_type": "service",
-        "data_model": "message",
+        "data_model": "leaderboard",
         "interactions": [
           "fetch",
-          "create",
-          "update",
-          "delete",
-          "search"
+          "submit"
         ],
         "styling_approach": null,
         "dependencies": [
@@ -288,34 +1203,29 @@
       "priority": 1
     },
     {
-      "id": "channel-service",
-      "title": "Channel service (services/channelService.ts)",
-      "description": "Operations for channels: list, create, update, delete, join/leave.",
-      "file_to_implement": "src/services/channelService.ts",
+      "id": "achievements-service",
+      "title": "Achievements Service",
+      "description": "Service to fetch and update user achievements; used to award badges on milestones.",
+      "file_to_implement": "src/services/achievementsService.ts",
       "acceptance": [
-        "Exports: fetchChannels(), createChannel(payload), updateChannel(id, payload), deleteChannel(id), getChannel(id)",
-        "Uses apiClient and returns typed responses"
+        "getAchievements returns Achievement[]",
+        "awardAchievement posts to /api/achievements and can be called by store/actions on milestone"
       ],
       "implementation_steps": [
-        "Import apiClient and types Channel, ApiResponse.",
-        "Implement fetchChannels() GET '/channels'.",
-        "Implement getChannel(id) GET `/channels/${id}`.",
-        "Implement createChannel(payload) POST '/channels'.",
-        "Implement updateChannel(id, payload) PATCH `/channels/${id}` and deleteChannel(id) DELETE `/channels/${id}`.",
-        "Export functions."
+        "1. Implement getAchievements(playerId?) which calls apiClient.get('/api/achievements').",
+        "2. Implement awardAchievement(playerId, achievementId) that posts to /api/achievements.",
+        "3. Export typed functions using types from src/types/index.ts."
       ],
       "integration_points": [
-        "Used by ChannelsPage and Sidebar to list channels",
-        "Mock server provides endpoints defined in app config"
+        "Called by store when players reach milestones and by Achievements display components",
+        "Uses apiClient"
       ],
       "prompt_context": {
         "component_type": "service",
-        "data_model": "channel",
+        "data_model": "achievement",
         "interactions": [
-          "list",
-          "create",
-          "update",
-          "delete"
+          "fetch",
+          "award"
         ],
         "styling_approach": null,
         "dependencies": [
@@ -323,34 +1233,33 @@
           "src/types/index.ts"
         ]
       },
-      "priority": 1
+      "priority": 3
     },
     {
-      "id": "file-service",
-      "title": "File service (services/fileService.ts)",
-      "description": "File upload/listing service that supports multipart upload endpoints and returns file metadata.",
-      "file_to_implement": "src/services/fileService.ts",
+      "id": "themes-service",
+      "title": "Themes Service",
+      "description": "Service to provide theme assets and metadata (animals, emojis, colors, shapes). In mock mode returns local theme sets.",
+      "file_to_implement": "src/services/themesService.ts",
       "acceptance": [
-        "Exports uploadFile(file, channelId) which POSTs formData to '/files' and returns FileItem",
-        "Exports fetchFiles(channelId) GET '/files?channelId='",
-        "Handles progress callback optionally"
+        "getThemes returns Theme[]",
+        "getThemeAssets(themeId) returns array of assets used to build card faces",
+        "Used by store to build decks"
       ],
       "implementation_steps": [
-        "Import apiClient and types FileItem, ApiResponse.",
-        "Implement uploadFile(file, channelId, onProgress?) constructing FormData with file and channelId and posting to '/files' with axios config onUploadProgress forwarded to onProgress.",
-        "Implement fetchFiles(channelId) GET '/files?channelId=${channelId}'.",
-        "Export functions."
+        "1. Implement getThemes() that calls apiClient.get('/api/themes') and returns array of Theme types.",
+        "2. Implement getThemeAssets(themeId, pairCount) that returns an array of assets sized for board.",
+        "3. Export functions for store and ThemeSelector to consume."
       ],
       "integration_points": [
-        "Used by FileUpload component and message sending flows to attach files",
-        "Mocks will provide /api/files"
+        "Used by store.startGame to generate card deck, and ThemeSelector to list themes",
+        "Relies on apiClient / mockServer"
       ],
       "prompt_context": {
         "component_type": "service",
-        "data_model": "file",
+        "data_model": "theme",
         "interactions": [
-          "upload",
-          "list"
+          "fetch",
+          "provide-assets"
         ],
         "styling_approach": null,
         "dependencies": [
@@ -361,28 +1270,98 @@
       "priority": 2
     },
     {
-      "id": "presence-service",
-      "title": "Presence service (services/presenceService.ts)",
-      "description": "Service to get and update user presence via REST (used for initial load) and via Socket events for live updates.",
-      "file_to_implement": "src/services/presenceService.ts",
+      "id": "daily-challenge-service",
+      "title": "Daily Challenge Service",
+      "description": "Provides the daily challenge payload (seed, theme, difficulty) and tracks if player completed today's challenge.",
+      "file_to_implement": "src/services/dailyChallengeService.ts",
       "acceptance": [
-        "Exports fetchPresence(userIds?) GET '/presence' optionally with query param",
-        "Exports updatePresence(userId, status) PATCH '/presence/:userId'",
-        "Works with mock endpoints"
+        "getToday returns today's challenge metadata",
+        "getChallengeDeck(seed) returns deterministic deck for seed"
       ],
       "implementation_steps": [
-        "Import apiClient and types Presence.",
-        "Implement fetchPresence(userIds?) which builds a query string and GETs '/presence'.",
-        "Implement updatePresence(userId, status) PATCH `/presence/${userId}` with { status } payload.",
-        "Export functions."
+        "1. Implement getToday() calling apiClient.get('/api/daily-challenge').",
+        "2. Implement getChallengeDeck(seed, difficulty) that uses deterministic shuffle (e.g., seeded RNG) and themesService.getThemeAssets.",
+        "3. Export functions for DailyChallengePage and store.startChallenge to use."
       ],
       "integration_points": [
-        "Used by PresenceIndicator component and SocketProvider to bootstrap presence state",
-        "Mock server provides endpoints"
+        "Uses themesService and utils/shuffle (seeded version in utils/shuffle.ts)",
+        "Called by DailyChallengePage and store"
       ],
       "prompt_context": {
         "component_type": "service",
-        "data_model": "presence",
+        "data_model": "daily-challenge",
+        "interactions": [
+          "fetch",
+          "generate"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/services/apiClient.ts",
+          "src/services/themesService.ts",
+          "src/utils/shuffle.ts"
+        ]
+      },
+      "priority": 3
+    },
+    {
+      "id": "multiplayer-service",
+      "title": "Multiplayer Service",
+      "description": "High-level multiplayer operations: create/join session, send move, receive updates. Integrates with WebSocketProvider for real-time messages.",
+      "file_to_implement": "src/services/multiplayerService.ts",
+      "acceptance": [
+        "createSession and joinSession functions for starting/connecting to sessions",
+        "sendMove serializes action and dispatches via WebSocketProvider.sendMessage",
+        "Listens for server messages and updates store accordingly"
+      ],
+      "implementation_steps": [
+        "1. Implement createSession(payload) that calls apiClient.post('/api/multiplayer-session') in REST mode or sends WS 'create' message via WebSocketProvider.",
+        "2. Implement joinSession(sessionCode) that subscribes to WebSocket messages for that session and maps incoming events to store actions.",
+        "3. Expose sendMove(sessionId, move) to transmit player flips and actions.",
+        "4. Ensure proper type mapping with src/types MultiplayerSession."
+      ],
+      "integration_points": [
+        "Uses WebSocketProvider (src/providers/WebSocketProvider.tsx), store (src/state/store.ts), apiClient for REST fallback",
+        "Used by MultiplayerPage"
+      ],
+      "prompt_context": {
+        "component_type": "service",
+        "data_model": "multiplayer-session",
+        "interactions": [
+          "create",
+          "join",
+          "send"
+        ],
+        "styling_approach": null,
+        "dependencies": [
+          "src/providers/WebSocketProvider.tsx",
+          "src/services/apiClient.ts",
+          "src/types/index.ts",
+          "src/state/store.ts"
+        ]
+      },
+      "priority": 2
+    },
+    {
+      "id": "player-stats-service",
+      "title": "Player Stats Service",
+      "description": "Fetches and aggregates player stats: best scores, averages, streaks. Used for achievements and profile.",
+      "file_to_implement": "src/services/playerStatsService.ts",
+      "acceptance": [
+        "getPlayerStats(playerId) returns typed PlayerStats",
+        "Used by settings or profile areas to display aggregated metrics"
+      ],
+      "implementation_steps": [
+        "1. Implement getPlayerStats(playerId) calling apiClient.get('/api/player-stats?playerId=...').",
+        "2. Implement updateStats on game end to POST stats summary.",
+        "3. Export typed functions for store to use on endGame."
+      ],
+      "integration_points": [
+        "Called by store endGame to update backend and achievementsService",
+        "Uses apiClient"
+      ],
+      "prompt_context": {
+        "component_type": "service",
+        "data_model": "player-stats",
         "interactions": [
           "fetch",
           "update"
@@ -393,1419 +1372,161 @@
           "src/types/index.ts"
         ]
       },
-      "priority": 2
+      "priority": 4
     },
     {
-      "id": "reaction-service",
-      "title": "Reaction service (services/reactionService.ts)",
-      "description": "Service to add/remove reactions to messages and fetch aggregated reactions.",
-      "file_to_implement": "src/services/reactionService.ts",
+      "id": "shuffle-util",
+      "title": "Shuffle Utility",
+      "description": "Utility to shuffle arrays with optional seeded RNG and deterministic output for daily challenges.",
+      "file_to_implement": "src/utils/shuffle.ts",
       "acceptance": [
-        "Exports addReaction(messageId, emoji), removeReaction(reactionId), fetchReactions(messageId)",
-        "Uses '/reactions' endpoints and returns typed Reaction[]"
+        "Exports shuffle<T>(array) and seededShuffle<T>(array, seed)",
+        "Deterministic seeded shuffle across platforms (JS) for given seed"
       ],
       "implementation_steps": [
-        "Import apiClient and types Reaction.",
-        "Implement addReaction(messageId, emoji) POST '/reactions' with payload and return created Reaction.",
-        "Implement removeReaction(reactionId) DELETE `/reactions/${reactionId}`.",
-        "Implement fetchReactions(messageId) GET `/reactions?messageId=${messageId}`.",
-        "Export functions."
+        "1. Implement Fisher-Yates shuffle for shuffle(array).",
+        "2. Implement seededShuffle using a simple seeded PRNG (e.g., mulberry32 or xorshift) and perform Fisher-Yates with that RNG.",
+        "3. Export both functions and document usage."
       ],
       "integration_points": [
-        "Used by MessageBubble component and reaction UI",
-        "Mock endpoints in mockServer handle the requests"
+        "Used by store.startGame and dailyChallengeService.getChallengeDeck",
+        "Imported by other files that generate decks"
       ],
       "prompt_context": {
-        "component_type": "service",
-        "data_model": "reaction",
-        "interactions": [
-          "create",
-          "delete",
-          "list"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/services/apiClient.ts",
-          "src/types/index.ts"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "thread-service",
-      "title": "Thread service (services/threadService.ts)",
-      "description": "Service to manage threaded conversations: fetch thread, post message to thread.",
-      "file_to_implement": "src/services/threadService.ts",
-      "acceptance": [
-        "Exports fetchThread(threadId), postToThread(threadId, messagePayload)",
-        "Uses '/threads' endpoints and returns typed Thread or Message"
-      ],
-      "implementation_steps": [
-        "Import apiClient and types Thread, Message.",
-        "Implement fetchThread(threadId) GET `/threads/${threadId}`.",
-        "Implement postToThread(threadId, payload) POST `/threads/${threadId}/messages`.",
-        "Export functions."
-      ],
-      "integration_points": [
-        "Used by ThreadView component and message composition for replying in threads",
-        "Mock server supports /api/threads"
-      ],
-      "prompt_context": {
-        "component_type": "service",
-        "data_model": "thread",
-        "interactions": [
-          "fetch",
-          "create message"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/services/apiClient.ts",
-          "src/types/index.ts"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "mock-server",
-      "title": "Mock HTTP server (mocks/mockServer.ts)",
-      "description": "Development-only in-process mock server implementing the listed API endpoints and returning mock data. Also exposes startMockServer() to initialize handlers and seed localStorage with mock users.",
-      "file_to_implement": "src/mocks/mockServer.ts",
-      "acceptance": [
-        "Exports startMockServer() which installs fetch interception handlers or a lightweight MSW-like handler",
-        "Handles endpoints: /api/messages, /api/channels, /api/users, /api/files, /api/presence, /api/reactions, /api/threads, and auth endpoints (/auth/login, /auth/refresh)",
-        "Uses the mock_auth_users from the provided config for login behavior and persists session tokens to localStorage when requested"
-      ],
-      "implementation_steps": [
-        "Export a function startMockServer() that registers global fetch interception (patch window.fetch) or provides a simple route switch when requests start with '/api'.",
-        "Implement in-memory stores for users, channels, messages, files, presence, reactions, threads matching types in src/types/index.ts.",
-        "Implement /auth/login that validates email/password against mock_auth_users and returns user and fake tokens (expiresAt timestamp).",
-        "Implement list/fetch/create/update/delete handlers for the routes specified in app config returning JSON matching ApiResponse<T> shapes.",
-        "Provide a function to seed initial channels, a default 'general' channel, and a couple of messages.",
-        "Expose stopMockServer() if useful, but at minimum startMockServer() must be callable from main.tsx.",
-        "Document how to extend the in-memory stores for more messages."
-      ],
-      "integration_points": [
-        "Called by main.tsx to start mock server in development",
-        "Mocks endpoints consumed by services/* via apiClient"
-      ],
-      "prompt_context": {
-        "component_type": "mock",
+        "component_type": "util",
         "data_model": null,
         "interactions": [
-          "http interception",
-          "seed data"
+          "shuffle"
+        ],
+        "styling_approach": null,
+        "dependencies": []
+      },
+      "priority": 1
+    },
+    {
+      "id": "score-calculator-util",
+      "title": "Score Calculator",
+      "description": "Calculate final score based on moves, time, difficulty, streaks and multipliers. Used on game end to compute leaderboard score and achievements.",
+      "file_to_implement": "src/utils/scoreCalculator.ts",
+      "acceptance": [
+        "Exports function calculateScore({moves, seconds, difficulty, streakBonus, comboMultiplier}) returning numeric score",
+        "Used by store when ending game and by leaderboardService.submitScore to send final score"
+      ],
+      "implementation_steps": [
+        "1. Implement formula factoring difficulty base multiplier, time penalty, move penalty, streak bonuses and combo multipliers.",
+        "2. Export calculateScore function and a helper formatScore for display.",
+        "3. Add unit-friendly behavior (clamp to minimum 0) and TypeScript types."
+      ],
+      "integration_points": [
+        "Used by src/state/store.ts when resolving victory and by services submitting to leaderboard",
+        "Consistent with evaluation_criteria for score accuracy"
+      ],
+      "prompt_context": {
+        "component_type": "util",
+        "data_model": "score",
+        "interactions": [
+          "compute"
         ],
         "styling_approach": null,
         "dependencies": [
-          "src/config.ts",
           "src/types/index.ts"
         ]
       },
       "priority": 1
     },
     {
-      "id": "mock-websocket",
-      "title": "Mock WebSocket (mocks/mockWebSocket.ts)",
-      "description": "A dev-mode minimal EventEmitter-based mock WebSocket that can be used by SocketProvider to broadcast real-time events to the app.",
-      "file_to_implement": "src/mocks/mockWebSocket.ts",
+      "id": "persistence-util",
+      "title": "Persistence Utilities",
+      "description": "Utility helpers for key conventions and migration helpers for persisted data in localStorage.",
+      "file_to_implement": "src/utils/persistence.ts",
       "acceptance": [
-        "Exports a class MockWebSocket with on(event, handler), off, emit methods and connect/disconnect",
-        "Simulates presence updates and new messages at intervals",
-        "Provides a createMockSocket() helper that returns a connected MockWebSocket instance"
+        "Exports function makeKey(scope, name) returning stable localStorage key",
+        "Exports migrateIfNeeded(previousVersion, currentVersion, transformFn) to allow persisted data migration"
       ],
       "implementation_steps": [
-        "Implement a simple event emitter class with a Map of event->Set<handler> and methods on/off/emit.",
-        "Implement connect() which starts timers that every 10s emits 'message:new' with a generated message using generateId() and the mock users; also emit 'presence:update' occasionally.",
-        "Implement disconnect() which clears timers.",
-        "Export createMockSocket() returning an instance with connect called.",
-        "Ensure type signatures are generic (use types Message, Presence from ../types)."
+        "1. Implement makeKey(scope, name) to return 'memorygame:v1:${scope}:${name}' pattern.",
+        "2. Implement a simple migration helper that accepts storedValue and transforms when schemaVersion differs.",
+        "3. Use this method in store persistence and providers when writing keys."
       ],
       "integration_points": [
-        "Used by shared/context/SocketProvider to provide a socket instance when config.disable_websocket_in_dev is false",
-        "Emits events consumed by React Query via queryClient updates"
+        "Used by useLocalStorage hook and store persistence middleware to ensure consistent keys",
+        "Referenced by providers to store settings"
       ],
       "prompt_context": {
-        "component_type": "mock",
-        "data_model": "message, presence",
-        "interactions": [
-          "emit",
-          "subscribe"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/types/index.ts",
-          "src/utils/generateId.ts",
-          "src/config.ts"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "query-provider",
-      "title": "React Query provider wrapper (shared/context/QueryProvider.tsx)",
-      "description": "Sets up React Query's QueryClient, devtools option (dev-mode), default options and exposes QueryClientProvider for the app.",
-      "file_to_implement": "src/shared/context/QueryProvider.tsx",
-      "acceptance": [
-        "Creates QueryClient with sensible defaults and React Query error boundaries (retry logic)",
-        "Provides <QueryProvider>{children}</QueryProvider> component wrapper exporting the queryClient instance if needed",
-        "Integrates with mock server behavior if needed"
-      ],
-      "implementation_steps": [
-        "Import QueryClient and QueryClientProvider from 'react-query' (or '@tanstack/react-query' depending on chosen version), React, and config.",
-        "Create QueryClient with defaultOptions: queries: { retry: 1, staleTime: 10000, refetchOnWindowFocus: false } and mutations configured as needed.",
-        "Export function QueryProvider({ children }) that returns <QueryClientProvider client={client}>{children}</QueryClientProvider>.",
-        "Also export queryClient for use by SocketProvider to invalidate queries upon socket events.",
-        "Avoid importing any UI modules to keep this provider purely for data."
-      ],
-      "integration_points": [
-        "Used in src/main.tsx to wrap the App",
-        "queryClient is imported by SocketProvider to update caches on real-time events"
-      ],
-      "prompt_context": {
-        "component_type": "provider",
+        "component_type": "util",
         "data_model": null,
         "interactions": [
-          "caching",
-          "mutations"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/config.ts"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "auth-context",
-      "title": "Auth provider and context (shared/context/AuthContext.tsx)",
-      "description": "AuthContext that provides currentUser, tokens, login/logout functions, and route protection helpers. Uses localStorage for persistence in dev mode and authService for flows.",
-      "file_to_implement": "src/shared/context/AuthContext.tsx",
-      "acceptance": [
-        "Exports AuthProvider that wraps children and exports useAuth hook (or context object)",
-        "Persists user & token to localStorage when config.use_localstorage_persistence is true",
-        "Provides login(email,password), logout(), and currentUser in context",
-        "Protects routes through helper RequireAuth component"
-      ],
-      "implementation_steps": [
-        "Import createContext, useContext, useState, useEffect, ReactNode from 'react', authService from '../../services/authService', config from '../../config', types User and AuthTokens.",
-        "Create an AuthContext with shape { user: User | null, tokens: AuthTokens | null, login: async, logout: () => void }.",
-        "Implement AuthProvider reading initial state from localStorage if enabled and exposing functions that call authService and update localStorage accordingly.",
-        "Export a useAuth() hook that returns context and a RequireAuth component that checks user and redirects to '/login' if not authenticated (use react-router navigate or a placeholder return).",
-        "Ensure tokens are stored under keys from config.LOCALSTORAGE_KEYS or similar."
-      ],
-      "integration_points": [
-        "Used by pages that need authentication (ChatPage, ChannelsPage, DirectMessagePage)",
-        "Relies on services/authService.ts and config.ts"
-      ],
-      "prompt_context": {
-        "component_type": "provider",
-        "data_model": "user, auth tokens",
-        "interactions": [
-          "login",
-          "logout",
           "persist"
         ],
         "styling_approach": null,
         "dependencies": [
-          "src/services/authService.ts",
-          "src/config.ts",
-          "src/types/index.ts"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "socket-provider",
-      "title": "Socket provider (shared/context/SocketProvider.tsx)",
-      "description": "Provides a socket instance to the app; in dev-mode uses mocks/mockWebSocket.ts and forwards socket events to React Query to update caches.",
-      "file_to_implement": "src/shared/context/SocketProvider.tsx",
-      "acceptance": [
-        "Exports SocketProvider that connects to a socket (real WebSocket in prod or MockWebSocket in dev)",
-        "Subscribes to events like 'message:new', 'presence:update' and updates queryClient via setQueryData or invalidateQueries",
-        "Provides useSocket hook or context with on/emit methods"
-      ],
-      "implementation_steps": [
-        "Import React, createContext, useContext, useEffect, useRef from 'react', queryClient from '../context/QueryProvider' (or import a getter), config from '../../config', and createMockSocket from '../../mocks/mockWebSocket'.",
-        "Create SocketContext exposing on/off/emit and the connected flag.",
-        "In SocketProvider, if config.disable_websocket_in_dev is false and config.enable_mock_data true, create the mock socket createMockSocket(), connect it, and subscribe to 'message:new' and 'presence:update'.",
-        "On 'message:new' event, call queryClient.setQueryData for messages for the appropriate channel or call invalidateQueries('messages'). Similarly handle presence updates.",
-        "Cleanup subscriptions on unmount and disconnect socket.",
-        "Export useSocket() hook to access context."
-      ],
-      "integration_points": [
-        "Mounted in src/main.tsx, used by components/hook to subscribe to real-time events",
-        "Integrates with mockWebSocket to simulate real-time"
-      ],
-      "prompt_context": {
-        "component_type": "provider",
-        "data_model": "message, presence",
-        "interactions": [
-          "subscribe",
-          "broadcast"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/mocks/mockWebSocket.ts",
-          "src/shared/context/QueryProvider.tsx",
-          "src/config.ts"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "theme-provider",
-      "title": "Theme provider (shared/context/ThemeProvider.tsx)",
-      "description": "Provides dark mode toggle and stores preference in localStorage; integrates with Tailwind's dark class on document element.",
-      "file_to_implement": "src/shared/context/ThemeProvider.tsx",
-      "acceptance": [
-        "Exports ThemeProvider that applies 'dark' class to document.documentElement when theme = 'dark'",
-        "Persists preference to localStorage (if config.use_localstorage_persistence)",
-        "Provides useTheme hook to toggle theme"
-      ],
-      "implementation_steps": [
-        "Create React context that exposes theme: 'light'|'dark' and toggleTheme function.",
-        "On mount, read preference from localStorage if enabled, fall back to system preference if not present.",
-        "When theme changes, add or remove 'dark' class to document.documentElement.",
-        "Export ThemeProvider and useTheme hook."
-      ],
-      "integration_points": [
-        "Wrapped by main.tsx to enable dark mode across UI components (Tailwind CSS)",
-        "Used by Header (theme toggle) and any component that needs theme info"
-      ],
-      "prompt_context": {
-        "component_type": "provider",
-        "data_model": null,
-        "interactions": [
-          "toggle theme",
-          "persist"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/config.ts"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "error-boundary",
-      "title": "Error boundary (shared/context/ErrorBoundary.tsx)",
-      "description": "React Error Boundary component providing a fallback UI and logging. Ensures the app doesn't crash entirely on runtime errors.",
-      "file_to_implement": "src/shared/context/ErrorBoundary.tsx",
-      "acceptance": [
-        "Exports ErrorBoundary React component that wraps children and displays a user-friendly fallback with retry button",
-        "Logs errors to console and provides a reset handler"
-      ],
-      "implementation_steps": [
-        "Implement a class component extending React.Component with componentDidCatch to log error and set state hasError true.",
-        "Render children when no error; render fallback with message, Retry button that resets state to attempt re-render.",
-        "Export default ErrorBoundary component."
-      ],
-      "integration_points": [
-        "Used at top-level in src/main.tsx",
-        "Provides meaningful fallback around provider stack"
-      ],
-      "prompt_context": {
-        "component_type": "error boundary",
-        "data_model": null,
-        "interactions": [
-          "render fallback",
-          "reset"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 1
-    },
-    {
-      "id": "use-localstorage",
-      "title": "useLocalStorage hook (shared/hooks/useLocalStorage.ts)",
-      "description": "A typed hook for reading/writing JSON-serializable values to localStorage with SSR-safe guards.",
-      "file_to_implement": "src/shared/hooks/useLocalStorage.ts",
-      "acceptance": [
-        "Exports useLocalStorage<T>(key, initialValue) returning [value, setValue, remove]",
-        "Handles JSON serialization, errors, and falls back to initialValue if parsing fails"
-      ],
-      "implementation_steps": [
-        "Implement function that on initial render tries to read from localStorage; if missing returns initialValue.",
-        "Expose setValue function that updates state and writes JSON to localStorage, and remove function to clear key.",
-        "Type the hook generically and export default.",
-        "Add safety checks for window availability."
-      ],
-      "integration_points": [
-        "Used by AuthContext, ThemeProvider, and any component needing persistence",
-        "No external dependencies"
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": null,
-        "interactions": [
-          "persist",
-          "read"
-        ],
-        "styling_approach": null,
-        "dependencies": []
-      },
-      "priority": 1
-    },
-    {
-      "id": "use-auth-hook",
-      "title": "useAuth hook (shared/hooks/useAuth.ts)",
-      "description": "Convenient hook re-exporting AuthContext to be used throughout components. Provides helpers to check roles and protect actions.",
-      "file_to_implement": "src/shared/hooks/useAuth.ts",
-      "acceptance": [
-        "Exports useAuth() that returns { user, tokens, login, logout, hasRole }",
-        "hasRole(role) returns boolean if user has that role"
-      ],
-      "implementation_steps": [
-        "Import useContext from react and AuthContext from '../context/AuthContext'.",
-        "Implement and export function useAuth() that returns the context and augments it with hasRole(role) helper.",
-        "Throw when used outside AuthProvider for developer clarity."
-      ],
-      "integration_points": [
-        "Used by pages and components that require auth (Header, ChatPage, ChannelsPage)",
-        "Depends on AuthContext implementation"
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": "user",
-        "interactions": [
-          "check role",
-          "login/logout"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/shared/context/AuthContext.tsx"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "use-websocket-hook",
-      "title": "useWebSocket hook (shared/hooks/useWebSocket.ts)",
-      "description": "Hook that provides a simple typed subscription API to socket events exposed by SocketProvider.",
-      "file_to_implement": "src/shared/hooks/useWebSocket.ts",
-      "acceptance": [
-        "Exports useWebSocket() returning { on(event, handler), off(event, handler), emit(event, payload) }",
-        "Internally uses SocketContext created in SocketProvider"
-      ],
-      "implementation_steps": [
-        "Import useContext from react and SocketContext from '../context/SocketProvider'.",
-        "Return the context object; if not present throw error for developer feedback.",
-        "Type generically with known event names 'message:new' | 'presence:update' etc."
-      ],
-      "integration_points": [
-        "Used by components that want to listen to custom socket events (optional)",
-        "Relies on SocketProvider"
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": "message, presence",
-        "interactions": [
-          "subscribe",
-          "emit"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/shared/context/SocketProvider.tsx"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "use-debounce",
-      "title": "useDebounce hook (shared/hooks/useDebounce.ts)",
-      "description": "Utility hook for debouncing a value with cleanup on unmount.",
-      "file_to_implement": "src/shared/hooks/useDebounce.ts",
-      "acceptance": [
-        "Exports useDebounce<T>(value, delay) returning debounced value",
-        "Clears timer on unmount or when value changes"
-      ],
-      "implementation_steps": [
-        "Implement hook using useState and useEffect storing a timer via window.setTimeout and clearing on cleanup.",
-        "Generic typing so works with any value type.",
-        "Export default."
-      ],
-      "integration_points": [
-        "Used by SearchBar and message search features",
-        "No other dependencies"
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": null,
-        "interactions": [
-          "debounce"
-        ],
-        "styling_approach": null,
-        "dependencies": []
-      },
-      "priority": 3
-    },
-    {
-      "id": "use-i18n",
-      "title": "i18n initializer hook (shared/hooks/useI18n.ts)",
-      "description": "Sets up i18next minimal configuration and returns t function or readiness flag for Suspense.",
-      "file_to_implement": "src/shared/hooks/useI18n.ts",
-      "acceptance": [
-        "Initializes i18next with at least English translations and provides a useI18n hook that returns a t function",
-        "Supports lazy loading via Suspense in App"
-      ],
-      "implementation_steps": [
-        "Import i18next and react-i18next initialization helpers. Provide minimal en translation resources for common UI strings.",
-        "Initialize i18n only once (guard with a module-scoped flag).",
-        "Export a useI18n hook that calls useTranslation() and returns t.",
-        "Keep implementation simple but typed."
-      ],
-      "integration_points": [
-        "Used by App.tsx and shared components to localize UI strings",
-        "Independent from mock server"
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": null,
-        "interactions": [
-          "init i18n"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "i18next"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "generate-id",
-      "title": "ID generator util (src/utils/generateId.ts)",
-      "description": "Utility that generates short unique ids for mock data.",
-      "file_to_implement": "src/utils/generateId.ts",
-      "acceptance": [
-        "Exports generateId(prefix?) returning a string unique enough for mock purposes",
-        "No external dependencies"
-      ],
-      "implementation_steps": [
-        "Implement a function that returns `${prefix ?? ''}${Date.now().toString(36)}-${Math.random().toString(36).slice(2,9)}`.",
-        "Export default generateId.",
-        "Add JSDoc type annotation for readability."
-      ],
-      "integration_points": [
-        "Used by mockWebSocket, mockServer, services when creating local objects"
-      ],
-      "prompt_context": {
-        "component_type": "utility",
-        "data_model": null,
-        "interactions": [],
-        "styling_approach": null,
-        "dependencies": []
-      },
-      "priority": 4
-    },
-    {
-      "id": "format-date",
-      "title": "Date formatting util (src/utils/formatDate.ts)",
-      "description": "Small utility to format ISO timestamps into relative or human-friendly strings.",
-      "file_to_implement": "src/utils/formatDate.ts",
-      "acceptance": [
-        "Exports formatDate(isoString) returning 'HH:MM' for same-day messages and 'MMM dd' for older",
-        "Handles invalid inputs gracefully"
-      ],
-      "implementation_steps": [
-        "Implement parsing of ISO string to Date, compare to now, and return formatted strings using Intl.DateTimeFormat or manual logic.",
-        "Export default formatDate.",
-        "Add tests in comments or examples of expected outputs."
-      ],
-      "integration_points": [
-        "Used by MessageBubble and MessageList components"
-      ],
-      "prompt_context": {
-        "component_type": "utility",
-        "data_model": null,
-        "interactions": [
-          "format"
-        ],
-        "styling_approach": null,
-        "dependencies": []
-      },
-      "priority": 4
-    },
-    {
-      "id": "header-component",
-      "title": "Header (shared/components/Header.tsx)",
-      "description": "Top application header containing app title, search button, theme toggle, and current user avatar/menu.",
-      "file_to_implement": "src/shared/components/Header.tsx",
-      "acceptance": [
-        "Displays app title/logo, search icon (accessible), theme toggle and user Avatar",
-        "Calls useAuth for current user and displays their avatar with accessible menu (aria attributes)",
-        "Uses Tailwind for responsive layout and supports dark mode"
-      ],
-      "implementation_steps": [
-        "Import React, useState, Link from react-router-dom (or anchor placeholder), useAuth from '../../shared/hooks/useAuth', Avatar from './Avatar', Icon from './Icon', useTheme from '../context/ThemeProvider' or hook.",
-        "Render a responsive header with left-aligned logo/title (Link to '/'), center search button (button with aria-label 'Search (Ctrl/Cmd+K)'), right side has theme toggle button and Avatar that when clicked shows a small dropdown with 'Profile' and 'Logout' buttons calling useAuth.logout.",
-        "Ensure keyboard accessibility for dropdown and aria attributes present.",
-        "Export default Header component."
-      ],
-      "integration_points": [
-        "Used in App.tsx and pages layouts",
-        "Depends on Avatar, Icon, useAuth, ThemeProvider"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "user",
-        "interactions": [
-          "open menu",
-          "logout",
-          "toggle theme"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/hooks/useAuth.ts",
-          "src/shared/components/Avatar.tsx",
-          "src/shared/components/Icon.tsx",
-          "src/shared/context/ThemeProvider.tsx"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "avatar-component",
-      "title": "Avatar component (shared/components/Avatar.tsx)",
-      "description": "Small avatar presentational component that renders an image or initials fallback and supports accessible sizes.",
-      "file_to_implement": "src/shared/components/Avatar.tsx",
-      "acceptance": [
-        "Accepts props: src?, name?, size ('sm'|'md'|'lg'), alt, onClick optional",
-        "Renders initials when no src and uses accessible <img> alt text",
-        "Applies Tailwind classes for rounded and shadow"
-      ],
-      "implementation_steps": [
-        "Define props interface and default props; compute initials from name if no src.",
-        "Render a button or div containing <img> when src present with alt text, otherwise a colored div with initials.",
-        "Expose onClick for interactive avatars and ensure role/button semantics when clickable.",
-        "Export default Avatar."
-      ],
-      "integration_points": [
-        "Used in Header, MessageBubble, Sidebar user lists",
-        "No external dependencies beyond types"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "user",
-        "interactions": [
-          "click"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/types/index.ts"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "icon-component",
-      "title": "Icon set (shared/components/Icon.tsx)",
-      "description": "Small icon component exporting a few inline SVG icons used across the app: Search, Send, Theme, File, Emoji.",
-      "file_to_implement": "src/shared/components/Icon.tsx",
-      "acceptance": [
-        "Exports named icons: SearchIcon, SendIcon, ThemeIcon, FileIcon, EmojiIcon and a generic Icon component that returns requested icon",
-        "Icons accept className for sizing and color"
-      ],
-      "implementation_steps": [
-        "Implement simple functional components returning SVG for each icon and typed props { className?: string, 'aria-hidden'?: boolean }.",
-        "Export them as named exports and provide a default Icon dispatcher if useful.",
-        "Keep icon SVG lightweight and accessible with role='img' and focusable='false'."
-      ],
-      "integration_points": [
-        "Imported by Header, FileUpload, EmojiPicker and other small components",
-        "Self-contained, no external dependencies"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": null,
-        "interactions": [
-          "visual"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 4
-    },
-    {
-      "id": "button-component",
-      "title": "Button (shared/components/Button.tsx)",
-      "description": "Accessible button primitive used across the app (variants: primary, secondary, ghost).",
-      "file_to_implement": "src/shared/components/Button.tsx",
-      "acceptance": [
-        "Accepts props: children, variant, size, disabled, onClick, type",
-        "Applies Tailwind classes per variant and size, handles aria-disabled and keyboard",
-        "Export default Button and named variants if needed"
-      ],
-      "implementation_steps": [
-        "Create a props interface with variant union and size union, forwardRef to native button element.",
-        "Map variant/size to Tailwind class strings and apply them to button element along with passed className.",
-        "Ensure proper aria-disabled attribute when disabled and prevent onClick when disabled.",
-        "Export default Button."
-      ],
-      "integration_points": [
-        "Used by almost every UI including Header, Modal, forms and pages",
-        "No external dependencies beyond tailwind css classes"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": null,
-        "interactions": [
-          "click",
-          "disabled"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 2
-    },
-    {
-      "id": "input-component",
-      "title": "Input (shared/components/Input.tsx)",
-      "description": "Accessible input primitive used for forms and search with validation states.",
-      "file_to_implement": "src/shared/components/Input.tsx",
-      "acceptance": [
-        "Accepts props: value, onChange, placeholder, name, aria-label, error state",
-        "Renders label when provided, shows error message when error prop passed, supports forwarded ref"
-      ],
-      "implementation_steps": [
-        "Define props interface and forwardRef to input element.",
-        "Render an input with Tailwind classes that change on focus/invalid via props.",
-        "If an error string prop is passed render a small <p> with role='alert' explaining the error.",
-        "Export default Input."
-      ],
-      "integration_points": [
-        "Used by LoginPage, SearchBar, FileUpload forms",
-        "No other file-level dependencies"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": null,
-        "interactions": [
-          "type",
-          "validation"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 2
-    },
-    {
-      "id": "textarea-component",
-      "title": "Textarea (shared/components/Textarea.tsx)",
-      "description": "Multiline text input used for composing messages; supports auto-resize and submission on Cmd/Ctrl+Enter.",
-      "file_to_implement": "src/shared/components/Textarea.tsx",
-      "acceptance": [
-        "Accepts props: value, onChange, onSubmit, placeholder, rows, aria-label",
-        "Handles Ctrl/Cmd+Enter to call onSubmit, supports auto-resize to content",
-        "Accessible with proper labels"
-      ],
-      "implementation_steps": [
-        "Implement a textarea that adjusts height based on scrollHeight using ref and style adjustments on input event.",
-        "Listen for keydown for submit combination and call onSubmit if provided.",
-        "Export default Textarea."
-      ],
-      "integration_points": [
-        "Used by ChatPage message composer and ThreadView reply box",
-        "No additional external dependencies"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "message",
-        "interactions": [
-          "compose",
-          "submit"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 2
-    },
-    {
-      "id": "spinner-component",
-      "title": "Spinner (shared/components/Spinner.tsx)",
-      "description": "Small loading spinner used as Suspense fallback and loaders across the app.",
-      "file_to_implement": "src/shared/components/Spinner.tsx",
-      "acceptance": [
-        "Renders an accessible spinning SVG with aria-busy or role='status'",
-        "Allows size prop and className override"
-      ],
-      "implementation_steps": [
-        "Implement a functional component returning an SVG circle with animation via Tailwind 'animate-spin' class and appropriate accessibility attributes.",
-        "Export default Spinner.",
-        "Keep component lightweight and reusable."
-      ],
-      "integration_points": [
-        "Used by App.tsx Suspense fallback and loading states in pages",
-        "No additional dependencies"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": null,
-        "interactions": [
-          "visual"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 3
-    },
-    {
-      "id": "modal-component",
-      "title": "Modal (shared/components/Modal.tsx)",
-      "description": "Accessible modal component with focus trap and keyboard escape handling.",
-      "file_to_implement": "src/shared/components/Modal.tsx",
-      "acceptance": [
-        "Renders children in a centered dialog with backdrop, traps focus while open, closes on ESC, and returns focus to trigger",
-        "Accessible markup (role='dialog', aria-modal)",
-        "Supports controlled open prop and onClose callback"
-      ],
-      "implementation_steps": [
-        "Create Modal component with props { isOpen, onClose, title, children } and use portal to append to document.body.",
-        "Implement trap focus by saving previously focused element and returning focus on close; add keydown handler for Escape key to call onClose.",
-        "Render backdrop and dialog with aria attributes and ensure clicking backdrop triggers onClose.",
-        "Export default Modal."
-      ],
-      "integration_points": [
-        "Used by settings dialogs, file preview, and channel creation flows",
-        "No circular dependencies"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": null,
-        "interactions": [
-          "open",
-          "close",
-          "trap focus"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 3
-    },
-    {
-      "id": "sidebar-component",
-      "title": "Sidebar (shared/components/Sidebar.tsx)",
-      "description": "Left side navigation listing channels and direct messages with presence indicators.",
-      "file_to_implement": "src/shared/components/Sidebar.tsx",
-      "acceptance": [
-        "Renders a list of channels (from props or via useQuery) with accessible links to channels, show unread badges placeholder",
-        "Shows direct messages / contacts with PresenceIndicator next to avatars",
-        "Responsive: collapses to icon-only on small screens"
-      ],
-      "implementation_steps": [
-        "Create Sidebar component that optionally accepts channels prop; if none provided uses channelService.fetchChannels via React Query (documented in comments).",
-        "Render channel items as accessible Links to `/channels/:id` and DM entries to `/dm/:userId`.",
-        "Use Avatar and PresenceIndicator components alongside names; add keyboard navigation (arrow keys) to move focus between items.",
-        "Export default Sidebar."
-      ],
-      "integration_points": [
-        "Used in ChatLayout and ChatPage",
-        "Depends on Avatar, PresenceIndicator, channelService (via React Query) if not passed as props"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "channel, user, presence",
-        "interactions": [
-          "navigate",
-          "focus"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/components/Avatar.tsx",
-          "src/shared/components/PresenceIndicator.tsx",
-          "src/services/channelService.ts"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "presence-indicator-component",
-      "title": "Presence indicator (shared/components/PresenceIndicator.tsx)",
-      "description": "Small colored dot indicating user presence with accessible tooltip.",
-      "file_to_implement": "src/shared/components/PresenceIndicator.tsx",
-      "acceptance": [
-        "Accepts status prop and renders green/yellow/gray/red dot with aria-label describing status",
-        "Supports small/medium sizes"
-      ],
-      "implementation_steps": [
-        "Implement functional component mapping status to Tailwind bg colors and accessible label.",
-        "Use title attribute or a tooltip accessible via aria-describedby.",
-        "Export default PresenceIndicator."
-      ],
-      "integration_points": [
-        "Used by Sidebar, Avatar, and Header user lists",
-        "No external dependencies"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "presence",
-        "interactions": [
-          "display"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/types/index.ts"
+          "src/shared/hooks/useLocalStorage.ts"
         ]
       },
       "priority": 4
     },
     {
-      "id": "message-bubble",
-      "title": "Message bubble (shared/components/MessageBubble.tsx)",
-      "description": "Displays message content, attachments, reactions, and provides controls for reply/edit/delete with accessible interactions.",
-      "file_to_implement": "src/shared/components/MessageBubble.tsx",
+      "id": "animations-util",
+      "title": "Animations Utilities",
+      "description": "Shared animation helpers and re-usable Framer Motion/React Spring configs for card flip, match particle spawn, and victory sequences.",
+      "file_to_implement": "src/utils/animations.ts",
       "acceptance": [
-        "Renders author avatar & name, message content, attachments list, timestamp using formatDate util",
-        "Allows reacting (opens EmojiPicker), replying (open ThreadView), editing (if author) and deleting (if author/admin)",
-        "Accessible: aria-labels on controls and keyboard support"
+        "Exports motion variants for card flip and particle spawn",
+        "Provides small helpers for launchVictorySequence used by Confetti or particle effects"
       ],
       "implementation_steps": [
-        "Import types Message, Avatar, formatDate util, EmojiPicker, ReactionService functions via hooks or services as documented.",
-        "Render a container with left Avatar, right content with name, content text, attachments rendered as links using FileUpload preview, and a small footer with timestamp and action buttons (Reply, React, More menu).",
-        "Wire action buttons to props callbacks (onReply, onReact, onEdit, onDelete) passed from parent; do not implement network calls inside this file to keep component presentational.",
-        "Export default MessageBubble and typed props interface.",
-        "Document integration expectations: parent will handle optimistic updates and permissions."
+        "1. Export FRAMER_MOTION variants for cardFlip (front/back) and scale/opacity transitions.",
+        "2. Provide a helper function createParticleEffect(container, options) that can be used by particle canvas components.",
+        "3. Document expected usage in Card and Confetti components."
       ],
       "integration_points": [
-        "Used by ChatPage message list and ThreadView",
-        "Parent components must provide callback handlers that connect to services/messageService and reactionService"
+        "Used by Card, Confetti and shared particle components to ensure consistent animations",
+        "May import Framer Motion types if available"
       ],
       "prompt_context": {
-        "component_type": "component",
-        "data_model": "message",
+        "component_type": "util",
+        "data_model": "animation",
         "interactions": [
-          "reply",
-          "react",
-          "edit",
-          "delete"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/types/index.ts",
-          "src/utils/formatDate.ts",
-          "src/shared/components/Avatar.tsx",
-          "src/shared/components/EmojiPicker.tsx"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "emoji-picker",
-      "title": "Emoji picker (shared/components/EmojiPicker.tsx)",
-      "description": "Lightweight emoji selection UI that returns selected emoji via callback. Supports keyboard navigation.",
-      "file_to_implement": "src/shared/components/EmojiPicker.tsx",
-      "acceptance": [
-        "Shows grid of emoji options, accepts onSelect(emoji) callback",
-        "Keyboard navigable and accessible with role='listbox' or buttons",
-        "Small and fast; no heavy external emoji libs"
-      ],
-      "implementation_steps": [
-        "Create a small list/array of emoji strings to show (e.g., \ud83d\udc4d, \u2764\ufe0f, \ud83d\ude02, \ud83c\udf89, \ud83d\ude2e).",
-        "Render a grid of buttons; each button has aria-label with emoji name and calls onSelect when clicked.",
-        "Handle arrow keys to move focus inside grid and Enter/Space to select.",
-        "Export default EmojiPicker."
-      ],
-      "integration_points": [
-        "Used by MessageBubble and reaction flows",
-        "No external dependencies"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "reaction",
-        "interactions": [
-          "select"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 3
-    },
-    {
-      "id": "file-upload-component",
-      "title": "FileUpload component (shared/components/FileUpload.tsx)",
-      "description": "File input UI that supports drag-and-drop, shows previews, and calls fileService.uploadFile to upload attachments.",
-      "file_to_implement": "src/shared/components/FileUpload.tsx",
-      "acceptance": [
-        "Supports selecting files via dialog and drag-and-drop, shows list of selected files with progress bars",
-        "Calls provided onUploadComplete callback with uploaded FileItem(s)",
-        "Accessible dropzone with proper ARIA and keyboard fallback"
-      ],
-      "implementation_steps": [
-        "Implement a component maintaining local state for queued files and progress; use input type='file' hidden with button to trigger.",
-        "Handle dragover/drop events to add files to queue; prevent default behaviors.",
-        "For each queued file call fileService.uploadFile(file, channelId, onProgress) and update progress; on success call onUploadComplete with returned FileItem.",
-        "Render visual progress bars and allow cancelling queued uploads.",
-        "Export default FileUpload component."
-      ],
-      "integration_points": [
-        "Used by message composer in ChatPage, utilizes services/fileService.ts",
-        "Relies on mockServer upload endpoints in dev"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "file",
-        "interactions": [
-          "upload",
-          "drag-drop"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/services/fileService.ts",
-          "src/types/index.ts"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "thread-view",
-      "title": "Thread view (shared/components/ThreadView.tsx)",
-      "description": "Displays threaded conversation for a parent message; allows posting replies and viewing replies in context.",
-      "file_to_implement": "src/shared/components/ThreadView.tsx",
-      "acceptance": [
-        "Accepts threadId and parentMessage props and uses onPostReply callback to submit reply",
-        "Renders parent message at top, list of replies chronologically, and a Textarea to compose reply",
-        "Keyboard accessible and responsive"
-      ],
-      "implementation_steps": [
-        "Define props interface (threadId, parentMessage, replies optional, onPostReply).",
-        "Render parentMessage using MessageBubble (read-only), render replies map to MessageBubble components, and include a Textarea to compose a reply and send via onPostReply.",
-        "Ensure reply submit clears textarea and focuses focus management correctly.",
-        "Export default ThreadView."
-      ],
-      "integration_points": [
-        "Used in ChatPage when user clicks 'Reply' to open thread pane/modal",
-        "Parent coordinates posting via threadService and React Query"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "thread",
-        "interactions": [
-          "view",
-          "post reply"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/components/MessageBubble.tsx",
-          "src/shared/components/Textarea.tsx",
-          "src/types/index.ts"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "search-bar",
-      "title": "Search bar (shared/components/SearchBar.tsx)",
-      "description": "Search input with debounce that queries messages and channels; accessible and keyboard-focused when opened via shortcut.",
-      "file_to_implement": "src/shared/components/SearchBar.tsx",
-      "acceptance": [
-        "Debounces input via useDebounce, calls onSearch(query) callback or internally triggers React Query searchMessages via messageService",
-        "Accessible: labelled input, supports opening/closing via props"
-      ],
-      "implementation_steps": [
-        "Implement controlled input using Input component, use useDebounce hook to produce debouncedQuery, and when debouncedQuery changes call onSearch or use messageService.searchMessages and present results in a small dropdown.",
-        "Ensure keyboard navigation through results and ESC to close behavior.",
-        "Export default SearchBar."
-      ],
-      "integration_points": [
-        "Used by Header and ChatPage for message search",
-        "Depends on useDebounce and messageService.searchMessages"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "message",
-        "interactions": [
-          "search",
-          "keyboard navigation"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/hooks/useDebounce.ts",
-          "src/services/messageService.ts"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "login-page",
-      "title": "Login page (pages/LoginPage.tsx)",
-      "description": "Login route that supports mock authentication for development, form validation and error handling using basic custom validation.",
-      "file_to_implement": "src/pages/LoginPage.tsx",
-      "acceptance": [
-        "Renders form with email and password inputs, submit button",
-        "Validates required fields and shows inline error messages",
-        "Calls authService.login and on success navigates to '/channels' or previous protected route",
-        "Supports mock users defined in config when running in dev mode"
-      ],
-      "implementation_steps": [
-        "Import React, useState, useNavigate from react-router-dom, Input and Button components, useAuth hook or call authService directly (better to use useAuth), and config.",
-        "Implement controlled form with client-side validation (email presence and password length), show errors inline using Input error props.",
-        "On submit call auth.login(email,password) from AuthContext and handle errors (set error message displayed in an alert region with role='alert').",
-        "On success navigate to '/channels'.",
-        "Export default LoginPage component."
-      ],
-      "integration_points": [
-        "Uses AuthContext (login), Input, Button; route mapped in routes/Routes.tsx",
-        "Relies on services/authService.ts and mocks/mockServer in dev"
-      ],
-      "prompt_context": {
-        "component_type": "page",
-        "data_model": "user",
-        "interactions": [
-          "login",
-          "validate"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/hooks/useAuth.ts",
-          "src/shared/components/Input.tsx",
-          "src/shared/components/Button.tsx",
-          "src/config.ts"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "routes",
-      "title": "Routes (src/routes/Routes.tsx)",
-      "description": "React Router v6 routes mapping pages, includes protected routes using RequireAuth from AuthContext and lazy-loaded pages with Suspense.",
-      "file_to_implement": "src/routes/Routes.tsx",
-      "acceptance": [
-        "Defines routes: '/', '/login', '/channels', '/channels/:id', '/dm/:userId', '/settings', and a catch-all 404 route",
-        "Protects '/channels*' and '/dm*' routes using RequireAuth",
-        "Uses lazy to code-split heavy pages"
-      ],
-      "implementation_steps": [
-        "Import React, lazy, Suspense from react, BrowserRouter, Routes, Route from react-router-dom, Spinner, RequireAuth from AuthContext, and page components with lazy (LoginPage, ChannelsPage, ChatPage, DirectMessagePage, SettingsPage, NotFoundPage).",
-        "Define <BrowserRouter><Routes> mapping specified paths to components with protection for certain routes using <RequireAuth> wrapper.",
-        "Fallback Suspense should be a Spinner.",
-        "Export default Routes component."
-      ],
-      "integration_points": [
-        "Used by App.tsx; pages imported here must exist as separate sections",
-        "Requires RequireAuth from AuthContext to function"
-      ],
-      "prompt_context": {
-        "component_type": "routing",
-        "data_model": null,
-        "interactions": [
-          "navigation",
-          "protection"
+          "animate"
         ],
         "styling_approach": null,
         "dependencies": [
-          "src/pages/LoginPage.tsx",
-          "src/pages/ChannelsPage.tsx",
-          "src/pages/ChatPage.tsx",
-          "src/pages/DirectMessagePage.tsx",
-          "src/pages/SettingsPage.tsx",
-          "src/pages/NotFoundPage.tsx",
-          "src/shared/context/AuthContext.tsx"
+          "src/shared/components/Confetti.tsx",
+          "src/shared/components/Card.tsx"
         ]
       },
-      "priority": 1
+      "priority": 5
     },
     {
-      "id": "channels-page",
-      "title": "Channels page (pages/ChannelsPage.tsx)",
-      "description": "Page displaying the list of channels and a button to create a new channel (opens Modal).",
-      "file_to_implement": "src/pages/ChannelsPage.tsx",
+      "id": "accessibility-util",
+      "title": "Accessibility Utilities",
+      "description": "Keyboard and focus helper utilities for accessible navigation of the card grid and other components.",
+      "file_to_implement": "src/utils/accessibility.ts",
       "acceptance": [
-        "Lists channels fetched via channelService (React Query), shows create channel button that opens Modal with a form using Input and Button",
-        "Form validates required channel name and on submit calls channelService.createChannel and invalidates channels query to refresh list",
-        "Accessible modal and form focus management"
+        "Exports helpers: focusNextCard, focusPrevCard, isInteractiveElement",
+        "Used by Card and Grid to support Arrow key navigation and Space activation"
       ],
       "implementation_steps": [
-        "Use React Query's useQuery('channels', channelService.fetchChannels) to fetch channels.",
-        "Render Sidebar optionally and center content with channel cards listing name and member count.",
-        "Implement Create Channel modal toggled by state; the modal contains a form with Input for name and optional description. On submit call createChannel and on success close modal and invalidate 'channels' query (hint to use queryClient).",
-        "Export default ChannelsPage."
+        "1. Implement isInteractiveElement(el) to detect inputs and avoid intercepting keyboard events there.",
+        "2. Implement focusNextCard(currentElement, container) and focusPrevCard similar to roving tabindex patterns.",
+        "3. Export utility functions and document usage."
       ],
       "integration_points": [
-        "Uses channelService, Modal, Input, Button, QueryProvider's queryClient invalidation",
-        "Route declared in routes/Routes.tsx"
+        "Used by Card and Grid components and useKeyboardShortcuts hook",
+        "Ensures keyboard accessibility requirement (Space to flip, Arrow keys nav)"
       ],
       "prompt_context": {
-        "component_type": "page",
-        "data_model": "channel",
-        "interactions": [
-          "list",
-          "create"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/services/channelService.ts",
-          "src/shared/components/Modal.tsx",
-          "src/shared/components/Input.tsx",
-          "src/shared/components/Button.tsx"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "chat-page",
-      "title": "Chat page (pages/ChatPage.tsx)",
-      "description": "Main chat UI for a given channel: messages list with infinite scroll, composer with file upload & emoji reactions, thread panel, and presence list.",
-      "file_to_implement": "src/pages/ChatPage.tsx",
-      "acceptance": [
-        "Fetches messages for a channel via messageService using React Query with pagination/infinite scroll",
-        "Renders MessageBubble components, supports sending messages via composer (Textarea), attaches files via FileUpload, and triggers optimistic UI updates",
-        "Subscribes to socket events to append incoming messages",
-        "Accessible keyboard interactions for composer and message actions"
-      ],
-      "implementation_steps": [
-        "Use useParams to get channelId, useQuery or useInfiniteQuery to fetch messages from messageService.fetchMessages with page param.",
-        "Render messages in a scrollable container; implement an intersection observer to load older messages when reaching top (or a 'Load more' button for simplicity).",
-        "Implement composer with Textarea, FileUpload, and Send Button; on send call messageService.sendMessage and optimistically add message to query cache then invalidate or update on success.",
-        "Subscribe to socket events via useWebSocket or useSocket for 'message:new' to append messages if channel matches, using queryClient.setQueryData.",
-        "Expose thread view toggling when reply clicked; use ThreadView component in a right-side panel or modal.",
-        "Export default ChatPage."
-      ],
-      "integration_points": [
-        "Depends on messageService, fileService, useWebSocket, MessageBubble, ThreadView, FileUpload; uses queryClient from QueryProvider",
-        "Protected route under RequireAuth in routes"
-      ],
-      "prompt_context": {
-        "component_type": "page",
-        "data_model": "message",
-        "interactions": [
-          "send",
-          "receive realtime",
-          "infinite scroll",
-          "attach files"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/services/messageService.ts",
-          "src/services/fileService.ts",
-          "src/shared/hooks/useWebSocket.ts",
-          "src/shared/components/MessageBubble.tsx",
-          "src/shared/components/FileUpload.tsx",
-          "src/shared/components/ThreadView.tsx"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "direct-message-page",
-      "title": "Direct Message page (pages/DirectMessagePage.tsx)",
-      "description": "Direct 1:1 conversation view similar to ChatPage but scoped to private conversation between two users.",
-      "file_to_implement": "src/pages/DirectMessagePage.tsx",
-      "acceptance": [
-        "Loads DM conversation by userId param and supports sending/receiving messages similar to ChatPage",
-        "Shows the recipient's name and presence indicator in header"
-      ],
-      "implementation_steps": [
-        "Use useParams to extract userId, fetch conversation messages via messageService.fetchMessages with conversationId or channelId derived, render messages list and composer similar to ChatPage, but scope file uploads and replies to DM semantics.",
-        "Display recipient details using userService or mock users from mockServer.",
-        "Export default DirectMessagePage."
-      ],
-      "integration_points": [
-        "Routes declared in routes/Routes.tsx, uses messageService and presenceService and shared components like MessageBubble",
-        "Protected via RequireAuth"
-      ],
-      "prompt_context": {
-        "component_type": "page",
-        "data_model": "message, user",
-        "interactions": [
-          "send",
-          "presence"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/services/messageService.ts",
-          "src/services/presenceService.ts",
-          "src/shared/components/MessageBubble.tsx"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "settings-page",
-      "title": "Settings page (pages/SettingsPage.tsx)",
-      "description": "User settings page for profile editing, privacy toggles and call/notification preferences (UI only).",
-      "file_to_implement": "src/pages/SettingsPage.tsx",
-      "acceptance": [
-        "Displays a form to edit user display name and avatar URL, saves to localStorage via AuthContext or authService",
-        "Accessible form with validation and success/error toast",
-        "Includes toggles for presence visibility and sound notifications (UI-only toggles stored in localStorage)"
-      ],
-      "implementation_steps": [
-        "Use useAuth to get current user and a function to update user (or call authService), render a form with Input fields for name and avatar URL, a Save button, and toggles for presence & notifications using checkboxes.",
-        "On submit validate and call authService or directly persist to localStorage via useLocalStorage helper; display a small success message.",
-        "Export default SettingsPage."
-      ],
-      "integration_points": [
-        "Accesses AuthContext and useLocalStorage; route listed in routes/Routes.tsx",
-        "Minimal dependency on services"
-      ],
-      "prompt_context": {
-        "component_type": "page",
-        "data_model": "user",
-        "interactions": [
-          "update profile",
-          "persist toggles"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/hooks/useAuth.ts",
-          "src/shared/hooks/useLocalStorage.ts",
-          "src/shared/components/Input.tsx",
-          "src/shared/components/Button.tsx"
-        ]
-      },
-      "priority": 4
-    },
-    {
-      "id": "notfound-page",
-      "title": "NotFound page (pages/NotFoundPage.tsx)",
-      "description": "404 page to render when no route matches.",
-      "file_to_implement": "src/pages/NotFoundPage.tsx",
-      "acceptance": [
-        "Displays accessible 404 message and a link/button to navigate back home",
-        "Uses Tailwind responsive styles"
-      ],
-      "implementation_steps": [
-        "Implement functional component rendering an illustrative message and a Button or Link to '/' to return home.",
-        "Export default NotFoundPage.",
-        "Keep simple and accessible."
-      ],
-      "integration_points": [
-        "Used by routes/Routes.tsx catch-all route"
-      ],
-      "prompt_context": {
-        "component_type": "page",
-        "data_model": null,
+        "component_type": "util",
+        "data_model": "accessibility",
         "interactions": [
           "navigate"
         ],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 5
-    },
-    {
-      "id": "use-infinite-messages",
-      "title": "useInfiniteMessages hook (hooks/useInfiniteMessages.tsx)",
-      "description": "Hook that wraps React Query's useInfiniteQuery to fetch paginated messages for a channel and provides helpers to append/prepend messages.",
-      "file_to_implement": "src/hooks/useInfiniteMessages.tsx",
-      "acceptance": [
-        "Implements useInfiniteQuery keyed by ['messages', channelId] using messageService.fetchMessages with page param",
-        "Exposes sendMessage helper that performs optimistic update to the cache and calls messageService.sendMessage",
-        "Exposes loadMore function to fetch previous pages"
-      ],
-      "implementation_steps": [
-        "Import useInfiniteQuery, useQueryClient from React Query, messageService, types Message, and implement hook with getNextPageParam logic based on returned meta or page count.",
-        "Implement sendMessage that uses queryClient.setQueryData to prepend message in cache (optimistic) and then calls messageService.sendMessage; on error rollback cache update.",
-        "Return { data, isLoading, isFetchingNextPage, fetchNextPage: loadMore, sendMessage } from the hook.",
-        "Export default useInfiniteMessages."
-      ],
-      "integration_points": [
-        "Used by ChatPage to power the messages list and composer optimistic updates",
-        "Relies on messageService and QueryProvider's queryClient"
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": "message",
-        "interactions": [
-          "infinite fetch",
-          "optimistic update"
-        ],
         "styling_approach": null,
         "dependencies": [
-          "src/services/messageService.ts",
-          "src/shared/context/QueryProvider.tsx"
+          "src/shared/hooks/useKeyboardShortcuts.ts"
         ]
       },
-      "priority": 1
-    },
-    {
-      "id": "assets-icons",
-      "title": "App icons/asset exports (src/assets/icons.tsx)",
-      "description": "Shared small icon exports for logos and app-branding used by Header and other UI.",
-      "file_to_implement": "src/assets/icons.tsx",
-      "acceptance": [
-        "Exports AppLogo component and any small SVG icons used for branding",
-        "No external dependencies"
-      ],
-      "implementation_steps": [
-        "Implement a simple AppLogo functional component returning an SVG with accessible title prop, export default or named export.",
-        "Add any helper icon exports as needed for branding.",
-        "Keep minimal and reusable."
-      ],
-      "integration_points": [
-        "Used by Header and App for branding",
-        "No circular dependencies"
-      ],
-      "prompt_context": {
-        "component_type": "asset",
-        "data_model": null,
-        "interactions": [],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 5
-    },
-    {
-      "id": "i18n-init",
-      "title": "i18n config (src/i18n/i18n.ts)",
-      "description": "i18next initialization file with English strings and React integration.",
-      "file_to_implement": "src/i18n/i18n.ts",
-      "acceptance": [
-        "Initializes i18next with en resource containing common UI labels",
-        "Exports an initialization promise or call to be used by useI18n hook"
-      ],
-      "implementation_steps": [
-        "Import i18n from 'i18next' and initReactI18next, set resources for 'en' with common keys like 'login.email', 'login.password', 'header.search', 'button.send'.",
-        "Call i18n.use(initReactI18next).init({ resources, lng: 'en', fallbackLng: 'en', interpolation: { escapeValue: false } }).",
-        "Export default i18n instance.",
-        "Keep code minimal and safe for re-initialization guard in useI18n."
-      ],
-      "integration_points": [
-        "Used by useI18n hook and components that call useTranslation",
-        "No dependencies on mock server"
-      ],
-      "prompt_context": {
-        "component_type": "i18n",
-        "data_model": null,
-        "interactions": [
-          "translate"
-        ],
-        "styling_approach": null,
-        "dependencies": []
-      },
-      "priority": 4
-    },
-    {
-      "id": "messages-page-layout",
-      "title": "Chat layout (pages-layouts/ChatLayout.tsx)",
-      "description": "Layout composing Sidebar, Header and main chat area for pages like ChatPage and DirectMessagePage making responsive layout consistent.",
-      "file_to_implement": "src/pages-layouts/ChatLayout.tsx",
-      "acceptance": [
-        "Accepts props: sidebar (component), children, shows Header and responsive grid with sidebar and main area",
-        "Handles mobile collapse logic via state passed to Sidebar"
-      ],
-      "implementation_steps": [
-        "Render a two-column layout using Tailwind where left column holds Sidebar and right column holds main content with Header on top.",
-        "Accept a prop to hide/show sidebar on mobile and a toggle function to control it.",
-        "Export default ChatLayout."
-      ],
-      "integration_points": [
-        "Used by ChatPage and DirectMessagePage for consistent layout",
-        "Depends on Sidebar and Header components"
-      ],
-      "prompt_context": {
-        "component_type": "layout",
-        "data_model": null,
-        "interactions": [
-          "responsive"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/components/Sidebar.tsx",
-          "src/shared/components/Header.tsx"
-        ]
-      },
-      "priority": 3
+      "priority": 2
     }
   ]
 }

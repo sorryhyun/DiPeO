@@ -1,0 +1,22 @@
+{
+  "buildCommand": "pnpm run build",
+  "installCommand": "pnpm install",
+  "outputDirectory": "dist",
+  "devCommand": "pnpm run dev",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_API_URL": "https://mockapi.example.com",
+    "VITE_ENABLE_MOCKS": "true"
+  },
+  "build": {
+    "env": {
+      "NODE_VERSION": "20.x"
+    }
+  }
+}

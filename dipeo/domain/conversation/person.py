@@ -122,9 +122,8 @@ class Person:
             message_type="person_to_person" if from_person_id != "system" else "system_to_person"
         )
         
-        # Get messages from this person's filtered view and add the incoming message
-        person_messages = self.get_messages(all_messages)
-        person_messages = person_messages + [incoming]
+        # Use provided messages directly (already filtered by caller) and add the incoming message
+        person_messages = all_messages + [incoming]
         
         # Format messages for LLM consumption
         formatted_messages = self._format_messages_for_llm(person_messages)

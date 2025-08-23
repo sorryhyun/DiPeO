@@ -66,7 +66,6 @@ class SinglePersonJobExecutor:
         # Use pre-configured services (set by handler)
         llm_service = self._llm_service
         execution_count = context.get_node_execution_count(node.id)
-        logger.info(f"[EXECUTE_REQUEST] PersonJobNode {node.id} - execution_count: {execution_count}")
 
         # Create a fresh PromptFileResolver with the current diagram
         # This ensures we have the correct diagram_source_path metadata
@@ -188,7 +187,6 @@ class SinglePersonJobExecutor:
         # Extract and parse JSON content from selected memories for template use
         memory_data = {}
         if filtered_messages:
-            logger.debug(f"[PersonJob] Processing {len(filtered_messages)} filtered messages for memory data extraction")
             for msg in filtered_messages:
                 # Try to parse JSON content from messages
                 if msg.content:
@@ -199,8 +197,7 @@ class SinglePersonJobExecutor:
                             memory_data.update(parsed_content)
                             logger.debug(f"[PersonJob] Extracted memory data keys: {list(parsed_content.keys())}")
                     except (json.JSONDecodeError, TypeError):
-                        # Not JSON or not parseable, skip
-                        logger.debug(f"[PersonJob] Message content not JSON parseable (first 100 chars): {msg.content[:100]}")
+                        # Not JSON or not parseable, skip - this is expected for most messages
                         pass
         
         if memory_data:
@@ -216,7 +213,6 @@ class SinglePersonJobExecutor:
         # Re-merge global variables to ensure they're still available
         template_values = {**variables, **template_values}
         
-        logger.debug(f"[PersonJob] final template_values keys: {list(template_values.keys())}")
         
         # Build prompt with template substitution (prompts already loaded earlier)
         built_prompt = self._prompt_builder.build(

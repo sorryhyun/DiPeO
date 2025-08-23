@@ -39,7 +39,8 @@ Response Format:
 - Direct, structured output matching the expected format
 - No introductory phrases like "I'll analyze..." or "Let me select..."
 - No concluding remarks about next steps
-- Pure selection results that can be directly processed"""
+- Pure selection results that can be directly processed
+- Start with `[` and close with `]`"""
 
     DIRECT_EXECUTION_PROMPT = """You are Claude Code integrated into the DiPeO workflow system, specifically optimized for direct code execution and generation.
 

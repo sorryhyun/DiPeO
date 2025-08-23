@@ -1,0 +1,93 @@
+{
+  "app_type": "landing",
+  "framework": "react",
+  "target_framework": "react",
+  "styling_approach": "tailwind",
+  "objective": "Ultra-Premium Landing Page for Absolutely Nothing™",
+  "features": [
+    "epic hero section with parallax void animation",
+    "testimonials from satisfied users of nothing",
+    "pricing tiers for different levels of nothing (Basic Nothing, Pro Nothing, Enterprise Nothing)",
+    "animated counter showing '0 features delivered'",
+    "FAQ section answering questions about nothing",
+    "team section showcasing experts in nothing",
+    "interactive void simulator",
+    "newsletter signup for updates about nothing",
+    "live chat support that provides no help",
+    "product comparison chart (Nothing vs Something vs Everything)",
+    "case studies of successful nothing implementations",
+    "roadmap timeline showing future nothing releases",
+    "3D rotating nothing showcase",
+    "customer reviews rating nothing 5 stars",
+    "money-back guarantee for unsatisfied nothing users",
+    "affiliate program for sharing nothing",
+    "press kit with nothing logos and assets",
+    "API documentation for integrating nothing",
+    "status page showing 100% nothing uptime",
+    "cookie banner warning about nothing cookies"
+  ],
+  "target_audience": "Existentialists, Philosophers, and Humor Enthusiasts",
+  "output_dir": "./generated",
+  "development_mode": {
+    "enable_mock_data": true,
+    "mock_auth_users": [
+      {"email": "nothing@void.com", "password": "nothing123", "role": "nothing_user"},
+      {"email": "premium@void.com", "password": "still_nothing", "role": "premium_nothing"},
+      {"email": "enterprise@void.com", "password": "corporate_nothing", "role": "enterprise_nothing"}
+    ],
+    "mock_api_endpoints": [
+      "/api/nothing",
+      "/api/testimonials/nothing",
+      "/api/pricing/nothing",
+      "/api/support/nothing",
+      "/api/newsletter/nothing",
+      "/api/analytics/nothing",
+      "/api/checkout/nothing"
+    ],
+    "disable_websocket_in_dev": false,
+    "use_localstorage_persistence": true
+  },
+  "prompt_requirements": [
+    "Generate modern, production-ready React components with TypeScript",
+    "Use React 18+ features: Suspense, Error Boundaries, Context API",
+    "Implement responsive design with Tailwind CSS and dark mode support",
+    "Create elaborate animations using GSAP, Framer Motion, and Three.js",
+    "Add particle effects representing the void of nothing",
+    "Implement smooth scroll animations and reveal effects",
+    "Create glitch effects when hovering over 'nothing'",
+    "Add matrix rain effect but with zeros",
+    "Implement recursive loading bars that never complete",
+    "Create floating testimonial bubbles that drift into nothingness",
+    "Add sound effects of silence when clicking buttons",
+    "Implement a 404 page that redirects to more nothing",
+    "Create an infinite scroll that loads more nothing",
+    "Add easter eggs that reveal deeper layers of nothing",
+    "Implement confetti that disappears before landing",
+    "Create typing animations that erase themselves",
+    "Add a progress bar that goes backwards",
+    "Implement tooltips that provide no additional information",
+    "Create modals that open to show empty space",
+    "Add a shopping cart that can only hold nothing",
+    "Implement social proof widgets showing '∞ users currently viewing nothing'",
+    "Create urgency timers counting down to nothing",
+    "Add trust badges certifying authentic nothing",
+    "Implement A/B testing between different types of nothing"
+  ],
+  "evaluation_criteria": [
+    "Comedic timing of animations",
+    "Philosophical depth of nothing presentation",
+    "Performance despite unnecessary complexity",
+    "User confusion level optimization",
+    "Conversion rate to nothing purchases",
+    "Bounce rate (ideally 100%)",
+    "Time spent contemplating existence"
+  ],
+  "prompt_sections": [
+    "Existential Hero Section",
+    "Void Animation System",
+    "Nothing Pricing Logic",
+    "Testimonial Generator",
+    "Support Chat Bot",
+    "Analytics Dashboard for Nothing"
+  ]
+}

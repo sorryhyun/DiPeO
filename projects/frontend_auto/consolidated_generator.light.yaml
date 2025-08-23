@@ -9,20 +9,17 @@ persons:
       You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.
       
       Your task is to:
-      1. FIRST define the overall application architecture that will guide all sections
-      2. THEN split the work into COMPLETE sections covering ALL required files
-      3. For EACH section, provide concrete implementation steps and integration points
+      1. Define the overall architecture with SHARED CONVENTIONS (API patterns, types, imports)
+      2. Split work into COMPLETE sections covering ALL required files
+      3. Provide concrete implementation steps ensuring cross-section consistency
       
       Focus on:
       - COMPLETENESS: No missing imports or references
-      - SELF-CONTAINED: Each file should be fully implemented
-      - Clear architectural patterns and principles
-      - How data flows through the application
-      - Specific, actionable implementation steps (not vague descriptions)
-      - How sections communicate and integrate with each other
-      - Modern React 18+ best practices and TypeScript patterns
+      - CONSISTENCY: All sections follow the same patterns defined in architecture
+      - Clear data flow and integration points between sections
+      - Modern React 18+ and TypeScript best practices
       
-      Each section should be a cohesive unit that can be developed independently but integrates smoothly.
+      CRITICAL: Define shared conventions for API clients, type definitions, and component interfaces that ALL sections must follow.
       Follow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.
       
 
@@ -40,8 +37,9 @@ persons:
       1. Return ONLY the raw code files in the exact format specified in the prompt. You MUST NOT attempt to examine any existing codes.
       2. Do NOT include any conversational text, explanations, or commentary
       3. Generate COMPLETE, WORKING code - no placeholders or TODOs
-      4. Follow established patterns from earlier sections for consistency
+      4. STRICTLY follow the shared conventions defined in architecture section
       5. Import and use components/utilities from previous sections when referenced
+      6. VALIDATE all imports match actual exports from dependency files
       
       IMPLEMENTATION REQUIREMENTS:
       - Every component must be FULLY implemented with all logic
@@ -68,73 +66,55 @@ nodes:
     props:
       trigger_mode: manual
       
-#  - label: Load Config
-#    type: db
-#    position: {x: 300, y: 240}
-#    props:
-#      operation: read
-#      sub_type: file
-#      format: json
-#      source_details: projects/frontend_auto/variants/chat_application_config.json
-#
-#  - label: Plan Sections
-#    type: person_job
-#    position: {x: 400, y: 240}
-#    props:
-#      person: Section Planner
-#      text_format_file: projects/frontend_auto/section_models.py
-#      default_prompt: |
-#        Analyze the requirements and create a comprehensive development plan:
-#
-#        App config: {{config}}
-#
-#        Your response MUST include:
-#        1. An overall architecture that defines:
-#           - How all sections work together as a cohesive system
-#           - Core architectural patterns and principles
-#           - Data flow and state management strategy
-#           - DETAILED folder structure with ACTUAL FILE NAMES (e.g., src/components/Button.tsx)
-#           - Tech stack decisions
-#
-#        2. Independent sections where EACH section represents ONE SPECIFIC FILE:
-#           - file_to_implement: EXACT file path (e.g., "src/features/dashboard/components/MetricCard.tsx")
-#           - Clear acceptance criteria for that specific file
-#           - Implementation steps for THAT FILE ONLY (what goes inside it)
-#           - Integration points showing how this file connects with others
-#           - Proper dependencies and priority
-#
-#        CRITICAL REQUIREMENTS:
-#        - You MUST include ALL files needed for a working application
-#        - Every import statement must have a corresponding section that generates that file
-#        - Include ALL shared components (Button, Input, Icon, Avatar, Spinner, Modal, etc.)
-#        - Include ALL pages/routes referenced in routing
-#        - Include ALL hooks, utilities, and helper functions
-#        - Include ALL type definitions and interfaces
-#        - Include mock implementations if using MSW or mock adapters
-#
-#        MANDATORY FILES TO INCLUDE:
-#        - All shared UI components (src/shared/components/*)
-#        - All utility functions (src/utils/*)
-#        - All custom hooks (src/shared/hooks/*, feature-specific hooks)
-#        - All page components for routing
-#        - All type definitions (src/types/*)
-#        - All providers and context files
-#        - All service/API client files
-#        - Configuration files (if referenced)
-#
-#        THE WHOLE FILES NEEDED should be arranged.
-#        Think like you're planning a real production React application.
-#        Ensure files can be developed independently but integrate seamlessly.
-#        REMEMBER: If a file is imported ANYWHERE, it MUST have its own section to be generated!
+  - label: Load Config
+    type: db
+    position: {x: 300, y: 240}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_auto/variants/memory_game_config.json
 
-#  - label: Save Sections Data
-#    type: db
-#    position: {x: 800, y: 240}
-#    props:
-#      operation: write
-#      sub_type: file
-#      format: json
-#      source_details: projects/frontend_auto/generated/sections_data.json
+  - label: Plan Sections
+    type: person_job
+    position: {x: 400, y: 240}
+    props:
+      person: Section Planner
+      text_format_file: projects/frontend_auto/section_models.py
+      default_prompt: |
+        Analyze the requirements and create a comprehensive development plan:
+
+        App config: {{config}}
+
+        Your response MUST include:
+        1. Architecture with SHARED CONVENTIONS defining:
+           - API client patterns, type definitions, component interfaces ALL sections must follow
+           - Data flow, state management, and folder structure with ACTUAL FILE NAMES
+           - How sections integrate as a cohesive system
+
+        2. Sections where EACH represents ONE SPECIFIC FILE with:
+           - file_to_implement: EXACT path (e.g., "src/features/dashboard/MetricCard.tsx")
+           - Implementation steps following the shared conventions
+           - Integration points and dependencies
+
+        CRITICAL REQUIREMENTS:
+        - Include ALL files: components, pages, hooks, utils, types, providers, services
+        - Every import MUST have a corresponding section that generates that file
+        - ALL files MUST follow the shared conventions defined in architecture
+        - Include integration validation points between dependent files
+        
+        MANDATORY FILES: src/shared/components/*, src/utils/*, src/shared/hooks/*, src/types/*, all pages, providers, API clients, mock implementations
+        
+        REMEMBER: Generate EVERY file imported anywhere. Validate cross-file consistency!
+
+  - label: Save Sections Data
+    type: db
+    position: {x: 800, y: 240}
+    props:
+      operation: write
+      sub_type: file
+      format: json
+      source_details: projects/frontend_auto/generated/sections_data.json
 
   - label: Load Sections Data
     type: db
@@ -170,8 +150,8 @@ nodes:
     props:
       person: Frontend Generator
       max_iteration: 100
-      memorize_to: "Necessary codes to implement or which are dependent to"
-      at_most: 2
+      memorize_to: "Which contains necessary information for current task, among the previous implementations."
+      at_most: 5
       prompt_file: frontend_generator.txt
 
   - label: Write Section Result
@@ -218,24 +198,23 @@ nodes:
 #          "approach": "Sequential processing with intelligent memory selection"
 #        }
 
-  -
+
   - label: End
     type: endpoint
     position: {x: 1800, y: 600}
     props:
-      file_format: json
-      save_to_file: true
-      file_path: projects/frontend_auto/generated/consolidated_results.json
+      save_to_file: false
 
 connections:
   # Initial setup
   - {from: Start, to: Load Config}
-#  - {from: Load Config, to: Plan Sections, label: config, content_type: object}
-#  - {from: Plan Sections, to: Save Sections Data, content_type: object}
-#  - {from: Save Sections Data, to: Load Sections Data, content_type: object}
-#  - { from: Load Sections Data, to: Check Continue, content_type: object }
-  - {from: Start, to: Load Sections Data}
+  - {from: Load Config, to: Plan Sections, label: config, content_type: object}
+  - {from: Plan Sections, to: Save Sections Data, content_type: object}
+  - {from: Save Sections Data, to: Load Sections Data, content_type: object}
   - { from: Load Sections Data, to: Check Continue, content_type: object }
+#
+#  - {from: Start, to: Load Sections Data}
+#  - { from: Load Sections Data, to: Check Continue, content_type: object }
 
   - {from: Check Continue_condfalse, to: Load Sections Data again, content_type: object }
   - {from: Check Continue_condtrue, to: Rename Files, content_type: object }

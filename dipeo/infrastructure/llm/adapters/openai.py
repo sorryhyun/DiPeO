@@ -315,7 +315,6 @@ class ChatGPTAdapter(BaseLLMAdapter):
                 pydantic_model = api_params.pop('_pydantic_model', None)
                 
                 # Build API call parameters
-                print(api_params)
                 create_params = {
                     "model": self.model_name,
                     "input": input_messages,

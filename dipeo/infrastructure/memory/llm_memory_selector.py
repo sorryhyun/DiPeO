@@ -1,6 +1,7 @@
 """LLM-based memory selection implementation."""
 
 import json
+import logging
 import re
 from typing import Any, Optional, Sequence, TYPE_CHECKING
 
@@ -10,6 +11,8 @@ from dipeo.domain.conversation.brain import MemorySelectionConfig
 
 if TYPE_CHECKING:
     from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
+
+logger = logging.getLogger(__name__)
 
 
 class LLMMemorySelector:
@@ -143,11 +146,6 @@ class LLMMemorySelector:
         
         listing = "\n".join(lines)
         
-        if preprocessed:
-            print(f"\nSelecting from {len(candidate_messages)} preprocessed candidates:\n")
-        else:
-            print(f"\nSelecting from {len(candidate_messages)} raw messages:\n")
-        
         # Build prompt with at_most constraint if specified
         constraint_text = ""
         if at_most and at_most > 0:
@@ -180,12 +178,55 @@ class LLMMemorySelector:
             self._orchestrator.add_message(incoming_msg, "memory_selection", "memory_selector")
             self._orchestrator.add_message(response_msg, "memory_selection", "memory_selector")
 
-        # Robust parse
+        # Robust parse with multiple fallback strategies
         text = getattr(result, "text", "") or ""
+        
         try:
+            # Try 1: Direct JSON parsing
             data = json.loads(text)
+            
+            # Handle both dict format {"message_ids": [...]} and direct list format [...]
+            if isinstance(data, dict) and "message_ids" in data:
+                # Dictionary format with message_ids key
+                ids = [str(x) for x in data["message_ids"] if x]
+            elif isinstance(data, list):
+                # Direct list format (from structured output)
+                ids = [str(x) for x in data if x]
+            else:
+                # Unexpected format
+                logger.warning(f"[MemorySelector] Unexpected data format: {type(data)}, value: {data}")
+                ids = []
+                
         except Exception:
-            m = re.search(r"\[.*?]", text, re.S)
-            data = json.loads(m.group(0)) if m else []
-        ids = [str(x) for x in data if x]
+            # Try 2: Extract JSON array using regex
+            try:
+                m = re.search(r"\[.*?]", text, re.S)
+                if m:
+                    data = json.loads(m.group(0))
+                    ids = [str(x) for x in data if x]
+                else:
+                    raise ValueError("No JSON array found")
+            except Exception:
+                # Try 3: String matching fallback - find any IDs that match our candidate IDs
+                # Build a set of all valid message IDs from candidates
+                valid_ids = set()
+                for msg in candidate_messages:
+                    if hasattr(msg, 'id') and msg.id:
+                        valid_ids.add(str(msg.id))
+                
+                # Find all valid IDs mentioned in the response text
+                ids = []
+                for valid_id in valid_ids:
+                    # Check if ID appears in the text (with word boundaries to avoid partial matches)
+                    # Look for the ID surrounded by non-alphanumeric characters
+                    pattern = r'(?:^|[^a-zA-Z0-9])' + re.escape(valid_id) + r'(?:[^a-zA-Z0-9]|$)'
+                    if re.search(pattern, text):
+                        ids.append(valid_id)
+                
+                if ids:
+                    logger.info(f"[MemorySelector] Extracted {len(ids)} IDs via string matching: {ids}")
+                else:
+                    # No IDs found - treat as empty selection
+                    ids = []
+        
         return ids

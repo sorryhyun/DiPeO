@@ -283,14 +283,16 @@ class CognitiveBrain:
             preprocessed=True,  # Indicate messages are already preprocessed
             **kwargs
         )
-        if not selected_ids:
+        # Only return None if selection was not performed (selected_ids is None)
+        # Empty list means "select nothing" and should be honored
+        if selected_ids is None:
             return None
         
-        # Map IDs back to messages
+        # Map IDs back to messages (empty list will result in empty selected)
         idset = set(selected_ids)
         selected = [m for m in filtered_candidates if m.id and m.id in idset]
         
-        # Return selected messages (which now includes system messages if selected)
+        # Return selected messages (empty list if nothing selected)
         return selected
 
     

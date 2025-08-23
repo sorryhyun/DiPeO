@@ -1,5 +1,5 @@
 {
-  "default": "[Errno 5] Input/output error",
-  "current_index": 52,
+  "default": "",
+  "current_index": 4,
   "branch[node_2]": "condtrue"
 }
