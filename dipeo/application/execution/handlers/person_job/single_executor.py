@@ -101,8 +101,13 @@ class SinglePersonJobExecutor:
         prompt_content = node.default_prompt
         first_only_content = node.first_only_prompt
         
-        # Load first_prompt_file if specified (takes precedence over inline first_only_prompt)
-        if hasattr(node, 'first_prompt_file') and node.first_prompt_file:
+        # Check for pre-resolved prompts from compile-time (preferred)
+        if hasattr(node, 'resolved_first_prompt') and node.resolved_first_prompt:
+            # Use pre-resolved content from compilation
+            first_only_content = node.resolved_first_prompt
+            logger.debug(f"[PersonJob {node.label or node.id}] Using pre-resolved first prompt")
+        elif hasattr(node, 'first_prompt_file') and node.first_prompt_file:
+            # Fall back to runtime loading if not pre-resolved
             loaded_content = prompt_resolver_for_execution.load_prompt_file(
                 node.first_prompt_file,
                 node.label or node.id
@@ -110,8 +115,13 @@ class SinglePersonJobExecutor:
             if loaded_content:
                 first_only_content = loaded_content
         
-        # Load prompt_file if specified (for default prompt)
-        if hasattr(node, 'prompt_file') and node.prompt_file:
+        # Check for pre-resolved default prompt
+        if hasattr(node, 'resolved_prompt') and node.resolved_prompt:
+            # Use pre-resolved content from compilation
+            prompt_content = node.resolved_prompt
+            logger.debug(f"[PersonJob {node.label or node.id}] Using pre-resolved default prompt")
+        elif hasattr(node, 'prompt_file') and node.prompt_file:
+            # Fall back to runtime loading if not pre-resolved
             loaded_content = prompt_resolver_for_execution.load_prompt_file(
                 node.prompt_file,
                 node.label or node.id
@@ -247,6 +257,7 @@ class SinglePersonJobExecutor:
             "from_person_id": "system",
             "temperature": 0.2,
             "max_tokens": 256000,
+            "execution_phase": "direct_execution",  # Set phase for Claude Code adapter
         }
         
         # Handle tools configuration
@@ -277,46 +288,26 @@ class SinglePersonJobExecutor:
         # Use filtered messages for completion
         messages_for_completion = filtered_messages
         
-        # Check if person has a hand for execution
-        if person.hand:
-            # Use the person's hand for execution
-            result = await person.hand.complete_with_messages(
-                person=person,
-                messages=messages_for_completion,
+        # Use the simplified Person.complete() directly
+        result, incoming_msg, response_msg = await person.complete(
+            all_messages=messages_for_completion,
+            **complete_kwargs
+        )
+        
+        # Add messages to conversation via orchestrator
+        if hasattr(self._conversation_manager, 'add_message'):
+            # Add incoming message
+            self._conversation_manager.add_message(
+                incoming_msg,
                 execution_id=trace_id,
-                node_id=str(node.id),
-                **complete_kwargs
+                node_id=str(node.id)
             )
-        elif hasattr(self._conversation_manager, 'execute_person_completion'):
-            # Fallback to orchestrator method
-            complete_kwargs['all_messages'] = messages_for_completion
-            result = await self._conversation_manager.execute_person_completion(
-                person=person,
+            # Add response message
+            self._conversation_manager.add_message(
+                response_msg,
                 execution_id=trace_id,
-                node_id=str(node.id),
-                **complete_kwargs
+                node_id=str(node.id)
             )
-        else:
-            # Fallback: handle the new Person API directly
-            result, incoming_msg, response_msg = await person.complete(
-                all_messages=messages_for_completion,
-                **complete_kwargs
-            )
-            
-            # Add messages to conversation via orchestrator
-            if hasattr(self._conversation_manager, 'add_message'):
-                # Add incoming message
-                self._conversation_manager.add_message(
-                    incoming_msg,
-                    execution_id=trace_id,
-                    node_id=str(node.id)
-                )
-                # Add response message
-                self._conversation_manager.add_message(
-                    response_msg,
-                    execution_id=trace_id,
-                    node_id=str(node.id)
-                )
 
         
         # Build and return output with envelope support

@@ -2,51 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/ApiJobNodeData",
   "definitions": {
-    "HttpMethod": {
-      "enum": [
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "PATCH"
-      ],
-      "type": "string"
-    },
-    "JsonObject": {
-      "additionalProperties": {
-        "$ref": "#/definitions/JsonValue"
-      },
-      "type": "object"
-    },
-    "JsonValue": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/JsonObject"
-        },
-        {
-          "items": {
-            "$ref": "#/definitions/JsonValue"
-          },
-          "type": "array"
-        },
-        {
-          "type": [
-            "null",
-            "string",
-            "number",
-            "boolean"
-          ]
-        }
-      ]
-    },
-    "Record<string,string>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "JsonDict": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "ApiJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -111,6 +66,51 @@
         "url"
       ],
       "type": "object"
+    },
+    "JsonObject": {
+      "additionalProperties": {
+        "$ref": "#/definitions/JsonValue"
+      },
+      "type": "object"
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/JsonObject"
+        },
+        {
+          "items": {
+            "$ref": "#/definitions/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "type": [
+            "null",
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "HttpMethod": {
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
+      "type": "string"
     }
   }
 }

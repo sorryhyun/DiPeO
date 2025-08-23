@@ -82,6 +82,9 @@ jobs:
           # Install PyInstaller for building executables
           uv pip install pyinstaller==6.14.2
           
+          # Install CLI package
+          uv pip install -e apps/cli
+          
           # Quick version checks
           Write-Host "Python version: $(python --version)"
           Write-Host "PyInstaller version: $(pyinstaller --version)"

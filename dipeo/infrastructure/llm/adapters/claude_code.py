@@ -3,6 +3,7 @@ import logging
 from collections.abc import AsyncIterator
 from typing import Any
 from contextlib import asynccontextmanager
+from enum import Enum
 
 from dipeo.diagram_generated import (
     ChatResult,
@@ -15,8 +16,52 @@ from ..drivers.base import BaseLLMAdapter
 logger = logging.getLogger(__name__)
 
 
+class ExecutionPhase(str, Enum):
+    """Execution phases for DiPeO workflows."""
+    MEMORY_SELECTION = "memory_selection"
+    DIRECT_EXECUTION = "direct_execution"
+    DEFAULT = "default"
+
+
 class ClaudeCodeAdapter(BaseLLMAdapter):
     """Adapter for Claude Code SDK with streaming-first architecture."""
+    
+    # Phase-specific system prompts for DiPeO workflows
+    MEMORY_SELECTION_PROMPT = """You are Claude Code integrated into the DiPeO workflow system, specifically optimized for memory selection phases.
+
+When asked to select or analyze memories, data, or context:
+1. Provide COMPLETE selections immediately without preliminary planning
+2. Return structured, machine-parseable responses
+3. Focus solely on the selection criteria and results
+4. Exclude meta-commentary about planning or process
+
+Response Format:
+- Direct, structured output matching the expected format
+- No introductory phrases like "I'll analyze..." or "Let me select..."
+- No concluding remarks about next steps
+- Pure selection results that can be directly processed"""
+
+    DIRECT_EXECUTION_PROMPT = """You are Claude Code integrated into the DiPeO workflow system, specifically optimized for direct code execution and generation.
+
+When asked to generate code or execute tasks:
+1. Return ONLY the requested code or execution results
+2. Provide COMPLETE, WORKING implementations
+3. Skip ALL planning, introduction, or explanation phases
+4. Deliver production-ready code immediately
+
+Code Generation Rules:
+- NO placeholders, TODOs, or "implementation here" comments
+- COMPLETE all functions, methods, and logic
+- Include ALL necessary imports and dependencies
+- Implement ACTUAL functionality, not stubs
+- Handle errors and edge cases properly
+
+Response Format:
+- Raw code files in the exact format requested
+- No conversational text before or after code
+- No explanations unless explicitly requested
+- No "Here's the implementation..." introductions
+- No "This code does..." summaries"""
     
     def __init__(self, model_name: str, api_key: str, base_url: str | None = None):
         super().__init__(model_name, api_key, base_url)
@@ -24,6 +69,47 @@ class ClaudeCodeAdapter(BaseLLMAdapter):
         self.retry_delay = 1.0
         self._active_clients = {}  # Track active client contexts
         self._client_lock = asyncio.Lock()
+    
+    def _build_system_prompt(
+        self, 
+        user_system_prompt: str | None = None,
+        execution_phase: str | ExecutionPhase | None = None
+    ) -> str:
+        """Build the complete system prompt based on execution phase and user input.
+        
+        Args:
+            user_system_prompt: Optional user-provided system prompt to append
+            execution_phase: The execution phase (memory_selection, direct_execution, or default)
+            
+        Returns:
+            Complete system prompt combining phase-specific defaults and user prompts
+        """
+        # Convert string to enum if needed
+        if isinstance(execution_phase, str):
+            try:
+                execution_phase = ExecutionPhase(execution_phase)
+            except ValueError:
+                execution_phase = ExecutionPhase.DEFAULT
+        
+        # Select base prompt based on phase
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+            base_prompt = self.MEMORY_SELECTION_PROMPT
+        elif execution_phase == ExecutionPhase.DIRECT_EXECUTION:
+            base_prompt = self.DIRECT_EXECUTION_PROMPT
+        else:
+            # Default or None - no base prompt
+            base_prompt = ""
+        
+        # Combine base and user prompts
+        if base_prompt and user_system_prompt:
+            return f"{base_prompt}\n\n{user_system_prompt}"
+        elif base_prompt:
+            return base_prompt
+        elif user_system_prompt:
+            return user_system_prompt
+        else:
+            return ""
+    
         
     def _initialize_client(self) -> Any:
         # Claude Code SDK doesn't use a traditional client initialization
@@ -59,19 +145,42 @@ class ClaudeCodeAdapter(BaseLLMAdapter):
             yield client
     
     def _extract_system_prompt_and_options(self, messages: list[dict[str, str]], **kwargs) -> tuple[str, list[dict], dict]:
-        """Extract system prompt and options from messages and kwargs."""
-        system_prompt = ""
+        """Extract system prompt and options from messages and kwargs.
+        
+        Args:
+            messages: Input messages
+            **kwargs: Additional parameters including optional execution_phase
+            
+        Returns:
+            Tuple of (complete_system_prompt, user_messages, claude_options)
+        """
+        user_system_prompt = ""
         user_messages = []
         
+        # Extract user system prompt from messages
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
             
             if role == "system":
-                system_prompt = content
+                user_system_prompt = content
             elif role == "user":
                 user_messages.append(msg)
             # Note: Claude Code SDK handles conversation context internally
+        
+        # Get explicitly provided execution phase (default to DEFAULT if not provided)
+        execution_phase = kwargs.get('execution_phase', ExecutionPhase.DEFAULT)
+        
+        # Build complete system prompt using consolidated logic
+        system_prompt = self._build_system_prompt(
+            user_system_prompt=user_system_prompt,
+            execution_phase=execution_phase
+        )
+        
+        # Log phase usage for debugging
+        if execution_phase != ExecutionPhase.DEFAULT:
+            phase_str = execution_phase.value if hasattr(execution_phase, 'value') else str(execution_phase)
+            logger.debug(f"Claude Code adapter using {phase_str} phase")
             
         # Extract Claude Code specific options
         claude_code_options = {
@@ -126,6 +235,13 @@ class ClaudeCodeAdapter(BaseLLMAdapter):
         """Async chat method for Claude Code SDK."""
         if messages is None:
             messages = []
+        
+        # Extract execution_phase before it gets validated
+        # This parameter is used internally but not passed to the SDK
+        execution_phase = kwargs.pop('execution_phase', None)
+        if execution_phase:
+            # Re-add it for internal use by _extract_system_prompt_and_options
+            kwargs['execution_phase'] = execution_phase
         
         # Handle LLMRequestOptions if provided
         options = kwargs.get('options')

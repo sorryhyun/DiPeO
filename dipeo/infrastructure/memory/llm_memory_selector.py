@@ -164,18 +164,21 @@ class LLMMemorySelector:
             "Return a JSON array of message IDs only."
         )
 
-        # Execute via orchestrator so we keep the person-based architecture
+        # Execute using person's complete method directly
         # Pass empty messages list since selector gets all info in the prompt
-        result = await self._orchestrator.execute_person_completion(
-            person=facet,
+        result, incoming_msg, response_msg = await facet.complete(
             prompt=prompt,
+            all_messages=[],  # Empty list - selector doesn't need conversation context
             llm_service=llm_service,
-            execution_id="memory_selection",
-            node_id="memory_selector",
             temperature=0.1,
             max_tokens=512,
-            all_messages=[],  # Empty list - selector doesn't need conversation context
+            execution_phase="memory_selection",  # Explicitly set phase for Claude Code adapter
         )
+        
+        # Add messages to conversation if orchestrator supports it
+        if hasattr(self._orchestrator, 'add_message'):
+            self._orchestrator.add_message(incoming_msg, "memory_selection", "memory_selector")
+            self._orchestrator.add_message(response_msg, "memory_selection", "memory_selector")
 
         # Robust parse
         text = getattr(result, "text", "") or ""

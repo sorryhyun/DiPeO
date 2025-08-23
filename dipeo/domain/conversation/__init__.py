@@ -9,7 +9,6 @@ from .brain import (
     MessageDeduplicator,
     ScoringWeights,
 )
-from .hand import ExecutionHand
 
 __all__ = [
     # Dynamic objects
@@ -18,7 +17,6 @@ __all__ = [
     "Person",
     # Cognitive components
     "CognitiveBrain",
-    "ExecutionHand",
     # Memory selection
     "MemorySelectionConfig",
     "MessageScorer",

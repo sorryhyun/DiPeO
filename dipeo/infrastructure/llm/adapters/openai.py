@@ -3,8 +3,10 @@ import logging
 import time
 from collections.abc import AsyncIterator
 from typing import Any
+from enum import Enum
 
 from openai import AsyncOpenAI, OpenAI
+from pydantic import BaseModel
 
 from dipeo.diagram_generated import (
     ChatResult,
@@ -18,6 +20,18 @@ from dipeo.diagram_generated import (
 from ..drivers.base import BaseLLMAdapter
 
 logger = logging.getLogger(__name__)
+
+
+class ExecutionPhase(str, Enum):
+    """Execution phases for DiPeO workflows."""
+    MEMORY_SELECTION = "memory_selection"
+    DIRECT_EXECUTION = "direct_execution"
+    DEFAULT = "default"
+
+
+class MemorySelectionOutput(BaseModel):
+    """Structured output model for memory selection phase."""
+    message_ids: list[str]
 
 
 class ChatGPTAdapter(BaseLLMAdapter):
@@ -46,6 +60,8 @@ class ChatGPTAdapter(BaseLLMAdapter):
 
     def _prepare_api_request(self, messages: list[dict[str, str]], **kwargs) -> tuple[list[dict], list[dict], dict]:
         """Prepare common API request parameters for both sync and async calls."""
+        # Pop execution_phase early so it doesn't get passed to validation
+        execution_phase = kwargs.pop('execution_phase', ExecutionPhase.DEFAULT)
         tools = kwargs.pop('tools', [])
         text_format = kwargs.pop('text_format', None)
 
@@ -86,6 +102,14 @@ class ChatGPTAdapter(BaseLLMAdapter):
             allowed_params.append("temperature")
         api_params = self._extract_api_params(kwargs, allowed_params)
         
+        # Handle memory selection phase with structured output
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION or execution_phase == "memory_selection":
+            # Use structured output for memory selection to ensure valid JSON array
+            if not text_format:  # Only set if not already provided
+                api_params["_pydantic_model"] = MemorySelectionOutput
+                logger.debug("Using structured output for memory selection phase")
+        
+        # Handle explicitly provided text_format
         if text_format:
             from pydantic import BaseModel
             
@@ -104,7 +128,10 @@ class ChatGPTAdapter(BaseLLMAdapter):
             
             parsed_output = response.output_parsed
             if parsed_output:
-                if isinstance(parsed_output, BaseModel):
+                if isinstance(parsed_output, MemorySelectionOutput):
+                    # For memory selection, return just the message IDs as a JSON array
+                    text = json.dumps(parsed_output.message_ids)
+                elif isinstance(parsed_output, BaseModel):
                     text = json.dumps(parsed_output.model_dump())
                 else:
                     text = json.dumps(parsed_output)
@@ -116,7 +143,10 @@ class ChatGPTAdapter(BaseLLMAdapter):
             
             parsed_output = response.parsed
             if parsed_output:
-                if isinstance(parsed_output, BaseModel):
+                if isinstance(parsed_output, MemorySelectionOutput):
+                    # For memory selection, return just the message IDs as a JSON array
+                    text = json.dumps(parsed_output.message_ids)
+                elif isinstance(parsed_output, BaseModel):
                     text = json.dumps(parsed_output.model_dump())
                 else:
                     text = json.dumps(parsed_output)

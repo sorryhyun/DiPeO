@@ -72,19 +72,31 @@ parse-typescript:
 	@echo "Cleaning TypeScript AST cache..."
 	@rm -rf temp/core temp/specifications temp/frontend temp/codegen temp/utilities temp/*.json 2>/dev/null || true
 	@echo "Parsing TypeScript models..."
-	dipeo run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20
+	@if command -v dipeo >/dev/null 2>&1; then \
+		dipeo run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20; \
+	else \
+		python -m dipeo_cli run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20; \
+	fi
 	@echo "✓ TypeScript parsing complete"
 
 # Primary code generation command (SAFE - stages changes for review)
 codegen: parse-typescript
 	@echo "Starting code generation..."
-	dipeo run projects/codegen/diagrams/generate_all --light --debug --timeout=35
+	@if command -v dipeo >/dev/null 2>&1; then \
+		dipeo run projects/codegen/diagrams/generate_all --light --debug --timeout=35; \
+	else \
+		python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --debug --timeout=35; \
+	fi
 	@echo "✓ Code generation complete. Next: make diff-staged → make apply-syntax-only → make graphql-schema"
 
 # Automatic code generation with auto-apply (DANGEROUS - use with caution!)
 codegen-auto: parse-typescript
 	@echo "⚠️  WARNING: Auto-applying all changes!"
-	dipeo run projects/codegen/diagrams/generate_all --light --timeout=45
+	@if command -v dipeo >/dev/null 2>&1; then \
+		dipeo run projects/codegen/diagrams/generate_all --light --timeout=45; \
+	else \
+		python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --timeout=45; \
+	fi
 	@sleep 1
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
 		echo "Error: No staged directory found."; \

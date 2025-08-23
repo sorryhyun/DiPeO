@@ -60,6 +60,7 @@ jobs:
         source .venv/bin/activate
         uv sync --all-extras
         uv pip install pytest-asyncio pytest-cov import-linter
+        uv pip install -e apps/cli
 
     - name: Build TypeScript models
       run: pnpm --filter @dipeo/models build

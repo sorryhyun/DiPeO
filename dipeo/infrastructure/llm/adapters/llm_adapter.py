@@ -3,9 +3,8 @@
 from typing import Any, Optional
 
 from dipeo.domain.llm.ports import LLMService as LLMServicePort
-from dipeo.diagram_generated import ChatResult, Message, PersonLLMConfig, TokenUsage
-from dipeo.diagram_generated.domain_models import PersonID
-from dipeo.domain.llm import LLMClient, LLMService, MemoryService
+from dipeo.diagram_generated import ChatResult, TokenUsage
+from dipeo.domain.llm import LLMClient, LLMService
 from dipeo.infrastructure.llm.drivers.service import LLMInfraService
 
 
@@ -41,20 +40,6 @@ class LLMClientAdapter(LLMClient):
             **kwargs,
         )
 
-    async def complete_with_person(
-        self,
-        person_messages: list[Message],
-        person_id: PersonID,
-        llm_config: PersonLLMConfig,
-        **kwargs,
-    ) -> ChatResult:
-        """Complete with person context."""
-        return await self._service.complete_with_person(
-            person_messages=person_messages,
-            person_id=person_id,
-            llm_config=llm_config,
-            **kwargs,
-        )
 
     async def get_available_models(self, api_key_id: str) -> list[str]:
         """Get available models for the provider."""
@@ -130,27 +115,6 @@ class LLMServiceAdapter(LLMService):
             **kwargs,
         )
 
-    async def complete_with_person(
-        self,
-        person_messages: list[Message],
-        person_id: PersonID,
-        llm_config: Optional[PersonLLMConfig] = None,
-        **kwargs,
-    ) -> ChatResult:
-        """Complete with person context and memory enrichment."""
-        if not llm_config:
-            # Create default config
-            llm_config = PersonLLMConfig(
-                model="gpt-5-nano-2025-08-07",
-                api_key_id="default",
-            )
-        
-        return await self._service.complete_with_person(
-            person_messages=person_messages,
-            person_id=person_id,
-            llm_config=llm_config,
-            **kwargs,
-        )
 
     async def validate_api_key(
         self, api_key_id: str, provider: Optional[str] = None
@@ -182,55 +146,3 @@ class LLMServiceAdapter(LLMService):
         return None
 
 
-class InMemoryMemoryService(MemoryService):
-    """Simple in-memory implementation of MemoryService."""
-
-    def __init__(self):
-        self._memory: dict[str, list[Message]] = {}
-
-    async def get_relevant_memory(
-        self,
-        person_id: PersonID,
-        messages: list[Message],
-        limit: int = 10,
-    ) -> list[Message]:
-        """Retrieve relevant memory for context."""
-        person_key = str(person_id)
-        if person_key not in self._memory:
-            return []
-        
-        # Simple implementation: return last N messages
-        return self._memory[person_key][-limit:]
-
-    async def store_interaction(
-        self,
-        person_id: PersonID,
-        messages: list[Message],
-        response: ChatResult,
-    ) -> None:
-        """Store interaction in memory."""
-        person_key = str(person_id)
-        if person_key not in self._memory:
-            self._memory[person_key] = []
-        
-        # Store the messages
-        self._memory[person_key].extend(messages)
-        
-        # Store the response as an assistant message
-        if response.content:
-            assistant_msg = Message(
-                role="assistant",
-                content=response.content,
-                name=None,
-            )
-            self._memory[person_key].append(assistant_msg)
-        
-        # Keep only last 100 messages per person
-        if len(self._memory[person_key]) > 100:
-            self._memory[person_key] = self._memory[person_key][-100:]
-
-    async def clear_memory(self, person_id: PersonID) -> None:
-        """Clear all memory for a person."""
-        person_key = str(person_id)
-        if person_key in self._memory:
-            del self._memory[person_key]

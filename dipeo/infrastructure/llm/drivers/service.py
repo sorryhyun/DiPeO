@@ -20,12 +20,9 @@ from dipeo.domain.integrations.ports import APIKeyPort
 from dipeo.domain.llm import LLMDomainService
 from dipeo.config import get_settings
 from dipeo.infrastructure.shared.drivers.utils import SingleFlightCache
-from dipeo.diagram_generated import ChatResult, PersonLLMConfig, Message
-from dipeo.diagram_generated.domain_models import PersonID
+from dipeo.diagram_generated import ChatResult
 
 from .factory import create_adapter
-from .system_prompt_handler import SystemPromptHandler
-from .message_formatter import MessageFormatter
 
 
 class LLMInfraService(BaseService, LLMServicePort):
@@ -39,10 +36,6 @@ class LLMInfraService(BaseService, LLMServicePort):
         self._settings = get_settings()
         self._llm_domain_service = llm_domain_service or LLMDomainService()
         self.logger = logging.getLogger(__name__)
-        
-        # Initialize handlers for message formatting and system prompts
-        self._system_prompt_handler = SystemPromptHandler()
-        self._message_formatter = MessageFormatter()
         
         self._provider_mapping = {
             "gpt": "openai",
@@ -151,6 +144,9 @@ class LLMInfraService(BaseService, LLMServicePort):
             if messages is None:
                 messages = []
             
+            # Extract execution_phase before validation (adapter-specific parameter)
+            execution_phase = kwargs.pop('execution_phase', None)
+            
             service = kwargs.pop('service', None)
             if service:
                 if hasattr(service, 'value'):
@@ -180,6 +176,9 @@ class LLMInfraService(BaseService, LLMServicePort):
             messages_list = messages
 
             adapter_kwargs = {**kwargs}
+            # Re-add execution_phase for adapters that support it
+            if execution_phase:
+                adapter_kwargs['execution_phase'] = execution_phase
             
             if hasattr(self, 'logger'):
                 self.logger.debug(f"Messages: {len(messages_list)}")
@@ -210,45 +209,6 @@ class LLMInfraService(BaseService, LLMServicePort):
         
         return "openai"
 
-    async def complete_with_person(
-        self,
-        person_messages: list[Message],
-        person_id: PersonID,
-        llm_config: PersonLLMConfig,
-        **kwargs
-    ) -> ChatResult:
-        """Complete a prompt with person-specific context and system prompt handling.
-        
-        This method handles:
-        - System prompt resolution from llm_config
-        - Message formatting for the specific LLM provider
-        - Proper role mapping (including "developer" for OpenAI)
-        
-        Args:
-            person_messages: Messages from the person's filtered view
-            person_id: The person's ID for role determination
-            llm_config: The person's LLM configuration
-            **kwargs: Additional LLM options (temperature, tools, etc.)
-            
-        Returns:
-            ChatResult with the LLM response
-        """
-        # Prepare messages with proper formatting
-        formatted_messages = self._message_formatter.prepare_llm_messages(
-            person_messages=person_messages,
-            person_id=person_id,
-            llm_config=llm_config,
-            system_prompt_handler=self._system_prompt_handler
-        )
-        
-        # Call the standard complete method with formatted messages
-        return await self.complete(
-            messages=formatted_messages,
-            model=llm_config.model,
-            api_key_id=llm_config.api_key_id,
-            service=llm_config.service,
-            **kwargs
-        )
 
     async def get_available_models(self, api_key_id: str) -> list[str]:
         try:

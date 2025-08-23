@@ -22,7 +22,7 @@ class InMemoryPersonRepository(PersonRepository):
         self._orchestrator: Optional["ExecutionOrchestrator"] = None
     
     def set_orchestrator(self, orchestrator: "ExecutionOrchestrator") -> None:
-        """Set the orchestrator for wiring brain/hand components.
+        """Set the orchestrator for wiring brain components.
         
         This is called after construction to avoid circular dependencies.
         """
@@ -48,7 +48,7 @@ class InMemoryPersonRepository(PersonRepository):
         name: str,
         llm_config: PersonLLMConfig,
     ) -> Person:
-        """Create a new person with brain and hand components wired up.
+        """Create a new person with brain component wired up.
         
         Returns:
             The created Person instance with cognitive components
@@ -59,10 +59,9 @@ class InMemoryPersonRepository(PersonRepository):
             llm_config=llm_config
         )
         
-        # Wire up brain and hand components if orchestrator is available
+        # Wire up brain component if orchestrator is available
         if self._orchestrator:
             from dipeo.domain.conversation.brain import CognitiveBrain
-            from dipeo.domain.conversation.hand import ExecutionHand
             from dipeo.infrastructure.memory import LLMMemorySelector
             
             # Create memory selector implementation
@@ -70,7 +69,6 @@ class InMemoryPersonRepository(PersonRepository):
             
             # Wire brain with memory selector
             person.brain = CognitiveBrain(memory_selector=memory_selector)
-            person.hand = ExecutionHand(self._orchestrator)
         
         self.save(person)
         return person

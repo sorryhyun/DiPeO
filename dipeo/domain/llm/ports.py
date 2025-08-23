@@ -21,16 +21,6 @@ class LLMClient(Protocol):
         """Complete a chat prompt."""
         ...
 
-    async def complete_with_person(
-        self,
-        person_messages: list["Message"],
-        person_id: "PersonID",
-        llm_config: "PersonLLMConfig",
-        **kwargs,
-    ) -> "ChatResult":
-        """Complete a prompt with person-specific context and system prompt handling."""
-        ...
-
     async def get_available_models(self, api_key_id: str) -> list[str]:
         """Get list of available models for the provider."""
         ...
@@ -63,16 +53,6 @@ class LLMService(Protocol):
         **kwargs,
     ) -> "ChatResult":
         """Complete with automatic provider selection."""
-        ...
-
-    async def complete_with_person(
-        self,
-        person_messages: list["Message"],
-        person_id: "PersonID",
-        llm_config: Optional["PersonLLMConfig"] = None,
-        **kwargs,
-    ) -> "ChatResult":
-        """Complete with person context, memory enrichment, and provider selection."""
         ...
 
     async def validate_api_key(

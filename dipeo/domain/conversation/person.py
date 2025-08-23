@@ -1,11 +1,14 @@
 """Person dynamic object representing an LLM agent with evolving conversation state."""
 
+import os
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.diagram_generated import (
     ChatResult,
     Message,
     PersonLLMConfig,
+    LLMService,
 )
 from dipeo.diagram_generated.domain_models import PersonID
 
@@ -25,9 +28,8 @@ class Person:
         self.name = name
         self.llm_config = llm_config
         
-        # Brain and Hand components - wired up at runtime by executor
+        # Brain component - wired up at runtime by executor
         self.brain = None
-        self.hand = None
     
     
     
@@ -99,8 +101,8 @@ class Person:
     ) -> tuple[ChatResult, Message, Message]:
         """Complete prompt with this person's LLM.
         
-        This method delegates LLM-specific logic to the infrastructure layer.
-        It returns the result and the messages that should be added to the conversation.
+        This method handles message formatting and system prompts internally,
+        then delegates to the LLM service for the actual completion.
         
         Args:
             prompt: The prompt to complete
@@ -124,12 +126,15 @@ class Person:
         person_messages = self.get_messages(all_messages)
         person_messages = person_messages + [incoming]
         
-        # Delegate to LLM service with person context
-        # The infrastructure layer handles system prompts and message formatting
-        result = await llm_service.complete_with_person(
-            person_messages=person_messages,
-            person_id=self.id,
-            llm_config=self.llm_config,
+        # Format messages for LLM consumption
+        formatted_messages = self._format_messages_for_llm(person_messages)
+        
+        # Call LLM service with formatted messages
+        result = await llm_service.complete(
+            messages=formatted_messages,
+            model=self.llm_config.model,
+            api_key_id=self.llm_config.api_key_id,
+            service=self.llm_config.service,
             **llm_options
         )
         
@@ -143,6 +148,98 @@ class Person:
         )
         
         return result, incoming, response_message
+    
+    def _format_messages_for_llm(self, messages: list[Message]) -> list[dict[str, str]]:
+        """Format domain messages for LLM consumption.
+        
+        Args:
+            messages: List of domain Message objects
+            
+        Returns:
+            List of formatted message dictionaries with "role" and "content" keys
+        """
+        llm_messages = []
+        
+        # Add system prompt if configured
+        system_prompt = self._get_system_prompt()
+        if system_prompt:
+            # Determine system role based on service
+            system_role = "developer" if self.llm_config.service == LLMService.OPENAI else "system"
+            llm_messages.append({
+                "role": system_role,
+                "content": system_prompt
+            })
+        
+        # Convert domain messages to LLM format
+        for msg in messages:
+            role = self._determine_message_role(msg)
+            llm_messages.append({
+                "role": role,
+                "content": msg.content
+            })
+        
+        return llm_messages
+    
+    def _determine_message_role(self, message: Message) -> str:
+        """Determine the LLM role for a message.
+        
+        Args:
+            message: The domain message
+            
+        Returns:
+            The role string ("user" or "assistant")
+        """
+        # If the message is from this person, they are the assistant
+        if message.from_person_id == self.id:
+            return "assistant"
+        # If the message is to this person, the sender is the user
+        elif message.to_person_id == self.id:
+            return "user"
+        # Default to user for other cases
+        else:
+            return "user"
+    
+    def _get_system_prompt(self) -> Optional[str]:
+        """Get the system prompt from configuration.
+        
+        Follows priority:
+        1. prompt_file if specified and exists
+        2. system_prompt if directly configured
+        
+        Returns:
+            The system prompt content, or None if not configured
+        """
+        # Check if prompt_file is specified
+        if self.llm_config.prompt_file:
+            prompt_content = self._load_prompt_from_file(self.llm_config.prompt_file)
+            if prompt_content is not None:
+                return prompt_content
+        
+        # Use system_prompt if available
+        return self.llm_config.system_prompt
+    
+    def _load_prompt_from_file(self, prompt_file: str) -> Optional[str]:
+        """Load prompt content from a file.
+        
+        Args:
+            prompt_file: Path to the prompt file
+            
+        Returns:
+            The file content, or None if file cannot be read
+        """
+        # Resolve path relative to DIPEO_BASE_DIR if not absolute
+        prompt_path = Path(prompt_file)
+        if not prompt_path.is_absolute():
+            base_dir = os.environ.get('DIPEO_BASE_DIR', os.getcwd())
+            prompt_path = Path(base_dir) / prompt_path
+        
+        # Read prompt from file if it exists
+        if prompt_path.exists():
+            try:
+                return prompt_path.read_text(encoding='utf-8')
+            except Exception:
+                return None
+        return None
     
     def get_conversation_context(self, all_messages: list[Message]) -> dict[str, Any]:
         """Get this person's view of the conversation, formatted for templates.
@@ -263,42 +360,6 @@ class Person:
             )
         return 0.0
 
-    
-    async def complete_with_hand(
-        self,
-        messages: Optional[list[Message]] = None,
-        execution_id: str = "",
-        node_id: str = "",
-        prompt: Optional[str] = None,
-        llm_service=None,
-        **kwargs: Any
-    ) -> Any:
-        """Execute LLM completion using the hand component.
-        
-        Delegates to hand if available for clean execution API.
-        
-        Args:
-            messages: Optional messages to use
-            execution_id: Unique execution identifier
-            node_id: Node identifier
-            prompt: The prompt to execute
-            llm_service: LLM service to use
-            **kwargs: Additional parameters
-            
-        Returns:
-            ChatResult from the completion or None if hand not available
-        """
-        if self.hand:
-            return await self.hand.complete_with_messages(
-                person=self,
-                messages=messages,
-                execution_id=execution_id,
-                node_id=node_id,
-                prompt=prompt,
-                llm_service=llm_service,
-                **kwargs
-            )
-        return None
     
     def __repr__(self) -> str:
         brain_info = "with_brain" if self.brain else "no_brain"
