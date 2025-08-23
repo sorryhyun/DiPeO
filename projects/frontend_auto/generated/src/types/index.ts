@@ -1,33 +1,58 @@
 // src/types/index.ts
 
 /**
- * Centralized TypeScript type definitions for domain models
- * Exposed as named exports for use across services and UI components
+ * Central domain type definitions for the app.
+ * These interfaces describe the standard shape of core entities used across services
+ * and UI components (Users, Messages, Channels, Files, Reactions, Threads, Presence, etc.).
  */
 
-// Basic user representation
+// User representation
 export interface User {
   id: string;
   name: string;
   email: string;
   avatarUrl?: string;
-  // Role is kept flexible to accommodate future roles or external systems
-  role?: 'admin' | 'member' | 'guest' | string;
-  // Optional convenience flag for presence UI
-  isOnline?: boolean;
-  // Optional arbitrary metadata to allow extensibility without changing core types
-  metadata?: Record<string, any>;
+  role?: 'admin' | 'member' | 'guest';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-// Authentication tokens payload
+// Authentication tokens
 export interface AuthTokens {
   accessToken: string;
   refreshToken?: string;
-  // ISO date string or epoch timestamp
-  expiresAt?: string | number;
+  expiresAt?: string; // ISO date string
 }
 
-// Message within a channel or thread
+// File representation (upload/download)
+export interface FileItem {
+  id: string;
+  fileName: string;
+  url: string;
+  size?: number; // in bytes
+  mimeType?: string;
+  uploadedBy: User;
+  createdAt?: string;
+}
+
+// Reactions to messages
+export interface Reaction {
+  id: string;
+  emoji: string;
+  user: User;
+  createdAt?: string;
+}
+
+// A single thread of messages under a parent message
+export interface Thread {
+  id: string;
+  parentMessageId: string;
+  messages: Message[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Message entity
 export interface Message {
   id: string;
   channelId: string;
@@ -36,50 +61,27 @@ export interface Message {
   content: string;
   attachments?: FileItem[];
   reactions?: Reaction[];
-  createdAt: string;
-  updatedAt?: string;
+  createdAt?: string;
+  editedAt?: string;
+  replyToMessageId?: string;
 }
 
-// Channel (room) in which messages are exchanged
+// Channel entity
 export interface Channel {
   id: string;
   name: string;
   description?: string;
   isPrivate?: boolean;
   members: User[];
-  createdAt: string;
-}
-
-// File attachment representation
-export interface FileItem {
-  id: string;
-  fileName: string;
-  url: string;
-  size?: number; // in bytes
-  mimeType?: string;
-  uploadedBy: User;
-  createdAt: string;
-}
-
-// Reaction to a message
-export interface Reaction {
-  id: string;
-  emoji: string;
-  user: User;
   createdAt?: string;
-}
-
-// Thread container for a message and its replies
-export interface Thread {
-  id: string;
-  parentMessageId: string;
-  messages: Message[];
+  updatedAt?: string;
 }
 
 // Presence information for a user
+export type PresenceStatus = 'online' | 'offline' | 'away' | 'dnd';
 export interface Presence {
   userId: string;
-  status: 'online' | 'offline' | 'away' | 'dnd';
+  status: PresenceStatus;
   lastActiveAt?: string;
 }
 

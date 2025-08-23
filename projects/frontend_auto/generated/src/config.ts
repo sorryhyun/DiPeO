@@ -1,58 +1,95 @@
 // src/config.ts
 
-type DevelopmentModeConfig = {
-  enable_mock_data: boolean;
-  disable_websocket_in_dev: boolean;
-  use_localstorage_persistence: boolean;
+/**
+ * Runtime configuration for the application.
+ * Centralized configuration to be consumed by mocks, providers, and services.
+ */
+
+// Public export keys for localStorage usage
+export interface LocalStorageKeys {
+  AUTH_TOKEN: string;
+  USER_PROFILE: string;
+  THEME: string;
+  [key: string]: string;
+}
+
+// Development mode flags
+export interface DevelopmentMode {
+  enable_mock_data?: boolean;
+  disable_websocket_in_dev?: boolean;
+  use_localstorage_persistence?: boolean;
+}
+
+// Shape of the entire app config
+export interface AppConfig {
+  apiBaseUrl: string;
+  development_mode: DevelopmentMode;
+  localStorageKeys: LocalStorageKeys;
+}
+
+/**
+ * Defaults to sensible production-like values. These will be merged with any
+ * global override provided at runtime via window.__APP_CONFIG__ (if present),
+ * or environment-specific builds can override through process.env in bundlers.
+ */
+const DEFAULT_CONFIG: AppConfig = {
+  apiBaseUrl: '/api',
+  development_mode: {
+    enable_mock_data: false,
+    disable_websocket_in_dev: false,
+    use_localstorage_persistence: true,
+  },
+  localStorageKeys: {
+    AUTH_TOKEN: 'app_auth_token',
+    USER_PROFILE: 'app_user_profile',
+    THEME: 'app_theme',
+  },
 };
 
-// LocalStorage keys used across the application
-export const LOCALSTORAGE_KEYS = {
-  authToken: 'app_auth_token',
-  userProfile: 'app_user_profile',
-  lastVisitedChannel: 'app_last_channel',
-  userSettings: 'app_user_settings',
-  themePreference: 'app_theme_preference',
-} as const;
+// Attempt to read a runtime override from a global hook for flexibility in dev.
+// This does not require any import and remains backward compatible in prod.
+let runtimeConfig: Partial<AppConfig> = {};
+try {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const win: any = typeof window !== 'undefined' ? window : undefined;
+  if (win && win.__APP_CONFIG__) {
+    // shallow merge; nested objects are partially overridden below
+    runtimeConfig = win.__APP_CONFIG__ as Partial<AppConfig>;
+  }
+} catch {
+  // No global config available; fall back to defaults
+  runtimeConfig = {};
+}
 
-// Helper to safely parse boolean-like environment variables
-const parseBoolean = (value: string | undefined, defaultValue: boolean): boolean => {
-  if (typeof value !== 'string') return defaultValue;
-  const v = value.toLowerCase().trim();
-  if (v === 'true' || v === '1' || v === 'yes' || v === 'on') return true;
-  if (v === 'false' || v === '0' || v === 'no' || v === 'off') return false;
-  return defaultValue;
+// Merge defaults with runtime overrides
+const APP_CONFIG: AppConfig = {
+  apiBaseUrl: runtimeConfig.apiBaseUrl ?? DEFAULT_CONFIG.apiBaseUrl,
+  development_mode: {
+    enable_mock_data:
+      runtimeConfig.development_mode?.enable_mock_data ??
+      DEFAULT_CONFIG.development_mode.enable_mock_data,
+    disable_websocket_in_dev:
+      runtimeConfig.development_mode?.disable_websocket_in_dev ??
+      DEFAULT_CONFIG.development_mode.disable_websocket_in_dev,
+    use_localstorage_persistence:
+      runtimeConfig.development_mode?.use_localstorage_persistence ??
+      DEFAULT_CONFIG.development_mode.use_localstorage_persistence,
+  },
+  localStorageKeys: {
+    AUTH_TOKEN:
+      runtimeConfig.localStorageKeys?.AUTH_TOKEN ??
+      DEFAULT_CONFIG.localStorageKeys.AUTH_TOKEN,
+    USER_PROFILE:
+      runtimeConfig.localStorageKeys?.USER_PROFILE ??
+      DEFAULT_CONFIG.localStorageKeys.USER_PROFILE,
+    THEME:
+      runtimeConfig.localStorageKeys?.THEME ??
+      DEFAULT_CONFIG.localStorageKeys.THEME,
+  },
 };
 
-// Environment and runtime overrides (when available)
-const rawEnv = (typeof process !== 'undefined' ? (process as any).env : {}) as { [key: string]: string | undefined };
-
-const envApiBaseUrl = rawEnv.REACT_APP_API_BASE_URL || '/api';
-const envEnableMock = rawEnv.REACT_APP_ENABLE_MOCKS;
-const envDisableWS = rawEnv.REACT_APP_DISABLE_WS_DEV;
-const envUseLS = rawEnv.REACT_APP_USE_LOCALSTORAGE_PERSISTENCE;
-
-// Defaults
-const DEFAULT_DEVELOPMENT_MODE: DevelopmentModeConfig = {
-  enable_mock_data: false,
-  disable_websocket_in_dev: false,
-  use_localstorage_persistence: true,
-};
-
-// Computed development mode from environment or defaults
-const developmentMode: DevelopmentModeConfig = {
-  enable_mock_data: parseBoolean(envEnableMock, DEFAULT_DEVELOPMENT_MODE.enable_mock_data),
-  disable_websocket_in_dev: parseBoolean(envDisableWS, DEFAULT_DEVELOPMENT_MODE.disable_websocket_in_dev),
-  use_localstorage_persistence: parseBoolean(envUseLS, DEFAULT_DEVELOPMENT_MODE.use_localstorage_persistence),
-};
-
-// Final config object
-export const config = {
-  apiBaseUrl: envApiBaseUrl,
-  development_mode: developmentMode,
-  localStorageKeys: LOCALSTORAGE_KEYS,
-} as const;
-
-// Convenience exports for common usage
-export const API_BASE_URL = config.apiBaseUrl;
-export const ENABLE_MOCKS = config.development_mode.enable_mock_data;
+// Public exposed constants consumed across the app
+export const API_BASE_URL: string = APP_CONFIG.apiBaseUrl;
+export const ENABLE_MOCKS: boolean =
+  APP_CONFIG.development_mode.enable_mock_data ?? false;
+export const LOCALSTORAGE_KEYS: LocalStorageKeys = APP_CONFIG.localStorageKeys;

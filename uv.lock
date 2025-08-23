@@ -482,11 +482,14 @@ dependencies = [
     { name = "jinja2" },
     { name = "jiter" },
     { name = "jmespath" },
+    { name = "jsonpointer" },
     { name = "lxml" },
+    { name = "markupsafe" },
     { name = "multidict" },
     { name = "multiprocess" },
     { name = "notion-client" },
     { name = "numpy" },
+    { name = "ollama" },
     { name = "openai" },
     { name = "packaging" },
     { name = "pandas" },
@@ -502,6 +505,7 @@ dependencies = [
     { name = "pyasn1-modules" },
     { name = "pydantic" },
     { name = "pydantic-core" },
+    { name = "pydantic-settings" },
     { name = "pyinstaller" },
     { name = "pyparsing" },
     { name = "pytest" },
@@ -593,12 +597,15 @@ requires-dist = [
     { name = "jinja2", specifier = "~=3.1.6" },
     { name = "jiter", specifier = "==0.10.0" },
     { name = "jmespath", specifier = "==1.0.1" },
+    { name = "jsonpointer", specifier = "==3.0.0" },
     { name = "lxml", specifier = "==5.4.0" },
+    { name = "markupsafe", specifier = ">=2.1.5" },
     { name = "multidict", specifier = "==6.5.0" },
     { name = "multiprocess", specifier = "==0.70.16" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.14.1" },
     { name = "notion-client", specifier = "==2.4.0" },
     { name = "numpy", specifier = "==2.3.0" },
+    { name = "ollama", specifier = ">=0.5.0" },
     { name = "openai", specifier = "==1.88.0" },
     { name = "packaging", specifier = "==25.0" },
     { name = "pandas", specifier = "==2.3.0" },
@@ -614,6 +621,7 @@ requires-dist = [
     { name = "pyasn1-modules", specifier = "==0.4.2" },
     { name = "pydantic", specifier = "==2.11.7" },
     { name = "pydantic-core", specifier = "==2.33.2" },
+    { name = "pydantic-settings", specifier = "==2.7.1" },
     { name = "pyinstaller", specifier = "~=6.14.2" },
     { name = "pyparsing", specifier = "==3.2.3" },
     { name = "pytest", specifier = "~=8.4.1" },
@@ -1200,6 +1208,15 @@ wheels = [
 ]
 
 [[package]]
+name = "jsonpointer"
+version = "3.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/0a/eebeb1fa92507ea94016a2a790b93c2ae41a7e18778f85471dc54475ed25/jsonpointer-3.0.0.tar.gz", hash = "sha256:2b2d729f2091522d61c3b31f82e11870f60b68f43fbc705cb76bf4b832af59ef", size = 9114, upload-time = "2024-06-10T19:24:42.462Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/71/92/5e77f98553e9e75130c78900d000368476aed74276eb8ae8796f65f00918/jsonpointer-3.0.0-py2.py3-none-any.whl", hash = "sha256:13e088adc14fca8b6aa8177c044e12701e6ad4b28ff10e65f2267a90109c9942", size = 7595, upload-time = "2024-06-10T19:24:40.698Z" },
+]
+
+[[package]]
 name = "lxml"
 version = "5.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1768,6 +1785,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a4/7d/e09391c2eebeab681df2b74bfe6c43422fffede8dc74187b2b0bf6fd7571/pydantic_core-2.33.2-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:61c18fba8e5e9db3ab908620af374db0ac1baa69f0f32df4f61ae23f15e586ac", size = 1806162, upload-time = "2025-04-23T18:32:20.188Z" },
     { url = "https://files.pythonhosted.org/packages/f1/3d/847b6b1fed9f8ed3bb95a9ad04fbd0b212e832d4f0f50ff4d9ee5a9f15cf/pydantic_core-2.33.2-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:95237e53bb015f67b63c91af7518a62a8660376a6a0db19b89acc77a4d6199f5", size = 1981560, upload-time = "2025-04-23T18:32:22.354Z" },
     { url = "https://files.pythonhosted.org/packages/6f/9a/e73262f6c6656262b5fdd723ad90f518f579b7bc8622e43a942eec53c938/pydantic_core-2.33.2-cp313-cp313t-win_amd64.whl", hash = "sha256:c2fc0a768ef76c15ab9238afa6da7f69895bb5d1ee83aeea2e3509af4472d0b9", size = 1935777, upload-time = "2025-04-23T18:32:25.088Z" },
+]
+
+[[package]]
+name = "pydantic-settings"
+version = "2.7.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/73/7b/c58a586cd7d9ac66d2ee4ba60ca2d241fa837c02bca9bea80a9a8c3d22a9/pydantic_settings-2.7.1.tar.gz", hash = "sha256:10c9caad35e64bfb3c2fbf70a078c0e25cc92499782e5200747f942a065dec93", size = 79920, upload-time = "2024-12-31T11:27:44.632Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b4/46/93416fdae86d40879714f72956ac14df9c7b76f7d41a4d68aa9f71a0028b/pydantic_settings-2.7.1-py3-none-any.whl", hash = "sha256:590be9e6e24d06db33a4262829edef682500ef008565a969c73d39d5f8bfb3fd", size = 29718, upload-time = "2024-12-31T11:27:43.201Z" },
 ]
 
 [[package]]

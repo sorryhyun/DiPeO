@@ -58,8 +58,8 @@ jobs:
       run: |
         uv venv --python ${{ matrix.python-version }}
         source .venv/bin/activate
-        uv pip sync requirements.txt
-        uv pip install "ruff>=0.8.0" mypy pytest-asyncio pytest-cov isort black import-linter
+        uv sync --all-extras
+        uv pip install pytest-asyncio pytest-cov import-linter
 
     - name: Build TypeScript models
       run: pnpm --filter @dipeo/models build
