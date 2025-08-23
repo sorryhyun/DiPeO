@@ -154,6 +154,7 @@ class LLMMemorySelector:
             constraint_text = f"\nCONSTRAINT: Select at most {at_most} messages that best match the criteria.\n"
         
         prompt = (
+            f"YOUR NAME: {base_person.name or str(person_id)}\n"
             "CANDIDATE MESSAGES (id (sender): snippet):\n"
             f"{listing}\n\n===\n\n"
             f"TASK PREVIEW:\n===\n\n{preview}\n\n===\n\n"

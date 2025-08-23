@@ -27,12 +27,12 @@ persons:
       
 
   Frontend Generator:
-#    service: openai
-#    model: gpt-5-nano-2025-08-07
-#    api_key_id: APIKEY_52609F
-    service: claude-code
-    model: claude-code
-    api_key_id: APIKEY_CLAUDE
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+#    service: claude-code
+#    model: claude-code
+#    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer building a cohesive frontend application.
       
@@ -68,73 +68,73 @@ nodes:
     props:
       trigger_mode: manual
       
-  - label: Load Config
-    type: db
-    position: {x: 300, y: 240}
-    props:
-      operation: read
-      sub_type: file
-      format: json
-      source_details: projects/frontend_auto/variants/chat_application_config.json
+#  - label: Load Config
+#    type: db
+#    position: {x: 300, y: 240}
+#    props:
+#      operation: read
+#      sub_type: file
+#      format: json
+#      source_details: projects/frontend_auto/variants/chat_application_config.json
+#
+#  - label: Plan Sections
+#    type: person_job
+#    position: {x: 400, y: 240}
+#    props:
+#      person: Section Planner
+#      text_format_file: projects/frontend_auto/section_models.py
+#      default_prompt: |
+#        Analyze the requirements and create a comprehensive development plan:
+#
+#        App config: {{config}}
+#
+#        Your response MUST include:
+#        1. An overall architecture that defines:
+#           - How all sections work together as a cohesive system
+#           - Core architectural patterns and principles
+#           - Data flow and state management strategy
+#           - DETAILED folder structure with ACTUAL FILE NAMES (e.g., src/components/Button.tsx)
+#           - Tech stack decisions
+#
+#        2. Independent sections where EACH section represents ONE SPECIFIC FILE:
+#           - file_to_implement: EXACT file path (e.g., "src/features/dashboard/components/MetricCard.tsx")
+#           - Clear acceptance criteria for that specific file
+#           - Implementation steps for THAT FILE ONLY (what goes inside it)
+#           - Integration points showing how this file connects with others
+#           - Proper dependencies and priority
+#
+#        CRITICAL REQUIREMENTS:
+#        - You MUST include ALL files needed for a working application
+#        - Every import statement must have a corresponding section that generates that file
+#        - Include ALL shared components (Button, Input, Icon, Avatar, Spinner, Modal, etc.)
+#        - Include ALL pages/routes referenced in routing
+#        - Include ALL hooks, utilities, and helper functions
+#        - Include ALL type definitions and interfaces
+#        - Include mock implementations if using MSW or mock adapters
+#
+#        MANDATORY FILES TO INCLUDE:
+#        - All shared UI components (src/shared/components/*)
+#        - All utility functions (src/utils/*)
+#        - All custom hooks (src/shared/hooks/*, feature-specific hooks)
+#        - All page components for routing
+#        - All type definitions (src/types/*)
+#        - All providers and context files
+#        - All service/API client files
+#        - Configuration files (if referenced)
+#
+#        THE WHOLE FILES NEEDED should be arranged.
+#        Think like you're planning a real production React application.
+#        Ensure files can be developed independently but integrate seamlessly.
+#        REMEMBER: If a file is imported ANYWHERE, it MUST have its own section to be generated!
 
-  - label: Plan Sections
-    type: person_job
-    position: {x: 400, y: 240}
-    props:
-      person: Section Planner
-      text_format_file: projects/frontend_auto/section_models.py
-      default_prompt: |
-        Analyze the requirements and create a comprehensive development plan:
-
-        App config: {{config}}
-
-        Your response MUST include:
-        1. An overall architecture that defines:
-           - How all sections work together as a cohesive system
-           - Core architectural patterns and principles
-           - Data flow and state management strategy
-           - DETAILED folder structure with ACTUAL FILE NAMES (e.g., src/components/Button.tsx)
-           - Tech stack decisions
-
-        2. Independent sections where EACH section represents ONE SPECIFIC FILE:
-           - file_to_implement: EXACT file path (e.g., "src/features/dashboard/components/MetricCard.tsx")
-           - Clear acceptance criteria for that specific file
-           - Implementation steps for THAT FILE ONLY (what goes inside it)
-           - Integration points showing how this file connects with others
-           - Proper dependencies and priority
-
-        CRITICAL REQUIREMENTS:
-        - You MUST include ALL files needed for a working application
-        - Every import statement must have a corresponding section that generates that file
-        - Include ALL shared components (Button, Input, Icon, Avatar, Spinner, Modal, etc.)
-        - Include ALL pages/routes referenced in routing
-        - Include ALL hooks, utilities, and helper functions
-        - Include ALL type definitions and interfaces
-        - Include mock implementations if using MSW or mock adapters
-
-        MANDATORY FILES TO INCLUDE:
-        - All shared UI components (src/shared/components/*)
-        - All utility functions (src/utils/*)
-        - All custom hooks (src/shared/hooks/*, feature-specific hooks)
-        - All page components for routing
-        - All type definitions (src/types/*)
-        - All providers and context files
-        - All service/API client files
-        - Configuration files (if referenced)
-
-        THE WHOLE FILES NEEDED should be arranged.
-        Think like you're planning a real production React application.
-        Ensure files can be developed independently but integrate seamlessly.
-        REMEMBER: If a file is imported ANYWHERE, it MUST have its own section to be generated!
-
-  - label: Save Sections Data
-    type: db
-    position: {x: 800, y: 240}
-    props:
-      operation: write
-      sub_type: file
-      format: json
-      source_details: projects/frontend_auto/generated/sections_data.json
+#  - label: Save Sections Data
+#    type: db
+#    position: {x: 800, y: 240}
+#    props:
+#      operation: write
+#      sub_type: file
+#      format: json
+#      source_details: projects/frontend_auto/generated/sections_data.json
 
   - label: Load Sections Data
     type: db
@@ -150,8 +150,8 @@ nodes:
     position: {x: 1450, y: 240}
     props:
       condition_type: custom
-#      expression: current_index >= 4
-      expression: current_index >= len(default.sections)
+      expression: current_index >= 4
+#      expression: current_index >= len(default.sections)
       expose_index_as: current_index
       flipped: [false, true]
 
@@ -230,9 +230,11 @@ nodes:
 connections:
   # Initial setup
   - {from: Start, to: Load Config}
-  - {from: Load Config, to: Plan Sections, label: config, content_type: object}
-  - {from: Plan Sections, to: Save Sections Data, content_type: object}
-  - {from: Save Sections Data, to: Load Sections Data, content_type: object}
+#  - {from: Load Config, to: Plan Sections, label: config, content_type: object}
+#  - {from: Plan Sections, to: Save Sections Data, content_type: object}
+#  - {from: Save Sections Data, to: Load Sections Data, content_type: object}
+#  - { from: Load Sections Data, to: Check Continue, content_type: object }
+  - {from: Start, to: Load Sections Data}
   - { from: Load Sections Data, to: Check Continue, content_type: object }
 
   - {from: Check Continue_condfalse, to: Load Sections Data again, content_type: object }

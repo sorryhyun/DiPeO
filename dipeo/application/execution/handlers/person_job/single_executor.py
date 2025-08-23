@@ -175,10 +175,32 @@ class SinglePersonJobExecutor:
         # Update conversation context with filtered messages
         conversation_context = person.get_conversation_context(filtered_messages)
         
-        # Update template values with the filtered conversation context
+        # Extract and parse JSON content from selected memories for template use
+        memory_data = {}
+        if filtered_messages:
+            logger.debug(f"[PersonJob] Processing {len(filtered_messages)} filtered messages for memory data extraction")
+            for msg in filtered_messages:
+                # Try to parse JSON content from messages
+                if msg.content:
+                    try:
+                        parsed_content = json.loads(msg.content)
+                        # Merge parsed content into memory_data
+                        if isinstance(parsed_content, dict):
+                            memory_data.update(parsed_content)
+                            logger.debug(f"[PersonJob] Extracted memory data keys: {list(parsed_content.keys())}")
+                    except (json.JSONDecodeError, TypeError):
+                        # Not JSON or not parseable, skip
+                        logger.debug(f"[PersonJob] Message content not JSON parseable (first 100 chars): {msg.content[:100]}")
+                        pass
+        
+        if memory_data:
+            logger.info(f"[PersonJob] Successfully extracted memory data with keys: {list(memory_data.keys())}")
+        
+        # Update template values with the filtered conversation context and memory data
         template_values = {
             **input_values,
-            **conversation_context
+            **conversation_context,
+            **memory_data  # Add parsed memory content
         }
         
         # Re-merge global variables to ensure they're still available
