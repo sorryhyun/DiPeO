@@ -9,19 +9,36 @@ persons:
       You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.
       
       Your task is to:
-      1. Define the overall architecture with SHARED CONVENTIONS (API patterns, types, imports)
-      2. Split work into COMPLETE sections covering ALL required files
-      3. Provide concrete implementation steps ensuring cross-section consistency
+      1. Define the overall architecture and folder structure
+      2. Split work into sections where EACH section represents ONE specific file
+      3. List all files that need to be implemented with clear descriptions
       
       Focus on:
-      - COMPLETENESS: No missing imports or references
-      - CONSISTENCY: All sections follow the same patterns defined in architecture
-      - Clear data flow and integration points between sections
-      - Modern React 18+ and TypeScript best practices
+      - COMPLETENESS: Include every file that will be imported anywhere
+      - Clear file paths and responsibilities
+      - Logical grouping and dependencies between files
+      - Modern React 18+ and TypeScript patterns
       
-      CRITICAL: Define shared conventions for API clients, type definitions, and component interfaces that ALL sections must follow.
-      Follow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.
+      Note: You don't need to provide detailed implementation steps. The Core Kernel will handle shared contracts, and the Frontend Generator will handle implementation details.
+
+  Core Kernel Architect:
+    service: openai
+    model: gpt-5-mini-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are an expert TypeScript architect specializing in creating foundational contracts and utilities.
       
+      Your task is to generate the Core Kernel - a set of 5-7 foundational files that ALL sections will depend on.
+      These files establish the single source of truth for types, configuration, events, hooks, and utilities.
+      
+      Generate complete, production-ready TypeScript code with:
+      - Comprehensive domain types and API contracts
+      - Materialized configuration from the app config
+      - Event bus for decoupled communication
+      - Hook system for extension points
+      - Dependency injection tokens
+      
+      Every file must be immediately usable with no placeholders or TODOs.
 
   Frontend Generator:
 #    service: openai
@@ -31,33 +48,13 @@ persons:
     model: claude-code
     api_key_id: APIKEY_CLAUDE
     system_prompt: |
-      You are an expert React/TypeScript engineer building a cohesive frontend application.
+      You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
       
-      CRITICAL RULES:
-      1. Return ONLY the raw code files in the exact format specified in the prompt. You MUST NOT attempt to examine any existing codes.
-      2. Do NOT include any conversational text, explanations, or commentary
-      3. Generate COMPLETE, WORKING code - no placeholders or TODOs
-      4. STRICTLY follow the shared conventions defined in architecture section
-      5. Import and use components/utilities from previous sections when referenced
-      6. VALIDATE all imports match actual exports from dependency files
-      
-      IMPLEMENTATION REQUIREMENTS:
-      - Every component must be FULLY implemented with all logic
-      - Include proper TypeScript types for all props and functions
-      - Implement actual functionality, not just UI shells
-      - For mock data/adapters, provide realistic implementations
-      - For utility functions, provide complete implementations
-      - For hooks, include all necessary logic and state management
-      - For API clients, include error handling and response processing
-      
-      You are building sections iteratively. Use the context from previous sections to maintain consistency in:
-      - Naming conventions
-      - Import paths
-      - Type definitions
-      - Component patterns
-      - State management approach
-      
-      REMEMBER: This code should be deployable as-is once all sections are generated!
+      KEY FOCUS:
+      - Generate ONLY raw code without any explanations or commentary
+      - Follow ALL conventions and contracts defined in the prompt
+      - Build iteratively using context from previous sections
+      - Code must be complete, working, and deployable as-is
 
 nodes:
   - label: Start
@@ -73,7 +70,7 @@ nodes:
       operation: read
       sub_type: file
       format: json
-      source_details: projects/frontend_auto/variants/memory_game_config.json
+      source_details: projects/frontend_auto/variants/healthcare_portal_config.json
 
   - label: Plan Sections
     type: person_job
@@ -82,30 +79,32 @@ nodes:
       person: Section Planner
       text_format_file: projects/frontend_auto/section_models.py
       default_prompt: |
-        Analyze the requirements and create a comprehensive development plan:
+        Analyze the requirements and create a file structure plan:
 
         App config: {{config}}
 
         Your response MUST include:
-        1. Architecture with SHARED CONVENTIONS defining:
-           - API client patterns, type definitions, component interfaces ALL sections must follow
-           - Data flow, state management, and folder structure with ACTUAL FILE NAMES
-           - How sections integrate as a cohesive system
+        1. Architecture:
+           - High-level overview of the application structure
+           - Key patterns and technologies to use
+           - Folder structure showing organization
+           - Data flow description
 
-        2. Sections where EACH represents ONE SPECIFIC FILE with:
-           - file_to_implement: EXACT path (e.g., "src/features/dashboard/MetricCard.tsx")
-           - Implementation steps following the shared conventions
-           - Integration points and dependencies
+        2. Sections (one per file):
+           - id: unique identifier
+           - file_to_implement: exact file path
+           - description: what the file does
+           - dependencies: other files it imports from
+           - exports: what it provides to other files
+           - priority: 1=foundational, 2=components, 3=pages
 
-        CRITICAL REQUIREMENTS:
-        - Include ALL files: components, pages, hooks, utils, types, providers, services
-        - Every import MUST have a corresponding section that generates that file
-        - ALL files MUST follow the shared conventions defined in architecture
-        - Include integration validation points between dependent files
-        
-        MANDATORY FILES: src/shared/components/*, src/utils/*, src/shared/hooks/*, src/types/*, all pages, providers, API clients, mock implementations
-        
-        REMEMBER: Generate EVERY file imported anywhere. Validate cross-file consistency!
+        REQUIREMENTS:
+        - Order sections by priority and dependencies
+        - Include ALL files that will exist in the app
+        - Every import must have a corresponding section
+        - Cover: pages, providers, services, shared components, hooks, features
+
+        Note: Core Kernel will handle shared types and contracts - just list the files needed.
 
   - label: Save Sections Data
     type: db
@@ -116,37 +115,71 @@ nodes:
       format: json
       source_details: projects/frontend_auto/generated/sections_data.json
 
+  - label: Generate Core Kernel
+    type: person_job
+    position: {x: 950, y: 240}
+    props:
+      person: Core Kernel Architect
+      text_format_file: projects/frontend_auto/core_kernel_models.py
+      prompt_file: core_kernel_generator.txt
+
+  - label: Write Kernel Files
+    type: code_job
+    position: {x: 1100, y: 240}
+    props:
+      language: python
+      filePath: projects/frontend_auto/write_kernel_files.py
+      functionName: write_kernel_files
+
   - label: Load Sections Data
     type: db
-    position: {x: 1100, y: 240}
+    position: {x: 1250, y: 240}
     props:
       operation: read
       sub_type: file
       format: json
       source_details: projects/frontend_auto/generated/sections_data.json
 
+  - label: Load Core Kernel
+    type: db
+    position: {x: 1400, y: 240}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_auto/generated/core_kernel_data.json
+
   - label: Check Continue
     type: condition
-    position: {x: 1450, y: 240}
+    position: {x: 1650, y: 240}
     props:
       condition_type: custom
-#      expression: current_index >= 4
-      expression: current_index >= len(default.sections)
+      expression: current_index >= 4
+#      expression: current_index >= len(default.file_paths)
       expose_index_as: current_index
       flipped: [false, true]
 
   - label: Load Sections Data again
     type: db
-    position: {x: 1100, y: 240}
+    position: {x: 1650, y: 400}
     props:
       operation: read
       sub_type: file
       format: json
       source_details: projects/frontend_auto/generated/sections_data.json
 
+  - label: Load Core Kernel again
+    type: db
+    position: {x: 1850, y: 400}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_auto/generated/core_kernel_data.json
+
   - label: Generate Frontend Code
     type: person_job
-    position: {x: 1800, y: 240}
+    position: {x: 2100, y: 240}
     props:
       person: Frontend Generator
       max_iteration: 100
@@ -156,7 +189,7 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 2200, y: 240}
+    position: {x: 2500, y: 240}
     props:
       operation: write
       sub_type: file
@@ -165,7 +198,7 @@ nodes:
 
   - label: Rename Files
     type: code_job
-    position: {x: 1500, y: 600}
+    position: {x: 1850, y: 600}
     props:
       language: python
       filePath: projects/frontend_auto/rename_generated_files.py
@@ -201,7 +234,7 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 1800, y: 600}
+    position: {x: 2100, y: 600}
     props:
       save_to_file: false
 
@@ -209,18 +242,23 @@ connections:
   # Initial setup
   - {from: Start, to: Load Config}
   - {from: Load Config, to: Plan Sections, label: config, content_type: object}
+  - {from: Load Config, to: Generate Core Kernel , label: config, content_type: object }
+
   - {from: Plan Sections, to: Save Sections Data, content_type: object}
-  - {from: Save Sections Data, to: Load Sections Data, content_type: object}
-  - { from: Load Sections Data, to: Check Continue, content_type: object }
-#
-#  - {from: Start, to: Load Sections Data}
-#  - { from: Load Sections Data, to: Check Continue, content_type: object }
+  - {from: Plan Sections, to: Generate Core Kernel, label: sections_data, content_type: object}
 
-  - {from: Check Continue_condfalse, to: Load Sections Data again, content_type: object }
-  - {from: Check Continue_condtrue, to: Rename Files, content_type: object }
+  - {from: Generate Core Kernel, to: Write Kernel Files, label: kernel, content_type: object}
+  - {from: Write Kernel Files, to: Load Sections Data, content_type: object}
+  - {from: Load Sections Data, to: Check Continue, label: merged_data, content_type: object}
 
-  - {from: Load Sections Data again, to: Generate Frontend Code, content_type: object }
+  # Section iteration loop
+  - {from: Check Continue_condfalse, to: Load Sections Data again, content_type: object}
+  - {from: Load Sections Data again, to: Load Core Kernel again, label: sections_data, content_type: object}
+
+  - {from: Load Core Kernel again, to: Generate Frontend Code, label: kernel, content_type: object}
   - {from: Generate Frontend Code, to: Write Section Result, content_type: object}
   - {from: Write Section Result, to: Check Continue, content_type: object}
 
-  - { from: Rename Files, to: End, content_type: object }
+  # Finalization
+  - {from: Check Continue_condtrue, to: Rename Files, content_type: object}
+  - {from: Rename Files, to: End, content_type: object}

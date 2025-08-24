@@ -43,6 +43,7 @@
     "Implement proper form validation with error handling",
     "Use React Query for data fetching with loading and error states",
     "Implement i18n support for internationalization",
+    "Korean translation support",
     "IMPORTANT: Include mock data and mock authentication for development mode",
     "Create fallback mechanisms when backend services are unavailable",
     "Provide mock API responses for all data endpoints in development",

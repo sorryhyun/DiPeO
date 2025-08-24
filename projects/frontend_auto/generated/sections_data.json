@@ -1,1532 +1,1097 @@
 {
   "architecture": {
-    "overview": "A modular React + TypeScript memory card game application built with modern patterns: Zustand for state management (persisted), Context providers for cross-cutting concerns (Theme, Sound, WebSocket, Game lifecycle), a centralized typed API client supporting mock-mode and real endpoints, Tailwind CSS for styling, and small focused components in src/shared/components. The app is split into pages (routes) and features (game, leaderboard, multiplayer, settings, daily challenge, achievements). All cross-file contracts are defined by shared type definitions in src/types/index.ts. All network access goes through src/services/apiClient.ts which can route to mock implementations in development. The store persists to localStorage when development_mode.use_localstorage_persistence is true.",
+    "overview": "A modular, feature-driven React + TypeScript single-page application for a Patient Healthcare Portal. The app is split into foundational providers and services (auth, query client, i18n, theme), reusable UI primitives and layout components, feature folders that encapsulate pages, components and hooks for appointments, medical records, prescriptions, telemedicine, lab results, insurance, and medication reminders, and a development mock layer that provides mock REST endpoints and WebSocket updates so the app can run standalone without backend dependencies.",
     "patterns": [
-      "Single source of truth for network operations via services/apiClient.ts",
-      "Typed models in src/types/index.ts used across UI, services, and store",
-      "Zustand global store in src/state/store.ts for game/core state -> subscribed by components",
-      "Context providers for Theme, Sound, WebSocket and Game lifecycle that wrap App in src/main.tsx",
-      "Presentational components under src/shared/components with minimal logic; complex logic in hooks and services",
-      "Hooks under src/shared/hooks follow useX naming and return typed values and callbacks",
-      "Mock-mode: apiClient delegates to src/services/mockServer.ts when development_mode.enable_mock_data is true",
-      "Persistence: useLocalStorage hook + store middleware to persist critical slices to localStorage with defined keys"
+      "Feature-first folder layout (src/features/*) with each feature owning its pages, components, hooks and api clients",
+      "Providers layer (Auth, QueryClient, I18n, Theme) mounted at app root",
+      "Container/Presentational separation: pages and containers orchestrate data and hooks; presentational components are in shared/components",
+      "React Query for server state (data fetching, caching, stale-while-revalidate)",
+      "Context API for global cross-cutting concerns (Auth, Theme, Toasts)",
+      "Mock Server pattern for development mode providing REST handlers and simulated WebSockets",
+      "Progressive enhancement via Suspense and Error Boundaries",
+      "Composition with small reusable hooks (useAuth, useLocalStorage, useWebsocket, useToast)"
     ],
-    "data_flow": "UI components dispatch actions via Zustand store or call services. Services use apiClient to fetch/push data. apiClient uses typed request/response shapes (ApiResponse<T>) and handles errors centrally; in dev it routes to mockServer. WebSocketProvider connects to multiplayer endpoints and emits events into the store. ThemeProvider and SoundProvider expose Context values used by components. Game lifecycle uses the store for board, timer, moves; when a game ends, leaderboardService is called to persist scores. Components read data from types and services and update store via typed actions.",
-    "folder_structure": "src/\n  main.tsx\n  App.tsx\n  pages/\n    HomePage.tsx\n    GamePage.tsx\n    LeaderboardPage.tsx\n    MultiplayerPage.tsx\n    SettingsPage.tsx\n    DailyChallengePage.tsx\n  shared/\n    components/\n      Header.tsx\n      Footer.tsx\n      Button.tsx\n      Card.tsx\n      Grid.tsx\n      Timer.tsx\n      MoveCounter.tsx\n      ThemeSelector.tsx\n      SoundToggle.tsx\n      LeaderboardList.tsx\n      AchievementBadge.tsx\n      ErrorBoundary.tsx\n      Confetti.tsx\n    hooks/\n      useLocalStorage.ts\n      useSound.ts\n      useKeyboardShortcuts.ts\n      useConfetti.ts\n      useResponsive.ts\n  providers/\n    GameProvider.tsx\n    ThemeProvider.tsx\n    SoundProvider.tsx\n    WebSocketProvider.tsx\n  state/\n    store.ts\n  services/\n    apiClient.ts\n    mockServer.ts\n    leaderboardService.ts\n    achievementsService.ts\n    themesService.ts\n    dailyChallengeService.ts\n    multiplayerService.ts\n    playerStatsService.ts\n  types/\n    index.ts\n  utils/\n    shuffle.ts\n    scoreCalculator.ts\n    persistence.ts\n    animations.ts\n    accessibility.ts\n  generated/ (output_dir)\n",
+    "data_flow": "UI components call feature hooks (e.g., useAppointments) which use React Query to fetch via feature API clients (appointments.api). API clients use a single apiClient wrapper which points to the real backend in prod or to the mock server in dev. AuthProvider gives tokens and role information to apiClient. React Query centralizes caching and invalidation; components invalidate or refetch via returned query keys. Real-time updates (telemetry/appointment updates) are delivered through a WebSocket service; a mock websocket provider runs in dev to broadcast updates. LocalStorage is used to persist mock auth in development. i18n provides translated strings to UI. ErrorBoundary and SuspenseFallback handle loading and errors across routes.",
+    "folder_structure": "src/\n  main.tsx\n  index.css\n  App.tsx\n  routes/\n    AppRouter.tsx\n    ProtectedRoute.tsx\n  providers/\n    RootProviders.tsx\n    AuthProvider.tsx\n    ThemeProvider.tsx\n    I18nProvider.tsx\n  query/\n    queryClient.ts\n  i18n/\n    i18n.ts\n    locales/\n      en.json\n      ko.json\n  services/\n    apiClient.ts\n    mockServer.ts\n    mockWebsocket.ts\n    websocket.ts\n    endpoints/\n      appointments.api.ts\n      medicalRecords.api.ts\n      prescriptions.api.ts\n      labResults.api.ts\n      insurance.api.ts\n      medications.api.ts\n  mocks/\n    mockUsers.ts\n    appointments.json\n    medicalRecords.json\n    prescriptions.json\n    labResults.json\n    insurance.json\n    medications.json\n  hooks/\n    useAuth.ts\n    useLocalStorage.ts\n    useWebsocket.ts\n    useToast.ts\n    useAppointments.ts\n    useMedicalRecords.ts\n    usePrescriptions.ts\n    useLabResults.ts\n    useInsurance.ts\n    useMedications.ts\n  components/\n    ErrorBoundary.tsx\n    SuspenseFallback.tsx\n    Layouts/\n      MainLayout.tsx\n      AuthLayout.tsx\n    ui/\n      Button.tsx\n      Input.tsx\n      Modal.tsx\n      Card.tsx\n      Table.tsx\n      LoadingSpinner.tsx\n      EmptyState.tsx\n      Avatar.tsx\n    nav/\n      Header.tsx\n      Sidebar.tsx\n      Footer.tsx\n  features/\n    appointments/\n      AppointmentList.tsx\n      AppointmentForm.tsx\n      AppointmentCard.tsx\n      AppointmentPage.tsx\n      AppointmentDetailPage.tsx\n    medicalRecords/\n      MedicalRecordsPage.tsx\n      RecordViewer.tsx\n    prescriptions/\n      PrescriptionsPage.tsx\n      PrescriptionForm.tsx\n    telemedicine/\n      TelemedicinePage.tsx\n      VideoCallPlaceholder.tsx\n    dashboard/\n      DashboardPage.tsx\n      HealthMetricCard.tsx\n    labResults/\n      LabResultsPage.tsx\n      LabResultRow.tsx\n    insurance/\n      InsurancePage.tsx\n      ClaimTracker.tsx\n    medications/\n      MedicationsPage.tsx\n      ReminderForm.tsx\n  pages/\n    LoginPage.tsx\n    SettingsPage.tsx\n    NotFoundPage.tsx\n  styles/\n    tailwind.css\n  utils/\n    formatDate.ts\n    validators.ts\n  types/\n    (Core Kernel provides shared domain types; local helpers if needed)\n\nOther top-level files:\n  tailwind.config.cjs\n  postcss.config.cjs\n  vite.config.ts",
     "tech_stack": [
-      "React 18+ (Suspense, Error Boundaries, Context API)",
+      "React 18+ (functional components, Suspense)",
       "TypeScript",
-      "Tailwind CSS (with dark mode support)",
-      "Framer Motion + React Spring for animations",
-      "Zustand for state management with localStorage persistence",
-      "Web Audio API for sound",
-      "WebSocket (native) for multiplayer",
-      "localStorage for offline persistence",
-      "Mock API server module for dev mode"
+      "React Router v6",
+      "React Query (TanStack Query)",
+      "React Hook Form + Zod for validation (or optional validators.ts with zod schemas)",
+      "Tailwind CSS for styling (responsive, dark mode support)",
+      "i18next for i18n with en + ko locales",
+      "Mock Service Worker (or internal lightweight mock server) for development mock endpoints",
+      "WebSocket abstraction with mock websocket for dev",
+      "LocalStorage for local persistence in development"
     ]
   },
   "sections": [
     {
-      "id": "main-entry",
-      "title": "App entry and root providers",
-      "description": "Mount React app, wrap with providers (Theme, Sound, WebSocket, Game) and ErrorBoundary. Enables global Tailwind container and Suspense fallback.",
+      "id": "entry-point",
       "file_to_implement": "src/main.tsx",
-      "acceptance": [
-        "Renders App inside providers",
-        "ErrorBoundary and Suspense are used",
-        "Providers import paths exist and build correctly"
+      "description": "Application entry: mounts React app, imports global styles, registers mock server in development, and renders RootProviders + App.",
+      "dependencies": [
+        "src/index.css",
+        "src/providers/RootProviders.tsx",
+        "src/App.tsx",
+        "src/services/mockServer.ts",
+        "src/services/mockWebsocket.ts"
       ],
-      "implementation_steps": [
-        "1. Import React, createRoot from react-dom/client, App component, ErrorBoundary, ThemeProvider, SoundProvider, WebSocketProvider, GameProvider, and Tailwind CSS entry (assumed to be configured).",
-        "2. Wrap <App/> with <ErrorBoundary><ThemeProvider><SoundProvider><WebSocketProvider><GameProvider>... and a Suspense fallback spinner.",
-        "3. Mount to document.getElementById('root') using createRoot.",
-        "4. Ensure imports reference files: App.tsx, providers/*, shared/components/ErrorBoundary.tsx, shared/components/Spinner (Spinner is used inside Suspense from App import or shared components)."
+      "exports": [
+        "bootstraps the app (no runtime exports)"
       ],
-      "integration_points": [
-        "Depends on src/App.tsx, src/providers/*, and src/shared/components/ErrorBoundary.tsx",
-        "Must match exported names and default exports from those files"
+      "priority": 1
+    },
+    {
+      "id": "global-styles",
+      "file_to_implement": "src/index.css",
+      "description": "Global Tailwind / base CSS, dark mode utilities and custom overrides used by components.",
+      "dependencies": [],
+      "exports": [
+        "global CSS (imported by main.tsx)"
       ],
-      "prompt_context": {
-        "component_type": "entry",
-        "data_model": null,
-        "interactions": [
-          "render",
-          "provide-context"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/App.tsx",
-          "src/providers/ThemeProvider.tsx",
-          "src/providers/SoundProvider.tsx",
-          "src/providers/WebSocketProvider.tsx",
-          "src/providers/GameProvider.tsx",
-          "src/shared/components/ErrorBoundary.tsx"
-        ]
-      },
       "priority": 1
     },
     {
       "id": "app-root",
-      "title": "Main App component with routes",
-      "description": "Defines top-level routing (simple client-side route switch). Exposes navigation header and page containers. Uses Suspense for lazy pages.",
       "file_to_implement": "src/App.tsx",
-      "acceptance": [
-        "Renders Header and correct page components based on simple in-memory route (for this scaffold, use a simple router state or window.location hash)",
-        "Uses React.Suspense for page content"
+      "description": "Top-level application component: mounts AppRouter and wraps global ErrorBoundary and SuspenseFallback.",
+      "dependencies": [
+        "src/routes/AppRouter.tsx",
+        "src/components/ErrorBoundary.tsx",
+        "src/components/SuspenseFallback.tsx"
       ],
-      "implementation_steps": [
-        "1. Create a minimal router using window.location.hash or a small useState to simulate route switching (real app could use React Router).",
-        "2. Import pages from src/pages/* and render based on current route ('#/', '#/game', '#/leaderboard', '#/multiplayer', '#/settings', '#/daily').",
-        "3. Place Header component at top and Footer at bottom; wrap page in Suspense with a Spinner fallback.",
-        "4. Ensure all imported page files exist and export default components."
+      "exports": [
+        "App component"
       ],
-      "integration_points": [
-        "Imports Header/Footer from src/shared/components and page components from src/pages/*",
-        "Should be consistent with page file names to allow lazy rendering"
-      ],
-      "prompt_context": {
-        "component_type": "app",
-        "data_model": null,
-        "interactions": [
-          "navigate"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/pages/HomePage.tsx",
-          "src/pages/GamePage.tsx",
-          "src/pages/LeaderboardPage.tsx",
-          "src/pages/MultiplayerPage.tsx",
-          "src/pages/SettingsPage.tsx",
-          "src/pages/DailyChallengePage.tsx",
-          "src/shared/components/Header.tsx",
-          "src/shared/components/Footer.tsx"
-        ]
-      },
       "priority": 1
     },
     {
-      "id": "home-page",
-      "title": "Home Page",
-      "description": "Landing page with new game buttons, difficulty selector, theme preview, and navigation to other pages.",
-      "file_to_implement": "src/pages/HomePage.tsx",
-      "acceptance": [
-        "Displays game start controls and links to other pages",
-        "Uses ThemeSelector and Button components",
-        "Dispatches an action to start game using GameProvider/store"
+      "id": "root-providers",
+      "file_to_implement": "src/providers/RootProviders.tsx",
+      "description": "Composes global providers: React Query QueryClientProvider, AuthProvider, I18nProvider, ThemeProvider and any Toast provider. Exposes QueryClientProvider configured for the app.",
+      "dependencies": [
+        "src/query/queryClient.ts",
+        "src/providers/AuthProvider.tsx",
+        "src/providers/I18nProvider.tsx",
+        "src/providers/ThemeProvider.tsx",
+        "src/hooks/useToast.ts"
       ],
-      "implementation_steps": [
-        "1. Implement a functional component that imports Header, Button, ThemeSelector from shared components and store actions from src/state/store.ts.",
-        "2. Offer difficulty quick-select buttons (4x4, 6x6, 8x8) that call the startGame action with appropriate grid size.",
-        "3. Provide a 'Daily Challenge' and 'Multiplayer' navigation via window.location.hash changes.",
-        "4. Ensure accessibility attributes and keyboard focus are set for key controls."
+      "exports": [
+        "RootProviders component"
       ],
-      "integration_points": [
-        "Reads and calls startGame from src/state/store.ts",
-        "Uses ThemeSelector (src/shared/components/ThemeSelector.tsx) and Button",
-        "Navigation must match App.tsx route handling"
-      ],
-      "prompt_context": {
-        "component_type": "page",
-        "data_model": "game",
-        "interactions": [
-          "create",
-          "navigate"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/state/store.ts",
-          "src/shared/components/Button.tsx",
-          "src/shared/components/ThemeSelector.tsx",
-          "src/shared/components/Header.tsx"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "game-page",
-      "title": "Game Page",
-      "description": "Main game UI: grid of cards, timer, move counter, sound toggle, and victory state. Uses Card and Grid shared components and subscribes to store for game state.",
-      "file_to_implement": "src/pages/GamePage.tsx",
-      "acceptance": [
-        "Renders Grid and Card components for current board",
-        "Shows Timer and MoveCounter components",
-        "Flips cards on click calling store actions",
-        "On victory, calls leaderboardService to submit score"
-      ],
-      "implementation_steps": [
-        "1. Import Grid, Card, Timer, MoveCounter, SoundToggle, Confetti and store actions/selectors from src/state/store.ts.",
-        "2. Subscribe to needed slices (board, flippedCards, matchedCards, timer, moves, currentTheme, difficulty).",
-        "3. Render the grid using Grid component passing gridSize and mapping over store.cardDeck to render Card components with onClick handlers calling flipCard action.",
-        "4. When store.victory flag becomes true, trigger Confetti component and call leaderboardService.submitScore with typed payload.",
-        "5. Use useEffect to start/stop timer via store actions."
-      ],
-      "integration_points": [
-        "Uses src/shared/components/Card.tsx and Grid.tsx",
-        "Reads / writes to src/state/store.ts",
-        "Calls src/services/leaderboardService.ts on victory"
-      ],
-      "prompt_context": {
-        "component_type": "page",
-        "data_model": "game",
-        "interactions": [
-          "view",
-          "update",
-          "submit"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/state/store.ts",
-          "src/shared/components/Grid.tsx",
-          "src/shared/components/Card.tsx",
-          "src/shared/components/Timer.tsx",
-          "src/shared/components/MoveCounter.tsx",
-          "src/shared/components/Confetti.tsx",
-          "src/services/leaderboardService.ts"
-        ]
-      },
       "priority": 1
     },
     {
-      "id": "leaderboard-page",
-      "title": "Leaderboard Page",
-      "description": "Shows high scores from leaderboardService. Supports filters by difficulty and theme, and persistence from API/mock.",
-      "file_to_implement": "src/pages/LeaderboardPage.tsx",
-      "acceptance": [
-        "Fetches leaderboard entries via leaderboardService.getTop",
-        "Renders LeaderboardList component with entries",
-        "Handles loading and error states"
+      "id": "query-client",
+      "file_to_implement": "src/query/queryClient.ts",
+      "description": "Creates and configures the React Query QueryClient with sensible defaults (retry, staleTime), devtools toggling, and error handling hooks.",
+      "dependencies": [],
+      "exports": [
+        "queryClient instance",
+        "QueryClientProvider wrapper utility (if any)"
       ],
-      "implementation_steps": [
-        "1. Implement component that calls leaderboardService.getTop({difficulty, limit}) inside useEffect and manages local loading/error state or use Suspense fallback.",
-        "2. Render LeaderboardList with the received entries.",
-        "3. Provide a refresh button and difficulty filter, calling the service again."
-      ],
-      "integration_points": [
-        "Calls src/services/leaderboardService.ts",
-        "Uses src/shared/components/LeaderboardList.tsx"
-      ],
-      "prompt_context": {
-        "component_type": "page",
-        "data_model": "leaderboard",
-        "interactions": [
-          "view",
-          "filter",
-          "refresh"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/services/leaderboardService.ts",
-          "src/shared/components/LeaderboardList.tsx"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "multiplayer-page",
-      "title": "Multiplayer Page",
-      "description": "Multiplayer lobby and session UI. Connects to WebSocketProvider/multiplayerService to create/join sessions and show turn-based state.",
-      "file_to_implement": "src/pages/MultiplayerPage.tsx",
-      "acceptance": [
-        "Creates or joins a multiplayer session via multiplayerService",
-        "Shows players, turn, and synchronized board",
-        "Handles live updates from WebSocketProvider"
-      ],
-      "implementation_steps": [
-        "1. Render lobby controls to create/join a session with a session code.",
-        "2. Call multiplayerService.createSession / joinSession and subscribe to session updates (service emits events into store or returns an event emitter).",
-        "3. Show player list and current turn and render Grid with board state from store.",
-        "4. Ensure websocket connection handled by WebSocketProvider and multiplayerService uses provider functions."
-      ],
-      "integration_points": [
-        "Depends on src/services/multiplayerService.ts and src/providers/WebSocketProvider.tsx and src/state/store.ts",
-        "Renders shared Grid and Card components"
-      ],
-      "prompt_context": {
-        "component_type": "page",
-        "data_model": "multiplayer-session",
-        "interactions": [
-          "create",
-          "join",
-          "play",
-          "synchronize"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/services/multiplayerService.ts",
-          "src/providers/WebSocketProvider.tsx",
-          "src/state/store.ts",
-          "src/shared/components/Grid.tsx"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "settings-page",
-      "title": "Settings Page",
-      "description": "Settings UI for toggling sound effects, theme, accessibility options (colorblind mode), and persistence settings.",
-      "file_to_implement": "src/pages/SettingsPage.tsx",
-      "acceptance": [
-        "Shows SoundToggle and ThemeSelector components",
-        "Reads/writes settings to store or providers",
-        "Toggles colorblind mode and localStorage persistence flag"
-      ],
-      "implementation_steps": [
-        "1. Import SoundToggle, ThemeSelector, and read/write user settings from store or ThemeProvider and SoundProvider contexts.",
-        "2. Provide toggles for colorblind-friendly mode, haptic feedback, and local persistence.",
-        "3. Persist settings via useLocalStorage hook or store persistence middleware."
-      ],
-      "integration_points": [
-        "Uses ThemeProvider and SoundProvider contexts (src/providers/*) and src/shared/hooks/useLocalStorage.ts",
-        "Writes settings to src/state/store.ts"
-      ],
-      "prompt_context": {
-        "component_type": "page",
-        "data_model": "settings",
-        "interactions": [
-          "update"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/components/SoundToggle.tsx",
-          "src/shared/components/ThemeSelector.tsx",
-          "src/shared/hooks/useLocalStorage.ts",
-          "src/state/store.ts"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "daily-challenge-page",
-      "title": "Daily Challenge Page",
-      "description": "Displays the daily challenge, fetched from dailyChallengeService and can start a special game mode with unique card set.",
-      "file_to_implement": "src/pages/DailyChallengePage.tsx",
-      "acceptance": [
-        "Fetches daily challenge metadata from dailyChallengeService.getToday",
-        "Shows unique card set preview and start button",
-        "Starting the challenge sets store state accordingly"
-      ],
-      "implementation_steps": [
-        "1. Call dailyChallengeService.getToday during mount and show preview: difficulty, theme, seed.",
-        "2. Provide a Start Challenge button that calls startChallenge action in store with challenge payload.",
-        "3. Ensure persistence of challenge progress if user leaves mid-game (store handles persistence)."
-      ],
-      "integration_points": [
-        "Calls src/services/dailyChallengeService.ts and uses src/state/store.ts",
-        "Renders shared components like Card/Grid to preview set"
-      ],
-      "prompt_context": {
-        "component_type": "page",
-        "data_model": "daily-challenge",
-        "interactions": [
-          "view",
-          "start"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/services/dailyChallengeService.ts",
-          "src/state/store.ts",
-          "src/shared/components/Grid.tsx"
-        ]
-      },
-      "priority": 4
-    },
-    {
-      "id": "header-component",
-      "title": "Header Component",
-      "description": "Top navigation bar containing logo, navigation links, theme toggle and quick stats.",
-      "file_to_implement": "src/shared/components/Header.tsx",
-      "acceptance": [
-        "Shows navigation links that update window.location.hash",
-        "Shows ThemeSelector and player summary",
-        "Accessible and responsive"
-      ],
-      "implementation_steps": [
-        "1. Build a header component with logo text, nav links to '#/', '#/game', '#/leaderboard', '#/multiplayer', '#/settings', and '#/daily'.",
-        "2. Import and include ThemeSelector and move counter or small stats from store.",
-        "3. Use Tailwind classes for layout and ensure dark mode support via ThemeProvider context.",
-        "4. Export default Header component."
-      ],
-      "integration_points": [
-        "Used by src/App.tsx and imported in src/main.tsx",
-        "Consumes ThemeProvider (src/providers/ThemeProvider.tsx) for styling modes"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": null,
-        "interactions": [
-          "navigate"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/components/ThemeSelector.tsx",
-          "src/state/store.ts"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "footer-component",
-      "title": "Footer Component",
-      "description": "Simple footer with credits and social sharing for achievements.",
-      "file_to_implement": "src/shared/components/Footer.tsx",
-      "acceptance": [
-        "Renders footer content and social share buttons (share via navigator.share when available)",
-        "Accessible"
-      ],
-      "implementation_steps": [
-        "1. Create functional Footer that displays app name, copyright, and a Share button.",
-        "2. Use navigator.share if available to share current score or achievement link.",
-        "3. Provide fallback link copy to clipboard via navigator.clipboard."
-      ],
-      "integration_points": [
-        "Imported in src/App.tsx",
-        "May call social share utilities in src/utils/accessibility.ts"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": null,
-        "interactions": [
-          "share"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/utils/accessibility.ts"
-        ]
-      },
-      "priority": 4
-    },
-    {
-      "id": "button-component",
-      "title": "Reusable Button component",
-      "description": "Accessible button component used across UI with typed props, optional icon slot and className support.",
-      "file_to_implement": "src/shared/components/Button.tsx",
-      "acceptance": [
-        "Accepts children, onClick, aria-label, className, disabled props",
-        "Applies Tailwind styles and forwards ref",
-        "Used in multiple pages/components"
-      ],
-      "implementation_steps": [
-        "1. Define Props interface {children, onClick, className?, disabled?, ariaLabel?} and forwardRef<HTMLButtonElement>.",
-        "2. Render a <button> with appropriate ARIA attributes and Tailwind utility classes.",
-        "3. Export component as default and named type for props."
-      ],
-      "integration_points": [
-        "Used by many pages and components such as HomePage, Header, SettingsPage",
-        "Ensure import path matches other sections"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": null,
-        "interactions": [
-          "click"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 2
-    },
-    {
-      "id": "card-component",
-      "title": "Card Component (game card)",
-      "description": "Interactive memory game card with flip animation and accessible keyboard support.",
-      "file_to_implement": "src/shared/components/Card.tsx",
-      "acceptance": [
-        "Displays front/back state, animates flip with Framer Motion or CSS transitions",
-        "Supports onClick and keyboard activation (Space to flip)",
-        "Accepts props: id, content (string | SVG), isFlipped, isMatched, onFlip"
-      ],
-      "implementation_steps": [
-        "1. Define CardProps interface based on shared types (src/types/index.ts Card type).",
-        "2. Implement flip animation using CSS transitions or Framer Motion import.",
-        "3. Handle onClick and keyboard handler using useKeyboardShortcuts hook and onKeyDown for Space and Enter.",
-        "4. Render front content (theme asset) and back face with accessible aria attributes."
-      ],
-      "integration_points": [
-        "Used by src/pages/GamePage.tsx and src/shared/components/Grid.tsx",
-        "Depends on src/shared/hooks/useKeyboardShortcuts.ts and src/types/index.ts"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "card",
-        "interactions": [
-          "flip",
-          "match"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/hooks/useKeyboardShortcuts.ts",
-          "src/types/index.ts"
-        ]
-      },
       "priority": 1
     },
     {
-      "id": "grid-component",
-      "title": "Grid Component",
-      "description": "Layout container for card deck. Computes grid template based on gridSize and supports responsive behavior.",
-      "file_to_implement": "src/shared/components/Grid.tsx",
-      "acceptance": [
-        "Arranges children into grid with expected columns and gap",
-        "Adapts layout for mobile (responsive)",
-        "Accepts gridSize prop (e.g., {rows, cols})"
+      "id": "auth-provider",
+      "file_to_implement": "src/providers/AuthProvider.tsx",
+      "description": "Provides authentication context, login/logout methods, token storage and role info. In development mode uses mock users and localStorage persistence. Exposes context for useAuth hook.",
+      "dependencies": [
+        "src/hooks/useLocalStorage.ts",
+        "src/mocks/mockUsers.ts",
+        "src/services/mockServer.ts"
       ],
-      "implementation_steps": [
-        "1. Define props {rows, cols, children, className}.",
-        "2. Use Tailwind dynamic classes to set grid columns (e.g., grid-cols-{cols}) with fallback to style attribute for dynamic values.",
-        "3. Render children within grid container, ensure accessibility and keyboard navigation support (tabIndex rules)."
+      "exports": [
+        "AuthProvider component",
+        "AuthContext (React context)"
       ],
-      "integration_points": [
-        "Used by GamePage to render Card components",
-        "Should match grid sizing logic inside src/state/store.ts"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": null,
-        "interactions": [
-          "layout"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/state/store.ts"
-        ]
-      },
       "priority": 1
     },
     {
-      "id": "timer-component",
-      "title": "Timer Component",
-      "description": "Displays elapsed game time and exposes callbacks to start/pause/reset via store or props.",
-      "file_to_implement": "src/shared/components/Timer.tsx",
-      "acceptance": [
-        "Shows formatted mm:ss elapsed time",
-        "Reads time from store or accepts time prop",
-        "Accessible"
+      "id": "i18n-provider",
+      "file_to_implement": "src/providers/I18nProvider.tsx",
+      "description": "Initializes i18next and provides translation utilities to the app, loads locale files and exposes a Language switcher support.",
+      "dependencies": [
+        "src/i18n/i18n.ts",
+        "src/i18n/locales/en.json",
+        "src/i18n/locales/ko.json"
       ],
-      "implementation_steps": [
-        "1. Accept props {seconds?: number, running?: boolean} with fallback to reading from store.",
-        "2. Format seconds into mm:ss and display.",
-        "3. Subscribe to store timer if props are not provided."
+      "exports": [
+        "I18nProvider component (wraps children)",
+        "useTranslation hook passthrough (if re-exported)"
       ],
-      "integration_points": [
-        "Used in GamePage and reads store (src/state/store.ts) if not passed down",
-        "May use utils/time formatting in src/utils"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "timer",
-        "interactions": [
-          "display"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/state/store.ts"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "move-counter-component",
-      "title": "Move Counter Component",
-      "description": "Displays the number of moves made in current game and optionally best moves.",
-      "file_to_implement": "src/shared/components/MoveCounter.tsx",
-      "acceptance": [
-        "Displays current moves and optionally best/average from player stats",
-        "Reads from store if not passed a prop"
-      ],
-      "implementation_steps": [
-        "1. Build a component that accepts moves?: number and reads from store fallback.",
-        "2. Use small Tailwind badge style and label for accessibility.",
-        "3. Export default component for use in header and game page."
-      ],
-      "integration_points": [
-        "Reads moves from src/state/store.ts",
-        "Used in Header and GamePage"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "moves",
-        "interactions": [
-          "display"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/state/store.ts"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "theme-selector-component",
-      "title": "Theme Selector Component",
-      "description": "List of theme options (animals, emojis, colors, shapes) allowing selection; loads theme metadata from themesService.",
-      "file_to_implement": "src/shared/components/ThemeSelector.tsx",
-      "acceptance": [
-        "Fetches available themes from themesService.getThemes",
-        "Displays preview icons and allows selection",
-        "Updates ThemeProvider context or store"
-      ],
-      "implementation_steps": [
-        "1. Call themesService.getThemes() on mount (supports mock).",
-        "2. Render a list of theme cards (small preview) and a select button for each theme.",
-        "3. When a theme is selected call ThemeProvider.setTheme or store action to set current theme."
-      ],
-      "integration_points": [
-        "Calls src/services/themesService.ts",
-        "Uses src/providers/ThemeProvider.tsx to set theme"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "theme",
-        "interactions": [
-          "select"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/services/themesService.ts",
-          "src/providers/ThemeProvider.tsx"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "sound-toggle",
-      "title": "Sound Toggle Component",
-      "description": "UI control to enable/disable sound effects; uses SoundProvider context.",
-      "file_to_implement": "src/shared/components/SoundToggle.tsx",
-      "acceptance": [
-        "Toggles sound on/off via SoundProvider",
-        "Reflects current state and persists via provider or localStorage"
-      ],
-      "implementation_steps": [
-        "1. Consume SoundProvider context and render a toggle button.",
-        "2. Call SoundProvider.toggleSound when clicked, and show appropriate icon.",
-        "3. Persist selection via provider or useLocalStorage hook."
-      ],
-      "integration_points": [
-        "Uses src/providers/SoundProvider.tsx and src/shared/hooks/useLocalStorage.ts"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "sound",
-        "interactions": [
-          "toggle"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/providers/SoundProvider.tsx",
-          "src/shared/hooks/useLocalStorage.ts"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "leaderboard-list",
-      "title": "LeaderboardList Component",
-      "description": "Presentational list rendering leaderboard entries with avatar, score, and metadata. Allows share and view profiles.",
-      "file_to_implement": "src/shared/components/LeaderboardList.tsx",
-      "acceptance": [
-        "Receives entries array typed from src/types and renders them",
-        "Supports click handlers for share/view (callbacks passed in props)"
-      ],
-      "implementation_steps": [
-        "1. Define props {entries: LeaderboardEntry[], onShare?: (id) => void, onView?: (id) => void}.",
-        "2. Map entries to rows with accessible controls and Tailwind classes.",
-        "3. Provide optional share button that triggers provided callback."
-      ],
-      "integration_points": [
-        "Used by LeaderboardPage which provides entries from src/services/leaderboardService.ts",
-        "Types come from src/types/index.ts"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "leaderboard",
-        "interactions": [
-          "view",
-          "share"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/types/index.ts"
-        ]
-      },
-      "priority": 3
-    },
-    {
-      "id": "achievement-badge",
-      "title": "Achievement Badge Component",
-      "description": "Visual badge showing achievement icon, title and progress; used in achievements feed and during victory.",
-      "file_to_implement": "src/shared/components/AchievementBadge.tsx",
-      "acceptance": [
-        "Displays badge icon and title",
-        "Shows progress (if not complete) and tooltip for description"
-      ],
-      "implementation_steps": [
-        "1. Define props {achievement: Achievement} where type is from src/types.",
-        "2. Render SVG/icon, title, and progress bar or checkmark for completed.",
-        "3. Make accessible (aria-label with description)."
-      ],
-      "integration_points": [
-        "Used by achievements feed and victory modal, data from src/services/achievementsService.ts",
-        "Types from src/types/index.ts"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": "achievement",
-        "interactions": [
-          "display",
-          "share"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/services/achievementsService.ts",
-          "src/types/index.ts"
-        ]
-      },
-      "priority": 4
-    },
-    {
-      "id": "error-boundary-component",
-      "title": "Error Boundary",
-      "description": "React Error Boundary to catch render errors and show a fallback UI with a reload button.",
-      "file_to_implement": "src/shared/components/ErrorBoundary.tsx",
-      "acceptance": [
-        "Catches errors and renders fallback UI",
-        "Provides reload and report options"
-      ],
-      "implementation_steps": [
-        "1. Implement ES6 class component extends React.Component with componentDidCatch and static getDerivedStateFromError.",
-        "2. Render fallback UI when error present, with a button to reload (window.location.reload()).",
-        "3. Export default ErrorBoundary."
-      ],
-      "integration_points": [
-        "Used in src/main.tsx to wrap App",
-        "No external dependencies other than React"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": null,
-        "interactions": [
-          "error-catch"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": []
-      },
-      "priority": 1
-    },
-    {
-      "id": "confetti-component",
-      "title": "Confetti Component",
-      "description": "Renders confetti effect on victory (can use lightweight library API or CSS + canvas). Offers simple API to trigger animation via props.",
-      "file_to_implement": "src/shared/components/Confetti.tsx",
-      "acceptance": [
-        "Plays confetti animation when mounted and accepts a 'play' prop",
-        "Does not block UI and supports dark mode color sets"
-      ],
-      "implementation_steps": [
-        "1. Implement a component that accepts play?: boolean and renders a canvas or animated SVG using a small internal animation library or CSS.",
-        "2. Use useEffect to start/stop animation when play toggles.",
-        "3. Export default Confetti component for use in GamePage on victory."
-      ],
-      "integration_points": [
-        "Triggered by src/pages/GamePage.tsx when store.victory is true",
-        "May be driven by useConfetti hook (src/shared/hooks/useConfetti.ts)"
-      ],
-      "prompt_context": {
-        "component_type": "component",
-        "data_model": null,
-        "interactions": [
-          "play"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/hooks/useConfetti.ts"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "use-local-storage-hook",
-      "title": "useLocalStorage Hook",
-      "description": "Typed hook to persist/retrieve values in localStorage with JSON serialization and optional expiration.",
-      "file_to_implement": "src/shared/hooks/useLocalStorage.ts",
-      "acceptance": [
-        "Provides get/set/remove API and typed return value",
-        "Handles JSON errors and SSR guard (window check)"
-      ],
-      "implementation_steps": [
-        "1. Export functions setItem<T>(key, value), getItem<T>(key, defaultValue?), removeItem(key).",
-        "2. Use try/catch for JSON.parse/stringify and guard if typeof window === 'undefined'.",
-        "3. Provide a React hook useLocalStorage<T>(key, initial) returning [value, setValue, remove]."
-      ],
-      "integration_points": [
-        "Used by providers and store persistence logic (src/providers/* and src/state/store.ts)",
-        "Ensure key naming convention is used (e.g., 'memorygame:v1:settings')"
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": null,
-        "interactions": [
-          "persist"
-        ],
-        "styling_approach": null,
-        "dependencies": []
-      },
-      "priority": 1
-    },
-    {
-      "id": "use-sound-hook",
-      "title": "useSound Hook",
-      "description": "Provides Web Audio API utilities to play sound effects, respecting SoundProvider mute state and volumes.",
-      "file_to_implement": "src/shared/hooks/useSound.ts",
-      "acceptance": [
-        "Plays short sound buffers via Web Audio API",
-        "Respects global mute/volume from SoundProvider context",
-        "Gracefully degrades when audio not supported"
-      ],
-      "implementation_steps": [
-        "1. Export a hook that accepts a sound identifier or AudioBuffer and returns play() and stop() functions.",
-        "2. Use AudioContext lazily created and resume context on first user gesture if needed.",
-        "3. Integrate with SoundProvider by reading current volume and muted state via context."
-      ],
-      "integration_points": [
-        "Used by Card component to play flip and match sounds",
-        "Depends on SoundProvider (src/providers/SoundProvider.tsx)"
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": "sound",
-        "interactions": [
-          "play"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/providers/SoundProvider.tsx"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "use-keyboard-shortcuts",
-      "title": "useKeyboardShortcuts Hook",
-      "description": "Global keyboard shortcuts hook mapping keys to handlers (Space to flip focused card, Arrow keys to navigate).",
-      "file_to_implement": "src/shared/hooks/useKeyboardShortcuts.ts",
-      "acceptance": [
-        "Registers global keydown listeners and respects focused element context",
-        "Exposes register/unregister APIs to components"
-      ],
-      "implementation_steps": [
-        "1. Provide a hook useKeyboardShortcuts() that returns registerShortcut(key, handler) and unregisterShortcut(key).",
-        "2. Internally maintain a Map and attach single window keydown listener.",
-        "3. On key event invoke handler with preventDefault where appropriate and respect input elements to avoid interfering with typing."
-      ],
-      "integration_points": [
-        "Used by Card components and GamePage for keyboard flip and navigation",
-        "Ensure consistent key names with accessibility utils (src/utils/accessibility.ts)"
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": null,
-        "interactions": [
-          "register",
-          "handle"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/utils/accessibility.ts"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "use-confetti-hook",
-      "title": "useConfetti Hook",
-      "description": "Hook to trigger confetti animation imperatively; abstracts Confetti component details.",
-      "file_to_implement": "src/shared/hooks/useConfetti.ts",
-      "acceptance": [
-        "Provides triggerConfetti() function",
-        "Works across pages and multiple triggers without memory leaks"
-      ],
-      "implementation_steps": [
-        "1. Provide useConfetti that returns triggerConfetti(options?).",
-        "2. Use window requestAnimationFrame and create/destroy canvas elements as needed.",
-        "3. Ensure cleanup on unmount."
-      ],
-      "integration_points": [
-        "Used by GamePage when victory occurs and Confetti component",
-        "No external dependencies besides DOM"
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": null,
-        "interactions": [
-          "trigger"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/shared/components/Confetti.tsx"
-        ]
-      },
-      "priority": 4
-    },
-    {
-      "id": "use-responsive-hook",
-      "title": "useResponsive Hook",
-      "description": "Hook returning breakpoint info for responsive components; simplifies layout decisions.",
-      "file_to_implement": "src/shared/hooks/useResponsive.ts",
-      "acceptance": [
-        "Returns isMobile/isTablet/isDesktop booleans",
-        "Subscribes to resize events and updates values efficiently"
-      ],
-      "implementation_steps": [
-        "1. Implement a hook that reads window.innerWidth and memoizes breakpoints.",
-        "2. Add resize listener with debounced update and cleanup on unmount.",
-        "3. Export function for use in components like Grid or Header."
-      ],
-      "integration_points": [
-        "Used by Grid and Header for responsive layout",
-        "No other required imports"
-      ],
-      "prompt_context": {
-        "component_type": "hook",
-        "data_model": null,
-        "interactions": [
-          "read"
-        ],
-        "styling_approach": null,
-        "dependencies": []
-      },
-      "priority": 5
-    },
-    {
-      "id": "types-index",
-      "title": "Shared Type Definitions",
-      "description": "Centralized TypeScript types and interfaces used across the app: ApiResponse, Player, LeaderboardEntry, Achievement, Theme, Card, GameState, GridSize, MultiplayerSession.",
-      "file_to_implement": "src/types/index.ts",
-      "acceptance": [
-        "Exports all types used by components, services, and store",
-        "Types are consistent and imported by other files"
-      ],
-      "implementation_steps": [
-        "1. Define ApiResponse<T> generic with success/ error shape.",
-        "2. Define Player, LeaderboardEntry, Achievement, Theme, Card, GridSize, GameState, MultiplayerSession, Difficulty enums.",
-        "3. Export all types as named exports."
-      ],
-      "integration_points": [
-        "Imported by many components, store, and services (verify other files reference exported type names exactly)"
-      ],
-      "prompt_context": {
-        "component_type": "types",
-        "data_model": null,
-        "interactions": [],
-        "styling_approach": null,
-        "dependencies": []
-      },
-      "priority": 1
-    },
-    {
-      "id": "game-provider",
-      "title": "GameProvider (Context wrapper)",
-      "description": "High-level provider to initialize game lifecycle and expose helper functions. While store is in Zustand, this provider offers lifecycle hooks (start/pause/resume/end) and telemetry hooks (analytics) for child components.",
-      "file_to_implement": "src/providers/GameProvider.tsx",
-      "acceptance": [
-        "Provides a React Context with startGame, pauseGame, resumeGame, endGame functions",
-        "Hooks into Zustand store to call actions",
-        "Used in main.tsx to wrap App"
-      ],
-      "implementation_steps": [
-        "1. Create GameContext with typed interface exposing game lifecycle functions and currentGame metadata.",
-        "2. Implement provider component that uses store actions from src/state/store.ts and exposes functions.",
-        "3. Export useGameContext hook for consumers."
-      ],
-      "integration_points": [
-        "Used by pages to start games (HomePage, DailyChallengePage) and by App wrapper in src/main.tsx",
-        "Calls actions defined in src/state/store.ts"
-      ],
-      "prompt_context": {
-        "component_type": "provider",
-        "data_model": "game",
-        "interactions": [
-          "start",
-          "pause",
-          "end"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/state/store.ts"
-        ]
-      },
       "priority": 1
     },
     {
       "id": "theme-provider",
-      "title": "ThemeProvider",
-      "description": "Context provider exposing current UI theme (light/dark) and selected game theme (animals/emojis/etc). Persists selection using useLocalStorage.",
       "file_to_implement": "src/providers/ThemeProvider.tsx",
-      "acceptance": [
-        "Provides current UI mode (dark/light) and current game theme",
-        "Allows toggling UI mode and selecting game theme",
-        "Persists selection via useLocalStorage"
+      "description": "Manages light/dark mode, persists preference to localStorage and provides CSS class toggling for Tailwind dark mode.",
+      "dependencies": [
+        "src/hooks/useLocalStorage.ts"
       ],
-      "implementation_steps": [
-        "1. Create ThemeContext with {mode, setMode, currentTheme, setTheme}.",
-        "2. Use useLocalStorage to persist mode and currentTheme using keys following convention 'memorygame:v1:theme'.",
-        "3. Wrap children and provide hook useTheme() for consumers."
+      "exports": [
+        "ThemeProvider component",
+        "ThemeContext"
       ],
-      "integration_points": [
-        "Used by Header, ThemeSelector, and Tailwind classes to enable dark mode",
-        "Dependent on useLocalStorage hook"
-      ],
-      "prompt_context": {
-        "component_type": "provider",
-        "data_model": "theme",
-        "interactions": [
-          "toggle",
-          "select"
-        ],
-        "styling_approach": "tailwind",
-        "dependencies": [
-          "src/shared/hooks/useLocalStorage.ts",
-          "src/services/themesService.ts"
-        ]
-      },
       "priority": 1
     },
     {
-      "id": "sound-provider",
-      "title": "SoundProvider",
-      "description": "Context provider managing global sound settings and exposing playSound helper that uses Web Audio API via useSound hook.",
-      "file_to_implement": "src/providers/SoundProvider.tsx",
-      "acceptance": [
-        "Provides muted and volume state and a playSound(identifier) method",
-        "Persists settings via localStorage key 'memorygame:v1:sound'"
+      "id": "i18n-init",
+      "file_to_implement": "src/i18n/i18n.ts",
+      "description": "i18next initialization file: configures languages (en, ko), fallback, and loads resources. Exports i18n instance.",
+      "dependencies": [
+        "src/i18n/locales/en.json",
+        "src/i18n/locales/ko.json"
       ],
-      "implementation_steps": [
-        "1. Create SoundContext and provider component.",
-        "2. Use useLocalStorage to store {muted, volume}.",
-        "3. Provide playSound function which internally uses the shared useSound hook or service to play named effects.",
-        "4. Export useSoundContext for components to call."
+      "exports": [
+        "i18n instance"
       ],
-      "integration_points": [
-        "Used by Card to play flip/match sounds, SoundToggle component, and GamePage",
-        "Depends on src/shared/hooks/useLocalStorage.ts and src/shared/hooks/useSound.ts"
-      ],
-      "prompt_context": {
-        "component_type": "provider",
-        "data_model": "sound",
-        "interactions": [
-          "play",
-          "toggle"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/shared/hooks/useLocalStorage.ts",
-          "src/shared/hooks/useSound.ts"
-        ]
-      },
       "priority": 1
     },
     {
-      "id": "websocket-provider",
-      "title": "WebSocketProvider",
-      "description": "Provides WebSocket connection management for multiplayer; exposes methods for subscribe/unsubscribe and sendMessage. Honors development_mode.disable_websocket_in_dev flag via mock.",
-      "file_to_implement": "src/providers/WebSocketProvider.tsx",
-      "acceptance": [
-        "Establishes WebSocket connection and provides send/subscribe methods",
-        "Uses mock socket when dev flag disables real websockets",
-        "Cleans up connection on unmount"
+      "id": "locale-en",
+      "file_to_implement": "src/i18n/locales/en.json",
+      "description": "English translation strings used across the app.",
+      "dependencies": [],
+      "exports": [
+        "JSON object of English translations"
       ],
-      "implementation_steps": [
-        "1. Create WebSocketContext exposing sendMessage, onMessage (subscribe), readyState, and reconnect function.",
-        "2. On mount, if process.env.USE_MOCK_WS or config indicates mock, create a mock event emitter imported from src/services/mockServer.ts; otherwise create native WebSocket to ws:// endpoint.",
-        "3. Wire incoming messages to subscribers and expose sendMessage that serializes messages.",
-        "4. Export useWebSocket hook for consumers like multiplayerService and MultiplayerPage."
-      ],
-      "integration_points": [
-        "Used by multiplayerService (src/services/multiplayerService.ts) and MultiplayerPage",
-        "Must support same message formats specified in src/types/index.ts MultiplayerSession"
-      ],
-      "prompt_context": {
-        "component_type": "provider",
-        "data_model": "multiplayer-session",
-        "interactions": [
-          "connect",
-          "send",
-          "receive"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/services/mockServer.ts",
-          "src/types/index.ts"
-        ]
-      },
       "priority": 1
     },
     {
-      "id": "state-store",
-      "title": "Zustand Store (global state)",
-      "description": "Zustand store for game state: deck, flips, matched, moves, timer, player stats, settings. Uses middleware for persistence to localStorage and typed actions.",
-      "file_to_implement": "src/state/store.ts",
-      "acceptance": [
-        "Exports typed hooks to select and act (useGameStore for actions/selectors)",
-        "Persists critical slices (settings, bestScores, lastGame) using useLocalStorage convention",
-        "Provides actions: startGame, flipCard, endGame, resetGame, startTimer, stopTimer"
+      "id": "locale-ko",
+      "file_to_implement": "src/i18n/locales/ko.json",
+      "description": "Korean translation strings used across the app (must cover keys used in UI).",
+      "dependencies": [],
+      "exports": [
+        "JSON object of Korean translations"
       ],
-      "implementation_steps": [
-        "1. Define GameState interface using types from src/types/index.ts.",
-        "2. Create Zustand store with initial state, actions, and subscribe middleware to persist to localStorage key 'memorygame:v1:store'.",
-        "3. Implement startGame which builds deck using themesService and utils/shuffle, setting timer/moves to zero.",
-        "4. Implement flipCard to flip card and check matches; update matchedCards and moves; determine victory and set victory flag.",
-        "5. Export useGameStore hook for components to consume typed selectors and actions."
-      ],
-      "integration_points": [
-        "Used by GamePage, HomePage, GameProvider and other components",
-        "Calls services/themesService.ts and utils/shuffle.ts"
-      ],
-      "prompt_context": {
-        "component_type": "state",
-        "data_model": "game",
-        "interactions": [
-          "start",
-          "flip",
-          "end",
-          "persist"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/types/index.ts",
-          "src/services/themesService.ts",
-          "src/utils/shuffle.ts",
-          "src/shared/hooks/useLocalStorage.ts"
-        ]
-      },
       "priority": 1
     },
     {
       "id": "api-client",
-      "title": "Central API client",
-      "description": "Typed wrapper around fetch with centralized error handling, API patterns for GET/POST/PUT/DELETE and integration with mockServer in dev mode.",
       "file_to_implement": "src/services/apiClient.ts",
-      "acceptance": [
-        "Exports typed get/post methods returning ApiResponse<T>",
-        "Routes to mockServer when development_mode.enable_mock_data flag is set",
-        "Implements timeout and common error handling"
+      "description": "Single HTTP client wrapper for fetch/axios that adds auth token, baseUrl switching (real vs dev mock), error normalization and fallback handling when backend unavailable.",
+      "dependencies": [
+        "src/providers/AuthProvider.tsx",
+        "src/services/mockServer.ts"
       ],
-      "implementation_steps": [
-        "1. Define ApiError and ApiResponse<T> types (or import from types) and implement helper handleResponse(resp).",
-        "2. Provide exported functions get<T>(path, params?), post<T>(path, body), put<T>(), del<T>().",
-        "3. Read a global config constant enableMock from import or process.env (use a local const set by mockServer config in mockServer.ts) and when true call into mockServer.request(path, method, payload) instead of fetch.",
-        "4. Implement default headers and JSON body handling and throw structured errors for consumers."
+      "exports": [
+        "apiClient instance (get/post/put/delete helper functions)"
       ],
-      "integration_points": [
-        "Used by all services: leaderboardService, achievementsService, themesService, dailyChallengeService, playerStatsService, multiplayerService when hitting REST endpoints",
-        "Must import mock flag from src/services/mockServer.ts"
-      ],
-      "prompt_context": {
-        "component_type": "service",
-        "data_model": null,
-        "interactions": [
-          "request"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/services/mockServer.ts",
-          "src/types/index.ts"
-        ]
-      },
       "priority": 1
     },
     {
       "id": "mock-server",
-      "title": "Mock Server (development)",
-      "description": "Client-side mock implementations for REST endpoints and a lightweight in-memory WebSocket emulator. Enabled when development_mode.enable_mock_data is true.",
       "file_to_implement": "src/services/mockServer.ts",
-      "acceptance": [
-        "Implements endpoints: /api/leaderboard, /api/achievements, /api/daily-challenge, /api/player-stats, /api/themes, /api/multiplayer-session",
-        "Exports request(path, method, payload) used by apiClient when mock mode is active",
-        "Exports a createMockWebSocket() factory for WebSocketProvider when real ws disabled"
+      "description": "In-development mock server that registers route handlers for all API endpoints, returns data from local JSON mocks, enforces basic auth checks and supports REST semantics. Starts automatically in dev mode when imported.",
+      "dependencies": [
+        "src/mocks/mockUsers.ts",
+        "src/mocks/appointments.json",
+        "src/mocks/medicalRecords.json",
+        "src/mocks/prescriptions.json",
+        "src/mocks/labResults.json",
+        "src/mocks/insurance.json",
+        "src/mocks/medications.json"
       ],
-      "implementation_steps": [
-        "1. Implement an in-memory data store seeded with development_mode.mock_auth_users and default leaderboard/achievements/themes.",
-        "2. Export a request function that returns Promise<ApiResponse<T>> for each path and handles route logic (GET/POST).",
-        "3. Implement simple mock WebSocket emitter createMockWebSocket() that mimics send and onmessage registration.",
-        "4. Export const ENABLE_MOCK = true to be consumed by apiClient and WebSocketProvider."
+      "exports": [
+        "startMockServer() function (maybe auto-start)",
+        "mockHandlers export for testing"
       ],
-      "integration_points": [
-        "apiClient will import ENABLE_MOCK and use request to get mock responses",
-        "WebSocketProvider imports createMockWebSocket for mock ws in dev"
-      ],
-      "prompt_context": {
-        "component_type": "service",
-        "data_model": null,
-        "interactions": [
-          "respond"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/types/index.ts"
-        ]
-      },
       "priority": 1
     },
     {
-      "id": "leaderboard-service",
-      "title": "Leaderboard Service",
-      "description": "Service that fetches and submits leaderboard entries using apiClient. Exposes getTop and submitScore.",
-      "file_to_implement": "src/services/leaderboardService.ts",
-      "acceptance": [
-        "getTop returns typed LeaderboardEntry[]",
-        "submitScore posts to /api/leaderboard and returns updated entry or success",
-        "Works in mock and real modes via apiClient"
+      "id": "mock-websocket",
+      "file_to_implement": "src/services/mockWebsocket.ts",
+      "description": "Simulates WebSocket events for real-time features in development mode (appointment status updates, lab result ready notifications, medication reminders). Provides an API to subscribe/unsubscribe.",
+      "dependencies": [
+        "src/mocks/appointments.json"
       ],
-      "implementation_steps": [
-        "1. Implement getTop({difficulty, limit}) that calls apiClient.get('/api/leaderboard?difficulty=...').",
-        "2. Implement submitScore(entry) that posts to /api/leaderboard and returns the server-confirmed record.",
-        "3. Use types LeaderboardEntry from src/types/index.ts and export the functions."
+      "exports": [
+        "MockWebsocket class or createMockWebsocket() factory",
+        "startMockWebsocket() utility"
       ],
-      "integration_points": [
-        "Called by GamePage on victory and LeaderboardPage to display results",
-        "Relies on apiClient and mockServer in dev"
-      ],
-      "prompt_context": {
-        "component_type": "service",
-        "data_model": "leaderboard",
-        "interactions": [
-          "fetch",
-          "submit"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/services/apiClient.ts",
-          "src/types/index.ts"
-        ]
-      },
       "priority": 1
     },
     {
-      "id": "achievements-service",
-      "title": "Achievements Service",
-      "description": "Service to fetch and update user achievements; used to award badges on milestones.",
-      "file_to_implement": "src/services/achievementsService.ts",
-      "acceptance": [
-        "getAchievements returns Achievement[]",
-        "awardAchievement posts to /api/achievements and can be called by store/actions on milestone"
+      "id": "websocket-abstraction",
+      "file_to_implement": "src/services/websocket.ts",
+      "description": "Production WebSocket wrapper which in dev delegates to mockWebsocket. Exposes connect, subscribe, send. Provides fallback behavior and reconnection policy.",
+      "dependencies": [
+        "src/services/mockWebsocket.ts"
       ],
-      "implementation_steps": [
-        "1. Implement getAchievements(playerId?) which calls apiClient.get('/api/achievements').",
-        "2. Implement awardAchievement(playerId, achievementId) that posts to /api/achievements.",
-        "3. Export typed functions using types from src/types/index.ts."
+      "exports": [
+        "createWebsocketClient()"
       ],
-      "integration_points": [
-        "Called by store when players reach milestones and by Achievements display components",
-        "Uses apiClient"
+      "priority": 1
+    },
+    {
+      "id": "mock-users",
+      "file_to_implement": "src/mocks/mockUsers.ts",
+      "description": "Defines mock user accounts and helper functions to validate credentials in development mode. Matches dev config (doctor, patient, nurse).",
+      "dependencies": [],
+      "exports": [
+        "mockUsers array",
+        "validateMockCredentials(email, password)"
       ],
-      "prompt_context": {
-        "component_type": "service",
-        "data_model": "achievement",
-        "interactions": [
-          "fetch",
-          "award"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/services/apiClient.ts",
-          "src/types/index.ts"
-        ]
-      },
+      "priority": 1
+    },
+    {
+      "id": "mock-appointments",
+      "file_to_implement": "src/mocks/appointments.json",
+      "description": "Mock data for /api/appointments endpoint used by mockServer.",
+      "dependencies": [],
+      "exports": [
+        "JSON data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-medical-records",
+      "file_to_implement": "src/mocks/medicalRecords.json",
+      "description": "Mock data for /api/medical-records endpoint.",
+      "dependencies": [],
+      "exports": [
+        "JSON data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-prescriptions",
+      "file_to_implement": "src/mocks/prescriptions.json",
+      "description": "Mock data for /api/prescriptions endpoint.",
+      "dependencies": [],
+      "exports": [
+        "JSON data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-lab-results",
+      "file_to_implement": "src/mocks/labResults.json",
+      "description": "Mock lab results data for /api/lab-results.",
+      "dependencies": [],
+      "exports": [
+        "JSON data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-insurance",
+      "file_to_implement": "src/mocks/insurance.json",
+      "description": "Mock data for /api/insurance endpoint.",
+      "dependencies": [],
+      "exports": [
+        "JSON data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-medications",
+      "file_to_implement": "src/mocks/medications.json",
+      "description": "Mock data for /api/medications endpoint and medication reminders.",
+      "dependencies": [],
+      "exports": [
+        "JSON data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "use-localstorage",
+      "file_to_implement": "src/hooks/useLocalStorage.ts",
+      "description": "Small utility hook to read/write typed values to localStorage with SSR-safe checks. Used by AuthProvider and ThemeProvider.",
+      "dependencies": [],
+      "exports": [
+        "useLocalStorage hook"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "use-auth-hook",
+      "file_to_implement": "src/hooks/useAuth.ts",
+      "description": "Hook that consumes AuthContext to expose currentUser, isAuthenticated, login, logout, and helper methods. Used by ProtectedRoute and feature hooks.",
+      "dependencies": [
+        "src/providers/AuthProvider.tsx"
+      ],
+      "exports": [
+        "useAuth hook"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "use-toast",
+      "file_to_implement": "src/hooks/useToast.ts",
+      "description": "Small cross-app toast/notification hook used by services and providers to show non-blocking messages (e.g., network errors, reminders).",
+      "dependencies": [],
+      "exports": [
+        "useToast hook",
+        "ToastProvider (if included)"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "format-date-util",
+      "file_to_implement": "src/utils/formatDate.ts",
+      "description": "Utility to format dates consistently across the app and handle timezone basics.",
+      "dependencies": [],
+      "exports": [
+        "formatDate()"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "validators",
+      "file_to_implement": "src/utils/validators.ts",
+      "description": "Reusable validation functions or Zod schemas for forms (appointments, prescriptions, login).",
+      "dependencies": [],
+      "exports": [
+        "validators / zod schemas"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "error-boundary",
+      "file_to_implement": "src/components/ErrorBoundary.tsx",
+      "description": "Global React ErrorBoundary component to catch render errors and display a friendly fallback with retry.",
+      "dependencies": [
+        "src/components/LoadingSpinner.tsx"
+      ],
+      "exports": [
+        "ErrorBoundary component"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "suspense-fallback",
+      "file_to_implement": "src/components/SuspenseFallback.tsx",
+      "description": "UI shown while Suspense boundaries are pending; used by App and pages.",
+      "dependencies": [
+        "src/components/LoadingSpinner.tsx"
+      ],
+      "exports": [
+        "SuspenseFallback component"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "loading-spinner",
+      "file_to_implement": "src/components/ui/LoadingSpinner.tsx",
+      "description": "Small accessible loading spinner used across the app.",
+      "dependencies": [],
+      "exports": [
+        "LoadingSpinner component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "button-component",
+      "file_to_implement": "src/components/ui/Button.tsx",
+      "description": "Accessible primary button with Tailwind styles, supports variants (primary/secondary), loading state and icon slots.",
+      "dependencies": [],
+      "exports": [
+        "Button component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "input-component",
+      "file_to_implement": "src/components/ui/Input.tsx",
+      "description": "Accessible input and textarea wrappers with label, error display and Tailwind styling for forms.",
+      "dependencies": [],
+      "exports": [
+        "Input component",
+        "Textarea component (if included)"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "modal-component",
+      "file_to_implement": "src/components/ui/Modal.tsx",
+      "description": "Reusable modal dialog component with focus trap, aria attributes and keyboard handling.",
+      "dependencies": [
+        "src/components/ui/Button.tsx"
+      ],
+      "exports": [
+        "Modal component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "card-component",
+      "file_to_implement": "src/components/ui/Card.tsx",
+      "description": "Simple card container used for dashboard metric cards and record cards.",
+      "dependencies": [],
+      "exports": [
+        "Card component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "table-component",
+      "file_to_implement": "src/components/ui/Table.tsx",
+      "description": "Accessible table abstraction used for lists (appointments, lab results) including keyboard navigation support.",
+      "dependencies": [],
+      "exports": [
+        "Table component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "empty-state",
+      "file_to_implement": "src/components/ui/EmptyState.tsx",
+      "description": "Fallback UI to show when lists are empty (with action CTA support).",
+      "dependencies": [
+        "src/components/ui/Button.tsx"
+      ],
+      "exports": [
+        "EmptyState component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "avatar",
+      "file_to_implement": "src/components/ui/Avatar.tsx",
+      "description": "Small avatar component for user pictures/initials used in the header.",
+      "dependencies": [],
+      "exports": [
+        "Avatar component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "header",
+      "file_to_implement": "src/components/nav/Header.tsx",
+      "description": "Top header bar with app title, language switch, user menu and quick actions. Consumes AuthContext.",
+      "dependencies": [
+        "src/hooks/useAuth.ts",
+        "src/components/ui/Avatar.tsx",
+        "src/providers/I18nProvider.tsx"
+      ],
+      "exports": [
+        "Header component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "sidebar",
+      "file_to_implement": "src/components/nav/Sidebar.tsx",
+      "description": "Primary navigation sidebar with links to features (Dashboard, Appointments, Records, Prescriptions, Telemedicine, Lab Results, Insurance, Medications, Settings). Responsive collapse behavior.",
+      "dependencies": [
+        "src/routes/AppRouter.tsx"
+      ],
+      "exports": [
+        "Sidebar component",
+        "Nav link items"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "footer",
+      "file_to_implement": "src/components/nav/Footer.tsx",
+      "description": "Application footer with lightweight links and legal info.",
+      "dependencies": [],
+      "exports": [
+        "Footer component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "main-layout",
+      "file_to_implement": "src/components/Layouts/MainLayout.tsx",
+      "description": "Main app layout used for authenticated sections: includes Header, Sidebar and a content area. Implements responsive design and ARIA landmarks.",
+      "dependencies": [
+        "src/components/nav/Header.tsx",
+        "src/components/nav/Sidebar.tsx",
+        "src/components/nav/Footer.tsx"
+      ],
+      "exports": [
+        "MainLayout component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "auth-layout",
+      "file_to_implement": "src/components/Layouts/AuthLayout.tsx",
+      "description": "Layout for auth pages (login) centered with branding and accessible form container.",
+      "dependencies": [
+        "src/components/ui/Card.tsx"
+      ],
+      "exports": [
+        "AuthLayout component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "protected-route",
+      "file_to_implement": "src/routes/ProtectedRoute.tsx",
+      "description": "Route wrapper that checks authentication and optionally role-based access. Redirects to login if unauthenticated.",
+      "dependencies": [
+        "src/hooks/useAuth.ts",
+        "src/pages/LoginPage.tsx"
+      ],
+      "exports": [
+        "ProtectedRoute component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "app-router",
+      "file_to_implement": "src/routes/AppRouter.tsx",
+      "description": "React Router v6 configuration for all app routes. Sets up lazy-loaded pages with Suspense and integrates ProtectedRoute for guarded routes.",
+      "dependencies": [
+        "src/pages/LoginPage.tsx",
+        "src/pages/NotFoundPage.tsx",
+        "src/features/dashboard/DashboardPage.tsx",
+        "src/features/appointments/AppointmentPage.tsx",
+        "src/features/appointments/AppointmentDetailPage.tsx",
+        "src/features/medicalRecords/MedicalRecordsPage.tsx",
+        "src/features/prescriptions/PrescriptionsPage.tsx",
+        "src/features/telemedicine/TelemedicinePage.tsx",
+        "src/features/labResults/LabResultsPage.tsx",
+        "src/features/insurance/InsurancePage.tsx"
+      ],
+      "exports": [
+        "AppRouter component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "appointments-api",
+      "file_to_implement": "src/services/endpoints/appointments.api.ts",
+      "description": "Feature API client for appointments: fetch list, fetch details, create, update, cancel. Uses apiClient under the hood.",
+      "dependencies": [
+        "src/services/apiClient.ts"
+      ],
+      "exports": [
+        "appointmentsApi object with CRUD methods",
+        "appointment query keys helper"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "medical-records-api",
+      "file_to_implement": "src/services/endpoints/medicalRecords.api.ts",
+      "description": "API client for medical records related endpoints (list, view record PDF/details).",
+      "dependencies": [
+        "src/services/apiClient.ts"
+      ],
+      "exports": [
+        "medicalRecordsApi object"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "prescriptions-api",
+      "file_to_implement": "src/services/endpoints/prescriptions.api.ts",
+      "description": "API client for prescriptions endpoints: list, request refill, mark as fulfilled.",
+      "dependencies": [
+        "src/services/apiClient.ts"
+      ],
+      "exports": [
+        "prescriptionsApi object"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "lab-results-api",
+      "file_to_implement": "src/services/endpoints/labResults.api.ts",
+      "description": "API client for lab results endpoints: fetch results, fetch details and attachments.",
+      "dependencies": [
+        "src/services/apiClient.ts"
+      ],
+      "exports": [
+        "labResultsApi object"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "insurance-api",
+      "file_to_implement": "src/services/endpoints/insurance.api.ts",
+      "description": "API client for insurance claim tracking endpoints: list claims, fetch claim detail, submit claim.",
+      "dependencies": [
+        "src/services/apiClient.ts"
+      ],
+      "exports": [
+        "insuranceApi object"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "medications-api",
+      "file_to_implement": "src/services/endpoints/medications.api.ts",
+      "description": "API client for medications and medication reminders.",
+      "dependencies": [
+        "src/services/apiClient.ts"
+      ],
+      "exports": [
+        "medicationsApi object"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "use-appointments-hook",
+      "file_to_implement": "src/hooks/useAppointments.ts",
+      "description": "React Query hooks and helpers for appointments (useAppointments, useAppointment). Uses appointments.api and provides optimistic updates and invalidation helpers.",
+      "dependencies": [
+        "src/services/endpoints/appointments.api.ts",
+        "src/query/queryClient.ts"
+      ],
+      "exports": [
+        "useAppointments hook",
+        "useAppointment hook"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-medical-records-hook",
+      "file_to_implement": "src/hooks/useMedicalRecords.ts",
+      "description": "React Query hooks for medical records listing and record viewing.",
+      "dependencies": [
+        "src/services/endpoints/medicalRecords.api.ts"
+      ],
+      "exports": [
+        "useMedicalRecords hook",
+        "useMedicalRecord hook"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-prescriptions-hook",
+      "file_to_implement": "src/hooks/usePrescriptions.ts",
+      "description": "Hooks to fetch and mutate prescriptions data via React Query.",
+      "dependencies": [
+        "src/services/endpoints/prescriptions.api.ts"
+      ],
+      "exports": [
+        "usePrescriptions hook"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-lab-results-hook",
+      "file_to_implement": "src/hooks/useLabResults.ts",
+      "description": "Hooks for fetching lab results and subscribing to real-time updates (integrates websocket for 'new result' notifications).",
+      "dependencies": [
+        "src/services/endpoints/labResults.api.ts",
+        "src/services/websocket.ts"
+      ],
+      "exports": [
+        "useLabResults hook"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-insurance-hook",
+      "file_to_implement": "src/hooks/useInsurance.ts",
+      "description": "Hooks to fetch insurance claims and submit new claims.",
+      "dependencies": [
+        "src/services/endpoints/insurance.api.ts"
+      ],
+      "exports": [
+        "useInsurance hook"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-medications-hook",
+      "file_to_implement": "src/hooks/useMedications.ts",
+      "description": "Hooks to fetch medications and schedule reminders; integrates local persistence for reminders in dev.",
+      "dependencies": [
+        "src/services/endpoints/medications.api.ts",
+        "src/hooks/useLocalStorage.ts"
+      ],
+      "exports": [
+        "useMedications hook"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "appointments-list-component",
+      "file_to_implement": "src/features/appointments/AppointmentList.tsx",
+      "description": "Component that renders a list/table of appointments using useAppointments and Table component. Supports filtering and keyboard navigation.",
+      "dependencies": [
+        "src/hooks/useAppointments.ts",
+        "src/components/ui/Table.tsx",
+        "src/components/ui/EmptyState.tsx"
+      ],
+      "exports": [
+        "AppointmentList component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "appointment-card",
+      "file_to_implement": "src/features/appointments/AppointmentCard.tsx",
+      "description": "Presentational card showing appointment summary for dashboards and lists.",
+      "dependencies": [
+        "src/utils/formatDate.ts",
+        "src/components/ui/Card.tsx"
+      ],
+      "exports": [
+        "AppointmentCard component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "appointment-form",
+      "file_to_implement": "src/features/appointments/AppointmentForm.tsx",
+      "description": "Form to create or update appointment. Uses React Hook Form + validators and shows validation errors. On submit calls appointments API via useAppointments hook mutation.",
+      "dependencies": [
+        "src/components/ui/Input.tsx",
+        "src/components/ui/Button.tsx",
+        "src/utils/validators.ts",
+        "src/hooks/useAppointments.ts"
+      ],
+      "exports": [
+        "AppointmentForm component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "appointment-page",
+      "file_to_implement": "src/features/appointments/AppointmentPage.tsx",
+      "description": "Page component listing appointments (uses MainLayout). Provides create appointment modal and links to details.",
+      "dependencies": [
+        "src/components/Layouts/MainLayout.tsx",
+        "src/features/appointments/AppointmentList.tsx",
+        "src/features/appointments/AppointmentForm.tsx",
+        "src/hooks/useAuth.ts"
+      ],
+      "exports": [
+        "AppointmentPage (page component)"
+      ],
       "priority": 3
     },
     {
-      "id": "themes-service",
-      "title": "Themes Service",
-      "description": "Service to provide theme assets and metadata (animals, emojis, colors, shapes). In mock mode returns local theme sets.",
-      "file_to_implement": "src/services/themesService.ts",
-      "acceptance": [
-        "getThemes returns Theme[]",
-        "getThemeAssets(themeId) returns array of assets used to build card faces",
-        "Used by store to build decks"
+      "id": "appointment-detail-page",
+      "file_to_implement": "src/features/appointments/AppointmentDetailPage.tsx",
+      "description": "Detail page for a single appointment with actions (reschedule, cancel), integrates video call action for telemedicine appointments.",
+      "dependencies": [
+        "src/components/Layouts/MainLayout.tsx",
+        "src/hooks/useAppointments.ts",
+        "src/features/telemedicine/VideoCallPlaceholder.tsx"
       ],
-      "implementation_steps": [
-        "1. Implement getThemes() that calls apiClient.get('/api/themes') and returns array of Theme types.",
-        "2. Implement getThemeAssets(themeId, pairCount) that returns an array of assets sized for board.",
-        "3. Export functions for store and ThemeSelector to consume."
+      "exports": [
+        "AppointmentDetailPage (page component)"
       ],
-      "integration_points": [
-        "Used by store.startGame to generate card deck, and ThemeSelector to list themes",
-        "Relies on apiClient / mockServer"
-      ],
-      "prompt_context": {
-        "component_type": "service",
-        "data_model": "theme",
-        "interactions": [
-          "fetch",
-          "provide-assets"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/services/apiClient.ts",
-          "src/types/index.ts"
-        ]
-      },
-      "priority": 2
-    },
-    {
-      "id": "daily-challenge-service",
-      "title": "Daily Challenge Service",
-      "description": "Provides the daily challenge payload (seed, theme, difficulty) and tracks if player completed today's challenge.",
-      "file_to_implement": "src/services/dailyChallengeService.ts",
-      "acceptance": [
-        "getToday returns today's challenge metadata",
-        "getChallengeDeck(seed) returns deterministic deck for seed"
-      ],
-      "implementation_steps": [
-        "1. Implement getToday() calling apiClient.get('/api/daily-challenge').",
-        "2. Implement getChallengeDeck(seed, difficulty) that uses deterministic shuffle (e.g., seeded RNG) and themesService.getThemeAssets.",
-        "3. Export functions for DailyChallengePage and store.startChallenge to use."
-      ],
-      "integration_points": [
-        "Uses themesService and utils/shuffle (seeded version in utils/shuffle.ts)",
-        "Called by DailyChallengePage and store"
-      ],
-      "prompt_context": {
-        "component_type": "service",
-        "data_model": "daily-challenge",
-        "interactions": [
-          "fetch",
-          "generate"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/services/apiClient.ts",
-          "src/services/themesService.ts",
-          "src/utils/shuffle.ts"
-        ]
-      },
       "priority": 3
     },
     {
-      "id": "multiplayer-service",
-      "title": "Multiplayer Service",
-      "description": "High-level multiplayer operations: create/join session, send move, receive updates. Integrates with WebSocketProvider for real-time messages.",
-      "file_to_implement": "src/services/multiplayerService.ts",
-      "acceptance": [
-        "createSession and joinSession functions for starting/connecting to sessions",
-        "sendMove serializes action and dispatches via WebSocketProvider.sendMessage",
-        "Listens for server messages and updates store accordingly"
+      "id": "medical-records-page",
+      "file_to_implement": "src/features/medicalRecords/MedicalRecordsPage.tsx",
+      "description": "Page to browse and view medical records. Uses RecordViewer component to display record details and attachments.",
+      "dependencies": [
+        "src/components/Layouts/MainLayout.tsx",
+        "src/hooks/useMedicalRecords.ts",
+        "src/features/medicalRecords/RecordViewer.tsx"
       ],
-      "implementation_steps": [
-        "1. Implement createSession(payload) that calls apiClient.post('/api/multiplayer-session') in REST mode or sends WS 'create' message via WebSocketProvider.",
-        "2. Implement joinSession(sessionCode) that subscribes to WebSocket messages for that session and maps incoming events to store actions.",
-        "3. Expose sendMove(sessionId, move) to transmit player flips and actions.",
-        "4. Ensure proper type mapping with src/types MultiplayerSession."
+      "exports": [
+        "MedicalRecordsPage"
       ],
-      "integration_points": [
-        "Uses WebSocketProvider (src/providers/WebSocketProvider.tsx), store (src/state/store.ts), apiClient for REST fallback",
-        "Used by MultiplayerPage"
+      "priority": 3
+    },
+    {
+      "id": "record-viewer",
+      "file_to_implement": "src/features/medicalRecords/RecordViewer.tsx",
+      "description": "Component to render a single medical record (structured info, attachments, printable view).",
+      "dependencies": [],
+      "exports": [
+        "RecordViewer component"
       ],
-      "prompt_context": {
-        "component_type": "service",
-        "data_model": "multiplayer-session",
-        "interactions": [
-          "create",
-          "join",
-          "send"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/providers/WebSocketProvider.tsx",
-          "src/services/apiClient.ts",
-          "src/types/index.ts",
-          "src/state/store.ts"
-        ]
-      },
       "priority": 2
     },
     {
-      "id": "player-stats-service",
-      "title": "Player Stats Service",
-      "description": "Fetches and aggregates player stats: best scores, averages, streaks. Used for achievements and profile.",
-      "file_to_implement": "src/services/playerStatsService.ts",
-      "acceptance": [
-        "getPlayerStats(playerId) returns typed PlayerStats",
-        "Used by settings or profile areas to display aggregated metrics"
+      "id": "prescriptions-page",
+      "file_to_implement": "src/features/prescriptions/PrescriptionsPage.tsx",
+      "description": "Page listing current and past prescriptions; allows requesting refills via PrescriptionForm.",
+      "dependencies": [
+        "src/components/Layouts/MainLayout.tsx",
+        "src/hooks/usePrescriptions.ts",
+        "src/features/prescriptions/PrescriptionForm.tsx"
       ],
-      "implementation_steps": [
-        "1. Implement getPlayerStats(playerId) calling apiClient.get('/api/player-stats?playerId=...').",
-        "2. Implement updateStats on game end to POST stats summary.",
-        "3. Export typed functions for store to use on endGame."
+      "exports": [
+        "PrescriptionsPage"
       ],
-      "integration_points": [
-        "Called by store endGame to update backend and achievementsService",
-        "Uses apiClient"
-      ],
-      "prompt_context": {
-        "component_type": "service",
-        "data_model": "player-stats",
-        "interactions": [
-          "fetch",
-          "update"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/services/apiClient.ts",
-          "src/types/index.ts"
-        ]
-      },
-      "priority": 4
+      "priority": 3
     },
     {
-      "id": "shuffle-util",
-      "title": "Shuffle Utility",
-      "description": "Utility to shuffle arrays with optional seeded RNG and deterministic output for daily challenges.",
-      "file_to_implement": "src/utils/shuffle.ts",
-      "acceptance": [
-        "Exports shuffle<T>(array) and seededShuffle<T>(array, seed)",
-        "Deterministic seeded shuffle across platforms (JS) for given seed"
+      "id": "prescription-form",
+      "file_to_implement": "src/features/prescriptions/PrescriptionForm.tsx",
+      "description": "Form used to request a refill or create a prescription order; includes validation and confirmation flow.",
+      "dependencies": [
+        "src/components/ui/Input.tsx",
+        "src/components/ui/Button.tsx",
+        "src/utils/validators.ts"
       ],
-      "implementation_steps": [
-        "1. Implement Fisher-Yates shuffle for shuffle(array).",
-        "2. Implement seededShuffle using a simple seeded PRNG (e.g., mulberry32 or xorshift) and perform Fisher-Yates with that RNG.",
-        "3. Export both functions and document usage."
+      "exports": [
+        "PrescriptionForm component"
       ],
-      "integration_points": [
-        "Used by store.startGame and dailyChallengeService.getChallengeDeck",
-        "Imported by other files that generate decks"
-      ],
-      "prompt_context": {
-        "component_type": "util",
-        "data_model": null,
-        "interactions": [
-          "shuffle"
-        ],
-        "styling_approach": null,
-        "dependencies": []
-      },
-      "priority": 1
-    },
-    {
-      "id": "score-calculator-util",
-      "title": "Score Calculator",
-      "description": "Calculate final score based on moves, time, difficulty, streaks and multipliers. Used on game end to compute leaderboard score and achievements.",
-      "file_to_implement": "src/utils/scoreCalculator.ts",
-      "acceptance": [
-        "Exports function calculateScore({moves, seconds, difficulty, streakBonus, comboMultiplier}) returning numeric score",
-        "Used by store when ending game and by leaderboardService.submitScore to send final score"
-      ],
-      "implementation_steps": [
-        "1. Implement formula factoring difficulty base multiplier, time penalty, move penalty, streak bonuses and combo multipliers.",
-        "2. Export calculateScore function and a helper formatScore for display.",
-        "3. Add unit-friendly behavior (clamp to minimum 0) and TypeScript types."
-      ],
-      "integration_points": [
-        "Used by src/state/store.ts when resolving victory and by services submitting to leaderboard",
-        "Consistent with evaluation_criteria for score accuracy"
-      ],
-      "prompt_context": {
-        "component_type": "util",
-        "data_model": "score",
-        "interactions": [
-          "compute"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/types/index.ts"
-        ]
-      },
-      "priority": 1
-    },
-    {
-      "id": "persistence-util",
-      "title": "Persistence Utilities",
-      "description": "Utility helpers for key conventions and migration helpers for persisted data in localStorage.",
-      "file_to_implement": "src/utils/persistence.ts",
-      "acceptance": [
-        "Exports function makeKey(scope, name) returning stable localStorage key",
-        "Exports migrateIfNeeded(previousVersion, currentVersion, transformFn) to allow persisted data migration"
-      ],
-      "implementation_steps": [
-        "1. Implement makeKey(scope, name) to return 'memorygame:v1:${scope}:${name}' pattern.",
-        "2. Implement a simple migration helper that accepts storedValue and transforms when schemaVersion differs.",
-        "3. Use this method in store persistence and providers when writing keys."
-      ],
-      "integration_points": [
-        "Used by useLocalStorage hook and store persistence middleware to ensure consistent keys",
-        "Referenced by providers to store settings"
-      ],
-      "prompt_context": {
-        "component_type": "util",
-        "data_model": null,
-        "interactions": [
-          "persist"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/shared/hooks/useLocalStorage.ts"
-        ]
-      },
-      "priority": 4
-    },
-    {
-      "id": "animations-util",
-      "title": "Animations Utilities",
-      "description": "Shared animation helpers and re-usable Framer Motion/React Spring configs for card flip, match particle spawn, and victory sequences.",
-      "file_to_implement": "src/utils/animations.ts",
-      "acceptance": [
-        "Exports motion variants for card flip and particle spawn",
-        "Provides small helpers for launchVictorySequence used by Confetti or particle effects"
-      ],
-      "implementation_steps": [
-        "1. Export FRAMER_MOTION variants for cardFlip (front/back) and scale/opacity transitions.",
-        "2. Provide a helper function createParticleEffect(container, options) that can be used by particle canvas components.",
-        "3. Document expected usage in Card and Confetti components."
-      ],
-      "integration_points": [
-        "Used by Card, Confetti and shared particle components to ensure consistent animations",
-        "May import Framer Motion types if available"
-      ],
-      "prompt_context": {
-        "component_type": "util",
-        "data_model": "animation",
-        "interactions": [
-          "animate"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/shared/components/Confetti.tsx",
-          "src/shared/components/Card.tsx"
-        ]
-      },
-      "priority": 5
-    },
-    {
-      "id": "accessibility-util",
-      "title": "Accessibility Utilities",
-      "description": "Keyboard and focus helper utilities for accessible navigation of the card grid and other components.",
-      "file_to_implement": "src/utils/accessibility.ts",
-      "acceptance": [
-        "Exports helpers: focusNextCard, focusPrevCard, isInteractiveElement",
-        "Used by Card and Grid to support Arrow key navigation and Space activation"
-      ],
-      "implementation_steps": [
-        "1. Implement isInteractiveElement(el) to detect inputs and avoid intercepting keyboard events there.",
-        "2. Implement focusNextCard(currentElement, container) and focusPrevCard similar to roving tabindex patterns.",
-        "3. Export utility functions and document usage."
-      ],
-      "integration_points": [
-        "Used by Card and Grid components and useKeyboardShortcuts hook",
-        "Ensures keyboard accessibility requirement (Space to flip, Arrow keys nav)"
-      ],
-      "prompt_context": {
-        "component_type": "util",
-        "data_model": "accessibility",
-        "interactions": [
-          "navigate"
-        ],
-        "styling_approach": null,
-        "dependencies": [
-          "src/shared/hooks/useKeyboardShortcuts.ts"
-        ]
-      },
       "priority": 2
+    },
+    {
+      "id": "telemedicine-page",
+      "file_to_implement": "src/features/telemedicine/TelemedicinePage.tsx",
+      "description": "Telemedicine landing page for video calls. Integrates WebSocket events and a VideoCallPlaceholder for demo mode.",
+      "dependencies": [
+        "src/components/Layouts/MainLayout.tsx",
+        "src/services/websocket.ts",
+        "src/features/telemedicine/VideoCallPlaceholder.tsx"
+      ],
+      "exports": [
+        "TelemedicinePage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "video-call-placeholder",
+      "file_to_implement": "src/features/telemedicine/VideoCallPlaceholder.tsx",
+      "description": "Placeholder UI that simulates a video call experience (for mock/dev).",
+      "dependencies": [],
+      "exports": [
+        "VideoCallPlaceholder component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "dashboard-page",
+      "file_to_implement": "src/features/dashboard/DashboardPage.tsx",
+      "description": "Patient/Provider dashboard page showing health metrics, upcoming appointments, and notifications. Composes HealthMetricCard and AppointmentCard components.",
+      "dependencies": [
+        "src/components/Layouts/MainLayout.tsx",
+        "src/features/dashboard/HealthMetricCard.tsx",
+        "src/features/appointments/AppointmentCard.tsx",
+        "src/hooks/useAppointments.ts",
+        "src/hooks/useMedications.ts"
+      ],
+      "exports": [
+        "DashboardPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "health-metric-card",
+      "file_to_implement": "src/features/dashboard/HealthMetricCard.tsx",
+      "description": "Small presentational component for showing health metrics (steps, heart rate, BP) with sparkline placeholder.",
+      "dependencies": [
+        "src/components/ui/Card.tsx"
+      ],
+      "exports": [
+        "HealthMetricCard component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "lab-results-page",
+      "file_to_implement": "src/features/labResults/LabResultsPage.tsx",
+      "description": "Page listing lab results with ability to open result detail. Subscribes to websocket for new results if available.",
+      "dependencies": [
+        "src/components/Layouts/MainLayout.tsx",
+        "src/hooks/useLabResults.ts",
+        "src/components/ui/Table.tsx"
+      ],
+      "exports": [
+        "LabResultsPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "lab-result-row",
+      "file_to_implement": "src/features/labResults/LabResultRow.tsx",
+      "description": "Row component for a single lab result entry with status and link to details.",
+      "dependencies": [
+        "src/utils/formatDate.ts"
+      ],
+      "exports": [
+        "LabResultRow component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "insurance-page",
+      "file_to_implement": "src/features/insurance/InsurancePage.tsx",
+      "description": "Page for tracking insurance claims and submitting new claims. Uses useInsurance hook.",
+      "dependencies": [
+        "src/components/Layouts/MainLayout.tsx",
+        "src/hooks/useInsurance.ts",
+        "src/features/insurance/ClaimTracker.tsx"
+      ],
+      "exports": [
+        "InsurancePage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "claim-tracker",
+      "file_to_implement": "src/features/insurance/ClaimTracker.tsx",
+      "description": "Component to list and detail insurance claims with statuses and actions.",
+      "dependencies": [
+        "src/components/ui/Table.tsx"
+      ],
+      "exports": [
+        "ClaimTracker component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "medications-page",
+      "file_to_implement": "src/features/medications/MedicationsPage.tsx",
+      "description": "Page to view current medications, set up reminders and manage pharmacy info.",
+      "dependencies": [
+        "src/components/Layouts/MainLayout.tsx",
+        "src/hooks/useMedications.ts",
+        "src/features/medications/ReminderForm.tsx"
+      ],
+      "exports": [
+        "MedicationsPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "reminder-form",
+      "file_to_implement": "src/features/medications/ReminderForm.tsx",
+      "description": "Form component to schedule medication reminders; persists reminders locally in development and integrates with mock websocket for simulated notifications.",
+      "dependencies": [
+        "src/hooks/useMedications.ts",
+        "src/components/ui/Input.tsx",
+        "src/components/ui/Button.tsx"
+      ],
+      "exports": [
+        "ReminderForm component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "login-page",
+      "file_to_implement": "src/pages/LoginPage.tsx",
+      "description": "Login page with React Hook Form, validation and integration with AuthProvider. Supports dev mock credentials and accessible error feedback.",
+      "dependencies": [
+        "src/components/Layouts/AuthLayout.tsx",
+        "src/providers/AuthProvider.tsx",
+        "src/components/ui/Input.tsx",
+        "src/components/ui/Button.tsx",
+        "src/utils/validators.ts"
+      ],
+      "exports": [
+        "LoginPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "settings-page",
+      "file_to_implement": "src/pages/SettingsPage.tsx",
+      "description": "User settings page for profile, language, theme and notification preferences.",
+      "dependencies": [
+        "src/components/Layouts/MainLayout.tsx",
+        "src/providers/ThemeProvider.tsx",
+        "src/providers/I18nProvider.tsx"
+      ],
+      "exports": [
+        "SettingsPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "not-found-page",
+      "file_to_implement": "src/pages/NotFoundPage.tsx",
+      "description": "404 not-found page shown for unknown routes, with link back to dashboard or login.",
+      "dependencies": [
+        "src/components/ui/Button.tsx"
+      ],
+      "exports": [
+        "NotFoundPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "telemetry-notifications",
+      "file_to_implement": "src/hooks/useWebsocket.ts",
+      "description": "Hook to connect to websocket client, subscribe to specific event channels and provide an event emitter interface to components. Uses createWebsocketClient under the hood.",
+      "dependencies": [
+        "src/services/websocket.ts"
+      ],
+      "exports": [
+        "useWebsocket hook"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "toast-provider",
+      "file_to_implement": "src/components/ui/ToastProvider.tsx",
+      "description": "Lightweight toast provider that exposes context for useToast. Used for notifications across the app.",
+      "dependencies": [
+        "src/hooks/useToast.ts"
+      ],
+      "exports": [
+        "ToastProvider component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "accessibility-helpers",
+      "file_to_implement": "src/components/aria/FocusTrap.tsx",
+      "description": "Small focus trap component used by Modal to trap focus inside dialogs for accessibility.",
+      "dependencies": [],
+      "exports": [
+        "FocusTrap component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "settings-integration",
+      "file_to_implement": "src/features/settings/Preferences.tsx",
+      "description": "Small preferences controls for language, theme and notification toggles used by SettingsPage.",
+      "dependencies": [
+        "src/providers/ThemeProvider.tsx",
+        "src/providers/I18nProvider.tsx"
+      ],
+      "exports": [
+        "Preferences component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "dev-fallbacks",
+      "file_to_implement": "src/services/fallbacks.ts",
+      "description": "Fallback utilities used when backend is unavailable: returns cached mock data, graceful degradation UI helpers and circuit-breaker style helpers used by apiClient.",
+      "dependencies": [
+        "src/mocks/appointments.json"
+      ],
+      "exports": [
+        "fallback handlers used by apiClient"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "tailwind-config",
+      "file_to_implement": "tailwind.config.cjs",
+      "description": "Tailwind CSS configuration enabling dark mode and custom theme tokens used by the app.",
+      "dependencies": [],
+      "exports": [
+        "Tailwind config (not imported by TS runtime but required for build)"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "postcss-config",
+      "file_to_implement": "postcss.config.cjs",
+      "description": "PostCSS configuration used to compile Tailwind in the build.",
+      "dependencies": [],
+      "exports": [
+        "PostCSS config"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "styles-entry",
+      "file_to_implement": "src/styles/tailwind.css",
+      "description": "Tailwind directives (@tailwind base; @tailwind components; @tailwind utilities) and any custom classes.",
+      "dependencies": [],
+      "exports": [
+        "CSS file (imported by index.css/main)"
+      ],
+      "priority": 1
     }
   ]
 }
