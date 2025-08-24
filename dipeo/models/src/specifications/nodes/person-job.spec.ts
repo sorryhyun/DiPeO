@@ -137,6 +137,29 @@ export const personJobSpec: NodeSpecification = {
         adjustable: true
       }
     },
+    // Internal fields for compile-time prompt resolution
+    {
+      name: "resolved_prompt",
+      type: "string",
+      required: false,
+      description: "Pre-resolved prompt content from compile-time",
+      uiConfig: {
+        inputType: "textarea",
+        column: 2,
+        rows: 4
+      }
+    },
+    {
+      name: "resolved_first_prompt",
+      type: "string",
+      required: false,
+      description: "Pre-resolved first prompt content from compile-time",
+      uiConfig: {
+        inputType: "textarea",
+        column: 2,
+        rows: 4
+      }
+    },
   ],
   
   handles: {

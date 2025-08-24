@@ -5,7 +5,6 @@ Rename generated temp_section_*.tsx files to their proper names based on section
 
 import json
 import os
-import shutil
 from pathlib import Path
 
 def rename_generated_files(inputs):
@@ -40,9 +39,26 @@ def rename_generated_files(inputs):
             # Create directory if needed
             final_path.parent.mkdir(parents=True, exist_ok=True)
             
-            # Rename the file
-            shutil.move(str(temp_file), str(final_path))
-            print(f"✓ Renamed temp_section_{i}.tsx -> {target_filename}")
+            # Read file content and remove backticks from first and last lines
+            with open(temp_file, 'r') as f:
+                lines = f.readlines()
+            
+            # Remove backticks from first line if present
+            if lines and lines[0].strip().startswith('```'):
+                lines = lines[1:]
+            
+            # Remove backticks from last line if present
+            if lines and lines[-1].strip() == '```':
+                lines = lines[:-1]
+            
+            # Write cleaned content to final file
+            with open(final_path, 'w') as f:
+                f.writelines(lines)
+            
+            # Remove the temp file
+            temp_file.unlink()
+            
+            print(f"✓ Processed temp_section_{i}.tsx -> {target_filename} (removed backticks)")
             renamed_count += 1
         else:
             print(f"⚠ temp_section_{i}.tsx not found, skipping")
@@ -50,5 +66,5 @@ def rename_generated_files(inputs):
     print(f"\n✅ Renamed {renamed_count} files")
 
 if __name__ == "__main__":
-    dummy =1
+    dummy=1
     rename_generated_files(dummy)

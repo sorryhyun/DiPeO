@@ -22,6 +22,8 @@ class PersonJobNodeData(BaseModel):
     at_most: Optional[float] = Field(description="Select at most N messages to keep (system messages may be preserved in addition).")
     tools: Optional[List[ToolConfig]] = Field(description="Tools available to the AI agent")
     text_format: Optional[str] = Field(description="JSON schema or response format for structured outputs")
+    resolved_prompt: Optional[str] = Field(description="Pre-resolved prompt content from compile-time")
+    resolved_first_prompt: Optional[str] = Field(description="Pre-resolved first prompt content from compile-time")
 
     class Config:
         extra = "forbid"

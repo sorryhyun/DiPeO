@@ -160,6 +160,7 @@ async def create_server_container() -> Container:
             EventType.NODE_ERROR,
             EventType.NODE_PROGRESS,
             EventType.EXECUTION_UPDATE,
+            EventType.EXECUTION_LOG,  # Add EXECUTION_LOG for monitor mode logs
             EventType.METRICS_COLLECTED,
             EventType.WEBHOOK_RECEIVED,
         ]

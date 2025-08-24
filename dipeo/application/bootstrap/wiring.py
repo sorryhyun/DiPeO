@@ -104,7 +104,6 @@ def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) ->
     from dipeo.infrastructure.llm.adapters.llm_adapter import (
         LLMClientAdapter,
         LLMServiceAdapter,
-        InMemoryMemoryService,
     )
     
     # Get or create API key service
@@ -122,7 +121,6 @@ def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) ->
     # Wrap with domain adapters
     llm_client = LLMClientAdapter(llm_infra)
     llm_service = LLMServiceAdapter(llm_infra)
-    memory_service = InMemoryMemoryService()
     
     # Register LLM registry for multi-provider support
     llm_registry = {
@@ -135,7 +133,6 @@ def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) ->
     registry.register(LLM_CLIENT, llm_client)
     registry.register(LLM_SERVICE, llm_service)
     registry.register(LLM_REGISTRY, llm_registry)
-    registry.register(MEMORY_SERVICE, memory_service)
 
 
 def wire_api_services(registry: ServiceRegistry) -> None:

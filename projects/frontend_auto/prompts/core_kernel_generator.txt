@@ -1,0 +1,88 @@
+You are a Core Kernel Architect. Your task is to generate the foundational contract files that ALL sections of the application will depend on.
+
+## YOUR MISSION
+Generate 5-7 core files that establish the single source of truth for:
+1. Domain types and API contracts
+2. Configuration and feature flags
+3. Event bus for inter-component communication
+4. Hook system for extension points
+5. Dependency injection tokens
+6. Common utilities and helpers
+
+## CONTEXT
+
+### Application Configuration:
+{{config}}
+
+### Architecture Overview (from Section Planner):
+{{sections_data.architecture}}
+
+### Sections to Support:
+Total sections: {{len(sections_data.sections)}}
+Key files that will use the kernel:
+File paths: {{sections_data.file_paths}}
+Descriptions: {{sections_data.descriptions}}
+
+
+## REQUIREMENTS
+
+### 1. Core Contracts (core/contracts.ts)
+Generate comprehensive TypeScript interfaces for:
+- User types (User, Patient, Doctor, Nurse based on roles in config)
+- Healthcare domain models (Appointment, MedicalRecord, Prescription, LabResult, etc.)
+- API response types (ApiResult<T>, ApiError, PaginatedResponse<T>)
+- WebSocket event types if not disabled in config
+- Common UI state types (LoadingState, FormState, etc.)
+
+### 2. Configuration (app/config.ts)
+Materialize the JSON config into TypeScript constants:
+- Export typed config object with all settings
+- Computed flags (isDevelopment, shouldUseMockData, etc.)
+- Feature toggles based on config.features array
+- Mock user data if development_mode.enable_mock_data is true
+
+### 3. Event Bus (core/events.ts)
+Lightweight typed event system:
+- EventBus class with on/off/emit methods
+- Typed event map for all domain events
+- Export singleton instance
+- Support for both sync and async handlers
+
+### 4. Hook Registry (core/hooks.ts)
+Extension point system:
+- Define HookPoint union type for all hook names
+- HookRegistry class with register/run methods
+- Standard hooks: beforeApiRequest, afterApiResponse, onLogin, onLogout, onRouteChange
+- Context object passed to all hooks
+
+### 5. Dependency Injection (core/di.ts)
+Simple DI container for services:
+- Token definitions for ApiClient, AuthService, StorageService, WebSocketService
+- Container class with register/resolve methods
+- Type-safe token resolution
+
+### 6. Common Utilities (core/utils.ts) - Optional
+If needed, add common utilities:
+- Date formatting functions
+- Validation helpers
+- Safe JSON parse/stringify
+- Debug logging utilities
+
+## OUTPUT FORMAT
+Generate complete, production-ready TypeScript code for each file.
+Each file must:
+- Use named exports (no default exports unless specifically for React components)
+- Include comprehensive JSDoc comments for public APIs
+- Be fully typed with no 'any' types
+- Follow modern TypeScript best practices
+- Be immediately usable by all sections
+
+## CRITICAL RULES
+1. Every type/interface must be complete - no placeholders
+2. Use the actual feature names from config.features
+3. Include all mock data structures if development mode is enabled
+4. Ensure all exports align with what sections will need
+5. Keep files focused - each file has one clear responsibility
+6. Use @/core/* import paths in examples within comments
+
+Remember: These files are the foundation. Every section will import from them, so they must be comprehensive, well-typed, and production-ready.

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+import os
+from typing import Any, Optional
 
 from dipeo.diagram_generated import (
     DomainDiagram,
@@ -34,6 +35,7 @@ from dipeo.domain.diagram.utils import (
 )
 from dipeo.domain.diagram.models.format_models import LightDiagram, LightNode, LightConnection
 from .base_strategy import BaseConversionStrategy
+from dipeo.domain.diagram.compilation.prompt_compiler import PromptFileCompiler
 
 log = logging.getLogger(__name__)
 
@@ -50,6 +52,15 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         "supports_import": True,
         "supports_export": True,
     }
+    
+    def __init__(self):
+        """Initialize the strategy with optional prompt compilation."""
+        super().__init__()
+        self._prompt_compiler: Optional[PromptFileCompiler] = None
+        # Enable prompt compilation by default, can be disabled via env var
+        self._enable_prompt_compilation = os.getenv('DIPEO_COMPILE_PROMPTS', 'true').lower() == 'true'
+        if self._enable_prompt_compilation:
+            self._prompt_compiler = PromptFileCompiler()
 
     # ---- New typed deserialization ---------------------------------------- #
     def deserialize_to_domain(self, content: str) -> DomainDiagram:
@@ -160,6 +171,12 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 "data": props  # All extra properties go in data field
             }
             nodes_list.append(processed_node)
+        
+        # Apply prompt compilation if enabled
+        if self._prompt_compiler and self._enable_prompt_compilation:
+            # Get diagram path from metadata if available
+            diagram_path = original_data.get('metadata', {}).get('diagram_id')
+            nodes_list = self._prompt_compiler.resolve_prompt_files(nodes_list, diagram_path)
         
         # Build nodes dict
         nodes_dict = self._build_nodes_dict(nodes_list)

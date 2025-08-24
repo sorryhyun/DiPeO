@@ -2,6 +2,15 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/CodeJobNodeData",
   "definitions": {
+    "SupportedLanguage": {
+      "enum": [
+        "python",
+        "typescript",
+        "bash",
+        "shell"
+      ],
+      "type": "string"
+    },
     "CodeJobNodeData": {
       "additionalProperties": false,
       "description": "Configuration data for CodeJob nodes that execute code",
@@ -38,15 +47,6 @@
         "language"
       ],
       "type": "object"
-    },
-    "SupportedLanguage": {
-      "enum": [
-        "python",
-        "typescript",
-        "bash",
-        "shell"
-      ],
-      "type": "string"
     }
   }
 }

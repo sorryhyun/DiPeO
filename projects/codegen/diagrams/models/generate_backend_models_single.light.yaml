@@ -121,7 +121,6 @@ nodes:
             }
         }
         
-        print(f"Generating {node_name} ({node_type_snake})")
         result = context
 
   # Generate backend code using template_job nodes

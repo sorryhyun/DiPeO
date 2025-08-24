@@ -3,7 +3,7 @@
   "framework": "react",
   "target_framework": "react",
   "styling_approach": "tailwind",
-  "objective": "Stock Price Analyzer",
+  "objective": "Internet community website Analyzer",
   "features": [
     "responsive navigation",
     "data visualization charts",
@@ -11,7 +11,7 @@
     "dark mode toggle",
     "user authentication UI"
   ],
-  "target_audience": "Professional Fund Managers",
+  "target_audience": "DCInside Users",
   "output_dir": "./generated",
   "development_mode": {
     "enable_mock_data": true,

@@ -113,4 +113,22 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     column: 2,
     adjustable: true,
   },
+  {
+    name: 'resolved_prompt',
+    type: 'textarea',
+    label: 'Resolved prompt',
+    required: false,
+    description: 'Pre-resolved prompt content from compile-time',
+    rows: 4,
+    column: 2,
+  },
+  {
+    name: 'resolved_first_prompt',
+    type: 'textarea',
+    label: 'Resolved first prompt',
+    required: false,
+    description: 'Pre-resolved first prompt content from compile-time',
+    rows: 4,
+    column: 2,
+  },
 ];

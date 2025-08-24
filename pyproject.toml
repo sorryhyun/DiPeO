@@ -106,6 +106,7 @@ dependencies = [
     "xxhash==3.5.0",
     "yarl==1.20.1",
     "datamodel-code-generator>=0.21.0",
+    "ollama>=0.5.0",
 ]
 
 [project.optional-dependencies]

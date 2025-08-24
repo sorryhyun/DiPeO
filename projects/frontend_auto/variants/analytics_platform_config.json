@@ -1,0 +1,70 @@
+{
+  "app_type": "analytics",
+  "framework": "react",
+  "target_framework": "react",
+  "styling_approach": "tailwind",
+  "objective": "Business Intelligence Analytics Platform",
+  "features": [
+    "interactive data dashboards",
+    "custom report builder",
+    "real-time metrics display",
+    "data export functionality",
+    "predictive analytics charts",
+    "KPI monitoring widgets",
+    "drill-down capabilities",
+    "alert configuration panel"
+  ],
+  "target_audience": "Business Analysts and Executives",
+  "output_dir": "./generated",
+  "development_mode": {
+    "enable_mock_data": true,
+    "mock_auth_users": [
+      {"email": "analyst@corp.com", "password": "analyst123", "role": "analyst"},
+      {"email": "executive@corp.com", "password": "exec123", "role": "executive"},
+      {"email": "viewer@corp.com", "password": "view123", "role": "viewer"}
+    ],
+    "mock_api_endpoints": [
+      "/api/analytics/metrics",
+      "/api/analytics/reports",
+      "/api/analytics/dashboards",
+      "/api/analytics/predictions",
+      "/api/analytics/alerts",
+      "/api/analytics/exports"
+    ],
+    "disable_websocket_in_dev": false,
+    "use_localstorage_persistence": true
+  },
+  "prompt_requirements": [
+    "Generate modern, production-ready React components with TypeScript",
+    "Use React 18+ features: Suspense, Error Boundaries, Context API",
+    "Implement responsive design with Tailwind CSS and dark mode support",
+    "Ensure basic accessibility with ARIA labels and keyboard navigation",
+    "Handle authentication with protected routes and token management",
+    "Implement proper form validation with error handling",
+    "Use React Query for data fetching with loading and error states",
+    "Implement i18n support for internationalization",
+    "IMPORTANT: Include mock data and mock authentication for development mode",
+    "Create fallback mechanisms when backend services are unavailable",
+    "Provide mock API responses for all data endpoints in development",
+    "Implement mock WebSocket updates for real-time features",
+    "Ensure the app runs standalone without any backend dependencies",
+    "Use localStorage for mock user persistence in development"
+  ],
+  "evaluation_criteria": [
+    "Code quality and maintainability",
+    "Component reusability and composability",
+    "Type safety and error handling",
+    "Performance optimization",
+    "Accessibility compliance",
+    "Responsive design implementation",
+    "Best practices adherence"
+  ],
+  "prompt_sections": [
+    "Component Structure",
+    "Mock Data Implementation",
+    "Authentication Flow",
+    "State Management",
+    "Error Handling",
+    "Development Mode Features"
+  ]
+}

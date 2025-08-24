@@ -39,6 +39,8 @@ class PersonJobNode:
     at_most: float = 0
     tools: List[ToolConfig] = ""
     text_format: str = ""
+    resolved_prompt: str = ""
+    resolved_first_prompt: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -63,4 +65,6 @@ class PersonJobNode:
         data["at_most"] = self.at_most
         data["tools"] = self.tools
         data["text_format"] = self.text_format
+        data["resolved_prompt"] = self.resolved_prompt
+        data["resolved_first_prompt"] = self.resolved_first_prompt
         return data

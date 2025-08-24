@@ -1,0 +1,86 @@
+{
+  "app_type": "productivity",
+  "framework": "react",
+  "target_framework": "react",
+  "styling_approach": "tailwind",
+  "objective": "Lightweight Flowchart and Diagram Editor",
+  "features": [
+    "drag-and-drop node creation",
+    "bezier curve connections with arrow heads",
+    "node shape library (rectangle, circle, diamond, hexagon)",
+    "real-time collaboration cursors",
+    "auto-layout algorithms (hierarchical, circular, force-directed)",
+    "export to SVG/PNG/JSON",
+    "infinite canvas with pan and zoom",
+    "mini-map navigation",
+    "undo/redo with history timeline",
+    "node templates library",
+    "markdown support in nodes",
+    "code syntax highlighting in nodes",
+    "connection routing (straight, curved, orthogonal)",
+    "snap-to-grid alignment",
+    "keyboard shortcuts palette"
+  ],
+  "target_audience": "Developers, Designers, and Project Managers",
+  "output_dir": "./generated",
+  "development_mode": {
+    "enable_mock_data": true,
+    "mock_auth_users": [
+      {"email": "designer@flow.com", "password": "design123", "role": "designer"},
+      {"email": "developer@flow.com", "password": "dev123", "role": "developer"},
+      {"email": "manager@flow.com", "password": "manage123", "role": "admin"}
+    ],
+    "mock_api_endpoints": [
+      "/api/diagrams",
+      "/api/templates",
+      "/api/collaborators",
+      "/api/export",
+      "/api/autosave",
+      "/api/version-history",
+      "/api/share"
+    ],
+    "disable_websocket_in_dev": false,
+    "use_localstorage_persistence": true
+  },
+  "prompt_requirements": [
+    "Generate modern, production-ready React components with TypeScript",
+    "Use React Flow or similar library for diagram rendering",
+    "Implement custom node types with React components",
+    "Use React 18+ features: Suspense, Error Boundaries, Context API",
+    "Implement responsive design with Tailwind CSS and dark mode support",
+    "Create smooth pan and zoom controls with gesture support",
+    "Implement collision detection for node placement",
+    "Use Web Workers for heavy computations (auto-layout)",
+    "Add copy/paste functionality with clipboard API",
+    "Implement collaborative editing with operational transformation",
+    "Use Canvas API for performance optimization on large diagrams",
+    "Create custom hooks for diagram interactions",
+    "Implement virtualization for large node counts",
+    "Add magnetic connection points on nodes",
+    "Create animation effects for node addition/deletion",
+    "Implement layering system for complex diagrams",
+    "Add measurement tools and rulers",
+    "Create node grouping and ungrouping features",
+    "Implement smart guides for alignment",
+    "Add version control with branching support",
+    "Use IndexedDB for offline diagram storage",
+    "Implement plugin architecture for extensibility"
+  ],
+  "evaluation_criteria": [
+    "Rendering performance with 500+ nodes",
+    "Smooth interaction responsiveness",
+    "Export quality and accuracy",
+    "Collaboration sync efficiency",
+    "Auto-layout algorithm effectiveness",
+    "Touch device compatibility",
+    "Accessibility for keyboard navigation"
+  ],
+  "prompt_sections": [
+    "Canvas Architecture",
+    "Node Component System",
+    "Connection Management",
+    "Collaboration Engine",
+    "Export Pipeline",
+    "Plugin Framework"
+  ]
+}

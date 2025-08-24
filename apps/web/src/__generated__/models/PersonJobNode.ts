@@ -12,6 +12,8 @@ export interface PersonJobNodeData {
   at_most?: number;
   tools?: string;
   text_format?: string;
+  resolved_prompt?: string;
+  resolved_first_prompt?: string;
 }
 
 // Zod schema for validation
@@ -26,4 +28,6 @@ export const PersonJobNodeDataSchema = z.object({
   at_most: z.number().min(1).max(500).optional(),
   tools: z.string().optional(),
   text_format: z.string().optional(),
+  resolved_prompt: z.string().optional(),
+  resolved_first_prompt: z.string().optional(),
 });

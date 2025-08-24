@@ -45,8 +45,9 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
                 newLogs.push({
                   level: logData.level || 'INFO',
                   message: logData.message || '',
-                  timestamp: logData.timestamp || event.timestamp || new Date().toISOString(),
-                  logger: logData.logger || '',
+                  timestamp: logData.extra_fields?.timestamp ? new Date(logData.extra_fields.timestamp * 1000).toISOString() : 
+                           logData.timestamp || event.timestamp || new Date().toISOString(),
+                  logger: logData.logger_name || logData.logger || '',
                   node_id: logData.node_id,
                 });
               }
@@ -64,8 +65,9 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
           const newLog: LogEntry = {
             level: logData.level || 'INFO',
             message: logData.message || '',
-            timestamp: logData.timestamp || new Date().toISOString(),
-            logger: logData.logger || '',
+            timestamp: logData.extra_fields?.timestamp ? new Date(logData.extra_fields.timestamp * 1000).toISOString() :
+                     logData.timestamp || new Date().toISOString(),
+            logger: logData.logger_name || logData.logger || '',
             node_id: logData.node_id,
           };
           setLogs(prev => [...prev, newLog]);

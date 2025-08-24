@@ -1,0 +1,78 @@
+{
+  "app_type": "game",
+  "framework": "react",
+  "target_framework": "react",
+  "styling_approach": "tailwind",
+  "objective": "Memory Card Matching Game with Leaderboard",
+  "features": [
+    "animated card flip mechanics",
+    "multiple difficulty levels (4x4, 6x6, 8x8 grid)",
+    "timer and move counter",
+    "high score leaderboard with persistence",
+    "theme selector (animals, emojis, colors, shapes)",
+    "sound effects toggle",
+    "multiplayer mode with turn-based play",
+    "victory celebration animations",
+    "daily challenge mode",
+    "achievement badges system"
+  ],
+  "target_audience": "Casual Gamers of All Ages",
+  "output_dir": "./generated",
+  "development_mode": {
+    "enable_mock_data": true,
+    "mock_auth_users": [
+      {"email": "player1@game.com", "password": "play123", "role": "player"},
+      {"email": "player2@game.com", "password": "play456", "role": "player"},
+      {"email": "champion@game.com", "password": "win123", "role": "premium_player"}
+    ],
+    "mock_api_endpoints": [
+      "/api/leaderboard",
+      "/api/achievements",
+      "/api/daily-challenge",
+      "/api/player-stats",
+      "/api/themes",
+      "/api/multiplayer-session"
+    ],
+    "disable_websocket_in_dev": false,
+    "use_localstorage_persistence": true
+  },
+  "prompt_requirements": [
+    "Generate modern, production-ready React components with TypeScript",
+    "Use React 18+ features: Suspense, Error Boundaries, Context API",
+    "Implement responsive design with Tailwind CSS and dark mode support",
+    "Create smooth animations using Framer Motion or CSS transitions",
+    "Implement game state management with Redux or Zustand",
+    "Add keyboard shortcuts for accessibility (Space to flip, Arrow keys to navigate)",
+    "Use Web Audio API for sound effects",
+    "Implement confetti effects for victory celebrations",
+    "Create particle effects for card matches",
+    "Use React Spring for physics-based animations",
+    "Implement WebSocket for real-time multiplayer updates",
+    "Add haptic feedback support for mobile devices",
+    "Create an engaging tutorial mode for first-time players",
+    "Implement streak bonuses and combo multipliers",
+    "Add social sharing features for achievements",
+    "Use localStorage for game state persistence and offline play",
+    "Implement progressive difficulty scaling",
+    "Add colorblind-friendly mode",
+    "Create custom card themes with SVG graphics",
+    "Implement daily challenges with unique card sets"
+  ],
+  "evaluation_criteria": [
+    "Game performance and smoothness",
+    "Animation quality and responsiveness",
+    "Mobile touch experience",
+    "Multiplayer synchronization",
+    "Score calculation accuracy",
+    "Theme consistency and visual appeal",
+    "Sound design integration"
+  ],
+  "prompt_sections": [
+    "Game Logic Implementation",
+    "Animation System",
+    "State Management",
+    "Multiplayer Architecture",
+    "Achievement System",
+    "Theme Engine"
+  ]
+}

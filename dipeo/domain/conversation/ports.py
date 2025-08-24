@@ -1,6 +1,6 @@
 """Conversation bounded context ports - defines interfaces for repositories."""
 
-from typing import Any, Optional, Protocol
+from typing import Any, Optional, Protocol, Sequence
 
 from dipeo.diagram_generated import LLMService, Message, PersonID, PersonLLMConfig
 
@@ -148,4 +148,38 @@ class PersonRepository(Protocol):
     
     def clear(self) -> None:
         """Clear all persons."""
+        ...
+
+
+class MemorySelectionPort(Protocol):
+    """Port for memory selection strategies.
+    
+    This port defines the interface for intelligent memory selection,
+    allowing different implementations (LLM-based, rule-based, etc.)
+    to be plugged in without affecting the domain logic.
+    """
+    
+    async def select_memories(
+        self,
+        *,
+        person_id: PersonID,
+        candidate_messages: Sequence[Message],
+        task_preview: str,
+        criteria: str,
+        at_most: Optional[int] = None,
+        **kwargs
+    ) -> list[str]:
+        """Select relevant message IDs based on criteria.
+        
+        Args:
+            person_id: The person for whom we're selecting memories
+            candidate_messages: Messages to select from
+            task_preview: Preview of the upcoming task for context
+            criteria: Selection criteria (natural language)
+            at_most: Maximum number of messages to select
+            **kwargs: Additional implementation-specific parameters
+            
+        Returns:
+            List of selected message IDs
+        """
         ...

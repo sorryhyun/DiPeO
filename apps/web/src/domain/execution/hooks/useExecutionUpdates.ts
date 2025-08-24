@@ -288,6 +288,18 @@ export function useExecutionUpdates({
           timestamp: new Date().toISOString() 
         });
         return; // Don't process further
+      } else if (status === 'TIMEOUT' || status === 'TIMED_OUT') {
+        errorExecution('Execution timed out');
+        executionActions.stopExecution();
+        
+        showThrottledToast('execution-timeout', 'error', 'Execution timed out');
+        
+        onUpdate?.({ 
+          type: EventType.EXECUTION_STATUS_CHANGED, 
+          execution_id: executionId(executionIdRef.current!),
+          timestamp: new Date().toISOString() 
+        });
+        return; // Don't process further
       }
     }
     
