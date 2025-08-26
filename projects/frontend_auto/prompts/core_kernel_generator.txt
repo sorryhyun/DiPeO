@@ -17,11 +17,6 @@ Generate specifications for 5-7 core files that will establish the single source
 ### Architecture Overview (from Section Planner):
 {{sections_data.architecture}}
 
-### Sections to Support:
-Key files that will use the kernel:
-File paths: {{sections_data.file_paths}}
-Descriptions: {{sections_data.descriptions}}
-
 
 ## REQUIREMENTS
 
@@ -86,3 +81,8 @@ Note: You're generating specifications, not actual code. The Frontend Generator 
 6. Use @/core/* import paths in examples within comments
 
 Remember: These files are the foundation. Every section will import from them, so they must be comprehensive, well-typed, and production-ready.
+
+Section descriptions:
+```
+{{sections_data.sections}}
+```

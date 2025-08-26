@@ -279,7 +279,7 @@ connections:
 
   # Section iteration loop (now processes both kernel and regular sections)
   - {from: Check Continue_condfalse, to: Load Merged Data, content_type: object}
-  - {from: Load Merged Data, to: Generate Frontend Code, label: sections_data, content_type: object}
+  - {from: Load Merged Data, to: Generate Frontend Code, content_type: object}
   - {from: Generate Frontend Code, to: Write Section Result, content_type: object}
   - {from: Write Section Result, to: Check Continue, content_type: object}
 
