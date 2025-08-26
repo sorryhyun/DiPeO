@@ -21,7 +21,7 @@ You are a frontend code generator. Your task is to generate ONLY the specific fi
 3. Put any section-local helpers inside this file—do not create new files.
 
 4. **STAY WITHIN SCOPE**:
-   - Generate ONLY the code for the file at: {{sections_data.file_paths[current_index]}}
+   - Generate ONLY the code for the file at: {{file_paths[current_index]}}
    - Do NOT assume other files exist unless explicitly stated in the architecture's folder_structure
    - Do NOT create additional helper files or utilities
    - Do NOT add features or functionality beyond what is specified
@@ -41,22 +41,23 @@ Do not omit any chunk. No commentary outside these chunks.
 
 ## YOUR ASSIGNMENT
 
-You will receive two pieces of context:
-1. Core Kernel data - Contains foundational files with types, contracts, config, etc.
-2. Sections data - Contains architecture and all files to implement
-
-### Core Kernel Context:
-{{kernel}}
+You will receive context about the architecture and kernel specifications to guide your implementation.
 
 ### Architecture Context:
-{{sections_data.architecture}}
+{{architecture}}
+
+### Core Kernel Specifications (use these when implementing kernel files):
+{{kernel_specs}}
 
 ### Your specific file to implement:
-File path: {{sections_data.file_paths[current_index]}}
-Description: {{sections_data.descriptions[current_index]}}
+File path: {{file_paths[current_index]}}
+Description: {{descriptions[current_index]}}
 
 ### Full section details:
-{{sections_data.sections[current_index]}}
+{{sections[current_index]}}
+
+### IMPORTANT FOR KERNEL FILES:
+If you're implementing a kernel file (e.g., core/contracts.ts, app/config.ts, core/events.ts), use the kernel_specs to guide your implementation. The specs define what should be exported and the patterns to follow.
 
 ## OUTPUT REQUIREMENTS
 

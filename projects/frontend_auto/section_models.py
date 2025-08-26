@@ -52,8 +52,8 @@ class Section(BaseModel):
         description="Unique kebab-case identifier (e.g., 'auth-provider', 'dashboard-page')",
         pattern="^[a-z][a-z0-9-]*$"
     )
-    file_to_implement: str = Field(
-        description="Exact file path to implement (e.g., 'src/shared/components/Button.tsx')"
+    file_path: str = Field(
+        description="File path where this section will be implemented (e.g., 'src/providers/AuthProvider.tsx')"
     )
     description: str = Field(
         description="Brief description of what this file does and its responsibility"
@@ -88,17 +88,6 @@ class Response(BaseModel):
         max_items=100,
         description="List of sections(i.e., files) to implement in parallel"
     )
-    
-    # Computed fields for easy iteration access
-    @property
-    def file_paths(self) -> List[str]:
-        """List of file paths for indexed access during iteration."""
-        return [s.file_to_implement for s in self.sections]
-    
-    @property
-    def descriptions(self) -> List[str]:
-        """List of descriptions for indexed access during iteration."""
-        return [s.description for s in self.sections]
 
 
 # Example usage for LLM understanding
@@ -130,15 +119,15 @@ EXAMPLE_RESPONSE = Response(
     sections=[
         Section(
             id="auth-provider",
-            file_to_implement="src/providers/AuthProvider.tsx",
-            description="Context provider for authentication state and methods",
+            file_path="src/providers/AuthProvider.tsx",
+            description="Context provider for authentication state and user management",
             dependencies=[],
             exports=["AuthProvider", "useAuth hook"],
             priority=1
         ),
         Section(
             id="api-client",
-            file_to_implement="src/services/apiClient.ts",
+            file_path="src/services/apiClient.ts",
             description="Axios-based API client with token injection and error handling",
             dependencies=["src/providers/AuthProvider.tsx"],
             exports=["apiClient instance", "apiGet", "apiPost", "apiPut", "apiDelete"],
@@ -146,7 +135,7 @@ EXAMPLE_RESPONSE = Response(
         ),
         Section(
             id="dashboard-page",
-            file_to_implement="src/pages/DashboardPage.tsx",
+            file_path="src/pages/DashboardPage.tsx",
             description="Main dashboard page showing health metrics and quick actions",
             dependencies=[
                 "src/providers/AuthProvider.tsx",

@@ -96,90 +96,114 @@ nodes:
            - description: what the file does
            - dependencies: other files it imports from
            - exports: what it provides to other files
-           - priority: 1=foundational, 2=components, 3=pages
+           - priority: 0=kernel, 1=foundational, 2=components, 3=pages
 
         REQUIREMENTS:
         - Order sections by priority and dependencies
         - Include ALL files that will exist in the app
+        - Start with core kernel files (priority 0):
+          * core/contracts.ts - Domain types and API contracts
+          * app/config.ts - Materialized configuration
+          * core/events.ts - Event bus system
+          * core/hooks.ts - Hook registry for extensions
+          * core/di.ts - Dependency injection (if needed)
+          * core/utils.ts - Common utilities (if needed)
+        - Then include: pages, providers, services, shared components, hooks, features
         - Every import must have a corresponding section
-        - Cover: pages, providers, services, shared components, hooks, features
 
-        Note: Core Kernel will handle shared types and contracts - just list the files needed.
+  - label: Extract Section Properties
+    type: code_job
+    position: {x: 600, y: 240}
+    props:
+      language: python
+      code: |
+        # Extract file_paths and descriptions from sections
+        sections = sections_data.get('sections', [])
+        
+        file_paths = [section['file_path'] for section in sections]
+        descriptions = [section['description'] for section in sections]
+        
+        # Return data with extracted properties at same level
+        result = {
+            'architecture': sections_data.get('architecture', {}),
+            'sections': sections,
+            'file_paths': file_paths,
+            'descriptions': descriptions
+        }
 
-  - label: Save Sections Data
+  - label: Generate Core Kernel
+    type: person_job
+    position: {x: 1050, y: 240}
+    props:
+      person: Core Kernel Architect
+      text_format_file: projects/frontend_auto/core_kernel_models.py
+      prompt_file: core_kernel_generator.txt
+      memorize_to: "as-is"
+
+  - label: Merge Kernel and Sections
+    type: code_job
+    position: {x: 900, y: 240}
+    props:
+      language: python
+      code: |
+        import json
+        from pathlib import Path
+        
+        # Save kernel data for reference
+        kernel_json_path = Path("projects/frontend_auto/generated/core_kernel_data.json")
+        with open(kernel_json_path, 'w', encoding='utf-8') as f:
+            json.dump(kernel, f, indent=2)
+        
+        # Get sections and sort by priority
+        sections = sections_data.get('sections', [])
+        sections.sort(key=lambda x: (x.get('priority', 2), x.get('id', '')))
+        
+        # Extract file paths and descriptions
+        file_paths = [section['file_path'] for section in sections]
+        descriptions = [section.get('description', '') for section in sections]
+        
+        # Return merged data with kernel specs as reference
+        result = {
+            'architecture': sections_data.get('architecture', {}),
+            'kernel_specs': kernel,  # Available as reference for all sections
+            'sections': sections,
+            'file_paths': file_paths,
+            'descriptions': descriptions,
+            'total_files': len(sections)
+        }
+
+  - label: Save Merged Data
     type: db
-    position: {x: 800, y: 240}
+    position: {x: 1100, y: 240}
     props:
       operation: write
       sub_type: file
       format: json
       source_details: projects/frontend_auto/generated/sections_data.json
 
-  - label: Generate Core Kernel
-    type: person_job
-    position: {x: 950, y: 240}
-    props:
-      person: Core Kernel Architect
-      text_format_file: projects/frontend_auto/core_kernel_models.py
-      prompt_file: core_kernel_generator.txt
-
-  - label: Write Kernel Files
-    type: code_job
-    position: {x: 1100, y: 240}
-    props:
-      language: python
-      filePath: projects/frontend_auto/write_kernel_files.py
-      functionName: write_kernel_files
-
-  - label: Load Sections Data
-    type: db
-    position: {x: 1250, y: 240}
-    props:
-      operation: read
-      sub_type: file
-      format: json
-      source_details: projects/frontend_auto/generated/sections_data.json
-
-  - label: Load Core Kernel
-    type: db
-    position: {x: 1400, y: 240}
-    props:
-      operation: read
-      sub_type: file
-      format: json
-      source_details: projects/frontend_auto/generated/core_kernel_data.json
 
   - label: Check Continue
     type: condition
-    position: {x: 1650, y: 240}
+    position: {x: 1750, y: 240}
     props:
       condition_type: custom
-      expression: current_index >= 4
-#      expression: current_index >= len(default.file_paths)
+#      expression: current_index >= 4
+      expression: current_index >= len(default.file_paths)
       expose_index_as: current_index
       flipped: [false, true]
 
-  - label: Load Sections Data again
+  - label: Load Merged Data
     type: db
-    position: {x: 1650, y: 400}
+    position: {x: 1750, y: 400}
     props:
       operation: read
       sub_type: file
       format: json
       source_details: projects/frontend_auto/generated/sections_data.json
 
-  - label: Load Core Kernel again
-    type: db
-    position: {x: 1850, y: 400}
-    props:
-      operation: read
-      sub_type: file
-      format: json
-      source_details: projects/frontend_auto/generated/core_kernel_data.json
-
   - label: Generate Frontend Code
     type: person_job
-    position: {x: 2100, y: 240}
+    position: {x: 2000, y: 240}
     props:
       person: Frontend Generator
       max_iteration: 100
@@ -189,7 +213,7 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 2500, y: 240}
+    position: {x: 2400, y: 240}
     props:
       operation: write
       sub_type: file
@@ -198,7 +222,7 @@ nodes:
 
   - label: Rename Files
     type: code_job
-    position: {x: 1850, y: 600}
+    position: {x: 1950, y: 600}
     props:
       language: python
       filePath: projects/frontend_auto/rename_generated_files.py
@@ -234,7 +258,7 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 2100, y: 600}
+    position: {x: 2200, y: 600}
     props:
       save_to_file: false
 
@@ -242,20 +266,20 @@ connections:
   # Initial setup
   - {from: Start, to: Load Config}
   - {from: Load Config, to: Plan Sections, label: config, content_type: object}
-  - {from: Load Config, to: Generate Core Kernel , label: config, content_type: object }
+  - {from: Load Config, to: Generate Core Kernel, label: config, content_type: object }
 
-  - {from: Plan Sections, to: Save Sections Data, content_type: object}
+  - {from: Plan Sections, to: Extract Section Properties, label: sections_data, content_type: object}
   - {from: Plan Sections, to: Generate Core Kernel, label: sections_data, content_type: object}
 
-  - {from: Generate Core Kernel, to: Write Kernel Files, label: kernel, content_type: object}
-  - {from: Write Kernel Files, to: Load Sections Data, content_type: object}
-  - {from: Load Sections Data, to: Check Continue, label: merged_data, content_type: object}
+  # Merge kernel and sections (direct connections)
+  - {from: Extract Section Properties, to: Merge Kernel and Sections, label: sections_data, content_type: object}
+  - {from: Generate Core Kernel, to: Merge Kernel and Sections, label: kernel, content_type: object}
+  - {from: Merge Kernel and Sections, to: Save Merged Data, content_type: object}
+  - {from: Save Merged Data, to: Check Continue, content_type: object}
 
-  # Section iteration loop
-  - {from: Check Continue_condfalse, to: Load Sections Data again, content_type: object}
-  - {from: Load Sections Data again, to: Load Core Kernel again, label: sections_data, content_type: object}
-
-  - {from: Load Core Kernel again, to: Generate Frontend Code, label: kernel, content_type: object}
+  # Section iteration loop (now processes both kernel and regular sections)
+  - {from: Check Continue_condfalse, to: Load Merged Data, content_type: object}
+  - {from: Load Merged Data, to: Generate Frontend Code, label: sections_data, content_type: object}
   - {from: Generate Frontend Code, to: Write Section Result, content_type: object}
   - {from: Write Section Result, to: Check Continue, content_type: object}
 

@@ -1,6 +1,6 @@
 """
-Pydantic models for Core Kernel generation.
-Defines structured output for Core Kernel Architect to generate foundational contracts.
+Pydantic models for Core Kernel specifications.
+Defines structured output for Core Kernel Architect to generate specifications for foundational contracts.
 """
 
 from typing import List, Dict, Optional, Any
@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class CoreFile(BaseModel):
-    """A single core kernel file with its implementation."""
+    """Specification for a single core kernel file."""
     model_config = ConfigDict(extra='forbid')
     
     file_path: str = Field(
@@ -21,12 +21,12 @@ class CoreFile(BaseModel):
         description="List of key exports from this file (types, functions, classes, constants)"
     )
     content: str = Field(
-        description="Complete TypeScript/JavaScript code for this file"
+        description="Detailed specification of what should be in this file - types to define, functions to implement, patterns to follow, example usage"
     )
 
 
 class CoreKernelResponse(BaseModel):
-    """Response containing all core kernel files."""
+    """Response containing specifications for all core kernel files."""
     model_config = ConfigDict(extra='forbid')
     
     overview: str = Field(
@@ -35,7 +35,7 @@ class CoreKernelResponse(BaseModel):
     files: List[CoreFile] = Field(
         min_items=1,
         max_items=8,
-        description="Core kernel files that establish shared contracts and utilities"
+        description="Specifications for core kernel files that establish shared contracts and utilities"
     )
     usage_guidelines: List[str] = Field(
         min_items=1,
@@ -52,101 +52,90 @@ EXAMPLE_RESPONSE = CoreKernelResponse(
             file_path="core/contracts.ts",
             purpose="Domain types and API contracts used throughout the application",
             exports=["User", "Patient", "Appointment", "ApiResult", "ApiError"],
-            content="""export interface User {
-  id: string;
-  email: string;
-  role: 'patient' | 'doctor' | 'nurse';
-  name: string;
-  avatar?: string;
-}
+            content="""Define the following TypeScript interfaces and types:
 
-export interface Patient extends User {
-  medicalRecordNumber: string;
-  dateOfBirth: string;
-  insuranceProvider?: string;
-}
+1. User interface with:
+   - id: string (unique identifier)
+   - email: string
+   - role: union type of 'patient' | 'doctor' | 'nurse' 
+   - name: string
+   - avatar?: optional string URL
 
-export interface Appointment {
-  id: string;
-  patientId: string;
-  doctorId: string;
-  dateTime: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
-  reason: string;
-  notes?: string;
-}
+2. Patient interface extending User with:
+   - medicalRecordNumber: string
+   - dateOfBirth: string (ISO format)
+   - insuranceProvider?: optional string
 
-export type ApiResult<T> = 
-  | { success: true; data: T }
-  | { success: false; error: ApiError };
+3. Doctor interface extending User with:
+   - specialization: string
+   - licenseNumber: string
 
-export interface ApiError {
-  code: string;
-  message: string;
-  details?: any;
-}"""
+4. Appointment interface with:
+   - id, patientId, doctorId: string
+   - dateTime: string (ISO format)
+   - status: 'scheduled' | 'completed' | 'cancelled'
+   - reason: string
+   - notes?: optional string
+
+5. ApiResult<T> discriminated union type:
+   - Success case: { success: true; data: T }
+   - Error case: { success: false; error: ApiError }
+
+6. ApiError interface with code, message, and optional details
+
+Use strict TypeScript with no 'any' types. Export all as named exports."""
         ),
         CoreFile(
             file_path="core/hooks.ts",
             purpose="Hook registry for extension points throughout the app",
             exports=["HookPoint", "HookContext", "HookRegistry", "hooks"],
-            content="""export type HookPoint =
-  | 'beforeApiRequest'
-  | 'afterApiResponse'
-  | 'onLogin'
-  | 'onLogout'
-  | 'onRouteChange';
+            content="""Create a flexible hook system for extension points:
 
-export interface HookContext {
-  config: any;
-  user?: any;
-}
+1. HookPoint union type with these hook names:
+   - 'beforeApiRequest', 'afterApiResponse'
+   - 'onLogin', 'onLogout'  
+   - 'onRouteChange'
 
-export type Hook<TPayload, TResult = void> = 
-  (ctx: HookContext, payload: TPayload) => Promise<TResult> | TResult;
+2. HookContext interface containing:
+   - config object (from app config)
+   - user object (current user, optional)
+   - Any other app-wide context needed
 
-export class HookRegistry {
-  private handlers: Record<string, Hook<any, any>[]> = {};
-  
-  register<K extends HookPoint>(point: K, fn: Hook<any, any>) {
-    (this.handlers[point] ??= []).push(fn);
-  }
-  
-  async run<K extends HookPoint>(point: K, payload: any) {
-    const fns = this.handlers[point] ?? [];
-    for (const fn of fns) {
-      await fn({} as HookContext, payload);
-    }
-  }
-}
+3. Generic Hook type signature
 
-export const hooks = new HookRegistry();"""
+4. HookRegistry class with:
+   - register() method to add hooks
+   - run() method to execute hooks for a point
+   - Support for async and sync handlers
+   - Type-safe hook point names
+
+5. Export singleton 'hooks' instance
+
+Pattern: Allow any part of app to register hooks and run them at key points."""
         ),
         CoreFile(
             file_path="app/config.ts",
             purpose="Materialized configuration from JSON config file",
             exports=["config", "isDevelopment", "shouldUseMockData"],
-            content="""// Configuration materialized from healthcare_portal_config.json
-export const config = {
-  appType: 'healthcare',
-  framework: 'react',
-  developmentMode: {
-    enableMockData: true,
-    disableWebsocketInDev: true,
-    useLocalstoragePresistence: true,
-    mockAuthUsers: [
-      {email: 'patient@email.com', password: 'patient123', role: 'patient'}
-    ]
-  },
-  features: [
-    'appointment_scheduling',
-    'medical_records_viewer',
-    'prescription_management'
-  ]
-} as const;
+            content="""Materialize the JSON configuration into TypeScript constants:
 
-export const isDevelopment = process.env.NODE_ENV === 'development';
-export const shouldUseMockData = isDevelopment && config.developmentMode.enableMockData;"""
+1. Export 'config' const object matching the JSON structure with:
+   - appType, framework from config
+   - developmentMode settings (all fields)
+   - features array
+   - Any other config fields
+   - Use 'as const' for type narrowing
+
+2. Computed boolean flags:
+   - isDevelopment: check NODE_ENV
+   - shouldUseMockData: combine isDevelopment with config setting
+   - Feature flags based on features array
+
+3. Mock data arrays (if development mode enabled):
+   - mockUsers array from config
+   - Any other mock data specified
+
+Make all exports strongly typed. Config should be the source of truth for app settings."""
         )
     ],
     usage_guidelines=[

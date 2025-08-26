@@ -1,394 +1,494 @@
 {
   "architecture": {
-    "overview": "A modular, feature-driven React + TypeScript single-page application for a Patient Healthcare Portal. The app is split into foundational providers and services (auth, query client, i18n, theme), reusable UI primitives and layout components, feature folders that encapsulate pages, components and hooks for appointments, medical records, prescriptions, telemedicine, lab results, insurance, and medication reminders, and a development mock layer that provides mock REST endpoints and WebSocket updates so the app can run standalone without backend dependencies.",
+    "overview": "Patient Healthcare Portal built with React 18+, TypeScript and Tailwind CSS. The app is modular and feature-driven: providers and core services form the foundation, shared UI components provide consistent building blocks, feature folders contain domain UI and hooks, and pages & router wire everything together. In development mode the app runs standalone using a mock API + mock WebSocket server, mocked users, and localStorage persistence so backend is not required.",
     "patterns": [
-      "Feature-first folder layout (src/features/*) with each feature owning its pages, components, hooks and api clients",
-      "Providers layer (Auth, QueryClient, I18n, Theme) mounted at app root",
-      "Container/Presentational separation: pages and containers orchestrate data and hooks; presentational components are in shared/components",
-      "React Query for server state (data fetching, caching, stale-while-revalidate)",
-      "Context API for global cross-cutting concerns (Auth, Theme, Toasts)",
-      "Mock Server pattern for development mode providing REST handlers and simulated WebSockets",
-      "Progressive enhancement via Suspense and Error Boundaries",
-      "Composition with small reusable hooks (useAuth, useLocalStorage, useWebsocket, useToast)"
+      "Provider Pattern (Auth, Query, I18n, Theme, Socket)",
+      "Feature Folders (each feature has components + hooks + service usage)",
+      "Container/Presentational split for components",
+      "React Query for server-state with custom service layer",
+      "Context API for auth and theming",
+      "Mock Server (MSW-style) for dev-mode endpoints and mock WebSocket",
+      "Atomic UI (Button/Input/Modal/Table) with Tailwind utility classes",
+      "Progressive Enhancement: Suspense + Error Boundaries"
     ],
-    "data_flow": "UI components call feature hooks (e.g., useAppointments) which use React Query to fetch via feature API clients (appointments.api). API clients use a single apiClient wrapper which points to the real backend in prod or to the mock server in dev. AuthProvider gives tokens and role information to apiClient. React Query centralizes caching and invalidation; components invalidate or refetch via returned query keys. Real-time updates (telemetry/appointment updates) are delivered through a WebSocket service; a mock websocket provider runs in dev to broadcast updates. LocalStorage is used to persist mock auth in development. i18n provides translated strings to UI. ErrorBoundary and SuspenseFallback handle loading and errors across routes.",
-    "folder_structure": "src/\n  main.tsx\n  index.css\n  App.tsx\n  routes/\n    AppRouter.tsx\n    ProtectedRoute.tsx\n  providers/\n    RootProviders.tsx\n    AuthProvider.tsx\n    ThemeProvider.tsx\n    I18nProvider.tsx\n  query/\n    queryClient.ts\n  i18n/\n    i18n.ts\n    locales/\n      en.json\n      ko.json\n  services/\n    apiClient.ts\n    mockServer.ts\n    mockWebsocket.ts\n    websocket.ts\n    endpoints/\n      appointments.api.ts\n      medicalRecords.api.ts\n      prescriptions.api.ts\n      labResults.api.ts\n      insurance.api.ts\n      medications.api.ts\n  mocks/\n    mockUsers.ts\n    appointments.json\n    medicalRecords.json\n    prescriptions.json\n    labResults.json\n    insurance.json\n    medications.json\n  hooks/\n    useAuth.ts\n    useLocalStorage.ts\n    useWebsocket.ts\n    useToast.ts\n    useAppointments.ts\n    useMedicalRecords.ts\n    usePrescriptions.ts\n    useLabResults.ts\n    useInsurance.ts\n    useMedications.ts\n  components/\n    ErrorBoundary.tsx\n    SuspenseFallback.tsx\n    Layouts/\n      MainLayout.tsx\n      AuthLayout.tsx\n    ui/\n      Button.tsx\n      Input.tsx\n      Modal.tsx\n      Card.tsx\n      Table.tsx\n      LoadingSpinner.tsx\n      EmptyState.tsx\n      Avatar.tsx\n    nav/\n      Header.tsx\n      Sidebar.tsx\n      Footer.tsx\n  features/\n    appointments/\n      AppointmentList.tsx\n      AppointmentForm.tsx\n      AppointmentCard.tsx\n      AppointmentPage.tsx\n      AppointmentDetailPage.tsx\n    medicalRecords/\n      MedicalRecordsPage.tsx\n      RecordViewer.tsx\n    prescriptions/\n      PrescriptionsPage.tsx\n      PrescriptionForm.tsx\n    telemedicine/\n      TelemedicinePage.tsx\n      VideoCallPlaceholder.tsx\n    dashboard/\n      DashboardPage.tsx\n      HealthMetricCard.tsx\n    labResults/\n      LabResultsPage.tsx\n      LabResultRow.tsx\n    insurance/\n      InsurancePage.tsx\n      ClaimTracker.tsx\n    medications/\n      MedicationsPage.tsx\n      ReminderForm.tsx\n  pages/\n    LoginPage.tsx\n    SettingsPage.tsx\n    NotFoundPage.tsx\n  styles/\n    tailwind.css\n  utils/\n    formatDate.ts\n    validators.ts\n  types/\n    (Core Kernel provides shared domain types; local helpers if needed)\n\nOther top-level files:\n  tailwind.config.cjs\n  postcss.config.cjs\n  vite.config.ts",
+    "data_flow": "UI components call custom hooks (useAppointments, useMedicalRecords, etc). Hooks use React Query which uses a single apiClient service to call endpoints. In development, apiClient routes calls to the mock server/handlers; in production it points to real API endpoints. AuthProvider manages tokens and user state persisted to localStorage when enable_mock_data/use_localstorage_persistence is set. SocketProvider provides a WebSocket-like event stream (mock in dev) for real-time updates (e.g., appointment changes). I18nProvider supplies translation strings to UI. ErrorBoundary wraps pages to show recoverable error UI.",
+    "folder_structure": "src/\n  main.tsx\n  index.css\n  App.tsx\n  config/\n    appConfig.ts\n  providers/\n    QueryProvider.tsx\n    AuthProvider.tsx\n    I18nProvider.tsx\n    ThemeProvider.tsx\n    SocketProvider.tsx\n  lib/\n    apiClient.ts\n    localStorage.ts\n    mockMode.ts\n    fallback.ts\n  services/\n    auth.service.ts\n    appointments.service.ts\n    medicalRecords.service.ts\n    prescriptions.service.ts\n    labResults.service.ts\n    insurance.service.ts\n    medications.service.ts\n    websocket.service.ts\n    mockServer.ts\n  hooks/\n    useAuth.ts\n    useLocalStorage.ts\n    useDebounce.ts\n    useAppointments.ts\n    useMedicalRecords.ts\n    usePrescriptions.ts\n    useLabResults.ts\n    useInsurance.ts\n    useMedications.ts\n  i18n/\n    i18n.ts\n    locales/\n      en.json\n      ko.json\n  mocks/\n    server.ts\n    handlers.ts\n    mockUsers.ts\n    data/\n      appointments.ts\n      medicalRecords.ts\n      prescriptions.ts\n      labResults.ts\n      insurance.ts\n      medications.ts\n      websocket.ts\n  components/\n    ErrorBoundary.tsx\n    SuspenseFallback.tsx\n    ProtectedRoute.tsx\n    layout/\n      AppLayout.tsx\n      Header.tsx\n      Sidebar.tsx\n    ui/\n      Button.tsx\n      Input.tsx\n      Modal.tsx\n      Toast.tsx\n      Table.tsx\n      Spinner.tsx\n  features/\n    dashboard/\n      HealthDashboard.tsx\n    appointments/\n      AppointmentList.tsx\n      AppointmentForm.tsx\n    medicalRecords/\n      MedicalRecordViewer.tsx\n    prescriptions/\n      PrescriptionList.tsx\n      PrescriptionForm.tsx\n    telemedicine/\n      TelemedicineRoom.tsx\n    labResults/\n      LabResultsTable.tsx\n    insurance/\n      InsuranceTracker.tsx\n    medications/\n      MedicationReminders.tsx\n  pages/\n    LoginPage.tsx\n    DashboardPage.tsx\n    AppointmentsPage.tsx\n    MedicalRecordsPage.tsx\n    PrescriptionsPage.tsx\n    TelemedicinePage.tsx\n    LabResultsPage.tsx\n    InsurancePage.tsx\n    MedicationsPage.tsx\n    SettingsPage.tsx\n    NotFoundPage.tsx\n  routes/\n    AppRouter.tsx\ntailwind.config.js\npostcss.config.js",
     "tech_stack": [
-      "React 18+ (functional components, Suspense)",
+      "React 18+ (Suspense, concurrent-safe patterns)",
       "TypeScript",
       "React Router v6",
-      "React Query (TanStack Query)",
-      "React Hook Form + Zod for validation (or optional validators.ts with zod schemas)",
-      "Tailwind CSS for styling (responsive, dark mode support)",
-      "i18next for i18n with en + ko locales",
-      "Mock Service Worker (or internal lightweight mock server) for development mock endpoints",
-      "WebSocket abstraction with mock websocket for dev",
-      "LocalStorage for local persistence in development"
+      "React Query (TanStack Query) for server-state",
+      "Tailwind CSS with dark mode",
+      "React Context API for Auth & Theme",
+      "i18next for internationalization (Korean locales included)",
+      "MSW-style mock server for dev API endpoints and mock WebSocket",
+      "LocalStorage for persistence in dev",
+      "Zod + React Hook Form (recommended for forms/validation)",
+      "Vite (recommended) or CRA for bundling"
     ]
   },
   "sections": [
     {
-      "id": "entry-point",
-      "file_to_implement": "src/main.tsx",
-      "description": "Application entry: mounts React app, imports global styles, registers mock server in development, and renders RootProviders + App.",
-      "dependencies": [
-        "src/index.css",
-        "src/providers/RootProviders.tsx",
-        "src/App.tsx",
-        "src/services/mockServer.ts",
-        "src/services/mockWebsocket.ts"
-      ],
-      "exports": [
-        "bootstraps the app (no runtime exports)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "global-styles",
-      "file_to_implement": "src/index.css",
-      "description": "Global Tailwind / base CSS, dark mode utilities and custom overrides used by components.",
+      "id": "app-config",
       "dependencies": [],
       "exports": [
-        "global CSS (imported by main.tsx)"
+        "appConfig object"
       ],
       "priority": 1
     },
     {
-      "id": "app-root",
-      "file_to_implement": "src/App.tsx",
-      "description": "Top-level application component: mounts AppRouter and wraps global ErrorBoundary and SuspenseFallback.",
-      "dependencies": [
-        "src/routes/AppRouter.tsx",
-        "src/components/ErrorBoundary.tsx",
-        "src/components/SuspenseFallback.tsx"
-      ],
-      "exports": [
-        "App component"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "root-providers",
-      "file_to_implement": "src/providers/RootProviders.tsx",
-      "description": "Composes global providers: React Query QueryClientProvider, AuthProvider, I18nProvider, ThemeProvider and any Toast provider. Exposes QueryClientProvider configured for the app.",
-      "dependencies": [
-        "src/query/queryClient.ts",
-        "src/providers/AuthProvider.tsx",
-        "src/providers/I18nProvider.tsx",
-        "src/providers/ThemeProvider.tsx",
-        "src/hooks/useToast.ts"
-      ],
-      "exports": [
-        "RootProviders component"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "query-client",
-      "file_to_implement": "src/query/queryClient.ts",
-      "description": "Creates and configures the React Query QueryClient with sensible defaults (retry, staleTime), devtools toggling, and error handling hooks.",
+      "id": "local-storage-util",
       "dependencies": [],
       "exports": [
-        "queryClient instance",
-        "QueryClientProvider wrapper utility (if any)"
+        "getItem",
+        "setItem",
+        "removeItem"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-mode-flag",
+      "dependencies": [
+        "src/config/appConfig.ts"
+      ],
+      "exports": [
+        "isDevMockMode boolean"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "api-client",
+      "dependencies": [
+        "src/config/appConfig.ts",
+        "src/lib/mockMode.ts",
+        "src/mocks/server.ts"
+      ],
+      "exports": [
+        "apiClient (fetch wrapper)",
+        "setAuthToken helper"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "auth-service",
+      "dependencies": [
+        "src/lib/apiClient.ts",
+        "src/lib/localStorage.ts",
+        "src/mocks/mockUsers.ts",
+        "src/config/appConfig.ts",
+        "src/lib/mockMode.ts"
+      ],
+      "exports": [
+        "login",
+        "logout",
+        "getCurrentUser",
+        "refreshToken"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "appointments-service",
+      "dependencies": [
+        "src/lib/apiClient.ts"
+      ],
+      "exports": [
+        "fetchAppointments",
+        "createAppointment",
+        "updateAppointment",
+        "cancelAppointment"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "medical-records-service",
+      "dependencies": [
+        "src/lib/apiClient.ts"
+      ],
+      "exports": [
+        "fetchMedicalRecords",
+        "fetchRecordById"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "prescriptions-service",
+      "dependencies": [
+        "src/lib/apiClient.ts"
+      ],
+      "exports": [
+        "fetchPrescriptions",
+        "createPrescription",
+        "renewPrescription"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "lab-results-service",
+      "dependencies": [
+        "src/lib/apiClient.ts"
+      ],
+      "exports": [
+        "fetchLabResults",
+        "fetchLabResultById"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "insurance-service",
+      "dependencies": [
+        "src/lib/apiClient.ts"
+      ],
+      "exports": [
+        "fetchClaims",
+        "submitClaim"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "medications-service",
+      "dependencies": [
+        "src/lib/apiClient.ts"
+      ],
+      "exports": [
+        "fetchMedications",
+        "scheduleReminder",
+        "cancelReminder"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "websocket-service",
+      "dependencies": [
+        "src/lib/mockMode.ts",
+        "src/mocks/mockWebsocket.ts"
+      ],
+      "exports": [
+        "connect",
+        "disconnect",
+        "on",
+        "off",
+        "emit (mock)"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-server-entry",
+      "dependencies": [
+        "src/mocks/handlers.ts",
+        "src/mocks/mockUsers.ts",
+        "src/mocks/data/appointments.ts",
+        "src/mocks/data/medicalRecords.ts",
+        "src/mocks/data/prescriptions.ts",
+        "src/mocks/data/labResults.ts",
+        "src/mocks/data/insurance.ts",
+        "src/mocks/data/medications.ts",
+        "src/mocks/websocket.ts"
+      ],
+      "exports": [
+        "startMockServer",
+        "stopMockServer"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "query-provider",
+      "dependencies": [
+        "src/lib/apiClient.ts"
+      ],
+      "exports": [
+        "ReactQueryProvider (wrapper component)"
       ],
       "priority": 1
     },
     {
       "id": "auth-provider",
-      "file_to_implement": "src/providers/AuthProvider.tsx",
-      "description": "Provides authentication context, login/logout methods, token storage and role info. In development mode uses mock users and localStorage persistence. Exposes context for useAuth hook.",
       "dependencies": [
-        "src/hooks/useLocalStorage.ts",
-        "src/mocks/mockUsers.ts",
-        "src/services/mockServer.ts"
+        "src/services/auth.service.ts",
+        "src/lib/localStorage.ts",
+        "src/lib/mockMode.ts",
+        "src/mocks/mockUsers.ts"
       ],
       "exports": [
         "AuthProvider component",
-        "AuthContext (React context)"
+        "useAuthContext hook"
       ],
       "priority": 1
     },
     {
       "id": "i18n-provider",
-      "file_to_implement": "src/providers/I18nProvider.tsx",
-      "description": "Initializes i18next and provides translation utilities to the app, loads locale files and exposes a Language switcher support.",
       "dependencies": [
         "src/i18n/i18n.ts",
         "src/i18n/locales/en.json",
         "src/i18n/locales/ko.json"
       ],
       "exports": [
-        "I18nProvider component (wraps children)",
-        "useTranslation hook passthrough (if re-exported)"
+        "I18nProvider (initializes i18next)"
       ],
       "priority": 1
     },
     {
       "id": "theme-provider",
-      "file_to_implement": "src/providers/ThemeProvider.tsx",
-      "description": "Manages light/dark mode, persists preference to localStorage and provides CSS class toggling for Tailwind dark mode.",
       "dependencies": [
-        "src/hooks/useLocalStorage.ts"
+        "src/lib/localStorage.ts"
       ],
       "exports": [
         "ThemeProvider component",
-        "ThemeContext"
+        "useTheme hook"
       ],
       "priority": 1
     },
     {
-      "id": "i18n-init",
-      "file_to_implement": "src/i18n/i18n.ts",
-      "description": "i18next initialization file: configures languages (en, ko), fallback, and loads resources. Exports i18n instance.",
+      "id": "socket-provider",
       "dependencies": [
-        "src/i18n/locales/en.json",
-        "src/i18n/locales/ko.json"
+        "src/services/websocket.service.ts",
+        "src/lib/mockMode.ts"
       ],
       "exports": [
-        "i18n instance"
+        "SocketProvider component",
+        "useSocket hook"
       ],
       "priority": 1
     },
     {
-      "id": "locale-en",
-      "file_to_implement": "src/i18n/locales/en.json",
-      "description": "English translation strings used across the app.",
-      "dependencies": [],
-      "exports": [
-        "JSON object of English translations"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "locale-ko",
-      "file_to_implement": "src/i18n/locales/ko.json",
-      "description": "Korean translation strings used across the app (must cover keys used in UI).",
-      "dependencies": [],
-      "exports": [
-        "JSON object of Korean translations"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "api-client",
-      "file_to_implement": "src/services/apiClient.ts",
-      "description": "Single HTTP client wrapper for fetch/axios that adds auth token, baseUrl switching (real vs dev mock), error normalization and fallback handling when backend unavailable.",
+      "id": "use-auth-hook",
       "dependencies": [
         "src/providers/AuthProvider.tsx",
-        "src/services/mockServer.ts"
+        "src/services/auth.service.ts"
       ],
       "exports": [
-        "apiClient instance (get/post/put/delete helper functions)"
+        "useAuth hook (login/logout, currentUser)"
       ],
       "priority": 1
     },
     {
-      "id": "mock-server",
-      "file_to_implement": "src/services/mockServer.ts",
-      "description": "In-development mock server that registers route handlers for all API endpoints, returns data from local JSON mocks, enforces basic auth checks and supports REST semantics. Starts automatically in dev mode when imported.",
+      "id": "use-local-storage-hook",
       "dependencies": [
-        "src/mocks/mockUsers.ts",
-        "src/mocks/appointments.json",
-        "src/mocks/medicalRecords.json",
-        "src/mocks/prescriptions.json",
-        "src/mocks/labResults.json",
-        "src/mocks/insurance.json",
-        "src/mocks/medications.json"
+        "src/lib/localStorage.ts"
       ],
-      "exports": [
-        "startMockServer() function (maybe auto-start)",
-        "mockHandlers export for testing"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mock-websocket",
-      "file_to_implement": "src/services/mockWebsocket.ts",
-      "description": "Simulates WebSocket events for real-time features in development mode (appointment status updates, lab result ready notifications, medication reminders). Provides an API to subscribe/unsubscribe.",
-      "dependencies": [
-        "src/mocks/appointments.json"
-      ],
-      "exports": [
-        "MockWebsocket class or createMockWebsocket() factory",
-        "startMockWebsocket() utility"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "websocket-abstraction",
-      "file_to_implement": "src/services/websocket.ts",
-      "description": "Production WebSocket wrapper which in dev delegates to mockWebsocket. Exposes connect, subscribe, send. Provides fallback behavior and reconnection policy.",
-      "dependencies": [
-        "src/services/mockWebsocket.ts"
-      ],
-      "exports": [
-        "createWebsocketClient()"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mock-users",
-      "file_to_implement": "src/mocks/mockUsers.ts",
-      "description": "Defines mock user accounts and helper functions to validate credentials in development mode. Matches dev config (doctor, patient, nurse).",
-      "dependencies": [],
-      "exports": [
-        "mockUsers array",
-        "validateMockCredentials(email, password)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mock-appointments",
-      "file_to_implement": "src/mocks/appointments.json",
-      "description": "Mock data for /api/appointments endpoint used by mockServer.",
-      "dependencies": [],
-      "exports": [
-        "JSON data"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mock-medical-records",
-      "file_to_implement": "src/mocks/medicalRecords.json",
-      "description": "Mock data for /api/medical-records endpoint.",
-      "dependencies": [],
-      "exports": [
-        "JSON data"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mock-prescriptions",
-      "file_to_implement": "src/mocks/prescriptions.json",
-      "description": "Mock data for /api/prescriptions endpoint.",
-      "dependencies": [],
-      "exports": [
-        "JSON data"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mock-lab-results",
-      "file_to_implement": "src/mocks/labResults.json",
-      "description": "Mock lab results data for /api/lab-results.",
-      "dependencies": [],
-      "exports": [
-        "JSON data"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mock-insurance",
-      "file_to_implement": "src/mocks/insurance.json",
-      "description": "Mock data for /api/insurance endpoint.",
-      "dependencies": [],
-      "exports": [
-        "JSON data"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mock-medications",
-      "file_to_implement": "src/mocks/medications.json",
-      "description": "Mock data for /api/medications endpoint and medication reminders.",
-      "dependencies": [],
-      "exports": [
-        "JSON data"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "use-localstorage",
-      "file_to_implement": "src/hooks/useLocalStorage.ts",
-      "description": "Small utility hook to read/write typed values to localStorage with SSR-safe checks. Used by AuthProvider and ThemeProvider.",
-      "dependencies": [],
       "exports": [
         "useLocalStorage hook"
       ],
       "priority": 1
     },
     {
-      "id": "use-auth-hook",
-      "file_to_implement": "src/hooks/useAuth.ts",
-      "description": "Hook that consumes AuthContext to expose currentUser, isAuthenticated, login, logout, and helper methods. Used by ProtectedRoute and feature hooks.",
+      "id": "use-debounce-hook",
+      "dependencies": [],
+      "exports": [
+        "useDebounce hook"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "use-appointments-hook",
       "dependencies": [
-        "src/providers/AuthProvider.tsx"
+        "src/services/appointments.service.ts",
+        "src/providers/QueryProvider.tsx"
       ],
       "exports": [
-        "useAuth hook"
+        "useAppointments hook (react-query)"
       ],
       "priority": 1
     },
     {
-      "id": "use-toast",
-      "file_to_implement": "src/hooks/useToast.ts",
-      "description": "Small cross-app toast/notification hook used by services and providers to show non-blocking messages (e.g., network errors, reminders).",
-      "dependencies": [],
-      "exports": [
-        "useToast hook",
-        "ToastProvider (if included)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "format-date-util",
-      "file_to_implement": "src/utils/formatDate.ts",
-      "description": "Utility to format dates consistently across the app and handle timezone basics.",
-      "dependencies": [],
-      "exports": [
-        "formatDate()"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "validators",
-      "file_to_implement": "src/utils/validators.ts",
-      "description": "Reusable validation functions or Zod schemas for forms (appointments, prescriptions, login).",
-      "dependencies": [],
-      "exports": [
-        "validators / zod schemas"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "error-boundary",
-      "file_to_implement": "src/components/ErrorBoundary.tsx",
-      "description": "Global React ErrorBoundary component to catch render errors and display a friendly fallback with retry.",
+      "id": "use-medical-records-hook",
       "dependencies": [
-        "src/components/LoadingSpinner.tsx"
+        "src/services/medicalRecords.service.ts",
+        "src/providers/QueryProvider.tsx"
       ],
       "exports": [
-        "ErrorBoundary component"
+        "useMedicalRecords hook"
       ],
       "priority": 1
     },
     {
-      "id": "suspense-fallback",
-      "file_to_implement": "src/components/SuspenseFallback.tsx",
-      "description": "UI shown while Suspense boundaries are pending; used by App and pages.",
+      "id": "use-prescriptions-hook",
       "dependencies": [
-        "src/components/LoadingSpinner.tsx"
+        "src/services/prescriptions.service.ts",
+        "src/providers/QueryProvider.tsx"
       ],
       "exports": [
-        "SuspenseFallback component"
+        "usePrescriptions hook"
       ],
       "priority": 1
     },
     {
-      "id": "loading-spinner",
-      "file_to_implement": "src/components/ui/LoadingSpinner.tsx",
-      "description": "Small accessible loading spinner used across the app.",
+      "id": "use-lab-results-hook",
+      "dependencies": [
+        "src/services/labResults.service.ts",
+        "src/providers/QueryProvider.tsx"
+      ],
+      "exports": [
+        "useLabResults hook"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "use-insurance-hook",
+      "dependencies": [
+        "src/services/insurance.service.ts",
+        "src/providers/QueryProvider.tsx"
+      ],
+      "exports": [
+        "useInsurance hook"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "use-medications-hook",
+      "dependencies": [
+        "src/services/medications.service.ts",
+        "src/providers/QueryProvider.tsx"
+      ],
+      "exports": [
+        "useMedications hook"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "i18n-init",
+      "dependencies": [
+        "src/i18n/locales/en.json",
+        "src/i18n/locales/ko.json"
+      ],
+      "exports": [
+        "i18n initialization"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-handlers",
+      "dependencies": [
+        "src/mocks/data/appointments.ts",
+        "src/mocks/data/medicalRecords.ts",
+        "src/mocks/data/prescriptions.ts",
+        "src/mocks/data/labResults.ts",
+        "src/mocks/data/insurance.ts",
+        "src/mocks/data/medications.ts",
+        "src/mocks/mockUsers.ts"
+      ],
+      "exports": [
+        "handlers array for mock server"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-users",
       "dependencies": [],
       "exports": [
-        "LoadingSpinner component"
+        "mock users list"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-appointments-data",
+      "dependencies": [],
+      "exports": [
+        "appointments mock data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-medical-records-data",
+      "dependencies": [],
+      "exports": [
+        "medical records mock data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-prescriptions-data",
+      "dependencies": [],
+      "exports": [
+        "prescriptions mock data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-lab-results-data",
+      "dependencies": [],
+      "exports": [
+        "lab results mock data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-insurance-data",
+      "dependencies": [],
+      "exports": [
+        "insurance mock data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-medications-data",
+      "dependencies": [],
+      "exports": [
+        "medications mock data"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "error-boundary-component",
+      "dependencies": [],
+      "exports": [
+        "ErrorBoundary React component"
       ],
       "priority": 2
     },
     {
-      "id": "button-component",
-      "file_to_implement": "src/components/ui/Button.tsx",
-      "description": "Accessible primary button with Tailwind styles, supports variants (primary/secondary), loading state and icon slots.",
+      "id": "suspense-fallback-component",
+      "dependencies": [],
+      "exports": [
+        "SuspenseFallback component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "protected-route-component",
+      "dependencies": [
+        "src/providers/AuthProvider.tsx",
+        "src/routes/AppRouter.tsx"
+      ],
+      "exports": [
+        "ProtectedRoute component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "app-layout",
+      "dependencies": [
+        "src/components/layout/Header.tsx",
+        "src/components/layout/Sidebar.tsx"
+      ],
+      "exports": [
+        "AppLayout component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "header-component",
+      "dependencies": [
+        "src/providers/AuthProvider.tsx",
+        "src/providers/ThemeProvider.tsx"
+      ],
+      "exports": [
+        "Header component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "sidebar-component",
+      "dependencies": [
+        "src/providers/AuthProvider.tsx",
+        "src/i18n/i18n.ts"
+      ],
+      "exports": [
+        "Sidebar component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "ui-button",
       "dependencies": [],
       "exports": [
         "Button component"
@@ -396,20 +496,15 @@
       "priority": 2
     },
     {
-      "id": "input-component",
-      "file_to_implement": "src/components/ui/Input.tsx",
-      "description": "Accessible input and textarea wrappers with label, error display and Tailwind styling for forms.",
+      "id": "ui-input",
       "dependencies": [],
       "exports": [
-        "Input component",
-        "Textarea component (if included)"
+        "Input component"
       ],
       "priority": 2
     },
     {
-      "id": "modal-component",
-      "file_to_implement": "src/components/ui/Modal.tsx",
-      "description": "Reusable modal dialog component with focus trap, aria attributes and keyboard handling.",
+      "id": "ui-modal",
       "dependencies": [
         "src/components/ui/Button.tsx"
       ],
@@ -419,19 +514,15 @@
       "priority": 2
     },
     {
-      "id": "card-component",
-      "file_to_implement": "src/components/ui/Card.tsx",
-      "description": "Simple card container used for dashboard metric cards and record cards.",
+      "id": "ui-toast",
       "dependencies": [],
       "exports": [
-        "Card component"
+        "Toast component and API"
       ],
       "priority": 2
     },
     {
-      "id": "table-component",
-      "file_to_implement": "src/components/ui/Table.tsx",
-      "description": "Accessible table abstraction used for lists (appointments, lab results) including keyboard navigation support.",
+      "id": "ui-table",
       "dependencies": [],
       "exports": [
         "Table component"
@@ -439,282 +530,19 @@
       "priority": 2
     },
     {
-      "id": "empty-state",
-      "file_to_implement": "src/components/ui/EmptyState.tsx",
-      "description": "Fallback UI to show when lists are empty (with action CTA support).",
-      "dependencies": [
-        "src/components/ui/Button.tsx"
-      ],
-      "exports": [
-        "EmptyState component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "avatar",
-      "file_to_implement": "src/components/ui/Avatar.tsx",
-      "description": "Small avatar component for user pictures/initials used in the header.",
+      "id": "ui-spinner",
       "dependencies": [],
       "exports": [
-        "Avatar component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "header",
-      "file_to_implement": "src/components/nav/Header.tsx",
-      "description": "Top header bar with app title, language switch, user menu and quick actions. Consumes AuthContext.",
-      "dependencies": [
-        "src/hooks/useAuth.ts",
-        "src/components/ui/Avatar.tsx",
-        "src/providers/I18nProvider.tsx"
-      ],
-      "exports": [
-        "Header component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "sidebar",
-      "file_to_implement": "src/components/nav/Sidebar.tsx",
-      "description": "Primary navigation sidebar with links to features (Dashboard, Appointments, Records, Prescriptions, Telemedicine, Lab Results, Insurance, Medications, Settings). Responsive collapse behavior.",
-      "dependencies": [
-        "src/routes/AppRouter.tsx"
-      ],
-      "exports": [
-        "Sidebar component",
-        "Nav link items"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "footer",
-      "file_to_implement": "src/components/nav/Footer.tsx",
-      "description": "Application footer with lightweight links and legal info.",
-      "dependencies": [],
-      "exports": [
-        "Footer component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "main-layout",
-      "file_to_implement": "src/components/Layouts/MainLayout.tsx",
-      "description": "Main app layout used for authenticated sections: includes Header, Sidebar and a content area. Implements responsive design and ARIA landmarks.",
-      "dependencies": [
-        "src/components/nav/Header.tsx",
-        "src/components/nav/Sidebar.tsx",
-        "src/components/nav/Footer.tsx"
-      ],
-      "exports": [
-        "MainLayout component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "auth-layout",
-      "file_to_implement": "src/components/Layouts/AuthLayout.tsx",
-      "description": "Layout for auth pages (login) centered with branding and accessible form container.",
-      "dependencies": [
-        "src/components/ui/Card.tsx"
-      ],
-      "exports": [
-        "AuthLayout component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "protected-route",
-      "file_to_implement": "src/routes/ProtectedRoute.tsx",
-      "description": "Route wrapper that checks authentication and optionally role-based access. Redirects to login if unauthenticated.",
-      "dependencies": [
-        "src/hooks/useAuth.ts",
-        "src/pages/LoginPage.tsx"
-      ],
-      "exports": [
-        "ProtectedRoute component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "app-router",
-      "file_to_implement": "src/routes/AppRouter.tsx",
-      "description": "React Router v6 configuration for all app routes. Sets up lazy-loaded pages with Suspense and integrates ProtectedRoute for guarded routes.",
-      "dependencies": [
-        "src/pages/LoginPage.tsx",
-        "src/pages/NotFoundPage.tsx",
-        "src/features/dashboard/DashboardPage.tsx",
-        "src/features/appointments/AppointmentPage.tsx",
-        "src/features/appointments/AppointmentDetailPage.tsx",
-        "src/features/medicalRecords/MedicalRecordsPage.tsx",
-        "src/features/prescriptions/PrescriptionsPage.tsx",
-        "src/features/telemedicine/TelemedicinePage.tsx",
-        "src/features/labResults/LabResultsPage.tsx",
-        "src/features/insurance/InsurancePage.tsx"
-      ],
-      "exports": [
-        "AppRouter component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "appointments-api",
-      "file_to_implement": "src/services/endpoints/appointments.api.ts",
-      "description": "Feature API client for appointments: fetch list, fetch details, create, update, cancel. Uses apiClient under the hood.",
-      "dependencies": [
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "appointmentsApi object with CRUD methods",
-        "appointment query keys helper"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "medical-records-api",
-      "file_to_implement": "src/services/endpoints/medicalRecords.api.ts",
-      "description": "API client for medical records related endpoints (list, view record PDF/details).",
-      "dependencies": [
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "medicalRecordsApi object"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "prescriptions-api",
-      "file_to_implement": "src/services/endpoints/prescriptions.api.ts",
-      "description": "API client for prescriptions endpoints: list, request refill, mark as fulfilled.",
-      "dependencies": [
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "prescriptionsApi object"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "lab-results-api",
-      "file_to_implement": "src/services/endpoints/labResults.api.ts",
-      "description": "API client for lab results endpoints: fetch results, fetch details and attachments.",
-      "dependencies": [
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "labResultsApi object"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "insurance-api",
-      "file_to_implement": "src/services/endpoints/insurance.api.ts",
-      "description": "API client for insurance claim tracking endpoints: list claims, fetch claim detail, submit claim.",
-      "dependencies": [
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "insuranceApi object"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "medications-api",
-      "file_to_implement": "src/services/endpoints/medications.api.ts",
-      "description": "API client for medications and medication reminders.",
-      "dependencies": [
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "medicationsApi object"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "use-appointments-hook",
-      "file_to_implement": "src/hooks/useAppointments.ts",
-      "description": "React Query hooks and helpers for appointments (useAppointments, useAppointment). Uses appointments.api and provides optimistic updates and invalidation helpers.",
-      "dependencies": [
-        "src/services/endpoints/appointments.api.ts",
-        "src/query/queryClient.ts"
-      ],
-      "exports": [
-        "useAppointments hook",
-        "useAppointment hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "use-medical-records-hook",
-      "file_to_implement": "src/hooks/useMedicalRecords.ts",
-      "description": "React Query hooks for medical records listing and record viewing.",
-      "dependencies": [
-        "src/services/endpoints/medicalRecords.api.ts"
-      ],
-      "exports": [
-        "useMedicalRecords hook",
-        "useMedicalRecord hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "use-prescriptions-hook",
-      "file_to_implement": "src/hooks/usePrescriptions.ts",
-      "description": "Hooks to fetch and mutate prescriptions data via React Query.",
-      "dependencies": [
-        "src/services/endpoints/prescriptions.api.ts"
-      ],
-      "exports": [
-        "usePrescriptions hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "use-lab-results-hook",
-      "file_to_implement": "src/hooks/useLabResults.ts",
-      "description": "Hooks for fetching lab results and subscribing to real-time updates (integrates websocket for 'new result' notifications).",
-      "dependencies": [
-        "src/services/endpoints/labResults.api.ts",
-        "src/services/websocket.ts"
-      ],
-      "exports": [
-        "useLabResults hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "use-insurance-hook",
-      "file_to_implement": "src/hooks/useInsurance.ts",
-      "description": "Hooks to fetch insurance claims and submit new claims.",
-      "dependencies": [
-        "src/services/endpoints/insurance.api.ts"
-      ],
-      "exports": [
-        "useInsurance hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "use-medications-hook",
-      "file_to_implement": "src/hooks/useMedications.ts",
-      "description": "Hooks to fetch medications and schedule reminders; integrates local persistence for reminders in dev.",
-      "dependencies": [
-        "src/services/endpoints/medications.api.ts",
-        "src/hooks/useLocalStorage.ts"
-      ],
-      "exports": [
-        "useMedications hook"
+        "Spinner component"
       ],
       "priority": 2
     },
     {
       "id": "appointments-list-component",
-      "file_to_implement": "src/features/appointments/AppointmentList.tsx",
-      "description": "Component that renders a list/table of appointments using useAppointments and Table component. Supports filtering and keyboard navigation.",
       "dependencies": [
         "src/hooks/useAppointments.ts",
         "src/components/ui/Table.tsx",
-        "src/components/ui/EmptyState.tsx"
+        "src/components/ui/Spinner.tsx"
       ],
       "exports": [
         "AppointmentList component"
@@ -722,26 +550,11 @@
       "priority": 2
     },
     {
-      "id": "appointment-card",
-      "file_to_implement": "src/features/appointments/AppointmentCard.tsx",
-      "description": "Presentational card showing appointment summary for dashboards and lists.",
-      "dependencies": [
-        "src/utils/formatDate.ts",
-        "src/components/ui/Card.tsx"
-      ],
-      "exports": [
-        "AppointmentCard component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "appointment-form",
-      "file_to_implement": "src/features/appointments/AppointmentForm.tsx",
-      "description": "Form to create or update appointment. Uses React Hook Form + validators and shows validation errors. On submit calls appointments API via useAppointments hook mutation.",
+      "id": "appointment-form-component",
       "dependencies": [
         "src/components/ui/Input.tsx",
         "src/components/ui/Button.tsx",
-        "src/utils/validators.ts",
+        "src/services/appointments.service.ts",
         "src/hooks/useAppointments.ts"
       ],
       "exports": [
@@ -750,80 +563,35 @@
       "priority": 2
     },
     {
-      "id": "appointment-page",
-      "file_to_implement": "src/features/appointments/AppointmentPage.tsx",
-      "description": "Page component listing appointments (uses MainLayout). Provides create appointment modal and links to details.",
+      "id": "medical-record-viewer-component",
       "dependencies": [
-        "src/components/Layouts/MainLayout.tsx",
-        "src/features/appointments/AppointmentList.tsx",
-        "src/features/appointments/AppointmentForm.tsx",
-        "src/hooks/useAuth.ts"
-      ],
-      "exports": [
-        "AppointmentPage (page component)"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "appointment-detail-page",
-      "file_to_implement": "src/features/appointments/AppointmentDetailPage.tsx",
-      "description": "Detail page for a single appointment with actions (reschedule, cancel), integrates video call action for telemedicine appointments.",
-      "dependencies": [
-        "src/components/Layouts/MainLayout.tsx",
-        "src/hooks/useAppointments.ts",
-        "src/features/telemedicine/VideoCallPlaceholder.tsx"
-      ],
-      "exports": [
-        "AppointmentDetailPage (page component)"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "medical-records-page",
-      "file_to_implement": "src/features/medicalRecords/MedicalRecordsPage.tsx",
-      "description": "Page to browse and view medical records. Uses RecordViewer component to display record details and attachments.",
-      "dependencies": [
-        "src/components/Layouts/MainLayout.tsx",
         "src/hooks/useMedicalRecords.ts",
-        "src/features/medicalRecords/RecordViewer.tsx"
+        "src/components/ui/Spinner.tsx",
+        "src/components/ui/Table.tsx"
       ],
       "exports": [
-        "MedicalRecordsPage"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "record-viewer",
-      "file_to_implement": "src/features/medicalRecords/RecordViewer.tsx",
-      "description": "Component to render a single medical record (structured info, attachments, printable view).",
-      "dependencies": [],
-      "exports": [
-        "RecordViewer component"
+        "MedicalRecordViewer component"
       ],
       "priority": 2
     },
     {
-      "id": "prescriptions-page",
-      "file_to_implement": "src/features/prescriptions/PrescriptionsPage.tsx",
-      "description": "Page listing current and past prescriptions; allows requesting refills via PrescriptionForm.",
+      "id": "prescription-list-component",
       "dependencies": [
-        "src/components/Layouts/MainLayout.tsx",
         "src/hooks/usePrescriptions.ts",
-        "src/features/prescriptions/PrescriptionForm.tsx"
+        "src/components/ui/Table.tsx"
       ],
       "exports": [
-        "PrescriptionsPage"
+        "PrescriptionList component"
       ],
-      "priority": 3
+      "priority": 2
     },
     {
-      "id": "prescription-form",
-      "file_to_implement": "src/features/prescriptions/PrescriptionForm.tsx",
-      "description": "Form used to request a refill or create a prescription order; includes validation and confirmation flow.",
+      "id": "prescription-form-component",
       "dependencies": [
         "src/components/ui/Input.tsx",
         "src/components/ui/Button.tsx",
-        "src/utils/validators.ts"
+        "src/hooks/usePrescriptions.ts",
+        "src/services/prescriptions.service.ts"
       ],
       "exports": [
         "PrescriptionForm component"
@@ -831,267 +599,465 @@
       "priority": 2
     },
     {
-      "id": "telemedicine-page",
-      "file_to_implement": "src/features/telemedicine/TelemedicinePage.tsx",
-      "description": "Telemedicine landing page for video calls. Integrates WebSocket events and a VideoCallPlaceholder for demo mode.",
+      "id": "telemedicine-room-component",
       "dependencies": [
-        "src/components/Layouts/MainLayout.tsx",
-        "src/services/websocket.ts",
-        "src/features/telemedicine/VideoCallPlaceholder.tsx"
+        "src/providers/SocketProvider.tsx",
+        "src/components/ui/Modal.tsx"
       ],
       "exports": [
-        "TelemedicinePage"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "video-call-placeholder",
-      "file_to_implement": "src/features/telemedicine/VideoCallPlaceholder.tsx",
-      "description": "Placeholder UI that simulates a video call experience (for mock/dev).",
-      "dependencies": [],
-      "exports": [
-        "VideoCallPlaceholder component"
+        "TelemedicineRoom component"
       ],
       "priority": 2
     },
     {
-      "id": "dashboard-page",
-      "file_to_implement": "src/features/dashboard/DashboardPage.tsx",
-      "description": "Patient/Provider dashboard page showing health metrics, upcoming appointments, and notifications. Composes HealthMetricCard and AppointmentCard components.",
+      "id": "health-dashboard-component",
       "dependencies": [
-        "src/components/Layouts/MainLayout.tsx",
-        "src/features/dashboard/HealthMetricCard.tsx",
-        "src/features/appointments/AppointmentCard.tsx",
-        "src/hooks/useAppointments.ts",
-        "src/hooks/useMedications.ts"
+        "src/hooks/useMedicalRecords.ts",
+        "src/hooks/useLabResults.ts",
+        "src/components/ui/Table.tsx",
+        "src/components/ui/Spinner.tsx"
       ],
       "exports": [
-        "DashboardPage"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "health-metric-card",
-      "file_to_implement": "src/features/dashboard/HealthMetricCard.tsx",
-      "description": "Small presentational component for showing health metrics (steps, heart rate, BP) with sparkline placeholder.",
-      "dependencies": [
-        "src/components/ui/Card.tsx"
-      ],
-      "exports": [
-        "HealthMetricCard component"
+        "HealthDashboard component"
       ],
       "priority": 2
     },
     {
-      "id": "lab-results-page",
-      "file_to_implement": "src/features/labResults/LabResultsPage.tsx",
-      "description": "Page listing lab results with ability to open result detail. Subscribes to websocket for new results if available.",
+      "id": "lab-results-table-component",
       "dependencies": [
-        "src/components/Layouts/MainLayout.tsx",
         "src/hooks/useLabResults.ts",
         "src/components/ui/Table.tsx"
       ],
       "exports": [
-        "LabResultsPage"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "lab-result-row",
-      "file_to_implement": "src/features/labResults/LabResultRow.tsx",
-      "description": "Row component for a single lab result entry with status and link to details.",
-      "dependencies": [
-        "src/utils/formatDate.ts"
-      ],
-      "exports": [
-        "LabResultRow component"
+        "LabResultsTable component"
       ],
       "priority": 2
     },
     {
-      "id": "insurance-page",
-      "file_to_implement": "src/features/insurance/InsurancePage.tsx",
-      "description": "Page for tracking insurance claims and submitting new claims. Uses useInsurance hook.",
+      "id": "insurance-tracker-component",
       "dependencies": [
-        "src/components/Layouts/MainLayout.tsx",
         "src/hooks/useInsurance.ts",
-        "src/features/insurance/ClaimTracker.tsx"
-      ],
-      "exports": [
-        "InsurancePage"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "claim-tracker",
-      "file_to_implement": "src/features/insurance/ClaimTracker.tsx",
-      "description": "Component to list and detail insurance claims with statuses and actions.",
-      "dependencies": [
         "src/components/ui/Table.tsx"
       ],
       "exports": [
-        "ClaimTracker component"
+        "InsuranceTracker component"
       ],
       "priority": 2
     },
     {
-      "id": "medications-page",
-      "file_to_implement": "src/features/medications/MedicationsPage.tsx",
-      "description": "Page to view current medications, set up reminders and manage pharmacy info.",
+      "id": "medication-reminders-component",
       "dependencies": [
-        "src/components/Layouts/MainLayout.tsx",
         "src/hooks/useMedications.ts",
-        "src/features/medications/ReminderForm.tsx"
+        "src/components/ui/Toast.tsx"
       ],
       "exports": [
-        "MedicationsPage"
+        "MedicationReminders component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "app-router",
+      "dependencies": [
+        "src/pages/LoginPage.tsx",
+        "src/pages/DashboardPage.tsx",
+        "src/pages/AppointmentsPage.tsx",
+        "src/pages/MedicalRecordsPage.tsx",
+        "src/pages/PrescriptionsPage.tsx",
+        "src/pages/TelemedicinePage.tsx",
+        "src/pages/LabResultsPage.tsx",
+        "src/pages/InsurancePage.tsx",
+        "src/pages/MedicationsPage.tsx",
+        "src/pages/SettingsPage.tsx"
+      ],
+      "exports": [
+        "AppRouter component (react-router config)"
       ],
       "priority": 3
     },
     {
-      "id": "reminder-form",
-      "file_to_implement": "src/features/medications/ReminderForm.tsx",
-      "description": "Form component to schedule medication reminders; persists reminders locally in development and integrates with mock websocket for simulated notifications.",
-      "dependencies": [
-        "src/hooks/useMedications.ts",
-        "src/components/ui/Input.tsx",
-        "src/components/ui/Button.tsx"
-      ],
-      "exports": [
-        "ReminderForm component"
-      ],
-      "priority": 2
-    },
-    {
       "id": "login-page",
-      "file_to_implement": "src/pages/LoginPage.tsx",
-      "description": "Login page with React Hook Form, validation and integration with AuthProvider. Supports dev mock credentials and accessible error feedback.",
       "dependencies": [
-        "src/components/Layouts/AuthLayout.tsx",
         "src/providers/AuthProvider.tsx",
         "src/components/ui/Input.tsx",
         "src/components/ui/Button.tsx",
-        "src/utils/validators.ts"
+        "src/hooks/useAuth.ts",
+        "src/i18n/i18n.ts"
       ],
       "exports": [
-        "LoginPage"
+        "LoginPage component"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "dashboard-page",
+      "dependencies": [
+        "src/features/dashboard/HealthDashboard.tsx",
+        "src/components/layout/AppLayout.tsx",
+        "src/providers/SocketProvider.tsx"
+      ],
+      "exports": [
+        "DashboardPage component"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "appointments-page",
+      "dependencies": [
+        "src/features/appointments/AppointmentList.tsx",
+        "src/features/appointments/AppointmentForm.tsx",
+        "src/components/layout/AppLayout.tsx"
+      ],
+      "exports": [
+        "AppointmentsPage component"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "medical-records-page",
+      "dependencies": [
+        "src/features/medicalRecords/MedicalRecordViewer.tsx",
+        "src/components/layout/AppLayout.tsx"
+      ],
+      "exports": [
+        "MedicalRecordsPage component"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "prescriptions-page",
+      "dependencies": [
+        "src/features/prescriptions/PrescriptionList.tsx",
+        "src/features/prescriptions/PrescriptionForm.tsx",
+        "src/components/layout/AppLayout.tsx"
+      ],
+      "exports": [
+        "PrescriptionsPage component"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "telemedicine-page",
+      "dependencies": [
+        "src/features/telemedicine/TelemedicineRoom.tsx",
+        "src/components/layout/AppLayout.tsx"
+      ],
+      "exports": [
+        "TelemedicinePage component"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "lab-results-page",
+      "dependencies": [
+        "src/features/labResults/LabResultsTable.tsx",
+        "src/components/layout/AppLayout.tsx"
+      ],
+      "exports": [
+        "LabResultsPage component"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "insurance-page",
+      "dependencies": [
+        "src/features/insurance/InsuranceTracker.tsx",
+        "src/components/layout/AppLayout.tsx"
+      ],
+      "exports": [
+        "InsurancePage component"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "medications-page",
+      "dependencies": [
+        "src/features/medications/MedicationReminders.tsx",
+        "src/components/layout/AppLayout.tsx"
+      ],
+      "exports": [
+        "MedicationsPage component"
       ],
       "priority": 3
     },
     {
       "id": "settings-page",
-      "file_to_implement": "src/pages/SettingsPage.tsx",
-      "description": "User settings page for profile, language, theme and notification preferences.",
       "dependencies": [
-        "src/components/Layouts/MainLayout.tsx",
+        "src/providers/AuthProvider.tsx",
         "src/providers/ThemeProvider.tsx",
-        "src/providers/I18nProvider.tsx"
+        "src/i18n/i18n.ts",
+        "src/components/layout/AppLayout.tsx"
       ],
       "exports": [
-        "SettingsPage"
+        "SettingsPage component"
       ],
       "priority": 3
     },
     {
       "id": "not-found-page",
-      "file_to_implement": "src/pages/NotFoundPage.tsx",
-      "description": "404 not-found page shown for unknown routes, with link back to dashboard or login.",
       "dependencies": [
-        "src/components/ui/Button.tsx"
+        "src/components/layout/AppLayout.tsx"
       ],
       "exports": [
-        "NotFoundPage"
+        "NotFoundPage component"
       ],
       "priority": 3
     },
     {
-      "id": "telemetry-notifications",
-      "file_to_implement": "src/hooks/useWebsocket.ts",
-      "description": "Hook to connect to websocket client, subscribe to specific event channels and provide an event emitter interface to components. Uses createWebsocketClient under the hood.",
+      "id": "app-root",
       "dependencies": [
-        "src/services/websocket.ts"
+        "src/providers/QueryProvider.tsx",
+        "src/providers/AuthProvider.tsx",
+        "src/providers/I18nProvider.tsx",
+        "src/providers/ThemeProvider.tsx",
+        "src/providers/SocketProvider.tsx",
+        "src/components/ErrorBoundary.tsx",
+        "src/components/SuspenseFallback.tsx",
+        "src/routes/AppRouter.tsx",
+        "src/mocks/server.ts"
       ],
       "exports": [
-        "useWebsocket hook"
+        "App component (root)"
       ],
       "priority": 1
     },
     {
-      "id": "toast-provider",
-      "file_to_implement": "src/components/ui/ToastProvider.tsx",
-      "description": "Lightweight toast provider that exposes context for useToast. Used for notifications across the app.",
+      "id": "main-entry",
       "dependencies": [
-        "src/hooks/useToast.ts"
+        "src/App.tsx",
+        "src/index.css",
+        "src/config/appConfig.ts"
       ],
       "exports": [
-        "ToastProvider component"
+        "main.tsx entry"
       ],
-      "priority": 2
+      "priority": 1
     },
     {
-      "id": "accessibility-helpers",
-      "file_to_implement": "src/components/aria/FocusTrap.tsx",
-      "description": "Small focus trap component used by Modal to trap focus inside dialogs for accessibility.",
+      "id": "index-css",
       "dependencies": [],
       "exports": [
-        "FocusTrap component"
+        "Tailwind CSS imports and base app styles"
       ],
-      "priority": 2
+      "priority": 1
     },
     {
-      "id": "settings-integration",
-      "file_to_implement": "src/features/settings/Preferences.tsx",
-      "description": "Small preferences controls for language, theme and notification toggles used by SettingsPage.",
-      "dependencies": [
-        "src/providers/ThemeProvider.tsx",
-        "src/providers/I18nProvider.tsx"
-      ],
+      "id": "i18n-en-locale",
+      "dependencies": [],
       "exports": [
-        "Preferences component"
+        "en.json"
       ],
-      "priority": 2
+      "priority": 1
     },
     {
-      "id": "dev-fallbacks",
-      "file_to_implement": "src/services/fallbacks.ts",
-      "description": "Fallback utilities used when backend is unavailable: returns cached mock data, graceful degradation UI helpers and circuit-breaker style helpers used by apiClient.",
-      "dependencies": [
-        "src/mocks/appointments.json"
-      ],
+      "id": "i18n-ko-locale",
+      "dependencies": [],
       "exports": [
-        "fallback handlers used by apiClient"
+        "ko.json (Korean translation)"
       ],
       "priority": 1
     },
     {
       "id": "tailwind-config",
-      "file_to_implement": "tailwind.config.cjs",
-      "description": "Tailwind CSS configuration enabling dark mode and custom theme tokens used by the app.",
-      "dependencies": [],
+      "dependencies": [
+        "src/index.css"
+      ],
       "exports": [
-        "Tailwind config (not imported by TS runtime but required for build)"
+        "tailwind.config.js"
       ],
       "priority": 1
     },
     {
       "id": "postcss-config",
-      "file_to_implement": "postcss.config.cjs",
-      "description": "PostCSS configuration used to compile Tailwind in the build.",
       "dependencies": [],
       "exports": [
-        "PostCSS config"
+        "postcss.config.js"
       ],
       "priority": 1
     },
     {
-      "id": "styles-entry",
-      "file_to_implement": "src/styles/tailwind.css",
-      "description": "Tailwind directives (@tailwind base; @tailwind components; @tailwind utilities) and any custom classes.",
+      "id": "mock-websocket-impl",
+      "dependencies": [
+        "src/mocks/data/appointments.ts",
+        "src/mocks/mockUsers.ts"
+      ],
+      "exports": [
+        "mock websocket messages & helpers"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "utils-fallback",
       "dependencies": [],
       "exports": [
-        "CSS file (imported by index.css/main)"
+        "helpers for fallback UI and error message formatting"
       ],
       "priority": 1
     }
+  ],
+  "file_paths": [
+    "src/config/appConfig.ts",
+    "src/lib/localStorage.ts",
+    "src/lib/mockMode.ts",
+    "src/lib/apiClient.ts",
+    "src/services/auth.service.ts",
+    "src/services/appointments.service.ts",
+    "src/services/medicalRecords.service.ts",
+    "src/services/prescriptions.service.ts",
+    "src/services/labResults.service.ts",
+    "src/services/insurance.service.ts",
+    "src/services/medications.service.ts",
+    "src/services/websocket.service.ts",
+    "src/services/mockServer.ts",
+    "src/providers/QueryProvider.tsx",
+    "src/providers/AuthProvider.tsx",
+    "src/providers/I18nProvider.tsx",
+    "src/providers/ThemeProvider.tsx",
+    "src/providers/SocketProvider.tsx",
+    "src/hooks/useAuth.ts",
+    "src/hooks/useLocalStorage.ts",
+    "src/hooks/useDebounce.ts",
+    "src/hooks/useAppointments.ts",
+    "src/hooks/useMedicalRecords.ts",
+    "src/hooks/usePrescriptions.ts",
+    "src/hooks/useLabResults.ts",
+    "src/hooks/useInsurance.ts",
+    "src/hooks/useMedications.ts",
+    "src/i18n/i18n.ts",
+    "src/mocks/server.ts",
+    "src/mocks/handlers.ts",
+    "src/mocks/mockUsers.ts",
+    "src/mocks/data/appointments.ts",
+    "src/mocks/data/medicalRecords.ts",
+    "src/mocks/data/prescriptions.ts",
+    "src/mocks/data/labResults.ts",
+    "src/mocks/data/insurance.ts",
+    "src/mocks/data/medications.ts",
+    "src/mocks/websocket.ts",
+    "src/components/ErrorBoundary.tsx",
+    "src/components/SuspenseFallback.tsx",
+    "src/components/ProtectedRoute.tsx",
+    "src/components/layout/AppLayout.tsx",
+    "src/components/layout/Header.tsx",
+    "src/components/layout/Sidebar.tsx",
+    "src/components/ui/Button.tsx",
+    "src/components/ui/Input.tsx",
+    "src/components/ui/Modal.tsx",
+    "src/components/ui/Toast.tsx",
+    "src/components/ui/Table.tsx",
+    "src/components/ui/Spinner.tsx",
+    "src/features/appointments/AppointmentList.tsx",
+    "src/features/appointments/AppointmentForm.tsx",
+    "src/features/medicalRecords/MedicalRecordViewer.tsx",
+    "src/features/prescriptions/PrescriptionList.tsx",
+    "src/features/prescriptions/PrescriptionForm.tsx",
+    "src/features/telemedicine/TelemedicineRoom.tsx",
+    "src/features/dashboard/HealthDashboard.tsx",
+    "src/features/labResults/LabResultsTable.tsx",
+    "src/features/insurance/InsuranceTracker.tsx",
+    "src/features/medications/MedicationReminders.tsx",
+    "src/routes/AppRouter.tsx",
+    "src/pages/LoginPage.tsx",
+    "src/pages/DashboardPage.tsx",
+    "src/pages/AppointmentsPage.tsx",
+    "src/pages/MedicalRecordsPage.tsx",
+    "src/pages/PrescriptionsPage.tsx",
+    "src/pages/TelemedicinePage.tsx",
+    "src/pages/LabResultsPage.tsx",
+    "src/pages/InsurancePage.tsx",
+    "src/pages/MedicationsPage.tsx",
+    "src/pages/SettingsPage.tsx",
+    "src/pages/NotFoundPage.tsx",
+    "src/App.tsx",
+    "src/main.tsx",
+    "src/index.css",
+    "src/i18n/locales/en.json",
+    "src/i18n/locales/ko.json",
+    "tailwind.config.js",
+    "postcss.config.js",
+    "src/mocks/mockWebsocket.ts",
+    "src/lib/fallback.ts"
+  ],
+  "descriptions": [
+    "Centralized runtime config: endpoints, dev flags (enable_mock_data, disable_websocket_in_dev, use_localstorage_persistence).",
+    "Small wrapper around window.localStorage with JSON serialization and safe access.",
+    "Helper to check if the app should run in internal mock mode (reads appConfig).",
+    "Generic fetch wrapper which applies auth token, handles offline/fallback logic, routes to mock server in dev.",
+    "Auth service: login/logout, token storage, current user retrieval. Uses localStorage in mock mode and apiClient for requests.",
+    "Appointments service: CRUD operations for appointments endpoints.",
+    "Medical records service: fetch lists and record details.",
+    "Prescriptions service: fetch and mutate prescriptions.",
+    "Lab results service: fetch lab result lists and details.",
+    "Insurance service: fetch claims and submit claims.",
+    "Medications service: fetch medication list and manage reminders.",
+    "WebSocket service abstraction. In dev this wire-ups to mock WebSocket implementation; in prod uses browser WebSocket/Socket.IO adapter.",
+    "Starts/stops the mock API server (MSW or lightweight fetch interceptors) used only when enable_mock_data is true.",
+    "React Query provider wrapper to supply QueryClient and default settings.",
+    "AuthProvider: React Context managing currentUser and auth token, persisting to localStorage in dev mode. Provides route-protection helpers.",
+    "I18nProvider bootstrap (i18next) and language switcher factory.",
+    "ThemeProvider: manages dark/light mode, persists selection, exposes useTheme hook.",
+    "SocketProvider: provides a mocked socket connection in dev and a real one in prod; exposes subscribe/unsubscribe methods.",
+    "Hook exposing auth actions and current user from AuthProvider.",
+    "Hook that mirrors localStorage but is reactive and SSR-safe.",
+    "Hook for debounced values for search inputs and autosave features.",
+    "React Query hooks for appointments; handles loading/error states and caching.",
+    "React Query hooks for medical records.",
+    "React Query hooks for prescriptions.",
+    "React Query hooks for lab results.",
+    "React Query hooks for insurance/claims.",
+    "React Query hooks for medications/reminders.",
+    "i18n initialization wrapper using i18next; loads en and ko resources and sets defaults.",
+    "Entrypoint to start MSW-style mock server when in dev. Exposes start/stop.",
+    "Handlers that map configured endpoints (/api/appointments, /api/medical-records, etc.) to mock data/responses.",
+    "List of mocked auth users (doctor, patient, nurse) used for dev-mode login.",
+    "Seed mock data for appointments endpoint with sample entries for different roles.",
+    "Seed mock medical records used in the Medical Records viewer.",
+    "Seed mock prescriptions used by prescriptions pages.",
+    "Seed mock lab results used by lab results display.",
+    "Seed mock insurance claim items used by insurance tracker.",
+    "Seed mock medications and reminders used by medication reminders feature.",
+    "Simple in-memory mock WebSocket implementation used to simulate real-time events.",
+    "Global error boundary to catch rendering errors and display friendly UI with a retry option.",
+    "Visual fallback used with React.Suspense showing spinner and skeletons.",
+    "Route guard component that redirects unauthenticated users to login and enforces role-based access.",
+    "Top-level layout that structures header, sidebar and content region and supports responsive/dark mode.",
+    "Header with search, user menu, language selector (i18n) and theme toggle.",
+    "Sidebar navigation for main features; uses i18n strings and keyboard accessible markup.",
+    "Accessible Button primitive styled with Tailwind; supports variants, aria props and keyboard focus.",
+    "Accessible Input primitive with label support and error display; used in forms.",
+    "Modal primitive for dialogs and telemedicine popups; composes Button.",
+    "Toast system for user notifications and reminders (e.g., medication alerts).",
+    "Generic Table component with keyboard navigation and ARIA roles for lists (used across features).",
+    "Small spinner component used in loading states and SuspenseFallback.",
+    "Feature: appointment list view that renders appointments via useAppointments and exposes actions.",
+    "Feature: appointment form to create/update appointments with client-side validation and form states.",
+    "Feature: medical record viewer, supports paginated records, attachments and accessibility concerns.",
+    "Feature: prescription list view for patients/providers.",
+    "Feature: prescription creation/renewal form integrated with prescriptions service.",
+    "Feature: telemedicine room component that connects to SocketProvider, supports audio/video placeholders and chat.",
+    "Feature: health metrics dashboard combining records and lab results to surface trends.",
+    "Feature: tabular view of lab test results with drill-down support.",
+    "Feature: insurance claim tracker, status labels and submission helper.",
+    "Feature: medication reminders component that schedules local reminders and displays upcoming doses.",
+    "React Router v6 route definitions and route-level code-splitting (Suspense).",
+    "Login page with mock auth support, social login placeholders, 'remember me' and accessibility support.",
+    "Dashboard page combining HealthDashboard and realtime updates; protected route.",
+    "Appointments page showing list and form editors; role-aware UI.",
+    "Medical records page exposing MedicalRecordViewer and filters.",
+    "Prescriptions page for list and creation flows.",
+    "Telemedicine page which opens TelemedicineRoom and handles session join/leave flows.",
+    "Lab results page showing LabResultsTable and detail drawers.",
+    "Insurance page showing InsuranceTracker and claim submission flows.",
+    "Medications page where users manage reminders and view active meds.",
+    "Settings page for profile, language (i18n) and theme preferences.",
+    "Fallback Not Found page for unknown routes.",
+    "Root App component that combines providers and mounts AppRouter inside ErrorBoundary + Suspense. It conditionally starts mock server in dev mode.",
+    "Main entry file that bootstraps React, renders App into DOM and imports index.css.",
+    "Global stylesheet that imports Tailwind base/components/utilities, sets CSS variables for dark mode and app-level accessibility rules.",
+    "English translation resource file used by i18next.",
+    "Korean translation resource file used by i18next with required prompt-specified translations.",
+    "Tailwind configuration enabling JIT, dark mode (class), and theme customizations.",
+    "PostCSS config for Tailwind processing.",
+    "Mock WebSocket helpers that emit appointment/notification messages in dev.",
+    "Reusable helpers for formatting errors and providing user-friendly fallback text and ARIA-friendly labels."
   ]
 }

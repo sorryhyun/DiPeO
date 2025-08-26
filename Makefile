@@ -1,4 +1,5 @@
-# DiPeO Makefile
+
+ DiPeO Makefile
 # Now using uv for Python dependency management
 # Activate virtual environment with: source .venv/bin/activate
 
