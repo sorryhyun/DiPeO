@@ -24,11 +24,11 @@ class ScoringWeights(TypedDict):
 @dataclass
 class MemorySelectionConfig:
     """Configuration for memory selection behavior."""
-    hard_cap: int = 30  # Maximum messages to show in listing
+    hard_cap: int = 100  # Maximum messages to show in listing
     decay_factor: int = 3600  # 1 hour in seconds for recency decay
     default_weights: ScoringWeights = field(default_factory=lambda: {
-        'recency': 0.6,  # 60% weight on recency
-        'frequency': 0.4,  # 40% weight on frequency
+        'recency': 0.7,  # 60% weight on recency
+        'frequency': 0.3,  # 40% weight on frequency
         'relevance': 0.0,  # Not used currently
         'position': 0.0   # Not used currently
     })

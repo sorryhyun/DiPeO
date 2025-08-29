@@ -51,8 +51,8 @@ persons:
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
       
       KEY FOCUS:
-      - Generate ONLY raw code without any explanations or commentary
-      - Follow ALL conventions and contracts defined in the prompt
+      - Generate raw code without explanations or commentary
+      - Follow conventions and contracts defined in the prompt
       - Build iteratively using context from previous sections
       - Code must be complete, working, and deployable as-is
 
@@ -237,7 +237,7 @@ nodes:
       person: Frontend Generator
       max_iteration: 100
       memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
-      at_most: 4
+      at_most: 5
       prompt_file: frontend_generator.txt
 
   - label: Write Section Result

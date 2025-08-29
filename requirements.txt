@@ -46,6 +46,7 @@ jsonpointer==3.0.0
 lxml==5.4.0
 multidict==6.5.0
 multiprocess==0.70.16
+nest-asyncio==1.6.0
 notion-client==2.4.0
 numpy==2.3.0
 openai==1.88.0
