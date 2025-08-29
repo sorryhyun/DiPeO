@@ -39,8 +39,12 @@ class ResponseProcessor:
         usage = None
         metadata = {}
         
-        # Extract content
-        if hasattr(response, 'choices') and response.choices:
+        # Extract content from new responses.create API
+        if hasattr(response, 'output'):
+            # New API format - output field contains the response
+            content = response.output or ""
+        elif hasattr(response, 'choices') and response.choices:
+            # Fallback to old format if needed
             choice = response.choices[0]
             if hasattr(choice, 'message'):
                 content = choice.message.content or ""
@@ -53,11 +57,11 @@ class ResponseProcessor:
             if hasattr(choice, 'finish_reason'):
                 metadata['finish_reason'] = choice.finish_reason
         
-        # Extract usage
+        # Extract usage (using new API format)
         if hasattr(response, 'usage'):
             usage = TokenUsage(
-                input_tokens=response.usage.prompt_tokens,
-                output_tokens=response.usage.completion_tokens,
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
                 total_tokens=response.usage.total_tokens
             )
         

@@ -1,16 +1,13 @@
 """Anthropic provider implementation."""
 
-from .adapter import AnthropicAdapter, ClaudeCodeAdapter
+from .adapter import AnthropicAdapter
 from .client import (
     AnthropicClientWrapper,
     AsyncAnthropicClientWrapper,
-    ClaudeCodeClientWrapper,
 )
 
 __all__ = [
     "AnthropicAdapter",
-    "ClaudeCodeAdapter",
     "AnthropicClientWrapper",
     "AsyncAnthropicClientWrapper",
-    "ClaudeCodeClientWrapper",
 ]

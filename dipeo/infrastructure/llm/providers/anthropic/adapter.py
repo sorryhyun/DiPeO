@@ -27,7 +27,6 @@ from ...processors import MessageProcessor, ResponseProcessor, TokenCounter
 from .client import (
     AsyncAnthropicClientWrapper,
     AnthropicClientWrapper,
-    ClaudeCodeClientWrapper,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,10 +35,14 @@ logger = logging.getLogger(__name__)
 class AnthropicAdapter(UnifiedAdapter):
     """Unified Anthropic/Claude adapter with all capabilities."""
     
-    def __init__(self, config: AdapterConfig, is_claude_code: bool = False):
+    def __init__(self, config: AdapterConfig):
         """Initialize Anthropic adapter with capabilities."""
+        # Initialize clients first (needed by parent __init__)
+        self.sync_client_wrapper = AnthropicClientWrapper(config)
+        self.async_client_wrapper = AsyncAnthropicClientWrapper(config)
+        
+        # Now call parent __init__ which will use _create_sync_client and _create_async_client
         super().__init__(config)
-        self.is_claude_code = is_claude_code
         
         # Initialize capabilities
         self.tool_handler = ToolHandler(ProviderType.ANTHROPIC)
@@ -62,17 +65,10 @@ class AnthropicAdapter(UnifiedAdapter):
         self.message_processor = MessageProcessor(ProviderType.ANTHROPIC)
         self.response_processor = ResponseProcessor(ProviderType.ANTHROPIC)
         self.token_counter = TokenCounter(ProviderType.ANTHROPIC)
-        
-        # Initialize clients
-        if is_claude_code:
-            self.sync_client_wrapper = ClaudeCodeClientWrapper(config)
-        else:
-            self.sync_client_wrapper = AnthropicClientWrapper(config)
-        self.async_client_wrapper = AsyncAnthropicClientWrapper(config)
     
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Anthropic provider capabilities."""
-        caps = ProviderCapabilities(
+        return ProviderCapabilities(
             supports_async=True,
             supports_streaming=True,
             supports_tools=True,
@@ -80,7 +76,7 @@ class AnthropicAdapter(UnifiedAdapter):
             supports_vision=True,
             supports_web_search=False,  # Not native, but can be added via tools
             supports_image_generation=False,
-            supports_computer_use=self.is_claude_code,  # Only for Claude Code
+            supports_computer_use=False,  # Computer use is only for Claude Code
             max_context_length=200000,  # Claude 3.5 default
             max_output_tokens=8192,
             supported_models={
@@ -98,13 +94,6 @@ class AnthropicAdapter(UnifiedAdapter):
             },
             streaming_modes={StreamingMode.NONE, StreamingMode.SSE}
         )
-        
-        # Add Claude Code specific models if applicable
-        if self.is_claude_code:
-            caps.supported_models.add("claude-3-5-sonnet-20241022")
-            caps.supports_computer_use = True
-        
-        return caps
     
     def _create_sync_client(self):
         """Create synchronous client."""
@@ -378,11 +367,3 @@ class AnthropicAdapter(UnifiedAdapter):
         # Wrap with streaming handler
         async for chunk in self.streaming_handler.create_async_stream_wrapper(stream):
             yield chunk
-
-
-class ClaudeCodeAdapter(AnthropicAdapter):
-    """Claude Code specific adapter with computer use capabilities."""
-    
-    def __init__(self, config: AdapterConfig):
-        """Initialize Claude Code adapter."""
-        super().__init__(config, is_claude_code=True)

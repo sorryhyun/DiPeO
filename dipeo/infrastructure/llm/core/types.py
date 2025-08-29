@@ -87,6 +87,16 @@ class LLMResponse:
     structured_output: Optional[Any] = None
     raw_response: Optional[Any] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    @property
+    def text(self) -> str:
+        """Compatibility property for code expecting 'text' attribute."""
+        return self.content
+    
+    @property
+    def token_usage(self) -> Optional[TokenUsage]:
+        """Compatibility property for code expecting 'token_usage' attribute."""
+        return self.usage
 
 
 class MemorySelectionOutput(BaseModel):

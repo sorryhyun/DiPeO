@@ -34,6 +34,11 @@ class OpenAIAdapter(UnifiedAdapter):
     
     def __init__(self, config: AdapterConfig):
         """Initialize OpenAI adapter with capabilities."""
+        # Initialize clients first (before calling super().__init__)
+        self.sync_client_wrapper = OpenAIClientWrapper(config)
+        self.async_client_wrapper = AsyncOpenAIClientWrapper(config)
+        
+        # Now call parent init
         super().__init__(config)
         
         # Initialize capabilities
@@ -57,10 +62,6 @@ class OpenAIAdapter(UnifiedAdapter):
         self.message_processor = MessageProcessor(ProviderType.OPENAI)
         self.response_processor = ResponseProcessor(ProviderType.OPENAI)
         self.token_counter = TokenCounter(ProviderType.OPENAI)
-        
-        # Initialize clients
-        self.sync_client_wrapper = OpenAIClientWrapper(config)
-        self.async_client_wrapper = AsyncOpenAIClientWrapper(config)
     
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get OpenAI provider capabilities."""
@@ -229,10 +230,12 @@ class OpenAIAdapter(UnifiedAdapter):
         # Get phase-specific parameters
         phase_params = self.phase_handler.get_phase_specific_params(execution_phase)
         
-        # Merge parameters
+        # Merge parameters (exclude response_format from both kwargs and phase_params to avoid duplication)
+        kwargs_without_response_format = {k: v for k, v in kwargs.items() if k != 'response_format'}
+        phase_params_without_response_format = {k: v for k, v in phase_params.items() if k != 'response_format'}
         final_params = {
-            **kwargs,
-            **phase_params,
+            **kwargs_without_response_format,
+            **phase_params_without_response_format,
             "temperature": phase_params.get("temperature", temperature),
             "max_tokens": phase_params.get("max_tokens", max_tokens),
         }

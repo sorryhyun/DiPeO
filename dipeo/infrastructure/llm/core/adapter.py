@@ -46,14 +46,19 @@ class BaseAdapter(ABC):
         """Validate if model is supported by provider."""
         pass
     
-    def prepare_messages(self, messages: List[Message]) -> List[Dict[str, Any]]:
+    def prepare_messages(self, messages: List[Union[Message, Dict[str, Any]]]) -> List[Dict[str, Any]]:
         """Prepare messages for provider API format."""
         prepared = []
         for msg in messages:
-            prepared.append({
-                "role": msg.role,
-                "content": msg.content
-            })
+            if isinstance(msg, dict):
+                # Already a dictionary, just use it
+                prepared.append(msg)
+            else:
+                # Assume it's a Message object
+                prepared.append({
+                    "role": msg.role,
+                    "content": msg.content
+                })
         return prepared
     
     def process_response(self, raw_response: Any) -> LLMResponse:
@@ -229,7 +234,9 @@ class UnifiedAdapter(AsyncAdapter, SyncAdapter):
         """Initialize unified adapter."""
         BaseAdapter.__init__(self, config)
         self.sync_client = sync_client or self._create_sync_client()
-        self.async_client = async_client or self._create_async_client()
+        # Async client will be created lazily when needed
+        self._async_client = async_client
+        self._async_client_created = False
     
     @abstractmethod
     def _create_sync_client(self) -> LLMClient:
@@ -240,6 +247,21 @@ class UnifiedAdapter(AsyncAdapter, SyncAdapter):
     async def _create_async_client(self) -> AsyncLLMClient:
         """Create the asynchronous LLM client. Override in subclasses."""
         pass
+    
+    def _create_client(self) -> LLMClient:
+        """Create the LLM client (delegates to _create_sync_client)."""
+        return self._create_sync_client()
+    
+    @property
+    def async_client(self) -> AsyncLLMClient:
+        """Get or create the async client lazily."""
+        if not self._async_client_created:
+            import asyncio
+            loop = asyncio.new_event_loop()
+            self._async_client = loop.run_until_complete(self._create_async_client())
+            loop.close()
+            self._async_client_created = True
+        return self._async_client
     
     def chat(
         self,

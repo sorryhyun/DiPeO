@@ -42,30 +42,17 @@ class OpenAIClientWrapper(BaseClientWrapper):
         """Execute chat completion request."""
         client = self._get_client()
         
-        # Build request parameters
+        # Build request parameters for new responses API
+        # Only include required parameters initially
         params = {
             "model": model,
-            "messages": messages,
-            "temperature": temperature,
+            "input": messages,  # New API uses 'input' instead of 'messages'
         }
         
-        if max_tokens:
-            params["max_tokens"] = max_tokens
+        # Skip optional parameters for now to see what works
+        # We'll add them back once we understand the API
         
-        if tools:
-            params["tools"] = tools
-            if "tool_choice" in kwargs:
-                params["tool_choice"] = kwargs["tool_choice"]
-        
-        if response_format:
-            params["response_format"] = response_format
-        
-        # Add any additional parameters
-        for key, value in kwargs.items():
-            if key not in params and key != "tool_choice":
-                params[key] = value
-        
-        return client.chat.completions.create(**params)
+        return client.responses.create(**params)
     
     def stream_chat_completion(
         self,
@@ -81,25 +68,13 @@ class OpenAIClientWrapper(BaseClientWrapper):
         
         params = {
             "model": model,
-            "messages": messages,
-            "temperature": temperature,
+            "input": messages,  # New API uses 'input' instead of 'messages'
             "stream": True,
         }
         
-        if max_tokens:
-            params["max_tokens"] = max_tokens
+        # Skip optional parameters for now to see what works
         
-        if tools:
-            params["tools"] = tools
-            if "tool_choice" in kwargs:
-                params["tool_choice"] = kwargs["tool_choice"]
-        
-        # Add any additional parameters
-        for key, value in kwargs.items():
-            if key not in params and key != "tool_choice":
-                params[key] = value
-        
-        return client.chat.completions.create(**params)
+        return client.responses.create(**params)
     
     def count_tokens(self, text: str, model: str) -> int:
         """Count tokens using tiktoken."""
@@ -162,29 +137,17 @@ class AsyncOpenAIClientWrapper(AsyncBaseClientWrapper):
         """Execute async chat completion request."""
         client = await self._get_client()
         
+        # Build request parameters for new responses API
+        # Only include required parameters initially
         params = {
             "model": model,
-            "messages": messages,
-            "temperature": temperature,
+            "input": messages,  # New API uses 'input' instead of 'messages'
         }
         
-        if max_tokens:
-            params["max_tokens"] = max_tokens
+        # Skip optional parameters for now to see what works
+        # We'll add them back once we understand the API
         
-        if tools:
-            params["tools"] = tools
-            if "tool_choice" in kwargs:
-                params["tool_choice"] = kwargs["tool_choice"]
-        
-        if response_format:
-            params["response_format"] = response_format
-        
-        # Add any additional parameters
-        for key, value in kwargs.items():
-            if key not in params and key != "tool_choice":
-                params[key] = value
-        
-        return await client.chat.completions.create(**params)
+        return await client.responses.create(**params)
     
     async def stream_chat_completion(
         self,
@@ -200,25 +163,13 @@ class AsyncOpenAIClientWrapper(AsyncBaseClientWrapper):
         
         params = {
             "model": model,
-            "messages": messages,
-            "temperature": temperature,
+            "input": messages,  # New API uses 'input' instead of 'messages'
             "stream": True,
         }
         
-        if max_tokens:
-            params["max_tokens"] = max_tokens
+        # Skip optional parameters for now to see what works
         
-        if tools:
-            params["tools"] = tools
-            if "tool_choice" in kwargs:
-                params["tool_choice"] = kwargs["tool_choice"]
-        
-        # Add any additional parameters
-        for key, value in kwargs.items():
-            if key not in params and key != "tool_choice":
-                params[key] = value
-        
-        response = await client.chat.completions.create(**params)
+        response = await client.responses.create(**params)
         async for chunk in response:
             yield chunk
     

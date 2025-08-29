@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 import logging
 import time
-from typing import Any
+from typing import Any, Dict, Optional
 
 from tenacity import (
     AsyncRetrying,
@@ -15,7 +15,7 @@ from tenacity import (
 
 from dipeo.domain.base import APIKeyError, BaseService, LLMServiceError
 from dipeo.domain.constants import VALID_LLM_SERVICES, normalize_service_name
-from dipeo.domain.llm.ports import LLMService as LLMServicePort
+from dipeo.domain.llm.ports import LLMService as LLMServicePort, LLMClient
 from dipeo.domain.integrations.ports import APIKeyPort
 from dipeo.domain.llm import LLMDomainService
 from dipeo.config import get_settings
@@ -25,7 +25,7 @@ from dipeo.diagram_generated import ChatResult
 from .factory import create_adapter
 
 
-class LLMInfraService(BaseService, LLMServicePort):
+class LLMInfraService(BaseService, LLMServicePort, LLMClient):
 
     def __init__(self, api_key_service: APIKeyPort, llm_domain_service: LLMDomainService | None = None):
         super().__init__()
@@ -148,8 +148,11 @@ class LLMInfraService(BaseService, LLMServicePort):
             retry=retry_if_exception_type((ConnectionError, TimeoutError)),
         ):
             with attempt:
-                # Check if this is an async adapter (has chat_async method)
-                if hasattr(client, 'chat_async'):
+                # Check if this is a new UnifiedAdapter (has async_chat method)
+                if hasattr(client, 'async_chat'):
+                    return await client.async_chat(messages=messages, **kwargs)
+                # Check if this is an old async adapter (has chat_async method)
+                elif hasattr(client, 'chat_async'):
                     return await client.chat_async(messages=messages, **kwargs)
                 else:
                     # Sync adapter - run in thread pool
@@ -250,3 +253,38 @@ class LLMInfraService(BaseService, LLMServicePort):
             return usage.token_usage
         else:
             return None
+
+    async def validate_api_key(
+        self, api_key_id: str, provider: Optional[str] = None
+    ) -> bool:
+        """Validate an API key is functional."""
+        try:
+            # Try a minimal completion to validate the key
+            model = "gpt-5-nano-2025-08-07" if not provider else self._get_default_model_for_provider(provider)
+            await self.complete(
+                messages=[{"role": "user", "content": "test"}],
+                model=model,
+                api_key_id=api_key_id,
+                max_tokens=1,
+            )
+            return True
+        except Exception:
+            return False
+
+    async def get_provider_for_model(self, model: str) -> Optional[str]:
+        """Determine which provider supports a given model."""
+        return self._infer_service_from_model(model)
+    
+    def _get_default_model_for_provider(self, provider: str) -> str:
+        """Get a default model for a provider."""
+        provider = provider.lower()
+        if provider == "openai":
+            return "gpt-5-nano-2025-08-07"
+        elif provider in ["anthropic", "claude"]:
+            return "claude-3-5-sonnet-20241022"
+        elif provider in ["google", "gemini"]:
+            return "gemini-1.5-pro"
+        elif provider == "ollama":
+            return "llama3"
+        else:
+            return "gpt-5-nano-2025-08-07"

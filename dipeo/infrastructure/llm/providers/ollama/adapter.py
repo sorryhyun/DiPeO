@@ -37,6 +37,11 @@ class OllamaAdapter(UnifiedAdapter):
         if not config.base_url:
             config.base_url = "http://localhost:11434"
         
+        # Initialize clients first (before calling super().__init__)
+        self.sync_client_wrapper = OllamaClientWrapper(config)
+        self.async_client_wrapper = AsyncOllamaClientWrapper(config)
+        
+        # Now call parent init
         super().__init__(config)
         
         # Initialize limited capabilities for Ollama
@@ -57,10 +62,6 @@ class OllamaAdapter(UnifiedAdapter):
         self.message_processor = MessageProcessor(ProviderType.OLLAMA)
         self.response_processor = ResponseProcessor(ProviderType.OLLAMA)
         self.token_counter = TokenCounter(ProviderType.OLLAMA)
-        
-        # Initialize clients
-        self.sync_client_wrapper = OllamaClientWrapper(config)
-        self.async_client_wrapper = AsyncOllamaClientWrapper(config)
     
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Ollama provider capabilities."""

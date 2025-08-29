@@ -1,7 +1,7 @@
 """Message processing for LLM providers."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from dipeo.diagram_generated import Message
 
@@ -47,15 +47,21 @@ class MessageProcessor:
         
         return prepared
     
-    def _format_message(self, message: Message) -> Optional[Dict[str, Any]]:
+    def _format_message(self, message: Union[Message, Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """Format a single message for provider API."""
-        # Normalize role
-        role = self._normalize_role(message.role)
+        # Handle both Message objects and dictionaries
+        if isinstance(message, dict):
+            role = self._normalize_role(message.get("role", "user"))
+            content = message.get("content", "")
+        else:
+            # Assume it's a Message object
+            role = self._normalize_role(message.role)
+            content = message.content
         
         # Basic message structure
         formatted = {
             "role": role,
-            "content": message.content
+            "content": content
         }
         
         # Add provider-specific fields
@@ -102,22 +108,35 @@ class MessageProcessor:
         logger.warning(f"Unknown role '{role}' for {self.provider}, defaulting to 'user'")
         return "user"
     
-    def _add_openai_fields(self, formatted: Dict[str, Any], message: Message) -> Dict[str, Any]:
+    def _add_openai_fields(self, formatted: Dict[str, Any], message: Union[Message, Dict[str, Any]]) -> Dict[str, Any]:
         """Add OpenAI-specific fields to message."""
         # Add name if present
-        if hasattr(message, 'name') and message.name:
+        if isinstance(message, dict):
+            if 'name' in message and message['name']:
+                formatted['name'] = message['name']
+        elif hasattr(message, 'name') and message.name:
             formatted['name'] = message.name
         
         # Add tool call ID for tool responses
-        if formatted['role'] == 'tool' and hasattr(message, 'tool_call_id'):
-            formatted['tool_call_id'] = message.tool_call_id
+        if formatted['role'] == 'tool':
+            if isinstance(message, dict) and 'tool_call_id' in message:
+                formatted['tool_call_id'] = message['tool_call_id']
+            elif hasattr(message, 'tool_call_id'):
+                formatted['tool_call_id'] = message.tool_call_id
         
         # Handle multimodal content
-        if hasattr(message, 'images') and message.images:
+        images = None
+        if isinstance(message, dict):
+            images = message.get('images')
+        elif hasattr(message, 'images'):
+            images = message.images
+            
+        if images:
+            content = message.get('content', '') if isinstance(message, dict) else message.content
             formatted['content'] = [
-                {"type": "text", "text": message.content}
+                {"type": "text", "text": content}
             ]
-            for image in message.images:
+            for image in images:
                 formatted['content'].append({
                     "type": "image_url",
                     "image_url": {"url": image}
@@ -125,14 +144,21 @@ class MessageProcessor:
         
         return formatted
     
-    def _add_anthropic_fields(self, formatted: Dict[str, Any], message: Message) -> Dict[str, Any]:
+    def _add_anthropic_fields(self, formatted: Dict[str, Any], message: Union[Message, Dict[str, Any]]) -> Dict[str, Any]:
         """Add Anthropic-specific fields to message."""
         # Handle multimodal content
-        if hasattr(message, 'images') and message.images:
+        images = None
+        if isinstance(message, dict):
+            images = message.get('images')
+        elif hasattr(message, 'images'):
+            images = message.images
+        
+        if images:
+            content = message.get('content', '') if isinstance(message, dict) else message.content
             formatted['content'] = [
-                {"type": "text", "text": message.content}
+                {"type": "text", "text": content}
             ]
-            for image in message.images:
+            for image in images:
                 formatted['content'].append({
                     "type": "image",
                     "source": {
@@ -144,14 +170,20 @@ class MessageProcessor:
         
         return formatted
     
-    def _add_google_fields(self, formatted: Dict[str, Any], message: Message) -> Dict[str, Any]:
+    def _add_google_fields(self, formatted: Dict[str, Any], message: Union[Message, Dict[str, Any]]) -> Dict[str, Any]:
         """Add Google-specific fields to message."""
         # Gemini uses 'parts' instead of 'content'
         formatted['parts'] = [{"text": formatted.pop('content')}]
         
         # Handle multimodal content
-        if hasattr(message, 'images') and message.images:
-            for image in message.images:
+        images = None
+        if isinstance(message, dict):
+            images = message.get('images')
+        elif hasattr(message, 'images'):
+            images = message.images
+            
+        if images:
+            for image in images:
                 formatted['parts'].append({
                     "inline_data": {
                         "mime_type": "image/jpeg",

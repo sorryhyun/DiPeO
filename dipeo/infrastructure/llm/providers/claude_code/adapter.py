@@ -77,6 +77,11 @@ Response Format:
     
     def __init__(self, config: AdapterConfig):
         """Initialize Claude Code adapter."""
+        # Initialize clients first (needed by parent __init__)
+        self.sync_client_wrapper = ClaudeCodeClientWrapper(config)
+        self.async_client_wrapper = AsyncClaudeCodeClientWrapper(config)
+        
+        # Now call parent __init__ which will use _create_sync_client and _create_async_client
         super().__init__(config)
         
         # Initialize capabilities (limited compared to standard Anthropic)
@@ -97,10 +102,6 @@ Response Format:
         self.message_processor = MessageProcessor(ProviderType.ANTHROPIC)
         self.response_processor = ResponseProcessor(ProviderType.ANTHROPIC)
         self.token_counter = TokenCounter(ProviderType.ANTHROPIC)
-        
-        # Initialize clients
-        self.sync_client_wrapper = ClaudeCodeClientWrapper(config)
-        self.async_client_wrapper = AsyncClaudeCodeClientWrapper(config)
     
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Claude Code provider capabilities."""

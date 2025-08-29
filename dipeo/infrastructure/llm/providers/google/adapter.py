@@ -35,6 +35,11 @@ class GoogleAdapter(UnifiedAdapter):
     
     def __init__(self, config: AdapterConfig):
         """Initialize Google adapter with capabilities."""
+        # Initialize clients first (before calling super().__init__)
+        self.sync_client_wrapper = GoogleClientWrapper(config)
+        self.async_client_wrapper = AsyncGoogleClientWrapper(config)
+        
+        # Now call parent init
         super().__init__(config)
         
         # Initialize capabilities
@@ -57,10 +62,6 @@ class GoogleAdapter(UnifiedAdapter):
         self.message_processor = MessageProcessor(ProviderType.GOOGLE)
         self.response_processor = ResponseProcessor(ProviderType.GOOGLE)
         self.token_counter = TokenCounter(ProviderType.GOOGLE)
-        
-        # Initialize clients
-        self.sync_client_wrapper = GoogleClientWrapper(config)
-        self.async_client_wrapper = AsyncGoogleClientWrapper(config)
     
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Google provider capabilities."""
