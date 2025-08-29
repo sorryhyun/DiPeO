@@ -2,6 +2,7 @@
 
 from typing import Union
 from .base import BaseLLMAdapter
+from ..core.types import AdapterConfig, ProviderType
 
 
 def create_adapter(
@@ -22,35 +23,70 @@ def create_adapter(
     """
     provider = provider.lower()
 
+    # Use new refactored providers when available
     if provider in ["anthropic", "claude"]:
-        if async_mode:
-            from ..adapters.claude_async import ClaudeAsyncAdapter
-            return ClaudeAsyncAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
-        else:
-            from ..adapters.claude import ClaudeAdapter
-            return ClaudeAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
+        # Use new refactored Anthropic provider
+        from ..providers.anthropic import AnthropicAdapter
+        config = AdapterConfig(
+            provider_type=ProviderType.ANTHROPIC,
+            model=model_name,
+            api_key=api_key,
+            base_url=base_url,
+        )
+        adapter = AnthropicAdapter(config)
+        adapter.model = model_name
+        return adapter
     
     if provider == "claude-code":
-        # Use simplified claude-code adapter
-        from ..adapters.claude_code_simplified import ClaudeCodeAdapter
-        return ClaudeCodeAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
+        # Use new separated Claude Code provider
+        from ..providers.claude_code import ClaudeCodeAdapter
+        config = AdapterConfig(
+            provider_type=ProviderType.ANTHROPIC,  # Claude Code uses Anthropic provider type
+            model=model_name,
+            api_key=api_key,
+            base_url=base_url,
+        )
+        adapter = ClaudeCodeAdapter(config)
+        adapter.model = model_name
+        return adapter
     
     if provider in ["openai", "chatgpt"]:
-        if async_mode:
-            from ..adapters.openai_async import OpenAIAsyncAdapter
-            return OpenAIAsyncAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
-        else:
-            from ..adapters.openai import ChatGPTAdapter
-            return ChatGPTAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
+        # Use new refactored OpenAI provider
+        from ..providers.openai import OpenAIAdapter
+        config = AdapterConfig(
+            provider_type=ProviderType.OPENAI,
+            model=model_name,
+            api_key=api_key,
+            base_url=base_url,
+        )
+        adapter = OpenAIAdapter(config)
+        adapter.model = model_name
+        return adapter
     
     if provider in ["google", "gemini"]:
-        # For now, keep gemini as is - we can add async version later
-        from ..adapters.gemini import GeminiAdapter
-        return GeminiAdapter(model_name=model_name, api_key=api_key)
+        # Use new refactored Google provider
+        from ..providers.google import GoogleAdapter
+        config = AdapterConfig(
+            provider_type=ProviderType.GOOGLE,
+            model=model_name,
+            api_key=api_key,
+            base_url=base_url,
+        )
+        adapter = GoogleAdapter(config)
+        adapter.model = model_name
+        return adapter
     
     if provider == "ollama":
-        # For now, keep ollama as is - we can add async version later
-        from ..adapters.ollama import OllamaAdapter
-        return OllamaAdapter(model_name=model_name, api_key=api_key, base_url=base_url)
+        # Use new refactored Ollama provider
+        from ..providers.ollama import OllamaAdapter
+        config = AdapterConfig(
+            provider_type=ProviderType.OLLAMA,
+            model=model_name,
+            api_key=api_key,
+            base_url=base_url,
+        )
+        adapter = OllamaAdapter(config)
+        adapter.model = model_name
+        return adapter
     
     raise ValueError(f"Unsupported provider: {provider}")
