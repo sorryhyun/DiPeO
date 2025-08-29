@@ -63,8 +63,9 @@ Code Generation Rules:
 Response Format:
 - Raw code files in the exact format requested
 - No conversational text before or after code
-- No self-descriptions like 'Looking at the code, I need to..."
-- No explanations unless explicitly requested"""
+- No explanations unless explicitly requested
+- No "Here's the implementation..." introductions
+- No "This code does..." summaries"""
     
     def __init__(self, model_name: str, api_key: str, base_url: str | None = None):
         super().__init__(model_name, api_key, base_url)
