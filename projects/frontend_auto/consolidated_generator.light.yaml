@@ -62,6 +62,9 @@ nodes:
     position: {x: 60, y: 240}
     props:
       trigger_mode: manual
+      custom_data:
+        # Default config file path - can be overridden via --input-data
+        config_file: projects/frontend_auto/variants/healthcare_portal_config.json
       
   - label: Load Config
     type: db
@@ -70,7 +73,7 @@ nodes:
       operation: read
       sub_type: file
       format: json
-      source_details: projects/frontend_auto/variants/healthcare_portal_config.json
+      source_details: "{config_file}"
 
   - label: Plan Sections
     type: person_job
@@ -158,15 +161,33 @@ nodes:
         sections = sections_data.get('sections', [])
         sections.sort(key=lambda x: (x.get('priority', 2), x.get('id', '')))
         
-        # Extract file paths and descriptions
+        # Create a map of kernel files by file_path for easy lookup
+        kernel_files_map = {}
+        if 'files' in kernel:
+            for kf in kernel['files']:
+                kernel_files_map[kf['file_path']] = kf
+        
+        # Merge kernel details into corresponding sections
+        for section in sections:
+            # Check if this section corresponds to a kernel file
+            if section['file_path'] in kernel_files_map:
+                kernel_file = kernel_files_map[section['file_path']]
+                # Merge the detailed kernel specs into the section
+                section['purpose'] = kernel_file.get('purpose', '')
+                section['content'] = kernel_file.get('content', '')
+                # Keep the original description as fallback
+                if not section.get('description'):
+                    section['description'] = kernel_file.get('purpose', '')
+        
+        # Extract file paths and descriptions from sorted sections
         file_paths = [section['file_path'] for section in sections]
         descriptions = [section.get('description', '') for section in sections]
         
-        # Return merged data with kernel specs as reference
+        # Return merged data with kernel overview (without duplicate files array)
         result = {
             'architecture': sections_data.get('architecture', {}),
-            'kernel_specs': kernel,  # Available as reference for all sections
-            'sections': sections,
+            'kernel_specs': {'overview': kernel.get('overview', '')},  # Only keep overview
+            'sections': sections,  # Now contains merged kernel details
             'file_paths': file_paths,
             'descriptions': descriptions,
             'total_files': len(sections)
@@ -181,6 +202,14 @@ nodes:
       format: json
       source_details: projects/frontend_auto/generated/sections_data.json
 
+  - label: load Data
+    type: db
+    position: {x: 1100, y: 240}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_auto/generated/sections_data.json
 
   - label: Check Continue
     type: condition
@@ -188,7 +217,7 @@ nodes:
     props:
       condition_type: custom
 #      expression: current_index >= 4
-      expression: current_index >= len(default.file_paths)
+      expression: current_index >= default.total_files
       expose_index_as: current_index
       flipped: [false, true]
 
@@ -207,8 +236,8 @@ nodes:
     props:
       person: Frontend Generator
       max_iteration: 100
-      memorize_to: "Which contains necessary information for current task, among the previous implementations."
-      at_most: 5
+      memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
+      at_most: 4
       prompt_file: frontend_generator.txt
 
   - label: Write Section Result
@@ -264,7 +293,7 @@ nodes:
 
 connections:
   # Initial setup
-  - {from: Start, to: Load Config}
+  - {from: Start, to: Load Config, label: default, content_type: object}
   - {from: Load Config, to: Plan Sections, label: config, content_type: object}
   - {from: Load Config, to: Generate Core Kernel, label: config, content_type: object }
 
@@ -275,7 +304,8 @@ connections:
   - {from: Extract Section Properties, to: Merge Kernel and Sections, label: sections_data, content_type: object}
   - {from: Generate Core Kernel, to: Merge Kernel and Sections, label: kernel, content_type: object}
   - {from: Merge Kernel and Sections, to: Save Merged Data, content_type: object}
-  - {from: Save Merged Data, to: Check Continue, content_type: object}
+  - {from: Save Merged Data, to: load Data, content_type: object}
+  - { from: load Data, to: Check Continue, content_type: object }
 
   # Section iteration loop (now processes both kernel and regular sections)
   - {from: Check Continue_condfalse, to: Load Merged Data, content_type: object}

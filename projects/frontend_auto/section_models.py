@@ -85,7 +85,7 @@ class Response(BaseModel):
     )
     sections: List[Section] = Field(
         min_items=1,
-        max_items=100,
+        max_items=200,
         description="List of sections(i.e., files) to implement in parallel"
     )
 

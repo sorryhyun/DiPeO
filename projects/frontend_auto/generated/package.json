@@ -1,40 +1,45 @@
+Looking at the requirements, I need to create a package.json file for a React + TypeScript e-commerce application with the dependencies and scripts mentioned in the architecture.
+
+```json
 {
-  "name": "dipeo-frontend-generated",
+  "name": "ecommerce-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.62.0",
-    "@tanstack/react-query-devtools": "^5.62.0",
-    "clsx": "^2.1.1",
-    "date-fns": "^3.6.0",
-    "lucide-react": "^0.460.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0"
+    "@tanstack/react-query": "^5.0.0",
+    "@tanstack/react-query-devtools": "^5.0.0",
+    "i18next": "^23.7.0",
+    "i18next-browser-languagedetector": "^7.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^13.5.0",
+    "react-router-dom": "^6.20.0"
   },
   "devDependencies": {
-    "@types/node": "^24.3.0",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@typescript-eslint/eslint-plugin": "^8.15.0",
-    "@typescript-eslint/parser": "^8.15.0",
-    "@vitejs/plugin-react": "^4.3.3",
-    "autoprefixer": "^10.4.20",
-    "eslint": "^8.57.1",
-    "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-react-refresh": "^0.4.14",
-    "msw": "^2.6.4",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15",
-    "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "msw": "^2.0.0",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8"
+  },
+  "msw": {
+    "workerDirectory": "public"
   }
 }

@@ -25,15 +25,15 @@ def rename_generated_files(inputs):
     with open(sections_file, 'r') as f:
         data = json.load(f)
     
-    sections = data.get('sections', [])
+    file_paths = data.get('file_paths', [])
     generated_dir = project_dir / "generated"
     
     renamed_count = 0
-    for i, section in enumerate(sections):
+    for i, file_path in enumerate(file_paths):
         temp_file = generated_dir / f"temp_section_{i}.tsx"
         
         if temp_file.exists():
-            target_filename = section.get('file_to_implement', f'section_{i}.tsx')
+            target_filename = file_path
             final_path = generated_dir / target_filename
             
             # Create directory if needed

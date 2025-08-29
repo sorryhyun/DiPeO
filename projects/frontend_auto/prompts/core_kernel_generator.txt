@@ -1,27 +1,20 @@
-You are a Core Kernel Architect. Your task is to generate SPECIFICATIONS for the foundational contract files that ALL sections of the application will depend on.
+You are a Core Kernel Architect. Generate specifications for foundational contract files that all application sections will depend on.
 
-## YOUR MISSION
-Generate specifications for 5-7 core files that will establish the single source of truth for:
-1. Domain types and API contracts
-2. Configuration and feature flags
-3. Event bus for inter-component communication
-4. Hook system for extension points
-5. Dependency injection tokens
-6. Common utilities and helpers
-
-## CONTEXT
+## Context
 
 ### Application Configuration:
 {{config}}
 
-### Architecture Overview (from Section Planner):
+### Architecture Overview:
 {{sections_data.architecture}}
 
+### Section Descriptions:
+{{sections_data.sections}}
 
-## REQUIREMENTS
+## Required Specifications
 
 ### 1. Core Contracts (core/contracts.ts)
-Generate comprehensive TypeScript interfaces for:
+TypeScript interfaces for:
 - User types (User, Patient, Doctor, Nurse based on roles in config)
 - Healthcare domain models (Appointment, MedicalRecord, Prescription, LabResult, etc.)
 - API response types (ApiResult<T>, ApiError, PaginatedResponse<T>)
@@ -29,60 +22,48 @@ Generate comprehensive TypeScript interfaces for:
 - Common UI state types (LoadingState, FormState, etc.)
 
 ### 2. Configuration (app/config.ts)
-Materialize the JSON config into TypeScript constants:
+Materialize JSON config into TypeScript:
 - Export typed config object with all settings
 - Computed flags (isDevelopment, shouldUseMockData, etc.)
 - Feature toggles based on config.features array
 - Mock user data if development_mode.enable_mock_data is true
 
 ### 3. Event Bus (core/events.ts)
-Lightweight typed event system:
+Typed event system:
 - EventBus class with on/off/emit methods
-- Typed event map for all domain events
+- Typed event map for domain events
 - Export singleton instance
-- Support for both sync and async handlers
+- Support for sync and async handlers
 
 ### 4. Hook Registry (core/hooks.ts)
-Extension point system:
-- Define HookPoint union type for all hook names
+Extension points:
+- HookPoint union type for all hook names
 - HookRegistry class with register/run methods
 - Standard hooks: beforeApiRequest, afterApiResponse, onLogin, onLogout, onRouteChange
 - Context object passed to all hooks
 
 ### 5. Dependency Injection (core/di.ts)
-Simple DI container for services:
+Service container:
 - Token definitions for ApiClient, AuthService, StorageService, WebSocketService
 - Container class with register/resolve methods
 - Type-safe token resolution
 
 ### 6. Common Utilities (core/utils.ts) - Optional
-If needed, add common utilities:
+If needed:
 - Date formatting functions
 - Validation helpers
 - Safe JSON parse/stringify
 - Debug logging utilities
 
-## OUTPUT FORMAT
-Generate detailed specifications for each file. For each file, provide:
-- The exact types/interfaces that should be defined
-- The functions/classes that should be exported
-- The patterns and conventions to follow
+## Output Format
+For each file, provide:
+- Types/interfaces to define
+- Functions/classes to export
+- Patterns and conventions
 - Example usage patterns
 - Integration points with other kernel files
 
-Note: You're generating specifications, not actual code. The Frontend Generator will use these specs to create the actual implementation.
-
-## CRITICAL RULES
-1. Every type/interface must be complete - no placeholders
-2. Use the actual feature names from config.features
-3. Include all mock data structures if development mode is enabled
-4. Ensure all exports align with what sections will need
-5. Keep files focused - each file has one clear responsibility
-6. Use @/core/* import paths in examples within comments
-
-Remember: These files are the foundation. Every section will import from them, so they must be comprehensive, well-typed, and production-ready.
-
-Section descriptions:
-```
-{{sections_data.sections}}
-```
+Use actual feature names from config.features.
+Include mock data structures if development mode is enabled.
+Keep files focused - each has one clear responsibility.
+Use @/core/* import paths in examples.

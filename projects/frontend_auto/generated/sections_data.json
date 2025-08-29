@@ -1,502 +1,92 @@
 {
   "architecture": {
-    "overview": "A modular, feature-driven React + TypeScript patient healthcare portal designed for both patients and providers. The app uses modern React 18+ features (Suspense, Error Boundaries, Context API), React Query for data fetching and caching, Tailwind CSS for responsive styling and dark mode, i18n for localization (English + Korean), and a full mock layer for development so the app runs standalone without backend dependencies. The codebase is organized into a clear core/kernel, providers, services, shared UI, feature folders (appointments, records, prescriptions, telemedicine, dashboard, labs, insurance, medications, reminders), and pages. Each file is single-responsibility to maximize reusability and testability.",
+    "overview": "Ultra-Premium Landing SPA built with React 18+ and TypeScript. The app is a single-page landing experience for \u201cAbsolutely Nothing\u2122\u201d with rich animations (Three.js, Framer Motion, GSAP), particle systems, interactive widgets, and a catalog of pages (pricing, docs, status, case studies, press kit). The app uses a layered structure: Core Kernel (contracts, events, DI), Providers (theme, auth, mock API, analytics, chat, modal), Services (API clients and domain logic), Shared UI and animation primitives, Hooks, Feature components, and top-level Pages. Development mode includes a mock server and mock auth users. Tailwind CSS is used for responsive styling and dark mode.",
     "patterns": [
-      "Feature-first folder structure (src/features/<feature>/...)",
-      "Container/Presentational separation: pages & feature containers orchestrate data; shared components are presentational",
-      "Context Providers for Auth, Theme, I18n and MockServer",
-      "React Query for server state with centralized queryClient",
-      "Domain Contracts in core/contracts.ts to share types across app",
-      "Mock Gateway in development that intercepts service calls (mock server + mock WebSocket)",
-      "Error Boundary + Suspense for progressive UX",
-      "Dependency Injection hooks via core/di.ts to allow swapping implementations (real vs mock)"
+      "Container / Presentational separation: Pages/containers coordinate data and domain logic; presentational components live in shared/",
+      "Atomic design for UI components (atoms, molecules, organisms)",
+      "Feature-sliced organization: features are grouped under src/features/* when large; pages live in src/pages/",
+      "Provider-based composition: Context providers wrap the App (Theme, Auth, Analytics, Mock API, Chat, Modal, Toast)",
+      "Dependency Injection & Event Bus for decoupled communication between systems (core/di, core/events)",
+      "Hooks-first approach for reusing behavior (useApi, useParticles, useThree, useMockAuth)",
+      "Progressive enhancement: heavy animation subsystems (Three/GSAP) loaded lazily via Suspense and code-splitting",
+      "Mocks & dev-mode toggles centralized (src/mocks) with environment-aware bootstrapping"
     ],
-    "data_flow": "UI components -> Feature hooks (useX) -> Service clients (api modules) -> React Query (caching) -> HTTP client or MockServer. Auth flows are managed by AuthProvider and persisted to localStorage in dev. Real-time updates come via a WebSocket service, replaced by a mock WebSocket in dev mode (controlled by MockServerProvider). Global events (e.g., notifications, telemetry) use core/events.ts event bus. I18n provider handles translations at render time. All network errors are surfaced to the UI via React Query error states and captured by ErrorBoundary for fatal errors.",
-    "folder_structure": "generated/\n  src/\n    core/\n      contracts.ts                     # Domain types & API contracts\n      events.ts                        # Local event bus\n      hooks.ts                         # Hook registry for extensions (DI helpers)\n      di.ts                            # Dependency injection registry\n      utils.ts                         # Generic utilities (formatDate, storage helpers)\n    app/\n      config.ts                        # Materialized runtime & dev configuration\n    i18n/\n      i18n.ts                          # i18n initialization\n      en.json                          # English translations\n      ko.json                          # Korean translations\n    index.tsx                          # App entry\n    App.tsx                            # Root app: providers + routes\n    routes/\n      index.tsx                        # Route definitions and route-level lazy loads\n    providers/\n      QueryProvider.tsx                # React Query client provider\n      AuthProvider.tsx                 # Authentication & protected route context\n      I18nProvider.tsx                 # i18n wrapper\n      ThemeProvider.tsx                # Tailwind dark mode controller\n      MockServerProvider.tsx           # Dev-only mock server + mock websocket\n    services/\n      httpClient.ts                    # fetch wrapper + token handling\n      queryClient.ts                   # react-query client setup\n      websocket.ts                     # WebSocket abstraction (real + mock swap)\n      api/\n        appointments.api.ts\n        medicalRecords.api.ts\n        prescriptions.api.ts\n        labResults.api.ts\n        insurance.api.ts\n        medications.api.ts\n        reminders.api.ts\n    mocks/\n      index.ts                         # Mock server entry: interceptors + endpoints\n      mockAuth.ts                      # Mock auth user store & logic\n      mockWebSocket.ts                 # Mock websocket push events\n      data/\n        appointments.ts\n        medicalRecords.ts\n        prescriptions.ts\n        labResults.ts\n        insurance.ts\n        medications.ts\n        reminders.ts\n    features/                          # Per-feature containers/hooks/components\n      appointments/\n        AppointmentList.tsx\n        AppointmentForm.tsx\n        useAppointments.ts\n      medical-records/\n        MedicalRecordViewer.tsx\n        useMedicalRecords.ts\n      prescriptions/\n        PrescriptionList.tsx\n        PrescriptionForm.tsx\n        usePrescriptions.ts\n      telemedicine/\n        TelemedicineRoom.tsx\n        useTelemedicine.ts\n      dashboard/\n        HealthDashboard.tsx\n        useDashboardMetrics.ts\n      lab-results/\n        LabResultsTable.tsx\n        useLabResults.ts\n      insurance/\n        InsuranceClaims.tsx\n        useInsurance.ts\n      medications/\n        MedicationList.tsx\n        useMedications.ts\n      reminders/\n        Reminders.tsx\n        useReminders.ts\n    pages/\n      DashboardPage.tsx\n      AppointmentsPage.tsx\n      AppointmentDetailPage.tsx\n      MedicalRecordsPage.tsx\n      PrescriptionsPage.tsx\n      TelemedicinePage.tsx\n      LabResultsPage.tsx\n      InsurancePage.tsx\n      MedicationsPage.tsx\n      RemindersPage.tsx\n      LoginPage.tsx\n      ProfilePage.tsx\n      NotFoundPage.tsx\n    shared/\n      components/\n        layout/\n          MainLayout.tsx\n          Header.tsx\n          Sidebar.tsx\n        ui/\n          Button.tsx\n          Input.tsx\n          Modal.tsx\n          Card.tsx\n          Table.tsx\n          HealthChart.tsx\n          Loading.tsx\n          ErrorBoundary.tsx\n        forms/\n          FormField.tsx\n          DatePicker.tsx\n          Select.tsx\n    hooks/\n      useLocalStorage.ts\n      useRequireAuth.ts\n      useDebounce.ts\n    styles/\n      tailwind.css\n  tailwind.config.cjs\n  postcss.config.cjs",
+    "data_flow": "Data flows top-down via React Context for cross-cutting services (Auth, Theme, Analytics). Pages and feature containers call domain services (src/services/*) through a lightweight apiClient (fetch wrapper). In dev, the MockApiProvider intercepts calls and returns fixtures from src/mocks. Client state (UI, theme, ephemeral) is stored in React state/context; persistent preferences use useLocalStorage. Analytics events are emitted to core/events and forwarded by AnalyticsProvider. Heavy components and animations use Suspense & lazy loading. Infinite scroll and interactive simulators use hooks and service endpoints; real-time components (live chat) use WebSocket toggles (disabled/controlled in dev).",
+    "folder_structure": "src/\n  core/\n    contracts.ts\n    events.ts\n    hooks.ts\n    di.ts\n    utils.ts\n  app/\n    config.ts\n  main.tsx\n  App.tsx\n  index.css\n  tailwind.config.ts\n  providers/\n    ThemeProvider.tsx\n    AuthProvider.tsx\n    MockApiProvider.tsx\n    AnalyticsProvider.tsx\n    ChatProvider.tsx\n    ModalProvider.tsx\n    ToastProvider.tsx\n    Router.tsx\n  services/\n    apiClient.ts\n    pricingService.ts\n    testimonialsService.ts\n    newsletterService.ts\n    supportService.ts\n    analyticsService.ts\n    checkoutService.ts\n  mocks/\n    server.ts\n    handlers.ts\n    mockData.ts\n  hooks/\n    useApi.ts\n    useMockAuth.ts\n    useLocalStorage.ts\n    useInfiniteScroll.ts\n    useParticles.ts\n    useThree.ts\n    useSound.ts\n    useAnalytics.ts\n    useABTest.ts\n    useIntersectionObserver.ts\n  shared/\n    components/\n      atoms/\n        Button.tsx\n        Icon.tsx\n        SoundButton.tsx\n        Tooltip.tsx\n        ProgressBarReverse.tsx\n      molecules/\n        Header.tsx\n        Footer.tsx\n        Container.tsx\n        CookieBanner.tsx\n        Modal.tsx\n        Toast.tsx\n      organisms/\n        Hero.tsx\n        VoidCanvas.tsx\n        ParticleBackground.tsx\n        MatrixRain.tsx\n        GlitchText.tsx\n        FloatingBubbles.tsx\n        Counter.tsx\n        TestimonialsCarousel.tsx\n        PricingCard.tsx\n        PricingTierList.tsx\n        FAQ.tsx\n        TeamGrid.tsx\n        Simulator.tsx\n        NewsletterForm.tsx\n        ChatWidget.tsx\n        ComparisonChart.tsx\n        CaseStudyCard.tsx\n        RoadmapTimeline.tsx\n        Showcase3D.tsx\n        ReviewsList.tsx\n        GuaranteeBadge.tsx\n        AffiliateSignup.tsx\n        PressKit.tsx\n        APIDocs.tsx\n        StatusPanel.tsx\n        ProductCarousel.tsx\n        LoadingBarRecursive.tsx\n        InfiniteScrollLoad.tsx\n        SocialProofWidget.tsx\n        UrgencyTimer.tsx\n        TrustBadge.tsx\n        ABTestToggle.tsx\n        EasterEggs.tsx\n        TypingErase.tsx\n        ConfettiButGone.tsx\n        Cart.tsx\n        LiveChatStub.tsx\n    layout/\n      Layout.tsx\n      MainLayout.tsx\n  pages/\n    HomePage.tsx\n    PricingPage.tsx\n    DocsPage.tsx\n    StatusPage.tsx\n    CaseStudiesPage.tsx\n    PressKitPage.tsx\n    APIDocsPage.tsx\n    NotFoundPage.tsx\n  features/\n    void-animation/\n      index.tsx\n      VoidAnimationSystem.tsx\n    epic-hero/\n      ExistentialHero.tsx\n    support-chat/\n      SupportChatBot.tsx\n    analytics-dashboard/\n      AnalyticsDashboard.tsx\n  assets/\n    logos/nothing.svg\n    sounds/silence.mp3\n  types/\n    three.d.ts\n\nNote: files are intentionally modular so each import maps to a file listed in sections.",
     "tech_stack": [
-      "React 18+ (Suspense, Error Boundaries, Concurrent-safe patterns)",
+      "React 18+ with Suspense & Error Boundaries",
       "TypeScript",
-      "React Router v6+",
-      "React Query (TanStack Query)",
-      "React Hook Form (forms & validation)",
-      "Yup or Zod (form validation schemas)",
-      "Tailwind CSS (with dark mode)",
-      "i18next (i18n)",
-      "localStorage for dev persistence",
-      "Mock Service layer + Mock WebSocket for offline dev",
-      "Vite / Create React App compatible build"
+      "Tailwind CSS (JIT) with dark mode",
+      "Three.js for 3D void/rotating showcase",
+      "Framer Motion & GSAP for animations",
+      "WebAudio API wrappers for sound (useSound hook)",
+      "React Router for routing",
+      "Mock Service Worker (msw) style mocks (src/mocks) for dev API",
+      "Event Bus & DI for cross-cutting concerns (core/events, core/di)",
+      "Vite or similar bundler (assumed)",
+      "Optional WebSocket for live chat (toggle in dev)"
     ]
   },
   "kernel_specs": {
-    "overview": "The Core Kernel provides a single, strongly-typed foundation shared by every feature and provider in the Patient Healthcare Portal. It centralizes domain contracts, runtime configuration, a typed event bus for decoupled communication, an extension hook registry for plugin-like extension points, a minimal dependency-injection container to swap real and mock implementations, and a small set of widely-used utilities. All features, services and UI components should import types, tokens and helpers from these files to guarantee a single source of truth across the codebase.",
-    "files": [
-      {
-        "file_path": "generated/src/core/contracts.ts",
-        "purpose": "Shared domain types, enums, API contracts and common UI state types used across services, features and components.",
-        "exports": [
-          "Role",
-          "User, Patient, Doctor, Nurse, TokenPayload, AuthToken",
-          "Gender",
-          "Address",
-          "ContactInfo",
-          "Appointment, AppointmentStatus, AppointmentParticipant",
-          "MedicalRecord, RecordType, Attachment",
-          "Prescription, PrescriptionStatus, PrescriptionRefillRequest",
-          "LabResult, LabResultStatus, LabTestType",
-          "InsuranceClaim, ClaimStatus, InsuranceProvider",
-          "Medication, MedicationRoute, MedicationSchedule",
-          "Reminder, ReminderFrequency, ReminderStatus",
-          "ApiResult<T>, ApiError, PaginatedResponse<T>",
-          "WsEvent, WsEventMap, WsPayloads",
-          "LoadingState, FormState, SortDirection",
-          "MockUser"
-        ],
-        "content": "Purpose\n- Provide canonical, well-documented TypeScript interfaces and enums that represent the app domain for appointments, records, prescriptions, labs, insurance, medications and reminders.\n- Provide API response shapes used by httpClient and services.\n- Provide WebSocket event typings used by real and mock websocket implementations.\n\nConventions\n- Use exhaustive enums for discriminated unions where possible.\n- All id fields are typed as string (UUID recommended) and timestamps are ISO strings (string, ISO 8601).\n- Domain objects include minimal but complete sets of common fields required by UI/features described in the app config.\n\nTypes & Interfaces to include (complete list with field descriptions):\n\n1) Authentication & User types\n- export type Role = 'patient' | 'doctor' | 'nurse' | 'admin';\n\n- export interface User {\n    id: string;                       // UUID\n    role: Role;\n    email: string;\n    fullName: string;\n    phone?: string;\n    avatarUrl?: string;\n    createdAt: string;                // ISO timestamp\n    updatedAt?: string;\n  }\n\n- export interface Patient extends User {\n    role: 'patient';\n    dateOfBirth?: string;             // ISO date\n    gender?: Gender;\n    address?: Address;\n    primaryProviderId?: string | null;\n    medicalRecordNumber?: string | null;\n  }\n\n- export interface Doctor extends User {\n    role: 'doctor';\n    specialty?: string;\n    clinic?: string;\n    licenseNumber?: string;\n    acceptingNewPatients?: boolean;\n  }\n\n- export interface Nurse extends User {\n    role: 'nurse';\n    department?: string;\n    supervisingDoctorId?: string | null;\n  }\n\n- export interface AuthToken {\n    token: string;\n    expiresAt: string;                // ISO timestamp\n  }\n\n- export interface TokenPayload {\n    sub: string;                      // user id\n    role: Role;\n    iat?: number;\n    exp?: number;\n  }\n\n2) Common small types\n- export enum Gender { Male = 'male', Female = 'female', Other = 'other', Unknown = 'unknown' }\n\n- export interface Address {\n    line1: string;\n    line2?: string;\n    city?: string;\n    state?: string;\n    postalCode?: string;\n    country?: string;\n  }\n\n- export interface ContactInfo {\n    email?: string;\n    phone?: string;\n    preferred?: 'email' | 'phone' | 'sms';\n  }\n\n3) Appointments\n- export enum AppointmentStatus { Pending = 'pending', Confirmed = 'confirmed', Cancelled = 'cancelled', Completed = 'completed', NoShow = 'no_show' }\n\n- export interface AppointmentParticipant {\n    id: string;            // user id\n    role: Role;\n    name?: string;\n    avatarUrl?: string;\n  }\n\n- export interface Appointment {\n    id: string;\n    title: string;                 // e.g., 'Telemedicine with Dr. Smith'\n    description?: string;\n    startAt: string;               // ISO timestamp\n    endAt?: string;                // ISO timestamp\n    status: AppointmentStatus;\n    patientId: string;\n    providerId?: string | null;    // doctor/nurse id\n    participants: AppointmentParticipant[];\n    location?: string;             // clinic room or 'telemedicine'\n    isTelemedicine?: boolean;\n    createdAt: string;\n    updatedAt?: string;\n    metadata?: Record<string, unknown>;\n  }\n\n4) Medical Records\n- export enum RecordType { Note = 'note', Imaging = 'imaging', Lab = 'lab', Document = 'document' }\n\n- export interface Attachment {\n    id: string;\n    filename: string;\n    url?: string;                 // signed URL in production or data URL in dev\n    contentType?: string;\n    size?: number;\n    createdAt?: string;\n  }\n\n- export interface MedicalRecord {\n    id: string;\n    patientId: string;\n    authorId?: string;\n    type: RecordType;\n    title?: string;\n    body?: string;                // rich text or summary\n    attachments?: Attachment[];\n    createdAt: string;\n    updatedAt?: string;\n    tags?: string[];\n  }\n\n5) Prescriptions\n- export enum PrescriptionStatus { Active = 'active', Expired = 'expired', Cancelled = 'cancelled', Refilled = 'refilled' }\n\n- export interface Prescription {\n    id: string;\n    patientId: string;\n    prescriberId: string;\n    medicationName: string;\n    dose: string;                 // e.g., '10 mg'\n    directions?: string;          // e.g., 'Take one tablet daily'\n    quantity?: number;\n    refillsRemaining?: number;\n    status: PrescriptionStatus;\n    issuedAt: string;\n    expiresAt?: string;\n    notes?: string;\n  }\n\n- export interface PrescriptionRefillRequest {\n    prescriptionId: string;\n    requestedById: string;\n    reason?: string;\n  }\n\n6) Lab Results\n- export enum LabResultStatus { Normal = 'normal', Abnormal = 'abnormal', Critical = 'critical', Pending = 'pending' }\n- export type LabTestType = string; // free-form, but services should adopt a stable taxonomy (e.g., 'CBC', 'BMP')\n\n- export interface LabResult {\n    id: string;\n    patientId: string;\n    testName: LabTestType;\n    resultValue?: string;         // string to represent complex values\n    units?: string;\n    referenceRange?: string;\n    status: LabResultStatus;\n    collectedAt?: string;\n    reportedAt?: string;\n    attachments?: Attachment[];\n    notes?: string;\n  }\n\n7) Insurance\n- export enum ClaimStatus { Submitted = 'submitted', Processing = 'processing', Paid = 'paid', Denied = 'denied', Rejected = 'rejected' }\n\n- export interface InsuranceProvider {\n    id: string;\n    name: string;\n    policyNumber?: string;\n  }\n\n- export interface InsuranceClaim {\n    id: string;\n    patientId: string;\n    providerId?: string;\n    amountCents?: number;\n    currency?: string;            // e.g., 'USD', 'KRW'\n    status: ClaimStatus;\n    submittedAt?: string;\n    updatedAt?: string;\n    notes?: string;\n  }\n\n8) Medication & Reminders\n- export enum MedicationRoute { Oral = 'oral', IV = 'iv', Topical = 'topical', Inhalation = 'inhalation', Other = 'other' }\n\n- export interface Medication {\n    id: string;\n    name: string;\n    strength?: string;\n    route?: MedicationRoute;\n    instructions?: string;\n    prescribedById?: string;\n    startDate?: string;\n    endDate?: string | null;\n  }\n\n- export enum ReminderFrequency { Once = 'once', Daily = 'daily', Weekly = 'weekly', Monthly = 'monthly' }\n- export enum ReminderStatus { Scheduled = 'scheduled', Sent = 'sent', Dismissed = 'dismissed', Failed = 'failed' }\n\n- export interface Reminder {\n    id: string;\n    patientId: string;\n    medicationId?: string | null;\n    title: string;\n    message?: string;\n    scheduledAt: string;           // ISO timestamp\n    frequency?: ReminderFrequency;\n    status: ReminderStatus;\n    createdAt: string;\n  }\n\n9) API response shapes\n- export interface ApiError {\n    code: string;                  // machine-readable error code\n    message: string;               // human-friendly message\n    details?: Record<string, unknown>;\n  }\n\n- export interface ApiResult<T> {\n    success: boolean;\n    data?: T;\n    error?: ApiError;\n    meta?: Record<string, unknown>;\n  }\n\n- export interface PaginatedResponse<T> {\n    items: T[];\n    total: number;\n    page: number;\n    pageSize: number;\n  }\n\n10) WebSocket events (WsEventMap)\n- Rationale: mock websocket is enabled in dev; define event types used across features. Use discriminated union for robust typing.\n\n- export type WsEvent = keyof WsEventMap;\n\n- export interface WsPayloads {\n    'user:login': { userId: string; timestamp: string };\n    'user:logout': { userId: string; timestamp: string };\n    'appointment:created': { appointment: Appointment };\n    'appointment:updated': { appointment: Appointment };\n    'appointment:cancelled': { appointmentId: string; reason?: string };\n    'lab:result:available': { labResult: LabResult };\n    'prescription:refilled': { prescriptionId: string; refilledAt: string };\n    'notification:received': { id: string; title: string; body?: string; data?: Record<string, unknown> };\n    'telemedicine:session:update': { sessionId: string; status: string; participants?: AppointmentParticipant[] };\n  }\n\n- Export typed map type:\n  export type WsEventMap = { [K in keyof WsPayloads]: { type: K; payload: WsPayloads[K] } };\n\n11) UI & Form State\n- export type LoadingState = 'idle' | 'loading' | 'success' | 'error';\n\n- export interface FormState<T = Record<string, unknown>> {\n    values: T;\n    errors: Record<string, string>;\n    touched: Partial<Record<keyof T, boolean>>;\n    isSubmitting: boolean;\n  }\n\n- export enum SortDirection { ASC = 'asc', DESC = 'desc' }\n\n12) Development mock user shape\n- export interface MockUser extends User {\n    password?: string;            // only present in dev mock data\n  }\n\nExample usage (in comments / test code):\n- import { Appointment, AppointmentStatus, ApiResult } from '@/core/contracts';\n- const response: ApiResult<Appointment> = { success: true, data: appointment };\n\nIntegration points\n- app/config.ts will import MockUser type and provide concrete mock user data in development mode.\n- core/events.ts will import WsPayloads/WsEvent for event typing and forwarding.\n- core/di.ts tokens for services will reference types from this file (e.g., WebSocketService uses WsEvent types).\n- services and features will rely solely on these interfaces for typing data across the app."
-      },
-      {
-        "file_path": "generated/src/app/config.ts",
-        "purpose": "Materialized runtime configuration including environment flags, feature toggles, API endpoints, and mock development data. This is the single source of truth for 'isDevelopment' and 'useMocks' flags.",
-        "exports": [
-          "AppConfig",
-          "isDevelopment",
-          "shouldUseMockData",
-          "shouldDisableWebsocketInDev",
-          "featureFlags",
-          "mockUsers"
-        ],
-        "content": "Purpose\n- Convert the provided JSON configuration into a typed, exported runtime config object.\n- Provide computed flags used by providers, MockServerProvider, DI and services.\n- Expose the mock users dataset in a typed way when development mock data is enabled.\n\nShape & fields to export (fully materialized):\n\n- export const AppConfig: {\n    appType: 'healthcare';\n    framework: 'react';\n    targetFramework: 'react';\n    stylingApproach: 'tailwind';\n    objective: string;\n    features: string[];               // from config.features\n    targetAudience: string;\n    outputDir: string;\n    developmentMode: {\n      enableMockData: boolean;\n      mockAuthUsers: MockUser[];      // imports MockUser from '@/core/contracts'\n      mockApiEndpoints: string[];\n      disableWebsocketInDev: boolean;\n      useLocalStoragePersistence: boolean;\n    };\n    promptRequirements: string[];\n    evaluationCriteria: string[];\n    promptSections: string[];\n  }\n\nComputed constants exported for ease-of-use\n- export const isDevelopment: boolean; // process.env.NODE_ENV !== 'production'\n- export const shouldUseMockData: boolean; // AppConfig.developmentMode.enableMockData && isDevelopment\n- export const shouldDisableWebsocketInDev: boolean; // AppConfig.developmentMode.disableWebsocketInDev && isDevelopment\n\nFeature toggles\n- export const featureFlags: Record<string, boolean>; // map of feature -> boolean (present in features array)\n  - e.g., featureFlags['appointment scheduling'] === true\n\nMock users\n- If AppConfig.developmentMode.enableMockData is true, export mockUsers: MockUser[] populated from JSON. MockUser includes password and role as defined in core/contracts.ts.\n\nEndpoints & Defaults\n- export const API_BASE = '/api'; // default API base path (used by httpClient)\n- export const MOCK_API_ENDPOINTS: string[] = AppConfig.developmentMode.mockApiEndpoints;\n\nExamples of computed values and usage (described):\n- import { shouldUseMockData, featureFlags, mockUsers } from '@/app/config';\n- if (shouldUseMockData) { registerMockServer({ endpoints: MOCK_API_ENDPOINTS, users: mockUsers }); }\n\nIntegration points\n- Providers (MockServerProvider, QueryProvider, AuthProvider) will read shouldUseMockData and shouldDisableWebsocketInDev here.\n- DI registration of mock services will use mockUsers exported here to seed mock auth.\n- Features should check featureFlags['<feature>'] before rendering optional sections (e.g., if (!featureFlags['telemedicine interface']) hide telemedicine routes).\n\nImplementation notes for generator\n- compute isDevelopment from process.env.NODE_ENV at build-time (or a fallback constant in environments that don't define it).\n- keep AppConfig as a plain object to allow JSON-like introspection by runtime code.\n- ensure exported mockUsers are strongly typed using MockUser from '@/core/contracts'."
-      },
-      {
-        "file_path": "generated/src/core/events.ts",
-        "purpose": "Typed, lightweight event bus for app-level events (notifications, telemetry, and mock websocket forwarding). Supports both synchronous and asynchronous handlers and is used by services and providers to decouple producers and consumers.",
-        "exports": [
-          "EventBus",
-          "eventBus (singleton)",
-          "subscribe",
-          "unsubscribe",
-          "publish"
-        ],
-        "content": "Objectives\n- Provide a compact, dependency-free pub/sub implementation with strong typing against WsPayloads / event names defined in '@/core/contracts'.\n- Support both sync and async handlers; allow handlers to return void or Promise<void>.\n- Provide a singleton instance to be used across the app, plus convenience helpers.\n\nTypes & Behavior\n- Use WsPayloads (imported from '@/core/contracts') to type event names and payloads.\n- export type EventName = keyof WsPayloads; // restricts allowed event names\n\n- Handler signature: type Handler<K extends EventName> = (payload: WsPayloads[K]) => void | Promise<void>;\n\nEventBus class API (must be fully specified):\n- class EventBus {\n    on<K extends EventName>(event: K, handler: Handler<K>, options?: { once?: boolean; priority?: number }): () => void;\n    off<K extends EventName>(event: K, handler: Handler<K>): void;\n    emit<K extends EventName>(event: K, payload: WsPayloads[K]): Promise<void>;\n    clearAll(): void; // remove all subscribers (useful in tests / hot-reload)\n  }\n\nSemantics & guarantees\n- on() returns an unsubscribe function for convenience.\n- Handlers may be registered with a numeric priority (higher numbers run earlier). Default priority = 0.\n- once: true handlers are auto-removed after the first successful invocation.\n- emit() invokes handlers in priority order and awaits all handlers in series (or optionally in parallel \u2014 the implementation choice should be documented). The spec recommends running handlers sequentially and awaiting each one so ordered side effects (e.g., write to storage then emit telemetry) behave deterministically.\n- Errors thrown by handlers must be caught and emitted to a global logger (integration point: DI LoggerService token) and should not block other handlers; emit should still resolve after all handlers run. The error collection should be returned via an optional return value in advanced usage, but at minimum errors are logged. For simplicity, emit resolves void but logs errors via the logger service.\n\nSingleton & helpers\n- export const eventBus = new EventBus();\n\n- Convenience functions:\n  export const subscribe = <K extends EventName>(event: K, handler: Handler<K>) => eventBus.on(event, handler);\n  export const unsubscribe = <K extends EventName>(event: K, handler: Handler<K>) => eventBus.off(event, handler);\n  export const publish = <K extends EventName>(event: K, payload: WsPayloads[K]) => eventBus.emit(event, payload);\n\nIntegration points and examples\n- MockWebSocket will forward incoming messages to eventBus.publish('appointment:created', { appointment });\n- services/queryClient or providers can subscribe to 'user:login' to warm caches.\n\nExample usage:\n- import { eventBus, subscribe, publish } from '@/core/events';\n- const unsub = subscribe('lab:result:available', async payload => { /* show UI toast */ });\n- publish('lab:result:available', { labResult });\n- unsub();\n\nNotes for implementer\n- Prefer small memory footprint and simple arrays for handlers; avoid heavy abstraction. Keep typed shape strict by depending on '@/core/contracts' WsPayloads type."
-      },
-      {
-        "file_path": "generated/src/core/hooks.ts",
-        "purpose": "Hook registry / extension point system. Enables modules to register interceptors or outcome processors for cross-cutting concerns (API request interceptors, login/logout hooks, routing hooks). Hooks are typed, asynchronous-capable and ordered by registration priority.",
-        "exports": [
-          "HookPoint",
-          "HookContext",
-          "HookHandler",
-          "HookRegistry",
-          "hooks (singleton)",
-          "registerHook",
-          "runHooks",
-          "unregisterHook"
-        ],
-        "content": "Goal\n- Provide a centralized, small-scale plugin system so features and providers can extend behavior without tight coupling.\n- Hooks are not React hooks; they are runtime extension points (register-run pattern). For framework-level extension, use DI + hooks together.\n\nHook points (must include these standard hook points):\n- 'beforeApiRequest' \u2014 runs before every API request; may mutate request options.\n- 'afterApiResponse' \u2014 runs after every API response; can inspect/transform/augment responses.\n- 'onLogin' \u2014 called when a user successfully logs in.\n- 'onLogout' \u2014 called when a user logs out or session is cleared.\n- 'onRouteChange' \u2014 called when the router transitions to a new route.\n\nHook types & context\n- export type HookPoint =\n    | 'beforeApiRequest'\n    | 'afterApiResponse'\n    | 'onLogin'\n    | 'onLogout'\n    | 'onRouteChange';\n\n- export interface HookContext {\n    // common fields available to all hooks\n    readonly now: string;               // ISO timestamp of invocation\n    service?: string;                   // optional origin (e.g., 'appointments.api')\n    requestId?: string;                 // correlation id for tracing\n    [key: string]: unknown;             // allow extension by specific hook runners\n  }\n\n- Generic handler signature:\n  export type HookHandler<T extends HookPoint, P = unknown> = (payload: P, ctx: HookContext) => unknown | Promise<unknown>;\n\nRegistry class API\n- class HookRegistry {\n    register<T extends HookPoint>(point: T, handler: HookHandler<T, any>, options?: { priority?: number }): { id: string; unregister: () => void };\n    run<T extends HookPoint, R = unknown>(point: T, payload?: any, ctx?: Partial<HookContext>): Promise<R[]>; // execute and return array of handler results\n    clear(point?: HookPoint): void; // remove all handlers for a point or all points when omitted\n  }\n\nSemantics & behavior\n- register() returns a unique id and an unregister function; handlers may be registered multiple times.\n- Handlers run in descending priority order (higher first). If equal priority, use registration order (FIFO among equals).\n- run() should support both sync and async handlers by awaiting each handler in series. The runner returns the collection of handler results. The runner should not throw on individual handler errors \u2014 instead catch and surface via DI Logger or by returning an errors array in results (implementation detail). For the spec, state that errors are caught and logged but run() still resolves with results / undefined for failing handlers.\n- beforeApiRequest hook's payload: { url: string; method: string; options: RequestInit } and the hook may return a patched options object; implementers should merge returned option objects. Note: mutation vs return -- the registry supports both patterns (mutate in place or return override). Document that return values are respected if present.\n- afterApiResponse hook's payload: { url: string; method: string; response: ApiResult<any> } and can be used for global error handling, metrics, or response normalization.\n- onLogin payload: { user: User; token?: AuthToken }\n- onLogout payload: { userId?: string }\n- onRouteChange payload: { from?: string; to: string; params?: Record<string,string> }\n\nUsage examples\n- Registering a hook:\n  import { registerHook } from '@/core/hooks';\n  const { unregister } = registerHook('onLogin', async (payload, ctx) => {\n    // warm caches, send telemetry\n  }, { priority: 10 });\n\n- Running hooks (example inside httpClient):\n  await runHooks('beforeApiRequest', { url, method, options }, { service: 'httpClient' });\n\nIntegration points\n- httpClient service must call runHooks('beforeApiRequest', ...) and runHooks('afterApiResponse', ...).\n- AuthProvider should run 'onLogin' and 'onLogout' hooks when user state changes.\n- Router wrapper should call runHooks('onRouteChange', { from, to }).\n\nImplementation notes\n- Keep registry minimal and performant. Handlers should be stored keyed by HookPoint with an array of { id, handler, priority }.\n- Provide helper exports: registerHook(point, handler, options) -> returns unregister function; runHooks(point, payload, ctx) -> Promise<results[]>; unregisterHook(id) -> boolean.\n- Provide a singleton instance: export const hooks = new HookRegistry();"
-      },
-      {
-        "file_path": "generated/src/core/di.ts",
-        "purpose": "Minimal, type-safe dependency injection container and token registry. Enables swapping real and mock implementations at app composition time (e.g., MockServerProvider registers mock services when shouldUseMockData is true).",
-        "exports": [
-          "Token",
-          "createToken",
-          "DIContainer",
-          "di (singleton container)",
-          "ServiceTokens (ApiClient, AuthService, StorageService, WebSocketService, LoggerService)",
-          "registerService, resolveService, clearServices"
-        ],
-        "content": "Goals\n- Offer a tiny, strongly-typed DI system sufficient for the app: register concrete implementations for abstract tokens and resolve them where needed.\n- Provide a simple API that is friendly to TypeScript and small enough to avoid a heavy DI framework.\n\nCore concepts\n- Token<T>: a unique identifier for a dependency which carries the TypeScript shape for that dependency.\n  - Implementation detail: Token<T> is a branded object or Symbol with an optional debug name for readability.\n\n- createToken<T>(name?: string): Token<T> \u2014 factory for tokens.\n\nService tokens to predefine (exported constants):\n- ApiClientToken: Token<{ request: (opts: { url: string; method?: string; body?: unknown; headers?: Record<string,string> }) => Promise<ApiResult<any>> }>\n- AuthServiceToken: Token<{ login: (email: string, password: string) => Promise<{ user: User; token?: AuthToken }>; logout: () => Promise<void>; getCurrentUser: () => User | null }>\n- StorageServiceToken: Token<{ get: (key: string) => Promise<string | null> | string | null; set: (key: string, value: string) => Promise<void> | void; remove: (key: string) => Promise<void> | void }>\n- WebSocketServiceToken: Token<{ connect: () => Promise<void>; disconnect: () => Promise<void>; send: (type: string, payload: any) => void; subscribe: (type: string, handler: (payload: any) => void) => () => void }>\n- LoggerServiceToken: Token<{ debug: (...args: any[]) => void; info: (...args: any[]) => void; warn: (...args: any[]) => void; error: (...args: any[]) => void }>\n\nContainer API\n- class DIContainer {\n    register<T>(token: Token<T>, implementation: T, options?: { replace?: boolean }): void;\n    resolve<T>(token: Token<T>): T; // throws if not registered\n    tryResolve<T>(token: Token<T>): T | undefined; // returns undefined if missing\n    unregister<T>(token: Token<T>): void;\n    clear(): void; // clears all registrations\n  }\n\nConvenience global container\n- export const di = new DIContainer();\n- export const registerService = di.register.bind(di);\n- export const resolveService = di.resolve.bind(di);\n- export const clearServices = di.clear.bind(di);\n\nType safety & best practices\n- Require the token's generic type to match implementation shape. Consumers always resolve with the token to get typed instances.\n- Encourage registration at app startup: MockServerProvider should register mock implementations before providers that depend on them initialize. QueryProvider registers queryClient into DI if needed.\n\nExample usage\n- Registering a service (in MockServerProvider or App bootstrap):\n  import { registerService, ApiClientToken } from '@/core/di';\n  registerService(ApiClientToken, { request: (opts) => fetchWrapper(opts) });\n\n- Resolving inside a service file:\n  import { resolveService, AuthServiceToken } from '@/core/di';\n  const auth = resolveService(AuthServiceToken);\n  await auth.login(email, password);\n\nIntegration points\n- MockServerProvider: when shouldUseMockData is true, register a mock AuthService and mock WebSocketService tokens here.\n- services/httpClient.ts should read ApiClientToken if available, otherwise create a default runtime implementation.\n- core/events.ts and core/hooks.ts may use LoggerServiceToken to log errors from handlers.\n\nImplementation notes\n- Container may store implementations in a Map<Token<any>, any> keyed by token.id (Symbol).\n- register should throw or optionally replace existing registration depending on options.replace; document the default behavior is to throw if duplicate registration occurs unless replace: true.\n- Prefer simplicity over advanced features like scoped or hierarchical containers; keep one global container for simplicity in this application."
-      },
-      {
-        "file_path": "generated/src/core/utils.ts",
-        "purpose": "A set of small, well-tested utility helpers shared across services and UI (date formatting, safe JSON helpers, simple id generator, storage helpers and basic validators).",
-        "exports": [
-          "formatDateISO",
-          "formatDateLocal",
-          "parseISODate",
-          "safeJsonParse",
-          "safeJsonStringify",
-          "sleep",
-          "generateId",
-          "isEmail",
-          "normalizePhone",
-          "localGet, localSet, localRemove",
-          "parseJwt, isJwtExpired"
-        ],
-        "content": "Goals\n- Provide deterministic small utilities that reduce duplication and guard against common runtime errors when parsing JSON, working with dates and localStorage.\n- All functions should be pure where possible and thoroughly described so they can be implemented deterministically by the generator.\n\nFunction contracts\n1) formatDateISO(date: string | Date): string\n- Accepts a Date instance or an ISO date string; returns a canonical ISO 8601 string (UTC), e.g., '2025-08-26T13:45:30Z'.\n\n2) formatDateLocal(date: string | Date, options?: { locale?: string; dateStyle?: 'short'|'medium'|'long'; timeStyle?: 'short'|'medium'|'long' }): string\n- Formats a date to a readable localized string using Intl.DateTimeFormat. Defaults: locale = navigator.language || 'en-US', dateStyle = 'medium', timeStyle = 'short'.\n\n3) parseISODate(input?: string | null): Date | null\n- Return a Date object for valid ISO strings, otherwise null.\n\n4) safeJsonParse<T = unknown>(input: string | null | undefined, fallback?: T): T | undefined\n- Try/catch JSON.parse and return fallback when parse fails. Never throw.\n\n5) safeJsonStringify(value: unknown): string | null\n- Try/catch JSON.stringify and return null if value can't be stringified.\n\n6) sleep(ms: number): Promise<void>\n- Promise-based delay helper used by mocks and tests.\n\n7) generateId(prefix?: string): string\n- Lightweight collision-resistant id generator suitable for mock data (prefix + timestamp + random). Not a UUID generator but good for dev mock objects.\n\n8) isEmail(value: string): boolean\n- Minimal RFC-like validation using a safe regex.\n\n9) normalizePhone(phone: string): string\n- Strip non-digit characters and optionally add country code heuristics; document behavior (returns digits only).\n\n10) localGet(key: string): string | null\n11) localSet(key: string, value: string): void\n12) localRemove(key: string): void\n- Thin wrappers around localStorage with try/catch guarding for environments where localStorage is unavailable or disabled. Returns null on failure.\n\n13) parseJwt(token: string): TokenPayload | null\n- Parse base64 payload and return TokenPayload (import TokenPayload type from '@/core/contracts'). Catch errors and return null on failure.\n\n14) isJwtExpired(token: string): boolean\n- Use parseJwt to determine expiry (exp claim) and return true if expired or token invalid.\n\nIntegration & examples\n- AuthProvider uses localGet/localSet to persist tokens in development if AppConfig.developmentMode.useLocalStoragePersistence is true.\n- MockAuth uses generateId and sleep to emulate network delays and persistent mock data storage via localSet/localGet.\n- httpClient uses safeJsonParse when parsing response bodies and formatDateISO on timestamps when creating payloads.\n\nImplementation notes\n- Keep functions small and synchronous where possible except sleep which returns a Promise.\n- Avoid dependencies; use built-in browser APIs (Intl, atob, btoa, localStorage) guarded with try/catch.\n\nExample usage:\n- import { formatDateLocal, safeJsonParse, localSet } from '@/core/utils';\n- localSet('auth.token', JSON.stringify(token));\n- const parsed = safeJsonParse<{ user: User }>(raw, { user: null });\n\nTesting considerations\n- Utilities should be pure and easy to unit test. Provide deterministic behavior for generateId by optionally supporting a seed in tests (implementation detail).\n\nSecurity notes\n- parseJwt must not validate signature; it's a convenience parser for client-side expiry checks only. Always treat parsed payloads as untrusted."
-      }
-    ],
-    "usage_guidelines": [
-      "Import domain types from '@/core/contracts' in services and features to stay consistent (e.g., import { Appointment, Prescription } from '@/core/contracts').",
-      "Read runtime behavior flags from '@/app/config' (isDevelopment, shouldUseMockData, featureFlags) instead of reading process.env directly.",
-      "Use the DI container in '@/core/di' to register concrete implementations once during app bootstrap (MockServerProvider registers mocks when shouldUseMockData is true). Resolve tokens where needed for typed dependencies.",
-      "Use the singleton eventBus from '@/core/events' for cross-cutting notifications and to surface mock websocket events to UI and feature logic.",
-      "Register and run extension hooks via '@/core/hooks' for API interceptors (beforeApiRequest / afterApiResponse) and lifecycle events (onLogin/onLogout/onRouteChange). httpClient and AuthProvider must call these hook points.",
-      "Use '@/core/utils' helpers for safe JSON parsing, date formatting and localStorage access to prevent scattered try/catch logic.",
-      "When adding new global events, hooks, or DI tokens, extend the typed maps in core/contracts.ts, core/events.ts and core/hooks.ts so consumers remain type-safe.",
-      "All foundational files must remain minimal and stable. Avoid adding feature-specific logic here \u2014 reference feature-level constants and logic from features/ implementations."
-    ]
+    "overview": "The Core Kernel defines the single source of truth for types, runtime configuration, cross-cutting services, events, hook extension points, and commonly used utilities. All application sections (providers, services, hooks, features and UI) import contracts, flags and service tokens from these files. The kernel is intentionally small, strongly typed, and framework-agnostic beyond providing React-friendly patterns (contexts, hooks)."
   },
   "sections": [
     {
+      "id": "abtest-provider",
+      "file_path": "src/providers/ABTestProvider.tsx",
+      "description": "Context that centralizes A/B test assignments and exposes evaluation hooks. Used by pricing and hero to toggle variants.",
+      "dependencies": [
+        "src/hooks/useABTest.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "ABTestProvider",
+        "useABTestContext"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "analytics-provider",
+      "file_path": "src/providers/AnalyticsProvider.tsx",
+      "description": "Context for collecting and dispatching analytics events. Subscribes to core/event bus and forwards events to analyticsService.",
+      "dependencies": [
+        "src/services/analyticsService.ts",
+        "src/core/events.ts",
+        "src/hooks/useAnalytics.ts"
+      ],
+      "exports": [
+        "AnalyticsProvider",
+        "useAnalytics"
+      ],
+      "priority": 1
+    },
+    {
       "id": "app-config",
-      "file_path": "generated/src/app/config.ts",
-      "description": "Materialized runtime configuration including dev flags, mock users, and endpoints. Consumer modules read this to determine dev mode behaviors.",
+      "file_path": "src/app/config.ts",
+      "description": "App-level materialized configuration: feature toggles, mock mode flags, third-party keys placeholder, route definitions, pricing constants and A/B test variants.",
       "dependencies": [
-        "generated/src/core/contracts.ts"
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "AppConfig constant"
+        "APP_CONFIG constant",
+        "ROUTES constant",
+        "DEV_MODE flags"
       ],
-      "priority": 1
+      "priority": 1,
+      "purpose": "Materialized application configuration built from the project JSON. Exposes a typed APP_CONFIG constant, computed runtime flags, route definitions, feature toggles, pricing constants, and (when enabled) mock user fixtures consumed by the Auth/Mock providers.",
+      "content": "Specification (app/config.ts)\n\n1) Top-level export: APP_CONFIG\n- export interface AppConfig {\n    readonly appType: 'landing' | 'spa' | 'dashboard' | string;\n    readonly framework: 'react' | 'vue' | 'angular' | string;\n    readonly targetFramework: string;\n    readonly stylingApproach: 'tailwind' | 'css-modules' | 'styled-components' | string;\n    readonly objective: string;\n    readonly features: readonly NothingFeature[]; // import from '@/core/contracts'\n    readonly targetAudience: string;\n    readonly outputDir: string;\n    readonly developmentMode: {\n      readonly enableMockData: boolean;\n      readonly mockAuthUsers: readonly { email: string; password: string; role: Role }[];\n      readonly mockApiEndpoints: readonly string[];\n      readonly disableWebsocketInDev: boolean;\n      readonly useLocalstoragePersistence: boolean;\n    };\n    readonly promptRequirements: readonly string[];\n    readonly evaluationCriteria: readonly string[];\n    readonly promptSections: readonly string[];\n  }\n\n- Export a const APP_CONFIG: readonly AppConfig = { ... } that materializes the large JSON from the prompt exactly. Use the Role enum from '@/core/contracts' when setting role values for mockAuthUsers.\n\n2) Computed runtime flags and derived exports\n- export const ENV: Environment = (process.env.NODE_ENV === 'production') ? Environment.PRODUCTION : ((process.env.NODE_ENV === 'test') ? Environment.TEST : Environment.DEVELOPMENT);\n- export const isDevelopment = ENV === Environment.DEVELOPMENT;\n- export const shouldUseMockData = isDevelopment && APP_CONFIG.developmentMode.enableMockData;\n- export const shouldDisableWebsocket = isDevelopment && APP_CONFIG.developmentMode.disableWebsocketInDev;\n- export const useLocalStoragePersistence = isDevelopment ? !!APP_CONFIG.developmentMode.useLocalstoragePersistence : true; // production default true\n\n3) Feature toggles\n- export const FEATURES_SET: ReadonlySet<NothingFeature> = new Set(APP_CONFIG.features);\n- export function isFeatureEnabled(feature: NothingFeature): boolean { return FEATURES_SET.has(feature); }\n\n4) Routes\n- Define a typed ROUTES constant used by Router provider and links.\n\n  export const ROUTES = Object.freeze({\n    home: '/',\n    pricing: '/pricing',\n    docs: '/docs',\n    status: '/status',\n    caseStudies: '/case-studies',\n    pressKit: '/press-kit',\n    apiDocs: '/api-docs',\n    checkout: '/checkout'\n  } as const);\n\n5) Pricing constants & A/B variants placeholder\n- Provide exported pricing constants used by pricingService default tiers (values are example defaults and may be replaced by mock server responses):\n  export const DEFAULT_PRICING: readonly PricingTier[] = [\n    { id: 'tier-basic', name: 'Basic Nothing', priceMonthlyCents: 0, priceYearlyCents: 0, features: ['0 features delivered', 'Access to nothing'] },\n    { id: 'tier-pro', name: 'Pro Nothing', priceMonthlyCents: 999, priceYearlyCents: 9999, features: ['Priority nothing', 'Pro nothing support'] },\n    { id: 'tier-enterprise', name: 'Enterprise Nothing', priceMonthlyCents: 4999, priceYearlyCents: 49999, features: ['Dedicated nothing', 'Enterprise nothing SLA'] }\n  ];\n\n- Provide a small AB test variants map for pricing hero (consumed by useABTest):\n  export const AB_TESTS = Object.freeze({ pricingHero: { variants: ['A', 'B'], seeded: true } });\n\n6) Mock data exports (only when development mode enables it)\n- If APP_CONFIG.developmentMode.enableMockData is true, export MOCK_USERS array typed as readonly User[] (using User and Role from '@/core/contracts'). The mock user objects must exactly mirror the 3 entries from development_mode.mock_auth_users in the prompt. For each mock user also include id, createdAt (ISO string), displayName computed from email and role where appropriate, and metadata { mock: true }.\n\n  export const MOCK_USERS: readonly User[] = shouldUseMockData ? [\n    { id: 'mock-1', email: 'nothing@void.com', displayName: 'Nothing User', role: Role.NOTHING_USER, avatarUrl: undefined, createdAt: '2024-01-01T00:00:00.000Z', metadata: { mock: true } },\n    { id: 'mock-2', email: 'premium@void.com', displayName: 'Premium Nothing', role: Role.PREMIUM, avatarUrl: undefined, createdAt: '2024-01-02T00:00:00.000Z', metadata: { mock: true } },\n    { id: 'mock-3', email: 'enterprise@void.com', displayName: 'Enterprise Nothing', role: Role.ENTERPRISE, avatarUrl: undefined, createdAt: '2024-01-03T00:00:00.000Z', metadata: { mock: true } }\n  ] : [];\n\n- Export MOCK_API_ENDPOINTS = APP_CONFIG.developmentMode.mockApiEndpoints (readonly string[])\n\n7) DEV_MODE object\n- export const DEV_MODE = Object.freeze({ isDevelopment, shouldUseMockData, disableWebsocketInDev: APP_CONFIG.developmentMode.disableWebsocketInDev, mockApiEndpoints: APP_CONFIG.developmentMode.mockApiEndpoints.slice(), mockUsers: MOCK_USERS });\n\n8) Example usage patterns\n- import { APP_CONFIG, isFeatureEnabled, MOCK_USERS, ROUTES } from '@/app/config';\n- if (isFeatureEnabled('interactive void simulator')) { mount simulator }\n- AuthProvider should use MOCK_USERS when shouldUseMockData === true\n\n9) Integration notes\n- This file depends on types (NothingFeature, Role, PricingTier, User, Environment) from '@/core/contracts'.\n- The mock servers and providers should read MOCK_API_ENDPOINTS and DEV_MODE flags to conditionally start interception.\n\n10) Stability & mutability\n- APP_CONFIG is exported as readonly; runtime computed flags are stable values derived from process.env and APP_CONFIG. Tests may override APP_CONFIG for integration tests but production deployments should be driven by environment variables or build-time injection."
     },
     {
-      "id": "core-contracts",
-      "file_path": "generated/src/core/contracts.ts",
-      "description": "Shared domain types, API request/response contracts, enums and common interfaces used across services, features and components.",
-      "dependencies": [],
-      "exports": [
-        "Types: User, Role, Token, Appointment, MedicalRecord, Prescription, LabResult, InsuranceClaim, Medication, Reminder",
-        "API request/response interfaces"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "core-di",
-      "file_path": "generated/src/core/di.ts",
-      "description": "Minimal DI container enabling the app to swap implementations (mock vs real) for services like websocket, api clients and storage.",
+      "id": "app-root",
+      "file_path": "src/App.tsx",
+      "description": "Top-level React component that composes Router, Layout, global providers, and common UI (CookieBanner, Toast). Handles global error boundary and Suspense fallbacks.",
       "dependencies": [
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "registerService, resolveService, clearServices"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "core-events",
-      "file_path": "generated/src/core/events.ts",
-      "description": "Lightweight event bus for cross-cutting events (notifications, analytics events, mock websocket forwarding).",
-      "dependencies": [
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "EventBus instance",
-        "subscribe, publish, unsubscribe helpers"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "core-hooks",
-      "file_path": "generated/src/core/hooks.ts",
-      "description": "Registry for extension hooks and helper utilities that other modules can register into (for DI or plugin-like extension points).",
-      "dependencies": [],
-      "exports": [
-        "registerHook, getHook"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "core-utils",
-      "file_path": "generated/src/core/utils.ts",
-      "description": "Common utilities (formatDate, safeParseJSON, sleep, auth token helpers) used throughout the app.",
-      "dependencies": [
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "formatDate, safeJsonParse, sleep, generateId"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "hooks-use-localstorage",
-      "file_path": "generated/src/hooks/useLocalStorage.ts",
-      "description": "Reusable typed localStorage hook for state persistence (used for auth persistence and preferences in dev).",
-      "dependencies": [
-        "generated/src/core/utils.ts"
-      ],
-      "exports": [
-        "useLocalStorage hook"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "hooks-use-require-auth",
-      "file_path": "generated/src/hooks/useRequireAuth.ts",
-      "description": "Hook used by route guards and features to ensure a user is authenticated/authorized; redirects to login when necessary.",
-      "dependencies": [
-        "generated/src/providers/AuthProvider.tsx",
-        "generated/src/routes/index.tsx"
-      ],
-      "exports": [
-        "useRequireAuth hook"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "i18n-en",
-      "file_path": "generated/src/i18n/en.json",
-      "description": "English translation resource (core app strings).",
-      "dependencies": [],
-      "exports": [
-        "default JSON translations"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "i18n-init",
-      "file_path": "generated/src/i18n/i18n.ts",
-      "description": "Initializes i18next with resources and fallback language. Exposes configuration used by I18nProvider.",
-      "dependencies": [
-        "generated/src/i18n/en.json",
-        "generated/src/i18n/ko.json",
-        "generated/src/app/config.ts"
-      ],
-      "exports": [
-        "i18n instance"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "i18n-ko",
-      "file_path": "generated/src/i18n/ko.json",
-      "description": "Korean translation resource (core app strings).",
-      "dependencies": [],
-      "exports": [
-        "default JSON translations (Korean)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "index-entry",
-      "file_path": "generated/src/index.tsx",
-      "description": "React application entry. Hydrates the App root into the DOM and mounts Providers.",
-      "dependencies": [
-        "generated/src/App.tsx",
-        "generated/src/app/config.ts"
-      ],
-      "exports": [
-        "default bootstrap (no export, file executed during bundling)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-data-appointments",
-      "file_path": "generated/src/mocks/data/appointments.ts",
-      "description": "Mock appointment dataset and helper functions to filter/paginate appointments for the mock server.",
-      "dependencies": [
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "appointments dataset, findAppointmentById, queryAppointments"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-data-insurance",
-      "file_path": "generated/src/mocks/data/insurance.ts",
-      "description": "Mock insurance claim dataset and helpers used by the mock server.",
-      "dependencies": [
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "insuranceClaims dataset, queryInsuranceClaims"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-data-lab-results",
-      "file_path": "generated/src/mocks/data/labResults.ts",
-      "description": "Mock lab results dataset and query helpers.",
-      "dependencies": [
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "labResults dataset, queryLabResults"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-data-medical-records",
-      "file_path": "generated/src/mocks/data/medicalRecords.ts",
-      "description": "Mock medical records dataset and helpers for the mock server.",
-      "dependencies": [
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "medicalRecords dataset, getRecordByPatient"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-data-medications",
-      "file_path": "generated/src/mocks/data/medications.ts",
-      "description": "Mock medication dataset used for medication management and reminders.",
-      "dependencies": [
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "medications dataset"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-data-prescriptions",
-      "file_path": "generated/src/mocks/data/prescriptions.ts",
-      "description": "Mock prescriptions data for dev and helper queries.",
-      "dependencies": [
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "prescriptions dataset, queryPrescriptions"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-data-reminders",
-      "file_path": "generated/src/mocks/data/reminders.ts",
-      "description": "Mock medication reminders dataset and helper functions for generating scheduled reminders.",
-      "dependencies": [
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "reminders dataset, scheduleReminder"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-index",
-      "file_path": "generated/src/mocks/index.ts",
-      "description": "Mock server entrypoint wiring mock endpoints for all API routes (/api/appointments, /api/medical-records, etc.) and mocking auth flows. Provides handlers used by MockServerProvider.",
-      "dependencies": [
-        "generated/src/mocks/data/appointments.ts",
-        "generated/src/mocks/data/medicalRecords.ts",
-        "generated/src/mocks/data/prescriptions.ts",
-        "generated/src/mocks/data/labResults.ts",
-        "generated/src/mocks/data/insurance.ts",
-        "generated/src/mocks/data/medications.ts",
-        "generated/src/mocks/data/reminders.ts",
-        "generated/src/mocks/mockAuth.ts"
-      ],
-      "exports": [
-        "startMockServer, stopMockServer"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-mock-auth",
-      "file_path": "generated/src/mocks/mockAuth.ts",
-      "description": "Mock authentication module: in-memory users, login/logout functions, token generation, and persistence to localStorage in dev. Exposes endpoints compatible with httpClient.",
-      "dependencies": [
-        "generated/src/app/config.ts",
-        "generated/src/core/contracts.ts",
-        "generated/src/core/utils.ts"
-      ],
-      "exports": [
-        "mockLogin, mockLogout, getMockUserFromToken"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-mock-websocket",
-      "file_path": "generated/src/mocks/mockWebSocket.ts",
-      "description": "Mock websocket implementation that emits simulated real-time events (appointment updates, lab result notifications) used in development mode.",
-      "dependencies": [
-        "generated/src/core/events.ts",
-        "generated/src/app/config.ts"
-      ],
-      "exports": [
-        "createMockWebSocket"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-auth",
-      "file_path": "generated/src/providers/AuthProvider.tsx",
-      "description": "Authentication context provider that handles login/logout, token management, role information, protected-route helpers and persistence (localStorage in dev). Offers mock auth in development using mockAuth.",
-      "dependencies": [
-        "generated/src/core/contracts.ts",
-        "generated/src/core/utils.ts",
-        "generated/src/core/di.ts",
-        "generated/src/mocks/mockAuth.ts",
-        "generated/src/app/config.ts",
-        "generated/src/hooks/useLocalStorage.ts"
-      ],
-      "exports": [
-        "AuthProvider component",
-        "useAuth hook (context consumer)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-i18n",
-      "file_path": "generated/src/providers/I18nProvider.tsx",
-      "description": "i18n wrapper using i18next. Loads translations and exposes language switcher. Ensures Korean support and lazy namespace loading.",
-      "dependencies": [
-        "generated/src/i18n/i18n.ts",
-        "generated/src/i18n/en.json",
-        "generated/src/i18n/ko.json"
-      ],
-      "exports": [
-        "I18nProvider component",
-        "useTranslation hook proxy"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-mock-server",
-      "file_path": "generated/src/providers/MockServerProvider.tsx",
-      "description": "Development-only provider that starts/stops the mock server and mock websocket when dev mode is enabled in app config. Injects mocks into DI container.",
-      "dependencies": [
-        "generated/src/mocks/index.ts",
-        "generated/src/app/config.ts",
-        "generated/src/core/di.ts",
-        "generated/src/mocks/mockWebSocket.ts"
-      ],
-      "exports": [
-        "MockServerProvider component"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-query",
-      "file_path": "generated/src/providers/QueryProvider.tsx",
-      "description": "React Query provider that configures the centralized queryClient and React Query Devtools in dev. Exposes queryClient to DI.",
-      "dependencies": [
-        "generated/src/services/queryClient.ts",
-        "generated/src/core/di.ts",
-        "generated/src/app/config.ts"
-      ],
-      "exports": [
-        "QueryProvider component"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-theme",
-      "file_path": "generated/src/providers/ThemeProvider.tsx",
-      "description": "Theme provider to control dark mode class toggling for Tailwind. Persists preference to localStorage in dev.",
-      "dependencies": [
-        "generated/src/hooks/useLocalStorage.ts"
-      ],
-      "exports": [
-        "ThemeProvider component",
-        "useTheme hook"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "root-app",
-      "file_path": "generated/src/App.tsx",
-      "description": "Root component that wires up global Providers (Query, Auth, I18n, Theme, MockServer) and renders the routes. Wraps app in ErrorBoundary and Suspense fallback.",
-      "dependencies": [
-        "generated/src/providers/QueryProvider.tsx",
-        "generated/src/providers/AuthProvider.tsx",
-        "generated/src/providers/I18nProvider.tsx",
-        "generated/src/providers/ThemeProvider.tsx",
-        "generated/src/providers/MockServerProvider.tsx",
-        "generated/src/routes/index.tsx",
-        "generated/src/shared/components/ui/ErrorBoundary.tsx",
-        "generated/src/shared/components/ui/Loading.tsx"
+        "src/providers/Router.tsx",
+        "src/shared/layout/Layout.tsx",
+        "src/shared/components/molecules/CookieBanner.tsx",
+        "src/providers/ModalProvider.tsx",
+        "src/providers/ToastProvider.tsx",
+        "src/core/events.ts"
       ],
       "exports": [
         "App component (default)"
@@ -504,480 +94,559 @@
       "priority": 1
     },
     {
-      "id": "routes-index",
-      "file_path": "generated/src/routes/index.tsx",
-      "description": "Declarative routing using React Router. Defines public and protected routes, lazy loads pages and maps paths to page components.",
+      "id": "auth-provider",
+      "file_path": "src/providers/AuthProvider.tsx",
+      "description": "Auth context and mock authentication in development. Uses dev-mode mock users from app config to support login flows for the demo. Exposes useAuth hook.",
       "dependencies": [
-        "generated/src/pages/DashboardPage.tsx",
-        "generated/src/pages/AppointmentsPage.tsx",
-        "generated/src/pages/AppointmentDetailPage.tsx",
-        "generated/src/pages/MedicalRecordsPage.tsx",
-        "generated/src/pages/PrescriptionsPage.tsx",
-        "generated/src/pages/TelemedicinePage.tsx",
-        "generated/src/pages/LabResultsPage.tsx",
-        "generated/src/pages/InsurancePage.tsx",
-        "generated/src/pages/MedicationsPage.tsx",
-        "generated/src/pages/RemindersPage.tsx"
+        "src/hooks/useMockAuth.ts",
+        "src/app/config.ts",
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "AppRoutes component"
+        "AuthProvider",
+        "useAuth hook"
       ],
       "priority": 1
     },
     {
-      "id": "services-api-appointments",
-      "file_path": "generated/src/services/api/appointments.api.ts",
-      "description": "Domain API client for appointments: uses httpClient to fetch, create, update and cancel appointments. Provides typed functions for React Query.",
+      "id": "chat-provider",
+      "file_path": "src/providers/ChatProvider.tsx",
+      "description": "Context for live chat widget; in dev uses Mock/Stub backend; exposes chat APIs for the SupportChatBot and ChatWidget components.",
       "dependencies": [
-        "generated/src/services/httpClient.ts",
-        "generated/src/core/contracts.ts"
+        "src/services/supportService.ts",
+        "src/providers/MockApiProvider.tsx",
+        "src/features/support-chat/SupportChatBot.tsx"
       ],
       "exports": [
-        "fetchAppointments, fetchAppointmentById, createAppointment, updateAppointment, cancelAppointment"
+        "ChatProvider",
+        "useChat"
       ],
       "priority": 1
     },
     {
-      "id": "services-api-insurance",
-      "file_path": "generated/src/services/api/insurance.api.ts",
-      "description": "API client for insurance claims and tracking.",
-      "dependencies": [
-        "generated/src/services/httpClient.ts",
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "fetchInsuranceClaims, fetchClaimById"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-api-lab-results",
-      "file_path": "generated/src/services/api/labResults.api.ts",
-      "description": "API client for lab results querying and metadata.",
-      "dependencies": [
-        "generated/src/services/httpClient.ts",
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "fetchLabResults, fetchLabResultById"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-api-medical-records",
-      "file_path": "generated/src/services/api/medicalRecords.api.ts",
-      "description": "API client for medical records retrieval and attachments.",
-      "dependencies": [
-        "generated/src/services/httpClient.ts",
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "fetchMedicalRecords, fetchRecordById"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-api-medications",
-      "file_path": "generated/src/services/api/medications.api.ts",
-      "description": "API client for medication lists, details and refill reminders.",
-      "dependencies": [
-        "generated/src/services/httpClient.ts",
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "fetchMedications, getMedicationById"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-api-prescriptions",
-      "file_path": "generated/src/services/api/prescriptions.api.ts",
-      "description": "API client for prescription listing, refill requests and prescription actions.",
-      "dependencies": [
-        "generated/src/services/httpClient.ts",
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "fetchPrescriptions, requestRefill, cancelPrescription"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-api-reminders",
-      "file_path": "generated/src/services/api/reminders.api.ts",
-      "description": "API client for scheduling, fetching and cancelling medication reminders.",
-      "dependencies": [
-        "generated/src/services/httpClient.ts",
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "fetchReminders, createReminder, cancelReminder"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-http-client",
-      "file_path": "generated/src/services/httpClient.ts",
-      "description": "Fetch wrapper that handles JSON parsing, authorization header injection, unified error handling and fallback behaviors when backend is unavailable. Reads token from AuthProvider or mock auth in dev via DI.",
-      "dependencies": [
-        "generated/src/core/contracts.ts",
-        "generated/src/core/di.ts",
-        "generated/src/app/config.ts"
-      ],
-      "exports": [
-        "httpClient function (get/post/put/delete helpers)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-query-client",
-      "file_path": "generated/src/services/queryClient.ts",
-      "description": "Instantiates and configures the React Query client (default options, retry logic, stale times, error handling hooks).",
-      "dependencies": [
-        "generated/src/core/events.ts"
-      ],
-      "exports": [
-        "queryClient instance",
-        "defaultQueryOptions"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-websocket",
-      "file_path": "generated/src/services/websocket.ts",
-      "description": "WebSocket abstraction that can be swapped to a mock implementation via DI. Exposes connect, disconnect, send and subscribe methods.",
-      "dependencies": [
-        "generated/src/core/di.ts",
-        "generated/src/app/config.ts",
-        "generated/src/core/events.ts"
-      ],
-      "exports": [
-        "WebSocketClient factory"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "shared-ui-error-boundary",
-      "file_path": "generated/src/shared/components/ui/ErrorBoundary.tsx",
-      "description": "Global ErrorBoundary component catching rendering errors. Provides retry/fallback UI and integrates with events for reporting.",
-      "dependencies": [
-        "generated/src/core/events.ts"
-      ],
-      "exports": [
-        "ErrorBoundary component"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "shared-ui-loading",
-      "file_path": "generated/src/shared/components/ui/Loading.tsx",
-      "description": "Accessible loading indicator used as Suspense fallback across the app.",
+      "id": "core-contracts",
+      "file_path": "src/core/contracts.ts",
+      "description": "Domain types, TS interfaces, API response contracts, and shared enums used across the app (PricingTier, Testimonial, User, NewsletterPayload, AnalyticsEvent, NothingFeature, etc.).",
       "dependencies": [],
       "exports": [
-        "Loading component"
+        "Types: User, PricingTier, Testimonial, NewsletterPayload, AnalyticsEvent, VoidSimulationState, ApiResponse<T>"
+      ],
+      "priority": 1,
+      "purpose": "Domain types, TypeScript interfaces, API response contracts, shared enums and union types used across the app. Although the product is an 'Ultra-Premium Landing Page for Absolutely Nothing\u2122', the contracts include a small healthcare domain (Appointment, MedicalRecord, Prescription, LabResult) because cross-team systems may reuse these contracts. The file also exposes request/response and UI helper types.",
+      "content": "Specification (core/contracts.ts)\n\n1) Purpose & Conventions\n- This file contains stable type contracts consumed throughout the application. Use absolute imports: import { User } from '@/core/contracts'. Every interface is fully specified and should not contain optional 'TODO' fields. Use readonly where appropriate to denote immutability for DTOs returned from services.\n\n2) Enums & Literal Unions\n- export enum Role { NOTHING_USER = 'nothing_user', PREMIUM = 'premium_nothing', ENTERPRISE = 'enterprise_nothing', PATIENT = 'patient', DOCTOR = 'doctor', NURSE = 'nurse' }\n- export type NothingFeature =\n    | 'epic hero section with parallax void animation'\n    | 'testimonials from satisfied users of nothing'\n    | 'pricing tiers for different levels of nothing (Basic Nothing, Pro Nothing, Enterprise Nothing)'\n    | 'animated counter showing \\\"0 features delivered\\\"'\n    | 'FAQ section answering questions about nothing'\n    | 'team section showcasing experts in nothing'\n    | 'interactive void simulator'\n    | 'newsletter signup for updates about nothing'\n    | 'live chat support that provides no help'\n    | 'product comparison chart (Nothing vs Something vs Everything)'\n    | 'case studies of successful nothing implementations'\n    | 'roadmap timeline showing future nothing releases'\n    | '3D rotating nothing showcase'\n    | 'customer reviews rating nothing 5 stars'\n    | 'money-back guarantee for unsatisfied nothing users'\n    | 'affiliate program for sharing nothing'\n    | 'press kit with nothing logos and assets'\n    | 'API documentation for integrating nothing'\n    | 'status page showing 100% nothing uptime'\n    | 'cookie banner warning about nothing cookies';\n- export enum Environment { PRODUCTION = 'production', DEVELOPMENT = 'development', TEST = 'test' }\n\n3) Core user & identity models\n- export interface Address { readonly line1: string; readonly line2?: string; readonly city: string; readonly state?: string; readonly postalCode?: string; readonly country: string; }\n\n- export interface User { readonly id: string; readonly email: string; readonly displayName?: string; readonly role: Role; readonly avatarUrl?: string; readonly createdAt: string; readonly metadata?: Record<string, unknown>; }\n\n- export interface Patient extends User { readonly role: Role.PATIENT; readonly dateOfBirth?: string; readonly medicalRecordId?: string; readonly emergencyContact?: { name: string; phone?: string }; }\n\n- export interface Doctor extends User { readonly role: Role.DOCTOR; readonly specialty: string[]; readonly licenseNumber?: string; readonly clinicAddress?: Address; }\n\n- export interface Nurse extends User { readonly role: Role.NURSE; readonly department?: string; readonly shift?: 'day' | 'night' | 'swing'; }\n\n4) Healthcare domain models (complete, self-contained)\n- export type LabResultType = 'blood' | 'imaging' | 'microbiology' | 'pathology' | 'other';\n\n- export interface LabResult { readonly id: string; readonly patientId: string; readonly type: LabResultType; readonly name: string; readonly value: string; readonly unit?: string; readonly referenceRange?: string; readonly recordedAt: string; readonly comments?: string; }\n\n- export interface Prescription { readonly id: string; readonly patientId: string; readonly prescriberId: string; readonly medication: string; readonly dosage: string; readonly frequency: string; readonly directions?: string; readonly issuedAt: string; readonly expiresAt?: string; }\n\n- export interface MedicalRecord { readonly id: string; readonly patientId: string; readonly diagnoses: string[]; readonly allergies: string[]; readonly medications: readonly Prescription[]; readonly labResults: readonly LabResult[]; readonly notes?: string; readonly updatedAt: string; }\n\n- export interface Appointment { readonly id: string; readonly patientId: string; readonly practitionerId?: string; readonly practitionerType?: 'doctor' | 'nurse' | 'other'; readonly start: string; readonly end?: string; readonly location?: Address | string; readonly status: 'scheduled' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'; readonly reason?: string; }\n\n5) Pricing, Testimonials, Case studies and product models\n- export interface PricingTier { readonly id: string; readonly name: 'Basic Nothing' | 'Pro Nothing' | 'Enterprise Nothing' | string; readonly priceMonthlyCents: number; readonly priceYearlyCents?: number; readonly features: readonly string[]; readonly sku?: string; readonly description?: string; }\n\n- export interface Testimonial { readonly id: string; readonly authorName: string; readonly authorTitle?: string; readonly content: string; readonly rating: 1 | 2 | 3 | 4 | 5; readonly createdAt: string; readonly avatarUrl?: string; }\n\n- export interface CaseStudy { readonly id: string; readonly title: string; readonly summary: string; readonly contentHtml?: string; readonly publishedAt?: string; readonly authors?: string[]; readonly heroImageUrl?: string; readonly metrics?: Record<string, number>; }\n\n6) Newsletter / forms / UI DTOs\n- export interface NewsletterPayload { readonly email: string; readonly name?: string; readonly source?: string; readonly consent?: boolean; }\n\n- export interface ApiError { readonly code: string; readonly message: string; readonly details?: Record<string, unknown>; }\n\n- export interface ApiResult<T> { readonly success: boolean; readonly data?: T; readonly error?: ApiError; }\n\n- export interface PaginatedResponse<T> { readonly items: T[]; readonly page: number; readonly pageSize: number; readonly totalItems: number; readonly totalPages: number; }\n\n7) WebSocket / real-time event typing\n- export type WebSocketEventType = 'chat.message' | 'chat.presence' | 'analytics.event' | 'void.animation.command' | 'status.update' | 'heartbeat';\n\n- export interface WebSocketPayload<T = unknown> { readonly event: WebSocketEventType; readonly tenant?: string; readonly timestamp: string; readonly data: T; }\n\n- export interface WebSocketEvent<T = unknown> { readonly id: string; readonly payload: WebSocketPayload<T>; readonly ack?: boolean; }\n\n8) Analytics & event contracts\n- export type AnalyticsEvent = 'page.view' | 'cta.click' | 'newsletter.signup' | 'checkout.start' | 'checkout.complete' | 'testimonial.view' | 'abtest.assign' | 'error.report' | 'void.interaction';\n\n- export interface AnalyticsPayload { readonly event: AnalyticsEvent; readonly userId?: string; readonly sessionId?: string; readonly properties?: Record<string, unknown>; readonly timestamp: string; }\n\n9) UI helper types\n- export type LoadingState = 'idle' | 'loading' | 'success' | 'error';\n\n- export interface FormState<T = Record<string, any>> { readonly values: T; readonly touched: Partial<Record<keyof T, boolean>>; readonly errors: Partial<Record<keyof T, string>>; readonly isSubmitting: boolean; }\n\n- export interface PaginationParams { readonly page?: number; readonly pageSize?: number; readonly sortBy?: string; readonly sortDir?: 'asc' | 'desc'; }\n\n- export type SortDirection = 'asc' | 'desc';\n\n10) Void simulator state\n- export interface VoidSimulationState { readonly emptiness: number; readonly blackness: number; readonly silence: number; readonly particleCount: number; readonly recursionDepth: number; readonly lastUpdatedAt?: string; }\n\n11) Examples & Integration notes\n- Example import: import { User, ApiResult, PricingTier } from '@/core/contracts';\n- Example API usage signature: async function fetchTiers(): Promise<ApiResult<PricingTier[]>>;\n- The NothingFeature union is used by app/config to compute feature toggles and by UI components for gating.\n\n12) Stability guarantee\n- Avoid changing these contracts without a major version bump. When extending, prefer adding new interfaces instead of mutating existing ones.\n"
+    },
+    {
+      "id": "core-di",
+      "file_path": "src/core/di.ts",
+      "description": "Simple dependency injection container for registering and resolving services (used by providers and services to decouple implementations).",
+      "dependencies": [
+        "src/core/events.ts"
+      ],
+      "exports": [
+        "Container class",
+        "bind / resolve helpers",
+        "defaultContainer instance"
+      ],
+      "priority": 1,
+      "purpose": "A small, type-safe dependency injection container used to register and resolve cross-cutting services (ApiClient, AuthService, StorageService, WebSocketService, AnalyticsService, VoidAnimationService, PricingService). It supports singleton and transient lifetimes and typed tokens for compile-time safety.",
+      "content": "Specification (core/di.ts)\n\n1) Goals & design\n- Provide a lightweight DI container that uses Symbols as opaque tokens. The container supports typed registration and resolution so callers get correct TypeScript types. Avoid complex features: no circular resolution protection beyond basic checks, no auto-mocking. Providers and app bootstrap register concrete implementations into the defaultContainer.\n\n2) Token type & helper\n- export type Token<T> = { readonly key: symbol; readonly __type?: T }; // opaque\n- export function createToken<T>(description: string): Token<T> { return { key: Symbol(description) } as Token<T>; }\n\n3) Predefined service tokens\n- export const API_CLIENT_TOKEN = createToken<ApiClient>('API_CLIENT');\n- export const AUTH_SERVICE_TOKEN = createToken<AuthService>('AUTH_SERVICE');\n- export const STORAGE_SERVICE_TOKEN = createToken<StorageService>('STORAGE_SERVICE');\n- export const WEBSOCKET_SERVICE_TOKEN = createToken<WebSocketService>('WEBSOCKET_SERVICE');\n- export const ANALYTICS_SERVICE_TOKEN = createToken<AnalyticsService>('ANALYTICS_SERVICE');\n- export const VOID_ANIMATION_SERVICE_TOKEN = createToken<VoidAnimationService>('VOID_ANIMATION_SERVICE');\n- export const PRICING_SERVICE_TOKEN = createToken<PricingService>('PRICING_SERVICE');\n\n// Note: ApiClient/AuthService/StorageService etc. are interface shapes described below - they're not runtime classes. Define interfaces in this file to ensure type safety across modules.\n\n4) Service interface shapes (minimal, concrete signatures)\n- export interface ApiClient { get<T>(url: string, opts?: Record<string, unknown>): Promise<ApiResult<T>>; post<T>(url: string, body?: unknown, opts?: Record<string, unknown>): Promise<ApiResult<T>>; put<T>(url: string, body?: unknown, opts?: Record<string, unknown>): Promise<ApiResult<T>>; del<T>(url: string, opts?: Record<string, unknown>): Promise<ApiResult<T>>; }\n\n- export interface AuthService { getCurrentUser(): Promise<User | null>; login(email: string, password: string): Promise<ApiResult<User>>; logout(): Promise<ApiResult<null>>; onAuthChange(handler: (user: User | null) => void): () => void; }\n\n- export interface StorageService { get<T>(key: string): Promise<T | null>; set<T>(key: string, value: T): Promise<void>; remove(key: string): Promise<void>; }\n\n- export interface WebSocketService { connect(url: string): Promise<void>; disconnect(): Promise<void>; send<T>(payload: WebSocketPayload<T>): Promise<void>; on<T>(event: WebSocketEventType, handler: (payload: WebSocketPayload<T>) => void): () => void; isConnected(): boolean; }\n\n- export interface AnalyticsService { sendEvent(event: AnalyticsPayload): Promise<void>; flush(): Promise<void>; }\n\n- export interface VoidAnimationService { start(sceneId?: string): Promise<void>; stop(sceneId?: string): Promise<void>; reset(sceneId?: string): Promise<void>; tweak(params: Record<string, unknown>): Promise<void>; onReady(handler: (ctx: VoidAnimationContext) => void): () => void; }\n\n- export interface PricingService { getTiers(): Promise<PricingTier[]>; calculateSavings(tierId: string): number; }\n\n5) Container API\n- class Container {\n    registerSingleton<T>(token: Token<T>, instance: T): void;\n    registerFactory<T>(token: Token<T>, factory: (c: Container) => T): void; // factory invoked once lazily\n    resolve<T>(token: Token<T>): T; // throws if not registered\n    tryResolve<T>(token: Token<T>): T | undefined; // returns undefined instead of throwing\n    has(token: Token<any>): boolean;\n    clear(): void; // remove all registrations\n  }\n\n- Behavior: registerSingleton stores instance; registerFactory stores factory and invokes it on first resolve; resolve caches factory result. register* throws if token already registered.\n\n6) defaultContainer singleton\n- export const defaultContainer = new Container();\n- Bootstrap Example: defaultContainer.registerSingleton(API_CLIENT_TOKEN, apiClientImplementation);\n\n7) Example usage\n- Registering services in main bootstrap:\n  import { defaultContainer, API_CLIENT_TOKEN, AUTH_SERVICE_TOKEN } from '@/core/di';\n  defaultContainer.registerSingleton(API_CLIENT_TOKEN, apiClientInstance);\n  defaultContainer.registerFactory(AUTH_SERVICE_TOKEN, (c) => new AuthServiceImpl(c.resolve(API_CLIENT_TOKEN)) );\n\n- Resolving in a feature or provider:\n  const auth = defaultContainer.resolve(AuthServiceToken) // typed AuthService\n\n8) Integration notes\n- core/events.ts-based modules can be registered with DI tokens (e.g., analyticsService can be resolved and will subscribe to globalEventBus during its constructor or factory invocation).\n- This DI is intentionally minimal to remain framework-agnostic. React providers may also wrap container.resolve to expose service instances via Contexts.\n\n9) Concurrency / safety\n- Container does not attempt to manage asynchronous resolution or circular dependency graphs. For complex setups, register envelopes or factories that accept the container to lazily resolve dependencies.\n"
+    },
+    {
+      "id": "core-events",
+      "file_path": "src/core/events.ts",
+      "description": "Lightweight event bus used for decoupled analytics/events (subscribe, publish), used by AnalyticsProvider and components emitting events.",
+      "dependencies": [],
+      "exports": [
+        "EventBus class",
+        "createEventBus helper",
+        "globalEventBus instance"
+      ],
+      "priority": 1,
+      "purpose": "A lightweight, strongly-typed EventBus used for decoupled communication across providers, services and components. AnalyticsProvider, features (void animation), and support/chat systems should use the EventBus instead of direct imports to reduce coupling.",
+      "content": "Specification (core/events.ts)\n\n1) Overview & goals\n- Provide a typed publisher/subscriber pattern. Support synchronous handlers (void return) and asynchronous handlers (Promise<void>), allow wildcards if necessary and safe one-time subscriptions.\n- Consumers use a single globalEventBus by default, but createEventBus allows feature-local buses.\n\n2) EventMap - typed map of known event names to their payloads\n- export interface EventMap {\n    'auth.logged_in': { user: User; source?: string; timestamp: string };\n    'auth.logged_out': { userId?: string; timestamp: string };\n    'analytics.event': AnalyticsPayload; // from '@/core/contracts'\n    'newsletter.signup': { payload: NewsletterPayload; result?: ApiResult<null>; timestamp: string };\n    'support.message.sent': { conversationId: string; message: string; senderId?: string; timestamp: string };\n    'support.message.received': { conversationId: string; message: string; senderId?: string; timestamp: string };\n    'pricing.tiers.updated': { tiers: PricingTier[]; source?: string; timestamp: string };\n    'void.animation.command': { command: 'start' | 'stop' | 'reset' | 'tweak'; params?: Record<string, unknown>; timestamp: string };\n    'route.change': { path: string; from?: string; to: string; params?: Record<string, string | number> };\n    'error.report': { error: ApiError | Error; context?: Record<string, unknown>; timestamp: string };\n    /* Add more events here as needed */\n  }\n\n3) Event handler types\n- export type EventHandler<E> = (payload: E) => void | Promise<void>;\n- Support: on(eventName, handler, options?: { once?: boolean; scope?: string })\n- off(eventName, handler?) to remove a specific handler; if handler omitted, remove all handlers for the event (use carefully)\n\n4) EventBus class API\n- class EventBus<EM extends Record<string, any> = EventMap> {\n    // register a handler\n    on<K extends keyof EM>(event: K, handler: EventHandler<EM[K]>, options?: { once?: boolean; priority?: number }): () => void; // returns unsubscribe\n\n    // register a one-time handler\n    once<K extends keyof EM>(event: K, handler: EventHandler<EM[K]>): () => void;\n\n    // remove a specific handler\n    off<K extends keyof EM>(event: K, handler?: EventHandler<EM[K]>): void;\n\n    // emit - supports awaiting async handlers\n    emit<K extends keyof EM>(event: K, payload: EM[K]): Promise<void> | void; // implementation should always run handlers, return Promise if any handler returns a Promise\n\n    // utility: clear all handlers\n    clear(): void;\n  }\n\n- Behavior details: handlers registered with priority (number) should run in descending order; once-handlers auto-remove after first call; emit collects return values and if any are Promises, returns Promise<void> that resolves after all handlers settled. Errors thrown by handlers should not stop other handlers; errors are caught and re-emitted as 'error.report' events on the same bus (but to avoid loops, errors from error.report are logged to console).\n\n5) createEventBus helper & singleton\n- export function createEventBus<EM extends Record<string, any> = EventMap>(): EventBus<EM>;\n- export const globalEventBus = createEventBus<EventMap>();\n\n6) Example usage\n- Import global bus: import { globalEventBus } from '@/core/events';\n- Subscribe: const unsub = globalEventBus.on('newsletter.signup', async (p) => { await analyticsService.send(...); });\n- Emit: await globalEventBus.emit('auth.logged_in', { user, source: 'mock-login', timestamp: new Date().toISOString() });\n- One-time: globalEventBus.once('route.change', (r) => console.log('First route change', r));\n\n7) Integration points\n- AnalyticsProvider subscribes to 'analytics.event' and forwards to analyticsService\n- NewsletterService emits 'newsletter.signup' on success/failure\n- Void animation features use 'void.animation.command' to coordinate start/stop/reset among lazy components\n- core/di module may register services that itself will emit start/stop lifecycle events\n\n8) Patterns & conventions\n- Prefer event namespaced keys like 'domain.action' (auth.*, pricing.*, void.*)\n- Keep EventMap canonical in this file. When features add new event names they should extend the EventMap type via module augmentation or by defining their own local EventBus with a more specific EM type.\n"
+    },
+    {
+      "id": "core-hooks",
+      "file_path": "src/core/hooks.ts",
+      "description": "Central registry of types for extension hooks and plugin points; defines signature types for lifecycle hooks used by features and providers.",
+      "dependencies": [
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "Hook signatures: OnAppMount, OnRouteChange, OnABTestEvaluate"
+      ],
+      "priority": 1,
+      "purpose": "Central hook registry for extension points and plugin-style callbacks. Providers and features register callbacks to hook points like life-cycle events, API request lifecycle, auth events and route changes. HookRegistry is not the React hooks system: it is a small synchronous/async registry for named hook points.",
+      "content": "Specification (core/hooks.ts)\n\n1) Goal & usage\n- The HookRegistry provides named extension points to allow decoupled plugins and feature modules to run code at key lifecycle moments: before/after API calls, login/logout, route changes, app mount, AB test evaluation, etc. The registry supports both synchronous and asynchronous handlers and preserves registration order by default.\n\n2) HookPoint union (standard hooks)\n- export type HookPoint =\n    | 'beforeApiRequest'\n    | 'afterApiResponse'\n    | 'onLogin'\n    | 'onLogout'\n    | 'onRouteChange'\n    | 'onAppMount'\n    | 'onABTestEvaluate'\n    | 'onBeforeCheckout'\n    | 'onAfterCheckout'\n    | 'onVoidAnimationReady';\n\n3) Hook contexts / payloads\n- export interface BeforeApiRequestContext { readonly url: string; readonly method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'; readonly headers: Record<string, string>; readonly body?: unknown; readonly meta?: Record<string, unknown>; mutable?: boolean; }\n\n- export interface AfterApiResponseContext { readonly url: string; readonly method: string; readonly status: number; readonly response: unknown; readonly elapsedMs?: number; readonly meta?: Record<string, unknown>; }\n\n- export interface AuthContext { readonly user?: User; readonly source?: string; readonly timestamp: string; }\n\n- export interface RouteChangeContext { readonly from?: string; readonly to: string; readonly params?: Record<string, string | number>; }\n\n- export interface ABTestEvaluateContext { readonly testKey: string; readonly userId?: string; readonly assignedVariant?: string | null; }\n\n- export interface VoidAnimationContext { readonly sceneId?: string; readonly readyAt?: string; readonly props?: Record<string, unknown>; }\n\n- export type HookContext = BeforeApiRequestContext | AfterApiResponseContext | AuthContext | RouteChangeContext | ABTestEvaluateContext | VoidAnimationContext;\n\n4) Hook handler signature\n- export type HookHandler<C = HookContext> = (ctx: C) => void | Promise<void>;\n\n5) HookRegistry API\n- class HookRegistry {\n    // register a handler for a named hook point\n    register<T extends HookPoint>(hook: T, handler: HookHandler<any>, options?: { once?: boolean; priority?: number; id?: string }): { id: string; unregister: () => void };\n\n    // run all handlers for a hook point; returns Promise<void> that resolves when all handlers settled\n    run<T extends HookPoint>(hook: T, ctx: Extract<HookContext, any>): Promise<void>;\n\n    // utility to clear handlers for a hook or globally\n    clear(hook?: HookPoint): void;\n  }\n\n- Implementation details (spec-level): registry stores handlers in arrays per hook, ordered by priority desc, then registration order. run should catch handler errors and emit them to globalEventBus as 'error.report' (import '@/core/events'). run returns Promise<void> and will wait for all handlers.\n\n6) Singleton & creation helper\n- export const defaultHooks = new HookRegistry();\n- export function createHookRegistry(): HookRegistry; // for isolated registries\n\n7) Standard hook usage patterns\n- API client behavior: before each network request call defaultHooks.run('beforeApiRequest', { url, method, headers, body }) to allow hooks to modify headers or attach auth tokens; after response call 'afterApiResponse'.\n- AuthProvider calls defaultHooks.run('onLogin', { user, timestamp }) and on logout runs 'onLogout'.\n- Router provider calls defaultHooks.run('onRouteChange', { from, to, params }) on navigation.\n- ABTest provider calls defaultHooks.run('onABTestEvaluate', { testKey, userId, assignedVariant }) to allow experiment listeners to observe assignments.\n\n8) Example code (consumer)\n- Registering a hook: defaultHooks.register('onLogin', async (ctx: AuthContext) => { await analytics.send({ event: 'auth.login', userId: ctx.user?.id, timestamp: ctx.timestamp }); }, { priority: 10 });\n- Running hooks inside apiClient: await defaultHooks.run('beforeApiRequest', { url, method, headers, body });\n\n9) Integration notes\n- The HookRegistry intentionally references core/events for error forwarding but remains independent otherwise. Services, providers, and features must import defaultHooks from '@/core/hooks'.\n"
+    },
+    {
+      "id": "core-utils",
+      "file_path": "src/core/utils.ts",
+      "description": "Shared utility functions: formatters, clamp, debounce, throttle, safeFetch wrapper, classNames helper, feature-gating helpers.",
+      "dependencies": [],
+      "exports": [
+        "safeFetch",
+        "cn (classNames)",
+        "debounce, throttle, clamp"
+      ],
+      "priority": 1,
+      "purpose": "Common utilities and helpers used across the application: formatters, safe JSON helpers, fetch wrapper with timeout and consistent ApiResult shape, classNames helper, debounce/throttle/clamp, feature gating helpers, debug logger. Export small, focused functions with minimal runtime footprint.",
+      "content": "Specification (core/utils.ts)\n\n1) Environment helpers\n- export const isBrowser: boolean; // true when typeof window !== 'undefined'\n- export function nowISO(): string; // new Date().toISOString()\n\n2) Date formatting helpers\n- export function formatDate(iso: string, options?: { locale?: string; dateStyle?: 'short' | 'medium' | 'long' | 'full'; timeStyle?: 'short' | 'medium' | 'long' }): string;\n  // Use Intl.DateTimeFormat under the hood. If Intl not available, fallback to substring operations.\n\n- export function formatRelativeDate(iso: string, locale?: string): string; // e.g., '3 hours ago', 'in 2 days' - reasonable deterministic implementation using difference of now vs date.\n\n3) Math / util small helpers\n- export function clamp(value: number, min: number, max: number): number;\n- export function debounce<T extends (...args: any[]) => any>(fn: T, waitMs?: number, immediate?: boolean): T & { cancel(): void };\n- export function throttle<T extends (...args: any[]) => any>(fn: T, limitMs?: number): T & { cancel(): void };\n\n4) Safe JSON helpers\n- export function safeJsonParse<T = any>(text: string, fallback?: T): T; // returns fallback on parse error\n- export function safeJsonStringify(value: unknown, fallback?: string): string; // returns fallback if circular or other error\n\n5) Classnames helper\n- export function cn(...args: Array<string | false | null | undefined | Record<string, boolean | undefined>>): string;\n  // Accept strings, falsy values, and object maps like: cn('a', { 'b': true, 'c': false }) => 'a b'\n\n6) Debug logging\n- export function debugLog(namespace: string, ...args: any[]): void;\n  // logs only when process.env.NODE_ENV !== 'production' or when a global DEBUG flag enabled. Should include timestamp via nowISO(). Keep side effects minimal.\n\n7) safeFetch wrapper & ApiResult normalization\n- export type FetchOptions = { timeoutMs?: number; headers?: Record<string, string>; handleErrors?: boolean; parseJson?: boolean };\n\n- export async function safeFetch<T = unknown>(url: string, opts?: RequestInit & FetchOptions): Promise<ApiResult<T>>;\n  // Behavior:\n  //  - Applies timeoutMs to reject if network exceeds timeout\n  //  - Adds Accept: 'application/json' header by default when parseJson is true\n  //  - Returns ApiResult<T> consistent with core/contracts.ts\n  //  - On HTTP 4xx/5xx returns success:false and an ApiError with code like 'http_404' and message = response text (or parsed error)\n  //  - Catches network errors and returns ApiResult with error { code: 'network_error', message: e.message }\n\n- Example usage: const r = await safeFetch<PricingTier[]>('/api/pricing/nothing', { method: 'GET', timeoutMs: 5000 }); if (r.success) { /* use r.data */ }\n\n8) Feature gate helper (wraps app/config)\n- export function isFeatureEnabled(feature: NothingFeature): boolean; // re-export or proxy to '@/app/config' isFeatureEnabled. This keeps components able to import from '@/core/utils' for convenience. Implementation should import the canonical isFeatureEnabled from '@/app/config'.\n\n9) Small helpers for class and string transformations\n- export function toKebabCase(s: string): string;\n- export function uid(prefix?: string): string; // small uid generator: prefix + random hex\n\n10) Example usage & integration\n- apiClient uses safeFetch to implement get/post helpers.\n- UI components use cn for conditional classNames.\n- Logging and debugging utilities used by dev tools and services.\n\n11) Performance & footprint\n- Keep implementations small and tree-shakable. Avoid pulling heavy dependencies.\n\n12) Error handling contract\n- All helpers that may throw should document behavior clearly. safeFetch should never throw for network errors (it returns ApiResult with an error). Other helpers (formatDate) may throw only if passed invalid inputs; prefer safe, non-throwing implementations when possible.\n"
+    },
+    {
+      "id": "global-styles",
+      "file_path": "src/index.css",
+      "description": "Tailwind base import and global styles (fonts, dark-mode helpers, utility overrides and resets).",
+      "dependencies": [
+        "tailwind.config.ts"
+      ],
+      "exports": [
+        "global CSS (import side-effect)"
       ],
       "priority": 1
     },
     {
-      "id": "styles-entry",
-      "file_path": "generated/src/styles/tailwind.css",
-      "description": "Tailwind entry CSS including base, components and utilities; imported by index.tsx.",
-      "dependencies": [],
+      "id": "main-entry",
+      "file_path": "src/main.tsx",
+      "description": "Application entrypoint: bootstraps providers, mock server in dev, mounts React App into DOM, loads global CSS, and wraps with ErrorBoundary and Suspense fallbacks.",
+      "dependencies": [
+        "src/App.tsx",
+        "src/providers/ThemeProvider.tsx",
+        "src/providers/AuthProvider.tsx",
+        "src/providers/MockApiProvider.tsx",
+        "src/providers/AnalyticsProvider.tsx",
+        "src/providers/ChatProvider.tsx",
+        "src/providers/ModalProvider.tsx",
+        "src/providers/ToastProvider.tsx",
+        "src/app/config.ts",
+        "src/mocks/server.ts"
+      ],
       "exports": [
-        "CSS file imported by entry"
+        "bootstrapApp function (default main)"
       ],
       "priority": 1
     },
     {
-      "id": "styles-tailwind",
-      "file_path": "generated/tailwind.config.cjs",
-      "description": "Tailwind configuration enabling JIT, dark mode class-based toggling and common theme tokens. (Project-level config file.)",
-      "dependencies": [],
+      "id": "mock-api-provider",
+      "file_path": "src/providers/MockApiProvider.tsx",
+      "description": "Provider that conditionally starts the mock server in dev mode and registers handlers from src/mocks. Wraps fetch/xhr interception, provides mock toggles to children.",
+      "dependencies": [
+        "src/mocks/server.ts",
+        "src/app/config.ts"
+      ],
       "exports": [
-        "tailwind config"
+        "MockApiProvider"
       ],
       "priority": 1
     },
     {
-      "id": "features-appointments-form",
-      "file_path": "generated/src/features/appointments/AppointmentForm.tsx",
-      "description": "Appointment creation/edit form using React Hook Form with validation. Handles date/time pickers and patient/provider selection.",
+      "id": "mocks-data",
+      "file_path": "src/mocks/mockData.ts",
+      "description": "Fixture data for development: mock users, testimonials, pricing tiers, analytics events, and sample case studies.",
       "dependencies": [
-        "generated/src/shared/components/forms/FormField.tsx",
-        "generated/src/shared/components/ui/Modal.tsx",
-        "generated/src/services/api/appointments.api.ts"
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "AppointmentForm component"
+        "mockUsers",
+        "mockTestimonials",
+        "mockPricing",
+        "mockCaseStudies"
       ],
-      "priority": 2
+      "priority": 1
     },
     {
-      "id": "features-appointments-hook",
-      "file_path": "generated/src/features/appointments/useAppointments.ts",
-      "description": "Feature hook that wraps React Query for appointments and provides helper mutations and optimistic update helpers.",
+      "id": "mocks-handlers",
+      "file_path": "src/mocks/handlers.ts",
+      "description": "HTTP handlers for mocked endpoints listed in app config (e.g., /api/nothing, /api/testimonials/nothing, /api/pricing/nothing, etc.).",
       "dependencies": [
-        "generated/src/services/api/appointments.api.ts",
-        "generated/src/services/queryClient.ts",
-        "generated/src/core/contracts.ts"
+        "src/mocks/mockData.ts",
+        "src/app/config.ts"
       ],
       "exports": [
-        "useAppointments hook"
+        "handlers array"
       ],
-      "priority": 2
+      "priority": 1
     },
     {
-      "id": "features-appointments-list",
-      "file_path": "generated/src/features/appointments/AppointmentList.tsx",
-      "description": "Presentational list of appointments (card/table) supporting filtering, role-aware actions and keyboard navigation.",
+      "id": "mocks-server",
+      "file_path": "src/mocks/server.ts",
+      "description": "Mock server bootstrap for development: registers handlers and starts the mock service. Exposes start/stop methods used by MockApiProvider / main.tsx.",
       "dependencies": [
-        "generated/src/features/appointments/useAppointments.ts",
-        "generated/src/shared/components/ui/Table.tsx",
-        "generated/src/shared/components/ui/Card.tsx"
+        "src/mocks/handlers.ts",
+        "src/mocks/mockData.ts"
       ],
       "exports": [
-        "AppointmentList component"
+        "startMockServer",
+        "stopMockServer"
       ],
-      "priority": 2
+      "priority": 1
     },
     {
-      "id": "features-dashboard-component",
-      "file_path": "generated/src/features/dashboard/HealthDashboard.tsx",
-      "description": "Dashboard component aggregating health metrics, recent appointments, prescriptions and alerts. Uses HealthChart and Card components.",
+      "id": "modal-provider",
+      "file_path": "src/providers/ModalProvider.tsx",
+      "description": "Global modal management (stackable modals) used by many features (press kit modal, 3D showcase modal, affiliate signup).",
       "dependencies": [
-        "generated/src/features/dashboard/useDashboardMetrics.ts",
-        "generated/src/shared/components/ui/HealthChart.tsx",
-        "generated/src/shared/components/ui/Card.tsx"
+        "src/shared/components/molecules/Modal.tsx"
       ],
       "exports": [
-        "HealthDashboard component"
+        "ModalProvider",
+        "useModal"
       ],
-      "priority": 2
+      "priority": 1
     },
     {
-      "id": "features-dashboard-hook",
-      "file_path": "generated/src/features/dashboard/useDashboardMetrics.ts",
-      "description": "Hook to fetch health metrics for dashboard (blood pressure, steps, glucose) and shape data for charts.",
+      "id": "readme-generated",
+      "file_path": "generated/README.md",
+      "description": "Auto-generated README describing how to run the generated project, dev-mode toggles, and where to find mocked endpoints.",
       "dependencies": [
-        "generated/src/services/api/appointments.api.ts",
-        "generated/src/services/api/labResults.api.ts"
+        "src/app/config.ts"
       ],
       "exports": [
-        "useDashboardMetrics hook"
+        "Documentation file (text)"
       ],
-      "priority": 2
+      "priority": 1
     },
     {
-      "id": "features-insurance-component",
-      "file_path": "generated/src/features/insurance/InsuranceClaims.tsx",
-      "description": "Insurance claims UI that lists claims and allows viewing claim details; integrates with mock data in dev.",
+      "id": "router-provider",
+      "file_path": "src/providers/Router.tsx",
+      "description": "React Router v6 setup and route registration. Lazy-loads page components and provides route-level Suspense. Exposes route definitions from app config.",
       "dependencies": [
-        "generated/src/features/insurance/useInsurance.ts",
-        "generated/src/shared/components/ui/Table.tsx"
+        "src/pages/HomePage.tsx",
+        "src/pages/PricingPage.tsx",
+        "src/pages/DocsPage.tsx",
+        "src/pages/StatusPage.tsx",
+        "src/pages/CaseStudiesPage.tsx",
+        "src/pages/PressKitPage.tsx",
+        "src/pages/APIDocsPage.tsx",
+        "src/pages/NotFoundPage.tsx",
+        "src/app/config.ts"
       ],
       "exports": [
-        "InsuranceClaims component"
+        "Router component"
       ],
-      "priority": 2
+      "priority": 1
     },
     {
-      "id": "features-insurance-hook",
-      "file_path": "generated/src/features/insurance/useInsurance.ts",
-      "description": "Hook for fetching insurance claims and tracking statuses.",
-      "dependencies": [
-        "generated/src/services/api/insurance.api.ts"
-      ],
-      "exports": [
-        "useInsurance hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-lab-results-hook",
-      "file_path": "generated/src/features/lab-results/useLabResults.ts",
-      "description": "Hook to fetch and cache lab results, supports filtering by date/test type.",
-      "dependencies": [
-        "generated/src/services/api/labResults.api.ts"
-      ],
-      "exports": [
-        "useLabResults hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-lab-results-table",
-      "file_path": "generated/src/features/lab-results/LabResultsTable.tsx",
-      "description": "Table UI displaying lab results with indicators for abnormal values and downloadable attachments.",
-      "dependencies": [
-        "generated/src/features/lab-results/useLabResults.ts",
-        "generated/src/shared/components/ui/Table.tsx"
-      ],
-      "exports": [
-        "LabResultsTable component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-medical-records-hook",
-      "file_path": "generated/src/features/medical-records/useMedicalRecords.ts",
-      "description": "Hook using React Query to fetch and cache medical records for a patient; supports pagination and attachments.",
-      "dependencies": [
-        "generated/src/services/api/medicalRecords.api.ts",
-        "generated/src/core/contracts.ts"
-      ],
-      "exports": [
-        "useMedicalRecords hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-medical-records-viewer",
-      "file_path": "generated/src/features/medical-records/MedicalRecordViewer.tsx",
-      "description": "UI to view a single medical record with attachments, timeline and accessibility considerations.",
-      "dependencies": [
-        "generated/src/features/medical-records/useMedicalRecords.ts",
-        "generated/src/shared/components/ui/Card.tsx"
-      ],
-      "exports": [
-        "MedicalRecordViewer component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-medications-hook",
-      "file_path": "generated/src/features/medications/useMedications.ts",
-      "description": "Hook to fetch medications and schedule reminders, with mutation hooks for enabling/disabling reminders.",
-      "dependencies": [
-        "generated/src/services/api/medications.api.ts",
-        "generated/src/services/api/reminders.api.ts"
-      ],
-      "exports": [
-        "useMedications hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-medications-list",
-      "file_path": "generated/src/features/medications/MedicationList.tsx",
-      "description": "Medication list UI with quick actions for refills and reminders.",
-      "dependencies": [
-        "generated/src/features/medications/useMedications.ts",
-        "generated/src/shared/components/ui/Table.tsx"
-      ],
-      "exports": [
-        "MedicationList component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-prescriptions-hook",
-      "file_path": "generated/src/features/prescriptions/usePrescriptions.ts",
-      "description": "React Query wrapper for prescriptions with mutations for refill requests and cancellations.",
-      "dependencies": [
-        "generated/src/services/api/prescriptions.api.ts"
-      ],
-      "exports": [
-        "usePrescriptions hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-prescriptions-list",
-      "file_path": "generated/src/features/prescriptions/PrescriptionList.tsx",
-      "description": "List view of prescriptions with actions and accessible forms for refills.",
-      "dependencies": [
-        "generated/src/features/prescriptions/usePrescriptions.ts",
-        "generated/src/shared/components/ui/Table.tsx",
-        "generated/src/shared/components/ui/Modal.tsx"
-      ],
-      "exports": [
-        "PrescriptionList component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-reminders-component",
-      "file_path": "generated/src/features/reminders/Reminders.tsx",
-      "description": "UI for medication reminders including scheduling form and list of upcoming reminders.",
-      "dependencies": [
-        "generated/src/features/reminders/useReminders.ts",
-        "generated/src/shared/components/forms/FormField.tsx",
-        "generated/src/shared/components/ui/Modal.tsx"
-      ],
-      "exports": [
-        "Reminders component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-reminders-hook",
-      "file_path": "generated/src/features/reminders/useReminders.ts",
-      "description": "Hook managing reminders schedule, local notifications (mock), and persistence in dev.",
-      "dependencies": [
-        "generated/src/services/api/reminders.api.ts",
-        "generated/src/hooks/useLocalStorage.ts"
-      ],
-      "exports": [
-        "useReminders hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-telemedicine-hook",
-      "file_path": "generated/src/features/telemedicine/useTelemedicine.ts",
-      "description": "Abstraction for telemedicine session state (room connections, mock video toggles in dev), integrates with websocket service for events.",
-      "dependencies": [
-        "generated/src/services/websocket.ts",
-        "generated/src/core/di.ts"
-      ],
-      "exports": [
-        "useTelemedicine hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-telemedicine-room",
-      "file_path": "generated/src/features/telemedicine/TelemedicineRoom.tsx",
-      "description": "Telemedicine UI (basic video placeholder for mock, chat, controls). Includes accessibility features and fallback when real media APIs are unavailable.",
-      "dependencies": [
-        "generated/src/features/telemedicine/useTelemedicine.ts",
-        "generated/src/shared/components/ui/Card.tsx"
-      ],
-      "exports": [
-        "TelemedicineRoom component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "hooks-use-debounce",
-      "file_path": "generated/src/hooks/useDebounce.ts",
-      "description": "Small debounce hook used by search inputs and rate-limited interactions.",
+      "id": "tailwind-config",
+      "file_path": "tailwind.config.ts",
+      "description": "Tailwind CSS configuration with dark mode support, custom theme tokens for the Nothing brand, and JIT settings.",
       "dependencies": [],
       "exports": [
-        "useDebounce hook"
+        "tailwindConfig object"
       ],
-      "priority": 2
+      "priority": 1
     },
     {
-      "id": "shared-forms-formfield",
-      "file_path": "generated/src/shared/components/forms/FormField.tsx",
-      "description": "Form field wrapper with label, hint, error text handling and ARIA attributes.",
+      "id": "theme-provider",
+      "file_path": "src/providers/ThemeProvider.tsx",
+      "description": "Provides theme context (light/dark), handles system preference, and persists user choice (useLocalStorage). Supplies CSS variables for animations and color tokens.",
       "dependencies": [
-        "generated/src/shared/components/ui/Input.tsx"
+        "src/hooks/useLocalStorage.ts",
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "FormField component"
+        "ThemeProvider",
+        "useTheme hook (re-export)"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "toast-provider",
+      "file_path": "src/providers/ToastProvider.tsx",
+      "description": "Global toast/notification system used across the app for ephemeral messages (e.g., newsletter success).",
+      "dependencies": [
+        "src/shared/components/molecules/Toast.tsx"
+      ],
+      "exports": [
+        "ToastProvider",
+        "useToast"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "types-three",
+      "file_path": "src/types/three.d.ts",
+      "description": "Type declarations for Three.js usage and assets to satisfy TypeScript imports.",
+      "dependencies": [],
+      "exports": [
+        "ambient type declarations for three imports"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "abtest-toggle",
+      "file_path": "src/shared/components/atoms/ABTestToggle.tsx",
+      "description": "Small toggle UI for switching A/B test variants in dev; used by dev toolbar and header.",
+      "dependencies": [
+        "src/hooks/useABTest.ts"
+      ],
+      "exports": [
+        "ABTestToggle component"
       ],
       "priority": 2
     },
     {
-      "id": "shared-layout-header",
-      "file_path": "generated/src/shared/components/layout/Header.tsx",
-      "description": "Top navigation bar with language switcher, profile menu and notifications. Accessible and keyboard-navigable.",
+      "id": "affiliate-signup",
+      "file_path": "src/shared/components/organisms/AffiliateSignup.tsx",
+      "description": "Affiliate program signup UI with share links and mocked referral codes.",
       "dependencies": [
-        "generated/src/providers/AuthProvider.tsx",
-        "generated/src/providers/I18nProvider.tsx",
-        "generated/src/shared/components/ui/Button.tsx"
+        "src/hooks/useLocalStorage.ts",
+        "src/shared/components/atoms/Button.tsx"
+      ],
+      "exports": [
+        "AffiliateSignup component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "analytics-service",
+      "file_path": "src/services/analyticsService.ts",
+      "description": "Analytics client that receives events from core/events and forwards to a remote collector or stores them for the mock dashboard.",
+      "dependencies": [
+        "src/core/events.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "sendEvent",
+        "AnalyticsService class"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "api-client",
+      "file_path": "src/services/apiClient.ts",
+      "description": "Lightweight fetch wrapper for API calls, handles JSON parsing, error mapping, timeouts, and respects DEV_MODE to route to mock endpoints.",
+      "dependencies": [
+        "src/app/config.ts",
+        "src/core/utils.ts"
+      ],
+      "exports": [
+        "apiClient (get, post, put, del)",
+        "fetchJson helper"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "api-docs-component",
+      "file_path": "src/shared/components/organisms/APIDocs.tsx",
+      "description": "API documentation viewer with code examples (calls return nothing). Supports copy-to-clipboard and a toggle to run 'no-op' curl examples.",
+      "dependencies": [
+        "src/services/apiClient.ts"
+      ],
+      "exports": [
+        "APIDocs component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "cart-component",
+      "file_path": "src/shared/components/organisms/Cart.tsx",
+      "description": "Shopping cart that can only hold nothing; integrates with checkoutService and shows recursive animations when checking out.",
+      "dependencies": [
+        "src/services/checkoutService.ts",
+        "src/shared/components/atoms/Button.tsx"
+      ],
+      "exports": [
+        "Cart component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "case-study-card",
+      "file_path": "src/shared/components/organisms/CaseStudyCard.tsx",
+      "description": "Card representing a case study of nothing implementations; used in CaseStudiesPage and carousel.",
+      "dependencies": [
+        "src/mocks/mockData.ts"
+      ],
+      "exports": [
+        "CaseStudyCard component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "chat-widget",
+      "file_path": "src/shared/components/organisms/ChatWidget.tsx",
+      "description": "Floating chat widget component that uses ChatProvider; responds with unhelpful automated messages in dev.",
+      "dependencies": [
+        "src/providers/ChatProvider.tsx",
+        "src/services/supportService.ts"
+      ],
+      "exports": [
+        "ChatWidget component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "checkout-service",
+      "file_path": "src/services/checkoutService.ts",
+      "description": "Checkout stub for purchasing nothing (handles cart of nothing, checkout flow, and mocked payment behavior).",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/services/pricingService.ts",
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "createCheckoutSession",
+        "CartManager"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "comparison-chart",
+      "file_path": "src/shared/components/organisms/ComparisonChart.tsx",
+      "description": "Product comparison matrix: Nothing vs Something vs Everything with humorous copy and interactive hover reveal (but reveals nothing).",
+      "dependencies": [
+        "src/shared/components/atoms/Tooltip.tsx"
+      ],
+      "exports": [
+        "ComparisonChart component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "confetti-but-gone",
+      "file_path": "src/shared/components/organisms/ConfettiButGone.tsx",
+      "description": "Confetti animation that intentionally disappears mid-air to meet the comedic requirement.",
+      "dependencies": [
+        "src/hooks/useParticles.ts"
+      ],
+      "exports": [
+        "ConfettiButGone component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "container-component",
+      "file_path": "src/shared/components/molecules/Container.tsx",
+      "description": "Responsive container wrapper used by pages and layout for consistent max widths and padding.",
+      "dependencies": [],
+      "exports": [
+        "Container component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "cookie-banner",
+      "file_path": "src/shared/components/molecules/CookieBanner.tsx",
+      "description": "Cookie consent banner warning about 'nothing cookies' and providing accept/decline; persists via useLocalStorage.",
+      "dependencies": [
+        "src/hooks/useLocalStorage.ts",
+        "src/shared/components/atoms/Button.tsx"
+      ],
+      "exports": [
+        "CookieBanner component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "counter-component",
+      "file_path": "src/shared/components/organisms/Counter.tsx",
+      "description": "Animated counter that shows '0 features delivered' with typing/erase animation and reverse progress bar.",
+      "dependencies": [
+        "src/shared/components/atoms/TypingErase.tsx",
+        "src/shared/components/atoms/ProgressBarReverse.tsx"
+      ],
+      "exports": [
+        "Counter component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "dev-toolbar",
+      "file_path": "src/shared/components/molecules/DevToolbar.tsx",
+      "description": "Developer toolbar visible in DEV mode to toggle mocks, AB tests, latency, and to simulate websocket toggles.",
+      "dependencies": [
+        "src/app/config.ts",
+        "src/providers/MockApiProvider.tsx",
+        "src/shared/components/atoms/ABTestToggle.tsx"
+      ],
+      "exports": [
+        "DevToolbar component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "easter-eggs",
+      "file_path": "src/shared/components/organisms/EasterEggs.tsx",
+      "description": "Easter egg registry component that listens for special key sequences and reveals deeper layers of nothing.",
+      "dependencies": [
+        "src/core/events.ts"
+      ],
+      "exports": [
+        "EasterEggs component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "faq-component",
+      "file_path": "src/shared/components/organisms/FAQ.tsx",
+      "description": "FAQ accordion addressing questions about nothing; includes typing-erase micro-interactions and modals that open to show empty space.",
+      "dependencies": [
+        "src/shared/components/atoms/TypingErase.tsx",
+        "src/shared/components/molecules/Modal.tsx"
+      ],
+      "exports": [
+        "FAQ component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "floating-bubbles",
+      "file_path": "src/shared/components/organisms/FloatingBubbles.tsx",
+      "description": "Animated floating testimonial bubbles that drift into nothingness.",
+      "dependencies": [
+        "src/services/testimonialsService.ts",
+        "src/hooks/useParticles.ts"
+      ],
+      "exports": [
+        "FloatingBubbles component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "footer-component",
+      "file_path": "src/shared/components/molecules/Footer.tsx",
+      "description": "Footer with links to press kit, API docs, status, privacy, and affiliate signup. Includes trust badges and social proof that shows \u221e viewers.",
+      "dependencies": [
+        "src/shared/components/organisms/TrustBadge.tsx",
+        "src/shared/components/organisms/SocialProofWidget.tsx"
+      ],
+      "exports": [
+        "Footer component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "glitch-text",
+      "file_path": "src/shared/components/atoms/GlitchText.tsx",
+      "description": "Text atom with hover glitch effect for the word 'nothing' (uses CSS + GSAP hooks).",
+      "dependencies": [
+        "src/hooks/useParticles.ts"
+      ],
+      "exports": [
+        "GlitchText component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "guarantee-badge",
+      "file_path": "src/shared/components/organisms/GuaranteeBadge.tsx",
+      "description": "Badge component advertising the money-back guarantee for unsatisfied nothing users.",
+      "dependencies": [],
+      "exports": [
+        "GuaranteeBadge component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "header-component",
+      "file_path": "src/shared/components/molecules/Header.tsx",
+      "description": "Site header with navigation links, dark mode toggle, and subtle glitch hover for 'nothing' branding. Consumes Router links and ABTestToggle.",
+      "dependencies": [
+        "src/shared/components/atoms/Icon.tsx",
+        "src/shared/components/atoms/Button.tsx",
+        "src/shared/components/atoms/GlitchText.tsx",
+        "src/shared/components/atoms/ABTestToggle.tsx"
       ],
       "exports": [
         "Header component"
@@ -985,90 +654,93 @@
       "priority": 2
     },
     {
-      "id": "shared-layout-main",
-      "file_path": "generated/src/shared/components/layout/MainLayout.tsx",
-      "description": "Main application shell combining Header, Sidebar and content area. Responsible for responsive layout and accessibility landmarks.",
+      "id": "hero-organism",
+      "file_path": "src/shared/components/organisms/Hero.tsx",
+      "description": "Existential hero component incorporating ExistentialHero feature. Includes parallax void animation, animated counter, floating testimonial bubbles, glitch title, matrix zeros rain, and CTA to pricing/newsletter.",
       "dependencies": [
-        "generated/src/shared/components/layout/Header.tsx",
-        "generated/src/shared/components/layout/Sidebar.tsx"
+        "src/features/epic-hero/ExistentialHero.tsx",
+        "src/shared/components/organisms/VoidCanvas.tsx",
+        "src/shared/components/organisms/Counter.tsx",
+        "src/shared/components/organisms/TestimonialsCarousel.tsx",
+        "src/shared/components/atoms/GlitchText.tsx",
+        "src/shared/components/organisms/MatrixRain.tsx"
       ],
       "exports": [
-        "MainLayout component"
+        "Hero component"
       ],
       "priority": 2
     },
     {
-      "id": "shared-layout-sidebar",
-      "file_path": "generated/src/shared/components/layout/Sidebar.tsx",
-      "description": "Left navigation with role-aware links (patient vs provider). Collapsible for mobile and keyboard accessible.",
+      "id": "infinite-scroll-load",
+      "file_path": "src/shared/components/organisms/InfiniteScrollLoad.tsx",
+      "description": "Small reusable infinite loader that integrates with useInfiniteScroll to load more items (loads more nothing).",
       "dependencies": [
-        "generated/src/providers/AuthProvider.tsx",
-        "generated/src/core/contracts.ts"
+        "src/hooks/useInfiniteScroll.ts"
       ],
       "exports": [
-        "Sidebar component"
+        "InfiniteScrollLoad component"
       ],
       "priority": 2
     },
     {
-      "id": "shared-protected-route",
-      "file_path": "generated/src/shared/components/ProtectedRoute.tsx",
-      "description": "Route wrapper that ensures authentication and optionally role-based authorization; used by route definitions.",
+      "id": "layout-main",
+      "file_path": "src/shared/layout/Layout.tsx",
+      "description": "Global layout composer that uses Header, Footer, and a main content area. Provides places for CookieBanner and LiveChatStub.",
       "dependencies": [
-        "generated/src/providers/AuthProvider.tsx",
-        "generated/src/hooks/useRequireAuth.ts"
+        "src/shared/components/molecules/Header.tsx",
+        "src/shared/components/molecules/Footer.tsx",
+        "src/shared/components/molecules/CookieBanner.tsx",
+        "src/shared/components/organisms/LiveChatStub.tsx"
       ],
       "exports": [
-        "ProtectedRoute component"
+        "Layout component"
       ],
       "priority": 2
     },
     {
-      "id": "shared-ui-button",
-      "file_path": "generated/src/shared/components/ui/Button.tsx",
-      "description": "Accessible, styled button using Tailwind with variants (primary, secondary, ghost).",
-      "dependencies": [],
-      "exports": [
-        "Button component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-ui-card",
-      "file_path": "generated/src/shared/components/ui/Card.tsx",
-      "description": "Simple card wrapper used across dashboards and lists.",
-      "dependencies": [],
-      "exports": [
-        "Card component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-ui-healthchart",
-      "file_path": "generated/src/shared/components/ui/HealthChart.tsx",
-      "description": "Wrapper around lightweight chart library for health metrics visualizations used on dashboard.",
-      "dependencies": [],
-      "exports": [
-        "HealthChart component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-ui-input",
-      "file_path": "generated/src/shared/components/ui/Input.tsx",
-      "description": "Accessible input component integrated with React Hook Form (supports register, errors).",
-      "dependencies": [],
-      "exports": [
-        "Input component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-ui-modal",
-      "file_path": "generated/src/shared/components/ui/Modal.tsx",
-      "description": "A11y-first modal dialog used for forms and confirmations (trap focus, ESC close).",
+      "id": "livechat-stub",
+      "file_path": "src/shared/components/organisms/LiveChatStub.tsx",
+      "description": "Small live chat stub that is part of layout; toggles a minimal panel that provides no help.",
       "dependencies": [
-        "generated/src/shared/components/ui/Button.tsx"
+        "src/providers/ChatProvider.tsx",
+        "src/shared/components/organisms/ChatWidget.tsx"
+      ],
+      "exports": [
+        "LiveChatStub component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "loading-bar-recursive",
+      "file_path": "src/shared/components/organisms/LoadingBarRecursive.tsx",
+      "description": "Recursive loading bars component that never completes (visual recursion with GSAP animations).",
+      "dependencies": [
+        "src/hooks/useParticles.ts"
+      ],
+      "exports": [
+        "LoadingBarRecursive component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "matrix-rain",
+      "file_path": "src/shared/components/organisms/MatrixRain.tsx",
+      "description": "Matrix rain effect but using zeros, used in hero and as a background accent.",
+      "dependencies": [
+        "src/hooks/useParticles.ts"
+      ],
+      "exports": [
+        "MatrixRain component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "modal-component",
+      "file_path": "src/shared/components/molecules/Modal.tsx",
+      "description": "Accessible modal component used by ModalProvider and various features to show empty space or assets.",
+      "dependencies": [
+        "src/shared/components/atoms/Button.tsx",
+        "src/core/utils.ts"
       ],
       "exports": [
         "Modal component"
@@ -1076,377 +748,905 @@
       "priority": 2
     },
     {
-      "id": "shared-ui-table",
-      "file_path": "generated/src/shared/components/ui/Table.tsx",
-      "description": "Accessible table component with keyboard navigation and basic sorting support.",
-      "dependencies": [],
+      "id": "newsletter-form",
+      "file_path": "src/shared/components/organisms/NewsletterForm.tsx",
+      "description": "Newsletter signup UI with email validation and integration to newsletterService. Shows animated confetti that disappears before landing.",
+      "dependencies": [
+        "src/services/newsletterService.ts",
+        "src/shared/components/atoms/Button.tsx",
+        "src/shared/components/organisms/ConfettiButGone.tsx"
+      ],
       "exports": [
-        "Table component"
+        "NewsletterForm component"
       ],
       "priority": 2
     },
     {
-      "id": "pages-appointment-detail",
-      "file_path": "generated/src/pages/AppointmentDetailPage.tsx",
-      "description": "Detail view for a single appointment with actions (reschedule, join telemedicine).",
+      "id": "newsletter-service",
+      "file_path": "src/services/newsletterService.ts",
+      "description": "Service handling newsletter signup calls and client-side validation, triggers analytics events for signups.",
       "dependencies": [
-        "generated/src/features/appointments/useAppointments.ts",
-        "generated/src/features/telemedicine/TelemedicineRoom.tsx",
-        "generated/src/shared/components/layout/MainLayout.tsx",
-        "generated/src/hooks/useRequireAuth.ts"
+        "src/services/apiClient.ts",
+        "src/core/events.ts",
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "AppointmentDetailPage component"
+        "subscribeNewsletter"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "particle-background",
+      "file_path": "src/shared/components/organisms/ParticleBackground.tsx",
+      "description": "Background particle effect representing the void of nothing; integrates with Framer Motion and GSAP where necessary.",
+      "dependencies": [
+        "src/hooks/useParticles.ts"
+      ],
+      "exports": [
+        "ParticleBackground component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "press-kit",
+      "file_path": "src/shared/components/organisms/PressKit.tsx",
+      "description": "Press kit downloader showing logos and assets for Nothing. Offers a modal with assets that are empty svg placeholders.",
+      "dependencies": [
+        "src/shared/components/molecules/Modal.tsx",
+        "src/assets/logos/nothing.svg"
+      ],
+      "exports": [
+        "PressKit component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "pricing-card",
+      "file_path": "src/shared/components/organisms/PricingCard.tsx",
+      "description": "Card component representing a pricing tier (Basic Nothing, Pro Nothing, Enterprise Nothing) with CTA to checkout.",
+      "dependencies": [
+        "src/services/pricingService.ts",
+        "src/shared/components/atoms/Button.tsx",
+        "src/services/checkoutService.ts"
+      ],
+      "exports": [
+        "PricingCard component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "pricing-service",
+      "file_path": "src/services/pricingService.ts",
+      "description": "Domain logic and client for pricing tiers and tier calculations. Provides methods to fetch tiers, calculate savings (nothing math), and A/B variants.",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/core/contracts.ts",
+        "src/hooks/useABTest.ts"
+      ],
+      "exports": [
+        "getPricingTiers",
+        "calculateNothingSavings",
+        "PricingService instance"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "pricing-tier-list",
+      "file_path": "src/shared/components/organisms/PricingTierList.tsx",
+      "description": "Container that lists pricing tiers, handles A/B variant switching, and shows comparison to Something & Everything.",
+      "dependencies": [
+        "src/services/pricingService.ts",
+        "src/shared/components/organisms/PricingCard.tsx",
+        "src/shared/components/organisms/ComparisonChart.tsx",
+        "src/hooks/useABTest.ts"
+      ],
+      "exports": [
+        "PricingTierList component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "product-carousel",
+      "file_path": "src/shared/components/organisms/ProductCarousel.tsx",
+      "description": "Carousel used across site to show product variants of nothing (infinite loop that never adds anything).",
+      "dependencies": [
+        "src/shared/components/organisms/Showcase3D.tsx"
+      ],
+      "exports": [
+        "ProductCarousel component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "progressbar-reverse",
+      "file_path": "src/shared/components/atoms/ProgressBarReverse.tsx",
+      "description": "Progress bar that visually moves backwards as an intentionally confusing UI pattern.",
+      "dependencies": [],
+      "exports": [
+        "ProgressBarReverse component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "redirect-404-atom",
+      "file_path": "src/shared/components/atoms/404Redirect.tsx",
+      "description": "Small component used by the NotFoundPage which triggers a comedic redirect to the homepage after a timeout.",
+      "dependencies": [
+        "src/core/utils.ts"
+      ],
+      "exports": [
+        "NotFoundRedirect component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "reviews-list",
+      "file_path": "src/shared/components/organisms/ReviewsList.tsx",
+      "description": "Customer review list component with 5-star ratings and infinite scroll that loads more nothing.",
+      "dependencies": [
+        "src/hooks/useInfiniteScroll.ts",
+        "src/mocks/mockData.ts"
+      ],
+      "exports": [
+        "ReviewsList component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "roadmap-timeline",
+      "file_path": "src/shared/components/organisms/RoadmapTimeline.tsx",
+      "description": "Timeline displaying future releases of nothing; includes animated reveal effects and recursive loading markers.",
+      "dependencies": [
+        "src/shared/components/organisms/LoadingBarRecursive.tsx"
+      ],
+      "exports": [
+        "RoadmapTimeline component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-button",
+      "file_path": "src/shared/components/atoms/Button.tsx",
+      "description": "Primary Button atom used across the app (supports icon, loading state, ghost variants and sound effects on click).",
+      "dependencies": [
+        "src/shared/components/atoms/Icon.tsx",
+        "src/hooks/useSound.ts",
+        "src/core/utils.ts"
+      ],
+      "exports": [
+        "Button component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-icon",
+      "file_path": "src/shared/components/atoms/Icon.tsx",
+      "description": "Icon atom with a small set of icons (logo, star, cart, nothing glyph).",
+      "dependencies": [],
+      "exports": [
+        "Icon component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "showcase-3d",
+      "file_path": "src/shared/components/organisms/Showcase3D.tsx",
+      "description": "3D rotating nothing showcase (Three.js) with lazy load and reflection-less materials to emphasize void.",
+      "dependencies": [
+        "src/hooks/useThree.ts",
+        "src/shared/components/organisms/VoidCanvas.tsx"
+      ],
+      "exports": [
+        "Showcase3D component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "simulator-component",
+      "file_path": "src/shared/components/organisms/Simulator.tsx",
+      "description": "Interactive void simulator allowing users to tweak parameters (emptiness, blackness, silence) and view results in VoidCanvas.",
+      "dependencies": [
+        "src/shared/components/organisms/VoidCanvas.tsx",
+        "src/hooks/useThree.ts",
+        "src/services/analyticsService.ts"
+      ],
+      "exports": [
+        "Simulator component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "social-proof-widget",
+      "file_path": "src/shared/components/organisms/SocialProofWidget.tsx",
+      "description": "Widget showing '\u221e users currently viewing nothing' and other social proof metrics. Animated with Framer Motion.",
+      "dependencies": [
+        "src/hooks/useAnalytics.ts"
+      ],
+      "exports": [
+        "SocialProofWidget component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "sound-button",
+      "file_path": "src/shared/components/atoms/SoundButton.tsx",
+      "description": "Button wrapper that plays a silence sound when clicked (used to meet 'sound of silence' requirement).",
+      "dependencies": [
+        "src/hooks/useSound.ts",
+        "src/shared/components/atoms/Button.tsx"
+      ],
+      "exports": [
+        "SoundButton"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "sound-controller",
+      "file_path": "src/shared/sound/SoundController.ts",
+      "description": "Shared sound controller used by useSound hook and sound-based components to centralize audio context and mute state.",
+      "dependencies": [
+        "src/hooks/useLocalStorage.ts"
+      ],
+      "exports": [
+        "SoundController instance",
+        "initSoundContext"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "status-panel",
+      "file_path": "src/shared/components/organisms/StatusPanel.tsx",
+      "description": "Status UI showing 100% nothing uptime and recent 'incidents' that are empty. Connects to mock analytics for logs.",
+      "dependencies": [
+        "src/services/analyticsService.ts"
+      ],
+      "exports": [
+        "StatusPanel component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "support-service",
+      "file_path": "src/services/supportService.ts",
+      "description": "Service for live chat / support endpoints. In dev will use mock HTTP endpoints; exposes startConversation and sendMessage stubs.",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "startConversation",
+        "sendSupportMessage"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "team-grid",
+      "file_path": "src/shared/components/organisms/TeamGrid.tsx",
+      "description": "Showcases experts in nothing with profiles that hover to show empty bios and social links leading to nothing.",
+      "dependencies": [],
+      "exports": [
+        "TeamGrid component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "testimonials-carousel",
+      "file_path": "src/shared/components/organisms/TestimonialsCarousel.tsx",
+      "description": "Carousel/rotator of testimonials with floating bubble mode and star ratings (always 5 stars).",
+      "dependencies": [
+        "src/services/testimonialsService.ts",
+        "src/shared/components/atoms/Icon.tsx"
+      ],
+      "exports": [
+        "TestimonialsCarousel component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "testimonials-service",
+      "file_path": "src/services/testimonialsService.ts",
+      "description": "Service to fetch and transform testimonials. Provides generator for floating bubble content in the hero.",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "getTestimonials",
+        "getRandomTestimonial"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "toast-component",
+      "file_path": "src/shared/components/molecules/Toast.tsx",
+      "description": "Simple toast UI used by ToastProvider.",
+      "dependencies": [
+        "src/shared/components/atoms/Button.tsx"
+      ],
+      "exports": [
+        "Toast component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "tooltip-component",
+      "file_path": "src/shared/components/atoms/Tooltip.tsx",
+      "description": "Tooltip atom that intentionally provides no useful info (meets the 'tooltips that provide no additional information' requirement); supports accessibility.",
+      "dependencies": [],
+      "exports": [
+        "Tooltip component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "trust-badge",
+      "file_path": "src/shared/components/organisms/TrustBadge.tsx",
+      "description": "Trust badge component certifying authentic nothing used in footer and pricing pages.",
+      "dependencies": [],
+      "exports": [
+        "TrustBadge component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "typing-erase-atom",
+      "file_path": "src/shared/components/atoms/TypingErase.tsx",
+      "description": "Typing animation that types and erases itself; used by the Counter and other microcopy.",
+      "dependencies": [
+        "src/hooks/useParticles.ts"
+      ],
+      "exports": [
+        "TypingErase component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "typing-erase-atom-2",
+      "file_path": "src/shared/components/atoms/TypingErase.tsx",
+      "description": "(Duplicate safe export) Typing animation atom used by multiple components. (Ensures import map consistency.)",
+      "dependencies": [],
+      "exports": [
+        "TypingErase"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "urgency-timer",
+      "file_path": "src/shared/components/organisms/UrgencyTimer.tsx",
+      "description": "Urgency countdown timer that counts down to nothing, used for fake scarcity and conversion tests.",
+      "dependencies": [],
+      "exports": [
+        "UrgencyTimer component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-abtest-hook",
+      "file_path": "src/hooks/useABTest.ts",
+      "description": "A/B testing hook that evaluates variants, persists assignment, and exposes variant for components (used in pricing & hero variants).",
+      "dependencies": [
+        "src/hooks/useLocalStorage.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "useABTest"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-analytics-hook",
+      "file_path": "src/hooks/useAnalytics.ts",
+      "description": "Small hook to emit analytics events via core/events and analyticsService. Used by components to record interactions.",
+      "dependencies": [
+        "src/core/events.ts",
+        "src/services/analyticsService.ts"
+      ],
+      "exports": [
+        "useAnalytics"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-api-hook",
+      "file_path": "src/hooks/useApi.ts",
+      "description": "Generic hook wrapping apiClient, provides caching/sketch of stale-while-revalidate, and Suspense compatibility for data fetching.",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/core/utils.ts"
+      ],
+      "exports": [
+        "useApi"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-infinite-scroll-hook",
+      "file_path": "src/hooks/useInfiniteScroll.ts",
+      "description": "Hook to implement infinite scroll behavior used by infinite lists that 'load more nothing'. Uses IntersectionObserver internally.",
+      "dependencies": [
+        "src/hooks/useIntersectionObserver.ts",
+        "src/hooks/useApi.ts"
+      ],
+      "exports": [
+        "useInfiniteScroll"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-intersection-observer",
+      "file_path": "src/hooks/useIntersectionObserver.ts",
+      "description": "Utility hook wrapping IntersectionObserver for reusable reveal & lazy load animations.",
+      "dependencies": [],
+      "exports": [
+        "useIntersectionObserver"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-localstorage-hook",
+      "file_path": "src/hooks/useLocalStorage.ts",
+      "description": "Small hook to persist state into localStorage (polished API with optional serializer).",
+      "dependencies": [
+        "src/core/utils.ts"
+      ],
+      "exports": [
+        "useLocalStorage"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-mock-auth-hook",
+      "file_path": "src/hooks/useMockAuth.ts",
+      "description": "Mock authentication hook used by AuthProvider: handles login/logout/persist via localStorage and returns mock user data from mockData.",
+      "dependencies": [
+        "src/mocks/mockData.ts",
+        "src/hooks/useLocalStorage.ts",
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "useMockAuth"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-particles-hook",
+      "file_path": "src/hooks/useParticles.ts",
+      "description": "Hook to initialize and manage particle systems (void particles) using a lightweight wrapper that supports Framer Motion/GSAP and Three.js integrations.",
+      "dependencies": [
+        "src/core/utils.ts"
+      ],
+      "exports": [
+        "useParticles"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-sound-hook",
+      "file_path": "src/hooks/useSound.ts",
+      "description": "Hook to play micro-sound effects (e.g., silence sound) using WebAudio. Provides play/pause and volume controls.",
+      "dependencies": [
+        "src/assets/sounds/silence.mp3"
+      ],
+      "exports": [
+        "useSound"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "use-three-hook",
+      "file_path": "src/hooks/useThree.ts",
+      "description": "Hook that bootstraps Three.js scenes for VoidCanvas and 3D showcase. Returns scene, camera, renderer refs and lifecycle helpers.",
+      "dependencies": [],
+      "exports": [
+        "useThreeScene"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "void-canvas",
+      "file_path": "src/shared/components/organisms/VoidCanvas.tsx",
+      "description": "Three.js-backed canvas that renders the parallax void animation, particle effects, recursive infinite loading bars, and 3D rotating nothing showcase hook-in points.",
+      "dependencies": [
+        "src/hooks/useThree.ts",
+        "src/hooks/useParticles.ts",
+        "src/shared/components/organisms/Showcase3D.tsx"
+      ],
+      "exports": [
+        "VoidCanvas component"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "analytics-dashboard-feature",
+      "file_path": "src/features/analytics-dashboard/AnalyticsDashboard.tsx",
+      "description": "Mock analytics dashboard visualizing events around nothing, conversion funnel to nothing purchases, and uptime metrics. Pulls from analyticsService.",
+      "dependencies": [
+        "src/services/analyticsService.ts",
+        "src/shared/components/organisms/StatusPanel.tsx"
+      ],
+      "exports": [
+        "AnalyticsDashboard component"
       ],
       "priority": 3
     },
     {
-      "id": "pages-appointments",
-      "file_path": "generated/src/pages/AppointmentsPage.tsx",
-      "description": "Appointments page showing the AppointmentList and controls to create or filter appointments.",
+      "id": "api-docs-page",
+      "file_path": "src/pages/APIDocsPage.tsx",
+      "description": "Page hosting the API documentation component, interactive examples, and copy-to-clipboard endpoints that return nothing.",
       "dependencies": [
-        "generated/src/features/appointments/AppointmentList.tsx",
-        "generated/src/features/appointments/AppointmentForm.tsx",
-        "generated/src/shared/components/layout/MainLayout.tsx",
-        "generated/src/hooks/useRequireAuth.ts"
+        "src/shared/components/organisms/APIDocs.tsx",
+        "src/shared/layout/Layout.tsx"
       ],
       "exports": [
-        "AppointmentsPage component"
+        "APIDocsPage component (default)"
       ],
       "priority": 3
     },
     {
-      "id": "pages-dashboard",
-      "file_path": "generated/src/pages/DashboardPage.tsx",
-      "description": "Dashboard page container that uses HealthDashboard and composes widgets. Protected route for authenticated users.",
+      "id": "case-studies-page",
+      "file_path": "src/pages/CaseStudiesPage.tsx",
+      "description": "Case studies listing page with infinite scroll for more case studies and links to individual (mock) case details.",
       "dependencies": [
-        "generated/src/features/dashboard/HealthDashboard.tsx",
-        "generated/src/shared/components/layout/MainLayout.tsx",
-        "generated/src/hooks/useRequireAuth.ts"
+        "src/shared/components/organisms/CaseStudyCard.tsx",
+        "src/shared/components/organisms/InfiniteScrollLoad.tsx",
+        "src/shared/layout/Layout.tsx",
+        "src/mocks/mockData.ts"
       ],
       "exports": [
-        "DashboardPage component"
+        "CaseStudiesPage component (default)"
       ],
       "priority": 3
     },
     {
-      "id": "pages-insurance",
-      "file_path": "generated/src/pages/InsurancePage.tsx",
-      "description": "Insurance claim tracker page that lists claims and shows statuses/reasons.",
+      "id": "docs-page",
+      "file_path": "src/pages/DocsPage.tsx",
+      "description": "Documentation landing page linking to API docs, SDKs, and press kit. Contains APIDocs viewer component embed.",
       "dependencies": [
-        "generated/src/features/insurance/InsuranceClaims.tsx",
-        "generated/src/shared/components/layout/MainLayout.tsx",
-        "generated/src/hooks/useRequireAuth.ts"
+        "src/shared/components/organisms/APIDocs.tsx",
+        "src/shared/components/organisms/PressKit.tsx",
+        "src/shared/layout/Layout.tsx"
       ],
       "exports": [
-        "InsurancePage component"
+        "DocsPage component (default)"
       ],
       "priority": 3
     },
     {
-      "id": "pages-lab-results",
-      "file_path": "generated/src/pages/LabResultsPage.tsx",
-      "description": "Lab results page listing tests with the ability to view details and download attachments.",
+      "id": "existential-hero-feature",
+      "file_path": "src/features/epic-hero/ExistentialHero.tsx",
+      "description": "Feature layer for the Existential Hero section. Composes VoidCanvas, FloatingBubbles, Counter, GlitchText, MatrixRain and CTA logic. Implements parallax and reveal animations.",
       "dependencies": [
-        "generated/src/features/lab-results/LabResultsTable.tsx",
-        "generated/src/shared/components/layout/MainLayout.tsx",
-        "generated/src/hooks/useRequireAuth.ts"
+        "src/shared/components/organisms/VoidCanvas.tsx",
+        "src/shared/components/organisms/FloatingBubbles.tsx",
+        "src/shared/components/organisms/Counter.tsx",
+        "src/shared/components/atoms/GlitchText.tsx",
+        "src/shared/components/organisms/MatrixRain.tsx",
+        "src/hooks/useABTest.ts"
       ],
       "exports": [
-        "LabResultsPage component"
+        "ExistentialHero component"
       ],
       "priority": 3
     },
     {
-      "id": "pages-login",
-      "file_path": "generated/src/pages/LoginPage.tsx",
-      "description": "Login page that supports mock auth in development, form validation, and redirects to the intended page after login.",
+      "id": "home-page",
+      "file_path": "src/pages/HomePage.tsx",
+      "description": "Home page that assembles the Hero, PricingTierList preview, Testimonials, Simulator teaser, Newsletter signup, Case study preview and footer sections.",
       "dependencies": [
-        "generated/src/providers/AuthProvider.tsx",
-        "generated/src/shared/components/forms/FormField.tsx",
-        "generated/src/shared/components/ui/Button.tsx",
-        "generated/src/shared/components/ui/Input.tsx",
-        "generated/src/app/config.ts"
+        "src/shared/components/organisms/Hero.tsx",
+        "src/shared/components/organisms/PricingTierList.tsx",
+        "src/shared/components/organisms/TestimonialsCarousel.tsx",
+        "src/shared/components/organisms/Simulator.tsx",
+        "src/shared/components/organisms/NewsletterForm.tsx",
+        "src/shared/components/organisms/CaseStudyCard.tsx",
+        "src/shared/layout/Layout.tsx",
+        "src/features/void-animation/VoidAnimationSystem.tsx"
       ],
       "exports": [
-        "LoginPage component"
+        "HomePage component (default)"
       ],
       "priority": 3
     },
     {
-      "id": "pages-medical-records",
-      "file_path": "generated/src/pages/MedicalRecordsPage.tsx",
-      "description": "Medical records page that lists records and opens MedicalRecordViewer for details.",
+      "id": "notfound-page",
+      "file_path": "src/pages/NotFoundPage.tsx",
+      "description": "404 page that humorously redirects users to more nothing (auto-redirect after a delay) and includes a link back to home.",
       "dependencies": [
-        "generated/src/features/medical-records/MedicalRecordViewer.tsx",
-        "generated/src/shared/components/layout/MainLayout.tsx",
-        "generated/src/hooks/useRequireAuth.ts"
+        "src/shared/components/atoms/404Redirect.tsx",
+        "src/shared/layout/Layout.tsx"
       ],
       "exports": [
-        "MedicalRecordsPage component"
+        "NotFoundPage component (default)"
       ],
       "priority": 3
     },
     {
-      "id": "pages-medications",
-      "file_path": "generated/src/pages/MedicationsPage.tsx",
-      "description": "Medications page with current meds, refill actions and quick access to reminder scheduling.",
+      "id": "press-kit-page",
+      "file_path": "src/pages/PressKitPage.tsx",
+      "description": "Dedicated press kit page listing downloadable logos and brand guidelines; uses PressKit component.",
       "dependencies": [
-        "generated/src/features/medications/MedicationList.tsx",
-        "generated/src/shared/components/layout/MainLayout.tsx",
-        "generated/src/hooks/useRequireAuth.ts"
+        "src/shared/components/organisms/PressKit.tsx",
+        "src/shared/layout/Layout.tsx"
       ],
       "exports": [
-        "MedicationsPage component"
+        "PressKitPage component (default)"
       ],
       "priority": 3
     },
     {
-      "id": "pages-notfound",
-      "file_path": "generated/src/pages/NotFoundPage.tsx",
-      "description": "Fallback 404 page for unknown routes.",
+      "id": "pricing-page",
+      "file_path": "src/pages/PricingPage.tsx",
+      "description": "Pricing page displaying the full pricing tiers, comparison chart, guarantee badge, trust badges, and affiliate signup CTA.",
       "dependencies": [
-        "generated/src/shared/components/layout/MainLayout.tsx"
+        "src/shared/components/organisms/PricingTierList.tsx",
+        "src/shared/components/organisms/ComparisonChart.tsx",
+        "src/shared/components/organisms/GuaranteeBadge.tsx",
+        "src/shared/components/organisms/AffiliateSignup.tsx",
+        "src/shared/layout/Layout.tsx"
       ],
       "exports": [
-        "NotFoundPage component"
+        "PricingPage component (default)"
       ],
       "priority": 3
     },
     {
-      "id": "pages-prescriptions",
-      "file_path": "generated/src/pages/PrescriptionsPage.tsx",
-      "description": "Prescriptions overview page for patients and providers with actions for refill and notes.",
+      "id": "status-page",
+      "file_path": "src/pages/StatusPage.tsx",
+      "description": "Status page exposing the StatusPanel that shows 100% nothing uptime and health checks.",
       "dependencies": [
-        "generated/src/features/prescriptions/PrescriptionList.tsx",
-        "generated/src/shared/components/layout/MainLayout.tsx",
-        "generated/src/hooks/useRequireAuth.ts"
+        "src/shared/components/organisms/StatusPanel.tsx",
+        "src/shared/layout/Layout.tsx"
       ],
       "exports": [
-        "PrescriptionsPage component"
+        "StatusPage component (default)"
       ],
       "priority": 3
     },
     {
-      "id": "pages-profile",
-      "file_path": "generated/src/pages/ProfilePage.tsx",
-      "description": "User profile page with editable info, role display, and security options (change password - mock).",
+      "id": "support-chat-feature",
+      "file_path": "src/features/support-chat/SupportChatBot.tsx",
+      "description": "Support chat bot feature implementing a deliberately unhelpful conversational flow; interacts with ChatProvider and supportService.",
       "dependencies": [
-        "generated/src/providers/AuthProvider.tsx",
-        "generated/src/shared/components/forms/FormField.tsx",
-        "generated/src/shared/components/ui/Button.tsx"
+        "src/providers/ChatProvider.tsx",
+        "src/services/supportService.ts"
       ],
       "exports": [
-        "ProfilePage component"
+        "SupportChatBot component"
       ],
       "priority": 3
     },
     {
-      "id": "pages-reminders",
-      "file_path": "generated/src/pages/RemindersPage.tsx",
-      "description": "Medication reminders management page, lists scheduled reminders and offers creation UI.",
+      "id": "void-animation-system-feature",
+      "file_path": "src/features/void-animation/VoidAnimationSystem.tsx",
+      "description": "Central orchestrator for the Void Animation System: coordinates Three.js scenes, GSAP timelines, Framer Motion sequences, and particle effects. Exposes an API for other features to hook into the void.",
       "dependencies": [
-        "generated/src/features/reminders/Reminders.tsx",
-        "generated/src/shared/components/layout/MainLayout.tsx",
-        "generated/src/hooks/useRequireAuth.ts"
+        "src/shared/components/organisms/VoidCanvas.tsx",
+        "src/hooks/useThree.ts",
+        "src/hooks/useParticles.ts",
+        "src/core/di.ts"
       ],
       "exports": [
-        "RemindersPage component"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "pages-telemedicine",
-      "file_path": "generated/src/pages/TelemedicinePage.tsx",
-      "description": "Telemedicine landing page and quick join; integrates TelemedicineRoom for live sessions (mockable in dev).",
-      "dependencies": [
-        "generated/src/features/telemedicine/TelemedicineRoom.tsx",
-        "generated/src/shared/components/layout/MainLayout.tsx",
-        "generated/src/hooks/useRequireAuth.ts"
-      ],
-      "exports": [
-        "TelemedicinePage component"
+        "VoidAnimationSystem component",
+        "voidAnimationService registration"
       ],
       "priority": 3
     }
   ],
   "file_paths": [
-    "generated/src/app/config.ts",
-    "generated/src/core/contracts.ts",
-    "generated/src/core/di.ts",
-    "generated/src/core/events.ts",
-    "generated/src/core/hooks.ts",
-    "generated/src/core/utils.ts",
-    "generated/src/hooks/useLocalStorage.ts",
-    "generated/src/hooks/useRequireAuth.ts",
-    "generated/src/i18n/en.json",
-    "generated/src/i18n/i18n.ts",
-    "generated/src/i18n/ko.json",
-    "generated/src/index.tsx",
-    "generated/src/mocks/data/appointments.ts",
-    "generated/src/mocks/data/insurance.ts",
-    "generated/src/mocks/data/labResults.ts",
-    "generated/src/mocks/data/medicalRecords.ts",
-    "generated/src/mocks/data/medications.ts",
-    "generated/src/mocks/data/prescriptions.ts",
-    "generated/src/mocks/data/reminders.ts",
-    "generated/src/mocks/index.ts",
-    "generated/src/mocks/mockAuth.ts",
-    "generated/src/mocks/mockWebSocket.ts",
-    "generated/src/providers/AuthProvider.tsx",
-    "generated/src/providers/I18nProvider.tsx",
-    "generated/src/providers/MockServerProvider.tsx",
-    "generated/src/providers/QueryProvider.tsx",
-    "generated/src/providers/ThemeProvider.tsx",
-    "generated/src/App.tsx",
-    "generated/src/routes/index.tsx",
-    "generated/src/services/api/appointments.api.ts",
-    "generated/src/services/api/insurance.api.ts",
-    "generated/src/services/api/labResults.api.ts",
-    "generated/src/services/api/medicalRecords.api.ts",
-    "generated/src/services/api/medications.api.ts",
-    "generated/src/services/api/prescriptions.api.ts",
-    "generated/src/services/api/reminders.api.ts",
-    "generated/src/services/httpClient.ts",
-    "generated/src/services/queryClient.ts",
-    "generated/src/services/websocket.ts",
-    "generated/src/shared/components/ui/ErrorBoundary.tsx",
-    "generated/src/shared/components/ui/Loading.tsx",
-    "generated/src/styles/tailwind.css",
-    "generated/tailwind.config.cjs",
-    "generated/src/features/appointments/AppointmentForm.tsx",
-    "generated/src/features/appointments/useAppointments.ts",
-    "generated/src/features/appointments/AppointmentList.tsx",
-    "generated/src/features/dashboard/HealthDashboard.tsx",
-    "generated/src/features/dashboard/useDashboardMetrics.ts",
-    "generated/src/features/insurance/InsuranceClaims.tsx",
-    "generated/src/features/insurance/useInsurance.ts",
-    "generated/src/features/lab-results/useLabResults.ts",
-    "generated/src/features/lab-results/LabResultsTable.tsx",
-    "generated/src/features/medical-records/useMedicalRecords.ts",
-    "generated/src/features/medical-records/MedicalRecordViewer.tsx",
-    "generated/src/features/medications/useMedications.ts",
-    "generated/src/features/medications/MedicationList.tsx",
-    "generated/src/features/prescriptions/usePrescriptions.ts",
-    "generated/src/features/prescriptions/PrescriptionList.tsx",
-    "generated/src/features/reminders/Reminders.tsx",
-    "generated/src/features/reminders/useReminders.ts",
-    "generated/src/features/telemedicine/useTelemedicine.ts",
-    "generated/src/features/telemedicine/TelemedicineRoom.tsx",
-    "generated/src/hooks/useDebounce.ts",
-    "generated/src/shared/components/forms/FormField.tsx",
-    "generated/src/shared/components/layout/Header.tsx",
-    "generated/src/shared/components/layout/MainLayout.tsx",
-    "generated/src/shared/components/layout/Sidebar.tsx",
-    "generated/src/shared/components/ProtectedRoute.tsx",
-    "generated/src/shared/components/ui/Button.tsx",
-    "generated/src/shared/components/ui/Card.tsx",
-    "generated/src/shared/components/ui/HealthChart.tsx",
-    "generated/src/shared/components/ui/Input.tsx",
-    "generated/src/shared/components/ui/Modal.tsx",
-    "generated/src/shared/components/ui/Table.tsx",
-    "generated/src/pages/AppointmentDetailPage.tsx",
-    "generated/src/pages/AppointmentsPage.tsx",
-    "generated/src/pages/DashboardPage.tsx",
-    "generated/src/pages/InsurancePage.tsx",
-    "generated/src/pages/LabResultsPage.tsx",
-    "generated/src/pages/LoginPage.tsx",
-    "generated/src/pages/MedicalRecordsPage.tsx",
-    "generated/src/pages/MedicationsPage.tsx",
-    "generated/src/pages/NotFoundPage.tsx",
-    "generated/src/pages/PrescriptionsPage.tsx",
-    "generated/src/pages/ProfilePage.tsx",
-    "generated/src/pages/RemindersPage.tsx",
-    "generated/src/pages/TelemedicinePage.tsx"
+    "src/providers/ABTestProvider.tsx",
+    "src/providers/AnalyticsProvider.tsx",
+    "src/app/config.ts",
+    "src/App.tsx",
+    "src/providers/AuthProvider.tsx",
+    "src/providers/ChatProvider.tsx",
+    "src/core/contracts.ts",
+    "src/core/di.ts",
+    "src/core/events.ts",
+    "src/core/hooks.ts",
+    "src/core/utils.ts",
+    "src/index.css",
+    "src/main.tsx",
+    "src/providers/MockApiProvider.tsx",
+    "src/mocks/mockData.ts",
+    "src/mocks/handlers.ts",
+    "src/mocks/server.ts",
+    "src/providers/ModalProvider.tsx",
+    "generated/README.md",
+    "src/providers/Router.tsx",
+    "tailwind.config.ts",
+    "src/providers/ThemeProvider.tsx",
+    "src/providers/ToastProvider.tsx",
+    "src/types/three.d.ts",
+    "src/shared/components/atoms/ABTestToggle.tsx",
+    "src/shared/components/organisms/AffiliateSignup.tsx",
+    "src/services/analyticsService.ts",
+    "src/services/apiClient.ts",
+    "src/shared/components/organisms/APIDocs.tsx",
+    "src/shared/components/organisms/Cart.tsx",
+    "src/shared/components/organisms/CaseStudyCard.tsx",
+    "src/shared/components/organisms/ChatWidget.tsx",
+    "src/services/checkoutService.ts",
+    "src/shared/components/organisms/ComparisonChart.tsx",
+    "src/shared/components/organisms/ConfettiButGone.tsx",
+    "src/shared/components/molecules/Container.tsx",
+    "src/shared/components/molecules/CookieBanner.tsx",
+    "src/shared/components/organisms/Counter.tsx",
+    "src/shared/components/molecules/DevToolbar.tsx",
+    "src/shared/components/organisms/EasterEggs.tsx",
+    "src/shared/components/organisms/FAQ.tsx",
+    "src/shared/components/organisms/FloatingBubbles.tsx",
+    "src/shared/components/molecules/Footer.tsx",
+    "src/shared/components/atoms/GlitchText.tsx",
+    "src/shared/components/organisms/GuaranteeBadge.tsx",
+    "src/shared/components/molecules/Header.tsx",
+    "src/shared/components/organisms/Hero.tsx",
+    "src/shared/components/organisms/InfiniteScrollLoad.tsx",
+    "src/shared/layout/Layout.tsx",
+    "src/shared/components/organisms/LiveChatStub.tsx",
+    "src/shared/components/organisms/LoadingBarRecursive.tsx",
+    "src/shared/components/organisms/MatrixRain.tsx",
+    "src/shared/components/molecules/Modal.tsx",
+    "src/shared/components/organisms/NewsletterForm.tsx",
+    "src/services/newsletterService.ts",
+    "src/shared/components/organisms/ParticleBackground.tsx",
+    "src/shared/components/organisms/PressKit.tsx",
+    "src/shared/components/organisms/PricingCard.tsx",
+    "src/services/pricingService.ts",
+    "src/shared/components/organisms/PricingTierList.tsx",
+    "src/shared/components/organisms/ProductCarousel.tsx",
+    "src/shared/components/atoms/ProgressBarReverse.tsx",
+    "src/shared/components/atoms/404Redirect.tsx",
+    "src/shared/components/organisms/ReviewsList.tsx",
+    "src/shared/components/organisms/RoadmapTimeline.tsx",
+    "src/shared/components/atoms/Button.tsx",
+    "src/shared/components/atoms/Icon.tsx",
+    "src/shared/components/organisms/Showcase3D.tsx",
+    "src/shared/components/organisms/Simulator.tsx",
+    "src/shared/components/organisms/SocialProofWidget.tsx",
+    "src/shared/components/atoms/SoundButton.tsx",
+    "src/shared/sound/SoundController.ts",
+    "src/shared/components/organisms/StatusPanel.tsx",
+    "src/services/supportService.ts",
+    "src/shared/components/organisms/TeamGrid.tsx",
+    "src/shared/components/organisms/TestimonialsCarousel.tsx",
+    "src/services/testimonialsService.ts",
+    "src/shared/components/molecules/Toast.tsx",
+    "src/shared/components/atoms/Tooltip.tsx",
+    "src/shared/components/organisms/TrustBadge.tsx",
+    "src/shared/components/atoms/TypingErase.tsx",
+    "src/shared/components/atoms/TypingErase.tsx",
+    "src/shared/components/organisms/UrgencyTimer.tsx",
+    "src/hooks/useABTest.ts",
+    "src/hooks/useAnalytics.ts",
+    "src/hooks/useApi.ts",
+    "src/hooks/useInfiniteScroll.ts",
+    "src/hooks/useIntersectionObserver.ts",
+    "src/hooks/useLocalStorage.ts",
+    "src/hooks/useMockAuth.ts",
+    "src/hooks/useParticles.ts",
+    "src/hooks/useSound.ts",
+    "src/hooks/useThree.ts",
+    "src/shared/components/organisms/VoidCanvas.tsx",
+    "src/features/analytics-dashboard/AnalyticsDashboard.tsx",
+    "src/pages/APIDocsPage.tsx",
+    "src/pages/CaseStudiesPage.tsx",
+    "src/pages/DocsPage.tsx",
+    "src/features/epic-hero/ExistentialHero.tsx",
+    "src/pages/HomePage.tsx",
+    "src/pages/NotFoundPage.tsx",
+    "src/pages/PressKitPage.tsx",
+    "src/pages/PricingPage.tsx",
+    "src/pages/StatusPage.tsx",
+    "src/features/support-chat/SupportChatBot.tsx",
+    "src/features/void-animation/VoidAnimationSystem.tsx"
   ],
   "descriptions": [
-    "Materialized runtime configuration including dev flags, mock users, and endpoints. Consumer modules read this to determine dev mode behaviors.",
-    "Shared domain types, API request/response contracts, enums and common interfaces used across services, features and components.",
-    "Minimal DI container enabling the app to swap implementations (mock vs real) for services like websocket, api clients and storage.",
-    "Lightweight event bus for cross-cutting events (notifications, analytics events, mock websocket forwarding).",
-    "Registry for extension hooks and helper utilities that other modules can register into (for DI or plugin-like extension points).",
-    "Common utilities (formatDate, safeParseJSON, sleep, auth token helpers) used throughout the app.",
-    "Reusable typed localStorage hook for state persistence (used for auth persistence and preferences in dev).",
-    "Hook used by route guards and features to ensure a user is authenticated/authorized; redirects to login when necessary.",
-    "English translation resource (core app strings).",
-    "Initializes i18next with resources and fallback language. Exposes configuration used by I18nProvider.",
-    "Korean translation resource (core app strings).",
-    "React application entry. Hydrates the App root into the DOM and mounts Providers.",
-    "Mock appointment dataset and helper functions to filter/paginate appointments for the mock server.",
-    "Mock insurance claim dataset and helpers used by the mock server.",
-    "Mock lab results dataset and query helpers.",
-    "Mock medical records dataset and helpers for the mock server.",
-    "Mock medication dataset used for medication management and reminders.",
-    "Mock prescriptions data for dev and helper queries.",
-    "Mock medication reminders dataset and helper functions for generating scheduled reminders.",
-    "Mock server entrypoint wiring mock endpoints for all API routes (/api/appointments, /api/medical-records, etc.) and mocking auth flows. Provides handlers used by MockServerProvider.",
-    "Mock authentication module: in-memory users, login/logout functions, token generation, and persistence to localStorage in dev. Exposes endpoints compatible with httpClient.",
-    "Mock websocket implementation that emits simulated real-time events (appointment updates, lab result notifications) used in development mode.",
-    "Authentication context provider that handles login/logout, token management, role information, protected-route helpers and persistence (localStorage in dev). Offers mock auth in development using mockAuth.",
-    "i18n wrapper using i18next. Loads translations and exposes language switcher. Ensures Korean support and lazy namespace loading.",
-    "Development-only provider that starts/stops the mock server and mock websocket when dev mode is enabled in app config. Injects mocks into DI container.",
-    "React Query provider that configures the centralized queryClient and React Query Devtools in dev. Exposes queryClient to DI.",
-    "Theme provider to control dark mode class toggling for Tailwind. Persists preference to localStorage in dev.",
-    "Root component that wires up global Providers (Query, Auth, I18n, Theme, MockServer) and renders the routes. Wraps app in ErrorBoundary and Suspense fallback.",
-    "Declarative routing using React Router. Defines public and protected routes, lazy loads pages and maps paths to page components.",
-    "Domain API client for appointments: uses httpClient to fetch, create, update and cancel appointments. Provides typed functions for React Query.",
-    "API client for insurance claims and tracking.",
-    "API client for lab results querying and metadata.",
-    "API client for medical records retrieval and attachments.",
-    "API client for medication lists, details and refill reminders.",
-    "API client for prescription listing, refill requests and prescription actions.",
-    "API client for scheduling, fetching and cancelling medication reminders.",
-    "Fetch wrapper that handles JSON parsing, authorization header injection, unified error handling and fallback behaviors when backend is unavailable. Reads token from AuthProvider or mock auth in dev via DI.",
-    "Instantiates and configures the React Query client (default options, retry logic, stale times, error handling hooks).",
-    "WebSocket abstraction that can be swapped to a mock implementation via DI. Exposes connect, disconnect, send and subscribe methods.",
-    "Global ErrorBoundary component catching rendering errors. Provides retry/fallback UI and integrates with events for reporting.",
-    "Accessible loading indicator used as Suspense fallback across the app.",
-    "Tailwind entry CSS including base, components and utilities; imported by index.tsx.",
-    "Tailwind configuration enabling JIT, dark mode class-based toggling and common theme tokens. (Project-level config file.)",
-    "Appointment creation/edit form using React Hook Form with validation. Handles date/time pickers and patient/provider selection.",
-    "Feature hook that wraps React Query for appointments and provides helper mutations and optimistic update helpers.",
-    "Presentational list of appointments (card/table) supporting filtering, role-aware actions and keyboard navigation.",
-    "Dashboard component aggregating health metrics, recent appointments, prescriptions and alerts. Uses HealthChart and Card components.",
-    "Hook to fetch health metrics for dashboard (blood pressure, steps, glucose) and shape data for charts.",
-    "Insurance claims UI that lists claims and allows viewing claim details; integrates with mock data in dev.",
-    "Hook for fetching insurance claims and tracking statuses.",
-    "Hook to fetch and cache lab results, supports filtering by date/test type.",
-    "Table UI displaying lab results with indicators for abnormal values and downloadable attachments.",
-    "Hook using React Query to fetch and cache medical records for a patient; supports pagination and attachments.",
-    "UI to view a single medical record with attachments, timeline and accessibility considerations.",
-    "Hook to fetch medications and schedule reminders, with mutation hooks for enabling/disabling reminders.",
-    "Medication list UI with quick actions for refills and reminders.",
-    "React Query wrapper for prescriptions with mutations for refill requests and cancellations.",
-    "List view of prescriptions with actions and accessible forms for refills.",
-    "UI for medication reminders including scheduling form and list of upcoming reminders.",
-    "Hook managing reminders schedule, local notifications (mock), and persistence in dev.",
-    "Abstraction for telemedicine session state (room connections, mock video toggles in dev), integrates with websocket service for events.",
-    "Telemedicine UI (basic video placeholder for mock, chat, controls). Includes accessibility features and fallback when real media APIs are unavailable.",
-    "Small debounce hook used by search inputs and rate-limited interactions.",
-    "Form field wrapper with label, hint, error text handling and ARIA attributes.",
-    "Top navigation bar with language switcher, profile menu and notifications. Accessible and keyboard-navigable.",
-    "Main application shell combining Header, Sidebar and content area. Responsible for responsive layout and accessibility landmarks.",
-    "Left navigation with role-aware links (patient vs provider). Collapsible for mobile and keyboard accessible.",
-    "Route wrapper that ensures authentication and optionally role-based authorization; used by route definitions.",
-    "Accessible, styled button using Tailwind with variants (primary, secondary, ghost).",
-    "Simple card wrapper used across dashboards and lists.",
-    "Wrapper around lightweight chart library for health metrics visualizations used on dashboard.",
-    "Accessible input component integrated with React Hook Form (supports register, errors).",
-    "A11y-first modal dialog used for forms and confirmations (trap focus, ESC close).",
-    "Accessible table component with keyboard navigation and basic sorting support.",
-    "Detail view for a single appointment with actions (reschedule, join telemedicine).",
-    "Appointments page showing the AppointmentList and controls to create or filter appointments.",
-    "Dashboard page container that uses HealthDashboard and composes widgets. Protected route for authenticated users.",
-    "Insurance claim tracker page that lists claims and shows statuses/reasons.",
-    "Lab results page listing tests with the ability to view details and download attachments.",
-    "Login page that supports mock auth in development, form validation, and redirects to the intended page after login.",
-    "Medical records page that lists records and opens MedicalRecordViewer for details.",
-    "Medications page with current meds, refill actions and quick access to reminder scheduling.",
-    "Fallback 404 page for unknown routes.",
-    "Prescriptions overview page for patients and providers with actions for refill and notes.",
-    "User profile page with editable info, role display, and security options (change password - mock).",
-    "Medication reminders management page, lists scheduled reminders and offers creation UI.",
-    "Telemedicine landing page and quick join; integrates TelemedicineRoom for live sessions (mockable in dev)."
+    "Context that centralizes A/B test assignments and exposes evaluation hooks. Used by pricing and hero to toggle variants.",
+    "Context for collecting and dispatching analytics events. Subscribes to core/event bus and forwards events to analyticsService.",
+    "App-level materialized configuration: feature toggles, mock mode flags, third-party keys placeholder, route definitions, pricing constants and A/B test variants.",
+    "Top-level React component that composes Router, Layout, global providers, and common UI (CookieBanner, Toast). Handles global error boundary and Suspense fallbacks.",
+    "Auth context and mock authentication in development. Uses dev-mode mock users from app config to support login flows for the demo. Exposes useAuth hook.",
+    "Context for live chat widget; in dev uses Mock/Stub backend; exposes chat APIs for the SupportChatBot and ChatWidget components.",
+    "Domain types, TS interfaces, API response contracts, and shared enums used across the app (PricingTier, Testimonial, User, NewsletterPayload, AnalyticsEvent, NothingFeature, etc.).",
+    "Simple dependency injection container for registering and resolving services (used by providers and services to decouple implementations).",
+    "Lightweight event bus used for decoupled analytics/events (subscribe, publish), used by AnalyticsProvider and components emitting events.",
+    "Central registry of types for extension hooks and plugin points; defines signature types for lifecycle hooks used by features and providers.",
+    "Shared utility functions: formatters, clamp, debounce, throttle, safeFetch wrapper, classNames helper, feature-gating helpers.",
+    "Tailwind base import and global styles (fonts, dark-mode helpers, utility overrides and resets).",
+    "Application entrypoint: bootstraps providers, mock server in dev, mounts React App into DOM, loads global CSS, and wraps with ErrorBoundary and Suspense fallbacks.",
+    "Provider that conditionally starts the mock server in dev mode and registers handlers from src/mocks. Wraps fetch/xhr interception, provides mock toggles to children.",
+    "Fixture data for development: mock users, testimonials, pricing tiers, analytics events, and sample case studies.",
+    "HTTP handlers for mocked endpoints listed in app config (e.g., /api/nothing, /api/testimonials/nothing, /api/pricing/nothing, etc.).",
+    "Mock server bootstrap for development: registers handlers and starts the mock service. Exposes start/stop methods used by MockApiProvider / main.tsx.",
+    "Global modal management (stackable modals) used by many features (press kit modal, 3D showcase modal, affiliate signup).",
+    "Auto-generated README describing how to run the generated project, dev-mode toggles, and where to find mocked endpoints.",
+    "React Router v6 setup and route registration. Lazy-loads page components and provides route-level Suspense. Exposes route definitions from app config.",
+    "Tailwind CSS configuration with dark mode support, custom theme tokens for the Nothing brand, and JIT settings.",
+    "Provides theme context (light/dark), handles system preference, and persists user choice (useLocalStorage). Supplies CSS variables for animations and color tokens.",
+    "Global toast/notification system used across the app for ephemeral messages (e.g., newsletter success).",
+    "Type declarations for Three.js usage and assets to satisfy TypeScript imports.",
+    "Small toggle UI for switching A/B test variants in dev; used by dev toolbar and header.",
+    "Affiliate program signup UI with share links and mocked referral codes.",
+    "Analytics client that receives events from core/events and forwards to a remote collector or stores them for the mock dashboard.",
+    "Lightweight fetch wrapper for API calls, handles JSON parsing, error mapping, timeouts, and respects DEV_MODE to route to mock endpoints.",
+    "API documentation viewer with code examples (calls return nothing). Supports copy-to-clipboard and a toggle to run 'no-op' curl examples.",
+    "Shopping cart that can only hold nothing; integrates with checkoutService and shows recursive animations when checking out.",
+    "Card representing a case study of nothing implementations; used in CaseStudiesPage and carousel.",
+    "Floating chat widget component that uses ChatProvider; responds with unhelpful automated messages in dev.",
+    "Checkout stub for purchasing nothing (handles cart of nothing, checkout flow, and mocked payment behavior).",
+    "Product comparison matrix: Nothing vs Something vs Everything with humorous copy and interactive hover reveal (but reveals nothing).",
+    "Confetti animation that intentionally disappears mid-air to meet the comedic requirement.",
+    "Responsive container wrapper used by pages and layout for consistent max widths and padding.",
+    "Cookie consent banner warning about 'nothing cookies' and providing accept/decline; persists via useLocalStorage.",
+    "Animated counter that shows '0 features delivered' with typing/erase animation and reverse progress bar.",
+    "Developer toolbar visible in DEV mode to toggle mocks, AB tests, latency, and to simulate websocket toggles.",
+    "Easter egg registry component that listens for special key sequences and reveals deeper layers of nothing.",
+    "FAQ accordion addressing questions about nothing; includes typing-erase micro-interactions and modals that open to show empty space.",
+    "Animated floating testimonial bubbles that drift into nothingness.",
+    "Footer with links to press kit, API docs, status, privacy, and affiliate signup. Includes trust badges and social proof that shows \u221e viewers.",
+    "Text atom with hover glitch effect for the word 'nothing' (uses CSS + GSAP hooks).",
+    "Badge component advertising the money-back guarantee for unsatisfied nothing users.",
+    "Site header with navigation links, dark mode toggle, and subtle glitch hover for 'nothing' branding. Consumes Router links and ABTestToggle.",
+    "Existential hero component incorporating ExistentialHero feature. Includes parallax void animation, animated counter, floating testimonial bubbles, glitch title, matrix zeros rain, and CTA to pricing/newsletter.",
+    "Small reusable infinite loader that integrates with useInfiniteScroll to load more items (loads more nothing).",
+    "Global layout composer that uses Header, Footer, and a main content area. Provides places for CookieBanner and LiveChatStub.",
+    "Small live chat stub that is part of layout; toggles a minimal panel that provides no help.",
+    "Recursive loading bars component that never completes (visual recursion with GSAP animations).",
+    "Matrix rain effect but using zeros, used in hero and as a background accent.",
+    "Accessible modal component used by ModalProvider and various features to show empty space or assets.",
+    "Newsletter signup UI with email validation and integration to newsletterService. Shows animated confetti that disappears before landing.",
+    "Service handling newsletter signup calls and client-side validation, triggers analytics events for signups.",
+    "Background particle effect representing the void of nothing; integrates with Framer Motion and GSAP where necessary.",
+    "Press kit downloader showing logos and assets for Nothing. Offers a modal with assets that are empty svg placeholders.",
+    "Card component representing a pricing tier (Basic Nothing, Pro Nothing, Enterprise Nothing) with CTA to checkout.",
+    "Domain logic and client for pricing tiers and tier calculations. Provides methods to fetch tiers, calculate savings (nothing math), and A/B variants.",
+    "Container that lists pricing tiers, handles A/B variant switching, and shows comparison to Something & Everything.",
+    "Carousel used across site to show product variants of nothing (infinite loop that never adds anything).",
+    "Progress bar that visually moves backwards as an intentionally confusing UI pattern.",
+    "Small component used by the NotFoundPage which triggers a comedic redirect to the homepage after a timeout.",
+    "Customer review list component with 5-star ratings and infinite scroll that loads more nothing.",
+    "Timeline displaying future releases of nothing; includes animated reveal effects and recursive loading markers.",
+    "Primary Button atom used across the app (supports icon, loading state, ghost variants and sound effects on click).",
+    "Icon atom with a small set of icons (logo, star, cart, nothing glyph).",
+    "3D rotating nothing showcase (Three.js) with lazy load and reflection-less materials to emphasize void.",
+    "Interactive void simulator allowing users to tweak parameters (emptiness, blackness, silence) and view results in VoidCanvas.",
+    "Widget showing '\u221e users currently viewing nothing' and other social proof metrics. Animated with Framer Motion.",
+    "Button wrapper that plays a silence sound when clicked (used to meet 'sound of silence' requirement).",
+    "Shared sound controller used by useSound hook and sound-based components to centralize audio context and mute state.",
+    "Status UI showing 100% nothing uptime and recent 'incidents' that are empty. Connects to mock analytics for logs.",
+    "Service for live chat / support endpoints. In dev will use mock HTTP endpoints; exposes startConversation and sendMessage stubs.",
+    "Showcases experts in nothing with profiles that hover to show empty bios and social links leading to nothing.",
+    "Carousel/rotator of testimonials with floating bubble mode and star ratings (always 5 stars).",
+    "Service to fetch and transform testimonials. Provides generator for floating bubble content in the hero.",
+    "Simple toast UI used by ToastProvider.",
+    "Tooltip atom that intentionally provides no useful info (meets the 'tooltips that provide no additional information' requirement); supports accessibility.",
+    "Trust badge component certifying authentic nothing used in footer and pricing pages.",
+    "Typing animation that types and erases itself; used by the Counter and other microcopy.",
+    "(Duplicate safe export) Typing animation atom used by multiple components. (Ensures import map consistency.)",
+    "Urgency countdown timer that counts down to nothing, used for fake scarcity and conversion tests.",
+    "A/B testing hook that evaluates variants, persists assignment, and exposes variant for components (used in pricing & hero variants).",
+    "Small hook to emit analytics events via core/events and analyticsService. Used by components to record interactions.",
+    "Generic hook wrapping apiClient, provides caching/sketch of stale-while-revalidate, and Suspense compatibility for data fetching.",
+    "Hook to implement infinite scroll behavior used by infinite lists that 'load more nothing'. Uses IntersectionObserver internally.",
+    "Utility hook wrapping IntersectionObserver for reusable reveal & lazy load animations.",
+    "Small hook to persist state into localStorage (polished API with optional serializer).",
+    "Mock authentication hook used by AuthProvider: handles login/logout/persist via localStorage and returns mock user data from mockData.",
+    "Hook to initialize and manage particle systems (void particles) using a lightweight wrapper that supports Framer Motion/GSAP and Three.js integrations.",
+    "Hook to play micro-sound effects (e.g., silence sound) using WebAudio. Provides play/pause and volume controls.",
+    "Hook that bootstraps Three.js scenes for VoidCanvas and 3D showcase. Returns scene, camera, renderer refs and lifecycle helpers.",
+    "Three.js-backed canvas that renders the parallax void animation, particle effects, recursive infinite loading bars, and 3D rotating nothing showcase hook-in points.",
+    "Mock analytics dashboard visualizing events around nothing, conversion funnel to nothing purchases, and uptime metrics. Pulls from analyticsService.",
+    "Page hosting the API documentation component, interactive examples, and copy-to-clipboard endpoints that return nothing.",
+    "Case studies listing page with infinite scroll for more case studies and links to individual (mock) case details.",
+    "Documentation landing page linking to API docs, SDKs, and press kit. Contains APIDocs viewer component embed.",
+    "Feature layer for the Existential Hero section. Composes VoidCanvas, FloatingBubbles, Counter, GlitchText, MatrixRain and CTA logic. Implements parallax and reveal animations.",
+    "Home page that assembles the Hero, PricingTierList preview, Testimonials, Simulator teaser, Newsletter signup, Case study preview and footer sections.",
+    "404 page that humorously redirects users to more nothing (auto-redirect after a delay) and includes a link back to home.",
+    "Dedicated press kit page listing downloadable logos and brand guidelines; uses PressKit component.",
+    "Pricing page displaying the full pricing tiers, comparison chart, guarantee badge, trust badges, and affiliate signup CTA.",
+    "Status page exposing the StatusPanel that shows 100% nothing uptime and health checks.",
+    "Support chat bot feature implementing a deliberately unhelpful conversational flow; interacts with ChatProvider and supportService.",
+    "Central orchestrator for the Void Animation System: coordinates Three.js scenes, GSAP timelines, Framer Motion sequences, and particle effects. Exposes an API for other features to hook into the void."
   ],
-  "total_files": 87
+  "total_files": 106
 }
