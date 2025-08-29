@@ -74,6 +74,11 @@ class TokenUsage:
     def __post_init__(self):
         if self.total_tokens == 0:
             self.total_tokens = self.input_tokens + self.output_tokens
+    
+    @property
+    def total(self) -> int:
+        """Compatibility property for code expecting 'total' attribute."""
+        return self.total_tokens
 
 
 @dataclass

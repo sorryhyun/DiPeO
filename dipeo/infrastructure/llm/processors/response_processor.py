@@ -38,13 +38,38 @@ class ResponseProcessor:
         content = ""
         usage = None
         metadata = {}
+        structured_output = None
         
-        # Extract content from new responses.create API
-        if hasattr(response, 'output'):
-            # New API format - output field contains the response
-            content = response.output or ""
+        # Handle responses.parse() output (structured output)
+        if hasattr(response, 'output_parsed'):
+            # Structured output from parse() method
+            structured_output = response.output_parsed
+            # Convert to string for content field
+            content = str(structured_output) if structured_output else ""
+        
+        # Handle new responses.create API format (based on actual response structure)
+        elif hasattr(response, 'output') and isinstance(response.output, list):
+            # Extract content from output[0].content[0].text
+            for message in response.output:
+                if hasattr(message, 'type') and message.type == 'message':
+                    if hasattr(message, 'content') and isinstance(message.content, list):
+                        text_parts = []
+                        for content_block in message.content:
+                            if hasattr(content_block, 'type') and content_block.type == 'output_text':
+                                if hasattr(content_block, 'text'):
+                                    text_parts.append(content_block.text)
+                        content = ''.join(text_parts)
+                    
+                    # Extract metadata from message
+                    if hasattr(message, 'id'):
+                        metadata['message_id'] = message.id
+                    if hasattr(message, 'role'):
+                        metadata['role'] = message.role
+                    if hasattr(message, 'status'):
+                        metadata['message_status'] = message.status
+        
+        # Fallback to old chat.completions format
         elif hasattr(response, 'choices') and response.choices:
-            # Fallback to old format if needed
             choice = response.choices[0]
             if hasattr(choice, 'message'):
                 content = choice.message.content or ""
@@ -57,21 +82,40 @@ class ResponseProcessor:
             if hasattr(choice, 'finish_reason'):
                 metadata['finish_reason'] = choice.finish_reason
         
-        # Extract usage (using new API format)
+        # Extract usage (new format)
         if hasattr(response, 'usage'):
-            usage = TokenUsage(
-                input_tokens=response.usage.input_tokens,
-                output_tokens=response.usage.output_tokens,
-                total_tokens=response.usage.total_tokens
-            )
+            # Try new format first
+            if hasattr(response.usage, 'input_tokens'):
+                usage = TokenUsage(
+                    input_tokens=response.usage.input_tokens,
+                    output_tokens=response.usage.output_tokens,
+                    total_tokens=response.usage.total_tokens
+                )
+            # Fallback to old format
+            elif hasattr(response.usage, 'prompt_tokens'):
+                usage = TokenUsage(
+                    input_tokens=response.usage.prompt_tokens,
+                    output_tokens=response.usage.completion_tokens,
+                    total_tokens=response.usage.total_tokens
+                )
         
         # Extract model info
         if hasattr(response, 'model'):
             metadata['actual_model'] = response.model
         
-        # Extract ID
+        # Extract response ID
         if hasattr(response, 'id'):
             metadata['response_id'] = response.id
+        
+        # Extract status
+        if hasattr(response, 'status'):
+            metadata['status'] = response.status
+        
+        # Extract temperature and other params
+        if hasattr(response, 'temperature'):
+            metadata['temperature'] = response.temperature
+        if hasattr(response, 'max_output_tokens'):
+            metadata['max_output_tokens'] = response.max_output_tokens
         
         return LLMResponse(
             content=content,
@@ -79,7 +123,8 @@ class ResponseProcessor:
             provider=self.provider,
             usage=usage,
             raw_response=response,
-            metadata=metadata
+            metadata=metadata,
+            structured_output=structured_output
         )
     
     def _process_anthropic_response(self, response: Any, model: str) -> LLMResponse:

@@ -43,16 +43,45 @@ class OpenAIClientWrapper(BaseClientWrapper):
         client = self._get_client()
         
         # Build request parameters for new responses API
-        # Only include required parameters initially
         params = {
             "model": model,
             "input": messages,  # New API uses 'input' instead of 'messages'
         }
         
-        # Skip optional parameters for now to see what works
-        # We'll add them back once we understand the API
+        # Add optional parameters if provided
+        # Note: temperature is not supported in the new responses API
+        # if temperature is not None:
+        #     params["temperature"] = temperature
         
-        return client.responses.create(**params)
+        # Max tokens might use a different name in the new API
+        if max_tokens is not None:
+            params["max_output_tokens"] = max_tokens  # New API parameter name
+        
+        # Tools/function calling support
+        if tools is not None:
+            params["tools"] = tools  # Tools format might be the same
+        
+        # Include any additional kwargs (but not response_format)
+        kwargs_without_response_format = {k: v for k, v in kwargs.items() if k != 'response_format'}
+        params.update(kwargs_without_response_format)
+        
+        # Handle structured output based on type
+        if response_format is not None:
+            # Check if it's a JSON schema dictionary or a Pydantic model
+            if isinstance(response_format, dict):
+                # JSON schema format - use create() with response_format
+                # The new API doesn't support response_format parameter directly
+                # We'll use create() without structured output for now
+                return client.responses.create(**params)
+            else:
+                # Pydantic model - use parse() with text_format
+                # Remove temperature for parse() as it's not supported
+                params.pop("temperature", None)
+                params["text_format"] = response_format
+                return client.responses.parse(**params)
+        else:
+            # Regular output uses create() without text_format
+            return client.responses.create(**params)
     
     def stream_chat_completion(
         self,
@@ -72,7 +101,19 @@ class OpenAIClientWrapper(BaseClientWrapper):
             "stream": True,
         }
         
-        # Skip optional parameters for now to see what works
+        # Add optional parameters if provided
+        # Note: temperature is not supported in the new responses API
+        # if temperature is not None:
+        #     params["temperature"] = temperature
+        
+        if max_tokens is not None:
+            params["max_output_tokens"] = max_tokens
+        
+        if tools is not None:
+            params["tools"] = tools
+        
+        # Include any additional kwargs
+        params.update(kwargs)
         
         return client.responses.create(**params)
     
@@ -138,16 +179,43 @@ class AsyncOpenAIClientWrapper(AsyncBaseClientWrapper):
         client = await self._get_client()
         
         # Build request parameters for new responses API
-        # Only include required parameters initially
         params = {
             "model": model,
             "input": messages,  # New API uses 'input' instead of 'messages'
         }
         
-        # Skip optional parameters for now to see what works
-        # We'll add them back once we understand the API
+        # Add optional parameters if provided
+        # Note: temperature is not supported in the new responses API
+        # if temperature is not None:
+        #     params["temperature"] = temperature
         
-        return await client.responses.create(**params)
+        if max_tokens is not None:
+            params["max_output_tokens"] = max_tokens
+        
+        if tools is not None:
+            params["tools"] = tools
+        
+        # Include any additional kwargs (but not response_format)
+        kwargs_without_response_format = {k: v for k, v in kwargs.items() if k != 'response_format'}
+        params.update(kwargs_without_response_format)
+        
+        # Handle structured output based on type
+        if response_format is not None:
+            # Check if it's a JSON schema dictionary or a Pydantic model
+            if isinstance(response_format, dict):
+                # JSON schema format - use create() with response_format
+                # The new API doesn't support response_format parameter directly
+                # We'll use create() without structured output for now
+                return await client.responses.create(**params)
+            else:
+                # Pydantic model - use parse() with text_format
+                # Remove temperature for parse() as it's not supported
+                params.pop("temperature", None)
+                params["text_format"] = response_format
+                return await client.responses.parse(**params)
+        else:
+            # Regular output uses create() without text_format
+            return await client.responses.create(**params)
     
     async def stream_chat_completion(
         self,
@@ -167,7 +235,19 @@ class AsyncOpenAIClientWrapper(AsyncBaseClientWrapper):
             "stream": True,
         }
         
-        # Skip optional parameters for now to see what works
+        # Add optional parameters if provided
+        # Note: temperature is not supported in the new responses API
+        # if temperature is not None:
+        #     params["temperature"] = temperature
+        
+        if max_tokens is not None:
+            params["max_output_tokens"] = max_tokens
+        
+        if tools is not None:
+            params["tools"] = tools
+        
+        # Include any additional kwargs
+        params.update(kwargs)
         
         response = await client.responses.create(**params)
         async for chunk in response:

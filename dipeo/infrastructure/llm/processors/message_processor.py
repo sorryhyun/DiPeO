@@ -86,7 +86,7 @@ class MessageProcessor:
         role = role.lower()
         
         # Standard roles
-        if role in ["system", "user", "assistant"]:
+        if role in ["system", "user", "assistant", "developer"]:
             return role
         
         # Provider-specific mappings
