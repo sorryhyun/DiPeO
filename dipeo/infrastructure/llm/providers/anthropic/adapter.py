@@ -3,6 +3,7 @@
 import logging
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
 
+from dipeo.config.llm import ANTHROPIC_DEFAULT_MAX_TOKENS
 from dipeo.diagram_generated import Message, ToolConfig
 
 from ...capabilities import (
@@ -140,7 +141,7 @@ class AnthropicAdapter(UnifiedAdapter):
     ) -> LLMResponse:
         """Execute synchronous chat completion with retry logic."""
         temperature = temperature or self.config.temperature
-        max_tokens = max_tokens or self.config.max_tokens or 4096  # Anthropic requires max_tokens
+        max_tokens = max_tokens or self.config.max_tokens or ANTHROPIC_DEFAULT_MAX_TOKENS  # Anthropic requires max_tokens
         execution_phase = execution_phase or self.config.execution_phase
         
         # Prepare messages and extract system prompt
@@ -223,7 +224,7 @@ class AnthropicAdapter(UnifiedAdapter):
     ) -> LLMResponse:
         """Execute asynchronous chat completion with retry logic."""
         temperature = temperature or self.config.temperature
-        max_tokens = max_tokens or self.config.max_tokens or 4096
+        max_tokens = max_tokens or self.config.max_tokens or ANTHROPIC_DEFAULT_MAX_TOKENS
         execution_phase = execution_phase or self.config.execution_phase
         
         # Prepare messages and extract system prompt
@@ -304,7 +305,7 @@ class AnthropicAdapter(UnifiedAdapter):
     ) -> Iterator[str]:
         """Stream synchronous chat completion."""
         temperature = temperature or self.config.temperature
-        max_tokens = max_tokens or self.config.max_tokens or 4096
+        max_tokens = max_tokens or self.config.max_tokens or ANTHROPIC_DEFAULT_MAX_TOKENS
         
         # Prepare messages and extract system prompt
         prepared_messages, system_prompt = self.prepare_messages(messages)
@@ -341,7 +342,7 @@ class AnthropicAdapter(UnifiedAdapter):
     ) -> AsyncIterator[str]:
         """Stream asynchronous chat completion."""
         temperature = temperature or self.config.temperature
-        max_tokens = max_tokens or self.config.max_tokens or 4096
+        max_tokens = max_tokens or self.config.max_tokens or ANTHROPIC_DEFAULT_MAX_TOKENS
         
         # Prepare messages and extract system prompt
         prepared_messages, system_prompt = self.prepare_messages(messages)

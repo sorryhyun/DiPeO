@@ -8,6 +8,7 @@ from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
 from google import genai
 from google.genai import types
 
+from dipeo.config.llm import DEFAULT_TEMPERATURE
 from ...core.client import AsyncBaseClientWrapper, BaseClientWrapper
 from ...core.types import AdapterConfig
 
@@ -30,7 +31,7 @@ class GoogleClientWrapper(BaseClientWrapper):
         self,
         messages: List[Dict[str, Any]],
         model: str,
-        temperature: float = 0.7,
+        temperature: float = DEFAULT_TEMPERATURE,
         max_tokens: Optional[int] = None,
         tools: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
@@ -87,7 +88,7 @@ class GoogleClientWrapper(BaseClientWrapper):
         self,
         messages: List[Dict[str, Any]],
         model: str,
-        temperature: float = 0.7,
+        temperature: float = DEFAULT_TEMPERATURE,
         max_tokens: Optional[int] = None,
         tools: Optional[List[Dict[str, Any]]] = None,
         system: Optional[str] = None,
@@ -174,7 +175,7 @@ class AsyncGoogleClientWrapper(AsyncBaseClientWrapper):
         self,
         messages: List[Dict[str, Any]],
         model: str,
-        temperature: float = 0.7,
+        temperature: float = DEFAULT_TEMPERATURE,
         max_tokens: Optional[int] = None,
         tools: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
@@ -228,7 +229,7 @@ class AsyncGoogleClientWrapper(AsyncBaseClientWrapper):
         self,
         messages: List[Dict[str, Any]],
         model: str,
-        temperature: float = 0.7,
+        temperature: float = DEFAULT_TEMPERATURE,
         max_tokens: Optional[int] = None,
         tools: Optional[List[Dict[str, Any]]] = None,
         system: Optional[str] = None,

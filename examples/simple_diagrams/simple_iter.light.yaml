@@ -34,7 +34,7 @@ nodes:
     default_prompt: How many times did you respond?
     flipped: [true, false]
     max_iteration: 1
-    memorize_to: ALL_MESSAGES
+    memorize_to: "remember all"
     person: person 1
 connections:
 - from: start

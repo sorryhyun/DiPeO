@@ -3,6 +3,7 @@
 import logging
 from typing import Any, Dict, List, Optional
 
+from dipeo.config.llm import MEMORY_SELECTION_TEMPERATURE, MEMORY_SELECTION_MAX_TOKENS
 from dipeo.diagram_generated import Message
 
 from ..core.types import ExecutionPhase, MemorySelectionOutput, ProviderType
@@ -77,8 +78,8 @@ class PhaseHandler:
         
         if phase == ExecutionPhase.MEMORY_SELECTION:
             # Memory selection typically needs structured output
-            params['temperature'] = 0.0  # Deterministic selection
-            params['max_tokens'] = 500  # Small response expected
+            params['temperature'] = MEMORY_SELECTION_TEMPERATURE
+            params['max_tokens'] = MEMORY_SELECTION_MAX_TOKENS
             
             if self.provider == ProviderType.OPENAI:
                 params['response_format'] = {

@@ -5,6 +5,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.config.llm import PERSON_JOB_TEMPERATURE, PERSON_JOB_MAX_TOKENS
 from dipeo.domain.conversation import Person
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -251,8 +252,8 @@ class SinglePersonJobExecutor:
             "prompt": built_prompt,
             "llm_service": llm_service,
             "from_person_id": "system",
-            "temperature": 0.2,
-            "max_tokens": 8192,  # Use reasonable default that fits within context limits
+            "temperature": PERSON_JOB_TEMPERATURE,
+            "max_tokens": PERSON_JOB_MAX_TOKENS,
             "execution_phase": "direct_execution",  # Set phase for Claude Code adapter
         }
         

@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Union
 
 from pydantic import BaseModel
+from dipeo.config.llm import DEFAULT_TEMPERATURE
 
 
 class ExecutionPhase(str, Enum):
@@ -53,7 +54,7 @@ class AdapterConfig:
     model: str
     api_key: Optional[str] = None
     base_url: Optional[str] = None
-    temperature: float = 0.7
+    temperature: float = DEFAULT_TEMPERATURE
     max_tokens: Optional[int] = None
     timeout: int = 300
     max_retries: int = 3
