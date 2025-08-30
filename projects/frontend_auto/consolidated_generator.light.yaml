@@ -77,46 +77,15 @@ nodes:
 
   - label: Plan Sections
     type: person_job
-    position: {x: 400, y: 240}
+    position: {x: 600, y: 240}
     props:
       person: Section Planner
       text_format_file: projects/frontend_auto/section_models.py
-      default_prompt: |
-        Analyze the requirements and create a file structure plan:
-
-        App config: {{config}}
-
-        Your response MUST include:
-        1. Architecture:
-           - High-level overview of the application structure
-           - Key patterns and technologies to use
-           - Folder structure showing organization
-           - Data flow description
-
-        2. Sections (one per file):
-           - id: unique identifier
-           - file_to_implement: exact file path
-           - description: what the file does
-           - dependencies: other files it imports from
-           - exports: what it provides to other files
-           - priority: 0=kernel, 1=foundational, 2=components, 3=pages
-
-        REQUIREMENTS:
-        - Order sections by priority and dependencies
-        - Include ALL files that will exist in the app
-        - Start with core kernel files (priority 0):
-          * core/contracts.ts - Domain types and API contracts
-          * app/config.ts - Materialized configuration
-          * core/events.ts - Event bus system
-          * core/hooks.ts - Hook registry for extensions
-          * core/di.ts - Dependency injection (if needed)
-          * core/utils.ts - Common utilities (if needed)
-        - Then include: pages, providers, services, shared components, hooks, features
-        - Every import must have a corresponding section
+      prompt_file: section_planner.txt
 
   - label: Extract Section Properties
     type: code_job
-    position: {x: 600, y: 240}
+    position: {x: 800, y: 0}
     props:
       language: python
       code: |
@@ -136,7 +105,7 @@ nodes:
 
   - label: Generate Core Kernel
     type: person_job
-    position: {x: 1050, y: 240}
+    position: {x: 1050, y: 0}
     props:
       person: Core Kernel Architect
       text_format_file: projects/frontend_auto/core_kernel_models.py
@@ -145,7 +114,7 @@ nodes:
 
   - label: Merge Kernel and Sections
     type: code_job
-    position: {x: 900, y: 240}
+    position: {x: 1200, y: 240}
     props:
       language: python
       code: |
@@ -195,7 +164,7 @@ nodes:
 
   - label: Save Merged Data
     type: db
-    position: {x: 1100, y: 240}
+    position: {x: 1500, y: 240}
     props:
       operation: write
       sub_type: file
@@ -204,7 +173,7 @@ nodes:
 
   - label: load Data
     type: db
-    position: {x: 1100, y: 240}
+    position: {x: 1700, y: 240}
     props:
       operation: read
       sub_type: file
@@ -213,7 +182,7 @@ nodes:
 
   - label: Check Continue
     type: condition
-    position: {x: 1750, y: 240}
+    position: {x: 1750, y: 500}
     props:
       condition_type: custom
 #      expression: current_index >= 4
@@ -232,7 +201,7 @@ nodes:
 
   - label: Generate Frontend Code
     type: person_job
-    position: {x: 2000, y: 240}
+    position: {x: 2000, y: 500}
     props:
       person: Frontend Generator
       max_iteration: 100
@@ -242,7 +211,7 @@ nodes:
 
   - label: Revise Frontend Code
     type: person_job
-    position: {x: 2200, y: 240}
+    position: {x: 2200, y: 500}
     props:
       person: Frontend Generator
       memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
@@ -266,7 +235,7 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 2400, y: 240}
+    position: {x: 2400, y: 500}
     props:
       operation: write
       sub_type: file
@@ -275,43 +244,15 @@ nodes:
 
   - label: Rename Files
     type: code_job
-    position: {x: 1950, y: 600}
+    position: {x: 1950, y: 800}
     props:
       language: python
       filePath: projects/frontend_auto/rename_generated_files.py
       functionName: rename_generated_files
 
-#  - label: Compile Results
-#    type: code_job
-#    position: {x: 1400, y: 600}
-#    props:
-#      language: python
-#      code: |
-#        import json
-#        import os
-#        from pathlib import Path
-#
-#        # Read all generated section files
-#        generated_dir = Path("projects/frontend_enhance/generated")
-#        section_files = sorted(generated_dir.glob("consolidated_section_*.json"))
-#
-#        all_sections = []
-#        for file in section_files:
-#          with open(file, 'r') as f:
-#            all_sections.append(json.load(f))
-#
-#        result = {
-#          "success": True,
-#          "total_sections_processed": len(all_sections),
-#          "sections": all_sections,
-#          "architecture": sorted_data.get('architecture', {}),
-#          "approach": "Sequential processing with intelligent memory selection"
-#        }
-
-
   - label: End
     type: endpoint
-    position: {x: 2200, y: 600}
+    position: {x: 2200, y: 800}
     props:
       save_to_file: false
 

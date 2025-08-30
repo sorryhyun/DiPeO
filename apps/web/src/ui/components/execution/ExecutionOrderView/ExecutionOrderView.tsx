@@ -57,10 +57,36 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
     pollInterval,
     onCompleted: (data: GetExecutionOrderQuery) => {
       if (data?.execution_order) {
+        // Debug: log raw data structure
+        console.log('Raw execution order data:', data.execution_order);
+        
         // Handle case where data might be a string (JSONScalar)
-        const parsedData = typeof data.execution_order === 'string' 
-          ? JSON.parse(data.execution_order)
-          : data.execution_order;
+        let parsedData;
+        try {
+          parsedData = typeof data.execution_order === 'string' 
+            ? JSON.parse(data.execution_order)
+            : data.execution_order;
+        } catch (error) {
+          console.error('Failed to parse execution order data:', error);
+          return;
+        }
+        
+        // Debug: log parsed data
+        console.log('Parsed execution order data:', parsedData);
+        
+        // Ensure nodes is an array
+        if (parsedData && typeof parsedData === 'object') {
+          if (!parsedData.nodes) {
+            parsedData.nodes = [];
+          } else if (!Array.isArray(parsedData.nodes)) {
+            console.warn('Nodes is not an array, converting:', parsedData.nodes);
+            parsedData.nodes = [];
+          }
+          
+          // Debug: log final nodes array
+          console.log('Final nodes array:', parsedData.nodes);
+        }
+        
         setExecutionOrder(parsedData);
       }
     },
@@ -146,13 +172,29 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
     );
   }
 
-  if (!currentExecutionId || !executionOrder) {
+  if (!currentExecutionId) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-400">
         <div className="text-center">
           <Activity className="h-12 w-12 mx-auto mb-2 opacity-50" />
           <p>No execution is currently running</p>
           <p className="text-sm mt-2">Start an execution to see the order of node executions</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Debug: Show raw execution order state
+  if (!executionOrder) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-gray-400">
+        <div className="text-center">
+          <Activity className="h-12 w-12 mx-auto mb-2 opacity-50 animate-pulse" />
+          <p>Waiting for execution data...</p>
+          <p className="text-sm mt-2">Execution ID: {currentExecutionId}</p>
+          {data && (
+            <p className="text-xs mt-1 text-gray-500">Raw data available</p>
+          )}
         </div>
       </div>
     );
@@ -192,6 +234,19 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
         {executionOrder.nodes.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <p>No nodes have been executed yet</p>
+            <div className="text-xs mt-2 text-gray-500">
+              <p>Status: {executionOrder.status}</p>
+              <p>Total nodes expected: {executionOrder.totalNodes}</p>
+              {executionOrder.startedAt && (
+                <p>Started at: {new Date(executionOrder.startedAt).toLocaleTimeString()}</p>
+              )}
+            </div>
+            <button 
+              onClick={refreshExecutionOrder}
+              className="mt-4 px-3 py-1 text-xs bg-gray-600 hover:bg-gray-500 text-white rounded"
+            >
+              Refresh Data
+            </button>
           </div>
         ) : (
           <div className="space-y-2">

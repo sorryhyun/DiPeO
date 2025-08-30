@@ -1,146 +1,104 @@
 {
   "architecture": {
-    "overview": "A modular, production-ready React + TypeScript patient healthcare portal. The app is split into a small Core Kernel (shared contracts, events, DI, utils), foundational providers and services (auth, data fetching, mock server, theme, i18n), reusable UI components and feature components, and feature pages routed via a central router. React Query handles remote data with cache + retries; Context + hooks manage auth and UI state. Tailwind CSS + dark mode provide styling. In development mode a built-in mock API and mock WebSocket provide offline-first behavior with localStorage persistence and mock users.",
+    "overview": "A modular, scalable React + TypeScript patient healthcare portal. Core domain contracts and utilities live under src/core. App-level configuration and routing live under src/app. Providers (Auth, Query, Theme, Mock server, WebSocket) bootstrap app-wide behavior. Services encapsulate API calls and business contracts. Shared UI primitives, hooks and utilities are reusable across feature pages. Each feature (appointments, records, prescriptions, telemedicine, dashboard, lab results, insurance, medications) is implemented as a page + small feature components that consume services via React Query. Development mode includes a mock server, mock WebSocket, and persisted mock auth via localStorage so the app runs standalone without backend dependencies.",
     "patterns": [
-      "Domain-driven folders per feature (features/ & pages/ per domain)",
-      "Container/Presentational: Pages and feature containers use presentational reusable UI components",
-      "Provider pattern: AuthProvider, QueryProvider, ThemeProvider encapsulate cross-cutting concerns",
-      "React Query for server state, Context for auth/UI state",
-      "Core Kernel for shared contracts, events, DI and utilities",
-      "Mocking layer (MSW-like) for dev mode; graceful fallbacks for missing backend"
+      "Container/Presentational: pages and providers compose small presentational components under shared/components.",
+      "Domain-driven modules: services per domain (appointments, medicalRecords, prescriptions, labResults, insurance, medications).",
+      "Provider pattern: AuthProvider / QueryProvider / ThemeProvider / WebsocketProvider to centralize cross-cutting concerns.",
+      "React Query for data-fetching and caching, with Suspense and Error Boundaries for loading/failure UX.",
+      "Context + hooks: small contexts and custom hooks (useAuth, useSocket, useLocalStorage) for local concerns.",
+      "Mock-first development: MockServerProvider and websocketMock to simulate backend and real-time events.",
+      "i18n: central i18n initialization with translation JSONs (en / ko)."
     ],
-    "data_flow": "UI components call feature services (services/*) which use a single apiClient. React Query wraps service calls for caching, retries and optimistic updates. AuthProvider exposes token and user via useAuth hook; QueryProvider injects auth token into apiClient. MockServer intercepts API calls in development and feeds mock data from mocks/data/*. WebSocket mock provides real-time updates to subscribed hooks (useWebSocket). LocalPersistence handles storing auth tokens and minimal UI state in localStorage in dev mode. Events (core/events) provide an internal pub/sub for cross-cutting notifications (e.g., incoming telemedicine call).",
-    "folder_structure": "src/\n  app/\n    config.ts\n  core/\n    contracts.ts\n    events.ts\n    hooks.ts\n    di.ts\n    utils.ts\n  main.tsx\n  index.css\n  App.tsx\n  routes/\n    AppRouter.tsx\n    ProtectedRoute.tsx\n  providers/\n    AuthProvider.tsx\n    QueryProvider.tsx\n    ThemeProvider.tsx\n  services/\n    apiClient.ts\n    appointmentsService.ts\n    recordsService.ts\n    prescriptionsService.ts\n    labsService.ts\n    insuranceService.ts\n    medicationsService.ts\n    mockServer.ts\n    websocketMock.ts\n    localPersistence.ts\n  state/\n    store.ts\n  hooks/\n    useAuth.ts\n    useFetch.ts\n    useWebSocket.ts\n  i18n/\n    i18n.ts\n    locales/\n      en.json\n      ko.json\n  mocks/\n    data/\n      authUsers.ts\n      appointments.ts\n      medicalRecords.ts\n      prescriptions.ts\n      labResults.ts\n      insurance.ts\n      medications.ts\n    handlers.ts\n    browser.ts\n  validators/\n    validators.ts\n  utils/\n    date.ts\n    formatting.ts\n  components/\n    ErrorBoundary.tsx\n    SuspenseFallback.tsx\n    Layout/\n      AppLayout.tsx\n      Header.tsx\n      Sidebar.tsx\n    ui/\n      Button.tsx\n      Input.tsx\n      Modal.tsx\n    forms/\n      FormField.tsx\n      DatePicker.tsx\n  features/\n    appointments/\n      AppointmentCard.tsx\n      AppointmentForm.tsx\n    records/\n      RecordViewer.tsx\n    prescriptions/\n      PrescriptionList.tsx\n    telemedicine/\n      VideoCall.tsx\n    metrics/\n      MetricsChart.tsx\n    labs/\n      LabResultItem.tsx\n    insurance/\n      ClaimItem.tsx\n    reminders/\n      ReminderList.tsx\n  pages/\n    HomePage.tsx\n    LoginPage.tsx\n    DashboardPage.tsx\n    appointments/\n      AppointmentListPage.tsx\n      AppointmentDetailPage.tsx\n    records/\n      MedicalRecordsPage.tsx\n    prescriptions/\n      PrescriptionsPage.tsx\n    telemedicine/\n      TelemedicinePage.tsx\n    metrics/\n      HealthMetricsPage.tsx\n    labs/\n      LabResultsPage.tsx\n    insurance/\n      InsurancePage.tsx\n    reminders/\n      MedicationRemindersPage.tsx\n    NotFoundPage.tsx\nconfig/\n  tailwind.config.js\n  postcss.config.cjs\n  tsconfig.json",
+    "data_flow": "UI components call service functions (services/*) which use apiClient to fetch data. React Query manages fetching, caching, retries and invalidation. AuthProvider stores authentication state (token + user) and persists to localStorage in development. WebsocketProvider (or a mock) pushes real-time updates to React Query via events or to local state via useSocket. ErrorBoundary components catch render/runtime exceptions; React Suspense handles async loading states. MockServer intercepts API calls in development and returns mock data. All components use typed contracts from core/contracts.ts for type safety.",
+    "folder_structure": "src/\n  core/\n    contracts.ts                # domain types, DTOs and API contracts\n    events.ts                   # lightweight event bus to broadcast domain events\n    hooks.ts                    # hook registry / extension points\n    di.ts                       # simple DI container (optional service overrides for tests)\n    utils.ts                    # small generic helpers\n  app/\n    config.ts                   # runtime materialized configuration (dev flags, routes, endpoints)\n    routes.tsx                  # app route definitions and route meta\n    i18n.ts                     # i18n initialization (react-i18next wrapper)\n  providers/\n    AuthProvider.tsx            # authentication context, token handling, protected routes\n    QueryProvider.tsx           # react-query client + default settings\n    ThemeProvider.tsx           # tailwind dark mode toggle context\n    MockServerProvider.tsx      # starts mock server in development\n    WebsocketProvider.tsx       # WebSocket or mock socket provider\n  services/\n    apiClient.ts                # wrapper around fetch/axios with auth token injection\n    auth.ts                     # auth-related API calls and mock adapters\n    appointments.ts\n    medicalRecords.ts\n    prescriptions.ts\n    labResults.ts\n    insurance.ts\n    medications.ts\n  mock/\n    mockServer.ts               # mock API routing & handlers (mirrors endpoints list)\n    websocketMock.ts            # mock real-time event dispatcher\n    data/\n      users.ts\n      appointments.ts\n      medicalRecords.ts\n      prescriptions.ts\n      labResults.ts\n      insurance.ts\n      medications.ts\n  shared/\n    components/\n      Layout.tsx\n      Header.tsx\n      Sidebar.tsx\n      Button.tsx\n      Input.tsx\n      Card.tsx\n      Modal.tsx\n      Table.tsx\n      Spinner.tsx\n      ErrorFallback.tsx\n      ProtectedRoute.tsx\n    forms/\n      useForm.ts\n      validators.ts\n    hooks/\n      useLocalStorage.ts\n      useAuth.ts\n      useSocket.ts\n      useInterval.ts\n    i18n/\n      en.json\n      ko.json\n    utils/\n      date.ts\n      formatters.ts\n  pages/\n    Auth/\n      LoginPage.tsx\n      Logout.tsx\n    Dashboard/\n      DashboardPage.tsx\n    Appointments/\n      AppointmentsPage.tsx\n      AppointmentDetail.tsx\n    MedicalRecords/\n      RecordsPage.tsx\n    Prescriptions/\n      PrescriptionsPage.tsx\n    Telemedicine/\n      TelemedicinePage.tsx\n    LabResults/\n      LabResultsPage.tsx\n    Insurance/\n      InsurancePage.tsx\n    Medications/\n      MedicationsPage.tsx\n    NotFound.tsx\n  styles/\n    index.css                   # Tailwind entry and global styles\n  App.tsx\n  main.tsx\n\nSupport files (root):\n  tailwind.config.cjs\n  postcss.config.cjs\n  tsconfig.json\n",
     "tech_stack": [
-      "React 18+ (Suspense, Error Boundaries, Context API)",
+      "React 18+ (functional components, Suspense, Error Boundaries, Context API)",
       "TypeScript",
-      "Tailwind CSS (with dark mode)",
-      "React Query (server state)",
-      "React Router v6+",
-      "i18next for i18n (Korean + English)",
-      "Mock Service Worker pattern for mocks (in-app handlers/browser)",
-      "LocalStorage for dev persistence",
-      "WebSocket mock for real-time updates"
+      "React Router (v6) for routing",
+      "React Query (TanStack Query) for data fetching and caching",
+      "Tailwind CSS for styling with dark mode support",
+      "i18next / react-i18next for internationalization (English + Korean JSONs)",
+      "Mock Service Worker-style mock server (in-project simple mock server)",
+      "WebSocket mock for real-time updates",
+      "LocalStorage for local persistence in development",
+      "Jest/React Testing Library (recommended but not included here by code list)"
     ]
   },
   "kernel_specs": {
-    "overview": "The Core Kernel provides a small, highly-focused foundation used by every feature and provider in the app. It contains the single source of truth for domain types and API contracts (core/contracts.ts), materialized runtime configuration (app/config.ts), a typed event bus for decoupled communication (core/events.ts), a hook registry for extension points (core/hooks.ts), a small DI container for swapping implementations in tests/dev (core/di.ts), and compact safe utilities used by kernel-level code (core/utils.ts). All other modules import contracts, events, hooks and DI tokens from this kernel. Keep the kernel deliberately minimal, well-typed and side-effect free so it can be imported anywhere (including mocks and node-based tooling)."
+    "overview": "The Core Kernel provides a small, well-typed foundation for the entire application. It centralizes domain contracts, runtime configuration, a typed event bus, an extensible hook registry, a tiny dependency-injection container, and generic utilities. All feature modules, providers and services should import types and primitives from these files (use @/core/* imports). These files are minimal, focused, and immediately usable in production and development workflows (including mock-mode)."
   },
   "sections": [
     {
-      "id": "api-client",
-      "file_path": "src/services/apiClient.ts",
-      "description": "Centralized API client wrapper using fetch with automatic auth token injection, timeout, JSON parse handling, and fallback behavior when backend unavailable (graceful errors). Swappable to a mock adapter in dev.",
-      "dependencies": [
-        "src/app/config.ts",
-        "src/services/localPersistence.ts"
-      ],
-      "exports": [
-        "apiClient",
-        "setApiToken",
-        "clearApiToken"
-      ],
-      "priority": 1
-    },
-    {
       "id": "app-config",
-      "file_path": "app/config.ts",
-      "description": "Materialized application configuration including environment flags (dev mode, mock toggles), API base paths, feature flags and i18n default. Reads from process.env where appropriate and exports a typed config.",
-      "dependencies": [],
+      "file_path": "src/app/config.ts",
+      "description": "Materialized runtime config: feature flags (enable_mock_data), API base URL, mock endpoints list, dev users and persistence flags (use_localstorage_persistence).",
+      "dependencies": [
+        "src/core/contracts.ts"
+      ],
       "exports": [
         "AppConfig",
-        "config"
+        "appConfig",
+        "DEV_MOCK_ENDPOINTS"
       ],
       "priority": 1,
-      "purpose": "Materialized runtime configuration object. Exposes typed flags and computed helper booleans. Also exports the development mock users derived from the top-level application configuration.",
-      "content": "Summary\n- Purpose: create a typed, materialized config that other modules import at runtime. The file reads environment variables minimally (process.env.NODE_ENV, process.env.REACT_APP_API_BASE) and merges them with the static application configuration provided in the build/development environment.\n- Keep the config pure and serializable.\n\nTypes\n- export interface AppConfig {\n-   appName: string;\n-   environment: 'development' | 'production' | 'test';\n-   apiBaseUrl: string;\n-   appType: string; // 'healthcare'\n-   framework: string; // 'react'\n-   features: string[]; // from architecture.features\n-   developmentMode: {\n-     enableMockData: boolean;\n-     mockAuthUsers: Array<{ email: string; password: string; role: 'doctor' | 'patient' | 'nurse' | string }>;\n-     mockApiEndpoints: string[];\n-     disableWebsocketInDev: boolean;\n-     useLocalstoragePersistence: boolean;\n-   };\n-   i18n: { defaultLocale: string; supported: string[] };\n-   featureFlags: Record<string, boolean>;\n- }\n\nMaterialized value and computed helpers\n- const isDevelopment = process.env.NODE_ENV !== 'production';\n- const apiBase = process.env.REACT_APP_API_BASE ?? (isDevelopment ? 'http://localhost:4000' : '/api');\n\n- export const config: AppConfig = { ... } // fully populated below.\n\nConcrete exported config (example)\nexport const config: AppConfig = {\n  appName: 'Patient Portal',\n  environment: (process.env.NODE_ENV as any) || 'development',\n  apiBaseUrl: apiBase,\n  appType: 'healthcare',\n  framework: 'react',\n  features: [\n    'appointment scheduling',\n    'medical records viewer',\n    'prescription management',\n    'telemedicine interface',\n    'health metrics dashboard',\n    'lab results display',\n    'insurance claim tracker',\n    'medication reminders'\n  ],\n  developmentMode: {\n    enableMockData: true,\n    mockAuthUsers: [\n      { email: 'doctor@hospital.com', password: 'doc123', role: 'doctor' },\n      { email: 'patient@email.com', password: 'patient123', role: 'patient' },\n      { email: 'nurse@hospital.com', password: 'nurse123', role: 'nurse' }\n    ],\n    mockApiEndpoints: [\n      '/api/appointments',\n      '/api/medical-records',\n      '/api/prescriptions',\n      '/api/lab-results',\n      '/api/insurance',\n      '/api/medications'\n    ],\n    disableWebsocketInDev: true,\n    useLocalstoragePersistence: true\n  },\n  i18n: { defaultLocale: 'en', supported: ['en', 'ko'] },\n  featureFlags: {\n    telemedicine: true,\n    prescriptionsRefill: true,\n    insuranceClaims: true\n  }\n};\n\nComputed helpers\n- export const isDevelopment = config.environment === 'development';\n- export const shouldUseMockData = isDevelopment && config.developmentMode.enableMockData;\n- export const shouldDisableWebsocket = isDevelopment && config.developmentMode.disableWebsocketInDev;\n- export const supportsFeature = (name: string) => config.features.includes(name) || !!config.featureFlags[name];\n\nMock data exposure\n- If shouldUseMockData is true, export a strongly-typed array of mockAuthUsers: export const mockAuthUsers = config.developmentMode.mockAuthUsers;\n\nPatterns and conventions\n- Import this file everywhere as the canonical runtime config. Avoid reading process.env elsewhere in the codebase.\n- Keep secrets out of the commit \u2014 only non-sensitive values belong here. In CI/production REACT_APP_API_BASE should be set externally.\n\nExample usage\n- import { config, shouldUseMockData, mockAuthUsers } from '@/app/config';\n- if (shouldUseMockData) { startMockServer({ users: mockAuthUsers }); }\n\nIntegration points\n- mocks/*: will import mockAuthUsers to seed authentication.\n- services/apiClient.ts and providers/QueryProvider.tsx: will read config.apiBaseUrl.\n- websocketMock.ts: will consult shouldDisableWebsocket.\n"
+      "purpose": "Materialized runtime configuration. Exposes a typed AppConfig, computed flags, feature toggles and development mock users & endpoints. This file is the single source for runtime flags and should be referenced by providers and the mock server.",
+      "content": "/* src/app/config.ts\n   Runtime configuration. Keep non-sensitive defaults here. For production, the build can replace\n'this file' or environment variables injected. For this project we materialize the provided\nconfiguration for development-first behavior (mock mode enabled by default in dev).\n*/\n\nimport { Role, User } from '@/core/contracts';\n\nexport interface AppConfig {\n  appName: string;\n  apiBaseUrl: string; // used by apiClient in production\n  features: string[]; // feature toggles list\n  env: 'development' | 'production' | 'test';\n  enableMockData: boolean;\n  disableWebsocketInDev: boolean;\n  useLocalStoragePersistence: boolean;\n  mockApiEndpoints: string[];\n  devMockUsers: User[];\n}\n\n// Materialized defaults based on provided project configuration\nconst DEFAULT_MOCK_USERS: User[] = [\n  {\n    id: 'u-doctor-1',\n    email: 'doctor@hospital.com',\n    name: 'Dr. Alice Kim',\n    role: Role.DOCTOR,\n    avatarUrl: null,\n    createdAt: new Date().toISOString()\n  },\n  {\n    id: 'u-patient-1',\n    email: 'patient@email.com',\n    name: 'John Patient',\n    role: Role.PATIENT,\n    avatarUrl: null,\n    createdAt: new Date().toISOString()\n  },\n  {\n    id: 'u-nurse-1',\n    email: 'nurse@hospital.com',\n    name: 'Nora Nurse',\n    role: Role.NURSE,\n    avatarUrl: null,\n    createdAt: new Date().toISOString()\n  }\n];\n\nexport const DEV_MOCK_ENDPOINTS = [\n  '/api/appointments',\n  '/api/medical-records',\n  '/api/prescriptions',\n  '/api/lab-results',\n  '/api/insurance',\n  '/api/medications'\n] as const;\n\nexport const appConfig: AppConfig = {\n  appName: 'Healthcare Portal',\n  apiBaseUrl: typeof window !== 'undefined' ? window.location.origin + '/api' : 'http://localhost:3000/api',\n  features: [\n    'appointment scheduling',\n    'medical records viewer',\n    'prescription management',\n    'telemedicine interface',\n    'health metrics dashboard',\n    'lab results display',\n    'insurance claim tracker',\n    'medication reminders'\n  ],\n  env: (process.env.NODE_ENV as AppConfig['env']) || 'development',\n  enableMockData: true, // development-first default; providers will honor computed flags\n  disableWebsocketInDev: true,\n  useLocalStoragePersistence: true,\n  mockApiEndpoints: DEV_MOCK_ENDPOINTS as unknown as string[],\n  devMockUsers: DEFAULT_MOCK_USERS\n};\n\n/* Computed helpers */\nexport const isDevelopment = appConfig.env === 'development';\nexport const shouldUseMockData = isDevelopment && appConfig.enableMockData;\n\n/* Example usage:\nimport { appConfig, shouldUseMockData } from '@/app/config';\nif (shouldUseMockData) { startMockServer(); }\n*/"
     },
     {
-      "id": "app-layout",
-      "file_path": "src/components/Layout/AppLayout.tsx",
-      "description": "Main application layout used by protected pages: includes Header, Sidebar and main content area with responsive behavior for mobile and desktop.",
+      "id": "app-i18n",
+      "file_path": "src/app/i18n.ts",
+      "description": "i18n initialization wrapper using react-i18next; loads local JSON translations (en, ko) and exposes translation utilities.",
       "dependencies": [
-        "src/components/Layout/Header.tsx",
-        "src/components/Layout/Sidebar.tsx",
-        "src/hooks/useAuth.ts"
+        "src/shared/i18n/en.json",
+        "src/shared/i18n/ko.json"
       ],
       "exports": [
-        "AppLayout"
+        "initI18n"
       ],
       "priority": 1
     },
     {
       "id": "app-root",
       "file_path": "src/App.tsx",
-      "description": "Top-level App component: mounts router inside ErrorBoundary and Suspense with Fallback; provides global layout. Connects i18n initialization.",
+      "description": "Top-level app component: Router wrapper, Error Boundary, Suspense boundary, and route outlet. Applies global layout and fallback UIs.",
       "dependencies": [
-        "src/routes/AppRouter.tsx",
-        "src/components/ErrorBoundary.tsx",
-        "src/components/SuspenseFallback.tsx",
-        "src/providers/ThemeProvider.tsx",
-        "src/i18n/i18n.ts"
+        "src/app/routes.tsx",
+        "src/shared/components/ErrorFallback.tsx",
+        "src/shared/components/Spinner.tsx"
       ],
       "exports": [
-        "App component"
+        "App"
       ],
       "priority": 1
     },
     {
-      "id": "app-router",
-      "file_path": "src/routes/AppRouter.tsx",
-      "description": "React Router v6 configuration: declares public and protected routes for all pages including lazy-loaded feature pages. Integrates ProtectedRoute for auth-guarded sections.",
+      "id": "app-routes",
+      "file_path": "src/app/routes.tsx",
+      "description": "React Router route definitions for public and protected routes; uses ProtectedRoute wrapper. Exports route components and route metadata for navigation.",
       "dependencies": [
-        "src/routes/ProtectedRoute.tsx",
-        "src/pages/HomePage.tsx",
-        "src/pages/LoginPage.tsx",
-        "src/pages/DashboardPage.tsx",
-        "src/pages/NotFoundPage.tsx",
-        "src/pages/appointments/AppointmentListPage.tsx",
-        "src/pages/appointments/AppointmentDetailPage.tsx",
-        "src/pages/records/MedicalRecordsPage.tsx",
-        "src/pages/prescriptions/PrescriptionsPage.tsx",
-        "src/pages/telemedicine/TelemedicinePage.tsx"
+        "src/pages/Auth/LoginPage.tsx",
+        "src/pages/Auth/Logout.tsx",
+        "src/pages/Dashboard/DashboardPage.tsx",
+        "src/pages/Appointments/AppointmentsPage.tsx",
+        "src/pages/Appointments/AppointmentDetail.tsx",
+        "src/pages/MedicalRecords/RecordsPage.tsx",
+        "src/pages/Prescriptions/PrescriptionsPage.tsx",
+        "src/pages/Telemedicine/TelemedicinePage.tsx",
+        "src/pages/LabResults/LabResultsPage.tsx",
+        "src/pages/Insurance/InsurancePage.tsx"
       ],
       "exports": [
-        "AppRouter component"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "appointments-service",
-      "file_path": "src/services/appointmentsService.ts",
-      "description": "Service functions for appointment scheduling: list, create, update, cancel. Consumed by React Query hooks in pages and components.",
-      "dependencies": [
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "listAppointments",
-        "getAppointment",
-        "createAppointment",
-        "updateAppointment",
-        "cancelAppointment"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "auth-provider",
-      "file_path": "src/providers/AuthProvider.tsx",
-      "description": "Auth context provider that manages login/logout, token storage (via localPersistence in dev), exposes current user and role, and supports mock auth users in development. Uses core/contracts types.",
-      "dependencies": [
-        "src/services/localPersistence.ts",
-        "src/mocks/data/authUsers.ts",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "AuthProvider",
-        "useAuthContext (context)"
+        "AppRoutes",
+        "publicRoutes",
+        "protectedRoutes"
       ],
       "priority": 1
     },
     {
       "id": "core-contracts",
-      "file_path": "core/contracts.ts",
-      "description": "Domain types, API request/response contracts, enums and shared TypeScript interfaces used across the app (appointments, records, prescriptions, labs, user, auth token, WebSocket events).",
+      "file_path": "src/core/contracts.ts",
+      "description": "Domain types, DTOs and API contracts shared across services and UI (User, Appointment, MedicalRecord, Prescription, LabResult, InsuranceClaim, Medication, Pagination, API error shapes).",
       "dependencies": [],
       "exports": [
         "User",
@@ -153,455 +111,282 @@
         "InsuranceClaim",
         "Medication",
         "ApiResponse",
-        "WebSocketEvent"
+        "PaginationParams",
+        "ApiError"
       ],
       "priority": 1,
-      "purpose": "Domain types, API request/response contracts and shared interfaces used across the entire application (appointments, records, prescriptions, lab results, user and auth types, WebSocket events, form/loading states).",
-      "content": "Summary\n- Purpose: provide a lightweight, fully-typed contract layer that every file imports from (avoid importing services/providers here). Keep only pure types and small helper types.\n\nType design principles\n- Use discriminated unions where appropriate (e.g., role: 'patient' | 'doctor' | 'nurse').\n- Keep fields optional only when truly optional across API responses.\n- Prefer ISO 8601 strings for dates in API payloads (backend-agnostic).\n- Provide generic ApiResult<T> and ApiError to standardize error handling.\n\nRequired types\n1) Basic primitives and helpers\n- export type Nullable<T> = T | null;\n\n2) Roles and Auth token\n- export type Role = 'patient' | 'doctor' | 'nurse' | 'admin';\n\n- export interface AuthToken {\n-   accessToken: string; // JWT or opaque token\n-   refreshToken?: string;\n-   expiresAt?: string; // ISO date-time when token expires\n- }\n\n3) User types\n- export interface UserBase {\n-   id: string;\n-   email: string;\n-   fullName: string;\n-   avatarUrl?: string;\n-   role: Role;\n- }\n-\n- export interface Patient extends UserBase {\n-   role: 'patient';\n-   dateOfBirth?: string; // ISO\n-   medicalRecordNumber?: string;\n- }\n-\n- export interface Doctor extends UserBase {\n-   role: 'doctor';\n-   specialty?: string;\n-   licenseId?: string;\n- }\n-\n- export interface Nurse extends UserBase {\n-   role: 'nurse';\n-   department?: string;\n- }\n-\n- export type User = Patient | Doctor | Nurse | UserBase;\n\n4) Domain models (keep minimal fields required by UI)\n- Appointment\n  - id, patientId, providerId, startAt, endAt, status, type, location, notes\n  - status: 'scheduled' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'\n  - type: 'telemedicine' | 'in_person' | 'phone'\n\n- MedicalRecord\n  - id, patientId, title, summary, recordedAt, attachments?: string[]\n\n- Prescription\n  - id, patientId, prescribedBy (doctor id), medicationId, dosage, frequency, startAt, endAt, status\n  - status: 'active' | 'expired' | 'cancelled' | 'refill_requested'\n\n- LabResult\n  - id, patientId, testName, value, unit, referenceRange?, collectedAt, status\n  - status: 'preliminary' | 'final' | 'amended'\n\n- InsuranceClaim\n  - id, patientId, providerId, amount, currency, submittedAt, status\n  - status: 'pending' | 'approved' | 'denied' | 'in_review'\n\n- Medication\n  - id, name, form, strength, instructions, nextReminderAt?\n\nExample Type Declarations (pseudo-TS inside content)\nexport interface Appointment {\n  id: string;\n  patientId: string;\n  providerId: string;\n  startAt: string; // ISO\n  endAt?: string; // ISO\n  status: 'scheduled' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';\n  type: 'telemedicine' | 'in_person' | 'phone';\n  location?: string;\n  notes?: string;\n}\n\nexport interface MedicalRecord {\n  id: string;\n  patientId: string;\n  title: string;\n  summary: string;\n  recordedAt: string; // ISO\n  attachments?: Array<{ url: string; name?: string; mime?: string }>;\n}\n\nexport interface Prescription {\n  id: string;\n  patientId: string;\n  prescribedBy: string; // doctor id\n  medicationId: string;\n  dosage: string; // human readable: '5 mg'\n  frequency: string; // 'twice daily'\n  startAt?: string;\n  endAt?: string;\n  status: 'active' | 'expired' | 'cancelled' | 'refill_requested';\n}\n\nexport interface LabResult {\n  id: string;\n  patientId: string;\n  testName: string;\n  value: number | string;\n  unit?: string;\n  referenceRange?: string;\n  collectedAt: string; // ISO\n  status: 'preliminary' | 'final' | 'amended';\n  flags?: 'low' | 'high' | 'normal';\n}\n\nexport interface InsuranceClaim {\n  id: string;\n  patientId: string;\n  providerId?: string;\n  amount: number;\n  currency: string;\n  submittedAt?: string;\n  status: 'pending' | 'approved' | 'denied' | 'in_review';\n}\n\nexport interface Medication {\n  id: string;\n  name: string;\n  form?: string; // tablet, liquid\n  strength?: string; // '500 mg'\n  instructions?: string;\n  nextReminderAt?: string;\n}\n\n5) API envelope types\n- export interface ApiError {\n-   code?: string;\n-   message: string;\n-   details?: any;\n- }\n-\n- export interface ApiResult<T> {\n-   success: boolean;\n-   data?: T;\n-   error?: ApiError;\n- }\n-\n- export interface PaginatedResponse<T> {\n-   items: T[];\n-   total: number;\n-   page: number;\n-   perPage: number;\n- }\n\n6) WebSocket event types (used by WebSocket mock and real WS integrations). Include event discriminants, payload shapes.\n- export type WebSocketEventType =\n-   | 'appointment_update'\n-   | 'incoming_call'\n-   | 'lab_result_available'\n-   | 'prescription_refill_request'\n-   | 'notification';\n-\n- export interface WebSocketEventBase {\n-   id: string;\n-   type: WebSocketEventType;\n-   timestamp: string; // ISO\n- }\n-\n- export interface AppointmentUpdateEvent extends WebSocketEventBase {\n-   type: 'appointment_update';\n-   payload: { appointmentId: string; status: Appointment['status']; }; \n- }\n-\n- export interface IncomingCallEvent extends WebSocketEventBase {\n-   type: 'incoming_call';\n-   payload: { callId: string; fromUserId: string; room?: string; }; \n- }\n-\n- export type WebSocketEvent = AppointmentUpdateEvent | IncomingCallEvent | {\n-   type: 'lab_result_available';\n-   payload: { labResultId: string; patientId: string; };\n- } | { type: 'prescription_refill_request'; payload: { prescriptionId: string; patientId: string } } | { type: 'notification'; payload: { title: string; body: string } };\n\n7) UI state helpers\n- export type LoadingState = 'idle' | 'loading' | 'success' | 'error';\n-\n- export interface FormState {\n-   isSubmitting: boolean;\n-   isValid: boolean;\n-   errors?: Record<string, string>;\n- }\n\nPatterns and conventions\n- Keep domain models small and serializable.\n- Do not include service methods or runtime logic in this file\u2014only pure types.\n- Use these types across hooks, providers and services (e.g., appointmentsService returns ApiResult<PaginatedResponse<Appointment>>).\n\nExample usage\n- import { Appointment, ApiResult } from '@/core/contracts';\n- const result: ApiResult<Appointment[]> = await apiClient.get('/api/appointments');\n\nIntegration points\n- app/config.ts: will import Role types only to type-check mock user fixtures.\n- services/*: import domain models to declare return types.\n- hooks/useWebSocket.ts and core/events.ts: use WebSocketEvent types.\n"
+      "purpose": "Domain types, DTOs and API contracts shared across services and UI. Provides a single source of truth for domain models, API shapes and WS events.",
+      "content": "/* src/core/contracts.ts\n   Central domain contracts used across services and UI.\n   Keep this file small and stable; prefer additive changes.\n*/\n\nexport enum Role {\n  PATIENT = 'patient',\n  DOCTOR = 'doctor',\n  NURSE = 'nurse',\n  ADMIN = 'admin'\n}\n\nexport type AuthToken = string & { __brand?: 'AuthToken' };\n\nexport interface User {\n  id: string;\n  email: string;\n  name: string;\n  role: Role;\n  avatarUrl?: string | null;\n  createdAt: string; // ISO\n}\n\nexport interface Patient extends User {\n  role: Role.PATIENT;\n  dateOfBirth?: string; // ISO\n  medicalRecordNumber?: string;\n}\n\nexport interface Doctor extends User {\n  role: Role.DOCTOR;\n  specialty?: string;\n  licenseNumber?: string;\n}\n\nexport interface Nurse extends User {\n  role: Role.NURSE;\n  department?: string;\n}\n\nexport type AnyUser = Patient | Doctor | Nurse | User;\n\nexport enum AppointmentStatus {\n  SCHEDULED = 'scheduled',\n  COMPLETED = 'completed',\n  CANCELLED = 'cancelled',\n  NO_SHOW = 'no_show',\n  RESCHEDULED = 'rescheduled'\n}\n\nexport interface Appointment {\n  id: string;\n  patientId: string;\n  providerId: string; // doctor or nurse\n  startAt: string; // ISO\n  endAt: string; // ISO\n  status: AppointmentStatus;\n  reason?: string;\n  location?: string | { type: 'virtual' | 'in-person'; details?: string };\n  createdAt: string;\n  updatedAt?: string;\n}\n\nexport interface MedicalRecord {\n  id: string;\n  patientId: string;\n  title: string;\n  notes?: string;\n  attachments?: Array<{ id: string; name: string; url?: string }>; // url may be absent in mock\n  createdAt: string;\n  reviewedBy?: string; // provider id\n}\n\nexport enum PrescriptionStatus {\n  ACTIVE = 'active',\n  EXPIRED = 'expired',\n  CANCELLED = 'cancelled',\n  REFILLED = 'refilled'\n}\n\nexport interface Prescription {\n  id: string;\n  patientId: string;\n  prescriberId: string;\n  medicationId: string;\n  dosage: string;\n  frequency?: string;\n  durationDays?: number;\n  status: PrescriptionStatus;\n  issuedAt: string;\n  expiresAt?: string;\n}\n\nexport enum LabResultSeverity {\n  NORMAL = 'normal',\n  WARNING = 'warning',\n  CRITICAL = 'critical'\n}\n\nexport interface LabResult {\n  id: string;\n  patientId: string;\n  testName: string;\n  value: string | number;\n  unit?: string;\n  referenceRange?: string;\n  severity?: LabResultSeverity;\n  collectedAt: string;\n  reportedAt?: string;\n}\n\nexport enum InsuranceStatus {\n  PENDING = 'pending',\n  APPROVED = 'approved',\n  DENIED = 'denied',\n  PAID = 'paid'\n}\n\nexport interface InsuranceClaim {\n  id: string;\n  patientId: string;\n  providerId?: string;\n  amount: number;\n  status: InsuranceStatus;\n  submittedAt: string;\n  updatedAt?: string;\n  notes?: string;\n}\n\nexport interface Medication {\n  id: string;\n  name: string;\n  doseForm?: string; // e.g., 'tablet', 'syrup'\n  strength?: string; // e.g., '10mg'\n  instructions?: string;\n  rxRequired?: boolean;\n}\n\nexport interface PaginationParams {\n  page?: number; // 1-based\n  pageSize?: number;\n  q?: string; // search query\n  sortBy?: string;\n  sortDir?: 'asc' | 'desc';\n}\n\nexport interface ApiResult<T> {\n  data: T;\n  meta?: Record<string, unknown>;\n}\n\nexport interface PaginatedResponse<T> {\n  items: T[];\n  total: number;\n  page: number;\n  pageSize: number;\n}\n\nexport interface ApiError {\n  code: string; // machine code\n  message: string; // human friendly\n  status?: number; // HTTP status\n  details?: Record<string, unknown> | string;\n}\n\n/* Minimal WebSocket / event types used by providers and the mock websocket\n   Real app may expand payloads. Having stable event keys helps TypeScript\n   across the app when subscribing to events.\n*/\nexport type WebsocketEvent =\n  | { type: 'appointment.updated'; payload: Appointment }\n  | { type: 'labresult.created'; payload: LabResult }\n  | { type: 'prescription.refilled'; payload: Prescription }\n  | { type: 'medication.reminder'; payload: { medicationId: string; userId: string; remindAt: string } }\n  | { type: 'insurance.updated'; payload: InsuranceClaim };\n\nexport type WebsocketEventMap = {\n  'appointment.updated': Appointment;\n  'labresult.created': LabResult;\n  'prescription.refilled': Prescription;\n  'medication.reminder': { medicationId: string; userId: string; remindAt: string };\n  'insurance.updated': InsuranceClaim;\n};\n\n/* Common UI state types used by shared components */\nexport type LoadingState = 'idle' | 'loading' | 'success' | 'error';\n\nexport interface FormState<FieldValues extends Record<string, any> = Record<string, any>> {\n  values: FieldValues;\n  touched: Partial<Record<keyof FieldValues, boolean>>;\n  errors: Partial<Record<keyof FieldValues, string>>;\n  isSubmitting: boolean;\n}\n\n/* Example usage:\nimport { Appointment, User, ApiResult } from '@/core/contracts';\n\nfunction handleAppointment(resp: ApiResult<Appointment>) {\n  const appointment = resp.data;\n  console.log(appointment.startAt);\n}\n*/"
     },
     {
       "id": "core-di",
-      "file_path": "core/di.ts",
-      "description": "Simple dependency injection container / service locator (optional), used to swap implementations in tests or mock mode.",
-      "dependencies": [],
+      "file_path": "src/core/di.ts",
+      "description": "Simple dependency injection container to allow swapping implementations (e.g., for tests or mock server) \u2014 register/get services by token.",
+      "dependencies": [
+        "src/core/contracts.ts"
+      ],
       "exports": [
-        "register",
-        "resolve",
-        "clearRegistry"
+        "DIContainer",
+        "registerService",
+        "getService"
       ],
       "priority": 1,
-      "purpose": "A minimal, type-safe dependency injection service locator and token registry. Used to swap implementations in tests and to register mock adapters in development. Keep it intentionally small \u2014 the preferred pattern in the app is explicit props/context; DI is only for global swappables (apiClient, storage, websocket).",
-      "content": "Summary\n- Purpose: provide a minimal, predictable container with token-level type safety. The container supports registering implementations under tokens (unique symbols) and resolving them in runtime code.\n- Do not use reflection or stringly-typed keys. Use well-documented symbols exported from this module for the canonical tokens.\n\nToken abstraction\n- export type Token<T> = symbol & { __type?: T };\n- export function createToken<T>(desc: string): Token<T> { return Symbol(desc) as Token<T>; }\n\nPre-defined tokens\n- export const Tokens = {\n-   ApiClient: createToken<{ get: Function; post: Function; put: Function; delete: Function }>('ApiClient'),\n-   AuthService: createToken<{ login: Function; logout: Function; getCurrentUser: Function }>('AuthService'),\n-   StorageService: createToken<{ getItem: (k: string) => any; setItem: (k: string, v: any) => void; removeItem: (k: string) => void }>('StorageService'),\n-   WebSocketService: createToken<{ publish: Function; subscribe: Function; unsubscribe: Function }>('WebSocketService')\n- } as const;\n\nContainer implementation\n- export class DIContainer {\n-   private registry = new Map<Token<any>, any>();\n-\n-   register<T>(token: Token<T>, impl: T, { overwrite = false } = {}) {\n-     if (!overwrite && this.registry.has(token)) throw new Error('Token already registered');\n-     this.registry.set(token, impl);\n-   }\n-\n-   resolve<T>(token: Token<T>): T {\n-     if (!this.registry.has(token)) throw new Error('No provider registered for token');\n-     return this.registry.get(token) as T;\n-   }\n-\n-   clear() { this.registry.clear(); }\n- }\n\nSingleton container helpers\n- export const container = new DIContainer();\n- export const register = container.register.bind(container);\n- export const resolve = container.resolve.bind(container);\n- export const clearRegistry = container.clear.bind(container);\n\nUsage pattern\n- Service implementation registers at app bootstrap (main.tsx or providers):\n  register(Tokens.ApiClient, apiClientInstance);\n  register(Tokens.StorageService, localStorageAdapter);\n\n- Consumers resolve in modules that must be swappable (rare):\n  const api = resolve(Tokens.ApiClient);\n  await api.get('/api/appointments');\n\nType-safety guidance\n- Prefer to import the concrete apiClient or pass implementations via React Context. Use DI only for true global swappables or when writing tests that need to swap implementations without mounting providers.\n\nIntegration points\n- main.tsx: register real implementations, and during development main.tsx can register mock implementations (mock apiClient, mock websocket) before app mounts.\n- tests: tests can call register(token, mockImpl, { overwrite: true }) and restore/clearRegistry after tests.\n"
+      "purpose": "A minimal, type-safe dependency injection container. It lets parts of the app (tests or mock providers) register alternate implementations for well-known tokens (ApiClient, AuthService, StorageService, WebsocketService). Prefer passing dependencies explicitly where possible; the DIContainer is a pragmatic escape hatch for app-wide swaps in tests or dev.",
+      "content": "/* src/core/di.ts\n   Tiny type-safe DI container. Tokens are unique symbols with associated types.\n   Usage:\n     const AuthServiceToken = token<AuthService>('AuthService');\n     registerService(AuthServiceToken, new MockAuthService());\n     const auth = getService(AuthServiceToken);\n*/\n\nexport type Token<T> = symbol & { __type?: T };\n\nexport const token = <T = unknown>(description = 'token'): Token<T> => Symbol(description) as Token<T>;\n\nclass DIContainer {\n  private map = new Map<symbol, unknown>();\n\n  register<T>(t: Token<T>, impl: T): void {\n    this.map.set(t as symbol, impl);\n  }\n\n  resolve<T>(t: Token<T>): T {\n    if (!this.map.has(t as symbol)) {\n      throw new Error(`DIContainer: no binding for token ${String(t)}`);\n    }\n    return this.map.get(t as symbol) as T;\n  }\n\n  has(t: Token<any>): boolean {\n    return this.map.has(t as symbol);\n  }\n\n  clear(): void {\n    this.map.clear();\n  }\n}\n\nexport const di = new DIContainer();\n\n/* Predefined tokens for common services. Types are intentionally minimal so the kernel does not\n   depend on service implementations. Services can extend these interfaces.\n*/\n\nexport interface ApiClientLike {\n  request<T = unknown>(input: RequestInfo, init?: RequestInit): Promise<T>;\n}\n\nexport interface AuthServiceLike {\n  login(email: string, password: string): Promise<{ token: string; user: { id: string } }>;\n  logout(): Promise<void>;\n  getCurrentUser(): Promise<{ id: string } | null>;\n}\n\nexport interface StorageServiceLike {\n  get<T = unknown>(key: string): Promise<T | null> | T | null;\n  set<T = unknown>(key: string, value: T): Promise<void> | void;\n  remove(key: string): Promise<void> | void;\n}\n\nexport interface WebsocketServiceLike {\n  connect(url: string): Promise<void> | void;\n  disconnect(): Promise<void> | void;\n  send(event: unknown): void;\n}\n\nexport const ApiClientToken = token<ApiClientLike>('ApiClient');\nexport const AuthServiceToken = token<AuthServiceLike>('AuthService');\nexport const StorageServiceToken = token<StorageServiceLike>('StorageService');\nexport const WebsocketServiceToken = token<WebsocketServiceLike>('WebsocketService');\n\n/* Register and resolve helpers */\nexport const registerService = <T>(t: Token<T>, impl: T) => di.register(t, impl);\nexport const getService = <T>(t: Token<T>): T => di.resolve(t);\n\n/* Example usage:\nimport { ApiClientToken, registerService, getService } from '@/core/di';\n\n// In test setup\nregisterService(ApiClientToken, { request: async (input) => ({ data: 'ok' }) });\n\n// In a service file\nconst client = getService(ApiClientToken);\nawait client.request('/api/appointments');\n*/"
     },
     {
       "id": "core-events",
-      "file_path": "core/events.ts",
-      "description": "Lightweight typed event bus for in-app pub/sub for cross-cutting events (incoming call, notification, global error).",
-      "dependencies": [],
+      "file_path": "src/core/events.ts",
+      "description": "Tiny event bus used for broadcasting domain events (e.g., appointmentUpdated, labResultArrived) across providers and hooks.",
+      "dependencies": [
+        "src/core/contracts.ts"
+      ],
       "exports": [
-        "EventBus",
+        "eventBus",
+        "EventTypes",
         "subscribe",
         "publish",
         "unsubscribe"
       ],
       "priority": 1,
-      "purpose": "Typed, lightweight in-process event bus for cross-cutting notifications (incoming telemedicine calls, global notifications, background sync results). The event bus supports synchronous and asynchronous handlers and is safe to import anywhere.",
-      "content": "Summary\n- Purpose: provide a tiny, typesafe publish/subscribe mechanism used by both UI and non-UI modules. Prefer EventBus for cross-component signals; prefer React Context for local UI state.\n- Implementation guarantees: handlers can be sync or return Promise<void>. publish returns Promise<void> that resolves when all handlers finished or rejects if any handler throws (caller can ignore errors if they wish).\n\nEvent map (typed)\n- Define a central EventMap interface mapping event names to payload shapes. Keep names camelCase and domain-specific.\n\nexport interface EventMap {\n  // Telemedicine\n  incomingCall: { callId: string; fromUserId: string; room?: string };\n  callEnded: { callId: string; reason?: string };\n\n  // Appointment lifecycle\n  appointmentUpdated: { appointmentId: string; status: string };\n\n  // Notifications\n  notification: { id: string; title: string; body?: string; level?: 'info' | 'warning' | 'error' };\n\n  // Auth\n  login: { userId: string };\n  logout: { userId?: string };\n\n  // Global error\n  globalError: { error: Error | string; context?: any };\n}\n\nEventBus class\n- class EventBus<EM extends Record<string, any>> {\n-   private handlers = new Map<keyof EM, Set<(...args: any[]) => any>>();\n-\n-   on<K extends keyof EM>(event: K, handler: (payload: EM[K]) => void | Promise<void>): () => void {\n-     // register and return unsubscribe\n-   }\n-\n-   off<K extends keyof EM>(event: K, handler: (payload: EM[K]) => void | Promise<void>): void {\n-     // remove handler\n-   }\n-\n-   async emit<K extends keyof EM>(event: K, payload: EM[K]): Promise<void> {\n-     // call handlers (catch per-handler errors, aggregate or rethrow depending on policy)\n-   }\n- }\n\nExported singleton\n- export const events = new EventBus<EventMap>();\n\nHelper functions exported for ergonomic usage\n- export const subscribe = events.on.bind(events);\n- export const unsubscribe = events.off.bind(events);\n- export const publish = events.emit.bind(events);\n\nBehavior and error policy\n- Handlers run in registration order.\n- publish waits for all handlers (await Promise.allSettled([...])) and then:\n  - if any handler throws, publish will log the error via core/utils.log and rethrow an aggregated Error containing first error message unless caller passes { swallowErrors: true }.\n- Provide an optional options bag on emit to control swallowErrors.\n\nCode example usage\n- import { publish, subscribe, events } from '@/core/events';\n-\n- // subscribing\n- const unsub = subscribe('incomingCall', async (payload) => {\n-   // show incoming call UI\n-   await showCallModal(payload);\n- });\n-\n- // publishing\n- await publish('incomingCall', { callId: 'abc', fromUserId: 'user-1', room: 'room-1' });\n-\n- // cleanup\n- unsub();\n\nIntegration points\n- AuthProvider emits 'login' and 'logout'.\n- WebSocketMock will publish 'appointmentUpdated', 'labResultAvailable' etc. Services and UI components subscribe to these events.\n- ErrorBoundary should publish 'globalError' when catching.\n"
+      "purpose": "A tiny, strongly-typed event bus used for broadcasting domain events across providers and features. Useful for integrating WebSocket messages with React Query or local state.",
+      "content": "/* src/core/events.ts\n   Typed EventBus with both sync and async handler support.\n   Use it to decouple providers from consumers (e.g., WebsocketProvider publishes, pages subscribe).\n*/\n\nimport {\n  Appointment,\n  LabResult,\n  Prescription,\n  InsuranceClaim,\n  WebsocketEventMap\n} from '@/core/contracts';\n\n/* Define the event names used across the app. Keep this narrow and stable. */\nexport type EventTypes =\n  | 'appointment.updated'\n  | 'appointment.created'\n  | 'appointment.deleted'\n  | 'labresult.created'\n  | 'prescription.refilled'\n  | 'medication.reminder'\n  | 'insurance.updated'\n  | 'auth.login'\n  | 'auth.logout';\n\n/* Map event names to payload types for compile-time safety. Extend as needed. */\nexport interface EventPayloadMap {\n  'appointment.updated': Appointment;\n  'appointment.created': Appointment;\n  'appointment.deleted': { id: string };\n  'labresult.created': LabResult;\n  'prescription.refilled': Prescription;\n  'medication.reminder': { medicationId: string; userId: string; remindAt: string };\n  'insurance.updated': InsuranceClaim;\n  'auth.login': { userId: string };\n  'auth.logout': { userId?: string };\n}\n\ntype Handler<K extends EventTypes> = (payload: EventPayloadMap[K]) => void | Promise<void>;\n\nclass EventBus {\n  private handlers: Map<EventTypes, Set<Handler<any>>> = new Map();\n\n  on<K extends EventTypes>(event: K, handler: Handler<K>): () => void {\n    const set = this.handlers.get(event) ?? new Set();\n    set.add(handler as Handler<any>);\n    this.handlers.set(event, set);\n\n    // return unsubscribe\n    return () => {\n      set.delete(handler as Handler<any>);\n      if (set.size === 0) this.handlers.delete(event);\n    };\n  }\n\n  off<K extends EventTypes>(event: K, handler: Handler<K>): void {\n    const set = this.handlers.get(event);\n    if (!set) return;\n    set.delete(handler as Handler<any>);\n    if (set.size === 0) this.handlers.delete(event);\n  }\n\n  async emit<K extends EventTypes>(event: K, payload: EventPayloadMap[K]): Promise<void> {\n    const set = this.handlers.get(event);\n    if (!set || set.size === 0) return;\n\n    // Run handlers and await any returned Promises; do not short-circuit\n    const promises: Array<void | Promise<void>> = [];\n    for (const h of Array.from(set)) {\n      try {\n        const result = (h as Handler<K>)(payload);\n        promises.push(result as Promise<void> | void);\n      } catch (err) {\n        // swallow sync errors but log for diagnostics\n        // In production integrate with a structured logger\n        // eslint-disable-next-line no-console\n        console.error('[EventBus] handler sync error', event, err);\n      }\n    }\n    await Promise.all(promises.map(p => Promise.resolve(p)));\n  }\n\n  clear(): void {\n    this.handlers.clear();\n  }\n}\n\nexport const eventBus = new EventBus();\n\n/* Convenience helpers for non-class-based code */\nexport const subscribe = <K extends EventTypes>(event: K, handler: Handler<K>): () => void => eventBus.on(event, handler);\nexport const unsubscribe = <K extends EventTypes>(event: K, handler: Handler<K>): void => eventBus.off(event, handler);\nexport const publish = async <K extends EventTypes>(event: K, payload: EventPayloadMap[K]): Promise<void> => eventBus.emit(event, payload);\n\n/* Example usage:\nimport { subscribe, publish } from '@/core/events';\n\nconst off = subscribe('labresult.created', async (lab) => { console.log('new lab', lab); });\nawait publish('labresult.created', labResultInstance);\n// later to unsubscribe: off();\n*/"
     },
     {
-      "id": "core-hooks",
-      "file_path": "core/hooks.ts",
-      "description": "Registry for extension hooks; allows other modules to register lifecycle hooks (e.g., onAuthChange).",
-      "dependencies": [],
-      "exports": [
-        "registerHook",
-        "runHooks"
-      ],
-      "priority": 1,
-      "purpose": "A small, typed hook registry used to register lifecycle extension points. Use this for cross-cutting plugins (analytics, logging, feature toggles) without coupling to provider implementations.",
-      "content": "Summary\n- Purpose: enable feature modules or external integrations to register small callbacks at well-known points in the app lifecycle (e.g., beforeApiRequest, afterApiResponse, onLogin, onLogout, onRouteChange). Hooks run in registration order and can be sync or async.\n- Keep hooks lightweight: they receive a typed context and return void or Promise<void>.\n\nHookPoint names\n- export type HookPoint = 'beforeApiRequest' | 'afterApiResponse' | 'onLogin' | 'onLogout' | 'onRouteChange' | 'onError';\n\nHook context shapes\n- export interface HookContextBase { timestamp: string; }\n- export interface BeforeApiRequestContext extends HookContextBase { url: string; method: string; payload?: any; headers?: Record<string, string> }\n- export interface AfterApiResponseContext extends HookContextBase { url: string; method: string; status: number; response?: any; error?: any }\n- export interface AuthContext extends HookContextBase { userId: string }\n- export interface RouteChangeContext extends HookContextBase { from?: string; to: string }\n- export type HookContext = BeforeApiRequestContext | AfterApiResponseContext | AuthContext | RouteChangeContext | { [k: string]: any };\n\nHandler signature\n- export type HookHandler<HP extends HookPoint = HookPoint> = (ctx: HookContext) => void | Promise<void>;\n\nHookRegistry class\n- class HookRegistry {\n-   private registry = new Map<HookPoint, Set<HookHandler>>();\n-\n-   register(point: HookPoint, handler: HookHandler): () => void {\n-     // add and return unregister fn\n-   }\n-\n-   async run(point: HookPoint, ctx: HookContext): Promise<void> {\n-     // run handlers sequentially (or parallel depending on point). If a handler throws, log via core/utils and continue (do not break the chain) unless a handler returns a specific control message.\n-   }\n- }\n\nTop-level exports\n- export const hooks = new HookRegistry();\n- export const registerHook = hooks.register.bind(hooks);\n- export const runHooks = hooks.run.bind(hooks);\n\nDesign decisions\n- beforeApiRequest hooks should be able to mutate headers/payload if they return a modified object. To keep typing simple, beforeApiRequest handlers can return an optional mutated payload object; the caller (apiClient) should pick up the returned object.\n- afterApiResponse and onError are primarily for logging, analytics and instrumentation; they should not mutate the response.\n\nExample usage\n- Register a hook in a plugin module:\n  registerHook('beforeApiRequest', async (ctx) => {\n    // example: add header\n    if (ctx.headers) { ctx.headers['x-trace-id'] = generateTraceId(); }\n  });\n\n- apiClient integration point in services/apiClient.ts:\n  // before the fetch\n  const beforeResult = await runHooks('beforeApiRequest', { timestamp: new Date().toISOString(), url, method, payload, headers });\n  // after receiving response\n  await runHooks('afterApiResponse', { timestamp: new Date().toISOString(), url, method, status: response.status, response: parsed });\n\nIntegration points\n- services/apiClient.ts: call runHooks('beforeApiRequest'...) and runHooks('afterApiResponse'...)\n- providers/AuthProvider: call runHooks('onLogin') and runHooks('onLogout')\n- routes/AppRouter.tsx or router wrapper: call runHooks('onRouteChange')\n- ErrorBoundary: call runHooks('onError')\n"
-    },
-    {
-      "id": "core-utils",
-      "file_path": "core/utils.ts",
-      "description": "Core utilities shared across the app (safeJSON, noop, sleep, fetchWithTimeout). Intended as very small primitives safe to use from kernel-level files.",
-      "dependencies": [],
-      "exports": [
-        "safeJSON",
-        "noop",
-        "sleep",
-        "fetchWithTimeout"
-      ],
-      "priority": 1,
-      "purpose": "Small set of zero-dependency runtime utilities used by core kernel files and safe to import everywhere (safeJSON, noop, sleep, fetchWithTimeout, small logger). Keep this file tiny \u2014 avoid pulling in 3rd-party libs.",
-      "content": "Summary\n- Purpose: small, dependency-free helpers used by kernel code (e.g., EventBus, HookRegistry) and safe to import anywhere including build-tooling.\n\nFunctions to implement\n1) noop\n- export const noop = (): void => {};\n\n2) safeJSON\n- export function safeJSON<T = any>(str: string | undefined | null, fallback: T | null = null): T | null {\n-   if (str == null) return fallback;\n-   try { return JSON.parse(str) as T; } catch (err) { log('warn', 'safeJSON parse failed', { str }); return fallback; }\n- }\n\n3) sleep\n- export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));\n\n4) fetchWithTimeout\n- export async function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, timeout = 10000) {\n-   const controller = new AbortController();\n-   const timer = setTimeout(() => controller.abort(), timeout);\n-   try {\n-     const res = await fetch(input, { ...init, signal: controller.signal });\n-     clearTimeout(timer);\n-     return res;\n-   } catch (err) {\n-     clearTimeout(timer);\n-     throw err;\n-   }\n- }\n\n5) log\n- Lightweight logging wrapper that respects NODE_ENV: in production log only errors. Provide log(level, message, meta?).\n- export const log = (level: 'debug' | 'info' | 'warn' | 'error', message: string, meta?: any) => { if (process.env.NODE_ENV === 'production' && level === 'debug') return; /* prefer console for now */ console[level === 'debug' ? 'debug' : level === 'info' ? 'info' : level === 'warn' ? 'warn' : 'error'](`[${level.toUpperCase()}] ${message}`, meta ?? ''); };\n\n6) date helpers (tiny)\n- export function isISODate(value: string): boolean { return /^\\\\d{4}-\\\\d{2}-\\\\d{2}T\\\\d{2}:\\\\d{2}:\\\\d{2}/.test(value); }\n- export function parseISODate(s: string): Date | null { try { const d = new Date(s); return Number.isNaN(d.getTime()) ? null : d; } catch { return null; } }\n\n7) deepClone\n- export function deepClone<T>(obj: T): T { return JSON.parse(JSON.stringify(obj)); }\n\nPatterns and conventions\n- Keep this file small to avoid increasing bundle size. When adding utilities, prefer to keep them pure and well-tested.\n- All functions are side-effect free except log().\n\nExample usage\n- import { safeJSON, fetchWithTimeout, sleep, log } from '@/core/utils';\n- const parsed = safeJSON<MyType>(raw, null);\n- await fetchWithTimeout('/api/ping', {}, 5000).catch(err => log('error', 'ping failed', err));\n\nIntegration points\n- events.ts: uses log() and safeJSON for serializing handler errors.\n- hooks.ts and di.ts: use noop, sleep for testing and safe shutdown flows.\n"
-    },
-    {
-      "id": "entry-main",
-      "file_path": "src/main.tsx",
-      "description": "React entry point: renders App into DOM, bootstraps mock server in development, wraps with top-level providers (QueryProvider, AuthProvider, ThemeProvider) and ErrorBoundary.",
-      "dependencies": [
-        "src/App.tsx",
-        "src/providers/QueryProvider.tsx",
-        "src/providers/AuthProvider.tsx",
-        "src/providers/ThemeProvider.tsx",
-        "src/mocks/browser.ts",
-        "src/app/config.ts"
-      ],
-      "exports": [
-        "bootstrap"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "error-boundary",
-      "file_path": "src/components/ErrorBoundary.tsx",
-      "description": "React Error Boundary component with fallback UI and option to report errors to an event bus. Used at top-level to catch rendering errors.",
+      "id": "core-hooks-registry",
+      "file_path": "src/core/hooks.ts",
+      "description": "Extension points and hook registry (named hooks) used by features/providers to register behavior (e.g., onAuthChange).",
       "dependencies": [
         "src/core/events.ts"
       ],
       "exports": [
-        "ErrorBoundary"
+        "registerHook",
+        "invokeHook",
+        "HookName"
       ],
-      "priority": 1
+      "priority": 1,
+      "purpose": "Hook registry for extension points. Providers and features register small callbacks (hooks) for cross-cutting behavior: logging, instrumentation, request lifecycle and auth changes. The registry supports ordering and both sync & async handlers.",
+      "content": "/* src/core/hooks.ts\n   HookRegistry enables named extension points across the application.\n   Keep hook side-effects idempotent; hooks should be small.\n*/\n\nimport { ApiError } from '@/core/contracts';\n\nexport type HookName =\n  | 'beforeApiRequest'\n  | 'afterApiResponse'\n  | 'onLogin'\n  | 'onLogout'\n  | 'onRouteChange';\n\nexport interface BeforeApiRequestContext {\n  url: string;\n  method: string;\n  headers?: Record<string, string>;\n  body?: unknown;\n}\n\nexport interface AfterApiResponseContext<T = unknown> {\n  url: string;\n  method: string;\n  status: number;\n  data?: T;\n  error?: ApiError | null;\n}\n\nexport interface OnAuthContext {\n  userId?: string;\n}\n\nexport interface OnRouteChangeContext {\n  from?: string;\n  to: string;\n}\n\ntype HookHandler<T> = (ctx: T) => void | Promise<void>;\n\nclass HookRegistry {\n  private registry: Map<HookName, Set<HookHandler<any>>> = new Map();\n\n  register<T>(name: HookName, handler: HookHandler<T>): () => void {\n    const set = this.registry.get(name) ?? new Set();\n    set.add(handler as HookHandler<any>);\n    this.registry.set(name, set);\n    return () => set.delete(handler as HookHandler<any>);\n  }\n\n  async invoke<T>(name: HookName, ctx: T): Promise<void> {\n    const set = this.registry.get(name);\n    if (!set) return;\n    const tasks: Array<void | Promise<void>> = [];\n    for (const h of Array.from(set)) {\n      try {\n        tasks.push((h as HookHandler<T>)(ctx));\n      } catch (err) {\n        // swallow single handler errors but log\n        // eslint-disable-next-line no-console\n        console.error('[HookRegistry] handler threw', name, err);\n      }\n    }\n    await Promise.all(tasks.map(p => Promise.resolve(p)));\n  }\n\n  clear(name?: HookName) {\n    if (name) this.registry.delete(name);\n    else this.registry.clear();\n  }\n}\n\nconst registry = new HookRegistry();\n\n/* Public helpers */\nexport const registerHook = <T>(name: HookName, handler: HookHandler<T>): (() => void) => registry.register(name, handler as HookHandler<any>);\nexport const invokeHook = async <T>(name: HookName, ctx: T): Promise<void> => registry.invoke(name, ctx);\n\n/* Example common hook usage:\n\nimport { registerHook, invokeHook } from '@/core/hooks';\n\n// Register instrumentation for all API requests\nconst off = registerHook('beforeApiRequest', (ctx: BeforeApiRequestContext) => {\n  console.log('[API] request', ctx.method, ctx.url);\n});\n\n// In api client, call invokeHook('beforeApiRequest', { url, method, headers, body });\n*/"
     },
     {
-      "id": "global-styles",
-      "file_path": "src/index.css",
-      "description": "Tailwind base imports and global CSS variables for light/dark themes. Used by main.tsx.",
-      "dependencies": [],
-      "exports": [
-        "global styles (side-effect import)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "i18n-en",
-      "file_path": "src/i18n/locales/en.json",
-      "description": "English translations for UI strings. Minimal set covering pages, labels and validation messages.",
-      "dependencies": [],
-      "exports": [
-        "en JSON object"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "i18n-ko",
-      "file_path": "src/i18n/locales/ko.json",
-      "description": "Korean translations for UI strings (Korean support required).",
-      "dependencies": [],
-      "exports": [
-        "ko JSON object"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "i18n-setup",
-      "file_path": "src/i18n/i18n.ts",
-      "description": "i18next initialization with English and Korean locales, language detector, and a typed translation hook. Exports initialized instance and helpers.",
+      "id": "core-utils",
+      "file_path": "src/core/utils.ts",
+      "description": "Small generic utilities used across the app (safeJsonParse, sleep, isDevelopment).",
       "dependencies": [
-        "src/i18n/locales/en.json",
-        "src/i18n/locales/ko.json",
         "src/app/config.ts"
       ],
       "exports": [
-        "i18n",
-        "useTranslation"
+        "safeJsonParse",
+        "sleep",
+        "isDev"
       ],
-      "priority": 1
+      "priority": 1,
+      "purpose": "Small, well-tested utilities used across the app: safe json parse, sleep, development detection and small helpers. Keep utilities generic and dependency-free where possible.",
+      "content": "/* src/core/utils.ts\n   Generic utilities used throughout the application.\n*/\n\nimport { appConfig } from '@/app/config';\n\nexport const isDev = appConfig.env === 'development';\n\nexport function safeJsonParse<T = unknown>(input: string | null | undefined, fallback: T): T {\n  if (!input) return fallback;\n  try {\n    return JSON.parse(input) as T;\n  } catch (err) {\n    // eslint-disable-next-line no-console\n    console.warn('[safeJsonParse] parse failed, returning fallback', err);\n    return fallback;\n  }\n}\n\nexport const sleep = (ms: number) => new Promise<void>(res => setTimeout(res, ms));\n\nexport function uid(prefix = ''): string {\n  // small, collision-resistant id for mock data and temporary keys\n  return prefix + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);\n}\n\nexport function debugLog(...args: any[]) {\n  if (isDev) {\n    // eslint-disable-next-line no-console\n    console.debug('[debug]', ...args);\n  }\n}\n\n/* Example usage:\nimport { safeJsonParse, sleep, isDev } from '@/core/utils';\n\nif (isDev) debugLog('running in development');\nawait sleep(200);\n*/"
     },
     {
-      "id": "insurance-service",
-      "file_path": "src/services/insuranceService.ts",
-      "description": "Service functions for insurance claim tracking.",
+      "id": "main-entry",
+      "file_path": "src/main.tsx",
+      "description": "App bootstrap: renders App into root, wraps providers (MockServerProvider, QueryProvider, AuthProvider, ThemeProvider, WebsocketProvider) and initializes i18n.",
       "dependencies": [
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "listClaims",
-        "getClaim"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "labs-service",
-      "file_path": "src/services/labsService.ts",
-      "description": "Service functions for lab results retrieval and status checks.",
-      "dependencies": [
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "listLabResults",
-        "getLabResult"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "layout-header",
-      "file_path": "src/components/Layout/Header.tsx",
-      "description": "Top navigation header with user menu, language switcher and theme toggle. Accessible keyboard navigation and ARIA labels.",
-      "dependencies": [
+        "src/App.tsx",
+        "src/providers/MockServerProvider.tsx",
+        "src/providers/QueryProvider.tsx",
+        "src/providers/AuthProvider.tsx",
         "src/providers/ThemeProvider.tsx",
-        "src/hooks/useAuth.ts",
-        "src/i18n/i18n.ts"
+        "src/providers/WebsocketProvider.tsx",
+        "src/app/i18n.ts",
+        "src/styles/index.css"
       ],
       "exports": [
-        "Header"
+        "bootstrapApp"
       ],
       "priority": 1
     },
     {
-      "id": "layout-sidebar",
-      "file_path": "src/components/Layout/Sidebar.tsx",
-      "description": "Responsive sidebar with navigation links for features; handles collapsing and keyboard navigation.",
+      "id": "mock-data-appointments",
+      "file_path": "src/mock/data/appointments.ts",
+      "description": "Mock appointment dataset and factory helpers for appointments endpoints.",
       "dependencies": [
-        "src/hooks/useAuth.ts"
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "Sidebar"
+        "mockAppointments",
+        "getAppointmentById",
+        "createMockAppointment",
+        "updateMockAppointment"
       ],
       "priority": 1
     },
     {
-      "id": "local-persistence",
-      "file_path": "src/services/localPersistence.ts",
-      "description": "Abstracts localStorage get/set interactions, namespaced keys for auth and UI state. Honors development config for persistence.",
+      "id": "mock-data-insurance",
+      "file_path": "src/mock/data/insurance.ts",
+      "description": "Mock insurance claims dataset and helpers.",
       "dependencies": [
-        "src/app/config.ts"
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "getItem",
-        "setItem",
-        "removeItem",
-        "persistAuth",
-        "readAuth"
+        "mockInsuranceClaims",
+        "getInsuranceClaimById"
       ],
       "priority": 1
     },
     {
-      "id": "medications-service",
-      "file_path": "src/services/medicationsService.ts",
-      "description": "Service functions for medication tracking and reminders.",
+      "id": "mock-data-lab-results",
+      "file_path": "src/mock/data/labResults.ts",
+      "description": "Mock lab results data and helper to generate new results for real-time simulation.",
       "dependencies": [
-        "src/services/apiClient.ts"
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "listMedications",
-        "getMedication",
-        "dismissReminder"
+        "mockLabResults",
+        "getLabResultById",
+        "generateLabResult"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-data-medical-records",
+      "file_path": "src/mock/data/medicalRecords.ts",
+      "description": "Mock medical records dataset and helpers.",
+      "dependencies": [
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "mockMedicalRecords",
+        "getMedicalRecordById"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-data-medications",
+      "file_path": "src/mock/data/medications.ts",
+      "description": "Mock medication list and reminder metadata.",
+      "dependencies": [
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "mockMedications",
+        "getMedicationById",
+        "scheduleMedicationReminderMock"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-data-prescriptions",
+      "file_path": "src/mock/data/prescriptions.ts",
+      "description": "Mock prescriptions data and helpers.",
+      "dependencies": [
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "mockPrescriptions",
+        "getPrescriptionById",
+        "refillPrescriptionMock"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "mock-data-users",
+      "file_path": "src/mock/data/users.ts",
+      "description": "Mock users used for development mode authentication (doctors, patients, nurses).",
+      "dependencies": [
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "mockUsers",
+        "findMockUserByEmail"
       ],
       "priority": 1
     },
     {
       "id": "mock-server",
-      "file_path": "src/services/mockServer.ts",
-      "description": "Bootstraps the in-app mock server when dev mode is enabled. Initializes handlers from mocks/handlers.ts and exposes start/stop functions. Ensures the app runs standalone.",
+      "file_path": "src/mock/mockServer.ts",
+      "description": "Lightweight mock API server that intercepts fetch requests in development. Provides handlers for all endpoints defined in app config and returns realistic mock responses from /mock/data.",
       "dependencies": [
-        "src/mocks/browser.ts",
-        "src/app/config.ts"
+        "src/app/config.ts",
+        "src/mock/data/users.ts",
+        "src/mock/data/appointments.ts",
+        "src/mock/data/medicalRecords.ts",
+        "src/mock/data/prescriptions.ts",
+        "src/mock/data/labResults.ts",
+        "src/mock/data/insurance.ts",
+        "src/mock/data/medications.ts",
+        "src/core/events.ts"
       ],
       "exports": [
         "startMockServer",
-        "stopMockServer"
+        "stopMockServer",
+        "mockFetchHandler"
       ],
       "priority": 1
     },
     {
-      "id": "mocks-appointments-data",
-      "file_path": "src/mocks/data/appointments.ts",
-      "description": "Mock appointment data used by mock API endpoint /api/appointments.",
-      "dependencies": [],
+      "id": "mock-websocket",
+      "file_path": "src/mock/websocketMock.ts",
+      "description": "Simulates WebSocket events in development: emits appointment changes, new lab results, medication reminders. Integrates with core/events to deliver updates to app code.",
+      "dependencies": [
+        "src/core/events.ts",
+        "src/mock/data/labResults.ts",
+        "src/app/config.ts"
+      ],
       "exports": [
-        "mockAppointments"
+        "startWebsocketMock",
+        "stopWebsocketMock",
+        "emitMockEvent"
       ],
       "priority": 1
     },
     {
-      "id": "mocks-auth-users",
-      "file_path": "src/mocks/data/authUsers.ts",
-      "description": "Mock users for development mode (doctor, patient, nurse) used by mock auth server. Matches app.config mock_auth_users.",
+      "id": "provider-auth",
+      "file_path": "src/providers/AuthProvider.tsx",
+      "description": "Authentication context and hook provider. Handles login/logout, token management, role-based access, protected route wrapper and persistence to localStorage when enabled for development mode.",
+      "dependencies": [
+        "src/core/contracts.ts",
+        "src/services/auth.ts",
+        "src/shared/hooks/useLocalStorage.ts",
+        "src/app/config.ts",
+        "src/core/events.ts"
+      ],
+      "exports": [
+        "AuthProvider",
+        "useAuthContext",
+        "withAuth"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "provider-mock-server",
+      "file_path": "src/providers/MockServerProvider.tsx",
+      "description": "Starts the in-app mock server when appConfig.enable_mock_data is true and ensures it is registered before app renders. Injects mock handlers for APIs defined in app config.",
+      "dependencies": [
+        "src/mock/mockServer.ts",
+        "src/app/config.ts",
+        "src/core/events.ts"
+      ],
+      "exports": [
+        "MockServerProvider"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "provider-query",
+      "file_path": "src/providers/QueryProvider.tsx",
+      "description": "Sets up React Query QueryClient with sensible defaults (staleTime, retry, queryCache) and wraps children with QueryClientProvider.",
       "dependencies": [
         "src/app/config.ts"
       ],
       "exports": [
-        "mockAuthUsers"
+        "ReactQueryProvider"
       ],
       "priority": 1
     },
     {
-      "id": "mocks-browser",
-      "file_path": "src/mocks/browser.ts",
-      "description": "Client-side mock server bootstrapper (MSW-like) that registers handlers and exposes a start() function for main.tsx to call in development.",
-      "dependencies": [
-        "src/mocks/handlers.ts"
-      ],
-      "exports": [
-        "startMockBrowser",
-        "stopMockBrowser"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-handlers",
-      "file_path": "src/mocks/handlers.ts",
-      "description": "Defines mock API handlers for endpoints listed in development config (/api/appointments, /api/medical-records, etc.). Also implements mock auth login and token issuance.",
-      "dependencies": [
-        "src/mocks/data/authUsers.ts",
-        "src/mocks/data/appointments.ts",
-        "src/mocks/data/medicalRecords.ts",
-        "src/mocks/data/prescriptions.ts",
-        "src/mocks/data/labResults.ts",
-        "src/mocks/data/insurance.ts",
-        "src/mocks/data/medications.ts"
-      ],
-      "exports": [
-        "handlers"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-insurance-data",
-      "file_path": "src/mocks/data/insurance.ts",
-      "description": "Mock insurance claim data for /api/insurance.",
-      "dependencies": [],
-      "exports": [
-        "mockInsuranceClaims"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-lab-results-data",
-      "file_path": "src/mocks/data/labResults.ts",
-      "description": "Mock lab results for /api/lab-results.",
-      "dependencies": [],
-      "exports": [
-        "mockLabResults"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-medical-records-data",
-      "file_path": "src/mocks/data/medicalRecords.ts",
-      "description": "Mock medical records data for /api/medical-records.",
-      "dependencies": [],
-      "exports": [
-        "mockMedicalRecords"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-medications-data",
-      "file_path": "src/mocks/data/medications.ts",
-      "description": "Mock medications and reminders for /api/medications used to drive medication reminders feature.",
-      "dependencies": [],
-      "exports": [
-        "mockMedications"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-prescriptions-data",
-      "file_path": "src/mocks/data/prescriptions.ts",
-      "description": "Mock prescription data for /api/prescriptions.",
-      "dependencies": [],
-      "exports": [
-        "mockPrescriptions"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "postcss-config",
-      "file_path": "config/postcss.config.cjs",
-      "description": "PostCSS configuration for Tailwind processing.",
-      "dependencies": [],
-      "exports": [
-        "postcss config (build-time)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "prescriptions-service",
-      "file_path": "src/services/prescriptionsService.ts",
-      "description": "Service functions for prescriptions management.",
-      "dependencies": [
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "listPrescriptions",
-        "requestRefill"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "protected-route",
-      "file_path": "src/routes/ProtectedRoute.tsx",
-      "description": "Route wrapper that checks authentication and role-based access via useAuth; redirects to login for unauthorized users.",
-      "dependencies": [
-        "src/hooks/useAuth.ts",
-        "src/pages/LoginPage.tsx"
-      ],
-      "exports": [
-        "ProtectedRoute component"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "query-provider",
-      "file_path": "src/providers/QueryProvider.tsx",
-      "description": "Sets up React Query QueryClient with sensible defaults (staleTime, retries) and ErrorBoundary integration. Injects auth token into apiClient via context or apiClient setter.",
-      "dependencies": [
-        "src/lib/reactQuery.ts",
-        "src/services/apiClient.ts",
-        "src/providers/AuthProvider.tsx"
-      ],
-      "exports": [
-        "QueryProvider"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "react-query-setup",
-      "file_path": "src/lib/reactQuery.ts",
-      "description": "Creates and configures a QueryClient instance used by QueryProvider; defines common query keys and helper functions.",
-      "dependencies": [],
-      "exports": [
-        "createQueryClient",
-        "queryKeys"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "records-service",
-      "file_path": "src/services/recordsService.ts",
-      "description": "Service functions for medical records retrieval and filtering.",
-      "dependencies": [
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "listRecords",
-        "getRecord"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "store-state",
-      "file_path": "src/state/store.ts",
-      "description": "Global UI state (sidebar open, modals) managed via React Context and useReducer (small, predictable). Not for server data (React Query used for that).",
-      "dependencies": [
-        "src/providers/ThemeProvider.tsx"
-      ],
-      "exports": [
-        "StoreProvider",
-        "useStore"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "suspense-fallback",
-      "file_path": "src/components/SuspenseFallback.tsx",
-      "description": "Accessible suspense fallback UI (skeletons/spinner) used across lazy-loaded routes and components.",
-      "dependencies": [],
-      "exports": [
-        "SuspenseFallback"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "tailwind-config",
-      "file_path": "config/tailwind.config.js",
-      "description": "Tailwind CSS configuration enabling JIT, dark mode and paths to scan.",
-      "dependencies": [],
-      "exports": [
-        "tailwind config (build-time)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "theme-provider",
+      "id": "provider-theme",
       "file_path": "src/providers/ThemeProvider.tsx",
-      "description": "Provides theme (light/dark) context, toggling, and persists preference to localStorage. Integrates Tailwind dark mode class on body.",
+      "description": "Theme context that toggles light/dark mode and persists preference to localStorage. Integrates Tailwind dark class on document.",
       "dependencies": [
-        "src/services/localPersistence.ts"
+        "src/shared/hooks/useLocalStorage.ts"
       ],
       "exports": [
         "ThemeProvider",
@@ -610,240 +395,184 @@
       "priority": 1
     },
     {
-      "id": "tsconfig",
-      "file_path": "config/tsconfig.json",
-      "description": "TypeScript compiler options tuned for a React 18 + TS project.",
-      "dependencies": [],
-      "exports": [
-        "tsconfig (build-time)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "use-auth-hook",
-      "file_path": "src/hooks/useAuth.ts",
-      "description": "Public hook to access auth context: login, logout, current user, role checks. Uses AuthProvider context and localPersistence in dev mode.",
+      "id": "provider-websocket",
+      "file_path": "src/providers/WebsocketProvider.tsx",
+      "description": "Abstraction for WebSocket connection; in development it uses websocketMock to simulate real-time updates. Exposes a context to subscribe to domain events.",
       "dependencies": [
-        "src/providers/AuthProvider.tsx",
-        "src/services/localPersistence.ts",
-        "src/mocks/data/authUsers.ts"
-      ],
-      "exports": [
-        "useAuth"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "use-fetch-hook",
-      "file_path": "src/hooks/useFetch.ts",
-      "description": "Thin wrapper around React Query's useQuery/useMutation providing typed response handling and common error mapping. Uses apiClient under the hood.",
-      "dependencies": [
-        "src/lib/reactQuery.ts",
-        "src/services/apiClient.ts"
-      ],
-      "exports": [
-        "useQueryTyped",
-        "useMutationTyped"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "use-websocket-hook",
-      "file_path": "src/hooks/useWebSocket.ts",
-      "description": "Hook to subscribe to real-time WebSocketMock events; exposes latest events and convenience subscription functions. Falls back to polling when WS disabled.",
-      "dependencies": [
-        "src/services/websocketMock.ts",
+        "src/mock/websocketMock.ts",
+        "src/core/events.ts",
         "src/app/config.ts"
       ],
       "exports": [
-        "useWebSocket"
+        "WebsocketProvider",
+        "useSocketContext"
       ],
       "priority": 1
     },
     {
-      "id": "utils-date",
-      "file_path": "src/utils/date.ts",
-      "description": "Date helper utilities for formatting and timezone-safe conversions used by many components and services.",
+      "id": "services-api-client",
+      "file_path": "src/services/apiClient.ts",
+      "description": "Centralized HTTP client (fetch wrapper) that injects auth tokens, handles errors, applies timeouts and maps API error shapes to ApiError defined in core/contracts.",
       "dependencies": [
+        "src/core/contracts.ts",
+        "src/app/config.ts",
         "src/core/utils.ts"
       ],
       "exports": [
-        "formatDate",
-        "toLocalISO",
-        "parseDate"
+        "apiClient",
+        "getJson",
+        "postJson",
+        "putJson",
+        "deleteJson"
       ],
       "priority": 1
     },
     {
-      "id": "utils-formatting",
-      "file_path": "src/utils/formatting.ts",
-      "description": "Formatting helpers for numbers, units and medical value presentation.",
+      "id": "services-appointments",
+      "file_path": "src/services/appointments.ts",
+      "description": "Service functions to list, get, create, update and cancel appointments. Designed to be used with React Query.",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/core/contracts.ts",
+        "src/mock/data/appointments.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "fetchAppointments",
+        "fetchAppointment",
+        "createAppointment",
+        "updateAppointment",
+        "cancelAppointment"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "services-auth",
+      "file_path": "src/services/auth.ts",
+      "description": "Auth service: login, logout, fetch current user. Uses apiClient in production or the mock adapter in dev. Provides token and user shapes.",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/mock/data/users.ts",
+        "src/core/contracts.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "login",
+        "logout",
+        "getCurrentUser",
+        "AuthService"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "services-insurance",
+      "file_path": "src/services/insurance.ts",
+      "description": "Service to query insurance claims and their statuses.",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/core/contracts.ts",
+        "src/mock/data/insurance.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "fetchInsuranceClaims",
+        "fetchInsuranceClaimById"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "services-lab-results",
+      "file_path": "src/services/labResults.ts",
+      "description": "Service functions to fetch and stream lab results; supports real-time updates via events or sockets.",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/core/contracts.ts",
+        "src/mock/data/labResults.ts",
+        "src/core/events.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "fetchLabResults",
+        "fetchLabResultById",
+        "subscribeToLabResults"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "services-medical-records",
+      "file_path": "src/services/medicalRecords.ts",
+      "description": "Service functions to fetch patient medical records, with pagination and metadata.",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/core/contracts.ts",
+        "src/mock/data/medicalRecords.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "fetchMedicalRecords",
+        "fetchMedicalRecordById"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "services-medications",
+      "file_path": "src/services/medications.ts",
+      "description": "Service functions for medication list, reminders, and scheduling (client-managed reminders).",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/core/contracts.ts",
+        "src/mock/data/medications.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "fetchMedications",
+        "setMedicationReminder",
+        "clearMedicationReminder"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "services-prescriptions",
+      "file_path": "src/services/prescriptions.ts",
+      "description": "Service functions to manage prescriptions (list, refill, cancel).",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/core/contracts.ts",
+        "src/mock/data/prescriptions.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "fetchPrescriptions",
+        "createPrescription",
+        "refillPrescription",
+        "cancelPrescription"
+      ],
+      "priority": 1
+    },
+    {
+      "id": "i18n-en",
+      "file_path": "src/shared/i18n/en.json",
+      "description": "English translations for UI labels, validation messages and error strings.",
       "dependencies": [],
       "exports": [
-        "formatNumber",
-        "formatUnits"
+        "en"
       ],
-      "priority": 1
+      "priority": 2
     },
     {
-      "id": "validators",
-      "file_path": "src/validators/validators.ts",
-      "description": "Shared validation rules and helper functions for forms used across features (email, required, date ranges).",
+      "id": "i18n-ko",
+      "file_path": "src/shared/i18n/ko.json",
+      "description": "Korean translations for UI labels, validation messages and error strings (Korean support requirement).",
       "dependencies": [],
       "exports": [
-        "validateEmail",
-        "required",
-        "validateDateRange"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "websocket-mock",
-      "file_path": "src/services/websocketMock.ts",
-      "description": "Mock WebSocket server/client that can be enabled/disabled in development. Exposes a subscribe/publish API and simulates real-time updates for features like telemedicine and live lab results.",
-      "dependencies": [
-        "src/app/config.ts",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "WebSocketMock",
-        "subscribeWS",
-        "unsubscribeWS",
-        "publishWS"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "appointments-card",
-      "file_path": "src/features/appointments/AppointmentCard.tsx",
-      "description": "Presentational card showing appointment summary and actions (reschedule, cancel).",
-      "dependencies": [
-        "src/components/ui/Button.tsx",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "AppointmentCard"
+        "ko"
       ],
       "priority": 2
     },
     {
-      "id": "appointments-form",
-      "file_path": "src/features/appointments/AppointmentForm.tsx",
-      "description": "Form used to create or reschedule an appointment with validation and accessible fields.",
-      "dependencies": [
-        "src/components/forms/FormField.tsx",
-        "src/components/forms/DatePicker.tsx",
-        "src/validators/validators.ts",
-        "src/services/appointmentsService.ts"
-      ],
-      "exports": [
-        "AppointmentForm"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "claim-item",
-      "file_path": "src/features/insurance/ClaimItem.tsx",
-      "description": "UI element summarizing an insurance claim with status indicators and action CTA to contact provider.",
-      "dependencies": [
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "ClaimItem"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "date-picker",
-      "file_path": "src/components/forms/DatePicker.tsx",
-      "description": "Accessible date picker input used for appointment scheduling and filters (lightweight, tailwind styled).",
-      "dependencies": [
-        "src/components/ui/Input.tsx",
-        "src/validators/validators.ts"
-      ],
-      "exports": [
-        "DatePicker"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "form-field",
-      "file_path": "src/components/forms/FormField.tsx",
-      "description": "Generic form field wrapper for labels, help text and validation messages.",
-      "dependencies": [
-        "src/components/ui/Input.tsx"
-      ],
-      "exports": [
-        "FormField"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "lab-result-item",
-      "file_path": "src/features/labs/LabResultItem.tsx",
-      "description": "Component showing a single lab result row with indicator for abnormal values and option to view details.",
-      "dependencies": [
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "LabResultItem"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "metrics-chart",
-      "file_path": "src/features/metrics/MetricsChart.tsx",
-      "description": "Reusable chart component for health metrics (blood pressure, heart rate). Uses simple SVG or lightweight chart lib wrapper.",
-      "dependencies": [
-        "src/services/medicationsService.ts"
-      ],
-      "exports": [
-        "MetricsChart"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "prescription-list",
-      "file_path": "src/features/prescriptions/PrescriptionList.tsx",
-      "description": "List component displaying current prescriptions with refill action.",
-      "dependencies": [
-        "src/services/prescriptionsService.ts",
-        "src/components/ui/Button.tsx"
-      ],
-      "exports": [
-        "PrescriptionList"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "record-viewer",
-      "file_path": "src/features/records/RecordViewer.tsx",
-      "description": "Component to render medical record entries, supports document viewer fallback and attachments.",
-      "dependencies": [
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "RecordViewer"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "reminder-list",
-      "file_path": "src/features/reminders/ReminderList.tsx",
-      "description": "Component listing medication reminders and allows marking them as taken or snoozing.",
-      "dependencies": [
-        "src/services/medicationsService.ts",
-        "src/components/ui/Button.tsx"
-      ],
-      "exports": [
-        "ReminderList"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "ui-button",
-      "file_path": "src/components/ui/Button.tsx",
-      "description": "Accessible Button component built with Tailwind and forwardRef; supports variants and loading state.",
+      "id": "shared-components-button",
+      "file_path": "src/shared/components/Button.tsx",
+      "description": "Accessible Tailwind-styled Button component with variant props (primary, secondary, danger) and loading state.",
       "dependencies": [],
       "exports": [
         "Button"
@@ -851,129 +580,276 @@
       "priority": 2
     },
     {
-      "id": "ui-input",
-      "file_path": "src/components/ui/Input.tsx",
-      "description": "Input component integrated with ARIA attributes and error display; works with React Hook Form or controlled inputs.",
+      "id": "shared-components-card",
+      "file_path": "src/shared/components/Card.tsx",
+      "description": "Simple card container component used for dashboard cards and small panels.",
       "dependencies": [],
+      "exports": [
+        "Card"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-components-error-fallback",
+      "file_path": "src/shared/components/ErrorFallback.tsx",
+      "description": "Error boundary fallback UI that displays friendly message, retry action and logs errors.",
+      "dependencies": [
+        "src/shared/components/Button.tsx"
+      ],
+      "exports": [
+        "ErrorFallback"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-components-header",
+      "file_path": "src/shared/components/Header.tsx",
+      "description": "Top navigation bar: contains brand, current user, theme toggle and quick actions. Accessible and keyboard navigable.",
+      "dependencies": [
+        "src/shared/components/Button.tsx",
+        "src/shared/hooks/useAuth.ts",
+        "src/shared/i18n/en.json",
+        "src/shared/i18n/ko.json"
+      ],
+      "exports": [
+        "Header"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-components-input",
+      "file_path": "src/shared/components/Input.tsx",
+      "description": "Accessible input component with label, error text and aria attributes. Supports text, date, time and textarea modes.",
+      "dependencies": [
+        "src/shared/forms/validators.ts"
+      ],
       "exports": [
         "Input"
       ],
       "priority": 2
     },
     {
-      "id": "ui-modal",
-      "file_path": "src/components/ui/Modal.tsx",
-      "description": "Accessible modal dialog with focus trap and keyboard handling for forms and telemedicine popups.",
-      "dependencies": [],
+      "id": "shared-components-layout",
+      "file_path": "src/shared/components/Layout.tsx",
+      "description": "App shell layout with Header and Sidebar regions. Responsible for responsive behavior and accessibility landmarks.",
+      "dependencies": [
+        "src/shared/components/Header.tsx",
+        "src/shared/components/Sidebar.tsx"
+      ],
+      "exports": [
+        "Layout"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-components-modal",
+      "file_path": "src/shared/components/Modal.tsx",
+      "description": "Accessible modal dialog with focus trap and keyboard close behavior.",
+      "dependencies": [
+        "src/shared/components/Button.tsx"
+      ],
       "exports": [
         "Modal"
       ],
       "priority": 2
     },
     {
-      "id": "video-call",
-      "file_path": "src/features/telemedicine/VideoCall.tsx",
-      "description": "Lightweight telemedicine UI for video call session (mock video streams in dev), handles incoming call events and basic controls.",
+      "id": "shared-components-protected-route",
+      "file_path": "src/shared/components/ProtectedRoute.tsx",
+      "description": "Route wrapper that checks current auth state & roles; redirects to login if unauthorized. Used by route definitions.",
       "dependencies": [
-        "src/services/websocketMock.ts",
-        "src/core/events.ts"
+        "src/providers/AuthProvider.tsx",
+        "src/pages/Auth/LoginPage.tsx"
       ],
       "exports": [
-        "VideoCall"
+        "ProtectedRoute"
       ],
       "priority": 2
     },
     {
-      "id": "appointments-detail-page",
-      "file_path": "src/pages/appointments/AppointmentDetailPage.tsx",
-      "description": "Detail page for a single appointment including provider notes and reschedule/cancel actions.",
+      "id": "shared-components-sidebar",
+      "file_path": "src/shared/components/Sidebar.tsx",
+      "description": "Primary navigation menu for feature pages, supports collapse/expand and keyboard navigation.",
       "dependencies": [
-        "src/services/appointmentsService.ts",
-        "src/features/records/RecordViewer.tsx"
+        "src/app/routes.tsx"
       ],
       "exports": [
-        "AppointmentDetailPage"
+        "Sidebar"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-components-spinner",
+      "file_path": "src/shared/components/Spinner.tsx",
+      "description": "Small spinner component used for loading states (also used as Suspense fallback).",
+      "dependencies": [],
+      "exports": [
+        "Spinner"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-components-table",
+      "file_path": "src/shared/components/Table.tsx",
+      "description": "Accessible table component with responsive behavior, optional sortable headers and row actions.",
+      "dependencies": [
+        "src/shared/components/Button.tsx"
+      ],
+      "exports": [
+        "Table"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-forms-use-form",
+      "file_path": "src/shared/forms/useForm.ts",
+      "description": "Form helper hook built on React Hook Form patterns (lightweight) to manage validation, touched, errors, and submission states.",
+      "dependencies": [
+        "src/shared/forms/validators.ts"
+      ],
+      "exports": [
+        "useForm"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-forms-validators",
+      "file_path": "src/shared/forms/validators.ts",
+      "description": "Common form validators (required, email, minLength, dateInFuture) and localized error messages.",
+      "dependencies": [
+        "src/app/i18n.ts"
+      ],
+      "exports": [
+        "validators",
+        "validate"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-hook-use-auth",
+      "file_path": "src/shared/hooks/useAuth.ts",
+      "description": "Convenience hook that wraps AuthProvider context to expose login/logout and current user for components.",
+      "dependencies": [
+        "src/providers/AuthProvider.tsx",
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "useAuth"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-hook-use-interval",
+      "file_path": "src/shared/hooks/useInterval.ts",
+      "description": "Small hook for setInterval with proper cleanup and latest callback capture, used for polling/reminders.",
+      "dependencies": [],
+      "exports": [
+        "useInterval"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-hook-use-localstorage",
+      "file_path": "src/shared/hooks/useLocalStorage.ts",
+      "description": "Generic typed useLocalStorage hook that persists JSON to localStorage with serialization safety and change listeners.",
+      "dependencies": [
+        "src/core/utils.ts"
+      ],
+      "exports": [
+        "useLocalStorage"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-hook-use-socket",
+      "file_path": "src/shared/hooks/useSocket.ts",
+      "description": "Hook to subscribe to socket or event bus messages; abstracts provider implementation (real WS or mock).",
+      "dependencies": [
+        "src/providers/WebsocketProvider.tsx",
+        "src/core/events.ts"
+      ],
+      "exports": [
+        "useSocket"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-utils-date",
+      "file_path": "src/shared/utils/date.ts",
+      "description": "Date helpers: formatDate, parseISO, relativeTime, timezone helpers.",
+      "dependencies": [],
+      "exports": [
+        "formatDate",
+        "parseISO",
+        "relativeTime"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-utils-formatters",
+      "file_path": "src/shared/utils/formatters.ts",
+      "description": "Various small formatters (currency, lab value formatters) used by UI components.",
+      "dependencies": [],
+      "exports": [
+        "formatCurrency",
+        "formatLabValue"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "styles-index",
+      "file_path": "src/styles/index.css",
+      "description": "Tailwind entrypoint and global styles (imports Tailwind base/components/utilities and sets up dark mode).",
+      "dependencies": [],
+      "exports": [
+        "globalStyles"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "page-appointment-detail",
+      "file_path": "src/pages/Appointments/AppointmentDetail.tsx",
+      "description": "Appointment detail view: shows appointment metadata, notes, provider details and actions (reschedule/cancel).",
+      "dependencies": [
+        "src/services/appointments.ts",
+        "src/shared/components/Card.tsx",
+        "src/shared/components/Button.tsx",
+        "src/shared/utils/date.ts"
+      ],
+      "exports": [
+        "AppointmentDetail"
       ],
       "priority": 3
     },
     {
-      "id": "appointments-list-page",
-      "file_path": "src/pages/appointments/AppointmentListPage.tsx",
-      "description": "Page listing user's appointments and action to schedule new ones. Uses AppointmentCard and AppointmentForm (modal).",
+      "id": "page-appointments-list",
+      "file_path": "src/pages/Appointments/AppointmentsPage.tsx",
+      "description": "Appointments listing page with create/update flows, calendar/time pickers, and table of appointments. Integrates with create/update services and optimistic updates via React Query.",
       "dependencies": [
-        "src/features/appointments/AppointmentCard.tsx",
-        "src/features/appointments/AppointmentForm.tsx",
-        "src/services/appointmentsService.ts",
-        "src/components/ui/Modal.tsx"
+        "src/services/appointments.ts",
+        "src/shared/components/Table.tsx",
+        "src/shared/components/Modal.tsx",
+        "src/shared/components/Input.tsx",
+        "src/shared/forms/useForm.ts",
+        "src/shared/components/Layout.tsx",
+        "src/core/events.ts"
       ],
       "exports": [
-        "AppointmentListPage"
+        "AppointmentsPage"
       ],
       "priority": 3
     },
     {
-      "id": "dashboard-page",
-      "file_path": "src/pages/DashboardPage.tsx",
-      "description": "Patient health dashboard aggregating upcoming appointments, recent lab results and health metrics. Uses AppLayout.",
+      "id": "page-auth-login",
+      "file_path": "src/pages/Auth/LoginPage.tsx",
+      "description": "Login page with form, validation and mock auth support in dev. On success redirects to protected route. Supports keyboard navigation and ARIA attributes.",
       "dependencies": [
-        "src/components/Layout/AppLayout.tsx",
-        "src/features/metrics/MetricsChart.tsx",
-        "src/features/reminders/ReminderList.tsx",
-        "src/services/appointmentsService.ts",
-        "src/services/labsService.ts"
-      ],
-      "exports": [
-        "DashboardPage"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "home-page",
-      "file_path": "src/pages/HomePage.tsx",
-      "description": "Public landing page for the portal with summary and CTA to login or learn more.",
-      "dependencies": [
-        "src/i18n/i18n.ts"
-      ],
-      "exports": [
-        "HomePage"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "insurance-page",
-      "file_path": "src/pages/insurance/InsurancePage.tsx",
-      "description": "Insurance claim tracker page showing claim items and statuses.",
-      "dependencies": [
-        "src/features/insurance/ClaimItem.tsx",
-        "src/services/insuranceService.ts"
-      ],
-      "exports": [
-        "InsurancePage"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "lab-results-page",
-      "file_path": "src/pages/labs/LabResultsPage.tsx",
-      "description": "Page showing lab results list and detail view.",
-      "dependencies": [
-        "src/features/labs/LabResultItem.tsx",
-        "src/services/labsService.ts"
-      ],
-      "exports": [
-        "LabResultsPage"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "login-page",
-      "file_path": "src/pages/LoginPage.tsx",
-      "description": "Login page and form integrating mock auth in dev and real auth flows in prod. Uses validation and persists token on success.",
-      "dependencies": [
-        "src/hooks/useAuth.ts",
-        "src/components/forms/FormField.tsx",
-        "src/components/ui/Button.tsx",
-        "src/validators/validators.ts"
+        "src/shared/forms/useForm.ts",
+        "src/services/auth.ts",
+        "src/shared/components/Input.tsx",
+        "src/shared/components/Button.tsx",
+        "src/providers/AuthProvider.tsx",
+        "src/app/i18n.ts"
       ],
       "exports": [
         "LoginPage"
@@ -981,50 +857,116 @@
       "priority": 3
     },
     {
-      "id": "medical-records-page",
-      "file_path": "src/pages/records/MedicalRecordsPage.tsx",
-      "description": "Page to browse and view medical records, with search and filters.",
+      "id": "page-auth-logout",
+      "file_path": "src/pages/Auth/Logout.tsx",
+      "description": "Performs logout through Auth service and redirects to login; used by header quick action.",
       "dependencies": [
-        "src/features/records/RecordViewer.tsx",
-        "src/services/recordsService.ts"
+        "src/services/auth.ts",
+        "src/providers/AuthProvider.tsx"
       ],
       "exports": [
-        "MedicalRecordsPage"
+        "Logout"
       ],
       "priority": 3
     },
     {
-      "id": "metrics-page",
-      "file_path": "src/pages/metrics/HealthMetricsPage.tsx",
-      "description": "Health metrics dashboard with charts and historical data; uses MetricsChart components with React Query for metrics data.",
+      "id": "page-dashboard",
+      "file_path": "src/pages/Dashboard/DashboardPage.tsx",
+      "description": "Health metrics dashboard: composes small cards for vitals, upcoming appointments, recent lab results and medication reminders. Uses React Query to fetch multiple endpoints and Suspense for loading.",
       "dependencies": [
-        "src/features/metrics/MetricsChart.tsx",
-        "src/services/medicationsService.ts"
+        "src/shared/components/Card.tsx",
+        "src/shared/components/Layout.tsx",
+        "src/services/appointments.ts",
+        "src/services/labResults.ts",
+        "src/services/medications.ts",
+        "src/shared/utils/formatters.ts"
       ],
       "exports": [
-        "HealthMetricsPage"
+        "DashboardPage"
       ],
       "priority": 3
     },
     {
-      "id": "not-found-page",
-      "file_path": "src/pages/NotFoundPage.tsx",
-      "description": "404 Not Found page for unknown routes.",
+      "id": "page-insurance",
+      "file_path": "src/pages/Insurance/InsurancePage.tsx",
+      "description": "Insurance claim tracker UI: lists claims, shows statuses and claim details. Provides fallback and retry patterns for API failures.",
       "dependencies": [
-        "src/i18n/i18n.ts"
+        "src/services/insurance.ts",
+        "src/shared/components/Table.tsx",
+        "src/shared/components/Layout.tsx"
       ],
       "exports": [
-        "NotFoundPage"
+        "InsurancePage"
       ],
       "priority": 3
     },
     {
-      "id": "prescriptions-page",
-      "file_path": "src/pages/prescriptions/PrescriptionsPage.tsx",
-      "description": "Page for prescriptions management and refill requests.",
+      "id": "page-lab-results",
+      "file_path": "src/pages/LabResults/LabResultsPage.tsx",
+      "description": "Lab results display with sortable/filterable list and quick-view details. Subscribes to new results via events or socket for real-time updates.",
       "dependencies": [
-        "src/features/prescriptions/PrescriptionList.tsx",
-        "src/services/prescriptionsService.ts"
+        "src/services/labResults.ts",
+        "src/shared/components/Table.tsx",
+        "src/shared/hooks/useSocket.ts",
+        "src/shared/components/Layout.tsx"
+      ],
+      "exports": [
+        "LabResultsPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "page-medical-records",
+      "file_path": "src/pages/MedicalRecords/RecordsPage.tsx",
+      "description": "Viewer for medical records: searchable list, detail view, PDF/download fallback. Uses virtualized lists for performance.",
+      "dependencies": [
+        "src/services/medicalRecords.ts",
+        "src/shared/components/Table.tsx",
+        "src/shared/components/Layout.tsx",
+        "src/shared/utils/formatters.ts"
+      ],
+      "exports": [
+        "RecordsPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "page-medications",
+      "file_path": "src/pages/Medications/MedicationsPage.tsx",
+      "description": "Medications and reminders management screen. Allows creating client-side reminders which persist to localStorage in development. Shows upcoming reminders and integrates with useInterval to trigger reminders.",
+      "dependencies": [
+        "src/services/medications.ts",
+        "src/shared/components/Table.tsx",
+        "src/shared/hooks/useLocalStorage.ts",
+        "src/shared/hooks/useInterval.ts",
+        "src/shared/components/Layout.tsx"
+      ],
+      "exports": [
+        "MedicationsPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "page-notfound",
+      "file_path": "src/pages/NotFound.tsx",
+      "description": "404 page: shown when no route matches. Provides links back to dashboard and login.",
+      "dependencies": [
+        "src/shared/components/Layout.tsx"
+      ],
+      "exports": [
+        "NotFound"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "page-prescriptions",
+      "file_path": "src/pages/Prescriptions/PrescriptionsPage.tsx",
+      "description": "Prescription management UI featuring list of active prescriptions, refill requests, and status. Integrates with mock refill flows in dev.",
+      "dependencies": [
+        "src/services/prescriptions.ts",
+        "src/shared/components/Table.tsx",
+        "src/shared/components/Button.tsx",
+        "src/shared/components/Layout.tsx"
       ],
       "exports": [
         "PrescriptionsPage"
@@ -1032,26 +974,13 @@
       "priority": 3
     },
     {
-      "id": "reminders-page",
-      "file_path": "src/pages/reminders/MedicationRemindersPage.tsx",
-      "description": "Medication reminders page where users can see upcoming reminders and mark them as taken.",
+      "id": "page-telemedicine",
+      "file_path": "src/pages/Telemedicine/TelemedicinePage.tsx",
+      "description": "Telemedicine interface placeholder that integrates with WebSocket provider for session status and mock video/session metadata. Provides fallback UI when backend is unavailable.",
       "dependencies": [
-        "src/features/reminders/ReminderList.tsx",
-        "src/services/medicationsService.ts"
-      ],
-      "exports": [
-        "MedicationRemindersPage"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "telemedicine-page",
-      "file_path": "src/pages/telemedicine/TelemedicinePage.tsx",
-      "description": "Telemedicine interface page that uses VideoCall component, shows upcoming calls, and handles WebSocket events for call signaling.",
-      "dependencies": [
-        "src/features/telemedicine/VideoCall.tsx",
-        "src/hooks/useWebSocket.ts",
-        "src/services/websocketMock.ts"
+        "src/providers/WebsocketProvider.tsx",
+        "src/shared/components/Card.tsx",
+        "src/shared/components/Button.tsx"
       ],
       "exports": [
         "TelemedicinePage"
@@ -1060,166 +989,140 @@
     }
   ],
   "file_paths": [
-    "src/services/apiClient.ts",
-    "app/config.ts",
-    "src/components/Layout/AppLayout.tsx",
+    "src/app/config.ts",
+    "src/app/i18n.ts",
     "src/App.tsx",
-    "src/routes/AppRouter.tsx",
-    "src/services/appointmentsService.ts",
-    "src/providers/AuthProvider.tsx",
-    "core/contracts.ts",
-    "core/di.ts",
-    "core/events.ts",
-    "core/hooks.ts",
-    "core/utils.ts",
+    "src/app/routes.tsx",
+    "src/core/contracts.ts",
+    "src/core/di.ts",
+    "src/core/events.ts",
+    "src/core/hooks.ts",
+    "src/core/utils.ts",
     "src/main.tsx",
-    "src/components/ErrorBoundary.tsx",
-    "src/index.css",
-    "src/i18n/locales/en.json",
-    "src/i18n/locales/ko.json",
-    "src/i18n/i18n.ts",
-    "src/services/insuranceService.ts",
-    "src/services/labsService.ts",
-    "src/components/Layout/Header.tsx",
-    "src/components/Layout/Sidebar.tsx",
-    "src/services/localPersistence.ts",
-    "src/services/medicationsService.ts",
-    "src/services/mockServer.ts",
-    "src/mocks/data/appointments.ts",
-    "src/mocks/data/authUsers.ts",
-    "src/mocks/browser.ts",
-    "src/mocks/handlers.ts",
-    "src/mocks/data/insurance.ts",
-    "src/mocks/data/labResults.ts",
-    "src/mocks/data/medicalRecords.ts",
-    "src/mocks/data/medications.ts",
-    "src/mocks/data/prescriptions.ts",
-    "config/postcss.config.cjs",
-    "src/services/prescriptionsService.ts",
-    "src/routes/ProtectedRoute.tsx",
+    "src/mock/data/appointments.ts",
+    "src/mock/data/insurance.ts",
+    "src/mock/data/labResults.ts",
+    "src/mock/data/medicalRecords.ts",
+    "src/mock/data/medications.ts",
+    "src/mock/data/prescriptions.ts",
+    "src/mock/data/users.ts",
+    "src/mock/mockServer.ts",
+    "src/mock/websocketMock.ts",
+    "src/providers/AuthProvider.tsx",
+    "src/providers/MockServerProvider.tsx",
     "src/providers/QueryProvider.tsx",
-    "src/lib/reactQuery.ts",
-    "src/services/recordsService.ts",
-    "src/state/store.ts",
-    "src/components/SuspenseFallback.tsx",
-    "config/tailwind.config.js",
     "src/providers/ThemeProvider.tsx",
-    "config/tsconfig.json",
-    "src/hooks/useAuth.ts",
-    "src/hooks/useFetch.ts",
-    "src/hooks/useWebSocket.ts",
-    "src/utils/date.ts",
-    "src/utils/formatting.ts",
-    "src/validators/validators.ts",
-    "src/services/websocketMock.ts",
-    "src/features/appointments/AppointmentCard.tsx",
-    "src/features/appointments/AppointmentForm.tsx",
-    "src/features/insurance/ClaimItem.tsx",
-    "src/components/forms/DatePicker.tsx",
-    "src/components/forms/FormField.tsx",
-    "src/features/labs/LabResultItem.tsx",
-    "src/features/metrics/MetricsChart.tsx",
-    "src/features/prescriptions/PrescriptionList.tsx",
-    "src/features/records/RecordViewer.tsx",
-    "src/features/reminders/ReminderList.tsx",
-    "src/components/ui/Button.tsx",
-    "src/components/ui/Input.tsx",
-    "src/components/ui/Modal.tsx",
-    "src/features/telemedicine/VideoCall.tsx",
-    "src/pages/appointments/AppointmentDetailPage.tsx",
-    "src/pages/appointments/AppointmentListPage.tsx",
-    "src/pages/DashboardPage.tsx",
-    "src/pages/HomePage.tsx",
-    "src/pages/insurance/InsurancePage.tsx",
-    "src/pages/labs/LabResultsPage.tsx",
-    "src/pages/LoginPage.tsx",
-    "src/pages/records/MedicalRecordsPage.tsx",
-    "src/pages/metrics/HealthMetricsPage.tsx",
-    "src/pages/NotFoundPage.tsx",
-    "src/pages/prescriptions/PrescriptionsPage.tsx",
-    "src/pages/reminders/MedicationRemindersPage.tsx",
-    "src/pages/telemedicine/TelemedicinePage.tsx"
+    "src/providers/WebsocketProvider.tsx",
+    "src/services/apiClient.ts",
+    "src/services/appointments.ts",
+    "src/services/auth.ts",
+    "src/services/insurance.ts",
+    "src/services/labResults.ts",
+    "src/services/medicalRecords.ts",
+    "src/services/medications.ts",
+    "src/services/prescriptions.ts",
+    "src/shared/i18n/en.json",
+    "src/shared/i18n/ko.json",
+    "src/shared/components/Button.tsx",
+    "src/shared/components/Card.tsx",
+    "src/shared/components/ErrorFallback.tsx",
+    "src/shared/components/Header.tsx",
+    "src/shared/components/Input.tsx",
+    "src/shared/components/Layout.tsx",
+    "src/shared/components/Modal.tsx",
+    "src/shared/components/ProtectedRoute.tsx",
+    "src/shared/components/Sidebar.tsx",
+    "src/shared/components/Spinner.tsx",
+    "src/shared/components/Table.tsx",
+    "src/shared/forms/useForm.ts",
+    "src/shared/forms/validators.ts",
+    "src/shared/hooks/useAuth.ts",
+    "src/shared/hooks/useInterval.ts",
+    "src/shared/hooks/useLocalStorage.ts",
+    "src/shared/hooks/useSocket.ts",
+    "src/shared/utils/date.ts",
+    "src/shared/utils/formatters.ts",
+    "src/styles/index.css",
+    "src/pages/Appointments/AppointmentDetail.tsx",
+    "src/pages/Appointments/AppointmentsPage.tsx",
+    "src/pages/Auth/LoginPage.tsx",
+    "src/pages/Auth/Logout.tsx",
+    "src/pages/Dashboard/DashboardPage.tsx",
+    "src/pages/Insurance/InsurancePage.tsx",
+    "src/pages/LabResults/LabResultsPage.tsx",
+    "src/pages/MedicalRecords/RecordsPage.tsx",
+    "src/pages/Medications/MedicationsPage.tsx",
+    "src/pages/NotFound.tsx",
+    "src/pages/Prescriptions/PrescriptionsPage.tsx",
+    "src/pages/Telemedicine/TelemedicinePage.tsx"
   ],
   "descriptions": [
-    "Centralized API client wrapper using fetch with automatic auth token injection, timeout, JSON parse handling, and fallback behavior when backend unavailable (graceful errors). Swappable to a mock adapter in dev.",
-    "Materialized application configuration including environment flags (dev mode, mock toggles), API base paths, feature flags and i18n default. Reads from process.env where appropriate and exports a typed config.",
-    "Main application layout used by protected pages: includes Header, Sidebar and main content area with responsive behavior for mobile and desktop.",
-    "Top-level App component: mounts router inside ErrorBoundary and Suspense with Fallback; provides global layout. Connects i18n initialization.",
-    "React Router v6 configuration: declares public and protected routes for all pages including lazy-loaded feature pages. Integrates ProtectedRoute for auth-guarded sections.",
-    "Service functions for appointment scheduling: list, create, update, cancel. Consumed by React Query hooks in pages and components.",
-    "Auth context provider that manages login/logout, token storage (via localPersistence in dev), exposes current user and role, and supports mock auth users in development. Uses core/contracts types.",
-    "Domain types, API request/response contracts, enums and shared TypeScript interfaces used across the app (appointments, records, prescriptions, labs, user, auth token, WebSocket events).",
-    "Simple dependency injection container / service locator (optional), used to swap implementations in tests or mock mode.",
-    "Lightweight typed event bus for in-app pub/sub for cross-cutting events (incoming call, notification, global error).",
-    "Registry for extension hooks; allows other modules to register lifecycle hooks (e.g., onAuthChange).",
-    "Core utilities shared across the app (safeJSON, noop, sleep, fetchWithTimeout). Intended as very small primitives safe to use from kernel-level files.",
-    "React entry point: renders App into DOM, bootstraps mock server in development, wraps with top-level providers (QueryProvider, AuthProvider, ThemeProvider) and ErrorBoundary.",
-    "React Error Boundary component with fallback UI and option to report errors to an event bus. Used at top-level to catch rendering errors.",
-    "Tailwind base imports and global CSS variables for light/dark themes. Used by main.tsx.",
-    "English translations for UI strings. Minimal set covering pages, labels and validation messages.",
-    "Korean translations for UI strings (Korean support required).",
-    "i18next initialization with English and Korean locales, language detector, and a typed translation hook. Exports initialized instance and helpers.",
-    "Service functions for insurance claim tracking.",
-    "Service functions for lab results retrieval and status checks.",
-    "Top navigation header with user menu, language switcher and theme toggle. Accessible keyboard navigation and ARIA labels.",
-    "Responsive sidebar with navigation links for features; handles collapsing and keyboard navigation.",
-    "Abstracts localStorage get/set interactions, namespaced keys for auth and UI state. Honors development config for persistence.",
-    "Service functions for medication tracking and reminders.",
-    "Bootstraps the in-app mock server when dev mode is enabled. Initializes handlers from mocks/handlers.ts and exposes start/stop functions. Ensures the app runs standalone.",
-    "Mock appointment data used by mock API endpoint /api/appointments.",
-    "Mock users for development mode (doctor, patient, nurse) used by mock auth server. Matches app.config mock_auth_users.",
-    "Client-side mock server bootstrapper (MSW-like) that registers handlers and exposes a start() function for main.tsx to call in development.",
-    "Defines mock API handlers for endpoints listed in development config (/api/appointments, /api/medical-records, etc.). Also implements mock auth login and token issuance.",
-    "Mock insurance claim data for /api/insurance.",
-    "Mock lab results for /api/lab-results.",
-    "Mock medical records data for /api/medical-records.",
-    "Mock medications and reminders for /api/medications used to drive medication reminders feature.",
-    "Mock prescription data for /api/prescriptions.",
-    "PostCSS configuration for Tailwind processing.",
-    "Service functions for prescriptions management.",
-    "Route wrapper that checks authentication and role-based access via useAuth; redirects to login for unauthorized users.",
-    "Sets up React Query QueryClient with sensible defaults (staleTime, retries) and ErrorBoundary integration. Injects auth token into apiClient via context or apiClient setter.",
-    "Creates and configures a QueryClient instance used by QueryProvider; defines common query keys and helper functions.",
-    "Service functions for medical records retrieval and filtering.",
-    "Global UI state (sidebar open, modals) managed via React Context and useReducer (small, predictable). Not for server data (React Query used for that).",
-    "Accessible suspense fallback UI (skeletons/spinner) used across lazy-loaded routes and components.",
-    "Tailwind CSS configuration enabling JIT, dark mode and paths to scan.",
-    "Provides theme (light/dark) context, toggling, and persists preference to localStorage. Integrates Tailwind dark mode class on body.",
-    "TypeScript compiler options tuned for a React 18 + TS project.",
-    "Public hook to access auth context: login, logout, current user, role checks. Uses AuthProvider context and localPersistence in dev mode.",
-    "Thin wrapper around React Query's useQuery/useMutation providing typed response handling and common error mapping. Uses apiClient under the hood.",
-    "Hook to subscribe to real-time WebSocketMock events; exposes latest events and convenience subscription functions. Falls back to polling when WS disabled.",
-    "Date helper utilities for formatting and timezone-safe conversions used by many components and services.",
-    "Formatting helpers for numbers, units and medical value presentation.",
-    "Shared validation rules and helper functions for forms used across features (email, required, date ranges).",
-    "Mock WebSocket server/client that can be enabled/disabled in development. Exposes a subscribe/publish API and simulates real-time updates for features like telemedicine and live lab results.",
-    "Presentational card showing appointment summary and actions (reschedule, cancel).",
-    "Form used to create or reschedule an appointment with validation and accessible fields.",
-    "UI element summarizing an insurance claim with status indicators and action CTA to contact provider.",
-    "Accessible date picker input used for appointment scheduling and filters (lightweight, tailwind styled).",
-    "Generic form field wrapper for labels, help text and validation messages.",
-    "Component showing a single lab result row with indicator for abnormal values and option to view details.",
-    "Reusable chart component for health metrics (blood pressure, heart rate). Uses simple SVG or lightweight chart lib wrapper.",
-    "List component displaying current prescriptions with refill action.",
-    "Component to render medical record entries, supports document viewer fallback and attachments.",
-    "Component listing medication reminders and allows marking them as taken or snoozing.",
-    "Accessible Button component built with Tailwind and forwardRef; supports variants and loading state.",
-    "Input component integrated with ARIA attributes and error display; works with React Hook Form or controlled inputs.",
-    "Accessible modal dialog with focus trap and keyboard handling for forms and telemedicine popups.",
-    "Lightweight telemedicine UI for video call session (mock video streams in dev), handles incoming call events and basic controls.",
-    "Detail page for a single appointment including provider notes and reschedule/cancel actions.",
-    "Page listing user's appointments and action to schedule new ones. Uses AppointmentCard and AppointmentForm (modal).",
-    "Patient health dashboard aggregating upcoming appointments, recent lab results and health metrics. Uses AppLayout.",
-    "Public landing page for the portal with summary and CTA to login or learn more.",
-    "Insurance claim tracker page showing claim items and statuses.",
-    "Page showing lab results list and detail view.",
-    "Login page and form integrating mock auth in dev and real auth flows in prod. Uses validation and persists token on success.",
-    "Page to browse and view medical records, with search and filters.",
-    "Health metrics dashboard with charts and historical data; uses MetricsChart components with React Query for metrics data.",
-    "404 Not Found page for unknown routes.",
-    "Page for prescriptions management and refill requests.",
-    "Medication reminders page where users can see upcoming reminders and mark them as taken.",
-    "Telemedicine interface page that uses VideoCall component, shows upcoming calls, and handles WebSocket events for call signaling."
+    "Materialized runtime config: feature flags (enable_mock_data), API base URL, mock endpoints list, dev users and persistence flags (use_localstorage_persistence).",
+    "i18n initialization wrapper using react-i18next; loads local JSON translations (en, ko) and exposes translation utilities.",
+    "Top-level app component: Router wrapper, Error Boundary, Suspense boundary, and route outlet. Applies global layout and fallback UIs.",
+    "React Router route definitions for public and protected routes; uses ProtectedRoute wrapper. Exports route components and route metadata for navigation.",
+    "Domain types, DTOs and API contracts shared across services and UI (User, Appointment, MedicalRecord, Prescription, LabResult, InsuranceClaim, Medication, Pagination, API error shapes).",
+    "Simple dependency injection container to allow swapping implementations (e.g., for tests or mock server) \u2014 register/get services by token.",
+    "Tiny event bus used for broadcasting domain events (e.g., appointmentUpdated, labResultArrived) across providers and hooks.",
+    "Extension points and hook registry (named hooks) used by features/providers to register behavior (e.g., onAuthChange).",
+    "Small generic utilities used across the app (safeJsonParse, sleep, isDevelopment).",
+    "App bootstrap: renders App into root, wraps providers (MockServerProvider, QueryProvider, AuthProvider, ThemeProvider, WebsocketProvider) and initializes i18n.",
+    "Mock appointment dataset and factory helpers for appointments endpoints.",
+    "Mock insurance claims dataset and helpers.",
+    "Mock lab results data and helper to generate new results for real-time simulation.",
+    "Mock medical records dataset and helpers.",
+    "Mock medication list and reminder metadata.",
+    "Mock prescriptions data and helpers.",
+    "Mock users used for development mode authentication (doctors, patients, nurses).",
+    "Lightweight mock API server that intercepts fetch requests in development. Provides handlers for all endpoints defined in app config and returns realistic mock responses from /mock/data.",
+    "Simulates WebSocket events in development: emits appointment changes, new lab results, medication reminders. Integrates with core/events to deliver updates to app code.",
+    "Authentication context and hook provider. Handles login/logout, token management, role-based access, protected route wrapper and persistence to localStorage when enabled for development mode.",
+    "Starts the in-app mock server when appConfig.enable_mock_data is true and ensures it is registered before app renders. Injects mock handlers for APIs defined in app config.",
+    "Sets up React Query QueryClient with sensible defaults (staleTime, retry, queryCache) and wraps children with QueryClientProvider.",
+    "Theme context that toggles light/dark mode and persists preference to localStorage. Integrates Tailwind dark class on document.",
+    "Abstraction for WebSocket connection; in development it uses websocketMock to simulate real-time updates. Exposes a context to subscribe to domain events.",
+    "Centralized HTTP client (fetch wrapper) that injects auth tokens, handles errors, applies timeouts and maps API error shapes to ApiError defined in core/contracts.",
+    "Service functions to list, get, create, update and cancel appointments. Designed to be used with React Query.",
+    "Auth service: login, logout, fetch current user. Uses apiClient in production or the mock adapter in dev. Provides token and user shapes.",
+    "Service to query insurance claims and their statuses.",
+    "Service functions to fetch and stream lab results; supports real-time updates via events or sockets.",
+    "Service functions to fetch patient medical records, with pagination and metadata.",
+    "Service functions for medication list, reminders, and scheduling (client-managed reminders).",
+    "Service functions to manage prescriptions (list, refill, cancel).",
+    "English translations for UI labels, validation messages and error strings.",
+    "Korean translations for UI labels, validation messages and error strings (Korean support requirement).",
+    "Accessible Tailwind-styled Button component with variant props (primary, secondary, danger) and loading state.",
+    "Simple card container component used for dashboard cards and small panels.",
+    "Error boundary fallback UI that displays friendly message, retry action and logs errors.",
+    "Top navigation bar: contains brand, current user, theme toggle and quick actions. Accessible and keyboard navigable.",
+    "Accessible input component with label, error text and aria attributes. Supports text, date, time and textarea modes.",
+    "App shell layout with Header and Sidebar regions. Responsible for responsive behavior and accessibility landmarks.",
+    "Accessible modal dialog with focus trap and keyboard close behavior.",
+    "Route wrapper that checks current auth state & roles; redirects to login if unauthorized. Used by route definitions.",
+    "Primary navigation menu for feature pages, supports collapse/expand and keyboard navigation.",
+    "Small spinner component used for loading states (also used as Suspense fallback).",
+    "Accessible table component with responsive behavior, optional sortable headers and row actions.",
+    "Form helper hook built on React Hook Form patterns (lightweight) to manage validation, touched, errors, and submission states.",
+    "Common form validators (required, email, minLength, dateInFuture) and localized error messages.",
+    "Convenience hook that wraps AuthProvider context to expose login/logout and current user for components.",
+    "Small hook for setInterval with proper cleanup and latest callback capture, used for polling/reminders.",
+    "Generic typed useLocalStorage hook that persists JSON to localStorage with serialization safety and change listeners.",
+    "Hook to subscribe to socket or event bus messages; abstracts provider implementation (real WS or mock).",
+    "Date helpers: formatDate, parseISO, relativeTime, timezone helpers.",
+    "Various small formatters (currency, lab value formatters) used by UI components.",
+    "Tailwind entrypoint and global styles (imports Tailwind base/components/utilities and sets up dark mode).",
+    "Appointment detail view: shows appointment metadata, notes, provider details and actions (reschedule/cancel).",
+    "Appointments listing page with create/update flows, calendar/time pickers, and table of appointments. Integrates with create/update services and optimistic updates via React Query.",
+    "Login page with form, validation and mock auth support in dev. On success redirects to protected route. Supports keyboard navigation and ARIA attributes.",
+    "Performs logout through Auth service and redirects to login; used by header quick action.",
+    "Health metrics dashboard: composes small cards for vitals, upcoming appointments, recent lab results and medication reminders. Uses React Query to fetch multiple endpoints and Suspense for loading.",
+    "Insurance claim tracker UI: lists claims, shows statuses and claim details. Provides fallback and retry patterns for API failures.",
+    "Lab results display with sortable/filterable list and quick-view details. Subscribes to new results via events or socket for real-time updates.",
+    "Viewer for medical records: searchable list, detail view, PDF/download fallback. Uses virtualized lists for performance.",
+    "Medications and reminders management screen. Allows creating client-side reminders which persist to localStorage in development. Shows upcoming reminders and integrates with useInterval to trigger reminders.",
+    "404 page: shown when no route matches. Provides links back to dashboard and login.",
+    "Prescription management UI featuring list of active prescriptions, refill requests, and status. Integrates with mock refill flows in dev.",
+    "Telemedicine interface placeholder that integrates with WebSocket provider for session status and mock video/session metadata. Provides fallback UI when backend is unavailable."
   ],
-  "total_files": 79
+  "total_files": 66
 }

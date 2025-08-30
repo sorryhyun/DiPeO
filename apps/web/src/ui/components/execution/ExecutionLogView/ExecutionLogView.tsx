@@ -229,7 +229,7 @@ export const ExecutionLogView: React.FC = () => {
 
       {/* Status */}
       {isRunning && (
-        <div className="px-4 py-2 bg-green-900/20 border-t border-gray-700 text-sm text-green-400 flex items-center justify-between">
+        <div className="px-4 py-2 bg-black border-t border-gray-700 text-sm text-green-400 flex items-center justify-between">
           <div className="flex items-center">
             <div className="animate-pulse w-2 h-2 bg-green-400 rounded-full mr-2" />
             Streaming logs...

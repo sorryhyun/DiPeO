@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 
 /**
@@ -14,7 +14,43 @@ export function useMonitorBoardMode() {
   const setMonitorMode = useUnifiedStore((state) => state.setMonitorMode);
   const activeCanvas = useUnifiedStore((state) => state.activeCanvas);
 
-  // Parse URL to determine mode
+  // Track URL changes to trigger re-parsing
+  const [urlKey, setUrlKey] = useState(0);
+
+  // Listen for URL changes (back/forward buttons, programmatic changes)
+  useEffect(() => {
+    const handlePopState = () => {
+      setUrlKey(prev => prev + 1);
+    };
+    
+    const handleUrlChange = () => {
+      setUrlKey(prev => prev + 1);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    // Also listen for programmatic URL changes
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    
+    window.history.pushState = function(...args) {
+      originalPushState.apply(window.history, args);
+      handleUrlChange();
+    };
+    
+    window.history.replaceState = function(...args) {
+      originalReplaceState.apply(window.history, args);
+      handleUrlChange();
+    };
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
+  }, []);
+
+  // Parse URL to determine mode (re-runs when URL changes)
   const { isMonitorMode, isBoardMode, executionIds } = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const monitorParam = params.get('monitor');
@@ -33,7 +69,7 @@ export function useMonitorBoardMode() {
     }
     
     return { isMonitorMode: false, isBoardMode: false, executionIds: [] };
-  }, []);
+  }, [urlKey]);
 
   // Show board only when explicitly requested with monitor=board
   const shouldShowBoard = isBoardMode;
