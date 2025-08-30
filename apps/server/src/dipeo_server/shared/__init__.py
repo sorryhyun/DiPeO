@@ -1,1 +1,0 @@
-"""Shared cross-cutting concerns."""

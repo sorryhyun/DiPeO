@@ -291,7 +291,7 @@ def wire_port_metrics(registry: "ServiceRegistry") -> None:
     # Get all registered services and wrap them with metrics
     from dipeo.application.registry.keys import (
         STATE_REPOSITORY, STATE_SERVICE, STATE_CACHE,
-        LLM_SERVICE, LLM_CLIENT,
+        LLM_SERVICE,  # LLM_CLIENT removed - no longer needed
         FILESYSTEM_ADAPTER, BLOB_STORE,
         MESSAGE_BUS, DOMAIN_EVENT_BUS,
         API_INVOKER, INTEGRATED_API_SERVICE,
@@ -305,7 +305,7 @@ def wire_port_metrics(registry: "ServiceRegistry") -> None:
         (STATE_SERVICE, "StateService", True),
         (STATE_CACHE, "StateCache", True),
         (LLM_SERVICE, "LLMService", True),
-        (LLM_CLIENT, "LLMClient", True),
+        # (LLM_CLIENT, "LLMClient", True),  # Removed - no longer needed
         (FILESYSTEM_ADAPTER, "FileSystem", True),
         (BLOB_STORE, "BlobStore", True),
         (MESSAGE_BUS, "MessageBus", True),

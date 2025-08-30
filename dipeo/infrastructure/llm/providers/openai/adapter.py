@@ -134,11 +134,9 @@ class OpenAIAdapter(UnifiedAdapter):
         # Prepare messages
         prepared_messages = self.prepare_messages(messages)
         
-        # Validate token limit
-        if not self.token_counter.validate_token_limit(
-            prepared_messages, self.model, max_tokens
-        ):
-            raise ValueError("Messages exceed model's context limit")
+        # Skip local token validation - let the API handle context limits
+        # The API will reject oversized requests and provide accurate token counts
+        # Local estimation without tiktoken is inaccurate and causes false positives
         
         # Prepare tools
         api_tools = self._prepare_tools(tools) if tools else None
@@ -211,11 +209,9 @@ class OpenAIAdapter(UnifiedAdapter):
         # Prepare messages
         prepared_messages = self.prepare_messages(messages)
         
-        # Validate token limit
-        if not self.token_counter.validate_token_limit(
-            prepared_messages, self.model, max_tokens
-        ):
-            raise ValueError("Messages exceed model's context limit")
+        # Skip local token validation - let the API handle context limits
+        # The API will reject oversized requests and provide accurate token counts
+        # Local estimation without tiktoken is inaccurate and causes false positives
         
         # Prepare tools
         api_tools = self._prepare_tools(tools) if tools else None

@@ -7,8 +7,9 @@ from typing import Any
 from urllib.parse import urlparse
 
 from dipeo.domain.base.exceptions import ValidationError
-from dipeo.domain.constants import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.config import VALID_LLM_SERVICES, normalize_service_name
 from dipeo.domain.base.validator import BaseValidator, ValidationResult, ValidationWarning
+from dipeo.diagram_generated.enums import APIServiceType
 
 # External API providers (NOTION, SLACK, etc.) are now handled dynamically
 # through the ProviderRegistry

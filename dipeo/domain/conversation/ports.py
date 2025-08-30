@@ -1,8 +1,11 @@
 """Conversation bounded context ports - defines interfaces for repositories."""
 
-from typing import Any, Optional, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Protocol, Sequence
 
 from dipeo.diagram_generated import LLMService, Message, PersonID, PersonLLMConfig
+
+if TYPE_CHECKING:
+    from dipeo.diagram_generated import ChatResult
 
 from . import Conversation, Person
 
@@ -182,4 +185,30 @@ class MemorySelectionPort(Protocol):
         Returns:
             List of selected message IDs
         """
+        ...
+
+
+class MemoryService(Protocol):
+    """Service for managing conversation memory and context."""
+
+    async def get_relevant_memory(
+        self,
+        person_id: PersonID,
+        messages: list[Message],
+        limit: int = 10,
+    ) -> list[Message]:
+        """Retrieve relevant memory for context."""
+        ...
+
+    async def store_interaction(
+        self,
+        person_id: PersonID,
+        messages: list[Message],
+        response: "ChatResult",
+    ) -> None:
+        """Store interaction in memory."""
+        ...
+
+    async def clear_memory(self, person_id: PersonID) -> None:
+        """Clear all memory for a person."""
         ...

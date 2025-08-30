@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from dipeo.domain.constants import FILES_DIR, PROJECTS_DIR, EXAMPLES_DIR
+from dipeo.config import FILES_DIR, PROJECTS_DIR, EXAMPLES_DIR
 
 
 class DiagramLoader:

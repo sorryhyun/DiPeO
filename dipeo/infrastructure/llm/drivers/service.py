@@ -14,10 +14,8 @@ from tenacity import (
 )
 
 from dipeo.domain.base import APIKeyError, BaseService, LLMServiceError
-from dipeo.domain.constants import VALID_LLM_SERVICES, normalize_service_name
-from dipeo.domain.llm.ports import LLMService as LLMServicePort, LLMClient
-from dipeo.domain.integrations.ports import APIKeyPort
-from dipeo.domain.llm import LLMDomainService
+from dipeo.config import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.domain.integrations.ports import APIKeyPort, LLMService as LLMServicePort
 from dipeo.config import get_settings
 from dipeo.infrastructure.shared.drivers.utils import SingleFlightCache
 from dipeo.diagram_generated import ChatResult
@@ -25,16 +23,15 @@ from dipeo.diagram_generated import ChatResult
 from .factory import create_adapter
 
 
-class LLMInfraService(BaseService, LLMServicePort, LLMClient):
+class LLMInfraService(BaseService, LLMServicePort):
 
-    def __init__(self, api_key_service: APIKeyPort, llm_domain_service: LLMDomainService | None = None):
+    def __init__(self, api_key_service: APIKeyPort):
         super().__init__()
         self.api_key_service = api_key_service
         self._adapter_pool: dict[str, dict[str, Any]] = {}
         self._adapter_pool_lock = asyncio.Lock()
         self._adapter_cache = SingleFlightCache()  # For deduplicating adapter creation
         self._settings = get_settings()
-        self._llm_domain_service = llm_domain_service or LLMDomainService()
         self.logger = logging.getLogger(__name__)
         
         self._provider_mapping = {
@@ -175,22 +172,8 @@ class LLMInfraService(BaseService, LLMServicePort, LLMClient):
                 service = normalize_service_name(str(service))
             else:
                 service = self._infer_service_from_model(model)
-            is_valid, error_msg = self._llm_domain_service.validate_model_config(
-                provider=service,
-                model=model,
-                config=kwargs
-            )
-            if not is_valid:
-                raise LLMServiceError(service="llm", message=error_msg)
-            if messages:
-                prompt_text = " ".join(msg.get("content", "") for msg in messages)
-                is_valid, error_msg = self._llm_domain_service.validate_prompt_size(
-                    prompt=prompt_text,
-                    provider=service,
-                    model=model
-                )
-                if not is_valid and hasattr(self, 'logger'):
-                    self.logger.warning(f"Prompt validation warning: {error_msg}")
+            # Validation is now handled by infrastructure adapters
+            # The adapters have comprehensive validation in their implementations
             
             # Always use async adapters for better performance
             adapter = await self._get_client(service, model, api_key_id, async_mode=True)

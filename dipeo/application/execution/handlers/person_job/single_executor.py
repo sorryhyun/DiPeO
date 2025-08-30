@@ -252,7 +252,7 @@ class SinglePersonJobExecutor:
             "llm_service": llm_service,
             "from_person_id": "system",
             "temperature": 0.2,
-            "max_tokens": 256000,
+            "max_tokens": 8192,  # Use reasonable default that fits within context limits
             "execution_phase": "direct_execution",  # Set phase for Claude Code adapter
         }
         
@@ -365,10 +365,10 @@ class SinglePersonJobExecutor:
         token_usage = None
         if hasattr(result, 'token_usage') and result.token_usage:
             token_usage = TokenUsage(
-                input=result.token_usage.input,
-                output=result.token_usage.output,
+                input=result.token_usage.input_tokens,
+                output=result.token_usage.output_tokens,
                 cached=result.token_usage.cached if hasattr(result.token_usage, 'cached') else None,
-                total=result.token_usage.total if hasattr(result.token_usage, 'total') else None
+                total=result.token_usage.total_tokens if hasattr(result.token_usage, 'total_tokens') else None
             )
         
         # Get person and conversation IDs

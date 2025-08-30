@@ -7,8 +7,8 @@ These models are auto-generated from TypeScript definitions.
 
 __version__ = "0.1.0"
 
-# Import service utilities
-from .service_utils import (
+# Re-export service utilities from config for backward compatibility
+from dipeo.config import (
     LLM_SERVICE_TYPES,
     api_service_type_to_llm_service,
     get_llm_service_types,

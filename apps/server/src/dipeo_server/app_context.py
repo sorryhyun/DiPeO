@@ -6,8 +6,7 @@ import os
 from dipeo.application.bootstrap import Container
 from dipeo.config import get_settings
 from dipeo.domain.events import EventType
-
-from dipeo_server.shared.constants import BASE_DIR
+from dipeo.config import BASE_DIR
 
 _container: Container | None = None
 

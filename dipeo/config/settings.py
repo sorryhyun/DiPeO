@@ -40,9 +40,19 @@ class LLMSettings(BaseSettings):
         description="Default temperature for LLM responses"
     )
     max_tokens: Optional[int] = Field(
-        default=None,
+        default=8192,
         env="DIPEO_LLM_MAX_TOKENS",
         description="Maximum tokens for LLM responses"
+    )
+    person_job_temperature: float = Field(
+        default=0.2,
+        env="DIPEO_PERSON_JOB_TEMPERATURE",
+        description="Temperature for PersonJob node LLM calls"
+    )
+    person_job_max_tokens: int = Field(
+        default=8192,
+        env="DIPEO_PERSON_JOB_MAX_TOKENS",
+        description="Max tokens for PersonJob node LLM calls"
     )
     
     class Config:

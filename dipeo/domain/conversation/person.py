@@ -13,7 +13,7 @@ from dipeo.diagram_generated import (
 from dipeo.diagram_generated.domain_models import PersonID
 
 if TYPE_CHECKING:
-    from dipeo.domain.llm.ports import LLMService as LLMServicePort
+    from dipeo.domain.integrations.ports import LLMService as LLMServicePort
 
 
 class Person:

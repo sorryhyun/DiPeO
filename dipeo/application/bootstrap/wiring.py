@@ -12,8 +12,8 @@ from dipeo.application.registry.keys import (
     BLOB_STORE,
     FILESYSTEM_ADAPTER,
     DOMAIN_EVENT_BUS,
-    LLM_CLIENT,
-    LLM_REGISTRY,
+    # LLM_CLIENT,  # Removed - no longer needed
+    # LLM_REGISTRY,  # Removed - no longer needed
     LLM_SERVICE,
     MEMORY_SERVICE,
     MESSAGE_BUS,
@@ -121,9 +121,9 @@ def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) ->
         "ollama": llm_infra,
     }
     
-    registry.register(LLM_CLIENT, llm_infra)
+    # registry.register(LLM_CLIENT, llm_infra)  # Removed - no longer needed
     registry.register(LLM_SERVICE, llm_infra)
-    registry.register(LLM_REGISTRY, llm_registry)
+    # registry.register(LLM_REGISTRY, llm_registry)  # Removed - no longer needed
 
 
 def wire_api_services(registry: ServiceRegistry) -> None:
