@@ -61,6 +61,7 @@ jobs:
         uv sync --all-extras
         uv pip install pytest-asyncio pytest-cov import-linter
         uv pip install -e apps/cli
+        uv pip install -e apps/server
 
     - name: Build TypeScript models
       run: pnpm --filter @dipeo/models build

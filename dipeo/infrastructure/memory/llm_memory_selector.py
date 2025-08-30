@@ -168,8 +168,8 @@ class LLMMemorySelector:
             prompt=prompt,
             all_messages=[],  # Empty list - selector doesn't need conversation context
             llm_service=llm_service,
-            temperature=0.1,
-            max_tokens=512,
+            temperature=0,
+            max_tokens=8000,
             execution_phase="memory_selection",  # Explicitly set phase for Claude Code adapter
         )
         

@@ -240,6 +240,30 @@ nodes:
       at_most: 5
       prompt_file: frontend_generator.txt
 
+  - label: Revise Frontend Code
+    type: person_job
+    position: {x: 2200, y: 240}
+    props:
+      person: Frontend Generator
+      memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
+      at_most: 5
+      default_prompt: |
+        Check the generated output and fix if needed:
+        
+        Generated output:
+        {{generated_output}}
+        
+        If the output contains explanatory text like "let me analyze", "I'll help", "Here's the implementation", or any non-code content, then GENERATE THE ACTUAL CODE based on:
+        - File to implement: {{file_paths[current_index]}}
+        - Description: {{descriptions[current_index]}}
+        - Current section data: {{sections[current_index]}}
+        
+        Requirements:
+        - If output already contains valid code: return it as-is (removing only markdown backticks if present)
+        - If output is explanatory text: generate the ACTUAL implementation code
+        - Return ONLY raw code, no explanations or markdown
+        - Follow all conventions from the Core Kernel and prior sections
+
   - label: Write Section Result
     type: db
     position: {x: 2400, y: 240}
@@ -310,7 +334,9 @@ connections:
   # Section iteration loop (now processes both kernel and regular sections)
   - {from: Check Continue_condfalse, to: Load Merged Data, content_type: object}
   - {from: Load Merged Data, to: Generate Frontend Code, content_type: object}
-  - {from: Generate Frontend Code, to: Write Section Result, content_type: object}
+  - {from: Generate Frontend Code, to: Revise Frontend Code, label: generated_output, content_type: object}
+  - {from: Load Merged Data, to: Revise Frontend Code, content_type: object}
+  - {from: Revise Frontend Code, to: Write Section Result, content_type: object}
   - {from: Write Section Result, to: Check Continue, content_type: object}
 
   # Finalization

@@ -38,6 +38,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   // Track if we've already started execution to prevent double-starts
   const hasStartedRef = useRef(false);
   const lastSessionIdRef = useRef<string | null>(null);
+  const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Get execution hook - use provided one or create own instance
   const execution = providedExecution || useExecution({ showToasts: true });
@@ -75,6 +76,12 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       if (activeSession.session_id !== lastSessionIdRef.current) {
         lastSessionIdRef.current = activeSession.session_id;
         
+        // Cancel any pending clear operation
+        if (clearTimeoutRef.current) {
+          clearTimeout(clearTimeoutRef.current);
+          clearTimeoutRef.current = null;
+        }
+        
         // console.log('[Monitor] CLI execution:', activeSession.execution_id);
         toast.info(`Connected to CLI execution: ${activeSession.diagram_name}`);
         
@@ -110,15 +117,18 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       lastSessionIdRef.current = null;
       hasStartedRef.current = false;
       
-      // Clear diagram after a short delay
-      setTimeout(() => {
+      // Clear diagram after a delay, but only if no new session starts
+      clearTimeoutRef.current = setTimeout(() => {
         const store = useUnifiedStore.getState();
-        if (store.isMonitorMode) {
+        // Double-check: only clear if still in monitor mode and no active session
+        // Also check that we don't have a new session ID set
+        if (store.isMonitorMode && !lastSessionIdRef.current) {
           store.clearDiagram();
           setActiveCanvas('main');
-          toast.info('CLI execution completed - diagram cleared');
+          toast.info('Ready for next CLI execution');
         }
-      }, 1000);
+        clearTimeoutRef.current = null;
+      }, 3000); // 3 seconds delay to avoid race conditions
     }
   }, [cliSessionData, cliSessionLoading, cliSessionError, isMonitorMode, pollCliSessions, setActiveCanvas, loadDiagramFromData, execution]);
   
@@ -138,6 +148,16 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       }
     }
   }, [execution?.isRunning, isMonitorMode, activeSession]);
+  
+  // Cleanup timeout on unmount or when monitor mode changes
+  useEffect(() => {
+    return () => {
+      if (clearTimeoutRef.current) {
+        clearTimeout(clearTimeoutRef.current);
+        clearTimeoutRef.current = null;
+      }
+    };
+  }, []);
   
   return {
     isMonitorMode: isMonitorMode(),

@@ -142,11 +142,16 @@ class OpenAIAdapter(UnifiedAdapter):
         api_tools = self._prepare_tools(tools) if tools else None
         
         # Prepare structured output
+        # For OpenAI, pass Pydantic models directly to leverage parse() API
         api_response_format = None
-        if execution_phase == ExecutionPhase.MEMORY_SELECTION or response_format:
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+            # Memory selection needs special JSON schema format
             api_response_format = self.structured_output_handler.prepare_structured_output(
-                response_format, execution_phase
+                None, execution_phase
             )
+        elif response_format:
+            # Pass Pydantic models and dicts directly to client
+            api_response_format = response_format
         
         # Get phase-specific parameters
         phase_params = self.phase_handler.get_phase_specific_params(execution_phase)
@@ -217,11 +222,16 @@ class OpenAIAdapter(UnifiedAdapter):
         api_tools = self._prepare_tools(tools) if tools else None
         
         # Prepare structured output
+        # For OpenAI, pass Pydantic models directly to leverage parse() API
         api_response_format = None
-        if execution_phase == ExecutionPhase.MEMORY_SELECTION or response_format:
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+            # Memory selection needs special JSON schema format
             api_response_format = self.structured_output_handler.prepare_structured_output(
-                response_format, execution_phase
+                None, execution_phase
             )
+        elif response_format:
+            # Pass Pydantic models and dicts directly to client
+            api_response_format = response_format
         
         # Get phase-specific parameters
         phase_params = self.phase_handler.get_phase_specific_params(execution_phase)

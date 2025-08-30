@@ -272,7 +272,11 @@ class MessageProcessor:
     def extract_system_prompt(self, messages: List[Message]) -> Optional[str]:
         """Extract system prompt from messages."""
         for msg in messages:
-            if msg.role == "system":
+            # Handle both Message objects and dictionaries
+            if isinstance(msg, dict):
+                if msg.get("role") == "system":
+                    return msg.get("content")
+            elif hasattr(msg, 'role') and msg.role == "system":
                 return msg.content
         return None
     

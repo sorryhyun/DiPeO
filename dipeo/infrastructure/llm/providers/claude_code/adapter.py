@@ -20,6 +20,7 @@ from ...core.types import (
     RetryConfig,
     StreamConfig,
     StreamingMode,
+    TokenUsage,
 )
 from ...processors import MessageProcessor, ResponseProcessor, TokenCounter
 from .client import AsyncClaudeCodeClientWrapper, ClaudeCodeClientWrapper
@@ -141,6 +142,14 @@ Response Format:
         execution_phase: Optional[ExecutionPhase] = None
     ) -> str:
         """Build complete system prompt based on execution phase."""
+        # Convert string to ExecutionPhase enum if needed
+        if execution_phase and isinstance(execution_phase, str):
+            try:
+                execution_phase = ExecutionPhase(execution_phase)
+            except ValueError:
+                # If invalid phase, default to DEFAULT
+                execution_phase = ExecutionPhase.DEFAULT
+        
         # Map ExecutionPhase to ClaudeCodeExecutionPhase
         phase_prompt = ""
         
@@ -165,7 +174,15 @@ Response Format:
         system_prompt = self.message_processor.extract_system_prompt(messages)
         
         # Filter out system messages and process the rest
-        non_system_messages = [msg for msg in messages if msg.role != "system"]
+        non_system_messages = []
+        for msg in messages:
+            # Handle both Message objects and dictionaries
+            if isinstance(msg, dict):
+                if msg.get("role") != "system":
+                    non_system_messages.append(msg)
+            elif hasattr(msg, 'role') and msg.role != "system":
+                non_system_messages.append(msg)
+        
         prepared_messages = self.message_processor.prepare_messages(non_system_messages)
         
         return prepared_messages, system_prompt
@@ -193,11 +210,15 @@ Response Format:
         
         # Log phase usage
         if execution_phase and execution_phase != ExecutionPhase.DEFAULT:
-            logger.debug(f"Claude Code adapter using {execution_phase.value} phase")
+            # Handle both string and ExecutionPhase enum
+            phase_value = execution_phase.value if hasattr(execution_phase, 'value') else execution_phase
+            logger.debug(f"Claude Code adapter using {phase_value} phase")
         
         # Add execution phase to kwargs for client
         if execution_phase:
-            kwargs['execution_phase'] = execution_phase.value
+            # Handle both string and ExecutionPhase enum
+            phase_value = execution_phase.value if hasattr(execution_phase, 'value') else execution_phase
+            kwargs['execution_phase'] = phase_value
         
         # Execute with retry
         @self.retry_handler.with_retry
@@ -213,11 +234,23 @@ Response Format:
         
         raw_response = _execute()
         
+        # Extract token usage from response
+        token_usage = None
+        if "usage" in raw_response:
+            usage_data = raw_response["usage"]
+            token_usage = TokenUsage(
+                input_tokens=usage_data.get("prompt_tokens", 0),
+                output_tokens=usage_data.get("completion_tokens", 0),
+                total_tokens=usage_data.get("total_tokens", 0)
+            )
+        
         # Process response
         response = LLMResponse(
-            text=raw_response.get("content", ""),
-            raw_response=raw_response.get("metadata"),
-            token_usage=self.token_counter.extract_token_usage(raw_response, self.model)
+            content=raw_response.get("content", ""),
+            model=self.model,
+            provider=ProviderType.ANTHROPIC,
+            usage=token_usage,
+            raw_response=raw_response.get("metadata")
         )
         
         return response
@@ -245,11 +278,15 @@ Response Format:
         
         # Log phase usage
         if execution_phase and execution_phase != ExecutionPhase.DEFAULT:
-            logger.debug(f"Claude Code adapter using {execution_phase.value} phase")
+            # Handle both string and ExecutionPhase enum
+            phase_value = execution_phase.value if hasattr(execution_phase, 'value') else execution_phase
+            logger.debug(f"Claude Code adapter using {phase_value} phase")
         
         # Add execution phase to kwargs for client
         if execution_phase:
-            kwargs['execution_phase'] = execution_phase.value
+            # Handle both string and ExecutionPhase enum
+            phase_value = execution_phase.value if hasattr(execution_phase, 'value') else execution_phase
+            kwargs['execution_phase'] = phase_value
         
         # Execute with retry
         @self.retry_handler.with_async_retry
@@ -265,11 +302,23 @@ Response Format:
         
         raw_response = await _execute()
         
+        # Extract token usage from response
+        token_usage = None
+        if "usage" in raw_response:
+            usage_data = raw_response["usage"]
+            token_usage = TokenUsage(
+                input_tokens=usage_data.get("prompt_tokens", 0),
+                output_tokens=usage_data.get("completion_tokens", 0),
+                total_tokens=usage_data.get("total_tokens", 0)
+            )
+        
         # Process response
         response = LLMResponse(
-            text=raw_response.get("content", ""),
-            raw_response=raw_response.get("metadata"),
-            token_usage=self.token_counter.extract_token_usage(raw_response, self.model)
+            content=raw_response.get("content", ""),
+            model=self.model,
+            provider=ProviderType.ANTHROPIC,
+            usage=token_usage,
+            raw_response=raw_response.get("metadata")
         )
         
         return response

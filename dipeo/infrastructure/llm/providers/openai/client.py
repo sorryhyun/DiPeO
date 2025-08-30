@@ -5,6 +5,7 @@ import os
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
 
 from openai import AsyncOpenAI, OpenAI
+from pydantic import BaseModel
 
 from dipeo.config.llm import DEFAULT_TEMPERATURE
 from ...core.client import AsyncBaseClientWrapper, BaseClientWrapper
@@ -37,7 +38,7 @@ class OpenAIClientWrapper(BaseClientWrapper):
         temperature: float = DEFAULT_TEMPERATURE,
         max_tokens: Optional[int] = None,
         tools: Optional[List[Dict[str, Any]]] = None,
-        response_format: Optional[Dict[str, Any]] = None,
+        response_format: Optional[BaseModel] = None,
         **kwargs
     ) -> Any:
         """Execute chat completion request."""
@@ -62,26 +63,23 @@ class OpenAIClientWrapper(BaseClientWrapper):
         if tools is not None:
             params["tools"] = tools  # Tools format might be the same
         
-        # Include any additional kwargs (but not response_format)
-        kwargs_without_response_format = {k: v for k, v in kwargs.items() if k != 'response_format'}
-        params.update(kwargs_without_response_format)
+        # Check for text_format in kwargs (from PersonJob handler)
+        text_format = kwargs.pop('text_format', None)
+        
+        # Determine if we should use structured output
+        structured_model = response_format or text_format
+        
+        # Include any additional kwargs (but not response_format or text_format)
+        kwargs_without_formats = {k: v for k, v in kwargs.items() if k not in ['response_format', 'text_format']}
+        params.update(kwargs_without_formats)
         
         # Handle structured output based on type
-        if response_format is not None:
-            # Check if it's a JSON schema dictionary or a Pydantic model
-            if isinstance(response_format, dict):
-                # JSON schema format - use create() with response_format
-                # The new API doesn't support response_format parameter directly
-                # We'll use create() without structured output for now
-                return client.responses.create(**params)
-            else:
-                # Pydantic model - use parse() with text_format
-                # Remove temperature for parse() as it's not supported
-                params.pop("temperature", None)
-                params["text_format"] = response_format
-                return client.responses.parse(**params)
+        if structured_model is not None and isinstance(structured_model, type) and issubclass(structured_model, BaseModel):
+            # Pydantic model - use parse() directly with text_format parameter
+            params["text_format"] = structured_model
+            return client.responses.parse(**params)
         else:
-            # Regular output uses create() without text_format
+            # Regular output or non-Pydantic format
             return client.responses.create(**params)
     
     def stream_chat_completion(
@@ -173,7 +171,7 @@ class AsyncOpenAIClientWrapper(AsyncBaseClientWrapper):
         temperature: float = DEFAULT_TEMPERATURE,
         max_tokens: Optional[int] = None,
         tools: Optional[List[Dict[str, Any]]] = None,
-        response_format: Optional[Dict[str, Any]] = None,
+        response_format: Optional[BaseModel] = None,
         **kwargs
     ) -> Any:
         """Execute async chat completion request."""
@@ -196,26 +194,23 @@ class AsyncOpenAIClientWrapper(AsyncBaseClientWrapper):
         if tools is not None:
             params["tools"] = tools
         
-        # Include any additional kwargs (but not response_format)
-        kwargs_without_response_format = {k: v for k, v in kwargs.items() if k != 'response_format'}
-        params.update(kwargs_without_response_format)
+        # Check for text_format in kwargs (from PersonJob handler)
+        text_format = kwargs.pop('text_format', None)
+        
+        # Determine if we should use structured output
+        structured_model = response_format or text_format
+        
+        # Include any additional kwargs (but not response_format or text_format)
+        kwargs_without_formats = {k: v for k, v in kwargs.items() if k not in ['response_format', 'text_format']}
+        params.update(kwargs_without_formats)
         
         # Handle structured output based on type
-        if response_format is not None:
-            # Check if it's a JSON schema dictionary or a Pydantic model
-            if isinstance(response_format, dict):
-                # JSON schema format - use create() with response_format
-                # The new API doesn't support response_format parameter directly
-                # We'll use create() without structured output for now
-                return await client.responses.create(**params)
-            else:
-                # Pydantic model - use parse() with text_format
-                # Remove temperature for parse() as it's not supported
-                params.pop("temperature", None)
-                params["text_format"] = response_format
-                return await client.responses.parse(**params)
+        if structured_model is not None and isinstance(structured_model, type) and issubclass(structured_model, BaseModel):
+            # Pydantic model - use parse() directly with text_format parameter
+            params["text_format"] = structured_model
+            return await client.responses.parse(**params)
         else:
-            # Regular output uses create() without text_format
+            # Regular output or non-Pydantic format
             return await client.responses.create(**params)
     
     async def stream_chat_completion(

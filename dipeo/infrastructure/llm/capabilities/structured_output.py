@@ -2,9 +2,9 @@
 
 import json
 import logging
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, create_model, Field
 
 from ..core.types import ExecutionPhase, MemorySelectionOutput, ProviderType
 
@@ -22,8 +22,13 @@ class StructuredOutputHandler:
         self,
         response_format: Optional[Union[Type[BaseModel], Dict[str, Any]]],
         execution_phase: ExecutionPhase = ExecutionPhase.DEFAULT
-    ) -> Optional[Dict[str, Any]]:
-        """Prepare structured output format for provider API."""
+    ) -> Optional[Union[Type[BaseModel], Dict[str, Any]]]:
+        """Prepare structured output format for provider API.
+        
+        Returns:
+        - For OpenAI: Pydantic model (for parse()) or None
+        - For other providers: JSON schema dict or None
+        """
         if execution_phase == ExecutionPhase.MEMORY_SELECTION:
             return self._prepare_memory_selection_format()
         
@@ -39,27 +44,11 @@ class StructuredOutputHandler:
         else:
             return None
     
-    def _prepare_memory_selection_format(self) -> Dict[str, Any]:
+    def _prepare_memory_selection_format(self) -> Union[Type[BaseModel], Dict[str, Any], None]:
         """Prepare format for memory selection phase."""
         if self.provider == ProviderType.OPENAI:
-            return {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "memory_selection",
-                    "strict": True,
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "message_ids": {
-                                "type": "array",
-                                "items": {"type": "string"}
-                            }
-                        },
-                        "required": ["message_ids"],
-                        "additionalProperties": False
-                    }
-                }
-            }
+            # For OpenAI, return MemorySelectionOutput model directly
+            return MemorySelectionOutput
         elif self.provider == ProviderType.ANTHROPIC:
             return {
                 "type": "json",
@@ -80,27 +69,23 @@ class StructuredOutputHandler:
     def _prepare_openai_format(
         self,
         response_format: Union[Type[BaseModel], Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        """Prepare OpenAI structured output format."""
+    ) -> Union[Type[BaseModel], None]:
+        """Prepare OpenAI structured output format.
+        
+        For OpenAI's new parse() API:
+        - Pydantic models are returned as-is
+        - JSON schemas are converted to Pydantic models
+        - None for regular outputs
+        """
         if isinstance(response_format, type) and issubclass(response_format, BaseModel):
-            # Pydantic model
-            schema = response_format.model_json_schema()
-            return {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": response_format.__name__,
-                    "strict": True,
-                    "schema": schema
-                }
-            }
+            # Pydantic model - return as-is for parse()
+            return response_format
         elif isinstance(response_format, dict):
-            # Raw JSON schema
-            return {
-                "type": "json_schema",
-                "json_schema": response_format
-            }
+            # JSON schema - convert to Pydantic model for parse()
+            return self._json_schema_to_pydantic(response_format)
         else:
-            return {"type": "json_object"}
+            # Unknown format - return None for regular output
+            return None
     
     def _prepare_anthropic_format(
         self,
@@ -188,3 +173,53 @@ class StructuredOutputHandler:
             return json.dumps(output.model_dump())
         else:
             return json.dumps(output)
+    
+    def _json_schema_to_pydantic(self, schema: Dict[str, Any]) -> Type[BaseModel]:
+        """Convert JSON schema to Pydantic model dynamically."""
+        # Handle OpenAI's wrapped JSON schema format
+        if "json_schema" in schema and isinstance(schema["json_schema"], dict):
+            inner_schema = schema["json_schema"]
+            if "schema" in inner_schema:
+                actual_schema = inner_schema["schema"]
+            else:
+                actual_schema = inner_schema
+            model_name = inner_schema.get("name", "DynamicModel")
+        else:
+            actual_schema = schema
+            model_name = schema.get("name", "DynamicModel")
+        
+        # Build field definitions from schema properties
+        field_definitions = {}
+        properties = actual_schema.get("properties", {})
+        required = actual_schema.get("required", [])
+        
+        for field_name, field_schema in properties.items():
+            field_type = self._get_python_type(field_schema)
+            if field_name in required:
+                field_definitions[field_name] = (field_type, Field(...))
+            else:
+                field_definitions[field_name] = (Optional[field_type], Field(default=None))
+        
+        # Create the Pydantic model dynamically
+        return create_model(model_name, **field_definitions)
+    
+    def _get_python_type(self, schema: Dict[str, Any]) -> Any:
+        """Convert JSON schema type to Python type."""
+        json_type = schema.get("type", "string")
+        
+        if json_type == "string":
+            return str
+        elif json_type == "integer":
+            return int
+        elif json_type == "number":
+            return float
+        elif json_type == "boolean":
+            return bool
+        elif json_type == "array":
+            item_type = self._get_python_type(schema.get("items", {}))
+            return List[item_type]
+        elif json_type == "object":
+            # For nested objects, return Dict for simplicity
+            return Dict[str, Any]
+        else:
+            return Any
