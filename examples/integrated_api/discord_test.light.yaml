@@ -1,0 +1,282 @@
+version: light
+
+# Discord API Integration Test Diagram
+# Tests sending messages, creating threads, and sending embeds
+
+persons:
+  Assistant:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    system_prompt: You are a helpful assistant that helps test Discord API integrations.
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    props:
+      trigger_mode: manual
+      custom_data:
+        # Configure these values for your test Discord server
+        discord_config:
+          guild_id: "YOUR_GUILD_ID"       # Replace with your Discord server ID
+          channel_id: "YOUR_CHANNEL_ID"   # Replace with your test channel ID
+          bot_name: "DiPeO Bot"
+
+  - label: Generate Welcome Message
+    type: person_job
+    position: {x: 250, y: 200}
+    props:
+      person: Assistant
+      default_prompt: |
+        Generate a friendly welcome message for a Discord bot test.
+        The message should:
+        - Introduce the DiPeO Discord integration
+        - Mention this is a test message
+        - Include current timestamp: {{timestamp}}
+        - Be warm and engaging
+        
+        Return just the message text, no formatting.
+      max_iteration: 1
+      memory_profile: GOLDFISH
+
+  - label: Send Welcome Message
+    type: integrated_api
+    position: {x: 450, y: 200}
+    props:
+      provider: discord
+      operation: send_message
+      config:
+        channel_id: "{{discord_config.channel_id}}"
+        content: "{{welcome_message}}"
+
+  - label: Parse Message Response
+    type: code_job
+    position: {x: 650, y: 200}
+    props:
+      language: python
+      code: |
+        import json
+        
+        # Parse the sent message response
+        if isinstance(message_response, str):
+            message = json.loads(message_response)
+        else:
+            message = message_response
+        
+        message_id = message.get('id')
+        channel_id = message.get('channel_id')
+        
+        print(f"Sent message ID: {message_id}")
+        print(f"In channel: {channel_id}")
+        
+        result = {
+            "message_id": message_id,
+            "channel_id": channel_id,
+            "timestamp": message.get('timestamp')
+        }
+
+  - label: Generate Thread Name
+    type: person_job
+    position: {x: 850, y: 200}
+    props:
+      person: Assistant
+      default_prompt: |
+        Generate a creative thread name for testing Discord threads.
+        It should be:
+        - Related to DiPeO testing
+        - Short (under 100 characters)
+        - Include a test identifier
+        
+        Return just the thread name.
+      max_iteration: 1
+      memory_profile: GOLDFISH
+
+  - label: Create Thread
+    type: integrated_api
+    position: {x: 1050, y: 200}
+    props:
+      provider: discord
+      operation: create_thread
+      config:
+        channel_id: "{{discord_config.channel_id}}"
+        name: "{{thread_name}}"
+        auto_archive_duration: 60  # Archive after 1 hour
+        type: 11  # Public thread
+
+  - label: Parse Thread Response
+    type: code_job
+    position: {x: 1250, y: 200}
+    props:
+      language: python
+      code: |
+        import json
+        
+        # Parse the thread response
+        if isinstance(thread_response, str):
+            thread = json.loads(thread_response)
+        else:
+            thread = thread_response
+        
+        thread_id = thread.get('id')
+        thread_name = thread.get('name')
+        
+        print(f"Created thread: {thread_name}")
+        print(f"Thread ID: {thread_id}")
+        
+        result = {
+            "thread_id": thread_id,
+            "thread_name": thread_name
+        }
+
+  - label: Generate Status Data
+    type: code_job
+    position: {x: 1450, y: 200}
+    props:
+      language: python
+      code: |
+        from datetime import datetime
+        import random
+        
+        # Generate some test status data
+        test_stats = {
+            "tests_run": random.randint(10, 50),
+            "tests_passed": random.randint(8, 45),
+            "api_calls": 3,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        test_stats["tests_failed"] = test_stats["tests_run"] - test_stats["tests_passed"]
+        test_stats["success_rate"] = round((test_stats["tests_passed"] / test_stats["tests_run"]) * 100, 2)
+        
+        # Pick a color based on success rate
+        if test_stats["success_rate"] >= 90:
+            color = 0x00FF00  # Green
+            status = "✅ Excellent"
+        elif test_stats["success_rate"] >= 70:
+            color = 0xFFFF00  # Yellow
+            status = "⚠️ Good"
+        else:
+            color = 0xFF0000  # Red
+            status = "❌ Needs Improvement"
+        
+        result = {
+            "stats": test_stats,
+            "color": color,
+            "status": status
+        }
+
+  - label: Send Status Embed
+    type: integrated_api
+    position: {x: 1650, y: 200}
+    props:
+      provider: discord
+      operation: send_embed
+      config:
+        channel_id: "{{thread_info.thread_id}}"
+        title: "🤖 DiPeO Discord Integration Test Results"
+        description: "Automated test results from DiPeO integration testing"
+        color: "{{status_data.color}}"
+        fields:
+          - name: "📊 Test Statistics"
+            value: "Tests Run: {{status_data.stats.tests_run}}\nTests Passed: {{status_data.stats.tests_passed}}\nTests Failed: {{status_data.stats.tests_failed}}"
+            inline: true
+          - name: "📈 Success Rate"
+            value: "{{status_data.stats.success_rate}}%\nStatus: {{status_data.status}}"
+            inline: true
+          - name: "🔧 API Operations"
+            value: "✓ Send Message\n✓ Create Thread\n✓ Send Embed"
+            inline: false
+          - name: "⏰ Timestamp"
+            value: "{{status_data.stats.timestamp}}"
+            inline: false
+        footer:
+          text: "Generated by {{discord_config.bot_name}}"
+          icon_url: "https://via.placeholder.com/32"
+        thumbnail:
+          url: "https://via.placeholder.com/100"
+
+  - label: Add Reaction
+    type: integrated_api
+    position: {x: 1850, y: 200}
+    props:
+      provider: discord
+      operation: add_reaction
+      config:
+        channel_id: "{{message_info.channel_id}}"
+        message_id: "{{message_info.message_id}}"
+        emoji: "✅"  # Checkmark emoji
+
+  - label: Generate Summary
+    type: code_job
+    position: {x: 2050, y: 200}
+    props:
+      language: python
+      code: |
+        summary = f"""
+        ✅ Discord Integration Test Complete!
+        
+        📋 Test Results:
+        1. ✓ Sent welcome message (ID: {message_info['message_id']})
+        
+        2. ✓ Created thread: {thread_info['thread_name']}
+           Thread ID: {thread_info['thread_id']}
+        
+        3. ✓ Sent status embed with test results
+           - Tests Run: {status_data['stats']['tests_run']}
+           - Success Rate: {status_data['stats']['success_rate']}%
+           - Status: {status_data['status']}
+        
+        4. ✓ Added reaction to welcome message
+        
+        🎯 All Discord API operations completed successfully!
+        
+        Configuration Used:
+        - Guild ID: {discord_config['guild_id']}
+        - Channel ID: {discord_config['channel_id']}
+        - Bot Name: {discord_config['bot_name']}
+        """
+        
+        print(summary)
+        result = {"summary": summary}
+
+  - label: Send Completion Message
+    type: integrated_api
+    position: {x: 2250, y: 200}
+    props:
+      provider: discord
+      operation: send_message
+      config:
+        channel_id: "{{thread_info.thread_id}}"
+        content: "🎉 **Test Complete!** All Discord API operations executed successfully. This thread will auto-archive in 1 hour."
+
+  - label: Save Results
+    type: endpoint
+    position: {x: 2450, y: 200}
+    props:
+      file_format: md
+      save_to_file: true
+      file_path: files/results/discord_test_results.md
+
+connections:
+  - {from: Start, to: Generate Welcome Message, label: timestamp}
+  - {from: Generate Welcome Message, to: Send Welcome Message, label: welcome_message}
+  - {from: Start, to: Send Welcome Message, label: discord_config}
+  - {from: Send Welcome Message, to: Parse Message Response, label: message_response}
+  - {from: Parse Message Response, to: Generate Thread Name, label: message_info}
+  - {from: Generate Thread Name, to: Create Thread, label: thread_name}
+  - {from: Start, to: Create Thread, label: discord_config}
+  - {from: Create Thread, to: Parse Thread Response, label: thread_response}
+  - {from: Parse Thread Response, to: Generate Status Data, label: thread_info}
+  - {from: Generate Status Data, to: Send Status Embed, label: status_data}
+  - {from: Parse Thread Response, to: Send Status Embed, label: thread_info}
+  - {from: Start, to: Send Status Embed, label: discord_config}
+  - {from: Send Status Embed, to: Add Reaction}
+  - {from: Parse Message Response, to: Add Reaction, label: message_info}
+  - {from: Add Reaction, to: Generate Summary}
+  - {from: Parse Message Response, to: Generate Summary, label: message_info}
+  - {from: Parse Thread Response, to: Generate Summary, label: thread_info}
+  - {from: Generate Status Data, to: Generate Summary, label: status_data}
+  - {from: Start, to: Generate Summary, label: discord_config}
+  - {from: Generate Summary, to: Send Completion Message}
+  - {from: Parse Thread Response, to: Send Completion Message, label: thread_info}
+  - {from: Send Completion Message, to: Save Results}

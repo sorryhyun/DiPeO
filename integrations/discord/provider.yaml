@@ -1,0 +1,481 @@
+# Discord Provider Manifest
+# Discord API integration for bot operations and server management
+
+name: discord
+version: 1.0.0
+description: Discord API integration for bot operations and community management
+base_url: https://discord.com/api/v10
+
+# Authentication
+auth:
+  strategy: oauth2_bearer
+  header: Authorization
+  format: "Bot {{api_key}}"  # Bot token format
+  scopes:
+    - bot
+    - applications.commands
+    - guilds
+    - messages.read
+    - messages.write
+
+# Retry policy
+retry_policy:
+  strategy: exponential_backoff
+  max_retries: 3
+  base_delay_ms: 500
+  max_delay_ms: 10000
+  retry_on_status: [429, 500, 502, 503, 504]
+
+# Rate limiting (Discord's global rate limit)
+rate_limit:
+  algorithm: token_bucket
+  capacity: 50  # Discord allows 50 requests per second globally
+  refill_per_sec: 50.0
+
+# Default configuration
+default_timeout: 30.0
+default_headers:
+  Content-Type: application/json
+  User-Agent: DiPeO-Discord-Bot/1.0
+
+# Operations
+operations:
+  send_message:
+    method: POST
+    path: "/channels/{{resource_id or config.channel_id}}/messages"
+    description: Send a message to a Discord channel
+    request:
+      body_template: |
+        {
+          "content": "{{config.content}}"
+          {%- if config.embeds %},
+          "embeds": {{config.embeds | tojson}}
+          {%- endif %}
+          {%- if config.tts is defined %},
+          "tts": {{config.tts | lower}}
+          {%- endif %}
+          {%- if config.allowed_mentions %},
+          "allowed_mentions": {{config.allowed_mentions | tojson}}
+          {%- endif %}
+          {%- if config.message_reference %},
+          "message_reference": {{config.message_reference | tojson}}
+          {%- endif %}
+          {%- if config.components %},
+          "components": {{config.components | tojson}}
+          {%- endif %}
+          {%- if config.flags %},
+          "flags": {{config.flags}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    timeout_override: 10.0
+
+  send_embed:
+    method: POST
+    path: "/channels/{{resource_id or config.channel_id}}/messages"
+    description: Send a rich embed message to a Discord channel
+    request:
+      body_template: |
+        {
+          {%- if config.content %}
+          "content": "{{config.content}}",
+          {%- endif %}
+          "embeds": [{
+            {%- if config.title %}
+            "title": "{{config.title}}",
+            {%- endif %}
+            {%- if config.description %}
+            "description": "{{config.description}}",
+            {%- endif %}
+            {%- if config.url %}
+            "url": "{{config.url}}",
+            {%- endif %}
+            {%- if config.color %}
+            "color": {{config.color}},
+            {%- endif %}
+            {%- if config.footer %}
+            "footer": {{config.footer | tojson}},
+            {%- endif %}
+            {%- if config.image %}
+            "image": {{config.image | tojson}},
+            {%- endif %}
+            {%- if config.thumbnail %}
+            "thumbnail": {{config.thumbnail | tojson}},
+            {%- endif %}
+            {%- if config.author %}
+            "author": {{config.author | tojson}},
+            {%- endif %}
+            {%- if config.fields %}
+            "fields": {{config.fields | tojson}},
+            {%- endif %}
+            {%- if config.timestamp %}
+            "timestamp": "{{config.timestamp}}"
+            {%- else %}
+            "timestamp": "{{config.timestamp | default(now().isoformat())}}"
+            {%- endif %}
+          }]
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  get_channel:
+    method: GET
+    path: "/channels/{{resource_id or config.channel_id}}"
+    description: Get information about a Discord channel
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  create_channel:
+    method: POST
+    path: "/guilds/{{config.guild_id}}/channels"
+    description: Create a new channel in a Discord guild
+    request:
+      body_template: |
+        {
+          "name": "{{config.name}}",
+          "type": {{config.type | default(0)}}
+          {%- if config.topic %},
+          "topic": "{{config.topic}}"
+          {%- endif %}
+          {%- if config.position is defined %},
+          "position": {{config.position}}
+          {%- endif %}
+          {%- if config.permission_overwrites %},
+          "permission_overwrites": {{config.permission_overwrites | tojson}}
+          {%- endif %}
+          {%- if config.parent_id %},
+          "parent_id": "{{config.parent_id}}"
+          {%- endif %}
+          {%- if config.nsfw is defined %},
+          "nsfw": {{config.nsfw | lower}}
+          {%- endif %}
+          {%- if config.rate_limit_per_user is defined %},
+          "rate_limit_per_user": {{config.rate_limit_per_user}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [201]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  list_channels:
+    method: GET
+    path: "/guilds/{{config.guild_id}}/channels"
+    description: List all channels in a Discord guild
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  create_thread:
+    method: POST
+    path: "/channels/{{resource_id or config.channel_id}}/threads"
+    description: Create a thread in a Discord channel
+    request:
+      body_template: |
+        {
+          "name": "{{config.name}}",
+          "auto_archive_duration": {{config.auto_archive_duration | default(1440)}}
+          {%- if config.type %},
+          "type": {{config.type}}
+          {%- endif %}
+          {%- if config.invitable is defined %},
+          "invitable": {{config.invitable | lower}}
+          {%- endif %}
+          {%- if config.rate_limit_per_user is defined %},
+          "rate_limit_per_user": {{config.rate_limit_per_user}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [201]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  add_reaction:
+    method: PUT
+    path: "/channels/{{config.channel_id}}/messages/{{config.message_id}}/reactions/{{config.emoji}}/@me"
+    description: Add a reaction to a message
+    response:
+      success_codes: [204]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  get_guild:
+    method: GET
+    path: "/guilds/{{resource_id or config.guild_id}}"
+    description: Get information about a Discord guild
+    request:
+      query_params_template:
+        with_counts: "{{config.with_counts | default(false) | lower}}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  list_guild_members:
+    method: GET
+    path: "/guilds/{{config.guild_id}}/members"
+    description: List members of a Discord guild
+    request:
+      query_params_template:
+        limit: "{{config.limit | default(100)}}"
+        after: "{% if config.after %}{{config.after}}{% endif %}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    pagination:
+      type: cursor
+      cursor_param: after
+      cursor_path: "[-1]/user/id"
+      has_more_path: "/"
+      items_path: "/"
+      default_limit: 100
+
+  create_role:
+    method: POST
+    path: "/guilds/{{config.guild_id}}/roles"
+    description: Create a new role in a Discord guild
+    request:
+      body_template: |
+        {
+          "name": "{{config.name}}"
+          {%- if config.permissions %},
+          "permissions": "{{config.permissions}}"
+          {%- endif %}
+          {%- if config.color is defined %},
+          "color": {{config.color}}
+          {%- endif %}
+          {%- if config.hoist is defined %},
+          "hoist": {{config.hoist | lower}}
+          {%- endif %}
+          {%- if config.icon %},
+          "icon": "{{config.icon}}"
+          {%- endif %}
+          {%- if config.unicode_emoji %},
+          "unicode_emoji": "{{config.unicode_emoji}}"
+          {%- endif %}
+          {%- if config.mentionable is defined %},
+          "mentionable": {{config.mentionable | lower}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  modify_role:
+    method: PATCH
+    path: "/guilds/{{config.guild_id}}/roles/{{resource_id or config.role_id}}"
+    description: Modify a role in a Discord guild
+    request:
+      body_template: |
+        {
+          {%- set ns = namespace(first=false) %}
+          {%- if config.name %}
+          "name": "{{config.name}}"
+          {%- set ns.first = true %}
+          {%- endif %}
+          {%- if config.permissions %}
+          {%- if ns.first %},{%- endif %}
+          "permissions": "{{config.permissions}}"
+          {%- set ns.first = true %}
+          {%- endif %}
+          {%- if config.color is defined %}
+          {%- if ns.first %},{%- endif %}
+          "color": {{config.color}}
+          {%- set ns.first = true %}
+          {%- endif %}
+          {%- if config.hoist is defined %}
+          {%- if ns.first %},{%- endif %}
+          "hoist": {{config.hoist | lower}}
+          {%- set ns.first = true %}
+          {%- endif %}
+          {%- if config.mentionable is defined %}
+          {%- if ns.first %},{%- endif %}
+          "mentionable": {{config.mentionable | lower}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  create_webhook:
+    method: POST
+    path: "/channels/{{config.channel_id}}/webhooks"
+    description: Create a webhook for a Discord channel
+    request:
+      body_template: |
+        {
+          "name": "{{config.name}}"
+          {%- if config.avatar %},
+          "avatar": "{{config.avatar}}"
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  execute_webhook:
+    method: POST
+    path: "/webhooks/{{config.webhook_id}}/{{config.webhook_token}}"
+    description: Execute a Discord webhook
+    request:
+      query_params_template:
+        wait: "{{config.wait | default(false) | lower}}"
+        thread_id: "{% if config.thread_id %}{{config.thread_id}}{% endif %}"
+      body_template: |
+        {
+          "content": "{{config.content}}"
+          {%- if config.username %},
+          "username": "{{config.username}}"
+          {%- endif %}
+          {%- if config.avatar_url %},
+          "avatar_url": "{{config.avatar_url}}"
+          {%- endif %}
+          {%- if config.tts is defined %},
+          "tts": {{config.tts | lower}}
+          {%- endif %}
+          {%- if config.embeds %},
+          "embeds": {{config.embeds | tojson}}
+          {%- endif %}
+          {%- if config.allowed_mentions %},
+          "allowed_mentions": {{config.allowed_mentions | tojson}}
+          {%- endif %}
+          {%- if config.components %},
+          "components": {{config.components | tojson}}
+          {%- endif %}
+          {%- if config.files %},
+          "files": {{config.files | tojson}}
+          {%- endif %}
+          {%- if config.attachments %},
+          "attachments": {{config.attachments | tojson}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [200, 204]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  delete_message:
+    method: DELETE
+    path: "/channels/{{config.channel_id}}/messages/{{resource_id or config.message_id}}"
+    description: Delete a message from a Discord channel
+    response:
+      success_codes: [204]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  edit_message:
+    method: PATCH
+    path: "/channels/{{config.channel_id}}/messages/{{resource_id or config.message_id}}"
+    description: Edit a message in a Discord channel
+    request:
+      body_template: |
+        {
+          {%- if config.content is defined %}
+          "content": "{{config.content}}"
+          {%- endif %}
+          {%- if config.embeds %},
+          "embeds": {{config.embeds | tojson}}
+          {%- endif %}
+          {%- if config.flags is defined %},
+          "flags": {{config.flags}}
+          {%- endif %}
+          {%- if config.allowed_mentions %},
+          "allowed_mentions": {{config.allowed_mentions | tojson}}
+          {%- endif %}
+          {%- if config.components %},
+          "components": {{config.components | tojson}}
+          {%- endif %}
+          {%- if config.attachments %},
+          "attachments": {{config.attachments | tojson}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  get_messages:
+    method: GET
+    path: "/channels/{{resource_id or config.channel_id}}/messages"
+    description: Get messages from a Discord channel
+    request:
+      query_params_template:
+        limit: "{{config.limit | default(50)}}"
+        before: "{% if config.before %}{{config.before}}{% endif %}"
+        after: "{% if config.after %}{{config.after}}{% endif %}"
+        around: "{% if config.around %}{{config.around}}{% endif %}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+# Webhook events
+webhook_events:
+  - name: message_create
+    description: A new message was created
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "channel_id": {"type": "string"},
+          "author": {"type": "object"},
+          "content": {"type": "string"},
+          "timestamp": {"type": "string"}
+        }
+      }
+  
+  - name: guild_member_add
+    description: A new member joined the guild
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "user": {"type": "object"},
+          "guild_id": {"type": "string"},
+          "joined_at": {"type": "string"}
+        }
+      }
+
+  - name: interaction_create
+    description: An interaction was created (slash command, button, etc.)
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "type": {"type": "integer"},
+          "data": {"type": "object"},
+          "guild_id": {"type": "string"},
+          "channel_id": {"type": "string"},
+          "member": {"type": "object"}
+        }
+      }
+
+# Additional metadata
+metadata:
+  documentation_url: https://discord.com/developers/docs
+  support_email: support@discord.com
+  tags:
+    - messaging
+    - community
+    - gaming
+    - voice-chat
+    - bot
+  notes: |
+    This provider supports Discord bot operations using bot tokens.
+    Authentication requires a bot token prefixed with "Bot ".
+    Rate limits vary based on endpoint and are handled per-route.
+    Some operations require specific bot permissions in the guild.

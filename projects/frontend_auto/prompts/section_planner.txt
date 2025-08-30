@@ -21,11 +21,11 @@ REQUIREMENTS:
 - Order sections by priority and dependencies
 - Include ALL files that will exist in the app
 - Start with core kernel files (priority 0):
-  * core/contracts.ts - Domain types and API contracts
-  * app/config.ts - Materialized configuration
-  * core/events.ts - Event bus system
-  * core/hooks.ts - Hook registry for extensions
-  * core/di.ts - Dependency injection (if needed)
-  * core/utils.ts - Common utilities (if needed)
+  * src/core/contracts.ts - Domain types and API contracts
+  * src/app/config.ts - Materialized configuration
+  * src/core/events.ts - Event bus system
+  * src/core/hooks.ts - Hook registry for extensions
+  * src/core/di.ts - Dependency injection (if needed)
+  * src/core/utils.ts - Common utilities (if needed)
 - Then include: pages, providers, services, shared components, hooks, features
 - Every import must have a corresponding section

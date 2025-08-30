@@ -1,0 +1,387 @@
+# GitHub Provider Manifest
+# GitHub API integration for repository, issue, and pull request management
+
+name: github
+version: 1.0.0
+description: GitHub API integration for repository and project management
+base_url: https://api.github.com
+
+# Authentication
+auth:
+  strategy: oauth2_bearer
+  header: Authorization
+  format: "Bearer {{api_key}}"
+  scopes:
+    - repo
+    - write:packages
+    - workflow
+    - admin:org
+
+# Retry policy
+retry_policy:
+  strategy: exponential_backoff
+  max_retries: 3
+  base_delay_ms: 500
+  max_delay_ms: 10000
+  retry_on_status: [429, 500, 502, 503, 504]
+
+# Rate limiting (GitHub's default limits)
+rate_limit:
+  algorithm: token_bucket
+  capacity: 5000  # GitHub allows 5000 requests per hour for authenticated requests
+  refill_per_sec: 1.38  # ~5000 per hour
+
+# Default configuration
+default_timeout: 30.0
+default_headers:
+  Accept: application/vnd.github.v3+json
+  Content-Type: application/json
+  X-GitHub-Api-Version: "2022-11-28"
+
+# Operations
+operations:
+  create_issue:
+    method: POST
+    path: "/repos/{{config.owner}}/{{config.repo}}/issues"
+    description: Create a new issue in a repository
+    request:
+      body_template: |
+        {
+          "title": "{{config.title}}",
+          "body": "{{config.body}}"
+          {%- if config.assignees %},
+          "assignees": {{config.assignees | tojson}}
+          {%- endif %}
+          {%- if config.labels %},
+          "labels": {{config.labels | tojson}}
+          {%- endif %}
+          {%- if config.milestone %},
+          "milestone": {{config.milestone}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [201]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [repo]
+
+  list_issues:
+    method: GET
+    path: "/repos/{{config.owner}}/{{config.repo}}/issues"
+    description: List issues in a repository
+    request:
+      query_params_template:
+        state: "{{config.state | default('open')}}"
+        labels: "{% if config.labels %}{{config.labels | join(',')}}{% endif %}"
+        sort: "{{config.sort | default('created')}}"
+        direction: "{{config.direction | default('desc')}}"
+        per_page: "{{config.per_page | default(30)}}"
+        page: "{{config.page | default(1)}}"
+        assignee: "{% if config.assignee %}{{config.assignee}}{% endif %}"
+        creator: "{% if config.creator %}{{config.creator}}{% endif %}"
+        since: "{% if config.since %}{{config.since}}{% endif %}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    pagination:
+      type: page_number
+      page_param: page
+      per_page_param: per_page
+      default_limit: 30
+    required_scopes: [repo]
+
+  create_pull_request:
+    method: POST
+    path: "/repos/{{config.owner}}/{{config.repo}}/pulls"
+    description: Create a new pull request
+    request:
+      body_template: |
+        {
+          "title": "{{config.title}}",
+          "head": "{{config.head}}",
+          "base": "{{config.base | default('main')}}",
+          "body": "{{config.body | default('')}}"
+          {%- if config.draft is defined %},
+          "draft": {{config.draft | lower}}
+          {%- endif %}
+          {%- if config.maintainer_can_modify is defined %},
+          "maintainer_can_modify": {{config.maintainer_can_modify | lower}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [201]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [repo]
+
+  list_pull_requests:
+    method: GET
+    path: "/repos/{{config.owner}}/{{config.repo}}/pulls"
+    description: List pull requests in a repository
+    request:
+      query_params_template:
+        state: "{{config.state | default('open')}}"
+        head: "{% if config.head %}{{config.head}}{% endif %}"
+        base: "{% if config.base %}{{config.base}}{% endif %}"
+        sort: "{{config.sort | default('created')}}"
+        direction: "{{config.direction | default('desc')}}"
+        per_page: "{{config.per_page | default(30)}}"
+        page: "{{config.page | default(1)}}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    pagination:
+      type: page_number
+      page_param: page
+      per_page_param: per_page
+      default_limit: 30
+    required_scopes: [repo]
+
+  merge_pull_request:
+    method: PUT
+    path: "/repos/{{config.owner}}/{{config.repo}}/pulls/{{resource_id or config.pull_number}}/merge"
+    description: Merge a pull request
+    request:
+      body_template: |
+        {
+          {%- if config.commit_title %}
+          "commit_title": "{{config.commit_title}}",
+          {%- endif %}
+          {%- if config.commit_message %}
+          "commit_message": "{{config.commit_message}}",
+          {%- endif %}
+          "merge_method": "{{config.merge_method | default('merge')}}"
+        }
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [repo]
+
+  add_comment:
+    method: POST
+    path: "/repos/{{config.owner}}/{{config.repo}}/issues/{{resource_id or config.issue_number}}/comments"
+    description: Add a comment to an issue or pull request
+    request:
+      body_template: |
+        {
+          "body": "{{config.body}}"
+        }
+    response:
+      success_codes: [201]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [repo]
+
+  create_repository:
+    method: POST
+    path: "{% if config.org %}/orgs/{{config.org}}/repos{% else %}/user/repos{% endif %}"
+    description: Create a new repository
+    request:
+      body_template: |
+        {
+          "name": "{{config.name}}",
+          "description": "{{config.description | default('')}}"
+          {%- if config.private is defined %},
+          "private": {{config.private | lower}}
+          {%- endif %}
+          {%- if config.auto_init is defined %},
+          "auto_init": {{config.auto_init | lower}}
+          {%- endif %}
+          {%- if config.gitignore_template %},
+          "gitignore_template": "{{config.gitignore_template}}"
+          {%- endif %}
+          {%- if config.license_template %},
+          "license_template": "{{config.license_template}}"
+          {%- endif %}
+          {%- if config.has_issues is defined %},
+          "has_issues": {{config.has_issues | lower}}
+          {%- endif %}
+          {%- if config.has_projects is defined %},
+          "has_projects": {{config.has_projects | lower}}
+          {%- endif %}
+          {%- if config.has_wiki is defined %},
+          "has_wiki": {{config.has_wiki | lower}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [201]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [repo]
+
+  get_repository:
+    method: GET
+    path: "/repos/{{config.owner}}/{{config.repo}}"
+    description: Get repository information
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [repo]
+
+  create_release:
+    method: POST
+    path: "/repos/{{config.owner}}/{{config.repo}}/releases"
+    description: Create a new release
+    request:
+      body_template: |
+        {
+          "tag_name": "{{config.tag_name}}",
+          "name": "{{config.name}}",
+          "body": "{{config.body | default('')}}"
+          {%- if config.target_commitish %},
+          "target_commitish": "{{config.target_commitish}}"
+          {%- endif %}
+          {%- if config.draft is defined %},
+          "draft": {{config.draft | lower}}
+          {%- endif %}
+          {%- if config.prerelease is defined %},
+          "prerelease": {{config.prerelease | lower}}
+          {%- endif %}
+          {%- if config.generate_release_notes is defined %},
+          "generate_release_notes": {{config.generate_release_notes | lower}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [201]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [repo]
+
+  create_workflow_dispatch:
+    method: POST
+    path: "/repos/{{config.owner}}/{{config.repo}}/actions/workflows/{{config.workflow_id}}/dispatches"
+    description: Trigger a GitHub Actions workflow
+    request:
+      body_template: |
+        {
+          "ref": "{{config.ref | default('main')}}"
+          {%- if config.inputs %},
+          "inputs": {{config.inputs | tojson}}
+          {%- endif %}
+        }
+    response:
+      success_codes: [204]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    required_scopes: [workflow]
+
+  list_workflow_runs:
+    method: GET
+    path: "/repos/{{config.owner}}/{{config.repo}}/actions/runs"
+    description: List workflow runs for a repository
+    request:
+      query_params_template:
+        status: "{% if config.status %}{{config.status}}{% endif %}"
+        branch: "{% if config.branch %}{{config.branch}}{% endif %}"
+        event: "{% if config.event %}{{config.event}}{% endif %}"
+        per_page: "{{config.per_page | default(30)}}"
+        page: "{{config.page | default(1)}}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    pagination:
+      type: page_number
+      page_param: page
+      per_page_param: per_page
+      default_limit: 30
+    required_scopes: [workflow]
+
+  get_user:
+    method: GET
+    path: "{% if config.username %}/users/{{config.username}}{% else %}/user{% endif %}"
+    description: Get user information
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+
+  list_repositories:
+    method: GET
+    path: "{% if config.username %}/users/{{config.username}}/repos{% elif config.org %}/orgs/{{config.org}}/repos{% else %}/user/repos{% endif %}"
+    description: List repositories for a user or organization
+    request:
+      query_params_template:
+        type: "{{config.type | default('all')}}"
+        sort: "{{config.sort | default('full_name')}}"
+        direction: "{{config.direction | default('asc')}}"
+        per_page: "{{config.per_page | default(30)}}"
+        page: "{{config.page | default(1)}}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/message"
+    pagination:
+      type: page_number
+      page_param: page
+      per_page_param: per_page
+      default_limit: 30
+
+# Webhook events
+webhook_events:
+  - name: push
+    description: Git push to a repository
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "ref": {"type": "string"},
+          "repository": {"type": "object"},
+          "pusher": {"type": "object"},
+          "commits": {"type": "array"}
+        }
+      }
+  
+  - name: pull_request
+    description: Pull request activity
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "action": {"type": "string"},
+          "pull_request": {"type": "object"},
+          "repository": {"type": "object"}
+        }
+      }
+
+  - name: issues
+    description: Issue activity
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "action": {"type": "string"},
+          "issue": {"type": "object"},
+          "repository": {"type": "object"}
+        }
+      }
+
+  - name: workflow_run
+    description: GitHub Actions workflow run status
+    payload_schema: |
+      {
+        "type": "object",
+        "properties": {
+          "action": {"type": "string"},
+          "workflow_run": {"type": "object"},
+          "repository": {"type": "object"}
+        }
+      }
+
+# Additional metadata
+metadata:
+  documentation_url: https://docs.github.com/en/rest
+  support_email: support@github.com
+  tags:
+    - version-control
+    - collaboration
+    - ci-cd
+    - source-code
+  notes: |
+    This provider supports the most common GitHub API operations.
+    Authentication requires a personal access token or GitHub App token.
+    Rate limits vary based on authentication method and account type.
