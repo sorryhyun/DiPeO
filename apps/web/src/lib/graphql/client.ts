@@ -4,6 +4,7 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 import { createUploadLink } from 'apollo-upload-client';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
+import { toast } from 'sonner';
 
 const httpLink = createUploadLink({
   uri: `http://${import.meta.env.VITE_API_HOST || 'localhost:8000'}/graphql`,
@@ -11,6 +12,8 @@ const httpLink = createUploadLink({
 });
 
 let isConnected = true;
+let retryCount = 0;
+let lastConnectionTime = Date.now();
 
 const wsClient = createClient({
   url: `ws://${import.meta.env.VITE_API_HOST || 'localhost:8000'}/graphql`,
@@ -19,22 +22,60 @@ const wsClient = createClient({
   shouldRetry: () => true,
   retryAttempts: Infinity,
   retryWait: async (retryCount) => {
-    await new Promise((resolve) =>
-      setTimeout(resolve, Math.min(1000 * Math.pow(2, retryCount) + Math.random() * 1000, 30000))
-    );
+    const waitTime = Math.min(1000 * Math.pow(2, retryCount) + Math.random() * 1000, 30000);
+    console.log(`[GraphQL WS] Retrying connection in ${Math.round(waitTime / 1000)}s (attempt ${retryCount + 1})`);
+    await new Promise((resolve) => setTimeout(resolve, waitTime));
   },
   on: {
     connected: () => {
+      const wasDisconnected = !isConnected;
       isConnected = true;
-      console.log('[GraphQL WS] Connected to server');
-    },
-    closed: () => {
-      isConnected = false;
-      console.log('[GraphQL WS] Disconnected from server');
+      lastConnectionTime = Date.now();
       
+      if (wasDisconnected && retryCount > 0) {
+        console.log(`[GraphQL WS] Reconnected to server after ${retryCount} attempts`);
+        toast.success('WebSocket reconnected');
+      } else {
+        console.log('[GraphQL WS] Connected to server');
+      }
+      retryCount = 0;
+    },
+    closed: (event) => {
+      const wasConnected = isConnected;
+      isConnected = false;
+      retryCount++;
+      
+      const connectionDuration = Date.now() - lastConnectionTime;
+      const reason = event instanceof CloseEvent ? 
+        `Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}` : 
+        'Unknown reason';
+      
+      console.log(`[GraphQL WS] Connection closed - ${reason}`);
+      console.log(`[GraphQL WS] Connection was active for ${Math.round(connectionDuration / 1000)}s`);
+      
+      if (wasConnected) {
+        if (event instanceof CloseEvent) {
+          if (event.code === 1000) {
+            console.log('[GraphQL WS] Normal closure');
+          } else if (event.code === 1001) {
+            console.log('[GraphQL WS] Client or server going away');
+            toast.warning('WebSocket disconnected - Server may be restarting');
+          } else if (event.code === 1006) {
+            console.log('[GraphQL WS] Abnormal closure (network error or timeout)');
+            toast.error('WebSocket connection lost - Attempting to reconnect...');
+          } else {
+            toast.warning(`WebSocket closed: ${reason}`);
+          }
+        } else {
+          toast.warning('WebSocket connection closed');
+        }
+      }
     },
     error: (error) => {
       console.error('[GraphQL WS] Error:', error);
+      if (error instanceof Error) {
+        console.error('[GraphQL WS] Error details:', error.message, error.stack);
+      }
     },
   },
 });
@@ -52,6 +93,26 @@ const splitLink = split(
   wsLink,
   httpLink
 );
+
+// Export connection status for components to use
+export const getConnectionStatus = () => ({
+  isConnected,
+  retryCount,
+  lastConnectionTime
+});
+
+// Add ping/pong keep-alive to detect timeouts faster
+setInterval(() => {
+  if (isConnected && wsClient) {
+    // The graphql-ws client handles ping/pong internally
+    // This is just to log connection health periodically
+    const connectionAge = Date.now() - lastConnectionTime;
+    if (connectionAge > 60000) { // Log every minute
+      console.log(`[GraphQL WS] Connection healthy - Active for ${Math.round(connectionAge / 1000)}s`);
+      lastConnectionTime = Date.now(); // Reset to avoid spamming logs
+    }
+  }
+}, 30000); // Check every 30 seconds
 
 export const apolloClient = new ApolloClient({
   link: splitLink,

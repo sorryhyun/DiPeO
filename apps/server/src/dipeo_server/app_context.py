@@ -6,8 +6,7 @@ import os
 from dipeo.application.bootstrap import Container
 from dipeo.config import get_settings
 from dipeo.domain.events import EventType
-
-from dipeo_server.shared.constants import BASE_DIR
+from dipeo.config import BASE_DIR
 
 _container: Container | None = None
 
@@ -160,6 +159,7 @@ async def create_server_container() -> Container:
             EventType.NODE_ERROR,
             EventType.NODE_PROGRESS,
             EventType.EXECUTION_UPDATE,
+            EventType.EXECUTION_LOG,  # Add EXECUTION_LOG for monitor mode logs
             EventType.METRICS_COLLECTED,
             EventType.WEBHOOK_RECEIVED,
         ]

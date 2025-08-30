@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 import click
 import yaml
-from dipeo.domain.constants import FILES_DIR, PROJECTS_DIR
+from dipeo.config import FILES_DIR, PROJECTS_DIR
 from dipeo.infrastructure.integrations.drivers.integrated_api.manifest_schema import ProviderManifest
 from pydantic import ValidationError
 

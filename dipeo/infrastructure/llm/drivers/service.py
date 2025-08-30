@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 import logging
 import time
-from typing import Any
+from typing import Any, Dict, Optional
 
 from tenacity import (
     AsyncRetrying,
@@ -14,35 +14,25 @@ from tenacity import (
 )
 
 from dipeo.domain.base import APIKeyError, BaseService, LLMServiceError
-from dipeo.domain.constants import VALID_LLM_SERVICES, normalize_service_name
-from dipeo.domain.llm.ports import LLMService as LLMServicePort
-from dipeo.domain.integrations.ports import APIKeyPort
-from dipeo.domain.llm import LLMDomainService
+from dipeo.config import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.domain.integrations.ports import APIKeyPort, LLMService as LLMServicePort
 from dipeo.config import get_settings
 from dipeo.infrastructure.shared.drivers.utils import SingleFlightCache
-from dipeo.diagram_generated import ChatResult, PersonLLMConfig, Message
-from dipeo.diagram_generated.domain_models import PersonID
+from dipeo.diagram_generated import ChatResult
 
 from .factory import create_adapter
-from .system_prompt_handler import SystemPromptHandler
-from .message_formatter import MessageFormatter
 
 
 class LLMInfraService(BaseService, LLMServicePort):
 
-    def __init__(self, api_key_service: APIKeyPort, llm_domain_service: LLMDomainService | None = None):
+    def __init__(self, api_key_service: APIKeyPort):
         super().__init__()
         self.api_key_service = api_key_service
         self._adapter_pool: dict[str, dict[str, Any]] = {}
         self._adapter_pool_lock = asyncio.Lock()
         self._adapter_cache = SingleFlightCache()  # For deduplicating adapter creation
         self._settings = get_settings()
-        self._llm_domain_service = llm_domain_service or LLMDomainService()
         self.logger = logging.getLogger(__name__)
-        
-        # Initialize handlers for message formatting and system prompts
-        self._system_prompt_handler = SystemPromptHandler()
-        self._message_formatter = MessageFormatter()
         
         self._provider_mapping = {
             "gpt": "openai",
@@ -91,7 +81,19 @@ class LLMInfraService(BaseService, LLMServicePort):
         key_string = f"{provider}:{model}:{api_key_id}"
         return hashlib.sha256(key_string.encode()).hexdigest()
 
-    async def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
+    async def _get_client(self, service: str, model: str, api_key_id: str, async_mode: bool = True) -> Any:
+        """
+        Get or create an LLM adapter client.
+        
+        Args:
+            service: The LLM service provider
+            model: The model to use
+            api_key_id: The API key identifier
+            async_mode: If True, creates async adapter; if False, creates sync adapter
+        
+        Returns:
+            An LLM adapter instance
+        """
         provider = normalize_service_name(service)
 
         if provider not in VALID_LLM_SERVICES:
@@ -99,7 +101,8 @@ class LLMInfraService(BaseService, LLMServicePort):
                 service=service, message=f"Unsupported LLM service: {service}"
             )
 
-        cache_key = self._create_cache_key(provider, model, api_key_id)
+        # Include async_mode in cache key to separate sync and async adapters
+        cache_key = f"{self._create_cache_key(provider, model, api_key_id)}:{'async' if async_mode else 'sync'}"
 
         async with self._adapter_pool_lock:
             if cache_key in self._adapter_pool:
@@ -108,14 +111,15 @@ class LLMInfraService(BaseService, LLMServicePort):
                     return entry["adapter"]
                 else:
                     del self._adapter_pool[cache_key]
+        
         async def create_new_adapter():
             if provider == "ollama":
                 raw_key = ""
                 base_url = self._settings.ollama_host if hasattr(self._settings, 'ollama_host') else None
-                adapter = create_adapter(provider, model, raw_key, base_url=base_url)
+                adapter = create_adapter(provider, model, raw_key, base_url=base_url, async_mode=async_mode)
             else:
                 raw_key = self._get_api_key(api_key_id)
-                adapter = create_adapter(provider, model, raw_key)
+                adapter = create_adapter(provider, model, raw_key, async_mode=async_mode)
             
             async with self._adapter_pool_lock:
                 self._adapter_pool[cache_key] = {
@@ -124,6 +128,7 @@ class LLMInfraService(BaseService, LLMServicePort):
                 }
             
             return adapter
+        
         return await self._adapter_cache.get_or_create(
             cache_key,
             create_new_adapter,
@@ -133,15 +138,21 @@ class LLMInfraService(BaseService, LLMServicePort):
     async def _call_llm_with_retry(
         self, client: Any, messages: list[dict], **kwargs
     ) -> Any:
+        """Call LLM with retry logic, handling both sync and async adapters."""
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(3),
             wait=wait_exponential(multiplier=1, min=1, max=10),
             retry=retry_if_exception_type((ConnectionError, TimeoutError)),
         ):
             with attempt:
-                if hasattr(client, 'chat_async'):
+                # Check if this is a new UnifiedAdapter (has async_chat method)
+                if hasattr(client, 'async_chat'):
+                    return await client.async_chat(messages=messages, **kwargs)
+                # Check if this is an old async adapter (has chat_async method)
+                elif hasattr(client, 'chat_async'):
                     return await client.chat_async(messages=messages, **kwargs)
                 else:
+                    # Sync adapter - run in thread pool
                     return await asyncio.to_thread(client.chat, messages=messages, **kwargs)
 
     async def complete(  # type: ignore[override]
@@ -151,6 +162,9 @@ class LLMInfraService(BaseService, LLMServicePort):
             if messages is None:
                 messages = []
             
+            # Extract execution_phase before validation (adapter-specific parameter)
+            execution_phase = kwargs.pop('execution_phase', None)
+            
             service = kwargs.pop('service', None)
             if service:
                 if hasattr(service, 'value'):
@@ -158,28 +172,18 @@ class LLMInfraService(BaseService, LLMServicePort):
                 service = normalize_service_name(str(service))
             else:
                 service = self._infer_service_from_model(model)
-            is_valid, error_msg = self._llm_domain_service.validate_model_config(
-                provider=service,
-                model=model,
-                config=kwargs
-            )
-            if not is_valid:
-                raise LLMServiceError(service="llm", message=error_msg)
-            if messages:
-                prompt_text = " ".join(msg.get("content", "") for msg in messages)
-                is_valid, error_msg = self._llm_domain_service.validate_prompt_size(
-                    prompt=prompt_text,
-                    provider=service,
-                    model=model
-                )
-                if not is_valid and hasattr(self, 'logger'):
-                    self.logger.warning(f"Prompt validation warning: {error_msg}")
+            # Validation is now handled by infrastructure adapters
+            # The adapters have comprehensive validation in their implementations
             
-            adapter = await self._get_client(service, model, api_key_id)
+            # Always use async adapters for better performance
+            adapter = await self._get_client(service, model, api_key_id, async_mode=True)
 
             messages_list = messages
 
             adapter_kwargs = {**kwargs}
+            # Re-add execution_phase for adapters that support it
+            if execution_phase:
+                adapter_kwargs['execution_phase'] = execution_phase
             
             if hasattr(self, 'logger'):
                 self.logger.debug(f"Messages: {len(messages_list)}")
@@ -210,45 +214,6 @@ class LLMInfraService(BaseService, LLMServicePort):
         
         return "openai"
 
-    async def complete_with_person(
-        self,
-        person_messages: list[Message],
-        person_id: PersonID,
-        llm_config: PersonLLMConfig,
-        **kwargs
-    ) -> ChatResult:
-        """Complete a prompt with person-specific context and system prompt handling.
-        
-        This method handles:
-        - System prompt resolution from llm_config
-        - Message formatting for the specific LLM provider
-        - Proper role mapping (including "developer" for OpenAI)
-        
-        Args:
-            person_messages: Messages from the person's filtered view
-            person_id: The person's ID for role determination
-            llm_config: The person's LLM configuration
-            **kwargs: Additional LLM options (temperature, tools, etc.)
-            
-        Returns:
-            ChatResult with the LLM response
-        """
-        # Prepare messages with proper formatting
-        formatted_messages = self._message_formatter.prepare_llm_messages(
-            person_messages=person_messages,
-            person_id=person_id,
-            llm_config=llm_config,
-            system_prompt_handler=self._system_prompt_handler
-        )
-        
-        # Call the standard complete method with formatted messages
-        return await self.complete(
-            messages=formatted_messages,
-            model=llm_config.model,
-            api_key_id=llm_config.api_key_id,
-            service=llm_config.service,
-            **kwargs
-        )
 
     async def get_available_models(self, api_key_id: str) -> list[str]:
         try:
@@ -271,3 +236,38 @@ class LLMInfraService(BaseService, LLMServicePort):
             return usage.token_usage
         else:
             return None
+
+    async def validate_api_key(
+        self, api_key_id: str, provider: Optional[str] = None
+    ) -> bool:
+        """Validate an API key is functional."""
+        try:
+            # Try a minimal completion to validate the key
+            model = "gpt-5-nano-2025-08-07" if not provider else self._get_default_model_for_provider(provider)
+            await self.complete(
+                messages=[{"role": "user", "content": "test"}],
+                model=model,
+                api_key_id=api_key_id,
+                max_tokens=1,
+            )
+            return True
+        except Exception:
+            return False
+
+    async def get_provider_for_model(self, model: str) -> Optional[str]:
+        """Determine which provider supports a given model."""
+        return self._infer_service_from_model(model)
+    
+    def _get_default_model_for_provider(self, provider: str) -> str:
+        """Get a default model for a provider."""
+        provider = provider.lower()
+        if provider == "openai":
+            return "gpt-5-nano-2025-08-07"
+        elif provider in ["anthropic", "claude"]:
+            return "claude-3-5-sonnet-20241022"
+        elif provider in ["google", "gemini"]:
+            return "gemini-1.5-pro"
+        elif provider == "ollama":
+            return "llama3"
+        else:
+            return "gpt-5-nano-2025-08-07"

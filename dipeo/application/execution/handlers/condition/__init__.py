@@ -159,11 +159,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Return only the active branch data
         active_branch = "condtrue" if result else "condfalse"
         
-        logger.debug(
-            f"ConditionNode {node.id}: type={node.condition_type}, "
-            f"result={result}, active_branch={active_branch}"
-        )
-        
         # Return structured result for serialization
         # The output_value goes directly in the response, not wrapped
         return {

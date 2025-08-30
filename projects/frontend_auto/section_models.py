@@ -44,70 +44,35 @@ class Architecture(BaseModel):
     )
 
 
-class PromptContext(BaseModel):
-    """Context information to guide prompt generation for a section."""
-    model_config = ConfigDict(extra='forbid')
-    
-    component_type: str = Field(
-        description="Type of component: list, form, dashboard, card, modal, etc."
-    )
-    data_model: Optional[str] = Field(
-        default=None,
-        description="Primary data model this section works with: task, user, product, etc."
-    )
-    interactions: List[str] = Field(
-        default_factory=list,
-        description="User interactions: view, create, update, delete, filter, sort, etc."
-    )
-    styling_approach: Optional[str] = Field(
-        default="tailwind",
-        description="CSS approach: tailwind, styled-components, css-modules"
-    )
-    dependencies: Optional[List[str]] = Field(
-        default=None,
-        description="Other sections this depends on, if any"
-    )
-
-
 class Section(BaseModel):
-    """A single section/feature to be implemented independently."""
+    """A single file to be implemented."""
     model_config = ConfigDict(extra='forbid')
     
     id: str = Field(
-        description="Unique kebab-case identifier (e.g., 'task-list', 'add-form')",
+        description="Unique kebab-case identifier (e.g., 'auth-provider', 'dashboard-page')",
         pattern="^[a-z][a-z0-9-]*$"
     )
-    title: str = Field(
-        description="Human-readable title for the section"
+    file_path: str = Field(
+        description="File path where this section will be implemented (e.g., 'src/providers/AuthProvider.tsx')"
     )
     description: str = Field(
-        description="Detailed description of what this section does"
+        description="Brief description of what this file does and its responsibility"
     )
-    file_to_implement: str = Field(
-        description="Exact file path to implement (e.g., 'src/shared/components/Button.tsx', 'src/features/dashboard/components/DashboardLayout.tsx')"
-    )
-    acceptance: List[str] = Field(
-        min_items=2,
-        max_items=8,
-        description="Measurable acceptance criteria for this section"
-    )
-    implementation_steps: List[str] = Field(
-        min_items=3,
-        max_items=10,
-        description="Concrete implementation steps for THIS specific file (e.g., '1. Define component props interface', '2. Implement component logic', '3. Add event handlers')"
-    )
-    integration_points: List[str] = Field(
+    dependencies: List[str] = Field(
         default_factory=list,
-        description="How this section integrates with others (e.g., 'Emits task-updated event', 'Consumes user context', 'Provides TaskAPI service')"
+        max_items=10,
+        description="File paths this file imports from (besides Core Kernel which all files can use)"
     )
-    prompt_context: PromptContext = Field(
-        description="Context to guide code generation for this section"
+    exports: List[str] = Field(
+        default_factory=list,
+        max_items=20,
+        description="What this file exports for other files to use (e.g., 'Button component', 'useAuth hook', 'formatDate function')"
     )
     priority: Optional[int] = Field(
-        default=1,
+        default=2,
         ge=1,
-        le=5,
-        description="Priority level (1=highest, 5=lowest)"
+        le=3,
+        description="Priority: 1=foundational (providers, hooks), 2=components, 3=pages/features"
     )
 
 
@@ -120,7 +85,7 @@ class Response(BaseModel):
     )
     sections: List[Section] = Field(
         min_items=1,
-        max_items=100,
+        max_items=200,
         description="List of sections(i.e., files) to implement in parallel"
     )
 
@@ -128,84 +93,57 @@ class Response(BaseModel):
 # Example usage for LLM understanding
 EXAMPLE_RESPONSE = Response(
     architecture=Architecture(
-        overview="A modular task management dashboard built with React 18+ and TypeScript. Features are split into independent sections that communicate through a centralized state store and event bus. Each section follows container/presentational pattern with clear separation of concerns.",
-        patterns=["Container/Presentational Components", "Atomic Design", "Domain-driven layers", "Event-driven communication"],
-        data_flow="Global state managed by Zustand, server state via React Query with optimistic updates. Components emit domain events that trigger state updates. API calls are centralized in service layers with proper error handling.",
-        folder_structure="src/features/{section}/ containing components/, hooks/, services/, types/, and utils/. Shared code in src/shared/ with common components, hooks, and utilities.",
+        overview="A healthcare portal built with React 18+ and TypeScript. All files import shared contracts from Core Kernel (@/core/*) ensuring consistency. Features are organized by domain with shared components in a common folder.",
+        patterns=["Container/Presentational Components", "Core Kernel for shared contracts", "Feature-based organization"],
+        data_flow="Auth state via Context, server state via React Query, configuration from @/app/config. Mock data in development mode.",
+        folder_structure="""src/
+  core/           # Core Kernel files (auto-generated)
+  app/            # App configuration
+  shared/         # Shared components and hooks
+    components/
+    hooks/
+  features/       # Domain features
+    appointments/
+    dashboard/
+  pages/          # Route pages
+  providers/      # Context providers
+  services/       # API and mock services""",
         tech_stack=[
-            "Zustand",
-            "React Query",
-            "React Hook Form",
-            "Zod",
+            "React 18+ with TypeScript",
+            "React Query for server state",
+            "Context API for auth/theme",
             "Tailwind CSS",
-            "React Testing Library"
+            "Mock server for development"
         ]
-
     ),
     sections=[
         Section(
-            id="task-list",
-            title="Task List Component",
-            description="Display all tasks with status indicators and actions",
-            file_to_implement="src/features/tasks/components/TaskList.tsx",
-            acceptance=[
-                "Shows all tasks in a clean list format",
-                "Each task displays title, status, and actions",
-                "Supports marking tasks as complete",
-                "Has delete functionality"
-            ],
-            implementation_steps=[
-                "Define TypeScript interfaces for Task and TaskList props",
-                "Create TaskItem presentational component with Tailwind styling",
-                "Build TaskList container with React Query integration",
-                "Add optimistic updates for task mutations",
-                "Implement error boundaries and loading states",
-                "Write unit tests for components and hooks"
-            ],
-            integration_points=[
-                "Emits 'task-updated' and 'task-deleted' events",
-                "Consumes TaskAPI service for data operations",
-                "Updates global task count in app header"
-            ],
-            prompt_context=PromptContext(
-                component_type="list",
-                data_model="task",
-                interactions=["view", "update", "delete"],
-                styling_approach="tailwind"
-            ),
+            id="auth-provider",
+            file_path="src/providers/AuthProvider.tsx",
+            description="Context provider for authentication state and user management",
+            dependencies=[],
+            exports=["AuthProvider", "useAuth hook"],
             priority=1
         ),
         Section(
-            id="add-task",
-            title="Add Task Form",
-            description="Form component to create new tasks",
-            file_to_implement="src/features/tasks/components/AddTaskForm.tsx",
-            acceptance=[
-                "Input field for task title",
-                "Optional description field",
-                "Submit button with loading state",
-                "Form validation and error display"
+            id="api-client",
+            file_path="src/services/apiClient.ts",
+            description="Axios-based API client with token injection and error handling",
+            dependencies=["src/providers/AuthProvider.tsx"],
+            exports=["apiClient instance", "apiGet", "apiPost", "apiPut", "apiDelete"],
+            priority=1
+        ),
+        Section(
+            id="dashboard-page",
+            file_path="src/pages/DashboardPage.tsx",
+            description="Main dashboard page showing health metrics and quick actions",
+            dependencies=[
+                "src/providers/AuthProvider.tsx",
+                "src/shared/components/Layout.tsx",
+                "src/features/dashboard/HealthDashboard.tsx"
             ],
-            implementation_steps=[
-                "Define form schema with Zod validation",
-                "Create form component with React Hook Form",
-                "Integrate with TaskAPI service for submission",
-                "Add loading and error states",
-                "Implement success feedback with toast notifications"
-            ],
-            integration_points=[
-                "Emits 'task-created' event on successful submission",
-                "Triggers task-list refetch via React Query",
-                "Resets form on successful submission"
-            ],
-            prompt_context=PromptContext(
-                component_type="form",
-                data_model="task",
-                interactions=["create"],
-                styling_approach="tailwind",
-                dependencies=["task-list"]
-            ),
-            priority=2
+            exports=["DashboardPage component (default)"],
+            priority=3
         )
     ]
 )

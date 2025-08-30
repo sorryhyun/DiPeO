@@ -1,0 +1,31 @@
+Analyze the requirements and create a file structure plan:
+
+App config: {{config}}
+
+Your response MUST include:
+1. Architecture:
+   - High-level overview of the application structure
+   - Key patterns and technologies to use
+   - Folder structure showing organization
+   - Data flow description
+
+2. Sections (one per file):
+   - id: unique identifier
+   - file_to_implement: exact file path
+   - description: what the file does
+   - dependencies: other files it imports from
+   - exports: what it provides to other files
+   - priority: 0=kernel, 1=foundational, 2=components, 3=pages
+
+REQUIREMENTS:
+- Order sections by priority and dependencies
+- Include ALL files that will exist in the app
+- Start with core kernel files (priority 0):
+  * core/contracts.ts - Domain types and API contracts
+  * app/config.ts - Materialized configuration
+  * core/events.ts - Event bus system
+  * core/hooks.ts - Hook registry for extensions
+  * core/di.ts - Dependency injection (if needed)
+  * core/utils.ts - Common utilities (if needed)
+- Then include: pages, providers, services, shared components, hooks, features
+- Every import must have a corresponding section

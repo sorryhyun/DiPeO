@@ -7,7 +7,7 @@ from .service_registry import ServiceKey
 
 # Type imports for service keys
 if TYPE_CHECKING:
-    from dipeo.domain.llm.ports import LLMService as LLMServicePort
+    from dipeo.domain.integrations.ports import LLMService as LLMServicePort
     from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
     from dipeo.domain.execution.state import (
         ExecutionCachePort,
@@ -26,11 +26,11 @@ if TYPE_CHECKING:
     from dipeo.domain.conversation.ports import (
         ConversationRepository,
         PersonRepository,
+        MemoryService,
     )
     from dipeo.domain.base.storage_port import FileSystemPort, ArtifactStorePort
     from dipeo.domain.diagram.ports import TemplateProcessorPort
     from dipeo.domain.events import EventEmitter
-    from dipeo.domain.llm import LLMClient, LLMService, MemoryService
     from dipeo.domain.diagram.compilation import CompileTimeResolver
     from dipeo.domain.execution.resolution import (
         RuntimeInputResolver,
@@ -69,8 +69,8 @@ MESSAGE_BUS = ServiceKey["MessageBus"]("message_bus")
 DOMAIN_EVENT_BUS = ServiceKey["DomainEventBus"]("domain_event_bus")
 
 # LLM Services (from registry_tokens.py)
-LLM_CLIENT = ServiceKey["LLMClient"]("llm_client")
-LLM_REGISTRY = ServiceKey["dict[str, LLMClient]"]("llm_registry")
+# LLM_CLIENT = ServiceKey["LLMClient"]("llm_client")  # Removed - no longer needed
+# LLM_REGISTRY = ServiceKey["dict[str, LLMClient]"]("llm_registry")  # Removed - no longer needed
 MEMORY_SERVICE = ServiceKey["MemoryService"]("memory_service")
 
 # Storage Services
@@ -172,8 +172,8 @@ __all__ = [
     "DOMAIN_EVENT_BUS",
     
     # LLM Services
-    "LLM_CLIENT",
-    "LLM_REGISTRY",
+    # "LLM_CLIENT",  # Removed - no longer needed
+    # "LLM_REGISTRY",  # Removed - no longer needed
     "MEMORY_SERVICE",
     
     # Storage

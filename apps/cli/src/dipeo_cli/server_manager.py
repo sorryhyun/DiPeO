@@ -6,7 +6,7 @@ import time
 from typing import Any
 
 import requests
-from dipeo.domain.constants import BASE_DIR
+from dipeo.config import BASE_DIR
 
 from .graphql_queries import GraphQLQueries
 

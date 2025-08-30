@@ -1,0 +1,71 @@
+{
+  "app_type": "fintech",
+  "framework": "react",
+  "target_framework": "react",
+  "styling_approach": "tailwind",
+  "objective": "Digital Banking Platform",
+  "features": [
+    "account overview dashboard",
+    "transaction history",
+    "fund transfer interface",
+    "bill payment portal",
+    "investment portfolio tracker",
+    "budget planning tools",
+    "secure messaging center",
+    "card management panel"
+  ],
+  "target_audience": "Banking Customers",
+  "output_dir": "./generated",
+  "development_mode": {
+    "enable_mock_data": true,
+    "mock_auth_users": [
+      {"email": "premium@bank.com", "password": "prem123", "role": "premium"},
+      {"email": "standard@bank.com", "password": "stand123", "role": "standard"},
+      {"email": "business@bank.com", "password": "biz123", "role": "business"}
+    ],
+    "mock_api_endpoints": [
+      "/api/accounts",
+      "/api/transactions",
+      "/api/transfers",
+      "/api/payments",
+      "/api/investments",
+      "/api/budgets",
+      "/api/cards"
+    ],
+    "disable_websocket_in_dev": false,
+    "use_localstorage_persistence": true
+  },
+  "prompt_requirements": [
+    "Generate modern, production-ready React components with TypeScript",
+    "Use React 18+ features: Suspense, Error Boundaries, Context API",
+    "Implement responsive design with Tailwind CSS and dark mode support",
+    "Ensure basic accessibility with ARIA labels and keyboard navigation",
+    "Handle authentication with protected routes and token management",
+    "Implement proper form validation with error handling",
+    "Use React Query for data fetching with loading and error states",
+    "Implement i18n support for internationalization",
+    "IMPORTANT: Include mock data and mock authentication for development mode",
+    "Create fallback mechanisms when backend services are unavailable",
+    "Provide mock API responses for all data endpoints in development",
+    "Implement mock WebSocket updates for real-time features",
+    "Ensure the app runs standalone without any backend dependencies",
+    "Use localStorage for mock user persistence in development"
+  ],
+  "evaluation_criteria": [
+    "Code quality and maintainability",
+    "Component reusability and composability",
+    "Type safety and error handling",
+    "Performance optimization",
+    "Accessibility compliance",
+    "Responsive design implementation",
+    "Best practices adherence"
+  ],
+  "prompt_sections": [
+    "Component Structure",
+    "Mock Data Implementation",
+    "Authentication Flow",
+    "State Management",
+    "Error Handling",
+    "Development Mode Features"
+  ]
+}

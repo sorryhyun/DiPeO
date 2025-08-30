@@ -1,10 +1,13 @@
 """In-memory implementation of PersonRepository."""
 
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from dipeo.diagram_generated import ApiKeyID, LLMService, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
 from dipeo.domain.conversation.ports import PersonRepository
+
+if TYPE_CHECKING:
+    from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
 
 
 class InMemoryPersonRepository(PersonRepository):
@@ -16,6 +19,14 @@ class InMemoryPersonRepository(PersonRepository):
     
     def __init__(self):
         self._persons: dict[PersonID, Person] = {}
+        self._orchestrator: Optional["ExecutionOrchestrator"] = None
+    
+    def set_orchestrator(self, orchestrator: "ExecutionOrchestrator") -> None:
+        """Set the orchestrator for wiring brain components.
+        
+        This is called after construction to avoid circular dependencies.
+        """
+        self._orchestrator = orchestrator
     
     def get(self, person_id: PersonID) -> Person:
         """Retrieve a person by ID.
@@ -37,16 +48,28 @@ class InMemoryPersonRepository(PersonRepository):
         name: str,
         llm_config: PersonLLMConfig,
     ) -> Person:
-        """Create a new person.
+        """Create a new person with brain component wired up.
         
         Returns:
-            The created Person instance
+            The created Person instance with cognitive components
         """
         person = Person(
             id=person_id,
             name=name,
             llm_config=llm_config
         )
+        
+        # Wire up brain component if orchestrator is available
+        if self._orchestrator:
+            from dipeo.domain.conversation.brain import CognitiveBrain
+            from dipeo.infrastructure.memory import LLMMemorySelector
+            
+            # Create memory selector implementation
+            memory_selector = LLMMemorySelector(self._orchestrator)
+            
+            # Wire brain with memory selector
+            person.brain = CognitiveBrain(memory_selector=memory_selector)
+        
         self.save(person)
         return person
     

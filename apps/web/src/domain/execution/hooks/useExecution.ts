@@ -109,7 +109,18 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   const currentExecutionId = execution.executionId;
   const streaming = useExecutionStreaming({ 
     executionId: currentExecutionId,
-    skip: !currentExecutionId
+    skip: !currentExecutionId,
+    onConnectionLoss: () => {
+      // Handle connection loss during execution
+      if (execution.isRunning) {
+        console.log('[useExecution] Connection lost during execution, stopping...');
+        errorExecution('Connection lost');
+        executionActions.stopExecution();
+        if (showToasts) {
+          toast.error('WebSocket connection lost during execution');
+        }
+      }
+    }
   });
   
   // Process subscription updates

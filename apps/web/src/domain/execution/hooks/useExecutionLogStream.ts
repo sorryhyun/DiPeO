@@ -42,11 +42,21 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
             if (event.type === 'EXECUTION_LOG' && event.data) {
               const logData = event.data;
               if (typeof logData === 'object' && logData !== null) {
+                // Debug log to understand the structure
+                console.log('Log data structure:', logData);
+                
+                // Try different possible message field names
+                const message = logData.message || logData.msg || logData.text || logData.content || 
+                               (typeof logData.args === 'string' ? logData.args : 
+                                Array.isArray(logData.args) ? logData.args.join(' ') : '') || 
+                               JSON.stringify(logData);
+                
                 newLogs.push({
-                  level: logData.level || 'INFO',
-                  message: logData.message || '',
-                  timestamp: logData.timestamp || event.timestamp || new Date().toISOString(),
-                  logger: logData.logger || '',
+                  level: logData.level || logData.levelname || 'INFO',
+                  message: message,
+                  timestamp: logData.extra_fields?.timestamp ? new Date(logData.extra_fields.timestamp * 1000).toISOString() : 
+                           logData.timestamp || logData.time || event.timestamp || new Date().toISOString(),
+                  logger: logData.logger_name || logData.logger || logData.name || '',
                   node_id: logData.node_id,
                 });
               }
@@ -61,11 +71,21 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
       else if (update.event_type === 'EXECUTION_LOG' && update.data) {
         const logData = update.data;
         if (typeof logData === 'object' && logData !== null) {
+          // Debug log to understand the structure
+          console.log('Individual log data structure:', logData);
+          
+          // Try different possible message field names
+          const message = logData.message || logData.msg || logData.text || logData.content || 
+                         (typeof logData.args === 'string' ? logData.args : 
+                          Array.isArray(logData.args) ? logData.args.join(' ') : '') || 
+                         JSON.stringify(logData);
+          
           const newLog: LogEntry = {
-            level: logData.level || 'INFO',
-            message: logData.message || '',
-            timestamp: logData.timestamp || new Date().toISOString(),
-            logger: logData.logger || '',
+            level: logData.level || logData.levelname || 'INFO',
+            message: message,
+            timestamp: logData.extra_fields?.timestamp ? new Date(logData.extra_fields.timestamp * 1000).toISOString() :
+                     logData.timestamp || logData.time || new Date().toISOString(),
+            logger: logData.logger_name || logData.logger || logData.name || '',
             node_id: logData.node_id,
           };
           setLogs(prev => [...prev, newLog]);

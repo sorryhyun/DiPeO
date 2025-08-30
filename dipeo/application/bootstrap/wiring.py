@@ -12,8 +12,8 @@ from dipeo.application.registry.keys import (
     BLOB_STORE,
     FILESYSTEM_ADAPTER,
     DOMAIN_EVENT_BUS,
-    LLM_CLIENT,
-    LLM_REGISTRY,
+    # LLM_CLIENT,  # Removed - no longer needed
+    # LLM_REGISTRY,  # Removed - no longer needed
     LLM_SERVICE,
     MEMORY_SERVICE,
     MESSAGE_BUS,
@@ -101,12 +101,6 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
 def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) -> None:
     """Wire LLM services."""
     
-    from dipeo.infrastructure.llm.adapters.llm_adapter import (
-        LLMClientAdapter,
-        LLMServiceAdapter,
-        InMemoryMemoryService,
-    )
-    
     # Get or create API key service
     if not api_key_service:
         if registry.has(API_KEY_SERVICE):
@@ -115,27 +109,21 @@ def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) ->
             from dipeo.infrastructure.shared.keys.drivers.environment_service import EnvironmentAPIKeyService
             api_key_service = EnvironmentAPIKeyService()
     
-    # Create LLM infrastructure service
+    # Create LLM infrastructure service (now directly implements both LLMClient and LLMService)
     from dipeo.infrastructure.llm.drivers.service import LLMInfraService
     llm_infra = LLMInfraService(api_key_service)
     
-    # Wrap with domain adapters
-    llm_client = LLMClientAdapter(llm_infra)
-    llm_service = LLMServiceAdapter(llm_infra)
-    memory_service = InMemoryMemoryService()
-    
-    # Register LLM registry for multi-provider support
+    # Register LLM registry for multi-provider support (all use the same service)
     llm_registry = {
-        "openai": llm_client,
-        "anthropic": llm_client,
-        "google": llm_client,
-        "ollama": llm_client,
+        "openai": llm_infra,
+        "anthropic": llm_infra,
+        "google": llm_infra,
+        "ollama": llm_infra,
     }
     
-    registry.register(LLM_CLIENT, llm_client)
-    registry.register(LLM_SERVICE, llm_service)
-    registry.register(LLM_REGISTRY, llm_registry)
-    registry.register(MEMORY_SERVICE, memory_service)
+    # registry.register(LLM_CLIENT, llm_infra)  # Removed - no longer needed
+    registry.register(LLM_SERVICE, llm_infra)
+    # registry.register(LLM_REGISTRY, llm_registry)  # Removed - no longer needed
 
 
 def wire_api_services(registry: ServiceRegistry) -> None:

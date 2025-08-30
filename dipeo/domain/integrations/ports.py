@@ -1,6 +1,9 @@
 """Domain ports for integrated API services."""
 
-from typing import Any, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Optional, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from dipeo.diagram_generated import ChatResult
 
 
 @runtime_checkable
@@ -291,4 +294,30 @@ class ASTParserPort(Protocol):
         Returns:
             Dictionary mapping each key to its parse result
         """
+        ...
+
+
+@runtime_checkable
+class LLMService(Protocol):
+    """High-level LLM service for provider selection and enrichment."""
+
+    async def complete(
+        self,
+        messages: list[dict[str, str]],
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
+        api_key_id: Optional[str] = None,
+        **kwargs,
+    ) -> "ChatResult":
+        """Complete with automatic provider selection."""
+        ...
+
+    async def validate_api_key(
+        self, api_key_id: str, provider: Optional[str] = None
+    ) -> bool:
+        """Validate an API key is functional."""
+        ...
+
+    async def get_provider_for_model(self, model: str) -> Optional[str]:
+        """Determine which provider supports a given model."""
         ...

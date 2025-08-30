@@ -5,6 +5,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.config.llm import PERSON_JOB_TEMPERATURE, PERSON_JOB_MAX_TOKENS
 from dipeo.domain.conversation import Person
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -66,7 +67,6 @@ class SinglePersonJobExecutor:
         # Use pre-configured services (set by handler)
         llm_service = self._llm_service
         execution_count = context.get_node_execution_count(node.id)
-        logger.info(f"[EXECUTE_REQUEST] PersonJobNode {node.id} - execution_count: {execution_count}")
 
         # Create a fresh PromptFileResolver with the current diagram
         # This ensures we have the correct diagram_source_path metadata
@@ -101,8 +101,13 @@ class SinglePersonJobExecutor:
         prompt_content = node.default_prompt
         first_only_content = node.first_only_prompt
         
-        # Load first_prompt_file if specified (takes precedence over inline first_only_prompt)
-        if hasattr(node, 'first_prompt_file') and node.first_prompt_file:
+        # Check for pre-resolved prompts from compile-time (preferred)
+        if hasattr(node, 'resolved_first_prompt') and node.resolved_first_prompt:
+            # Use pre-resolved content from compilation
+            first_only_content = node.resolved_first_prompt
+            logger.debug(f"[PersonJob {node.label or node.id}] Using pre-resolved first prompt")
+        elif hasattr(node, 'first_prompt_file') and node.first_prompt_file:
+            # Fall back to runtime loading if not pre-resolved
             loaded_content = prompt_resolver_for_execution.load_prompt_file(
                 node.first_prompt_file,
                 node.label or node.id
@@ -110,8 +115,13 @@ class SinglePersonJobExecutor:
             if loaded_content:
                 first_only_content = loaded_content
         
-        # Load prompt_file if specified (for default prompt)
-        if hasattr(node, 'prompt_file') and node.prompt_file:
+        # Check for pre-resolved default prompt
+        if hasattr(node, 'resolved_prompt') and node.resolved_prompt:
+            # Use pre-resolved content from compilation
+            prompt_content = node.resolved_prompt
+            logger.debug(f"[PersonJob {node.label or node.id}] Using pre-resolved default prompt")
+        elif hasattr(node, 'prompt_file') and node.prompt_file:
+            # Fall back to runtime loading if not pre-resolved
             loaded_content = prompt_resolver_for_execution.load_prompt_file(
                 node.prompt_file,
                 node.label or node.id
@@ -140,14 +150,8 @@ class SinglePersonJobExecutor:
         variables = context.get_variables() if hasattr(context, "get_variables") else {}
         template_values = {**variables, **template_values}
         
-        # Apply memory settings through the unified selector
+        # Apply memory settings through the person's brain if available
         if memorize_to or at_most:
-            # Get the memory selector from orchestrator
-            memory_selector = getattr(self._conversation_manager, '_memory_selector', None)
-            if not memory_selector:
-                from .memory_selector import MemorySelector
-                memory_selector = MemorySelector(self._conversation_manager)
-            
             # Build task preview with template substitution
             task_preview_raw = prompt_content or first_only_content or ""
             task_preview = self._prompt_builder.build(
@@ -157,15 +161,17 @@ class SinglePersonJobExecutor:
                 execution_count=execution_count
             )
             
-            # Apply memory settings to get filtered messages
-            filtered_messages = await memory_selector.apply_memory_settings(
-                person=person,
-                all_messages=all_messages,
+            # Use the Person's brain for memory selection
+            # The brain is now properly wired with a memory selector
+            selected_result = await person.select_memories(
+                candidate_messages=all_messages,
+                prompt_preview=task_preview,
                 memorize_to=memorize_to,
                 at_most=at_most,
-                task_prompt_preview=task_preview,
                 llm_service=self._llm_service,
             )
+            # Brain returns None if no criteria, or list of messages
+            filtered_messages = selected_result if selected_result is not None else person.get_messages(all_messages)
             
             # Special handling for GOLDFISH mode - clear conversation for this person
             if memorize_to and memorize_to.strip().upper() == "GOLDFISH":
@@ -173,22 +179,41 @@ class SinglePersonJobExecutor:
                     self._conversation_manager.clear_person_messages(person.id)
                 person.reset_memory()
         else:
-            # Default behavior - use person's standard filtering
-            filtered_messages = person.filter_messages(all_messages)
+            # Default behavior - use person's standard filtering through get_messages
+            filtered_messages = person.get_messages(all_messages)
         
         # Update conversation context with filtered messages
         conversation_context = person.get_conversation_context(filtered_messages)
         
-        # Update template values with the filtered conversation context
+        # Extract and parse JSON content from selected memories for template use
+        memory_data = {}
+        if filtered_messages:
+            for msg in filtered_messages:
+                # Try to parse JSON content from messages
+                if msg.content:
+                    try:
+                        parsed_content = json.loads(msg.content)
+                        # Merge parsed content into memory_data
+                        if isinstance(parsed_content, dict):
+                            memory_data.update(parsed_content)
+                            logger.debug(f"[PersonJob] Extracted memory data keys: {list(parsed_content.keys())}")
+                    except (json.JSONDecodeError, TypeError):
+                        # Not JSON or not parseable, skip - this is expected for most messages
+                        pass
+        
+        if memory_data:
+            logger.info(f"[PersonJob] Successfully extracted memory data with keys: {list(memory_data.keys())}")
+        
+        # Update template values with the filtered conversation context and memory data
         template_values = {
             **input_values,
-            **conversation_context
+            **conversation_context,
+            **memory_data  # Add parsed memory content
         }
         
         # Re-merge global variables to ensure they're still available
         template_values = {**variables, **template_values}
         
-        logger.debug(f"[PersonJob] final template_values keys: {list(template_values.keys())}")
         
         # Build prompt with template substitution (prompts already loaded earlier)
         built_prompt = self._prompt_builder.build(
@@ -227,8 +252,9 @@ class SinglePersonJobExecutor:
             "prompt": built_prompt,
             "llm_service": llm_service,
             "from_person_id": "system",
-            "temperature": 0.2,
-            "max_tokens": 256000,
+            "temperature": PERSON_JOB_TEMPERATURE,
+            "max_tokens": PERSON_JOB_MAX_TOKENS,
+            "execution_phase": "direct_execution",  # Set phase for Claude Code adapter
         }
         
         # Handle tools configuration
@@ -259,37 +285,26 @@ class SinglePersonJobExecutor:
         # Use filtered messages for completion
         messages_for_completion = filtered_messages
         
-        # Check if orchestrator has the new helper method
-        if hasattr(self._conversation_manager, 'execute_person_completion'):
-            # Pass the filtered messages for completion
-            complete_kwargs['all_messages'] = messages_for_completion
-            result = await self._conversation_manager.execute_person_completion(
-                person=person,
+        # Use the simplified Person.complete() directly
+        result, incoming_msg, response_msg = await person.complete(
+            all_messages=messages_for_completion,
+            **complete_kwargs
+        )
+        
+        # Add messages to conversation via orchestrator
+        if hasattr(self._conversation_manager, 'add_message'):
+            # Add incoming message
+            self._conversation_manager.add_message(
+                incoming_msg,
                 execution_id=trace_id,
-                node_id=str(node.id),
-                **complete_kwargs
+                node_id=str(node.id)
             )
-        else:
-            # Fallback: handle the new Person API directly
-            result, incoming_msg, response_msg = await person.complete(
-                all_messages=messages_for_completion,
-                **complete_kwargs
+            # Add response message
+            self._conversation_manager.add_message(
+                response_msg,
+                execution_id=trace_id,
+                node_id=str(node.id)
             )
-            
-            # Add messages to conversation via orchestrator
-            if hasattr(self._conversation_manager, 'add_message'):
-                # Add incoming message
-                self._conversation_manager.add_message(
-                    incoming_msg,
-                    execution_id=trace_id,
-                    node_id=str(node.id)
-                )
-                # Add response message
-                self._conversation_manager.add_message(
-                    response_msg,
-                    execution_id=trace_id,
-                    node_id=str(node.id)
-                )
 
         
         # Build and return output with envelope support
@@ -351,10 +366,10 @@ class SinglePersonJobExecutor:
         token_usage = None
         if hasattr(result, 'token_usage') and result.token_usage:
             token_usage = TokenUsage(
-                input=result.token_usage.input,
-                output=result.token_usage.output,
+                input=result.token_usage.input_tokens,
+                output=result.token_usage.output_tokens,
                 cached=result.token_usage.cached if hasattr(result.token_usage, 'cached') else None,
-                total=result.token_usage.total if hasattr(result.token_usage, 'total') else None
+                total=result.token_usage.total_tokens if hasattr(result.token_usage, 'total_tokens') else None
             )
         
         # Get person and conversation IDs

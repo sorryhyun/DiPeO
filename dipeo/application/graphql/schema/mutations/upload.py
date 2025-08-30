@@ -9,7 +9,7 @@ from strawberry.file_uploads import Upload
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER, DIAGRAM_PORT
 from dipeo.application.graphql.enums import DiagramFormat
-from dipeo.domain.constants import FILES_DIR
+from dipeo.config import FILES_DIR
 
 from ...types.results import FileUploadResult, DiagramResult
 

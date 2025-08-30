@@ -1,0 +1,72 @@
+{
+  "app_type": "messaging",
+  "framework": "react",
+  "target_framework": "react",
+  "styling_approach": "tailwind",
+  "objective": "Real-time Team Collaboration Chat",
+  "features": [
+    "real-time messaging",
+    "channel management",
+    "direct messaging",
+    "file sharing interface",
+    "voice/video call UI",
+    "message search",
+    "emoji reactions",
+    "thread conversations",
+    "presence indicators"
+  ],
+  "target_audience": "Remote Teams",
+  "output_dir": "./generated",
+  "development_mode": {
+    "enable_mock_data": true,
+    "mock_auth_users": [
+      {"email": "teamlead@company.com", "password": "lead123", "role": "admin"},
+      {"email": "member1@company.com", "password": "member123", "role": "member"},
+      {"email": "guest@external.com", "password": "guest123", "role": "guest"}
+    ],
+    "mock_api_endpoints": [
+      "/api/messages",
+      "/api/channels",
+      "/api/users",
+      "/api/files",
+      "/api/presence",
+      "/api/reactions",
+      "/api/threads"
+    ],
+    "disable_websocket_in_dev": false,
+    "use_localstorage_persistence": true
+  },
+  "prompt_requirements": [
+    "Generate modern, production-ready React components with TypeScript",
+    "Use React 18+ features: Suspense, Error Boundaries, Context API",
+    "Implement responsive design with Tailwind CSS and dark mode support",
+    "Ensure basic accessibility with ARIA labels and keyboard navigation",
+    "Handle authentication with protected routes and token management",
+    "Implement proper form validation with error handling",
+    "Use React Query for data fetching with loading and error states",
+    "Implement i18n support for internationalization",
+    "IMPORTANT: Include mock data and mock authentication for development mode",
+    "Create fallback mechanisms when backend services are unavailable",
+    "Provide mock API responses for all data endpoints in development",
+    "Implement mock WebSocket updates for real-time features",
+    "Ensure the app runs standalone without any backend dependencies",
+    "Use localStorage for mock user persistence in development"
+  ],
+  "evaluation_criteria": [
+    "Code quality and maintainability",
+    "Component reusability and composability",
+    "Type safety and error handling",
+    "Performance optimization",
+    "Accessibility compliance",
+    "Responsive design implementation",
+    "Best practices adherence"
+  ],
+  "prompt_sections": [
+    "Component Structure",
+    "Mock Data Implementation",
+    "Authentication Flow",
+    "State Management",
+    "Error Handling",
+    "Development Mode Features"
+  ]
+}

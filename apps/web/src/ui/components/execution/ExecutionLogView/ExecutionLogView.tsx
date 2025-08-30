@@ -48,7 +48,8 @@ export const ExecutionLogView: React.FC = () => {
   // Get execution from Canvas context to avoid multiple instances
   const { operations } = useCanvas();
   const { execution, isRunning } = operations.executionOps;
-  const { logs, clearLogs } = useExecutionLogStream(execution.executionId ? executionId(execution.executionId) : null);
+  // execution.executionId is already a string, don't need to wrap it
+  const { logs, clearLogs } = useExecutionLogStream(execution.executionId as ReturnType<typeof executionId> | null);
   const [filter, setFilter] = useState<string>('');
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -228,7 +229,7 @@ export const ExecutionLogView: React.FC = () => {
 
       {/* Status */}
       {isRunning && (
-        <div className="px-4 py-2 bg-green-900/20 border-t border-gray-700 text-sm text-green-400 flex items-center justify-between">
+        <div className="px-4 py-2 bg-black border-t border-gray-700 text-sm text-green-400 flex items-center justify-between">
           <div className="flex items-center">
             <div className="animate-pulse w-2 h-2 bg-green-400 rounded-full mr-2" />
             Streaming logs...

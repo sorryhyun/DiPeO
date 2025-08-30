@@ -1,0 +1,68 @@
+{
+  "app_type": "ecommerce",
+  "framework": "react",
+  "target_framework": "react",
+  "styling_approach": "tailwind",
+  "objective": "Modern E-commerce Platform",
+  "features": [
+    "product catalog with filters",
+    "shopping cart functionality",
+    "payment integration UI",
+    "order tracking dashboard",
+    "wishlist management",
+    "product reviews and ratings",
+    "inventory status display"
+  ],
+  "target_audience": "Online Shoppers",
+  "output_dir": "./generated",
+  "development_mode": {
+    "enable_mock_data": true,
+    "mock_auth_users": [
+      {"email": "seller@shop.com", "password": "seller123", "role": "seller"},
+      {"email": "buyer@customer.com", "password": "buyer123", "role": "buyer"},
+      {"email": "admin@shop.com", "password": "admin123", "role": "admin"}
+    ],
+    "mock_api_endpoints": [
+      "/api/products",
+      "/api/cart",
+      "/api/orders",
+      "/api/payments",
+      "/api/reviews"
+    ],
+    "disable_websocket_in_dev": false,
+    "use_localstorage_persistence": true
+  },
+  "prompt_requirements": [
+    "Generate modern, production-ready React components with TypeScript",
+    "Use React 18+ features: Suspense, Error Boundaries, Context API",
+    "Implement responsive design with Tailwind CSS and dark mode support",
+    "Ensure basic accessibility with ARIA labels and keyboard navigation",
+    "Handle authentication with protected routes and token management",
+    "Implement proper form validation with error handling",
+    "Use React Query for data fetching with loading and error states",
+    "Implement i18n support for internationalization",
+    "IMPORTANT: Include mock data and mock authentication for development mode",
+    "Create fallback mechanisms when backend services are unavailable",
+    "Provide mock API responses for all data endpoints in development",
+    "Implement mock WebSocket updates for real-time features",
+    "Ensure the app runs standalone without any backend dependencies",
+    "Use localStorage for mock user persistence in development"
+  ],
+  "evaluation_criteria": [
+    "Code quality and maintainability",
+    "Component reusability and composability",
+    "Type safety and error handling",
+    "Performance optimization",
+    "Accessibility compliance",
+    "Responsive design implementation",
+    "Best practices adherence"
+  ],
+  "prompt_sections": [
+    "Component Structure",
+    "Mock Data Implementation",
+    "Authentication Flow",
+    "State Management",
+    "Error Handling",
+    "Development Mode Features"
+  ]
+}

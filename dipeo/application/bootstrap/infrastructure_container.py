@@ -71,15 +71,12 @@ class InfrastructureContainer:
 
     def _setup_llm_adapter(self):
         from dipeo.infrastructure.llm.drivers.service import LLMInfraService
-        from dipeo.domain.llm import LLMDomainService
 
         api_key_service = self.registry.resolve(API_KEY_SERVICE)
-        llm_domain_service = LLMDomainService()
         self.registry.register(
             LLM_SERVICE,
             LLMInfraService(
-                api_key_service=api_key_service,
-                llm_domain_service=llm_domain_service
+                api_key_service=api_key_service
             )
         )
 
