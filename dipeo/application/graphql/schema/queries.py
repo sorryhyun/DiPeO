@@ -288,15 +288,79 @@ def create_query_type(registry: ServiceRegistry) -> type:
                     "executionId": str(execution_id_typed),
                     "nodes": [],
                     "error": "Execution not found",
+                    "status": "NOT_FOUND",
+                    "totalNodes": 0,
                 }
             
-            # Simplified implementation
-            return {
+            # Build execution order data from ExecutionState
+            nodes = []
+            
+            # Get executed nodes list and node states
+            executed_nodes = execution.executed_nodes if hasattr(execution, 'executed_nodes') else []
+            node_states = execution.node_states if hasattr(execution, 'node_states') else {}
+            
+            # Build detailed node information for each executed node
+            for node_id in executed_nodes:
+                if node_id in node_states:
+                    node_state = node_states[node_id]
+                    
+                    # Build node step data
+                    node_step = {
+                        "nodeId": node_id,
+                        "nodeName": node_id,  # Use node ID as name (could be enhanced with label lookup)
+                        "status": str(node_state.status) if hasattr(node_state, 'status') else "UNKNOWN",
+                    }
+                    
+                    # Add timestamps if available
+                    if hasattr(node_state, 'started_at') and node_state.started_at:
+                        node_step["startedAt"] = node_state.started_at
+                    
+                    if hasattr(node_state, 'ended_at') and node_state.ended_at:
+                        node_step["endedAt"] = node_state.ended_at
+                        
+                        # Calculate duration if both timestamps exist
+                        if hasattr(node_state, 'started_at') and node_state.started_at:
+                            try:
+                                from datetime import datetime
+                                start = datetime.fromisoformat(node_state.started_at.replace('Z', '+00:00'))
+                                end = datetime.fromisoformat(node_state.ended_at.replace('Z', '+00:00'))
+                                duration_ms = int((end - start).total_seconds() * 1000)
+                                node_step["duration"] = duration_ms
+                            except:
+                                pass
+                    
+                    # Add error if present
+                    if hasattr(node_state, 'error') and node_state.error:
+                        node_step["error"] = node_state.error
+                    
+                    # Add token usage if available
+                    if hasattr(node_state, 'token_usage') and node_state.token_usage:
+                        token_usage = node_state.token_usage
+                        node_step["tokenUsage"] = {
+                            "input": token_usage.input_tokens if hasattr(token_usage, 'input_tokens') else 0,
+                            "output": token_usage.output_tokens if hasattr(token_usage, 'output_tokens') else 0,
+                            "cached": token_usage.cached_tokens if hasattr(token_usage, 'cached_tokens') else 0,
+                            "total": token_usage.total_tokens if hasattr(token_usage, 'total_tokens') else 0,
+                        }
+                    
+                    nodes.append(node_step)
+            
+            # Return complete execution order data
+            result = {
                 "executionId": str(execution_id_typed),
-                "status": "COMPLETED",
-                "nodes": [],
-                "totalNodes": 0,
+                "status": str(execution.status) if hasattr(execution, 'status') else "UNKNOWN",
+                "nodes": nodes,
+                "totalNodes": len(nodes),
             }
+            
+            # Add execution timestamps if available
+            if hasattr(execution, 'started_at') and execution.started_at:
+                result["startedAt"] = execution.started_at
+            
+            if hasattr(execution, 'ended_at') and execution.ended_at:
+                result["endedAt"] = execution.ended_at
+            
+            return result
         
         @strawberry.field
         async def prompt_files(self) -> List[JSONScalar]:

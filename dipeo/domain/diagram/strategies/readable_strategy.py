@@ -128,7 +128,12 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         )
     
     def _parse_flow_to_arrows(self, flow_data: list[Any], nodes: list[ReadableNode]) -> list[ReadableArrow]:
-        """Parse flow section into typed ReadableArrow objects."""
+        """Parse flow section into typed ReadableArrow objects.
+        
+        Supports both old and new syntax:
+        - Old: {source: "destination (content_type)(label)"}
+        - New: {source: 'to "destination" in "handle" as "content_type" naming "label"'}
+        """
         arrows = []
         # Create label to node mapping
         label_to_node = {node.label: node for node in nodes}
@@ -150,45 +155,222 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
                             arrows.append(arrow)
                             arrow_counter += 1
             elif isinstance(flow_item, dict):
-                # Dictionary format: {source: destination} or {source: {dest1: null, dest2: null}}
+                # Dictionary format with various syntaxes
                 for src, dst_data in flow_item.items():
-                    if src not in label_to_node:
+                    # Parse source node and handle
+                    src_node, src_handle = self._parse_node_and_handle(src, label_to_node)
+                    if not src_node:
                         continue
                     
                     if isinstance(dst_data, str):
-                        # Single destination: {source: "destination"}
-                        if dst_data in label_to_node:
-                            arrow = ReadableArrow(
-                                id=f"arrow_{arrow_counter}",
-                                source=label_to_node[src].id,
-                                target=label_to_node[dst_data].id
-                            )
-                            arrows.append(arrow)
-                            arrow_counter += 1
-                    elif isinstance(dst_data, dict):
-                        # Multiple destinations: {source: {dest1: null, dest2: null}}
-                        for dst in dst_data.keys():
-                            if str(dst) in label_to_node:
-                                arrow = ReadableArrow(
-                                    id=f"arrow_{arrow_counter}",
-                                    source=label_to_node[src].id,
-                                    target=label_to_node[str(dst)].id
-                                )
-                                arrows.append(arrow)
-                                arrow_counter += 1
+                        # Single destination - parse new or old format
+                        parsed_arrows = self._parse_flow_destination(
+                            src_node, src_handle, dst_data, label_to_node, arrow_counter
+                        )
+                        arrows.extend(parsed_arrows)
+                        arrow_counter += len(parsed_arrows)
                     elif isinstance(dst_data, list):
                         # Array format: {source: [dest1, dest2, ...]}
                         for dst in dst_data:
-                            if dst in label_to_node:
-                                arrow = ReadableArrow(
-                                    id=f"arrow_{arrow_counter}",
-                                    source=label_to_node[src].id,
-                                    target=label_to_node[dst].id
+                            if isinstance(dst, str):
+                                parsed_arrows = self._parse_flow_destination(
+                                    src_node, src_handle, dst, label_to_node, arrow_counter
                                 )
-                                arrows.append(arrow)
-                                arrow_counter += 1
+                                arrows.extend(parsed_arrows)
+                                arrow_counter += len(parsed_arrows)
         
         return arrows
+    
+    def _parse_node_and_handle(self, node_str: str, label_to_node: dict[str, ReadableNode]) -> tuple[ReadableNode | None, str]:
+        """Parse node label and optional handle suffix.
+        
+        Examples:
+        - "Node" -> (node, "default")
+        - "Node_handle" -> (node, "handle")
+        - "Condition" -> (node, "default")
+        """
+        # Check for handle suffix
+        if "_" in node_str:
+            parts = node_str.rsplit("_", 1)
+            base_label = parts[0]
+            handle = parts[1]
+            
+            # Check if this is a special condition handle
+            if handle in ["condtrue", "condfalse"]:
+                # Look for the base condition node
+                if base_label in label_to_node:
+                    return label_to_node[base_label], handle
+            # Check if the full string is a node label
+            elif node_str in label_to_node:
+                return label_to_node[node_str], "default"
+            # Check if the base is a node
+            elif base_label in label_to_node:
+                return label_to_node[base_label], handle
+        
+        # Direct node label
+        if node_str in label_to_node:
+            return label_to_node[node_str], "default"
+        
+        return None, ""
+    
+    def _parse_flow_destination(self, src_node: ReadableNode, src_handle: str, 
+                                 dst_str: str, label_to_node: dict[str, ReadableNode], 
+                                 arrow_counter: int) -> list[ReadableArrow]:
+        """Parse destination string which can be in old or new format.
+        
+        Old format: "destination (content_type)(label)"
+        New format: 'to "destination" in "handle" as "content_type" naming "label"'
+                    'from "handle" to "destination" as "content_type"'
+        """
+        arrows = []
+        dst_str = dst_str.strip()
+        
+        # Check for new format with prepositions
+        if self._is_new_format(dst_str):
+            parsed = self._parse_new_format_flow(dst_str, label_to_node)
+            if parsed:
+                for dst_node, dst_handle, content_type, label, from_handle in parsed:
+                    # Use from_handle if specified, otherwise use src_handle
+                    actual_src_handle = from_handle if from_handle else src_handle
+                    
+                    arrow = ReadableArrow(
+                        id=f"arrow_{arrow_counter}",
+                        source=src_node.id,
+                        target=dst_node.id,
+                        source_handle=actual_src_handle if actual_src_handle != "default" else None,
+                        target_handle=dst_handle if dst_handle != "default" else None,
+                        label=label,
+                        data={"content_type": content_type} if content_type else None
+                    )
+                    arrows.append(arrow)
+        else:
+            # Parse old format with parentheses
+            parsed = self._parse_old_format_flow(dst_str, label_to_node)
+            if parsed:
+                dst_node, dst_handle, content_type, label = parsed
+                arrow = ReadableArrow(
+                    id=f"arrow_{arrow_counter}",
+                    source=src_node.id,
+                    target=dst_node.id,
+                    source_handle=src_handle if src_handle != "default" else None,
+                    target_handle=dst_handle if dst_handle != "default" else None,
+                    label=label,
+                    data={"content_type": content_type} if content_type else None
+                )
+                arrows.append(arrow)
+        
+        return arrows
+    
+    def _is_new_format(self, dst_str: str) -> bool:
+        """Check if the destination string uses the new preposition-based format."""
+        # New format indicators
+        new_keywords = [' to "', ' from "', ' in "', ' as "', ' naming "']
+        return any(keyword in dst_str for keyword in new_keywords)
+    
+    def _parse_new_format_flow(self, flow_str: str, label_to_node: dict[str, ReadableNode]) -> list[tuple]:
+        """Parse new format flow string with prepositions.
+        
+        Examples:
+        - 'to "Node" in "handle" as "content_type" naming "variable"'
+        - 'from "_condtrue" to "Node" as "content_type"'
+        """
+        results = []
+        
+        # Split by 'to' to handle multiple destinations
+        if ' - to ' in flow_str:
+            # Multiple destinations
+            destinations = flow_str.split(' - ')
+            for dest in destinations:
+                if dest.strip().startswith('to '):
+                    parsed = self._parse_single_new_format(dest.strip(), label_to_node)
+                    if parsed:
+                        results.append(parsed)
+        else:
+            # Single destination
+            parsed = self._parse_single_new_format(flow_str, label_to_node)
+            if parsed:
+                results.append(parsed)
+        
+        return results
+    
+    def _parse_single_new_format(self, flow_str: str, label_to_node: dict[str, ReadableNode]) -> tuple | None:
+        """Parse a single new format flow string."""
+        # Extract components using regex or string parsing
+        import re
+        
+        dst_node = None
+        dst_handle = "default"
+        content_type = None
+        label = None
+        from_handle = None
+        
+        # Parse 'from "handle"' if present
+        from_match = re.search(r'from\s+"([^"]+)"', flow_str)
+        if from_match:
+            from_handle = from_match.group(1)
+        
+        # Parse 'to "Node"'
+        to_match = re.search(r'to\s+"([^"]+)"', flow_str)
+        if to_match:
+            node_name = to_match.group(1)
+            if node_name in label_to_node:
+                dst_node = label_to_node[node_name]
+        
+        # Parse 'in "handle"' for target handle
+        in_match = re.search(r'in\s+"([^"]+)"', flow_str)
+        if in_match:
+            dst_handle = in_match.group(1)
+        
+        # Parse 'as "content_type"'
+        as_match = re.search(r'as\s+"([^"]+)"', flow_str)
+        if as_match:
+            content_type = as_match.group(1)
+        
+        # Parse 'naming "variable"'
+        naming_match = re.search(r'naming\s+"([^"]+)"', flow_str)
+        if naming_match:
+            label = naming_match.group(1)
+        
+        if dst_node:
+            return (dst_node, dst_handle, content_type, label, from_handle)
+        
+        return None
+    
+    def _parse_old_format_flow(self, dst_str: str, label_to_node: dict[str, ReadableNode]) -> tuple | None:
+        """Parse old format flow string with parentheses.
+        
+        Format: "destination (content_type)(label)" or "destination_handle (content_type)"
+        """
+        # Extract content type and label from parentheses
+        content_type = None
+        label = None
+        clean_dst = dst_str
+        
+        # Extract content type (first parenthesis)
+        if '(' in clean_dst and ')' in clean_dst:
+            # Find all parentheses content
+            paren_matches = re.findall(r'\(([^)]+)\)', clean_dst)
+            if paren_matches:
+                # First parenthesis is usually content type
+                known_types = ["raw_text", "conversation_state", "variable", "json", "object"]
+                for i, match in enumerate(paren_matches):
+                    if match in known_types and not content_type:
+                        content_type = match
+                        clean_dst = clean_dst.replace(f"({match})", "", 1)
+                    elif not label:
+                        # Remaining parenthesis is label
+                        label = match
+                        clean_dst = clean_dst.replace(f"({match})", "", 1)
+        
+        clean_dst = clean_dst.strip()
+        
+        # Parse node and handle
+        dst_node, dst_handle = self._parse_node_and_handle(clean_dst, label_to_node)
+        
+        if dst_node:
+            return (dst_node, dst_handle, content_type, label)
+        
+        return None
     
     def _readable_diagram_to_dict(self, readable_diagram: ReadableDiagram, original_data: dict[str, Any]) -> dict[str, Any]:
         """Convert ReadableDiagram to intermediate dict format."""
@@ -481,44 +663,83 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         return out
 
     def _build_enhanced_flow(self, readable_diagram: ReadableDiagram, id_to_label: dict[str, str]) -> list[str]:
-        """Build flow section using enhanced syntax with parallel flows and content types"""
+        """Build flow section using enhanced syntax with clear prepositions."""
         # Group arrows by source to detect parallel flows
         source_groups: dict[str, list] = {}
 
         for a in readable_diagram.arrows:
             # Use node label instead of ID for source key
             source_label = id_to_label.get(a.source, a.source)
-            # Add handle suffix for non-default handles
+            
+            # Determine source key based on handle
             if a.source_handle and a.source_handle not in ("output", "default"):
-                source_key = f"{source_label}_{a.source_handle}"
+                # Special condition handles get different treatment
+                if a.source_handle in ["condtrue", "condfalse"]:
+                    # For condition nodes, group by the condition node itself
+                    source_key = source_label
+                else:
+                    source_key = f"{source_label}_{a.source_handle}"
             else:
                 source_key = source_label
 
             if source_key not in source_groups:
                 source_groups[source_key] = []
 
-            # Build target string with handle
-            target_str = id_to_label.get(a.target, a.target)
-            if a.target_handle and a.target_handle not in ("input", "default"):
-                target_str += f"_{a.target_handle}"
-
-            # Add label annotation
-            if a.label:
-                target_str += f" ({a.label})"
-
+            # Build target string with new preposition syntax
+            target_str = self._build_flow_target_string(
+                id_to_label.get(a.target, a.target),
+                a.target_handle,
+                a.source_handle,
+                a.data.get("content_type") if a.data else None,
+                a.label
+            )
+            
             source_groups[source_key].append(target_str)
 
         # Generate flow dictionaries
         flow = []
         for source_key, targets in source_groups.items():
             if len(targets) == 1:
-                # Single target: {source: "target"}
+                # Single target
                 flow.append({source_key: targets[0]})
             else:
-                # Multiple targets: {source: [target1, target2, ...]}
+                # Multiple targets
                 flow.append({source_key: targets})
 
         return flow
+    
+    def _build_flow_target_string(self, target_label: str, target_handle: str | None, 
+                                   source_handle: str | None, content_type: str | None, 
+                                   label: str | None) -> str:
+        """Build a target string using the new preposition-based syntax.
+        
+        Format: 'to "Node" in "handle" as "content_type" naming "variable"'
+               or 'from "handle" to "Node" as "content_type"'
+        """
+        parts = []
+        
+        # Add 'from' clause if source handle is special (like condition handles)
+        if source_handle and source_handle in ["condtrue", "condfalse"]:
+            parts.append(f'from "_{source_handle}"')
+        
+        # Add 'to' clause
+        parts.append(f'to "{target_label}"')
+        
+        # Add 'in' clause for target handle if not default
+        if target_handle and target_handle not in ("input", "default", "_first"):
+            parts.append(f'in "{target_handle}"')
+        elif target_handle == "_first":
+            parts.append('in "_first"')
+        
+        # Add 'as' clause for content type
+        if content_type:
+            parts.append(f'as "{content_type}"')
+        
+        # Add 'naming' clause for variable label
+        if label:
+            parts.append(f'naming "{label}"')
+        
+        return " ".join(parts)
 
     # ---- heuristics ------------------------------------------------------- #
     def detect_confidence(self, data: dict[str, Any]) -> float:
@@ -570,14 +791,9 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         self, diagram_dict: dict[str, Any], original_data: dict[str, Any]
     ) -> dict[str, Any]:
         """Apply readable format specific transformations."""
-        # Ensure person references in nodes match the generated person IDs
-        for node_id, node_data in diagram_dict.get("nodes", {}).items():
-            if "person" in node_data.get("data", {}):
-                person_ref = node_data["data"]["person"]
-                # If it's already in the correct format, keep it
-                if not person_ref.startswith("person_"):
-                    # Transform simple name to person_id format
-                    node_data["data"]["person"] = f"person_{person_ref}"
+        # Keep person references as-is without adding prefixes
+        # The person references should directly match the person names defined
+        # This allows cleaner syntax: person: "Agent Name" instead of person: "person_Agent Name"
         
         return diagram_dict
     

@@ -6,15 +6,7 @@ DiPeO now supports Claude Code SDK as an LLM provider, enabling integration with
 
 ### Prerequisites
 
-1. Install the Python SDK:
-```bash
-pip install claude-code-sdk
-```
-
-2. Install the required npm package globally:
-```bash
-npm install -g @anthropic-ai/claude-code
-```
+The Claude Code SDK is already included in DiPeO's dependencies (version 0.0.20 in requirements.txt). No additional installation required.
 
 ## Configuration
 
@@ -104,14 +96,11 @@ dipeo run examples/test_claude_code --light --debug
 ### Import Error
 If you see `ImportError: claude-code-sdk is required`:
 ```bash
-pip install claude-code-sdk
+make install  # Reinstall dependencies
 ```
 
-### Node CLI Not Found
-If the Claude Code CLI is not found:
-```bash
-npm install -g @anthropic-ai/claude-code
-```
+### Service Not Available
+If Claude Code service is not available, check that the ANTHROPIC_API_KEY is configured properly in your environment.
 
 ### Rate Limiting
 The adapter includes automatic retry logic with exponential backoff for rate limit errors.

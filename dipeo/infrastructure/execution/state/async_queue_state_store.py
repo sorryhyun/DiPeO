@@ -455,6 +455,10 @@ class AsyncQueueStateStore(StateStorePort):
         
         now = datetime.now().isoformat()
         
+        # Add node to executed_nodes list when it starts executing
+        if status == Status.RUNNING and node_id not in state.executed_nodes:
+            state.executed_nodes.append(node_id)
+        
         if node_id not in state.node_states:
             state.node_states[node_id] = NodeState(
                 status=status,
