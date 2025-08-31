@@ -3,7 +3,7 @@ version: light
 persons:
   Section Planner:
     service: openai
-    model: gpt-5-nano-2025-08-07
+    model: gpt-5-mini-2025-08-07
     api_key_id: APIKEY_52609F
     system_prompt: |
       You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.
@@ -23,7 +23,7 @@ persons:
 
   Core Kernel Architect:
     service: openai
-    model: gpt-5-nano-2025-08-07
+    model: gpt-5-mini-2025-08-07
     api_key_id: APIKEY_52609F
     system_prompt: |
       You are an expert TypeScript architect specializing in creating foundational contracts and utilities.
@@ -41,12 +41,12 @@ persons:
       Every file must be immediately usable with no placeholders or TODOs.
 
   Frontend Generator:
-    service: openai
-    model: gpt-5-nano-2025-08-07
-    api_key_id: APIKEY_52609F
-#    service: claude-code
-#    model: claude-code
-#    api_key_id: APIKEY_CLAUDE
+#    service: openai
+#    model: gpt-5-nano-2025-08-07
+#    api_key_id: APIKEY_52609F
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
       
@@ -197,6 +197,14 @@ nodes:
       expose_index_as: current_index
       flipped: [false, true]
 
+  - label: load Data again
+    type: db
+    position: {x: 1700, y: 240}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_auto/generated/sections_data.json
 
   - label: Generate Frontend Code
     type: person_job
@@ -229,9 +237,9 @@ nodes:
         {{generated_output}}
         
         If the output contains explanatory text like "let me analyze", "I'll help", "Here's the implementation", or any non-code content, then GENERATE THE ACTUAL CODE based on:
-        - File to implement: {{file_paths[default.current_index]}}
-        - Description: {{descriptions[default.current_index]}}
-        - Current section data: {{sections[default.current_index]}}
+        - File to implement: {{file_paths[current_index]}}
+        - Description: {{descriptions[current_index]}}
+        - Current section data: {{sections[current_index]}}
         
         Requirements:
         - If output already contains valid code: return it as-is (removing only markdown backticks if present)
@@ -293,33 +301,28 @@ connections:
   - {from: Save Merged Data, to: load Data, content_type: object}
   - { from: load Data, to: Check Continue, content_type: object }
 
-  - {from: Check Continue_condfalse, to: Generate Frontend Code, content_type: object}
+  - {from: Check Continue_condfalse, to: load Data again, content_type: object}
   - { from: Check Continue_condtrue, to: Rename Files, content_type: object }
   - {from: Rename Files, to: End, content_type: object}
 
   # From Generate to Condition
+  - { from: load Data again, to: Generate Frontend Code, content_type: object }
   - {from: Generate Frontend Code, to: Check Output Quality, label: generated_output, content_type: object}
-
-  # Condition true (output is good, > 5 lines) - go directly to merge
   - {from: Check Output Quality_condtrue, to: Merge Output, label: generated_output, content_type: object}
 
-  # Condition false (output is bad, <= 5 lines) - go to revision
   - {from: Check Output Quality_condfalse, to: Revise Frontend Code, label: generated_output, content_type: object}
 
-  # Pass the original data to revision node for context
-  - {from: load Data, to: Revise Frontend Code, content_type: object}
+  - {from: load Data again, to: Revise Frontend Code, content_type: object}
 
-  # From revision to merge
   - {from: Revise Frontend Code, to: Merge Output, label: revised_output, content_type: object}
 
-  # Empty connection for when no revision happens
   - {from: Check Output Quality_condtrue, to: Merge Output, label: revised_output}
 
   # From merge to write
   - {from: Merge Output, to: Write Section Result, content_type: raw_text}
 
   # Pass original data for file naming
-  - {from: load Data, to: Write Section Result, content_type: object}
+  - {from: load Data again, to: Write Section Result, content_type: object}
 
   # Loop back to Check Continue after writing each section
   - {from: Write Section Result, to: Check Continue, content_type: object}

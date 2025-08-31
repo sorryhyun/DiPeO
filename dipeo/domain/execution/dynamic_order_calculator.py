@@ -318,21 +318,42 @@ class DomainDynamicOrderCalculator:
                         for edge in incoming_edges
                     )
             
-            # If we have conditional edges, this might be a loop scenario
+            # If we have conditional edges, this might be a loop scenario or conditional trigger
             if conditional_edges:
+                # First, check if the condition nodes feeding into this node have been evaluated
+                # This prevents nodes like "Revise Frontend Code" from executing before their
+                # triggering conditions have been checked
+                for edge in conditional_edges:
+                    condition_node_executed = context.get_node_execution_count(edge.source_node_id) > 0 if context else False
+                    condition_node_state = node_states.get(edge.source_node_id)
+                    
+                    # If the condition node hasn't executed yet, this node should wait
+                    if not condition_node_executed and condition_node_state and condition_node_state.status == Status.PENDING:
+                        return False
+                
                 if target_exec_count == 0:
-                    # First execution: require all non-conditional edges to be satisfied
-                    # This allows nodes to start when their initial inputs are ready,
-                    # without waiting for loop conditions that haven't been evaluated yet
+                    # First execution: After conditions are evaluated, check dependencies
+                    # For nodes with both conditional and non-conditional inputs,
+                    # require non-conditional edges AND active conditional branch
                     non_conditional_edges = [
                         edge for edge in incoming_edges 
                         if edge.source_output not in ["condtrue", "condfalse"]
                     ]
+                    
+                    # Check non-conditional dependencies
                     if non_conditional_edges:
-                        return all(
+                        non_cond_satisfied = all(
                             self._is_dependency_satisfied(edge, node_states, context)
                             for edge in non_conditional_edges
                         )
+                        if not non_cond_satisfied:
+                            return False
+                    
+                    # Also check if at least one conditional edge is satisfied (active branch)
+                    return any(
+                        self._is_dependency_satisfied(edge, node_states, context)
+                        for edge in conditional_edges
+                    )
                 else:
                     # Subsequent executions: require at least one dependency (loop logic)
                     return any(
