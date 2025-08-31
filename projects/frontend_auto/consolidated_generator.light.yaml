@@ -3,7 +3,7 @@ version: light
 persons:
   Section Planner:
     service: openai
-    model: gpt-5-mini-2025-08-07
+    model: gpt-5-nano-2025-08-07
     api_key_id: APIKEY_52609F
     system_prompt: |
       You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.
@@ -23,7 +23,7 @@ persons:
 
   Core Kernel Architect:
     service: openai
-    model: gpt-5-mini-2025-08-07
+    model: gpt-5-nano-2025-08-07
     api_key_id: APIKEY_52609F
     system_prompt: |
       You are an expert TypeScript architect specializing in creating foundational contracts and utilities.
@@ -40,6 +40,21 @@ persons:
       
       Every file must be immediately usable with no placeholders or TODOs.
 
+  Frontend Generator:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+#    service: claude-code
+#    model: claude-code
+#    api_key_id: APIKEY_CLAUDE
+    system_prompt: |
+      You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
+      
+      KEY FOCUS:
+      - Generate raw code without explanations or commentary
+      - Follow conventions and contracts defined in the prompt
+      - Build iteratively using context from previous sections
+      - Code must be complete, working, and deployable as-is
 nodes:
   - label: Start
     type: start
@@ -182,13 +197,70 @@ nodes:
       expose_index_as: current_index
       flipped: [false, true]
 
-  - label: Process Frontend Section
-    type: sub_diagram
-    position: {x: 2100, y: 500}
+
+  - label: Generate Frontend Code
+    type: person_job
+    position: {x: 300, y: 300}
     props:
-      diagram_name: projects/frontend_auto/frontend_generator_sub
-      diagram_format: light
-      passInputData: true  # Pass all current variables to sub-diagram
+      person: Frontend Generator
+      max_iteration: 100
+      memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
+      at_most: 4
+      prompt_file: frontend_generator.txt
+
+  - label: Check Output Quality
+    type: condition
+    position: {x: 500, y: 300}
+    props:
+      condition_type: custom
+      expression: len(generated_output) > 1000
+
+  - label: Revise Frontend Code
+    type: person_job
+    position: {x: 700, y: 400}
+    props:
+      person: Frontend Generator
+      memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
+      at_most: 3
+      default_prompt: |
+        Check the generated output and fix if needed:
+        
+        Generated output:
+        {{generated_output}}
+        
+        If the output contains explanatory text like "let me analyze", "I'll help", "Here's the implementation", or any non-code content, then GENERATE THE ACTUAL CODE based on:
+        - File to implement: {{file_paths[default.current_index]}}
+        - Description: {{descriptions[default.current_index]}}
+        - Current section data: {{sections[default.current_index]}}
+        
+        Requirements:
+        - If output already contains valid code: return it as-is (removing only markdown backticks if present)
+        - If output is explanatory text: generate the ACTUAL implementation code
+        - Return ONLY raw code, no explanations or markdown
+        - Follow all conventions from the Core Kernel and prior sections
+
+  - label: Merge Output
+    type: code_job
+    position: {x: 900, y: 300}
+    props:
+      language: python
+      code: |
+        # Merge the outputs - use revised if available, otherwise use original
+        if revised_output:
+            final_output = revised_output
+        else:
+            final_output = generated_output
+        
+        result = final_output
+
+  - label: Write Section Result
+    type: db
+    position: {x: 1100, y: 300}
+    props:
+      operation: write
+      sub_type: file
+      format: text
+      source_details: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
 
   - label: Rename Files
     type: code_job
@@ -221,10 +293,33 @@ connections:
   - {from: Save Merged Data, to: load Data, content_type: object}
   - { from: load Data, to: Check Continue, content_type: object }
 
-  # Section iteration loop (now processes both kernel and regular sections)
-  - {from: Check Continue_condfalse, to: Process Frontend Section, content_type: object}
-  - {from: Process Frontend Section, to: Check Continue, content_type: object}
-
-  # Finalization
-  - {from: Check Continue_condtrue, to: Rename Files, content_type: object}
+  - {from: Check Continue_condfalse, to: Generate Frontend Code, content_type: object}
+  - { from: Check Continue_condtrue, to: Rename Files, content_type: object }
   - {from: Rename Files, to: End, content_type: object}
+
+  # From Generate to Condition
+  - {from: Generate Frontend Code, to: Check Output Quality, label: generated_output, content_type: object}
+
+  # Condition true (output is good, > 5 lines) - go directly to merge
+  - {from: Check Output Quality_condtrue, to: Merge Output, label: generated_output, content_type: object}
+
+  # Condition false (output is bad, <= 5 lines) - go to revision
+  - {from: Check Output Quality_condfalse, to: Revise Frontend Code, label: generated_output, content_type: object}
+
+  # Pass the original data to revision node for context
+  - {from: load Data, to: Revise Frontend Code, content_type: object}
+
+  # From revision to merge
+  - {from: Revise Frontend Code, to: Merge Output, label: revised_output, content_type: object}
+
+  # Empty connection for when no revision happens
+  - {from: Check Output Quality_condtrue, to: Merge Output, label: revised_output}
+
+  # From merge to write
+  - {from: Merge Output, to: Write Section Result, content_type: raw_text}
+
+  # Pass original data for file naming
+  - {from: load Data, to: Write Section Result, content_type: object}
+
+  # Loop back to Check Continue after writing each section
+  - {from: Write Section Result, to: Check Continue, content_type: object}

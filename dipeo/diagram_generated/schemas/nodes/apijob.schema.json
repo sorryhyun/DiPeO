@@ -2,6 +2,24 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/ApiJobNodeData",
   "definitions": {
+    "HttpMethod": {
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ],
+      "type": "string"
+    },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "ApiJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -67,12 +85,6 @@
       ],
       "type": "object"
     },
-    "JsonObject": {
-      "additionalProperties": {
-        "$ref": "#/definitions/JsonValue"
-      },
-      "type": "object"
-    },
     "JsonValue": {
       "anyOf": [
         {
@@ -94,23 +106,11 @@
         }
       ]
     },
-    "JsonDict": {
-      "additionalProperties": false,
+    "JsonObject": {
+      "additionalProperties": {
+        "$ref": "#/definitions/JsonValue"
+      },
       "type": "object"
-    },
-    "Record<string,string>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "HttpMethod": {
-      "enum": [
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "PATCH"
-      ],
-      "type": "string"
     }
   }
 }

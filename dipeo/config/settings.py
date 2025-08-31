@@ -132,6 +132,11 @@ class MessagingSettings(BaseSettings):
         env="DIPEO_MSG_BROADCAST_WARNING_THRESHOLD",
         description="Warning threshold for slow broadcasts in seconds"
     )
+    ws_keepalive_sec: int = Field(
+        default=25,
+        env="DIPEO_WS_KEEPALIVE_SEC",
+        description="WebSocket keepalive interval in seconds (0 to disable)"
+    )
     
     class Config:
         env_prefix = "DIPEO_MSG_"

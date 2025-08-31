@@ -71,6 +71,9 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         elif isinstance(diagram, DomainDiagram):
             # Already have domain model
             domain_diagram = diagram
+            # If diagram_id is provided for a DomainDiagram, use it as source path
+            if diagram_id:
+                diagram_source_path = diagram_id
         else:
             raise ValueError(f"Unsupported diagram type: {type(diagram)}")
 

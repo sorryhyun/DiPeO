@@ -1,0 +1,274 @@
+# Wikipedia Provider Manifest
+# Wikipedia API integration for searching and retrieving encyclopedia content
+
+name: wikipedia
+version: 1.0.0
+description: Wikipedia API integration for searching and retrieving encyclopedia articles
+base_url: https://en.wikipedia.org/w/api.php
+
+# Authentication
+# Wikipedia API doesn't require authentication for read operations
+auth:
+  strategy: none
+
+# Retry policy
+retry_policy:
+  strategy: exponential_backoff
+  max_retries: 3
+  base_delay_ms: 500
+  max_delay_ms: 5000
+  retry_on_status: [429, 500, 502, 503, 504]
+
+# Rate limiting (Wikipedia's guidelines: max 200 requests/sec, but we'll be conservative)
+rate_limit:
+  algorithm: token_bucket
+  capacity: 100
+  refill_per_sec: 10
+
+# Default configuration
+default_timeout: 30.0
+default_headers:
+  User-Agent: DiPeO/1.0 (https://github.com/dipeo/dipeo; contact@dipeo.io)
+
+# Operations
+operations:
+  search:
+    method: GET
+    path: ""
+    description: Search for Wikipedia articles
+    request:
+      query_params_template:
+        action: search
+        format: json
+        srsearch: "{{config.query}}"
+        srlimit: "{{config.limit | default(10)}}"
+        sroffset: "{{config.offset | default(0)}}"
+        srprop: "{{config.properties | default('snippet|titlesnippet|size|wordcount')}}"
+        srsort: "{{config.sort | default('relevance')}}"
+        formatversion: "2"
+    response:
+      success_codes: [200]
+      json_pointer: "/query/search"
+      error_json_pointer: "/error/info"
+    pagination:
+      type: offset_limit
+      offset_param: sroffset
+      limit_param: srlimit
+      default_limit: 10
+      max_limit: 500
+
+  get_page_content:
+    method: GET
+    path: ""
+    description: Get the full content of a Wikipedia page
+    request:
+      query_params_template:
+        action: query
+        format: json
+        prop: "revisions|info"
+        rvprop: "content|timestamp"
+        inprop: "url"
+        titles: "{{config.title}}"
+        formatversion: "2"
+    response:
+      success_codes: [200]
+      json_pointer: "/query/pages"
+      error_json_pointer: "/error/info"
+
+  get_page_extract:
+    method: GET
+    path: ""
+    description: Get a text extract from a Wikipedia page
+    request:
+      query_params_template:
+        action: query
+        format: json
+        prop: extracts
+        exintro: "{{config.intro_only | default(true) | lower}}"
+        explaintext: "{{config.plain_text | default(true) | lower}}"
+        exsectionformat: "{{config.section_format | default('plain')}}"
+        exchars: "{% if config.max_chars %}{{config.max_chars}}{% endif %}"
+        exsentences: "{% if config.max_sentences %}{{config.max_sentences}}{% endif %}"
+        titles: "{{config.title}}"
+        formatversion: "2"
+    response:
+      success_codes: [200]
+      json_pointer: "/query/pages"
+      error_json_pointer: "/error/info"
+
+  get_page_summary:
+    method: GET
+    path: ""
+    description: Get a summary of a Wikipedia page (REST API)
+    request:
+      base_url_override: "https://en.wikipedia.org/api/rest_v1"
+      path_override: "/page/summary/{{config.title}}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/detail"
+
+  get_page_html:
+    method: GET
+    path: ""
+    description: Get HTML content of a Wikipedia page (REST API)
+    request:
+      base_url_override: "https://en.wikipedia.org/api/rest_v1"
+      path_override: "/page/html/{{config.title}}"
+    response:
+      success_codes: [200]
+      content_type: text/html
+
+  get_page_sections:
+    method: GET
+    path: ""
+    description: Get the sections of a Wikipedia page
+    request:
+      query_params_template:
+        action: parse
+        format: json
+        prop: sections
+        page: "{{config.title}}"
+        formatversion: "2"
+    response:
+      success_codes: [200]
+      json_pointer: "/parse/sections"
+      error_json_pointer: "/error/info"
+
+  get_page_images:
+    method: GET
+    path: ""
+    description: Get images from a Wikipedia page
+    request:
+      query_params_template:
+        action: query
+        format: json
+        prop: images
+        imlimit: "{{config.limit | default(50)}}"
+        titles: "{{config.title}}"
+        formatversion: "2"
+    response:
+      success_codes: [200]
+      json_pointer: "/query/pages"
+      error_json_pointer: "/error/info"
+
+  get_page_links:
+    method: GET
+    path: ""
+    description: Get links from a Wikipedia page
+    request:
+      query_params_template:
+        action: query
+        format: json
+        prop: links
+        pllimit: "{{config.limit | default(50)}}"
+        plnamespace: "{{config.namespace | default(0)}}"
+        titles: "{{config.title}}"
+        formatversion: "2"
+    response:
+      success_codes: [200]
+      json_pointer: "/query/pages"
+      error_json_pointer: "/error/info"
+
+  get_page_categories:
+    method: GET
+    path: ""
+    description: Get categories of a Wikipedia page
+    request:
+      query_params_template:
+        action: query
+        format: json
+        prop: categories
+        cllimit: "{{config.limit | default(50)}}"
+        titles: "{{config.title}}"
+        formatversion: "2"
+    response:
+      success_codes: [200]
+      json_pointer: "/query/pages"
+      error_json_pointer: "/error/info"
+
+  get_random_articles:
+    method: GET
+    path: ""
+    description: Get random Wikipedia articles
+    request:
+      query_params_template:
+        action: query
+        format: json
+        list: random
+        rnnamespace: "{{config.namespace | default(0)}}"
+        rnlimit: "{{config.limit | default(1)}}"
+        formatversion: "2"
+    response:
+      success_codes: [200]
+      json_pointer: "/query/random"
+      error_json_pointer: "/error/info"
+
+  opensearch:
+    method: GET
+    path: ""
+    description: OpenSearch protocol for search suggestions
+    request:
+      query_params_template:
+        action: opensearch
+        format: json
+        search: "{{config.query}}"
+        limit: "{{config.limit | default(10)}}"
+        namespace: "{{config.namespace | default(0)}}"
+    response:
+      success_codes: [200]
+      json_pointer: ""
+      error_json_pointer: "/error/info"
+
+  get_page_info:
+    method: GET
+    path: ""
+    description: Get detailed information about a Wikipedia page
+    request:
+      query_params_template:
+        action: query
+        format: json
+        prop: "info|pageprops|pageimages|pageterms"
+        inprop: "url|displaytitle|protection"
+        piprop: "thumbnail|original"
+        pithumbsize: "{{config.thumbnail_size | default(300)}}"
+        wbptterms: "description"
+        titles: "{{config.title}}"
+        formatversion: "2"
+    response:
+      success_codes: [200]
+      json_pointer: "/query/pages"
+      error_json_pointer: "/error/info"
+
+  get_language_links:
+    method: GET
+    path: ""
+    description: Get available language versions of a Wikipedia page
+    request:
+      query_params_template:
+        action: query
+        format: json
+        prop: langlinks
+        lllimit: "{{config.limit | default(500)}}"
+        titles: "{{config.title}}"
+        formatversion: "2"
+    response:
+      success_codes: [200]
+      json_pointer: "/query/pages"
+      error_json_pointer: "/error/info"
+
+# Additional metadata
+metadata:
+  documentation_url: https://www.mediawiki.org/wiki/API:Main_page
+  support_url: https://www.mediawiki.org/wiki/API:FAQ
+  tags:
+    - encyclopedia
+    - knowledge-base
+    - reference
+    - open-content
+  notes: |
+    This provider supports common Wikipedia API operations for searching and retrieving content.
+    No authentication is required for read operations.
+    Be respectful of Wikipedia's resources and follow their API etiquette guidelines.
+    The User-Agent header should identify your application.
+    Different language editions can be accessed by changing the base_url (e.g., https://fr.wikipedia.org/w/api.php for French).

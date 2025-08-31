@@ -121,15 +121,13 @@ def wire_diagram_compiler(registry: ServiceRegistry) -> None:
         ValidatingCompilerAdapter,
     )
     
-    # Determine which compiler variant to use
-    use_interface_based = os.getenv("DIAGRAM_USE_INTERFACE_COMPILER", "1") == "1"
-    enable_caching = os.getenv("DIAGRAM_COMPILER_CACHE", "1") == "1"
+    # Create base compiler - always use interface-based
+    compiler = StandardCompilerAdapter(use_interface_based=True)
+    
+    # Apply decorators if configured
     enable_validation = os.getenv("DIAGRAM_COMPILER_VALIDATE", "1") == "1"
+    enable_caching = os.getenv("DIAGRAM_COMPILER_CACHE", "1") == "1"
     
-    # Create base compiler
-    compiler = StandardCompilerAdapter(use_interface_based=use_interface_based)
-    
-    # Apply decorators
     if enable_validation:
         compiler = ValidatingCompilerAdapter(compiler)
 
@@ -148,19 +146,14 @@ def wire_diagram_serializer(registry: ServiceRegistry) -> None:
     """
     from dipeo.infrastructure.diagram.adapters import (
         UnifiedSerializerAdapter,
-        FormatStrategyAdapter,
         CachingSerializerAdapter,
     )
     
-    # Determine which serializer to use
-    use_strategy_based = os.getenv("DIAGRAM_USE_STRATEGY_SERIALIZER", "0") == "1"
-    enable_caching = os.getenv("DIAGRAM_SERIALIZER_CACHE", "1") == "1"
+    # Always use unified serializer
+    serializer = UnifiedSerializerAdapter()
     
-    if use_strategy_based:
-        serializer = FormatStrategyAdapter()
-    else:
-        serializer = UnifiedSerializerAdapter()
-
+    # Apply caching if configured
+    enable_caching = os.getenv("DIAGRAM_SERIALIZER_CACHE", "1") == "1"
     if enable_caching:
         cache_size = int(os.getenv("DIAGRAM_SERIALIZER_CACHE_SIZE", "50"))
         serializer = CachingSerializerAdapter(serializer, cache_size=cache_size)

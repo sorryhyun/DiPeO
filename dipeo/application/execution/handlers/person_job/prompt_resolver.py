@@ -23,8 +23,14 @@ class PromptFileResolver:
         
         # Try to get from diagram metadata
         if self.diagram and hasattr(self.diagram, 'metadata') and self.diagram.metadata:
-            # Use diagram_id which contains the file path
-            source_path = self.diagram.metadata.get('diagram_id')
+            # Try diagram_source_path first (set by PrepareDiagramForExecutionUseCase)
+            source_path = self.diagram.metadata.get('diagram_source_path')
+            
+            # Fall back to diagram_id if diagram_source_path not found
+            if not source_path:
+                source_path = self.diagram.metadata.get('diagram_id')
+            
+            logger.debug(f"[PromptResolver] Found source path in metadata: {source_path}")
         
         if source_path:
             # Convert to absolute path if relative
@@ -32,7 +38,13 @@ class PromptFileResolver:
                 source_path = os.path.join(self._base_dir, source_path)
             
             if os.path.exists(source_path):
-                return Path(source_path).parent
+                resolved_path = Path(source_path).parent
+                logger.debug(f"[PromptResolver] Resolved diagram source path: {resolved_path}")
+                return resolved_path
+            else:
+                logger.warning(f"[PromptResolver] Source path does not exist: {source_path}")
+        else:
+            logger.debug("[PromptResolver] No source path found in diagram metadata")
         return None
     
     def load_prompt_file(self, prompt_filename: str, node_label: str = None) -> Optional[str]:
@@ -74,17 +86,24 @@ class PromptFileResolver:
         2. Relative to diagram directory (diagram_dir/prompts/filename)
         3. Global prompts directory (DIPEO_BASE_DIR/files/prompts/filename)
         """
+        
         # Check if path is already relative to base directory
         if prompt_filename.startswith(('projects/', 'files/')):
             base_relative_path = Path(self._base_dir) / prompt_filename
             if self.filesystem.exists(base_relative_path):
+                logger.debug(f"[PromptResolver] Found prompt at base-relative path: {base_relative_path}")
                 return base_relative_path
         
         if self._diagram_source_path:
             # Try relative to diagram directory
             local_path = self._diagram_source_path / 'prompts' / prompt_filename
             if self.filesystem.exists(local_path):
+                logger.debug(f"[PromptResolver] Found prompt at diagram-relative path: {local_path}")
                 return local_path
+            else:
+                logger.debug(f"[PromptResolver] Prompt not found at diagram-relative path: {local_path}")
         
         # Fall back to global prompts directory
-        return Path(self._base_dir) / 'files' / 'prompts' / prompt_filename
+        global_path = Path(self._base_dir) / 'files' / 'prompts' / prompt_filename
+        logger.debug(f"[PromptResolver] Falling back to global prompts directory: {global_path}")
+        return global_path

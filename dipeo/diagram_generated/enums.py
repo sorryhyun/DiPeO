@@ -139,6 +139,8 @@ class EventType(str, Enum):
     
     EXECUTION_LOG = "EXECUTION_LOG"
     
+    KEEPALIVE = "KEEPALIVE"
+    
 
 
 class LLMService(str, Enum):

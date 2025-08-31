@@ -113,8 +113,15 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         if self._prepare_use_case:
             # Use the prepare use case for loading and compilation
             diagram_input = await self._get_diagram_input(node)
+            
+            # Get the diagram path for source path tracking
+            diagram_id = None
+            if node.diagram_name:
+                diagram_id = self._construct_diagram_path(node)
+            
             return await self._prepare_use_case.prepare_for_execution(
                 diagram=diagram_input,
+                diagram_id=diagram_id,  # Pass the path for metadata tracking
                 validate=False  # Skip validation for lightweight execution
             )
         else:
@@ -463,6 +470,35 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
                 # Directly assign to internal dict since keys are already strings
                 isolated_registry._services[key_str] = service
         
+        # Also try to copy services using the resolve method for compatibility
+        # This ensures we get all services even if they're stored differently
+        if hasattr(parent_registry, 'resolve'):
+            from dipeo.application.registry import (
+                FILESYSTEM_ADAPTER,
+                LLM_SERVICE,
+                CONVERSATION_MANAGER,
+                PROMPT_BUILDER,
+            )
+            from dipeo.application.execution.wiring import EXECUTION_ORCHESTRATOR
+            
+            # Critical services that person_job needs
+            critical_services = [
+                (FILESYSTEM_ADAPTER, 'filesystem_adapter'),
+                (LLM_SERVICE, 'llm_service'),
+                (CONVERSATION_MANAGER, 'conversation_manager'),
+                (PROMPT_BUILDER, 'prompt_builder'),
+                (EXECUTION_ORCHESTRATOR, 'execution.orchestrator'),  # Add orchestrator for person registration
+            ]
+            
+            for service_key, key_str in critical_services:
+                try:
+                    service = parent_registry.resolve(service_key)
+                    if service and key_str not in isolated_registry._services:
+                        isolated_registry._services[key_str] = service
+                except:
+                    # Service might not be available, continue
+                    pass
+        
         return isolated_registry
     
     async def _register_diagram_persons(self, diagram: "ExecutableDiagram", service_registry) -> None:
@@ -473,15 +509,19 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         """
         # Get the orchestrator from the service registry
         from dipeo.application.registry import ServiceKey
+        from dipeo.application.execution.wiring import EXECUTION_ORCHESTRATOR
         
-        orchestrator_key = ServiceKey("execution_orchestrator")
         orchestrator = None
         
         try:
-            orchestrator = service_registry.resolve(orchestrator_key)
+            orchestrator = service_registry.resolve(EXECUTION_ORCHESTRATOR)
         except (KeyError, AttributeError):
-            # Try alternative key
-            orchestrator = service_registry.get(orchestrator_key)
+            # Try alternative key with correct string
+            orchestrator_key = ServiceKey("execution.orchestrator")
+            try:
+                orchestrator = service_registry.resolve(orchestrator_key)
+            except:
+                pass
         
         if not orchestrator:
             logger.debug("No execution orchestrator found, skipping person registration")
