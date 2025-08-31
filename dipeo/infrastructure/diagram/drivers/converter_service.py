@@ -74,12 +74,13 @@ class DiagramConverterService(BaseService, DiagramStorageSerializer):
         strategy = self.get_strategy(format)
         return strategy.serialize_from_domain(diagram)
     
-    def deserialize_from_storage(self, content: str, format: str | None = None) -> DomainDiagram:
+    def deserialize_from_storage(self, content: str, format: str | None = None, diagram_path: str | None = None) -> DomainDiagram:
         """Deserialize file content to DomainDiagram.
         
         Args:
             content: String content from file
             format: Optional format hint, will auto-detect if not provided
+            diagram_path: Optional path to the diagram file for context
             
         Returns:
             DomainDiagram instance
@@ -95,7 +96,7 @@ class DiagramConverterService(BaseService, DiagramStorageSerializer):
                 raise ValueError("Could not detect format automatically")
         
         strategy = self.get_strategy(fmt)
-        return strategy.deserialize_to_domain(content)
+        return strategy.deserialize_to_domain(content, diagram_path)
 
     def validate(
         self, content: str, format_id: str | None = None

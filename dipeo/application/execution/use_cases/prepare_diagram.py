@@ -118,6 +118,38 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         # Add API keys to metadata
         executable_diagram.metadata["api_keys"] = api_keys
         
+        # Store persons in metadata for sub_diagram execution
+        if hasattr(domain_diagram, 'persons') and domain_diagram.persons:
+            persons_dict = {}
+            # Handle both dict and list formats
+            persons_list = list(domain_diagram.persons.values()) if isinstance(domain_diagram.persons, dict) else domain_diagram.persons
+            for person in persons_list:
+                person_id = str(person.id) if hasattr(person, 'id') else str(person.name)
+                person_config = {}
+                
+                # Extract LLM config
+                if hasattr(person, 'llm_config'):
+                    llm_config = person.llm_config
+                    # Extract the enum value (not the string representation)
+                    service_value = llm_config.service if hasattr(llm_config, 'service') else "openai"
+                    # If it's an enum, get its value, otherwise use as-is
+                    if hasattr(service_value, 'value'):
+                        person_config["service"] = service_value.value
+                    else:
+                        person_config["service"] = str(service_value)
+                    
+                    person_config["model"] = str(llm_config.model) if hasattr(llm_config, 'model') else "gpt-5-nano-2025-08-07"
+                    person_config["api_key_id"] = str(llm_config.api_key_id) if hasattr(llm_config, 'api_key_id') else "default"
+                    
+                    # Add system prompt if available
+                    if hasattr(llm_config, 'system_prompt') and llm_config.system_prompt:
+                        person_config["system_prompt"] = llm_config.system_prompt
+                
+                persons_dict[person_id] = person_config
+                
+            executable_diagram.metadata["persons"] = persons_dict
+            logger.debug(f"Added {len(persons_dict)} persons to executable diagram metadata")
+        
         # Store the diagram ID in metadata for tracking
         if diagram_id:
             executable_diagram.metadata["diagram_id"] = diagram_id

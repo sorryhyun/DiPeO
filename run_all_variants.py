@@ -55,7 +55,7 @@ def run_variant(config_file):
         zip_filename = f"src_{config_name}_{timestamp}.zip"
         
         # Check if src directory exists in generated folder
-        src_dir = "projects/frontend_auto/generated/src"
+        src_dir = "projects/frontend_auto/generated/src_test"
         if os.path.exists(src_dir):
             create_zip(src_dir, zip_filename)
             # Delete the src directory after zipping

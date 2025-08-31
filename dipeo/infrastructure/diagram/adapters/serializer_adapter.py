@@ -62,12 +62,13 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
         # Use the converter's serialize_for_storage method
         return self._converter.serialize_for_storage(diagram, format)
     
-    def deserialize_from_storage(self, content: str, format: str | None = None) -> "DomainDiagram":
+    def deserialize_from_storage(self, content: str, format: str | None = None, diagram_path: str | None = None) -> "DomainDiagram":
         """Deserialize file content to DomainDiagram.
         
         Args:
             content: String content from file
             format: Optional format hint, will auto-detect if not provided
+            diagram_path: Optional path to the diagram file for context
             
         Returns:
             DomainDiagram instance
@@ -76,7 +77,7 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
             raise RuntimeError("Converter not initialized")
 
         # Let the converter auto-detect if no format specified
-        return self._converter.deserialize_from_storage(content, format)
+        return self._converter.deserialize_from_storage(content, format, diagram_path)
 
 
 class FormatStrategyAdapter(DiagramStorageSerializer):
@@ -120,12 +121,13 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
         
         return strategy.serialize_from_domain(diagram)
     
-    def deserialize_from_storage(self, content: str, format: str | None = None) -> "DomainDiagram":
+    def deserialize_from_storage(self, content: str, format: str | None = None, diagram_path: str | None = None) -> "DomainDiagram":
         """Deserialize using the appropriate format strategy.
         
         Args:
             content: String content from file
             format: Optional format hint
+            diagram_path: Optional path to the diagram file for context
             
         Returns:
             DomainDiagram instance
@@ -135,7 +137,7 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
             strategy = self._strategies.get(format)
             if not strategy:
                 raise ValueError(f"No strategy registered for format: {format}")
-            return strategy.deserialize_to_domain(content)
+            return strategy.deserialize_to_domain(content, diagram_path)
         
         # Auto-detect format
         # Try to parse as JSON/YAML first to get structure
@@ -167,14 +169,14 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
             
             if best_strategy and best_confidence > 0.5:
                 logger.info(f"Auto-detected format with confidence {best_confidence}")
-                return best_strategy.deserialize_to_domain(content)
+                return best_strategy.deserialize_to_domain(content, diagram_path)
         
         # Fallback: try each strategy
         for format_id, strategy in self._strategies.items():
             try:
                 if strategy.quick_match(content):
                     logger.info(f"Format matched by quick check: {format_id}")
-                    return strategy.deserialize_to_domain(content)
+                    return strategy.deserialize_to_domain(content, diagram_path)
             except Exception:
                 continue
         
@@ -228,14 +230,14 @@ class CachingSerializerAdapter(DiagramStorageSerializer):
         self._serialize_cache[cache_key] = result
         return result
     
-    def deserialize_from_storage(self, content: str, format: str | None = None) -> "DomainDiagram":
+    def deserialize_from_storage(self, content: str, format: str | None = None, diagram_path: str | None = None) -> "DomainDiagram":
         """Deserialize with caching."""
         cache_key = self._get_deserialize_key(content, format)
         
         if cache_key in self._deserialize_cache:
             return self._deserialize_cache[cache_key]
         
-        result = self.base_serializer.deserialize_from_storage(content, format)
+        result = self.base_serializer.deserialize_from_storage(content, format, diagram_path)
         
         # Cache with size limit
         if len(self._deserialize_cache) >= self.cache_size:

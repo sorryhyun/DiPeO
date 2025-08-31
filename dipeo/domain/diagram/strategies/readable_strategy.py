@@ -45,7 +45,7 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
     }
 
     # ---- Typed deserialization ------------------------------------------------ #
-    def deserialize_to_domain(self, content: str) -> DomainDiagram:
+    def deserialize_to_domain(self, content: str, diagram_path: str | None = None) -> DomainDiagram:
         """Deserialize readable format to DomainDiagram using typed models."""
         # Parse YAML
         data = self.parse(content)

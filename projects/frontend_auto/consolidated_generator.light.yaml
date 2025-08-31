@@ -40,22 +40,6 @@ persons:
       
       Every file must be immediately usable with no placeholders or TODOs.
 
-  Frontend Generator:
-#    service: openai
-#    model: gpt-5-nano-2025-08-07
-#    api_key_id: APIKEY_52609F
-    service: claude-code
-    model: claude-code
-    api_key_id: APIKEY_CLAUDE
-    system_prompt: |
-      You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
-      
-      KEY FOCUS:
-      - Generate raw code without explanations or commentary
-      - Follow conventions and contracts defined in the prompt
-      - Build iteratively using context from previous sections
-      - Code must be complete, working, and deployable as-is
-
 nodes:
   - label: Start
     type: start
@@ -74,6 +58,14 @@ nodes:
       sub_type: file
       format: json
       source_details: "{config_file}"
+
+  - label: Setup Generated Directory
+    type: code_job
+    position: {x: 450, y: 240}
+    props:
+      language: python
+      filePath: projects/frontend_auto/setup_generated_dir.py
+      functionName: setup_generated_directory
 
   - label: Plan Sections
     type: person_job
@@ -185,8 +177,8 @@ nodes:
     position: {x: 1750, y: 500}
     props:
       condition_type: custom
-#      expression: current_index >= 4
-      expression: current_index >= default.total_files
+      expression: current_index >= 4
+#      expression: current_index >= default.total_files
       expose_index_as: current_index
       flipped: [false, true]
 
@@ -199,48 +191,13 @@ nodes:
       format: json
       source_details: projects/frontend_auto/generated/sections_data.json
 
-  - label: Generate Frontend Code
-    type: person_job
-    position: {x: 2000, y: 500}
+  - label: Process Frontend Section
+    type: sub_diagram
+    position: {x: 2100, y: 500}
     props:
-      person: Frontend Generator
-      max_iteration: 100
-      memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
-      at_most: 5
-      prompt_file: frontend_generator.txt
-
-  - label: Revise Frontend Code
-    type: person_job
-    position: {x: 2200, y: 500}
-    props:
-      person: Frontend Generator
-      memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
-      at_most: 5
-      default_prompt: |
-        Check the generated output and fix if needed:
-        
-        Generated output:
-        {{generated_output}}
-        
-        If the output contains explanatory text like "let me analyze", "I'll help", "Here's the implementation", or any non-code content, then GENERATE THE ACTUAL CODE based on:
-        - File to implement: {{file_paths[current_index]}}
-        - Description: {{descriptions[current_index]}}
-        - Current section data: {{sections[current_index]}}
-        
-        Requirements:
-        - If output already contains valid code: return it as-is (removing only markdown backticks if present)
-        - If output is explanatory text: generate the ACTUAL implementation code
-        - Return ONLY raw code, no explanations or markdown
-        - Follow all conventions from the Core Kernel and prior sections
-
-  - label: Write Section Result
-    type: db
-    position: {x: 2400, y: 500}
-    props:
-      operation: write
-      sub_type: file
-      format: text
-      source_details: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
+      diagram_name: projects/frontend_auto/frontend_generator_sub
+      diagram_format: light
+      passInputData: true  # Pass all current variables to sub-diagram
 
   - label: Rename Files
     type: code_job
@@ -259,8 +216,9 @@ nodes:
 connections:
   # Initial setup
   - {from: Start, to: Load Config, label: default, content_type: object}
-  - {from: Load Config, to: Plan Sections, label: config, content_type: object}
-  - {from: Load Config, to: Generate Core Kernel, label: config, content_type: object }
+  - {from: Load Config, to: Setup Generated Directory, label: config, content_type: object}
+  - {from: Setup Generated Directory, to: Plan Sections, label: config, content_type: object}
+  - {from: Setup Generated Directory, to: Generate Core Kernel, label: config, content_type: object}
 
   - {from: Plan Sections, to: Extract Section Properties, label: sections_data, content_type: object}
   - {from: Plan Sections, to: Generate Core Kernel, label: sections_data, content_type: object}
@@ -274,11 +232,8 @@ connections:
 
   # Section iteration loop (now processes both kernel and regular sections)
   - {from: Check Continue_condfalse, to: Load Merged Data, content_type: object}
-  - {from: Load Merged Data, to: Generate Frontend Code, content_type: object}
-  - {from: Generate Frontend Code, to: Revise Frontend Code, label: generated_output, content_type: object}
-  - {from: Load Merged Data, to: Revise Frontend Code, content_type: object}
-  - {from: Revise Frontend Code, to: Write Section Result, content_type: object}
-  - {from: Write Section Result, to: Check Continue, content_type: object}
+  - {from: Load Merged Data, to: Process Frontend Section, content_type: object}
+  - {from: Process Frontend Section, to: Check Continue, content_type: object}
 
   # Finalization
   - {from: Check Continue_condtrue, to: Rename Files, content_type: object}

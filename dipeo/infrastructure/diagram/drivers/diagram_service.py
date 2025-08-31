@@ -123,14 +123,20 @@ class DiagramService(BaseService, DiagramPort):
             # V1 uses serialize_for_storage (same method name)
             return self.converter.serialize_for_storage(diagram, format_type)
     
-    def deserialize(self, content: str, format_type: str | None = None) -> DomainDiagram:
-        """Deserialize string content to DomainDiagram."""
+    def deserialize(self, content: str, format_type: str | None = None, diagram_path: str | None = None) -> DomainDiagram:
+        """Deserialize string content to DomainDiagram.
+        
+        Args:
+            content: The string content to deserialize
+            format_type: Optional format type hint
+            diagram_path: Optional path to the diagram file for context
+        """
         if self._using_v2_converter:
             # V2 uses deserialize_from_storage
-            return self.converter.deserialize_from_storage(content, format_type)
+            return self.converter.deserialize_from_storage(content, format_type, diagram_path)
         else:
             # V1 uses deserialize_from_storage (same method name)
-            return self.converter.deserialize_from_storage(content, format_type)
+            return self.converter.deserialize_from_storage(content, format_type, diagram_path)
 
     
     async def load_from_file(self, file_path: str) -> DomainDiagram:
@@ -149,7 +155,7 @@ class DiagramService(BaseService, DiagramPort):
                 content = f.read().decode('utf-8')
             format_enum = self.format_detector.detect_format_from_filename(str(path))
             format_str = format_enum.value if format_enum else None
-            diagram = self.deserialize(content, format_str)
+            diagram = self.deserialize(content, format_str, str(path))
             return self._ensure_metadata_with_id(diagram, diagram_id)
         
         # Try relative to base_path
@@ -160,7 +166,7 @@ class DiagramService(BaseService, DiagramPort):
                     content = f.read().decode('utf-8')
                 format_enum = self.format_detector.detect_format_from_filename(str(relative_path))
                 format_str = format_enum.value if format_enum else None
-                diagram = self.deserialize(content, format_str)
+                diagram = self.deserialize(content, format_str, str(relative_path))
                 return self._ensure_metadata_with_id(diagram, diagram_id)
         
         # Extract diagram ID and try with various extensions
@@ -186,7 +192,7 @@ class DiagramService(BaseService, DiagramPort):
             with self.filesystem.open(resolved_path, "rb") as f:
                 content = f.read().decode('utf-8')
             format_str = self._detect_format_from_path(resolved_path)
-            diagram = self.deserialize(content, format_str)
+            diagram = self.deserialize(content, format_str, str(resolved_path))
             return self._ensure_metadata_with_id(diagram, diagram_id)
         
         raise StorageError(f"Diagram not found: {file_path}")

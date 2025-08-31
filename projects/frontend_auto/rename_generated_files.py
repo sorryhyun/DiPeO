@@ -34,7 +34,11 @@ def rename_generated_files(inputs):
         
         if temp_file.exists():
             target_filename = file_path
-            final_path = generated_dir / target_filename
+            
+            # All generated files are source files (config files are now in base_configs/)
+            # Remove leading 'src/' if present to avoid duplication
+            clean_filename = target_filename.replace('src/', '', 1) if target_filename.startswith('src/') else target_filename
+            final_path = generated_dir / 'src' / clean_filename
             
             # Create directory if needed
             final_path.parent.mkdir(parents=True, exist_ok=True)
@@ -58,7 +62,7 @@ def rename_generated_files(inputs):
             # Remove the temp file
             temp_file.unlink()
             
-            print(f"✓ Processed temp_section_{i}.tsx -> {target_filename} (removed backticks)")
+            print(f"✓ Processed temp_section_{i}.tsx -> src/{clean_filename} (removed backticks)")
             renamed_count += 1
         else:
             print(f"⚠ temp_section_{i}.tsx not found, skipping")

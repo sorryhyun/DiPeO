@@ -19,7 +19,11 @@ Your response MUST include:
 
 REQUIREMENTS:
 - Order sections by priority and dependencies
-- Include ALL files that will exist in the app
+- Include ALL SOURCE FILES that will exist in the app (src/* only)
+- EXCLUDE configuration files - these are provided as base infrastructure:
+  * DO NOT include: package.json, tsconfig.json, vite.config.ts, tailwind.config.js
+  * DO NOT include: postcss.config.js, .eslintrc.json, .gitignore, index.html
+  * These config files are pre-existing and will be copied from base_configs/
 - Start with core kernel files (priority 0):
   * src/core/contracts.ts - Domain types and API contracts
   * src/app/config.ts - Materialized configuration
@@ -29,3 +33,4 @@ REQUIREMENTS:
   * src/core/utils.ts - Common utilities (if needed)
 - Then include: pages, providers, services, shared components, hooks, features
 - Every import must have a corresponding section
+- All file paths should start with "src/" (not root-level configs)

@@ -290,6 +290,9 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         parent_registry = request.parent_registry or request.services
         isolated_registry = self._create_isolated_registry(parent_registry)
         
+        # Register persons from the diagram in the orchestrator/conversation manager
+        await self._register_diagram_persons(diagram, isolated_registry)
+        
         # Create engine with null event bus (no events emitted)
         engine = TypedExecutionEngine(
             service_registry=isolated_registry,
@@ -461,6 +464,56 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
                 isolated_registry._services[key_str] = service
         
         return isolated_registry
+    
+    async def _register_diagram_persons(self, diagram: "ExecutableDiagram", service_registry) -> None:
+        """Register persons from the diagram in the conversation manager.
+        
+        This ensures that persons defined in the sub_diagram are available
+        when person_job nodes try to get or create them.
+        """
+        # Get the orchestrator from the service registry
+        from dipeo.application.registry import ServiceKey
+        
+        orchestrator_key = ServiceKey("execution_orchestrator")
+        orchestrator = None
+        
+        try:
+            orchestrator = service_registry.resolve(orchestrator_key)
+        except (KeyError, AttributeError):
+            # Try alternative key
+            orchestrator = service_registry.get(orchestrator_key)
+        
+        if not orchestrator:
+            logger.debug("No execution orchestrator found, skipping person registration")
+            return
+        
+        # Get persons from the diagram metadata if available
+        persons = diagram.metadata.get("persons", {}) if diagram.metadata else {}
+        
+        if not persons:
+            logger.debug("No persons found in sub_diagram metadata")
+            return
+        
+        # Register each person in the orchestrator
+        for person_id, person_config in persons.items():
+            try:
+                # Convert person config to the format expected by register_person
+                config = {
+                    "service": person_config.get("service", "openai"),
+                    "model": person_config.get("model", "gpt-5-nano-2025-08-07"),
+                    "api_key_id": person_config.get("api_key_id", "default"),
+                }
+                
+                # Add system prompt if available
+                if "system_prompt" in person_config:
+                    config["system_prompt"] = person_config["system_prompt"]
+                
+                # Register the person
+                orchestrator.register_person(person_id, config)
+                logger.debug(f"Registered person '{person_id}' from sub_diagram with API key '{config['api_key_id']}'")
+                
+            except Exception as e:
+                logger.warning(f"Failed to register person '{person_id}': {e}")
     
     def _create_error_envelope(
         self,

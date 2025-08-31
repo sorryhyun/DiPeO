@@ -200,8 +200,7 @@ class PromptFileCompiler:
                 )
                 if resolved_content:
                     node.data['resolved_prompt'] = resolved_content
-                    logger.debug(f"[PromptCompiler] Set resolved_prompt for DomainNode {node.id}")
-            
+
             # Resolve first_prompt_file if present
             if node.data.get('first_prompt_file'):
                 resolved_content = self._resolve_single_prompt(
@@ -211,6 +210,5 @@ class PromptFileCompiler:
                 )
                 if resolved_content:
                     node.data['resolved_first_prompt'] = resolved_content
-                    logger.debug(f"[PromptCompiler] Set resolved_first_prompt for DomainNode {node.id}")
-        
+
         return domain_nodes

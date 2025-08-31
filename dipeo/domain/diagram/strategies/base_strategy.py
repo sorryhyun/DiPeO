@@ -37,11 +37,12 @@ class BaseConversionStrategy(FormatStrategy, ABC):
         pass
     
     @abstractmethod
-    def deserialize_to_domain(self, content: str) -> DomainDiagram:
+    def deserialize_to_domain(self, content: str, diagram_path: str | None = None) -> DomainDiagram:
         """Deserialize string content to a DomainDiagram.
         
         Args:
             content: String content to deserialize
+            diagram_path: Optional path to the diagram file for context (e.g., prompt resolution)
             
         Returns:
             DomainDiagram instance
