@@ -182,15 +182,6 @@ nodes:
       expose_index_as: current_index
       flipped: [false, true]
 
-  - label: Load Merged Data
-    type: db
-    position: {x: 1750, y: 400}
-    props:
-      operation: read
-      sub_type: file
-      format: json
-      source_details: projects/frontend_auto/generated/sections_data.json
-
   - label: Process Frontend Section
     type: sub_diagram
     position: {x: 2100, y: 500}
@@ -231,8 +222,7 @@ connections:
   - { from: load Data, to: Check Continue, content_type: object }
 
   # Section iteration loop (now processes both kernel and regular sections)
-  - {from: Check Continue_condfalse, to: Load Merged Data, content_type: object}
-  - {from: Load Merged Data, to: Process Frontend Section, content_type: object}
+  - {from: Check Continue_condfalse, to: Process Frontend Section, content_type: object}
   - {from: Process Frontend Section, to: Check Continue, content_type: object}
 
   # Finalization

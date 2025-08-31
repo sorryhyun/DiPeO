@@ -21,7 +21,16 @@ nodes:
   - label: Start
     type: start
     position: {x: 100, y: 300}
-      
+
+  - label: Load Merged Data
+    type: db
+    position: { x: 1750, y: 400 }
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_auto/generated/sections_data.json
+
   - label: Generate Frontend Code
     type: person_job
     position: {x: 300, y: 300}
@@ -96,7 +105,9 @@ nodes:
 
 connections:
   # Main flow
-  - {from: Start, to: Generate Frontend Code, content_type: object}
+  - {from: Start, to: Load Merged Data}
+
+  - {from: Load Merged Data, to: Generate Frontend Code, content_type: object}
   
   # From Generate to Condition
   - {from: Generate Frontend Code, to: Check Output Quality, label: generated_output}
@@ -108,7 +119,7 @@ connections:
   - {from: Check Output Quality_condfalse, to: Revise Frontend Code, label: generated_output, content_type: raw_text}
   
   # Pass the original data to revision node for context
-  - {from: Start, to: Revise Frontend Code, content_type: object}
+  - {from: Load Merged Data, to: Revise Frontend Code, content_type: object}
   
   # From revision to merge
   - {from: Revise Frontend Code, to: Merge Output, label: revised_output, content_type: raw_text}
@@ -120,7 +131,7 @@ connections:
   - {from: Merge Output, to: Write Section Result, content_type: raw_text}
   
   # Pass original data for file naming
-  - {from: Start, to: Write Section Result, content_type: object}
+  - {from: Load Merged Data, to: Write Section Result, content_type: object}
   
   # Final output
   - {from: Write Section Result, to: End, content_type: object}
