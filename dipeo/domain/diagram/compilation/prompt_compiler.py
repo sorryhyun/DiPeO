@@ -79,9 +79,7 @@ class PromptFileCompiler:
                 if resolved_content:
                     # Store resolved content in a special field
                     data['resolved_prompt'] = resolved_content
-                    # Log that we resolved the prompt
-                    logger.debug(f"[PromptCompiler] Set resolved_prompt for node {node.get('id')}")
-            
+
             # Resolve first_prompt_file if present
             if 'first_prompt_file' in data and data['first_prompt_file']:
                 resolved_content = self._resolve_single_prompt(
@@ -92,9 +90,7 @@ class PromptFileCompiler:
                 if resolved_content:
                     # Store resolved content in a special field
                     data['resolved_first_prompt'] = resolved_content
-                    # Log that we resolved the prompt
-                    logger.debug(f"[PromptCompiler] Set resolved_first_prompt for node {node.get('id')}")
-        
+
         return nodes
     
     def _resolve_single_prompt(self, prompt_filename: str, diagram_dir: Optional[Path], node_label: str) -> Optional[str]:
