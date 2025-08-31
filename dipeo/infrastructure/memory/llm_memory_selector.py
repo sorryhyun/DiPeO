@@ -32,9 +32,15 @@ class LLMMemorySelector:
     def _selector_id(self, person_id: PersonID) -> PersonID:
         return PersonID(f"{str(person_id)}.__selector")
     
-    def _selector_system_prompt(self, base_prompt: Optional[str]) -> str:
+    def _selector_system_prompt(self, base_prompt: Optional[str], llm_service: Optional[str] = None) -> str:
         base = (base_prompt or "").strip()
-        # Keep the base persona context, then switch into "selector mode"
+        
+        # Claude Code adapter provides its own MEMORY_SELECTION_PROMPT when execution_phase="memory_selection"
+        # So we skip adding instructions for claude_code to avoid duplication
+        if llm_service == "claude_code":
+            return base
+        
+        # For other adapters (OpenAI, Anthropic, Google, etc.), we need to provide instructions
         return (
             (base + "\n\n" if base else "")
             + "You are in MEMORY SELECTION MODE.\n"
@@ -51,7 +57,7 @@ class LLMMemorySelector:
               "- If uncertain, return an empty array."
         )
     
-    def _get_or_create_selector_facet(self, person_id: PersonID) -> Person:
+    def _get_or_create_selector_facet(self, person_id: PersonID, llm_service: Optional[str] = None) -> Person:
         sid = self._selector_id(person_id)
         persons = self._orchestrator.get_all_persons()
         if sid in persons:
@@ -61,11 +67,14 @@ class LLMMemorySelector:
         base_person = self._orchestrator.get_person(person_id)
         llm = base_person.llm_config
         
+        # Use the provided llm_service or fall back to the person's configured service
+        service = llm_service or llm.service
+        
         facet_cfg = PersonLLMConfig(
             service=llm.service,
             model=llm.model,
             api_key_id=llm.api_key_id,
-            system_prompt=self._selector_system_prompt(llm.system_prompt),
+            system_prompt=self._selector_system_prompt(llm.system_prompt, service),
             prompt_file=None,
         )
         facet = self._orchestrator.get_or_create_person(
@@ -108,7 +117,7 @@ class LLMMemorySelector:
         llm_service = kwargs.get('llm_service')
         preprocessed = kwargs.get('preprocessed', False)
         
-        facet = self._get_or_create_selector_facet(person_id)
+        facet = self._get_or_create_selector_facet(person_id, llm_service)
         
         # Build a compact selection prompt
         preview = (task_preview or "")[:1200]
@@ -164,14 +173,19 @@ class LLMMemorySelector:
 
         # Execute using person's complete method directly
         # Pass empty messages list since selector gets all info in the prompt
-        result, incoming_msg, response_msg = await facet.complete(
-            prompt=prompt,
-            all_messages=[],  # Empty list - selector doesn't need conversation context
-            llm_service=llm_service,
-            temperature=0,
-            max_tokens=8000,
-            execution_phase="memory_selection",  # Explicitly set phase for Claude Code adapter
-        )
+        complete_kwargs = {
+            "prompt": prompt,
+            "all_messages": [],  # Empty list - selector doesn't need conversation context
+            "llm_service": llm_service,
+            "temperature": 0,
+            "max_tokens": 8000,
+        }
+        
+        # Only pass execution_phase for claude_code adapter
+        if llm_service == "claude_code":
+            complete_kwargs["execution_phase"] = "memory_selection"
+        
+        result, incoming_msg, response_msg = await facet.complete(**complete_kwargs)
         
         # Add messages to conversation if orchestrator supports it
         if hasattr(self._orchestrator, 'add_message'):
