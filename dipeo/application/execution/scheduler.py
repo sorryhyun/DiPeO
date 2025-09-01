@@ -54,6 +54,9 @@ class NodeScheduler:
         for node in self.diagram.nodes:
             self._indegree[node.id] = 0
         
+        # Track which nodes have any non-conditional incoming edges
+        nodes_with_non_conditional_deps: set[NodeID] = set()
+        
         # Build dependency graph
         for edge in self.diagram.edges:
             # Skip conditional edges (like condition branches)
@@ -62,10 +65,25 @@ class NodeScheduler:
             
             self._indegree[edge.target_node_id] += 1
             self._dependents[edge.source_node_id].add(edge.target_node_id)
+            nodes_with_non_conditional_deps.add(edge.target_node_id)
         
-        # Queue nodes with no dependencies
+        # Queue nodes with no dependencies OR nodes that have only conditional dependencies
+        # But don't queue nodes that have ONLY conditional dependencies (they need to wait)
         for node_id, count in self._indegree.items():
             if count == 0:
+                # Check if this node has any incoming edges at all
+                has_any_incoming = any(
+                    edge.target_node_id == node_id 
+                    for edge in self.diagram.edges
+                )
+                
+                # If it has incoming edges but count is 0, they must all be conditional
+                # Don't add it to ready queue - let the domain order calculator handle it
+                if has_any_incoming and node_id not in nodes_with_non_conditional_deps:
+                    logger.debug(f"Node {node_id} has only conditional dependencies, not adding to initial ready queue")
+                    continue
+                
+                # Otherwise, it's truly ready (no dependencies at all)
                 self._ready_queue.put_nowait(node_id)
     
     async def get_ready_nodes(self, context: "TypedExecutionContext") -> list[ExecutableNode]:
@@ -156,19 +174,27 @@ class NodeScheduler:
         node_outputs = {}
         node_exec_counts = {}
         
+        # Get outputs for completed nodes
         for node_id in context.get_completed_nodes():
             output = context.get_node_output(node_id)
             if output:
                 node_outputs[str(node_id)] = output
-            node_exec_counts[str(node_id)] = context.get_node_execution_count(node_id)
+        
+        # Get execution counts for ALL nodes (including reset/pending ones)
+        # This is crucial for loop handling where nodes are reset but maintain their count
+        for node in self.diagram.nodes:
+            count = context.get_node_execution_count(node.id)
+            if count > 0:  # Only store non-zero counts for efficiency
+                node_exec_counts[str(node.id)] = count
         
         class OrderCalculatorContext:
             """Minimal context wrapper for order calculator."""
             
-            def __init__(self, ctx: "TypedExecutionContext", outputs: dict, counts: dict):
+            def __init__(self, ctx: "TypedExecutionContext", outputs: dict, counts: dict, diagram):
                 self._context = ctx
                 self._node_outputs = outputs
                 self._node_exec_counts = counts
+                self.diagram = diagram  # Add diagram for loop detection
             
             def get_metadata(self, key: str) -> Any:
                 return self._context.get_execution_metadata().get(key)
@@ -200,7 +226,7 @@ class NodeScheduler:
             def diagram_id(self) -> str:
                 return self._context.diagram_id
         
-        return OrderCalculatorContext(context, node_outputs, node_exec_counts)
+        return OrderCalculatorContext(context, node_outputs, node_exec_counts, self.diagram)
     
     def get_execution_stats(self) -> dict[str, Any]:
         """Get statistics about the scheduling state.

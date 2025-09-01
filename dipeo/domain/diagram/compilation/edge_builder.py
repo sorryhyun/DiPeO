@@ -105,6 +105,11 @@ class EdgeBuilder:
             is_first_execution = True
             edge_metadata['is_first_execution'] = True
         
+        # Check if this is a conditional edge (from condition node branches)
+        is_conditional = False
+        if arrow.data and arrow.data.get('is_conditional'):
+            is_conditional = True
+        
         # Get handle label values - handle both enum and string cases
         source_output = None
         if connection.source_handle_label:
@@ -138,6 +143,7 @@ class EdgeBuilder:
             target_input=target_input,
             content_type=transform_metadata.content_type,
             transform_rules=transform_metadata.transformation_rules,
+            is_conditional=is_conditional,
             metadata=edge_metadata
         )
     

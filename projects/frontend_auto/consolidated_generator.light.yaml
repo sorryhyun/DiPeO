@@ -247,6 +247,15 @@ nodes:
       memorize_to: GOLDFISH
       judge_by: Review this generated code output and determine if it's severely invalid or acceptable.
 
+  - label: load Data for revision
+    type: db
+    position: {x: 1700, y: 240}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_auto/generated/sections_data.json
+
   - label: Revise Frontend Code
     type: person_job
     position: {x: 700, y: 400}
@@ -332,8 +341,8 @@ connections:
   - {from: Generate Frontend Code, to: Write Section Result, content_type: raw_text}
   - {from: Check Output Quality_condtrue, to: Check Continue, content_type: raw_text}
 
-  - {from: Check Output Quality_condfalse, to: Revise Frontend Code, label: generated_output, content_type: object}
-  - {from: load Data again, to: Revise Frontend Code, content_type: object}
+  - {from: Check Output Quality_condfalse, to: load Data for revision, label: generated_output, content_type: object}
+  - {from: load Data for revision, to: Revise Frontend Code, content_type: object}
   - {from: Revise Frontend Code, to: Write revised Result, content_type: raw_text}
 
   - {from: Write revised Result, to: Check Continue, content_type: object}

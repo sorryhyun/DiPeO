@@ -190,9 +190,17 @@ class TypedExecutionContext(ExecutionContextProtocol):
         """Reset a node to initial state."""
         with self._state_lock:
             self._node_states[node_id] = NodeState(status=Status.PENDING)
+            # Note: We do NOT reset the execution count in the tracker
+            # The tracker maintains cumulative execution count across resets
+            logger.debug(f"Reset node {node_id} to PENDING, execution_count remains {self._tracker.get_execution_count(node_id)}")
     
-    def _reset_downstream_nodes_if_needed(self, node_id: NodeID) -> None:
-        """Reset downstream nodes if they're part of a loop."""
+    def _reset_downstream_nodes_if_needed(self, node_id: NodeID, initiating_node_id: NodeID = None) -> None:
+        """Reset downstream nodes if they're part of a loop.
+        
+        Args:
+            node_id: The node that just completed
+            initiating_node_id: The original node that started the reset chain (to prevent circular resets)
+        """
         from dipeo.diagram_generated.generated_nodes import (
             ConditionNode,
             EndpointNode,
@@ -200,6 +208,9 @@ class TypedExecutionContext(ExecutionContextProtocol):
             StartNode,
         )
 
+        # Track the initiating node to prevent circular resets
+        if initiating_node_id is None:
+            initiating_node_id = node_id
 
         # Get the node that just completed
         completed_node = self.diagram.get_node(node_id)
@@ -239,6 +250,11 @@ class TypedExecutionContext(ExecutionContextProtocol):
             if not target_node:
                 continue
             
+            # Skip if this would cause a circular reset
+            if target_node.id == initiating_node_id:
+                logger.debug(f"Skipping reset of {target_node.id} to prevent circular reset")
+                continue
+            
             # Check if target was already executed
             target_state = self._node_states.get(target_node.id)
             if not target_state or target_state.status != Status.COMPLETED:
@@ -273,10 +289,11 @@ class TypedExecutionContext(ExecutionContextProtocol):
             if can_reset:
                 nodes_to_reset.append(target_node.id)
 
-        # Reset nodes and cascade
+        # Reset nodes and cascade, passing the initiating node to prevent circular resets
         for node_id_to_reset in nodes_to_reset:
             self.reset_node(node_id_to_reset)
-            self._reset_downstream_nodes_if_needed(node_id_to_reset)
+            # Cascade resets but prevent circular resets by tracking the initiator
+            self._reset_downstream_nodes_if_needed(node_id_to_reset, initiating_node_id)
     
     # ========== Runtime Context ==========
     
