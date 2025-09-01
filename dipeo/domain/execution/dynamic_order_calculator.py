@@ -256,156 +256,62 @@ class DomainDynamicOrderCalculator:
         node_states: dict[NodeID, NodeState],
         context: ExecutionContext
     ) -> bool:
-        """Check if node dependencies are satisfied."""
-        # Special case: Condition nodes should trigger when ANY dependency is satisfied
-        # This enables loops where condition nodes receive both initial and loop-back inputs
+        """Check if node dependencies are satisfied.
+        
+        Rules:
+        1. Condition nodes: Execute when ANY dependency is satisfied
+        2. Other nodes: Execute when ALL active dependencies are satisfied
+           (Active = non-conditional edges + edges on the active conditional branch)
+        """
+        # Rule 1: Condition nodes execute when ANY dependency is satisfied
         if node.type == NodeType.CONDITION:
-            # Condition nodes execute when ANY of their dependencies is satisfied
             return any(
                 self._is_dependency_satisfied(edge, node_states, context)
                 for edge in incoming_edges
             )
         
-        # For nodes with multiple inputs (potential loops)
-        if len(incoming_edges) > 1:
-            # Check if any source nodes haven't executed yet
-            unexecuted_edges = []
-            executed_edges = []
-            conditional_edges = []
+        # Rule 2: Other nodes need ALL active dependencies satisfied
+        # Separate edges into conditional and non-conditional
+        conditional_edges = []
+        non_conditional_edges = []
+        
+        for edge in incoming_edges:
+            if edge.source_output in ["condtrue", "condfalse"]:
+                conditional_edges.append(edge)
+            else:
+                non_conditional_edges.append(edge)
+        
+        # Check non-conditional dependencies - ALL must be satisfied
+        for edge in non_conditional_edges:
+            if not self._is_dependency_satisfied(edge, node_states, context):
+                return False
+        
+        # For conditional edges, we need special handling
+        if conditional_edges:
+            # Group conditional edges by their source (condition node)
+            edges_by_condition = {}
+            for edge in conditional_edges:
+                if edge.source_node_id not in edges_by_condition:
+                    edges_by_condition[edge.source_node_id] = []
+                edges_by_condition[edge.source_node_id].append(edge)
             
-            for edge in incoming_edges:
-                source_state = node_states.get(edge.source_node_id)
-                # Check if source has never executed (no state or still pending with no executions)
-                source_exec_count = context.get_node_execution_count(edge.source_node_id) if context else 0
+            # For each condition node, check if its active branch is satisfied
+            for condition_node_id, edges in edges_by_condition.items():
+                source_state = node_states.get(condition_node_id)
                 
-                # Separate conditional edges (from condition nodes)
-                if edge.source_output in ["condtrue", "condfalse"]:
-                    conditional_edges.append(edge)
-                elif source_exec_count == 0 and (not source_state or source_state.status == Status.PENDING):
-                    unexecuted_edges.append(edge)
-                else:
-                    executed_edges.append(edge)
-            
-            # Get target node's execution count
-            target_exec_count = context.get_node_execution_count(node.id) if context else 0
-            
-            # If we have conditional edges, this might be a loop scenario or conditional trigger
-            if conditional_edges:
-                # On first execution, treat conditional edges from unexecuted nodes as loop-backs
-                if target_exec_count == 0:
-                    # Separate conditional edges into those from executed vs unexecuted nodes
-                    active_conditional_edges = []
-                    for edge in conditional_edges:
-                        condition_node_executed = context.get_node_execution_count(edge.source_node_id) > 0 if context else False
-                        if condition_node_executed:
-                            active_conditional_edges.append(edge)
-                    
-                    # If no condition nodes have executed yet, ignore all conditional edges
-                    # (they're loop-back edges that will be activated later)
-                    if not active_conditional_edges:
-                        # Just check non-conditional edges
-                        non_conditional_edges = [
-                            edge for edge in incoming_edges 
-                            if edge.source_output not in ["condtrue", "condfalse"]
-                        ]
-                        if non_conditional_edges:
-                            return all(
-                                self._is_dependency_satisfied(edge, node_states, context)
-                                for edge in non_conditional_edges
-                            )
-                        return True  # No dependencies to wait for
-                    
-                    # If we have active conditional edges, continue with normal logic
-                    conditional_edges = active_conditional_edges
+                # If condition node hasn't executed yet, node is not ready
+                if not source_state or source_state.status == Status.PENDING:
+                    return False
                 
-                if target_exec_count == 0:
-                    # First execution: After conditions are evaluated, check dependencies
-                    # For nodes with both conditional and non-conditional inputs,
-                    # require non-conditional edges AND active conditional branch
-                    non_conditional_edges = [
-                        edge for edge in incoming_edges 
-                        if edge.source_output not in ["condtrue", "condfalse"]
-                    ]
-                    
-                    # Check non-conditional dependencies
-                    if non_conditional_edges:
-                        non_cond_satisfied = all(
-                            self._is_dependency_satisfied(edge, node_states, context)
-                            for edge in non_conditional_edges
-                        )
-                        if not non_cond_satisfied:
-                            return False
-                    
-                    # Also check if at least one conditional edge is satisfied (active branch)
-                    return any(
-                        self._is_dependency_satisfied(edge, node_states, context)
-                        for edge in conditional_edges
-                    )
-                else:
-                    # Subsequent executions: require at least one dependency (loop logic)
-                    return any(
-                        self._is_dependency_satisfied(edge, node_states, context)
-                        for edge in incoming_edges
-                    )
-            
-            # If we have both executed and unexecuted edges but no conditionals,
-            # and node has already executed (not first time), treat as regular dependencies
-            if executed_edges and unexecuted_edges and not conditional_edges and target_exec_count > 0:
-                return False  # Wait for all dependencies to complete
-            
-            # Handle nodes that can be in loops (receiving from condition nodes)
-            # This applies to any node type that might receive loop-back edges
-            # Separate edges by whether they're from condition nodes
-            loop_back_edges = []
-            normal_edges = []
-            
-            for edge in incoming_edges:
-                # Check if the edge is from a condition node based on source_output
-                if edge.source_output in ["condtrue", "condfalse"]:
-                    loop_back_edges.append(edge)
-                else:
-                    normal_edges.append(edge)
-            
-            # If we have both normal and loop-back edges, handle loop scenario
-            if normal_edges and loop_back_edges:
-                # On first execution, only require normal (non-loop) edges
-                if target_exec_count == 0:
-                    return all(
-                        self._is_dependency_satisfied(edge, node_states, context)
-                        for edge in normal_edges
-                    )
-                else:
-                    # On subsequent executions (in loop), any satisfied edge triggers
-                    return any(
-                        self._is_dependency_satisfied(edge, node_states, context)
-                        for edge in incoming_edges
-                    )
+                # If condition node has executed, check if we're on the active branch
+                # At least one edge from this condition node must be satisfied
+                if not any(self._is_dependency_satisfied(edge, node_states, context) 
+                          for edge in edges):
+                    # No active branch from this condition is satisfied
+                    return False
         
-        # For single input or non-loop cases, require all dependencies
-        return all(
-            self._is_dependency_satisfied(edge, node_states, context)
-            for edge in incoming_edges
-        )
-    
-    def _is_loop_edge(
-        self,
-        edge: Any,
-        target_node: ExecutableNode,
-        node_states: dict[NodeID, NodeState],
-        context: ExecutionContext
-    ) -> bool:
-        """Check if an edge is part of a loop."""
-        # An edge is a loop edge if:
-        # 1. It comes from a condition node
-        # 2. The target has already executed
-        source_state = node_states.get(edge.source_node_id)
-        target_exec_count = context.get_node_execution_count(target_node.id) if context else 0
-        
-        # Edge is a loop edge if it's from a condition node and target has executed
-        if edge.source_output in ["condtrue", "condfalse"]:
-            return target_exec_count > 0
-        
-        return False
+        # All dependencies (non-conditional + active conditional branches) are satisfied
+        return True
     
     def _is_dependency_satisfied(
         self,
