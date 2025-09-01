@@ -100,11 +100,14 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         node = request.node
         context = request.context
         
+        logger.info(f"[PersonJobHandler.pre_execute] Starting for node {node.id}")
+        
         # Set debug flag for later use (could be from context or environment)
-        self._current_debug = False  # Will be set based on context if needed
+        self._current_debug = True  # Enable debug for troubleshooting
         
         # Configure services for executors on first execution
         if not self._services_configured:
+            logger.info(f"[PersonJobHandler] Configuring services for first execution")
             from dipeo.application.registry.keys import (
                 LLM_SERVICE,
                 DIAGRAM,
@@ -113,20 +116,29 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 FILESYSTEM_ADAPTER
             )
             
-            llm_service = request.services.resolve(LLM_SERVICE)
-            diagram = request.services.resolve(DIAGRAM)
-            execution_orchestrator = request.services.resolve(EXECUTION_ORCHESTRATOR)
-            prompt_builder = request.services.resolve(PROMPT_BUILDER)
-            filesystem_adapter = request.services.resolve(FILESYSTEM_ADAPTER)
+            try:
+                logger.info(f"[PersonJobHandler] Resolving LLM_SERVICE...")
+                llm_service = request.services.resolve(LLM_SERVICE)
+                logger.info(f"[PersonJobHandler] Resolving DIAGRAM...")
+                diagram = request.services.resolve(DIAGRAM)
+                logger.info(f"[PersonJobHandler] Resolving EXECUTION_ORCHESTRATOR...")
+                execution_orchestrator = request.services.resolve(EXECUTION_ORCHESTRATOR)
+                logger.info(f"[PersonJobHandler] Resolving PROMPT_BUILDER...")
+                prompt_builder = request.services.resolve(PROMPT_BUILDER)
+                logger.info(f"[PersonJobHandler] Resolving FILESYSTEM_ADAPTER...")
+                filesystem_adapter = request.services.resolve(FILESYSTEM_ADAPTER)
+            except Exception as e:
+                logger.error(f"[PersonJobHandler] Failed to resolve services: {e}", exc_info=True)
+                raise
             
             # Debug logging
-            logger.debug(f"[PersonJobHandler] Resolved services:")
-            logger.debug(f"  - LLM Service: {llm_service is not None}")
-            logger.debug(f"  - Diagram: {diagram is not None}")
-            logger.debug(f"  - Orchestrator: {execution_orchestrator is not None}")
-            logger.debug(f"  - Orchestrator type: {type(execution_orchestrator).__name__ if execution_orchestrator else 'None'}")
-            logger.debug(f"  - Prompt Builder: {prompt_builder is not None}")
-            logger.debug(f"  - Filesystem: {filesystem_adapter is not None}")
+            logger.info(f"[PersonJobHandler] Resolved services:")
+            logger.info(f"  - LLM Service: {llm_service is not None}")
+            logger.info(f"  - Diagram: {diagram is not None}")
+            logger.info(f"  - Orchestrator: {execution_orchestrator is not None}")
+            logger.info(f"  - Orchestrator type: {type(execution_orchestrator).__name__ if execution_orchestrator else 'None'}")
+            logger.info(f"  - Prompt Builder: {prompt_builder is not None}")
+            logger.info(f"  - Filesystem: {filesystem_adapter is not None}")
             
             # Set services on executors
             self.single_executor.set_services(

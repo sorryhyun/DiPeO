@@ -78,7 +78,7 @@ def wire_execution(registry: ServiceRegistry) -> None:
         
         return orchestrator
     
-    registry.register(EXECUTION_ORCHESTRATOR, create_execution_orchestrator)
+    registry.register(EXECUTION_ORCHESTRATOR, lambda: create_execution_orchestrator())
     
     # Wire execute diagram use case
     from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
