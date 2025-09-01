@@ -10,7 +10,7 @@ from dipeo.domain.conversation import Person
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.domain_models import Message, PersonID
-from dipeo.application.execution.use_cases import PromptLoadingUseCase, PersonManagementUseCase
+from dipeo.application.execution.use_cases import PromptLoadingUseCase
 
 from .text_format_handler import TextFormatHandler
 from .conversation_handler import ConversationHandler
@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 class SinglePersonJobExecutor:
     """Executor for single person job execution."""
     
-    def __init__(self, person_cache: dict[str, Person]):
-        """Initialize with shared person cache."""
+    def __init__(self):
+        """Initialize the executor."""
         # Services will be set by the handler
         self._llm_service = None
         self._diagram = None
@@ -34,7 +34,6 @@ class SinglePersonJobExecutor:
         self._filesystem_adapter = None
         # Use cases
         self._prompt_loading_use_case = None
-        self._person_management_use_case = PersonManagementUseCase()
         # Utility handlers
         self._text_format_handler = TextFormatHandler()
         self._conversation_handler = ConversationHandler()
@@ -70,12 +69,18 @@ class SinglePersonJobExecutor:
         llm_service = self._llm_service
         execution_count = context.get_node_execution_count(node.id)
 
-        # Get or create person using the use case
-        person = self._person_management_use_case.get_or_create_person(
-            person_id,
-            diagram=self._diagram,
-            person_repository=self._execution_orchestrator
+        # Get or create person using the orchestrator directly
+        logger.debug(f"[SingleExecutor] About to get/create person: {person_id}")
+        logger.debug(f"[SingleExecutor] Orchestrator available: {self._execution_orchestrator is not None}")
+        
+        if not self._execution_orchestrator:
+            raise ValueError(f"ExecutionOrchestrator not available for person {person_id}")
+        
+        person = self._execution_orchestrator.get_or_create_person(
+            PersonID(person_id),
+            diagram=self._diagram
         )
+        logger.debug(f"[SingleExecutor] Person created/retrieved: {person.id if person else 'None'}")
         
         # Use inputs directly
         transformed_inputs = inputs

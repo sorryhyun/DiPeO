@@ -12,6 +12,7 @@ from dipeo.diagram_generated.generated_nodes import ConditionNode
 from dipeo.diagram_generated.domain_models import PersonID, PersonLLMConfig
 from dipeo.config.llm import PERSON_JOB_TEMPERATURE, PERSON_JOB_MAX_TOKENS
 from dipeo.application.execution.use_cases import PromptLoadingUseCase, PersonManagementUseCase
+from dipeo.infrastructure.llm.core.types import ExecutionPhase
 
 from .base import BaseConditionEvaluator, EvaluationResult
 
@@ -143,45 +144,47 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
         
         # Get memory settings
         memorize_to = getattr(node, 'memorize_to', 'GOLDFISH')  # Default to GOLDFISH for fresh evaluation
-        at_most = getattr(node, 'at_most', None)
         
-        # Get all messages from conversation
-        all_messages = []
-        if conversation_manager and hasattr(conversation_manager, 'get_conversation'):
-            conversation = conversation_manager.get_conversation()
-            if conversation:
-                all_messages = conversation.messages
+        # For LLM decision mode, we typically want fresh evaluation without context
+        # GOLDFISH mode is recommended to avoid bias from previous conversations
+        if memorize_to and memorize_to.strip().upper() == "GOLDFISH":
+            # Clear conversation for this person to ensure unbiased decision
+            if hasattr(conversation_manager, 'clear_person_messages'):
+                conversation_manager.clear_person_messages(person.id)
+            person.reset_memory()
         
-        # Use person's select_memories for intelligent memory management
-        messages_for_llm = all_messages
-        if memorize_to or at_most:
-            selected_messages = await person.select_memories(
-                candidate_messages=all_messages,
-                prompt_preview=processed_prompt[:500],  # Use prompt preview for context
-                memorize_to=memorize_to,
-                at_most=at_most,
-                llm_service=llm_service
-            )
-            if selected_messages is not None:
-                messages_for_llm = selected_messages
-                
-            # Special handling for GOLDFISH mode - clear conversation for this person
-            if memorize_to and memorize_to.strip().upper() == "GOLDFISH":
-                if hasattr(conversation_manager, 'clear_person_messages'):
-                    conversation_manager.clear_person_messages(person.id)
-                person.reset_memory()
-        
-        # Execute LLM call
+        # Execute LLM call with decision evaluation phase
         try:
-            # Use person's complete method for LLM interaction
-            result, incoming_msg, response_msg = await person.complete(
-                prompt=processed_prompt,
-                all_messages=messages_for_llm,
-                llm_service=llm_service,
-                from_person_id=PersonID("system"),
+            # Format messages: just the evaluation prompt as user message
+            llm_messages = [
+                {
+                    "role": "user",
+                    "content": processed_prompt
+                }
+            ]
+            
+            # Call LLM service with DECISION_EVALUATION phase
+            # The adapter will inject the appropriate system prompt based on the phase
+            result = await llm_service.complete(
+                messages=llm_messages,
+                model=person.llm_config.model,
+                api_key_id=person.llm_config.api_key_id,
+                service=person.llm_config.service,
                 temperature=PERSON_JOB_TEMPERATURE,
-                max_tokens=PERSON_JOB_MAX_TOKENS
+                max_tokens=PERSON_JOB_MAX_TOKENS,
+                execution_phase=ExecutionPhase.DECISION_EVALUATION  # This triggers the decision prompt
             )
+            
+            # Create response message for compatibility
+            response_msg = None
+            if result:
+                from dipeo.diagram_generated import Message
+                response_msg = Message(
+                    from_person_id=person.id,
+                    to_person_id=PersonID("system"),
+                    content=result.text if result else "",
+                    message_type="person_to_system"
+                )
             
             # Parse response to extract boolean decision
             response_content = response_msg.content if response_msg else result.text if result else ""

@@ -12,6 +12,7 @@ class ExecutionPhase(str, Enum):
     """Execution phases for DiPeO workflows."""
     MEMORY_SELECTION = "memory_selection"
     DIRECT_EXECUTION = "direct_execution"
+    DECISION_EVALUATION = "decision_evaluation"  # For LLM-based binary decisions
     DEFAULT = "default"
 
 

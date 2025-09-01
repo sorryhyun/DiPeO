@@ -24,7 +24,7 @@ from ...core.types import (
 )
 from ...processors import MessageProcessor, ResponseProcessor, TokenCounter
 from .client import AsyncClaudeCodeClientWrapper, ClaudeCodeClientWrapper
-from .prompts import DIRECT_EXECUTION_PROMPT, MEMORY_SELECTION_PROMPT
+from .prompts import DIRECT_EXECUTION_PROMPT, MEMORY_SELECTION_PROMPT, LLM_DECISION_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +120,8 @@ class ClaudeCodeAdapter(UnifiedAdapter):
             phase_prompt = MEMORY_SELECTION_PROMPT
         elif execution_phase == ExecutionPhase.DIRECT_EXECUTION:
             phase_prompt = DIRECT_EXECUTION_PROMPT
+        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            phase_prompt = LLM_DECISION_PROMPT
         
         # Combine prompts
         if phase_prompt and user_system_prompt:

@@ -50,6 +50,8 @@ if TYPE_CHECKING:
     from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase
     from dipeo.application.execution.handler_factory import HandlerRegistry
     from dipeo.application.execution.orchestrators import ExecutionOrchestrator
+    from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
+    from dipeo.infrastructure.memory.llm_memory_selector import LLMMemorySelector
     from typing import Any, Dict
 
 
@@ -82,6 +84,8 @@ FILESYSTEM_ADAPTER = ServiceKey["FileSystemPort"]("filesystem_adapter")
 EXECUTION_ORCHESTRATOR = ServiceKey["ExecutionOrchestrator"]("execution_orchestrator")
 PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder")
 TEMPLATE_PROCESSOR = ServiceKey["TemplateProcessorPort"]("template_processor")
+PROMPT_LOADING_SERVICE = ServiceKey["PromptLoadingUseCase"]("prompt_loading_service")
+MEMORY_SELECTOR = ServiceKey["LLMMemorySelector"]("memory_selector")
 
 # Domain Services
 DB_OPERATIONS_SERVICE = ServiceKey["DBOperationsDomainService"]("db_operations_service")
@@ -184,6 +188,8 @@ __all__ = [
     "EXECUTION_ORCHESTRATOR",
     "PROMPT_BUILDER",
     "TEMPLATE_PROCESSOR",
+    "PROMPT_LOADING_SERVICE",
+    "MEMORY_SELECTOR",
     
     # Domain
     "DB_OPERATIONS_SERVICE",

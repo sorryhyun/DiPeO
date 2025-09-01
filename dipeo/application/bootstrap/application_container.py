@@ -20,6 +20,8 @@ from dipeo.application.registry.keys import (
     NODE_REGISTRY,
     PREPARE_DIAGRAM_USE_CASE,
     PROMPT_BUILDER,
+    PROMPT_LOADING_SERVICE,
+    MEMORY_SELECTOR,
     STATE_STORE,
     TEMPLATE_PROCESSOR,
 )
@@ -100,6 +102,8 @@ class ApplicationContainer:
 
         # Setup repositories - now handled by InfrastructureContainer
         from dipeo.application.execution.orchestrators import ExecutionOrchestrator
+        from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
+        from dipeo.infrastructure.memory.llm_memory_selector import LLMMemorySelector
         from dipeo.application.registry.keys import (
             CONVERSATION_REPOSITORY,
             PERSON_REPOSITORY,
@@ -110,14 +114,30 @@ class ApplicationContainer:
         conversation_repository = self.registry.resolve(CONVERSATION_REPOSITORY)
         person_repository = self.registry.resolve(PERSON_REPOSITORY)
         
+        # Create PromptLoadingUseCase
+        filesystem_adapter = self.registry.resolve(FILESYSTEM_ADAPTER)
+        prompt_loading = PromptLoadingUseCase(filesystem_adapter)
+        self.registry.register(PROMPT_LOADING_SERVICE, prompt_loading)
+        
         # Create orchestrator that coordinates between repositories
+        # Note: Create orchestrator first without memory_selector (circular dependency)
         orchestrator = ExecutionOrchestrator(
             person_repository=person_repository,
-            conversation_repository=conversation_repository
+            conversation_repository=conversation_repository,
+            prompt_loading_use_case=prompt_loading,
+            memory_selector=None,  # Will be set after creation
+            llm_service=self.registry.resolve(LLM_SERVICE)
         )
         
         # Register the orchestrator with its proper name
         self.registry.register(EXECUTION_ORCHESTRATOR, orchestrator)
+        
+        # Create LLMMemorySelector with orchestrator
+        memory_selector = LLMMemorySelector(orchestrator)
+        self.registry.register(MEMORY_SELECTOR, memory_selector)
+        
+        # Update orchestrator with memory_selector
+        orchestrator._memory_selector = memory_selector
         
         from dipeo.application.execution.use_cases import CliSessionService
         self.registry.register(CLI_SESSION_SERVICE, CliSessionService())

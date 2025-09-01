@@ -25,10 +25,9 @@ class BatchPersonJobExecutor:
     DEFAULT_MAX_CONCURRENT = 10  # Maximum concurrent executions
     DEFAULT_BATCH_SIZE = 100     # Maximum items to process in one batch
     
-    def __init__(self, person_cache: dict[str, Person]):
-        """Initialize with shared person cache."""
-        self._person_cache = person_cache
-        self._single_executor = SinglePersonJobExecutor(person_cache)
+    def __init__(self):
+        """Initialize the batch executor."""
+        self._single_executor = SinglePersonJobExecutor()
     
     def _get_batch_configuration(self, node: PersonJobNode) -> Dict[str, Any]:
         """Extract batch configuration from node."""

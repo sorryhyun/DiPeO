@@ -43,12 +43,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     
     def __init__(self):
         super().__init__()
-        # Person cache managed at handler level and shared between executors
-        self._person_cache: dict[str, Person] = {}
         
-        # Initialize executors
-        self.single_executor = SinglePersonJobExecutor(self._person_cache)
-        self.batch_executor = BatchPersonJobExecutor(self._person_cache)
+        # Initialize executors (no longer passing person cache - will use orchestrator)
+        self.single_executor = SinglePersonJobExecutor()
+        self.batch_executor = BatchPersonJobExecutor()
         
         # Instance variable for debug flag
         self._current_debug = False
@@ -120,6 +118,15 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             execution_orchestrator = request.services.resolve(EXECUTION_ORCHESTRATOR)
             prompt_builder = request.services.resolve(PROMPT_BUILDER)
             filesystem_adapter = request.services.resolve(FILESYSTEM_ADAPTER)
+            
+            # Debug logging
+            logger.debug(f"[PersonJobHandler] Resolved services:")
+            logger.debug(f"  - LLM Service: {llm_service is not None}")
+            logger.debug(f"  - Diagram: {diagram is not None}")
+            logger.debug(f"  - Orchestrator: {execution_orchestrator is not None}")
+            logger.debug(f"  - Orchestrator type: {type(execution_orchestrator).__name__ if execution_orchestrator else 'None'}")
+            logger.debug(f"  - Prompt Builder: {prompt_builder is not None}")
+            logger.debug(f"  - Filesystem: {filesystem_adapter is not None}")
             
             # Set services on executors
             self.single_executor.set_services(
