@@ -70,9 +70,6 @@ class SinglePersonJobExecutor:
         execution_count = context.get_node_execution_count(node.id)
 
         # Get or create person using the orchestrator directly
-        logger.debug(f"[SingleExecutor] About to get/create person: {person_id}")
-        logger.debug(f"[SingleExecutor] Orchestrator available: {self._execution_orchestrator is not None}")
-        
         if not self._execution_orchestrator:
             raise ValueError(f"ExecutionOrchestrator not available for person {person_id}")
         
@@ -80,7 +77,6 @@ class SinglePersonJobExecutor:
             PersonID(person_id),
             diagram=self._diagram
         )
-        logger.debug(f"[SingleExecutor] Person created/retrieved: {person.id if person else 'None'}")
         
         # Use inputs directly
         transformed_inputs = inputs

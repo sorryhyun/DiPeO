@@ -365,6 +365,28 @@ class DomainDynamicOrderCalculator:
             # and node has already executed (not first time), treat as regular dependencies
             if executed_edges and unexecuted_edges and not conditional_edges and target_exec_count > 0:
                 return False  # Wait for all dependencies to complete
+            
+            # Special case: PersonJob nodes can be in loops (receiving from condition nodes)
+            # Check if any unexecuted edges are from condition nodes (loop-back edges)
+            if node.type == NodeType.PERSON_JOB:
+                # Separate edges by whether they're from condition nodes
+                condition_edges = []
+                normal_edges = []
+                
+                for edge in incoming_edges:
+                    # Check if the edge is from a condition node based on source_output
+                    if edge.source_output in ["condtrue", "condfalse"]:
+                        condition_edges.append(edge)
+                    else:
+                        normal_edges.append(edge)
+                
+                # If this is first execution and we have both normal and condition edges
+                if target_exec_count == 0 and normal_edges and condition_edges:
+                    # Only require normal edges for first execution
+                    return all(
+                        self._is_dependency_satisfied(edge, node_states, context)
+                        for edge in normal_edges
+                    )
         
         # For single input or non-loop cases, require all dependencies
         return all(

@@ -271,10 +271,13 @@ def wire_minimal(registry: ServiceRegistry, redis_client: Optional[object] = Non
     # Wire filesystem and storage services (needed by many components)
     wire_storage_services(registry)
     
-    # Wire API key service (needed by LLM service)
-    from dipeo.infrastructure.shared.keys.drivers.api_key_service import APIKeyService
-    api_key_service = APIKeyService()
-    registry.register(API_KEY_SERVICE, api_key_service)
+    # Wire API key service (needed by LLM service) - only if not already registered
+    if not registry.has(API_KEY_SERVICE):
+        from dipeo.infrastructure.shared.keys.drivers.api_key_service import APIKeyService
+        api_key_service = APIKeyService()
+        registry.register(API_KEY_SERVICE, api_key_service)
+    else:
+        api_key_service = registry.resolve(API_KEY_SERVICE)
     
     # Wire LLM services (needed by execution orchestrator)
     wire_llm_services(registry, api_key_service)
