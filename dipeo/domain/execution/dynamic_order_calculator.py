@@ -257,6 +257,15 @@ class DomainDynamicOrderCalculator:
         context: ExecutionContext
     ) -> bool:
         """Check if node dependencies are satisfied."""
+        # Special case: Condition nodes should trigger when ANY dependency is satisfied
+        # This enables loops where condition nodes receive both initial and loop-back inputs
+        if node.type == NodeType.CONDITION:
+            # Condition nodes execute when ANY of their dependencies is satisfied
+            return any(
+                self._is_dependency_satisfied(edge, node_states, context)
+                for edge in incoming_edges
+            )
+        
         # For nodes with multiple inputs (potential loops)
         if len(incoming_edges) > 1:
             # Check if any source nodes haven't executed yet
@@ -279,47 +288,6 @@ class DomainDynamicOrderCalculator:
             
             # Get target node's execution count
             target_exec_count = context.get_node_execution_count(node.id) if context else 0
-            
-            # Special handling for condition nodes that might be in loops
-            # A condition node is in a loop if it has multiple inputs where one might be a loop-back
-            # Check if this looks like a loop structure based on the edges
-            is_potential_loop = (
-                node.type == NodeType.CONDITION and 
-                len(incoming_edges) > 1 and
-                not conditional_edges  # The condition node itself doesn't receive from other conditions
-            )
-            
-            if is_potential_loop:
-                if target_exec_count == 0:
-                    # First execution: need all initial dependencies (non-loop edges)
-                    # Identify which edges are loop-backs by checking execution status
-                    initial_edges = []
-                    
-                    for edge in incoming_edges:
-                        source_state = node_states.get(edge.source_node_id)
-                        source_exec_count = context.get_node_execution_count(edge.source_node_id) if context else 0
-                        
-                        # An edge is initial if its source has completed or is running
-                        # Loop-back edges come from nodes that haven't executed yet
-                        if source_state and source_state.status in [Status.COMPLETED, Status.RUNNING, Status.MAXITER_REACHED]:
-                            initial_edges.append(edge)
-                        elif source_exec_count > 0:
-                            initial_edges.append(edge)
-                    
-                    # On first execution, require all initial edges
-                    if initial_edges:
-                        return all(
-                            self._is_dependency_satisfied(edge, node_states, context)
-                            for edge in initial_edges
-                        )
-                    # If no initial edges ready yet, wait
-                    return False
-                else:
-                    # Subsequent executions: any satisfied dependency triggers execution
-                    return any(
-                        self._is_dependency_satisfied(edge, node_states, context)
-                        for edge in incoming_edges
-                    )
             
             # If we have conditional edges, this might be a loop scenario or conditional trigger
             if conditional_edges:
