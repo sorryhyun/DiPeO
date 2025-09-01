@@ -14,7 +14,7 @@ from dipeo.application.registry.keys import (
     FILESYSTEM_ADAPTER,
     DIAGRAM_PORT,
     STATE_STORE,
-    CONVERSATION_MANAGER,
+    EXECUTION_ORCHESTRATOR,
     CLI_SESSION_SERVICE,
     DIAGRAM_CONVERTER,
 )
@@ -239,7 +239,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
             offset: int = 0,
             since: Optional[datetime] = None,
         ) -> JSONScalar:
-            conversation_service = registry.resolve(CONVERSATION_MANAGER)
+            conversation_service = registry.resolve(EXECUTION_ORCHESTRATOR)
             
             all_conversations = []
             

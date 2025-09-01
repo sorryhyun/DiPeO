@@ -13,6 +13,7 @@ export const conditionFields: UnifiedFieldDefinition[] = [
       { value: 'detect_max_iterations', label: 'Detect Max Iterations' },
       { value: 'check_nodes_executed', label: 'Check Nodes Executed' },
       { value: 'custom', label: 'Custom Expression' },
+      { value: 'llm_decision', label: 'LLM Decision' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -37,6 +38,48 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     validate: (value: unknown) => {
       return { isValid: true };
     },
+  },
+  {
+    name: 'person',
+    type: 'personSelect',
+    label: 'Person',
+    required: false,
+    placeholder: 'Select AI agent',
+    description: 'AI agent to use for decision making',
+  },
+  {
+    name: 'judge_by',
+    type: 'textarea',
+    label: 'Judge by',
+    required: false,
+    placeholder: 'Enter the prompt for LLM to judge (should result in YES/NO)',
+    description: 'Prompt for LLM to make a judgment',
+    rows: 5,
+  },
+  {
+    name: 'judge_by_file',
+    type: 'text',
+    label: 'Judge by file',
+    required: false,
+    placeholder: 'e.g., prompts/quality_check.txt',
+    description: 'External prompt file path',
+  },
+  {
+    name: 'memorize_to',
+    type: 'text',
+    label: 'Memorize to',
+    required: false,
+    defaultValue: "GOLDFISH",
+    placeholder: 'e.g., GOLDFISH',
+    description: 'Memory control strategy (e.g., GOLDFISH for fresh evaluation)',
+  },
+  {
+    name: 'at_most',
+    type: 'number',
+    label: 'At most',
+    required: false,
+    placeholder: 'e.g., 10',
+    description: 'Maximum messages to keep in memory',
   },
   {
     name: 'expose_index_as',

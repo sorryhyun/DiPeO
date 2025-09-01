@@ -6,7 +6,7 @@ from typing import Optional, List
 
 from dipeo.application.registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry.keys import DIAGRAM_PORT
-from dipeo.application.registry.keys import API_KEY_SERVICE, LLM_SERVICE, PERSON_MANAGER
+from dipeo.application.registry.keys import API_KEY_SERVICE, LLM_SERVICE
 from dipeo.diagram_generated.domain_models import (
     PersonID, ApiKeyID,
     DomainPerson,

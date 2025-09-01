@@ -10,8 +10,8 @@ from dipeo.domain.conversation import Person
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.domain_models import Message, PersonID
+from dipeo.application.execution.use_cases import PromptLoadingUseCase, PersonManagementUseCase
 
-from .prompt_resolver import PromptFileResolver
 from .text_format_handler import TextFormatHandler
 from .conversation_handler import ConversationHandler
 
@@ -26,27 +26,29 @@ class SinglePersonJobExecutor:
     
     def __init__(self, person_cache: dict[str, Person]):
         """Initialize with shared person cache."""
-        self._person_cache = person_cache
         # Services will be set by the handler
         self._llm_service = None
         self._diagram = None
-        self._conversation_manager = None
+        self._execution_orchestrator = None
         self._prompt_builder = None
         self._filesystem_adapter = None
+        # Use cases
+        self._prompt_loading_use_case = None
+        self._person_management_use_case = PersonManagementUseCase()
         # Utility handlers
-        self._prompt_resolver = None
         self._text_format_handler = TextFormatHandler()
         self._conversation_handler = ConversationHandler()
     
-    def set_services(self, llm_service, diagram, conversation_manager, prompt_builder, filesystem_adapter=None):
+    def set_services(self, llm_service, diagram, execution_orchestrator, prompt_builder, filesystem_adapter=None):
         """Set services for the executor to use."""
         self._llm_service = llm_service
         self._diagram = diagram
-        self._conversation_manager = conversation_manager
+        self._execution_orchestrator = execution_orchestrator
         self._prompt_builder = prompt_builder
         self._filesystem_adapter = filesystem_adapter
-        # Initialize prompt resolver with filesystem and diagram
-        self._prompt_resolver = PromptFileResolver(filesystem_adapter, diagram)
+        # Initialize prompt loading use case with filesystem
+        if filesystem_adapter:
+            self._prompt_loading_use_case = PromptLoadingUseCase(filesystem_adapter)
     
     async def execute(self, request: ExecutionRequest[PersonJobNode]) -> Envelope:
         """Execute the person job for a single person with envelope support.
@@ -68,12 +70,12 @@ class SinglePersonJobExecutor:
         llm_service = self._llm_service
         execution_count = context.get_node_execution_count(node.id)
 
-        # Create a fresh PromptFileResolver with the current diagram
-        # This ensures we have the correct diagram_source_path metadata
-        prompt_resolver_for_execution = PromptFileResolver(self._filesystem_adapter, self._diagram)
-
-        # Get or create person
-        person = self._get_or_create_person(person_id, self._conversation_manager)
+        # Get or create person using the use case
+        person = self._person_management_use_case.get_or_create_person(
+            person_id,
+            diagram=self._diagram,
+            person_repository=self._execution_orchestrator
+        )
         
         # Use inputs directly
         transformed_inputs = inputs
@@ -86,16 +88,16 @@ class SinglePersonJobExecutor:
                 transformed_inputs, str(person.id)
             )
             # Add messages via orchestrator
-            if messages_to_add and hasattr(self._conversation_manager, 'add_message'):
+            if messages_to_add and hasattr(self._execution_orchestrator, 'add_message'):
                 for msg in messages_to_add:
-                    self._conversation_manager.add_message(
+                    self._execution_orchestrator.add_message(
                         msg,
                         execution_id=trace_id,
                         node_id=str(node.id)
                     )
 
         # Get all messages from conversation repository via orchestrator
-        all_messages = self._conversation_manager.get_conversation().messages if hasattr(self._conversation_manager, 'get_conversation') else []
+        all_messages = self._execution_orchestrator.get_conversation().messages if hasattr(self._execution_orchestrator, 'get_conversation') else []
         
         # Load prompts early to use for task_prompt_preview
         prompt_content = node.default_prompt
@@ -106,10 +108,12 @@ class SinglePersonJobExecutor:
             # Use pre-resolved content from compilation
             first_only_content = node.resolved_first_prompt
             logger.debug(f"[PersonJob {node.label or node.id}] Using pre-resolved first prompt")
-        elif hasattr(node, 'first_prompt_file') and node.first_prompt_file:
+        elif hasattr(node, 'first_prompt_file') and node.first_prompt_file and self._prompt_loading_use_case:
             # Fall back to runtime loading if not pre-resolved
-            loaded_content = prompt_resolver_for_execution.load_prompt_file(
+            diagram_source_path = self._prompt_loading_use_case.get_diagram_source_path(self._diagram)
+            loaded_content = self._prompt_loading_use_case.load_prompt_file(
                 node.first_prompt_file,
+                diagram_source_path,
                 node.label or node.id
             )
             if loaded_content:
@@ -120,10 +124,12 @@ class SinglePersonJobExecutor:
             # Use pre-resolved content from compilation
             prompt_content = node.resolved_prompt
             logger.debug(f"[PersonJob {node.label or node.id}] Using pre-resolved default prompt")
-        elif hasattr(node, 'prompt_file') and node.prompt_file:
+        elif hasattr(node, 'prompt_file') and node.prompt_file and self._prompt_loading_use_case:
             # Fall back to runtime loading if not pre-resolved
-            loaded_content = prompt_resolver_for_execution.load_prompt_file(
+            diagram_source_path = self._prompt_loading_use_case.get_diagram_source_path(self._diagram)
+            loaded_content = self._prompt_loading_use_case.load_prompt_file(
                 node.prompt_file,
+                diagram_source_path,
                 node.label or node.id
             )
             if loaded_content:
@@ -175,8 +181,8 @@ class SinglePersonJobExecutor:
             
             # Special handling for GOLDFISH mode - clear conversation for this person
             if memorize_to and memorize_to.strip().upper() == "GOLDFISH":
-                if hasattr(self._conversation_manager, 'clear_person_messages'):
-                    self._conversation_manager.clear_person_messages(person.id)
+                if hasattr(self._execution_orchestrator, 'clear_person_messages'):
+                    self._execution_orchestrator.clear_person_messages(person.id)
                 person.reset_memory()
         else:
             # Default behavior - use person's standard filtering through get_messages
@@ -292,15 +298,15 @@ class SinglePersonJobExecutor:
         )
         
         # Add messages to conversation via orchestrator
-        if hasattr(self._conversation_manager, 'add_message'):
+        if hasattr(self._execution_orchestrator, 'add_message'):
             # Add incoming message
-            self._conversation_manager.add_message(
+            self._execution_orchestrator.add_message(
                 incoming_msg,
                 execution_id=trace_id,
                 node_id=str(node.id)
             )
             # Add response message
-            self._conversation_manager.add_message(
+            self._execution_orchestrator.add_message(
                 response_msg,
                 execution_id=trace_id,
                 node_id=str(node.id)
@@ -317,44 +323,6 @@ class SinglePersonJobExecutor:
             trace_id=trace_id,
             selected_messages=filtered_messages
         )
-    
-    def _get_or_create_person(
-        self,
-        person_id: str,
-        conversation_manager: Any
-    ) -> Person:
-        # Check cache first
-        if person_id in self._person_cache:
-            return self._person_cache[person_id]
-        
-        # Use the orchestrator's get_or_create_person method
-        # which properly handles repository access and wiring
-        if hasattr(conversation_manager, 'get_or_create_person'):
-            from dipeo.diagram_generated import PersonID
-            person = conversation_manager.get_or_create_person(
-                person_id=PersonID(person_id),
-                name=person_id  # Use person_id as default name
-            )
-        else:
-            # Fallback for backward compatibility (should not happen with new architecture)
-            from dipeo.diagram_generated import ApiKeyID, LLMService, PersonLLMConfig, PersonID
-            person_config = PersonLLMConfig(
-                service=LLMService.OPENAI,
-                model="gpt-5-nano-2025-08-07",
-                api_key_id=ApiKeyID("default")
-            )
-            
-            person = Person(
-                id=PersonID(person_id),
-                name=person_id,
-                llm_config=person_config,
-                conversation_manager=conversation_manager
-            )
-        
-        # Cache the person for this execution
-        self._person_cache[person_id] = person
-        
-        return person
     
     
     
@@ -384,7 +352,7 @@ class SinglePersonJobExecutor:
                 messages = selected_messages
             else:
                 # Get all messages from conversation repository
-                all_conv_messages = self._conversation_manager.get_conversation().messages if hasattr(self._conversation_manager, 'get_conversation') else []
+                all_conv_messages = self._execution_orchestrator.get_conversation().messages if hasattr(self._execution_orchestrator, 'get_conversation') else []
                 # Filter messages from person's perspective
                 messages = person.get_messages(all_conv_messages)
             

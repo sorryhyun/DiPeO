@@ -20,6 +20,7 @@ from dipeo.infrastructure.execution.messaging import NullEventBus
 
 from .base_executor import BaseSubDiagramExecutor
 from .parallel_executor import ParallelExecutionManager
+from dipeo.application.execution.use_cases import PersonManagementUseCase
 
 if TYPE_CHECKING:
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
@@ -37,6 +38,8 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         self._parallel_manager: Optional[ParallelExecutionManager] = None
         # Track if fail_fast is enabled
         self._fail_fast = os.getenv("DIPEO_FAIL_FAST", "false").lower() == "true"
+        # Use case for person management
+        self._person_management_use_case = PersonManagementUseCase()
     
     def set_services(self, prepare_use_case, diagram_service):
         """Set services for the executor to use."""
@@ -476,18 +479,16 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             from dipeo.application.registry import (
                 FILESYSTEM_ADAPTER,
                 LLM_SERVICE,
-                CONVERSATION_MANAGER,
+                EXECUTION_ORCHESTRATOR,
                 PROMPT_BUILDER,
             )
-            from dipeo.application.execution.wiring import EXECUTION_ORCHESTRATOR
             
             # Critical services that person_job needs
             critical_services = [
                 (FILESYSTEM_ADAPTER, 'filesystem_adapter'),
                 (LLM_SERVICE, 'llm_service'),
-                (CONVERSATION_MANAGER, 'conversation_manager'),
+                (EXECUTION_ORCHESTRATOR, 'execution_orchestrator'),
                 (PROMPT_BUILDER, 'prompt_builder'),
-                (EXECUTION_ORCHESTRATOR, 'execution.orchestrator'),  # Add orchestrator for person registration
             ]
             
             for service_key, key_str in critical_services:
@@ -527,33 +528,11 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             logger.debug("No execution orchestrator found, skipping person registration")
             return
         
-        # Get persons from the diagram metadata if available
-        persons = diagram.metadata.get("persons", {}) if diagram.metadata else {}
-        
-        if not persons:
-            logger.debug("No persons found in sub_diagram metadata")
-            return
-        
-        # Register each person in the orchestrator
-        for person_id, person_config in persons.items():
-            try:
-                # Convert person config to the format expected by register_person
-                config = {
-                    "service": person_config.get("service", "openai"),
-                    "model": person_config.get("model", "gpt-5-nano-2025-08-07"),
-                    "api_key_id": person_config.get("api_key_id", "default"),
-                }
-                
-                # Add system prompt if available
-                if "system_prompt" in person_config:
-                    config["system_prompt"] = person_config["system_prompt"]
-                
-                # Register the person
-                orchestrator.register_person(person_id, config)
-                logger.debug(f"Registered person '{person_id}' from sub_diagram with API key '{config['api_key_id']}'")
-                
-            except Exception as e:
-                logger.warning(f"Failed to register person '{person_id}': {e}")
+        # Use the person management use case to register all persons
+        self._person_management_use_case.register_diagram_persons(
+            diagram,
+            orchestrator
+        )
     
     def _create_error_envelope(
         self,

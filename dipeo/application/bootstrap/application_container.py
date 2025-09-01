@@ -8,7 +8,6 @@ from dipeo.application.registry.keys import (
     AST_PARSER,
     BLOB_STORE,
     CLI_SESSION_SERVICE,
-    CONVERSATION_MANAGER,
     DB_OPERATIONS_SERVICE,
     DIAGRAM_CONVERTER,
     DIAGRAM_PORT,
@@ -19,7 +18,6 @@ from dipeo.application.registry.keys import (
     LLM_SERVICE,
     MESSAGE_ROUTER,
     NODE_REGISTRY,
-    PERSON_MANAGER,
     PREPARE_DIAGRAM_USE_CASE,
     PROMPT_BUILDER,
     STATE_STORE,
@@ -105,6 +103,7 @@ class ApplicationContainer:
         from dipeo.application.registry.keys import (
             CONVERSATION_REPOSITORY,
             PERSON_REPOSITORY,
+            EXECUTION_ORCHESTRATOR,
         )
         
         # Get repositories from registry (registered by InfrastructureContainer)
@@ -117,15 +116,8 @@ class ApplicationContainer:
             conversation_repository=conversation_repository
         )
         
-        # Register the orchestrator as both conversation manager and person manager
-        # for backward compatibility during migration
-        self.registry.register(CONVERSATION_MANAGER, orchestrator)
-        # Register as CONVERSATION_MANAGER (CONVERSATION_SERVICE removed)
-        # Already registered as CONVERSATION_MANAGER above
-        
-        # For now, we'll keep PERSON_MANAGER pointing to the orchestrator
-        # This maintains compatibility while we migrate
-        self.registry.register(PERSON_MANAGER, orchestrator)
+        # Register the orchestrator with its proper name
+        self.registry.register(EXECUTION_ORCHESTRATOR, orchestrator)
         
         from dipeo.application.execution.use_cases import CliSessionService
         self.registry.register(CLI_SESSION_SERVICE, CliSessionService())

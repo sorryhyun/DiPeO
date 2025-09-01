@@ -21,6 +21,7 @@ from .evaluators import (
     MaxIterationsEvaluator,
     NodesExecutedEvaluator,
 )
+from .evaluators.llm_decision_evaluator import LLMDecisionEvaluator
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -40,6 +41,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             "detect_max_iterations": MaxIterationsEvaluator(),
             "check_nodes_executed": NodesExecutedEvaluator(),
             "custom": CustomExpressionEvaluator(),
+            "llm_decision": LLMDecisionEvaluator(),
         }
         # Instance variables for passing data between methods
         self._current_evaluator = None
@@ -59,7 +61,13 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["diagram"]
+        return [
+            "diagram",
+            "llm_service",
+            "conversation_manager",
+            "prompt_builder",
+            "filesystem_adapter"
+        ]
 
     @property
     def description(self) -> str:
@@ -81,6 +89,12 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         
         if condition_type == "check_nodes_executed" and not node.node_indices:
             return "check_nodes_executed requires node_indices"
+        
+        if condition_type == "llm_decision":
+            if not hasattr(node, 'person') or not node.person:
+                return "llm_decision requires a person to be specified"
+            if not hasattr(node, 'judge_by') and not hasattr(node, 'judge_by_file'):
+                return "llm_decision requires either judge_by or judge_by_file"
             
         return None
     
@@ -134,6 +148,16 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Use evaluator and diagram from instance variables (set in pre_execute)
         evaluator = self._current_evaluator
         diagram = self._current_diagram
+        
+        # For LLM decision evaluator, pass required services
+        if node.condition_type == "llm_decision" and hasattr(evaluator, 'set_services'):
+            evaluator.set_services(
+                llm_service=request.get_service("llm_service"),
+                conversation_manager=request.get_service("conversation_manager"),
+                prompt_builder=request.get_service("prompt_builder"),
+                filesystem_adapter=request.get_service("filesystem_adapter"),
+                diagram=diagram
+            )
         
         # Track and expose loop index if configured
         if hasattr(node, 'expose_index_as') and node.expose_index_as:

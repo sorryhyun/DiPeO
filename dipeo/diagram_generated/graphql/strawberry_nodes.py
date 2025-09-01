@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-01T16:07:10.178497
+Generated at: 2025-09-01T16:39:30.886919
 """
 
 import strawberry

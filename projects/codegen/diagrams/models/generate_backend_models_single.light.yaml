@@ -95,6 +95,10 @@ nodes:
             spec_data = spec_result
         
         # Clean up nodeType by removing "NodeType." prefix and convert to lowercase
+        # Ensure spec_data is a dictionary
+        if not isinstance(spec_data, dict):
+            raise ValueError(f"spec_data is not a dictionary: {type(spec_data)} - {spec_data}")
+        
         cleaned_spec_data = dict(spec_data)
         if 'nodeType' in cleaned_spec_data:
             node_type_raw = cleaned_spec_data['nodeType']
@@ -114,16 +118,24 @@ nodes:
         node_name = ''.join(word.title() for word in node_type_snake.split('_'))
         
         # Build the context with everything needed for templates
-        context = {
-            **cleaned_spec_data,  # All spec fields with cleaned nodeType
-            'mappings': mappings,  # Type mappings for python_type_with_context filter
-            'node_type': node_type_snake,  # For file names (api_job)
-            'node_name': node_name,  # For class names (ApiJob)
-            'node_naming': {  # Keep for backward compatibility with templates
-                'node_type': node_type_snake,
-                'node_name': node_name
+        try:
+            context = {
+                **cleaned_spec_data,  # All spec fields with cleaned nodeType
+                'mappings': mappings,  # Type mappings for python_type_with_context filter
+                'node_type': node_type_snake,  # For file names (api_job)
+                'node_name': node_name,  # For class names (ApiJob)
+                'node_naming': {  # Keep for backward compatibility with templates
+                    'node_type': node_type_snake,
+                    'node_name': node_name
+                }
             }
-        }
+        except Exception as e:
+            raise ValueError(
+                f"Failed to build context for node {node_type_str}. "
+                f"cleaned_spec_data type: {type(cleaned_spec_data)}, "
+                f"mappings type: {type(mappings)}. "
+                f"Error: {str(e)}"
+            )
         
         result = context
 
@@ -146,15 +158,15 @@ nodes:
 
 connections:
   # Parse input first
-  - {from: Start, to: Parse Node Type}
+  - {from: Start, to: Parse Node Type, content_type: object}
     
   # Load resources in parallel
   - {from: Parse Node Type, to: Load Cached AST, label: node_type, content_type: object}
   - {from: Parse Node Type, to: Load Codegen Mappings}
     
   # Extract specification from AST
-  - {from: Load Cached AST, to: Extract Specification, label: ast_data}
-  - {from: Parse Node Type, to: Extract Specification, label: node_type}
+  - {from: Load Cached AST, to: Extract Specification, label: ast_data, content_type: object}
+  - {from: Parse Node Type, to: Extract Specification, label: node_type, content_type: object}
     
   # Extract mappings
   - {from: Load Codegen Mappings, to: Extract Mappings, content_type: object}

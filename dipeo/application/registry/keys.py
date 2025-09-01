@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     from dipeo.application.execution.use_cases import CliSessionService
     from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase
     from dipeo.application.execution.handler_factory import HandlerRegistry
+    from dipeo.application.execution.orchestrators import ExecutionOrchestrator
     from typing import Any, Dict
 
 
@@ -78,9 +79,8 @@ BLOB_STORE = ServiceKey["BlobStoreAdapter"]("blob_store")
 FILESYSTEM_ADAPTER = ServiceKey["FileSystemPort"]("filesystem_adapter")
 
 # Application Services
-CONVERSATION_MANAGER = ServiceKey["ConversationManagerImpl"]("conversation_manager")
+EXECUTION_ORCHESTRATOR = ServiceKey["ExecutionOrchestrator"]("execution_orchestrator")
 PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder")
-PERSON_MANAGER = ServiceKey["PersonManagerImpl"]("person_manager")
 TEMPLATE_PROCESSOR = ServiceKey["TemplateProcessorPort"]("template_processor")
 
 # Domain Services
@@ -181,9 +181,8 @@ __all__ = [
     "FILESYSTEM_ADAPTER",
     
     # Application
-    "CONVERSATION_MANAGER",
+    "EXECUTION_ORCHESTRATOR",
     "PROMPT_BUILDER",
-    "PERSON_MANAGER",
     "TEMPLATE_PROCESSOR",
     
     # Domain

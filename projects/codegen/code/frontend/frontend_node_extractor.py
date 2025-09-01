@@ -65,7 +65,26 @@ def main(inputs: dict) -> dict:
         actual_inputs = inputs
     
     ast_data = actual_inputs.get('ast_data', {})
-    node_type = actual_inputs.get('node_type', 'unknown')
+    
+    # Try to get node_type from multiple possible keys
+    # In batch mode it comes as node_spec_path
+    node_type = actual_inputs.get('node_type') or actual_inputs.get('node_spec_path')
+    
+    # Better error handling for missing node_type
+    if not node_type:
+        available_inputs = list(actual_inputs.keys())
+        raise ValueError(
+            f"node_type or node_spec_path not provided in inputs. Available keys: {available_inputs}. "
+            f"Full inputs: {actual_inputs}"
+        )
+    
+    # Convert hyphenated to underscore format (api-job -> api_job)
+    node_type = node_type.replace('-', '_')
+    
+    if not ast_data:
+        raise ValueError(
+            f"No AST data provided for node type: {node_type}"
+        )
     
     result = extract_frontend_node_data(ast_data, node_type)
     

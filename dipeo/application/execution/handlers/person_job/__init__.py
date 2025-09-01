@@ -73,7 +73,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         return [
             "llm_service", 
             "diagram", 
-            "conversation_manager",
+            "execution_orchestrator",
             "prompt_builder",
             "filesystem_adapter",
         ]
@@ -110,14 +110,14 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             from dipeo.application.registry.keys import (
                 LLM_SERVICE,
                 DIAGRAM,
-                CONVERSATION_MANAGER,
+                EXECUTION_ORCHESTRATOR,
                 PROMPT_BUILDER,
                 FILESYSTEM_ADAPTER
             )
             
             llm_service = request.services.resolve(LLM_SERVICE)
             diagram = request.services.resolve(DIAGRAM)
-            conversation_manager = request.services.resolve(CONVERSATION_MANAGER)
+            execution_orchestrator = request.services.resolve(EXECUTION_ORCHESTRATOR)
             prompt_builder = request.services.resolve(PROMPT_BUILDER)
             filesystem_adapter = request.services.resolve(FILESYSTEM_ADAPTER)
             
@@ -125,7 +125,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             self.single_executor.set_services(
                 llm_service=llm_service,
                 diagram=diagram,
-                conversation_manager=conversation_manager,
+                execution_orchestrator=execution_orchestrator,
                 prompt_builder=prompt_builder,
                 filesystem_adapter=filesystem_adapter
             )

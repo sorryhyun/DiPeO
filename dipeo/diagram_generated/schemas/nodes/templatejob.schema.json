@@ -2,27 +2,8 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/TemplateJobNodeData",
   "definitions": {
-    "TemplatePreprocessor": {
+    "JsonDict": {
       "additionalProperties": false,
-      "description": "Configuration for template preprocessor",
-      "properties": {
-        "args": {
-          "$ref": "#/definitions/JsonDict",
-          "description": "Optional arguments passed as kwargs to the function"
-        },
-        "function": {
-          "description": "Function name to call, e.g. \"build_context_from_ast\"",
-          "type": "string"
-        },
-        "module": {
-          "description": "Python module path, e.g. \"projects.codegen.code.shared.context_builders\"",
-          "type": "string"
-        }
-      },
-      "required": [
-        "function",
-        "module"
-      ],
       "type": "object"
     },
     "TemplateJobNodeData": {
@@ -100,8 +81,27 @@
       ],
       "type": "object"
     },
-    "JsonDict": {
+    "TemplatePreprocessor": {
       "additionalProperties": false,
+      "description": "Configuration for template preprocessor",
+      "properties": {
+        "args": {
+          "$ref": "#/definitions/JsonDict",
+          "description": "Optional arguments passed as kwargs to the function"
+        },
+        "function": {
+          "description": "Function name to call, e.g. \"build_context_from_ast\"",
+          "type": "string"
+        },
+        "module": {
+          "description": "Python module path, e.g. \"projects.codegen.code.shared.context_builders\"",
+          "type": "string"
+        }
+      },
+      "required": [
+        "function",
+        "module"
+      ],
       "type": "object"
     }
   }

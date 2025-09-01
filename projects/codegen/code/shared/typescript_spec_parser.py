@@ -20,6 +20,10 @@ def extract_spec_from_ast(ast_data: Dict[str, Any], spec_name: str) -> Optional[
     
     The typescript_ast node provides parsed constants with structured data.
     """
+    # Ensure ast_data is a dictionary
+    if not isinstance(ast_data, dict):
+        return None
+    
     constants = ast_data.get('constants', [])
     
     for const in constants:
@@ -116,7 +120,22 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     Outputs:
         - spec_data: The extracted specification as a Python dict
     """
+    import json
+    
     ast_data = inputs.get('ast_data', {})
+    
+    # Handle case where ast_data might be a JSON string
+    if isinstance(ast_data, str):
+        try:
+            ast_data = json.loads(ast_data)
+        except (json.JSONDecodeError, ValueError):
+            # If it's not valid JSON, treat as empty dict
+            ast_data = {}
+    
+    # Ensure ast_data is a dictionary
+    if not isinstance(ast_data, dict):
+        ast_data = {}
+    
     node_type = inputs.get('node_type', '')
     
     # Convert node type to spec name (e.g., "person-job" -> "personJobSpec") 

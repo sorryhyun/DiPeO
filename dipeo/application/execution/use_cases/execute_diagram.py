@@ -13,7 +13,7 @@ from dipeo.application.registry import (
     MESSAGE_ROUTER,
     DIAGRAM_PORT,
     API_KEY_SERVICE,
-    CONVERSATION_MANAGER,
+    EXECUTION_ORCHESTRATOR,
     PREPARE_DIAGRAM_USE_CASE,
 )
 
@@ -344,7 +344,7 @@ class ExecuteDiagramUseCase(BaseService):
         conversation_service = None
         if hasattr(self.service_registry, 'resolve'):
             # Use the consolidated conversation manager service
-            conversation_service = self.service_registry.resolve(CONVERSATION_MANAGER)
+            conversation_service = self.service_registry.resolve(EXECUTION_ORCHESTRATOR)
         
         if conversation_service:
             # Extract person configs from typed nodes
