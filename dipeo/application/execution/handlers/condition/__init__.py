@@ -61,7 +61,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     @property
     def requires_services(self) -> list[str]:
         return [
-            "orchestrator",
+            "execution_orchestrator",
             "prompt_builder"
         ]
 
@@ -148,7 +148,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # For LLM decision evaluator, pass required services
         if node.condition_type == "llm_decision" and hasattr(evaluator, 'set_services'):
             evaluator.set_services(
-                orchestrator=request.get_service("orchestrator"),
+                orchestrator=request.get_service("execution_orchestrator"),
                 prompt_builder=request.get_service("prompt_builder")
             )
         

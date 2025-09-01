@@ -49,6 +49,14 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
         Returns:
             EvaluationResult with boolean decision and metadata
         """
+        if not self._orchestrator:
+            logger.error("Orchestrator service not available for LLM decision")
+            return EvaluationResult(
+                result=False,
+                metadata={"error": "Orchestrator service not available"},
+                output_data=inputs
+            )
+        
         if not self._decision_adapter:
             logger.error("Decision adapter not available for LLM decision")
             return EvaluationResult(
@@ -71,6 +79,7 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
         prompt = self._orchestrator.load_prompt(
             prompt_file=getattr(node, 'judge_by_file', None),
             inline_prompt=getattr(node, 'judge_by', None),
+            diagram=diagram,
             node_label=str(node.id)
         )
         
