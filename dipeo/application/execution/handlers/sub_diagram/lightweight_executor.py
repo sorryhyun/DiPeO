@@ -20,7 +20,6 @@ from dipeo.infrastructure.execution.messaging import NullEventBus
 
 from .base_executor import BaseSubDiagramExecutor
 from .parallel_executor import ParallelExecutionManager
-from dipeo.application.execution.use_cases import PersonManagementUseCase
 
 if TYPE_CHECKING:
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
@@ -38,8 +37,6 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         self._parallel_manager: Optional[ParallelExecutionManager] = None
         # Track if fail_fast is enabled
         self._fail_fast = os.getenv("DIPEO_FAIL_FAST", "false").lower() == "true"
-        # Use case for person management
-        self._person_management_use_case = PersonManagementUseCase()
     
     def set_services(self, prepare_use_case, diagram_service):
         """Set services for the executor to use."""
@@ -528,11 +525,8 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             logger.debug("No execution orchestrator found, skipping person registration")
             return
         
-        # Use the person management use case to register all persons
-        self._person_management_use_case.register_diagram_persons(
-            diagram,
-            orchestrator
-        )
+        # Use the orchestrator to register all persons
+        orchestrator.register_diagram_persons(diagram)
     
     def _create_error_envelope(
         self,

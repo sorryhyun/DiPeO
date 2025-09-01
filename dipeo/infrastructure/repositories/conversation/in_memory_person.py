@@ -62,10 +62,10 @@ class InMemoryPersonRepository(PersonRepository):
         # Wire up brain component if orchestrator is available
         if self._orchestrator:
             from dipeo.domain.conversation.brain import CognitiveBrain
-            from dipeo.infrastructure.memory import LLMMemorySelector
+            from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
             
             # Create memory selector implementation
-            memory_selector = LLMMemorySelector(self._orchestrator)
+            memory_selector = LLMMemorySelectionAdapter(self._orchestrator)
             
             # Wire brain with memory selector
             person.brain = CognitiveBrain(memory_selector=memory_selector)

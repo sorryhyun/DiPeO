@@ -15,10 +15,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class LLMMemorySelector:
-    """LLM-based implementation of memory selection.
+class LLMMemorySelectionAdapter:
+    """LLM-based adapter for memory selection.
     
-    This implementation uses an LLM to intelligently select relevant memories
+    This adapter uses an LLM to intelligently select relevant memories
     based on natural language criteria.
     
     Implements the MemorySelectionPort protocol.

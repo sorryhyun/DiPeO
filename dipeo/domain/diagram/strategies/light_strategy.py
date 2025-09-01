@@ -274,8 +274,11 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 arrow_data_copy["requires_first_execution"] = True
             
             # Add branch data if this is from a condition handle and not already present
-            if src_handle in ["condtrue", "condfalse"] and "branch" not in arrow_data_copy:
-                arrow_data_copy["branch"] = "true" if src_handle == "condtrue" else "false"
+            if src_handle in ["condtrue", "condfalse"]:
+                if "branch" not in arrow_data_copy:
+                    arrow_data_copy["branch"] = "true" if src_handle == "condtrue" else "false"
+                # Mark edges from condition nodes as conditional for proper scheduler handling
+                arrow_data_copy["is_conditional"] = True
             
             # Create proper handle IDs
             source_handle_id, target_handle_id = HandleParser.create_handle_ids(

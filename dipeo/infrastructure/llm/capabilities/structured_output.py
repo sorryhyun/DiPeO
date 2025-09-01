@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Type, Union
 
 from pydantic import BaseModel, ValidationError, create_model, Field
 
-from ..core.types import ExecutionPhase, MemorySelectionOutput, ProviderType
+from ..core.types import ExecutionPhase, MemorySelectionOutput, DecisionOutput, ProviderType
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,9 @@ class StructuredOutputHandler:
         """
         if execution_phase == ExecutionPhase.MEMORY_SELECTION:
             return self._prepare_memory_selection_format()
+        
+        if execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            return self._prepare_decision_evaluation_format()
         
         if response_format is None:
             return None
@@ -61,6 +64,32 @@ class StructuredOutputHandler:
                         }
                     },
                     "required": ["message_ids"]
+                }
+            }
+        else:
+            return {}
+    
+    def _prepare_decision_evaluation_format(self) -> Union[Type[BaseModel], Dict[str, Any], None]:
+        """Prepare format for decision evaluation phase."""
+        if self.provider == ProviderType.OPENAI:
+            # For OpenAI, return DecisionOutput model directly
+            return DecisionOutput
+        elif self.provider == ProviderType.ANTHROPIC:
+            return {
+                "type": "json",
+                "json_schema": {
+                    "type": "object",
+                    "properties": {
+                        "decision": {
+                            "type": "boolean",
+                            "description": "The binary decision result"
+                        },
+                        "reasoning": {
+                            "type": "string",
+                            "description": "Optional reasoning for the decision"
+                        }
+                    },
+                    "required": ["decision"]
                 }
             }
         else:
@@ -149,6 +178,14 @@ class StructuredOutputHandler:
                 return MemorySelectionOutput(**parsed)
             except ValidationError as e:
                 logger.error(f"Memory selection output validation failed: {e}")
+                return parsed
+        
+        # Handle decision evaluation phase
+        if execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            try:
+                return DecisionOutput(**parsed)
+            except ValidationError as e:
+                logger.error(f"Decision output validation failed: {e}")
                 return parsed
         
         # Validate against Pydantic model if provided

@@ -48,7 +48,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
   // Dynamic poll interval based on execution status
   const pollInterval = useMemo(() => {
     if (!currentExecutionId) return 0;
-    return shouldPoll ? 2000 : 0;
+    return shouldPoll ? 1000 : 0;  // Reduced from 2000ms to 1000ms for more responsive updates
   }, [currentExecutionId, shouldPoll]);
   
   const { data, loading, error, refetch } = useGetExecutionOrderQuery({

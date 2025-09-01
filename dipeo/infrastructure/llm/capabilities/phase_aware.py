@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from dipeo.config.llm import MEMORY_SELECTION_TEMPERATURE, MEMORY_SELECTION_MAX_TOKENS
 from dipeo.diagram_generated import Message
 
-from ..core.types import ExecutionPhase, MemorySelectionOutput, ProviderType
+from ..core.types import ExecutionPhase, MemorySelectionOutput, DecisionOutput, ProviderType
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,8 @@ class PhaseHandler:
             return self._prepare_memory_selection_messages(messages)
         elif phase == ExecutionPhase.DIRECT_EXECUTION:
             return self._prepare_direct_execution_messages(messages)
+        elif phase == ExecutionPhase.DECISION_EVALUATION:
+            return self._prepare_decision_evaluation_messages(messages)
         else:
             return messages
     
@@ -67,6 +69,27 @@ class PhaseHandler:
     def _prepare_direct_execution_messages(self, messages: List[Message]) -> List[Message]:
         """Prepare messages for direct execution phase."""
         # Direct execution uses messages as-is
+        return messages
+    
+    def _prepare_decision_evaluation_messages(self, messages: List[Message]) -> List[Message]:
+        """Prepare messages for decision evaluation phase."""
+        # Add instructions for decision evaluation
+        system_prompt = (
+            "You are evaluating a condition to make a binary decision.\n"
+            "Provide a clear YES/NO decision based on the context.\n"
+            "If structured output is supported, use the decision field (true/false)."
+        )
+        
+        # Prepend system message if needed
+        if messages and messages[0].role == "system":
+            messages[0].content = f"{messages[0].content}\n\n{system_prompt}"
+        else:
+            system_msg = Message(
+                role="system",
+                content=system_prompt
+            )
+            messages = [system_msg] + messages
+        
         return messages
     
     def get_phase_specific_params(
@@ -123,6 +146,14 @@ class PhaseHandler:
         elif phase == ExecutionPhase.DIRECT_EXECUTION:
             # Direct execution uses standard parameters
             pass
+        elif phase == ExecutionPhase.DECISION_EVALUATION:
+            # Decision evaluation needs structured output for binary decisions
+            params['temperature'] = 0  # Deterministic decisions
+            params['max_tokens'] = 200  # Decisions should be concise
+            
+            if self.provider == ProviderType.OPENAI:
+                # OpenAI will use DecisionOutput model via structured_output.py
+                pass
         
         return params
     
@@ -134,6 +165,8 @@ class PhaseHandler:
         """Process response based on execution phase."""
         if phase == ExecutionPhase.MEMORY_SELECTION:
             return self._process_memory_selection_response(response)
+        elif phase == ExecutionPhase.DECISION_EVALUATION:
+            return self._process_decision_evaluation_response(response)
         else:
             return response
     
@@ -162,6 +195,37 @@ class PhaseHandler:
         
         return MemorySelectionOutput(message_ids=message_ids)
     
+    def _process_decision_evaluation_response(self, response: Any) -> DecisionOutput:
+        """Process decision evaluation phase response."""
+        # Extract decision from response
+        decision = False
+        reasoning = None
+        
+        if self.provider == ProviderType.OPENAI:
+            # OpenAI structured output
+            if hasattr(response, 'parsed') and response.parsed:
+                return DecisionOutput(
+                    decision=response.parsed.get('decision', False),
+                    reasoning=response.parsed.get('reasoning')
+                )
+        
+        # Fallback: parse from text
+        if hasattr(response, 'content'):
+            content = response.content
+        elif hasattr(response, 'text'):
+            content = response.text
+        else:
+            content = str(response)
+        
+        # Simple YES/NO detection
+        content_lower = content.lower().strip()
+        if content_lower.startswith('yes'):
+            decision = True
+        elif content_lower.startswith('no'):
+            decision = False
+        
+        return DecisionOutput(decision=decision, reasoning=content[:200])
+    
     def validate_phase_transition(
         self,
         from_phase: ExecutionPhase,
@@ -172,7 +236,8 @@ class PhaseHandler:
         valid_transitions = {
             ExecutionPhase.DEFAULT: [
                 ExecutionPhase.MEMORY_SELECTION,
-                ExecutionPhase.DIRECT_EXECUTION
+                ExecutionPhase.DIRECT_EXECUTION,
+                ExecutionPhase.DECISION_EVALUATION
             ],
             ExecutionPhase.MEMORY_SELECTION: [
                 ExecutionPhase.DIRECT_EXECUTION,
@@ -181,6 +246,9 @@ class PhaseHandler:
             ExecutionPhase.DIRECT_EXECUTION: [
                 ExecutionPhase.DEFAULT,
                 ExecutionPhase.MEMORY_SELECTION
+            ],
+            ExecutionPhase.DECISION_EVALUATION: [
+                ExecutionPhase.DEFAULT
             ]
         }
         

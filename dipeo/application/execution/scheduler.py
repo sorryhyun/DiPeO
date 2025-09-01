@@ -59,7 +59,7 @@ class NodeScheduler:
             # Skip conditional edges (like condition branches)
             if edge.is_conditional:
                 continue
-                
+            
             self._indegree[edge.target_node_id] += 1
             self._dependents[edge.source_node_id].add(edge.target_node_id)
         

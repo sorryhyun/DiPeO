@@ -10,7 +10,7 @@ from dipeo.infrastructure.llm.core.types import ExecutionPhase, LLMResponse
 
 if TYPE_CHECKING:
     from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
-    from dipeo.infrastructure.memory.llm_memory_selector import LLMMemorySelector
+    from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
     from dipeo.domain.integrations.ports import LLMService as LLMServicePort
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class ExecutionOrchestrator:
         person_repository: PersonRepository,
         conversation_repository: ConversationRepository,
         prompt_loading_use_case: Optional["PromptLoadingUseCase"] = None,
-        memory_selector: Optional["LLMMemorySelector"] = None,
+        memory_selector: Optional["LLMMemorySelectionAdapter"] = None,
         llm_service: Optional["LLMServicePort"] = None
     ):
         self._person_repo = person_repository

@@ -37,7 +37,7 @@ def wire_execution(registry: ServiceRegistry) -> None:
     # Wire execution orchestrator
     from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
     from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
-    from dipeo.infrastructure.memory.llm_memory_selector import LLMMemorySelector
+    from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
     from dipeo.application.registry.keys import (
         CONVERSATION_REPOSITORY,
         PERSON_REPOSITORY,
@@ -69,8 +69,8 @@ def wire_execution(registry: ServiceRegistry) -> None:
             llm_service=llm_service
         )
         
-        # Create LLMMemorySelector with orchestrator
-        memory_selector = LLMMemorySelector(orchestrator)
+        # Create LLMMemorySelectionAdapter with orchestrator
+        memory_selector = LLMMemorySelectionAdapter(orchestrator)
         registry.register(MEMORY_SELECTOR, memory_selector)
         
         # Update orchestrator with memory_selector

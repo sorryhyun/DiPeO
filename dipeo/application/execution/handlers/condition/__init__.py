@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.registry import DIAGRAM
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.condition_model import ConditionNodeData
@@ -62,11 +61,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     @property
     def requires_services(self) -> list[str]:
         return [
-            "diagram",
-            "llm_service",
-            "conversation_manager",
-            "prompt_builder",
-            "filesystem_adapter"
+            "orchestrator",
+            "prompt_builder"
         ]
 
     @property
@@ -74,8 +70,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         return "Evaluates conditions using specialized evaluators for different condition types"
     
     def validate(self, request: ExecutionRequest[ConditionNode]) -> Optional[str]:
-        if not request.get_service(DIAGRAM.name):
-            return "Diagram service not available"
+        if not request.context or not hasattr(request.context, 'diagram'):
+            return "Executable diagram not available in context"
         
         node = request.node
         condition_type = node.condition_type
@@ -107,11 +103,11 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         node = request.node
         condition_type = node.condition_type
         
-        # Validate diagram service is available
-        diagram = request.get_service(DIAGRAM.name)
-        if not diagram:
+        # Get the currently executing diagram from the context
+        diagram = request.context.diagram if request.context else None
+        if diagram is None:
             return EnvelopeFactory.error(
-                "Diagram service not available",
+                "Executable diagram not available in context",
                 error_type="ValueError",
                 produced_by=node.id,
                 trace_id=request.execution_id or ""
@@ -152,11 +148,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # For LLM decision evaluator, pass required services
         if node.condition_type == "llm_decision" and hasattr(evaluator, 'set_services'):
             evaluator.set_services(
-                llm_service=request.get_service("llm_service"),
-                conversation_manager=request.get_service("conversation_manager"),
-                prompt_builder=request.get_service("prompt_builder"),
-                filesystem_adapter=request.get_service("filesystem_adapter"),
-                diagram=diagram
+                orchestrator=request.get_service("orchestrator"),
+                prompt_builder=request.get_service("prompt_builder")
             )
         
         # Track and expose loop index if configured

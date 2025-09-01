@@ -111,6 +111,12 @@ class MemorySelectionOutput(BaseModel):
     message_ids: List[str]
 
 
+class DecisionOutput(BaseModel):
+    """Structured output model for decision evaluation phase."""
+    decision: bool
+    reasoning: Optional[str] = None
+
+
 @dataclass
 class RetryConfig:
     """Configuration for retry behavior."""

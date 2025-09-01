@@ -1,627 +1,153 @@
 {
   "architecture": {
-    "overview": "A modern, Vite-based React 18 + TypeScript single-page application organized by clear domain layers: core kernel (contracts, events, DI), design system & theme, shared UI primitives, providers & services, features/pages and app entry. The app uses React Router for navigation, React Query for remote data and cache, Zustand for ephemeral client state, and a small DI/events surface for extensibility. Design tokens and a ThemeProvider centralize visual styles; components are atomic, accessible, and composable. Animations use Framer Motion presets for consistent micro-interactions.",
+    "overview": "This is a modern single-page application scaffolded with Vite, React 18+, and TypeScript. The app is organized into a small Core Kernel (contracts, events, DI, utilities), a Design/Theme layer (tokens, animations, global styles), Providers & Services (React Query, Auth, Toast/Modal), a shared UI component library (accessible, theme-aware components with glassmorphism, gradients, shadows), feature-level components, and routeable Pages. Components are composable and isolated; providers wrap the app at boot. The design system is token-driven and consumed by both CSS and components to ensure consistent visuals. State is split: server state handled by React Query, client/local state by small scoped hooks and optionally Zustand for global ephemeral state. Accessibility and motion are first-class: components include ARIA, keyboard handling, focus management, and Framer Motion-powered transitions.",
     "patterns": [
-      "Container/Presentational separation: pages & feature containers orchestrate data while presentational components focus on rendering",
-      "Atomic Design for UI components (atoms \u2192 molecules \u2192 organisms \u2192 pages)",
-      "Domain-driven folders for features (features/*) and shared UI (shared/*)",
-      "Provider composition pattern (AuthProvider, ThemeProvider, QueryProvider, ToastProvider, ModalProvider)",
-      "React Query for server state + caching; Zustand for small local UI state",
-      "Event-bus and DI for extension points (core/events.ts, core/di.ts)"
+      "Layered Architecture: core kernel -> theme -> providers/services -> shared components -> features -> pages",
+      "Presentational / Container split: small presentational components (shared UI) + feature containers for composition",
+      "Design System: tokens -> theme provider -> styled/utility components",
+      "Composition over Inheritance: small composable hooks/providers",
+      "Declarative Data-Fetching: React Query for server state, caching, background sync",
+      "DI & Plugin-friendly: lightweight DI/events/hooks registries for extensibility"
     ],
-    "data_flow": "Data requests are performed through src/services/api.ts (React Query fetchers). React Query centralizes caching, invalidation and background refetching. Auth data is persisted in localStorage (via useLocalStorage) and small client-only UI state (sidebar collapsed, modals open) lives in Zustand (src/state/store.ts). Components use hooks (src/hooks/*) to access services or invoke events via the event bus (src/core/events.ts). Providers wrap the app in src/main.tsx to expose context and libraries.",
-    "folder_structure": "src/\n  app/\n    config.ts\n  core/\n    contracts.ts\n    events.ts\n    hooks.ts\n    di.ts\n    utils.ts\n  theme/\n    index.ts\n    animations.ts\n  styles/\n    global.css\n  main.tsx\n  App.tsx\n  routes.tsx\n  providers/\n    ThemeProvider.tsx\n    QueryProvider.tsx\n    AuthProvider.tsx\n    ToastProvider.tsx\n    ModalProvider.tsx\n  services/\n    api.ts\n    auth.ts\n    analytics.ts\n  state/\n    store.ts\n  shared/\n    layouts/\n      MainLayout.tsx\n      AuthLayout.tsx\n    components/\n      Button.tsx\n      Icon.tsx\n      Input.tsx\n      Card.tsx\n      GlassCard.tsx\n      GradientBadge.tsx\n      Avatar.tsx\n      Tooltip.tsx\n      Dropdown.tsx\n      Modal.tsx\n      Toast.tsx\n      Skeleton.tsx\n      Spinner.tsx\n      Header.tsx\n      Sidebar.tsx\n      Footer.tsx\n      Chart.tsx\n    icons/\n      index.tsx\n  hooks/\n    useAuth.ts\n    useFetch.ts\n    useLocalStorage.ts\n    useWindowSize.ts\n    useDebounce.ts\n    useToast.ts\n    useModal.ts\n    useTheme.ts\n  pages/\n    HomePage.tsx\n    DashboardPage.tsx\n    LoginPage.tsx\n  features/\n    profile/\n      ProfileCard.tsx\n    dashboard/\n      MetricCard.tsx\n      ActivityFeed.tsx",
+    "data_flow": "Server state: React Query (QueryClientProvider) centralizes fetching/caching; API requests go through a typed apiClient that uses config from import.meta.env. Auth flows use an AuthProvider that caches tokens (securely with httpOnly via backend when possible, otherwise short-lived tokens + refresh). UI state: controlled components + local hooks (useLocalStorage, useModal, useToast). Global ephemeral state can use small scoped Zustand stores (if needed) or React context for tiny scoped state. Events bus (core/events) is available for cross-cutting concerns (analytics, global shortcuts).",
+    "folder_structure": "src/\n  app/\n    config.ts\n    router.tsx\n  assets/\n    logo.svg\n  core/\n    contracts.ts\n    events.ts\n    hooks.ts\n    di.ts\n    utils.ts\n  theme/\n    index.ts\n    animations.ts\n  styles/\n    tokens.css\n    global.css\n  providers/\n    Providers.tsx\n    ThemeProvider.tsx\n    QueryProvider.tsx\n    AuthProvider.tsx\n    ToastProvider.tsx\n    ModalProvider.tsx\n  services/\n    apiClient.ts\n    authService.ts\n    userService.ts\n  hooks/\n    useAuth.ts\n    useFetch.ts\n    useLocalStorage.ts\n    useToast.ts\n  shared/\n    layouts/\n      Shell.tsx\n      TopNav.tsx\n      Sidebar.tsx\n      Footer.tsx\n    components/\n      Button.tsx\n      Icon.tsx\n      Input.tsx\n      Avatar.tsx\n      Spinner.tsx\n      Skeleton.tsx\n      Card/\n        GlassCard.tsx\n      Modal/\n        Modal.tsx\n      Toast/\n        Toast.tsx\n      Chart/\n        LineChart.tsx\n  features/\n    dashboard/\n      MetricCard.tsx\n      ActivityList.tsx\n  pages/\n    HomePage.tsx\n    DashboardPage.tsx\n    ProfilePage.tsx\n    SettingsPage.tsx\n    NotFoundPage.tsx\n  App.tsx\n  main.tsx",
     "tech_stack": [
-      "React 18+ (concurrent-ready patterns)",
-      "TypeScript",
-      "Vite (import.meta.env)",
-      "React Router v6",
-      "React Query (TanStack Query)",
-      "Zustand for lightweight client state",
-      "Framer Motion for animations",
-      "Recharts or Chart.js wrapper for data viz (Chart.tsx)",
-      "Tailwind utility classes optional but not required (styles/global.css provided)",
-      "Accessibility best practices (ARIA, keyboard focus management)"
+      "React 18+ (concurrent-safe patterns)",
+      "TypeScript (strict mode recommended)",
+      "Vite (import.meta.env used for env vars)",
+      "React Router v6 for routing",
+      "React Query for server state & caching",
+      "Framer Motion for animations & micro-interactions",
+      "Tailwind/CSS Modules (project uses global tokens + utility CSS \u2014 base configs exist)",
+      "Optional: Zustand for small client state (not included by default)",
+      "Recharts or lightweight chart lib for data visualization"
     ]
   },
   "kernel_specs": {
-    "overview": "The Core Kernel provides a small, well-typed foundation shared by every part of the app: a single source of truth for domain contracts (types), a materialized runtime config (import.meta.env), a typed event bus, a hook registry for extension points, a compact dependency-injection container (tokens + container), and a set of common utilities. All features, providers and UI components should import from these kernel files (e.g. import { User } from '@/core/contracts'), use the event bus for cross-cutting notifications and analytics, register extension hooks when needed, and resolve cross-cutting services through the DI container for testability."
+    "overview": "The Core Kernel provides a single source of truth for domain contracts, runtime configuration, cross-cutting utilities (events, hooks, DI) and small helpers used across all app layers. It establishes typed DTOs for healthcare domain models, a materialized runtime config built from import.meta.env, a typed event bus for decoupled communication, a plugin-friendly hook registry for extension points, a lightweight type-safe dependency injection container, and reusable utility helpers. All other sections import from these files (use @/core/* and @/app/config) so there is one stable API for features, services, providers, and UI components."
   },
   "sections": [
     {
       "id": "app-config",
       "file_path": "src/app/config.ts",
-      "description": "Materialized runtime configuration using import.meta.env; exposes typed config values (API base URL, feature flags, analytics key).",
+      "description": "Materialized runtime configuration that reads from import.meta.env and exposes typed appConfig (API base URL, feature flags).",
       "dependencies": [],
       "exports": [
-        "AppConfig",
-        "config"
+        "appConfig"
       ],
       "priority": 1,
-      "purpose": "Materialized runtime configuration using import.meta.env; exposes typed config values (API base URL, feature flags, analytics key). Also computes environment flags and optionally supplies mock data for development.",
-      "content": "AppConfig interface\n- env: 'development' | 'staging' | 'production'\n- apiBaseUrl: string\n- socketUrl?: string\n- appName: string\n- analytics: { enabled: boolean; key?: string }\n- features: Record<string, boolean> (dynamic map keyed by feature name)\n- sso: { enabled: boolean; provider?: 'okta' | 'auth0' | 'oidc' }\n- development_mode: { enable_mock_data: boolean; verbose_logs: boolean }\n- defaults: { perPage: number }\n\nMaterialization and computed flags (implementation guidance)\n- Read values from import.meta.env. Example vars expected: VITE_API_BASE, VITE_SOCKET_URL, VITE_APP_NAME, VITE_ENV, VITE_FEATURES (comma separated, e.g. 'auth,analytics,websocket'), VITE_ANALYTICS_KEY, VITE_ENABLE_MOCKS (\"true\"|\"false\"), VITE_VERBOSE_LOGS\n- Provide parsing helpers for boolean and list.\n- Build features map: config.features = { auth: true, analytics: false, websocket: true, ... }\n- Computed flags: isDevelopment = config.env === 'development'; shouldUseMockData = isDevelopment && config.development_mode.enable_mock_data\n\nMock data\n- If shouldUseMockData is true, export a small set of mock objects used across the app: MOCK_USER_ADMIN (User), MOCK_PATIENTS array (Patient[]), MOCK_DOCTORS array. Keep the mock shapes typing-compliant with core/contracts.ts.\n\nExamples of how to use\n- const { apiBaseUrl } = config\n- if (config.features['analytics']) initAnalytics(config.analytics.key)\n- if (config.shouldUseMockData) seedLocalStoreWithMocks()\n\nImportant: Use import.meta.env (Vite) instead of process.env in all reads. Example\n- const rawEnv = import.meta.env\n- const apiBaseUrl = String(rawEnv.VITE_API_BASE ?? window.location.origin + '/api')\n\nIntegration points\n- services/api.ts uses config.apiBaseUrl and config.shouldUseMockData\n- services/analytics.ts uses config.analytics\n- providers/QueryProvider.tsx reads config.defaults.perPage when setting defaultQueryFn or pagination helpers\n\nPattern and conventions\n- Keep config immutable at runtime. Export a single const config: AppConfig.\n- Validate critical values with runtime checks in development (throw or log descriptive errors if required env missing)."
-    },
-    {
-      "id": "app-root",
-      "file_path": "src/App.tsx",
-      "description": "Root app component. Composes Router (routes.tsx) and top-level layout & error boundary. Provides global keyboard listeners for accessibility (e.g., ESC to close modals).",
-      "dependencies": [
-        "src/routes.tsx",
-        "src/providers/ToastProvider.tsx",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "App"
-      ],
-      "priority": 1
+      "purpose": "Materialized runtime configuration constructed from import.meta.env with typed appConfig. Exposes computed flags, feature toggles and development mock fixtures when enabled. All code must reference this central appConfig for baseUrl, feature toggles and environment flags.",
+      "content": "What to define and export:\n\n- Config shape (interfaces)\n  - export interface RawEnv { VITE_APP_NAME?: string; VITE_API_BASE_URL?: string; VITE_ENABLE_MOCKS?: 'true' | 'false'; VITE_NODE_ENV?: 'development' | 'production' | 'test'; VITE_FEATURES?: string /* comma separated feature keys */; VITE_WS_URL?: string; }\n  - export interface AppFeatures { appointments: boolean; prescriptions: boolean; lab_results: boolean; telemedicine: boolean; analytics: boolean; mock_data: boolean; [key: string]: boolean }\n  - export interface AppConfig { appName: string; env: 'development' | 'production' | 'test'; isDevelopment: boolean; isProduction: boolean; apiBaseUrl: string; wsUrl?: string; features: AppFeatures; enableMockData: boolean; buildTimestamp?: string; }\n\n- Materialize config using import.meta.env\n  - const raw: RawEnv = import.meta.env;\n  - Parse features from VITE_FEATURES (CSV) into AppFeatures; ensure unknown features are present as false to preserve type-safety.\n  - Compute isDevelopment = import.meta.env.MODE === 'development' || raw.VITE_NODE_ENV === 'development';\n  - enableMockData is true when VITE_ENABLE_MOCKS === 'true' OR features.mock_data is true\n\n- Provide lightweight mock fixtures (only when enableMockData true). The mock data should be small, deterministic and exported inside appConfig.mock (optional) so other modules can import appConfig.mock.userForDev.\n  - Example:\n    appConfig.mock = {\n      currentUser: { id: 'mock-patient-1', name: 'Alex Mock', email: 'alex@example.test', roles: ['patient'], createdAt: new Date().toISOString() } as Patient,\n      patients: [ ... ]\n    }\n  - Mark this mock field as present only in development builds (union type) so production bundles don't rely on it.\n\n- Example export (pseudo code):\n  - export const appConfig: AppConfig & { mock?: { currentUser?: Patient } } = { appName: ..., env: ..., isDevelopment, isProduction, apiBaseUrl, wsUrl, features, enableMockData, buildTimestamp: import.meta.env.VITE_BUILD_TIME || new Date().toISOString(), ...(enableMockData ? { mock: { currentUser: MOCK_USER } } : {}) }\n\n- Important: always read environment variables using import.meta.env not process.env. Example: const base = (import.meta.env.VITE_API_BASE_URL || window.location.origin + '/api');\n\n- Example usage patterns:\n  - import { appConfig } from '@/app/config';\n  - const url = new URL('/appointments', appConfig.apiBaseUrl).toString();\n  - if (appConfig.features.analytics) { analytics.init(...) }\n  - if (appConfig.enableMockData) { console.debug('Using mock data'); }\n\n- Integration points:\n  - src/services/apiClient.ts reads appConfig.apiBaseUrl and appConfig.enableMockData to decide whether to proxy to mock handlers.\n  - src/core/di.ts can register a MockApiClient when appConfig.enableMockData is true.\n  - Providers (AuthProvider) read appConfig.mock.currentUser for local dev login flow.\n\n- Patterns and conventions:\n  - keep appConfig immutable at runtime; export as const.\n  - prefer boolean feature flags with explicit keys rather than raw CSV usage in app logic; translate CSV to typed AppFeatures immediately on boot.\n  - when adding new feature flags, update AppFeatures type so TypeScript will require handling branches across the app.\n\n- Example feature keys used here (ensure they match your real VITE_FEATURES): 'appointments', 'prescriptions', 'lab_results', 'telemedicine', 'analytics', 'mock_data'. Replace or extend with actual config.features when available."
     },
     {
       "id": "core-contracts",
       "file_path": "src/core/contracts.ts",
-      "description": "Domain types, API request/response contracts and shared TypeScript interfaces used across the app (e.g., User, AuthTokens, ApiError, DashboardMetric). Central source of truth for types.",
+      "description": "Domain types, API contract typings, shared DTOs (User, AuthTokens, ApiResponse, Pagination) used across the app.",
       "dependencies": [],
       "exports": [
         "User",
         "AuthTokens",
-        "ApiError",
-        "DashboardMetric",
-        "Paginated<T>",
-        "RouteMeta"
+        "ApiResponse<T>",
+        "Pagination",
+        "LoginPayload",
+        "RegisterPayload"
       ],
       "priority": 1,
-      "purpose": "Domain types, API request/response contracts and shared TypeScript interfaces used across the app (users, healthcare models, API result shapes, UI helpers). This file is the canonical type source for services, components and providers.",
-      "content": "Types & interfaces to define\n- Role union: 'admin' | 'doctor' | 'nurse' | 'patient' | 'staff'\n- User base interface: id, email, name, avatarUrl?, roles: Role[], createdAt, updatedAt\n- Patient: extends User with patientId, dob?, primaryPhysicianId?, demographics (address, phone)\n- Doctor: extends User with licenseNumber, specialty[], clinicIds[]\n- Nurse: extends User with licenseNumber, assignedUnit?\n\nHealthcare domain models\n- Appointment: id, patientId, providerId, startAt (ISO), endAt (ISO) | null, status: 'scheduled'|'checked_in'|'completed'|'cancelled', reason?, location?, metadata?: Record<string, unknown>\n- MedicalRecord: id, patientId, createdById, createdAt, type: 'note'|'diagnosis'|'imaging'|'lab', payload: Record<string, any>, tags?: string[]\n- Prescription: id, patientId, prescriberId, medication: { name:string; dosage:string; frequency:string }, instructions?: string, startAt?: string, endAt?: string, refills?: number\n- LabResult: id, patientId, testName, resultValue: string | number, unit?: string, referenceRange?: string, collectedAt?: string, reportedAt?: string, status: 'pending'|'final'|'amended'\n\nAPI & pagination shapes\n- ApiResult<T>: { success: boolean; data?: T; error?: ApiError }\n- ApiError: { code?: string; status?: number; message: string; details?: Record<string, any> }\n- PaginatedResponse<T>: { items: T[]; page: number; perPage: number; total: number }\n\nWebSocket event types (if websocket.enabled)\n- WsEvent generic discriminated union: 'appointment.updated' | 'appointment.created' | 'lab.result' | 'message' | 'system.notify' etc.\n- WsPayload<T> generic mapping from WsEvent to concrete payload types, e.g., appointment.updated => Appointment\n\nCommon UI types\n- LoadingState = 'idle' | 'loading' | 'success' | 'error'\n- FormState<T> = { values: T; touched: Partial<Record<keyof T, boolean>>; errors: Partial<Record<keyof T, string>> }\n- RouteMeta = { title?: string; requiresAuth?: boolean; rolesAllowed?: Role[]; layout?: 'main'|'auth' }\n\nPatterns and conventions\n- Keep domain models normalized: reference other entities by id instead of embedding large nested objects in API returns (services may provide include params to expand in fetchers).\n- Use ISO 8601 strings for dates across all models. Convert to Date objects in UI helper layers if required.\n- When adding new roles or WsEvent variants, extend the unions here so TypeScript will protect call sites across the app.\n\nExample usage\n- Component typing: import { User, Appointment } from '@/core/contracts'\n- API response: const resp: ApiResult<PaginatedResponse<Appointment>> = await apiClient.get('/appointments?page=1')\n- Hook: runHook('afterApiResponse', { url, method, response }) where response typed as ApiResult<any>\n\nIntegration points\n- services/auth.ts and services/api.ts import and use User/Auth tokens defined here.\n- state/store.ts references Role and RouteMeta.\n- WebSocket service maps incoming event.type to WsEvent and uses WsPayload typed mapping."
+      "purpose": "Domain types, API contracts, UI state types and WebSocket event typings for the healthcare application. This file is the canonical type library used across services, components and providers.",
+      "content": "Types & Interfaces to define:\n\n- Role union and basic identity types\n  - export type Role = 'patient' | 'doctor' | 'nurse' | 'admin';\n\n- User hierarchy\n  - export interface UserBase { id: string; email: string; name: string; avatarUrl?: string; roles: Role[]; createdAt: string; updatedAt?: string; }\n  - export interface Patient extends UserBase { dob?: string; gender?: 'male' | 'female' | 'other'; medicalRecordId?: string; primaryDoctorId?: string; }\n  - export interface Doctor extends UserBase { specialty?: string; licenseNumber?: string; clinicIds?: string[]; }\n  - export interface Nurse extends UserBase { department?: string; }\n  - export type User = Patient | Doctor | Nurse | UserBase;\n\n- Healthcare domain models\n  - Appointment: id, patientId, providerId, startAt, endAt, status ('scheduled'|'cancelled'|'completed'|'no_show'), location, type ('in_person'|'telemedicine'), notes?, metadata?: Record<string, unknown>\n  - MedicalRecord: id, patientId, diagnoses: {code:string; name:string; recordedAt:string; notes?:string}[], allergies: string[], medicationsSummary?: string, entries: MedicalRecordEntry[]\n  - MedicalRecordEntry: id, type ('note'|'lab'|'imaging'|'prescription'), authorId, createdAt, data: Record<string, any>\n  - Prescription: id, patientId, prescriberId, medication: string, dose: string, frequency: string, startDate?: string, endDate?: string, instructions?:string, refills?: number\n  - LabResult: id, patientId, testName: string, orderedById?: string, specimenDate?: string, resultDate?: string, value?: string | number, unit?: string, normalRange?: string, status: 'pending'|'completed'|'cancelled', attachments?: string[]\n\n- API response types\n  - export type ApiResult<T> = { success: true; data: T; meta?: Record<string, any> };\n  - export type ApiError = { success: false; error: { code: string; message: string; details?: any } };\n  - export type PaginatedResponse<T> = ApiResult<{ items: T[]; page: number; pageSize: number; total: number }>;\n\n- Auth and payload types\n  - export interface AuthTokens { accessToken: string; refreshToken?: string; expiresAt?: string | number }\n  - export interface LoginPayload { email: string; password: string; otp?: string }\n  - export interface RegisterPayload { name: string; email: string; password: string; role?: Role }\n\n- WebSocket & real-time event types (used when websocket feature is enabled)\n  - export type WebSocketEventMap = {\n      'appointment.updated': { appointment: Appointment };\n      'labresult.created': { lab: LabResult };\n      'message.received': { fromId: string; toId: string; message: string; sentAt: string };\n      'user.status': { userId: string; online: boolean };\n    };\n  - export type WebSocketEvent<K extends keyof WebSocketEventMap = keyof WebSocketEventMap> = { type: K; payload: WebSocketEventMap[K]; ts: string };\n\n- UI state and helpers\n  - export type LoadingState = 'idle' | 'loading' | 'succeeded' | 'failed';\n  - export interface FormState<T = any> { values: T; touched: Partial<Record<string, boolean>>; errors: Partial<Record<string, string>>; isValid: boolean; isSubmitting: boolean }\n\nFunctions/utility typing patterns to export (not implementations here):\n- Use these interfaces across services and components. Example usage:\n  - import { Appointment, ApiResult } from '@/core/contracts';\n  - const result: ApiResult<Appointment> = await apiClient.get('/appointments/123');\n\nIntegration points with other kernel files:\n- src/services/apiClient.ts and src/services/authService.ts must import AuthTokens, ApiResult, ApiError and domain models.\n- WebSocket service & DI tokens (src/core/di.ts) use WebSocketEvent and WebSocketEventMap.\n- Hooks (src/core/hooks.ts) use LoginPayload and AuthTokens in their context interfaces.\n\nPatterns and conventions:\n- All date/time fields are ISO strings.\n- IDs are strings (UUID v4 recommended).\n- API result uses a boolean success flag; errors follow a consistent {code, message} shape.\n- Keep types stable; prefer adding optional fields for backwards compatibility.\n\nExample snippet (consuming code):\n- const handleLab = (evt: WebSocketEvent<'labresult.created'>) => { console.log(evt.payload.lab.testName); }\n\nNotes:\n- Add domain-specific extensions here only; UI-only types should live in src/core/ui-types.ts if needed later."
     },
     {
       "id": "core-di",
       "file_path": "src/core/di.ts",
-      "description": "Simple dependency-injection container for substituting services during tests or extensions (getService/setService patterns).",
-      "dependencies": [
-        "src/core/contracts.ts"
-      ],
+      "description": "Minimal DI container for registering and resolving concrete implementations (services) to ease testing and plugin injection.",
+      "dependencies": [],
       "exports": [
-        "registerService",
-        "resolveService",
-        "DIContainer"
+        "Container",
+        "register",
+        "resolve"
       ],
       "priority": 1,
-      "purpose": "A minimal, type-safe dependency injection container used to register and resolve cross-cutting services (api client, auth service, storage). The container supports token creation so callers can declare dependencies in a typed way and swap implementations in tests or plugin registration.",
-      "content": "Token definition & typing\n- Export a generic Token<T> type implemented as a unique Symbol plus a friendly description: interface Token<T> { readonly __name: string; readonly __id: symbol }\n- Helper createToken<T>(name: string): Token<T>\n\nContainer API\n- class DIContainer {\n    private registry = new Map<symbol, any>()\n    register<T>(token: Token<T>, implementation: T): void\n    has<T>(token: Token<T>): boolean\n    resolve<T>(token: Token<T>): T\n    clear(): void // test helper\n  }\n- register overwrites previous implementations by default (document this behaviour). Use re-register pattern in tests.\n- resolve throws a descriptive error in development mode if token missing (helps debugging), but in production throws as well to avoid undefined service usage.\n\nPredefined tokens\n- export const TOKENS = {\n    ApiClient: createToken<ApiClientShape>('ApiClient'),\n    AuthService: createToken<AuthServiceShape>('AuthService'),\n    StorageService: createToken<StorageServiceShape>('StorageService'),\n    WebSocketService: createToken<WebSocketServiceShape>('WebSocketService')\n  }\n\nService shape examples (interfaces)\n- ApiClientShape: { get<T>(url:string, opts?:any): Promise<import('@/core/contracts').ApiResult<T>>; post<T>(url:string, body?:any, opts?:any): Promise<ApiResult<T>>; put; delete }\n- AuthServiceShape: { login(credentials:any): Promise<{ user: User; tokens: any }>; logout(): Promise<void>; refresh(): Promise<any>; getCurrentUser(): Promise<User | null> }\n- StorageServiceShape: { get<T>(key:string): T | null; set<T>(key:string, value:T): void; remove(key:string): void }\n- WebSocketServiceShape: { connect(): Promise<void>; disconnect(): Promise<void>; send(event:string, payload:any): void; on<K extends string>(event:K, handler:(payload:any)=>void): ()=>void }\n\nSingleton container\n- Export a default global container instance: DIContainer.instance (or named container) for app-level registrations.\n- Export helper functions registerService(token, impl) and resolveService(token) that forward to the default container for convenience.\n\nIntegration patterns\n- Providers (QueryProvider, AuthProvider) register their concrete service instances into the container during app initialization.\n- Tests can create a fresh DIContainer, register mock services and pass to modules that accept container override (or use registerService to replace in global container), enabling easy mocking of network & auth flows.\n\nUsage example\n- import { TOKENS, registerService, resolveService } from '@/core/di'\n- registerService(TOKENS.ApiClient, apiClientImpl)\n- const api = resolveService(TOKENS.ApiClient)\n\nConventions\n- Keep tokens and service interfaces here. Concrete implementations live in services/ and register themselves at bootstrap.\n- Avoid tight coupling: components/hooks should prefer consuming helper hooks (e.g., useAuth) but libraries and tests can resolve tokens directly when needed."
+      "purpose": "A minimal type-safe Dependency Injection container used to register and resolve services (ApiClient, AuthService, StorageService, WebSocketService). Designed for testability (swap implementations during tests) and plugin injection. Tokens are typed symbols to guarantee resolution correctness.",
+      "content": "Key components to implement/export:\n\n- Token type & tokens registry\n  - export type Token<T> = symbol & { __type?: T } // pattern for typed tokens\n  - export const TOKENS = {\n      ApiClient: Symbol('ApiClient') as Token<ApiClientShape>,\n      AuthService: Symbol('AuthService') as Token<AuthServiceShape>,\n      StorageService: Symbol('StorageService') as Token<StorageServiceShape>,\n      WebSocketService: Symbol('WebSocketService') as Token<WebSocketServiceShape>,\n      EventBus: Symbol('EventBus') as Token<import('./events').EventBus>,\n    } as const;\n\n- Service shapes (interfaces to reference in tokens)\n  - define small shapes locally in this file to avoid circular deps (or import only types):\n    - interface ApiClientShape { get<T>(path: string, opts?: any): Promise<T>; post<T>(path: string, body?: any, opts?: any): Promise<T>; put<T>(path: string, body?: any, opts?: any): Promise<T>; del<T>(path: string, opts?: any): Promise<T>; }\n    - interface AuthServiceShape { login(payload: import('@/core/contracts').LoginPayload): Promise<{ user: import('@/core/contracts').User; tokens: import('@/core/contracts').AuthTokens }>; logout(): Promise<void>; refresh(): Promise<import('@/core/contracts').AuthTokens>; getCurrentUser(): Promise<import('@/core/contracts').User | null> }\n    - interface StorageServiceShape { get<T>(key: string): Promise<T | null> | T | null; set<T>(key: string, value: T): Promise<void> | void; remove(key: string): Promise<void> | void }\n    - interface WebSocketServiceShape { connect(): Promise<void>; disconnect(): Promise<void>; send<E extends import('@/core/contracts').WebSocketEvent>(evt: E): void; on<E extends string>(event: E, handler: (payload: any) => void): () => void }\n\n- Container class\n  - class Container {\n      private registry: Map<symbol, any>;\n      register<T>(token: Token<T>, value: T): void; // registers a singleton\n      registerFactory<T>(token: Token<T>, factory: (c: Container) => T): void; // registers lazy factory\n      resolve<T>(token: Token<T>): T; // throws if not registered\n      has(token: Token<any>): boolean;\n      reset(): void; // clear registry - useful for tests\n    }\n\n- Top-level helpers\n  - export const container = new Container();\n  - export const register = container.register.bind(container);\n  - export const resolve = container.resolve.bind(container);\n\n- Patterns & semantics\n  - Register services at app boot (src/providers/Providers.tsx or main.tsx). Example: register(TOKENS.ApiClient, apiClientInstance)\n  - Prefer registering interfaces/shapes rather than concrete classes to allow mocking in tests. For example in tests: register(TOKENS.ApiClient, mockApiClient)\n  - For services that depend on other services, use registerFactory that receives container so you can resolve dependencies lazily and avoid circular init order problems.\n  - Container.resolve must be typed: const api = resolve(TOKENS.ApiClient) as ApiClientShape \u2014 with Token<T> typing users will get correct types.\n\n- Example usage:\n  - import { TOKENS, register, resolve } from '@/core/di';\n  - // boot\n  - register(TOKENS.ApiClient, apiClientInstance);\n  - registerFactory(TOKENS.AuthService, (c) => new AuthService(c.resolve(TOKENS.ApiClient)));\n  - // usage in a module\n  - const auth = resolve(TOKENS.AuthService);\n\n- Integration points:\n  - src/services/apiClient.ts registration: register(TOKENS.ApiClient, apiClient)\n  - src/providers/AuthProvider.tsx registers/wires AuthService\n  - src/core/events.ts may register eventBus into DI so consumers can resolve the same instance\n\n- Implementation details and safety:\n  - Keep Container implementation small and synchronous. Accept both concrete instances and factory functions.\n  - Provide clear error messages when resolving unregistered tokens to ease debugging.\n  - Allow resetting container for integration tests to avoid cross-test pollution.\n\n- Testing & mocking:\n  - In jest/ vitest setups, tests can call container.reset() in beforeEach and register test doubles as needed.\n\nNote: concrete service method signatures above are intentionally minimal; actual services may expose additional helpers. Keep shapes stable to avoid breaking consumers."
     },
     {
       "id": "core-events",
       "file_path": "src/core/events.ts",
-      "description": "Lightweight event bus for app-level events (toasts, analytics events, auth changes). Exposes subscribe/publish helpers and typed event names.",
-      "dependencies": [],
+      "description": "Small typed event bus for decoupled cross-app events (analytics, feedback, keyboard shortcuts).",
+      "dependencies": [
+        "src/core/utils.ts"
+      ],
       "exports": [
-        "EventBus",
-        "publishEvent",
-        "subscribeEvent",
-        "unsubscribeEvent",
-        "AppEvents"
+        "eventBus",
+        "on",
+        "off",
+        "emit"
       ],
       "priority": 1,
-      "purpose": "Lightweight typed event bus for app-level events (toasts, analytics events, auth changes). Allows decoupled publish/subscribe for providers and features. Supports synchronous and asynchronous handlers and handler lifetime management.",
-      "content": "Typed event map to define\n- AppEvents mapping type (eventName => payload). Provide the most common events used by app modules:\n  - 'toast:show' => { id?: string; type: 'success'|'error'|'info'|'warning'; title?: string; message: string; autoDismiss?: number }\n  - 'auth:login' => { user: import('@/core/contracts').User; tokens?: { access: string; refresh?: string } }\n  - 'auth:logout' => { reason?: string }\n  - 'api:request' => { url: string; method: 'GET'|'POST'|'PUT'|'DELETE'|'PATCH'; payload?: any }\n  - 'api:response' => { url: string; method: string; response: import('@/core/contracts').ApiResult<any> }\n  - 'analytics:event' => { name: string; payload?: Record<string, any> }\n  - 'route:change' => { from?: string; to: string }\n  - 'modal:open' => { id: string; props?: any }\n  - 'modal:close' => { id?: string }\n\nEventBus class\n- Generic typed class EventBus<E extends Record<string, any>> with methods:\n  - on<K extends keyof E>(event: K, handler: (payload: E[K]) => void | Promise<void>): () => void  // returns unsubscribe\n  - off<K extends keyof E>(event: K, handler: (payload: E[K]) => void | Promise<void>): void\n  - once<K extends keyof E>(event: K, handler: (payload: E[K]) => void | Promise<void>): void\n  - emit<K extends keyof E>(event: K, payload: E[K]): Promise<void> // awaitable; runs all handlers and resolves when done\n  - listeners<K extends keyof E>(event: K): Array<(payload: E[K]) => void | Promise<void>>\n- Implementation details:\n  - Internally store a Map<string, Set<Function>>\n  - For emit, copy handlers into an array before invoking (safe for handlers that remove themselves)\n  - Support both sync and async handlers; emit returns Promise<void> and waits for all handlers to complete (Promise.allSettled) and logs errors but does not throw to callers unless in development configured to escalate\n  - Provide lightweight once() wrapper (register that removes itself on first call)\n\nSingleton & helpers\n- Export a singleton defaultBus: EventBus<AppEvents>\n- Convenience wrappers: publishEvent<K extends keyof AppEvents>(event: K, payload: AppEvents[K]) => defaultBus.emit(event, payload)\n- subscribeEvent<K extends keyof AppEvents>(event: K, handler: (payload: AppEvents[K]) => void | Promise<void>) => defaultBus.on(event, handler)\n- unsubscribeEvent<K extends keyof AppEvents>(event: K, handler: (payload: AppEvents[K]) => void | Promise<void>) => defaultBus.off(event, handler)\n\nUsage patterns\n- ToastProvider subscribes to 'toast:show' to push UI toasts.\n- services/analytics.ts subscribes to 'route:change' and 'analytics:event' to forward events to external provider when enabled.\n- AuthProvider emits 'auth:login' and 'auth:logout' so other modules can react.\n\nIntegration points\n- core/hooks.ts may call publishEvent('api:request', {...}) before running hooks\n- services/api.ts should publish api:request/api:response events through this bus\n\nError handling and instrumentation\n- In development, EventBus logs handlers that throw or reject; errors are collected and reported to analytics if configured.\n- Keep implementation side-effect free except for calling handlers; do not store domain state here.\n\nExample use\n- import { publishEvent, subscribeEvent } from '@/core/events'\n- const unsub = subscribeEvent('route:change', payload => { publishEvent('analytics:event', { name: 'route_change', payload }) })\n- publishEvent('toast:show', { type: 'success', message: 'Saved' })"
+      "purpose": "Typed EventBus for decoupled cross-app communication. Provides on/off/emit helpers, supports both synchronous and asynchronous handlers, and delivers strong typing via an EventMap. A singleton instance is exported for general use; also provide factory to create ephemeral buses for isolated features or tests.",
+      "content": "Design and types:\n\n- EventMap generic type\n  - export type EventMap = {\n      'analytics.track': { event: string; payload?: Record<string, any> };\n      'user.login': { userId: string; tokens?: AuthTokens };\n      'user.logout': { userId?: string };\n      'appointment.created': { appointmentId: string };\n      'appointment.updated': { appointmentId: string; changes?: Partial<Appointment> };\n      'labresult.completed': { labId: string };\n      // Extendable: other modules can declare module augmentation to add events\n    };\n\n- EventHandler and AsyncEventHandler types\n  - export type EventHandler<T> = (payload: T, meta?: { ts: string }) => void | Promise<void>;\n\n- EventBus class\n  - class EventBus<EM extends Record<string, any> = EventMap> {\n      private handlers: Map<keyof EM, Set<EventHandler<any>>>;\n      on<K extends keyof EM>(event: K, handler: EventHandler<EM[K]>): () => void; // registers and returns unsubscribe\n      off<K extends keyof EM>(event: K, handler?: EventHandler<EM[K]>): void; // remove handler or clear all for event\n      emit<K extends keyof EM>(event: K, payload: EM[K], options?: { async?: boolean }): Promise<void> | void; // emit either sync or async; when async true returns Promise that awaits handlers\n      clear(): void; // remove all handlers\n    }\n\n- Behavior details\n  - synchronous emit: iterate handlers in registration order and call them; any thrown error should be caught and debug-logged but not re-thrown to avoid taking down app.\n  - asynchronous emit: run handlers in sequence awaiting each (configurable) or run in parallel; default runs handlers sequentially to preserve ordering for handlers that mutate shared resources; provide option to runParallel.\n  - on returns an unsubscribe function for convenience.\n  - off without handler removes all handlers for that event.\n\n- Exports and singleton\n  - export const eventBus = createEventBus() \u2014 a default app-wide instance.\n  - also export helpers: export const on = eventBus.on.bind(eventBus), off = eventBus.off.bind(eventBus), emit = eventBus.emit.bind(eventBus)\n\n- Example usage:\n  - import { on, emit } from '@/core/events';\n  - on('user.login', async ({ userId }) => { analytics.identify(userId); await cacheWarmup(userId); });\n  - emit('user.login', { userId: 'u1', tokens: {...} }, { async: true });\n\n- Integration points:\n  - src/providers/AuthProvider.tsx should emit 'user.login' and 'user.logout' events on successful auth transitions.\n  - Analytics and telemetry services register 'analytics.track' or listen to 'appointment.created' etc.\n  - src/core/di.ts may register eventBus in the container for test injection.\n\n- Extensibility and module augmentation:\n  - Recommend allowing other modules to augment EventMap via TypeScript declaration merging (declare module '@/core/events' { interface EventMap { 'myplugin.event': { ... } } }). Document this in comments.\n\n- Implementation hints:\n  - Keep EventBus lightweight and dependency-free. Use built-in Map/Set for performance. Use debugLog from utils for dev-only diagnostics.\n  - Ensure handlers registered while emitting don't affect current emission cycle (i.e., iterate a snapshot of handlers)."
     },
     {
       "id": "core-hooks-registry",
       "file_path": "src/core/hooks.ts",
-      "description": "Registry for optional extension hooks. Small helper for registering and retrieving lifecycle hooks for plugins/extensions.",
-      "dependencies": [
-        "src/core/events.ts"
-      ],
+      "description": "Extension hook registry: register plugins/hooks and consume them elsewhere. Lightweight types for hook registration.",
+      "dependencies": [],
       "exports": [
         "registerHook",
-        "runHook",
+        "useHook",
         "HookRegistry"
       ],
       "priority": 1,
-      "purpose": "A small registry for pluggable lifecycle hooks used by the app and optional extensions. Allows registering multiple handlers for common hook points (beforeApiRequest, afterApiResponse, onLogin, onLogout, onRouteChange). Hooks provide typed contexts and can be run serially or in parallel.",
-      "content": "HookPoint union & HookContext\n- HookPoint = 'beforeApiRequest' | 'afterApiResponse' | 'onLogin' | 'onLogout' | 'onRouteChange'\n\nContext shapes\n- BeforeApiRequestCtx = { url: string; method: string; headers: Record<string,string>; body?: any; meta?: Record<string, any> }\n- AfterApiResponseCtx = { url: string; method: string; response: import('@/core/contracts').ApiResult<any>; meta?: Record<string, any> }\n- AuthHookCtx = { user?: import('@/core/contracts').User; tokens?: any }\n- RouteChangeCtx = { from?: string; to: string }\n- HookResult generic: { handled?: boolean; data?: any }\n\nHook function type\n- type HookFunc<Ctx> = (ctx: Ctx) => void | Promise<void | HookResult>\n\nHookRegistry class responsibilities\n- register<K extends HookPoint>(name: K, fn: HookFunc<...>): () => void  // returns unregister function\n- run<K extends HookPoint>(name: K, ctx: CorrespondingCtx, options?: { parallel?: boolean; stopOnHandled?: boolean }): Promise<HookResult[]>\n- getHandlers<K extends HookPoint>(name: K): HookFunc[]\n\nImplementation notes\n- Maintain a Map<HookPoint, Set<Function>>\n- register returns an unregister function for easy plugin cleanup\n- run supports two modes:\n  - parallel (default false): handlers are run serially in registration order. If stopOnHandled true and a handler returns { handled: true }, stop further handlers.\n  - when parallel is true: use Promise.allSettled to run concurrently; stopOnHandled has no effect in parallel mode.\n- run returns all HookResults for instrumentation and debugging.\n\nStandard hooks to provide out of box\n- 'beforeApiRequest' (called by services/api.ts) allows hooks to mutate headers or augment meta. Should receive a mutable ctx.headers object; return values ignored except HookResult.handled for short-circuiting requests.\n- 'afterApiResponse' (called after API completes) allows logging, error transformation, telemetry, or domain-specific handling of non-2xx responses.\n- 'onLogin' and 'onLogout' used by AuthProvider to allow cross-cutting initialization/teardown (e.g., analytics identify, websocket auth)\n- 'onRouteChange' called by Router wrapper to let plugins respond to navigation events.\n\nIntegration with EventBus\n- Hooks may dispatch events to the event bus (import '@/core/events') if they need to inform other systems. The registry itself is lightweight and intentionally unrelated to bus internals.\n\nUsage example\n- import { registerHook, runHook } from '@/core/hooks'\n- const unregister = registerHook('onLogin', async ctx => { await analytics.identify(ctx.user) })\n- await runHook('beforeApiRequest', { url, method, headers, body })\n\nGuidelines\n- Hooks are for cross-cutting extension points only \u2014 do not store app state inside hook registry.\n- Keep handlers idempotent; register only during provider/plugin init and unregister on cleanup."
+      "purpose": "Lightweight Hook Registry for extension points and plugins. Allows modules to register functions for named HookPoints, and for consumers to run hooks in a typed, ordered way. This enables cross-cutting extensions (analytics, feature flags, request augmentation) without hard dependencies.",
+      "content": "Types & Hook points:\n\n- HookPoint union\n  - export type HookPoint = 'beforeApiRequest' | 'afterApiResponse' | 'onLogin' | 'onLogout' | 'onRouteChange' | 'onAppBoot';\n\n- Hook function signatures / context objects\n  - export interface HookContext { appConfig: import('@/app/config').AppConfig; eventBus: import('./events').EventBus; diContainer: import('./di').Container }\n  - export type HookFn<TArgs extends any[] = any[], TRet = void> = (context: HookContext, ...args: TArgs) => TRet | Promise<TRet>;\n\n- HookRegistry class\n  - class HookRegistry {\n      register<P extends HookPoint>(point: P, fn: HookFn<any, any>, priority?: number): () => void; // returns unregister\n      list<P extends HookPoint>(point: P): Array<{ fn: HookFn<any, any>; priority: number }>; // snapshot\n      run<P extends HookPoint, TArgs extends any[]>(point: P, ...args: TArgs): Promise<void>; // runs registered fns in ascending priority order; awaits each\n    }\n\n- Convenience functions\n  - export const registerHook = (point, fn, priority?) => hookRegistry.register(point, fn, priority);\n  - export const useHook = (point, fn, priority?) => { /* react hook wrapper that registers on mount & unregister on unmount */ } \u2014 note: this is a small React-aware helper that expects React available in consumer libs. If used here, type it as (point: HookPoint, fn: HookFn, priority?: number) => void.\n  - export const runHooks = (point, ...args) => hookRegistry.run(point, ...args)\n\n- Behavior & semantics\n  - Hooks are ordered by numeric priority (lower numbers run earlier). Default priority = 100.\n  - run() awaits each hook sequentially; if a hook throws, catch the error, debugLog it, and continue running subsequent hooks (so a single plugin cannot block others).\n  - Hooks should be idempotent when possible.\n\n- Standard hooks implemented and expected usage\n  - beforeApiRequest: mutate request options (headers/params), add correlation IDs, or short-circuit in dev for mocks. Example args: (request: { url: string; init?: RequestInit })\n  - afterApiResponse: inspect responses for telemetry and error normalization. Example args: (response: Response | ApiError)\n  - onLogin: called when user successfully logs in (payload: { user, tokens })\n  - onLogout: (payload: { userId?: string })\n  - onRouteChange: called with route info { from: string | null; to: string; params?: Record<string, string> }\n\n- Integration points:\n  - src/services/apiClient.ts must call runHooks('beforeApiRequest', request) before dispatching and runHooks('afterApiResponse', response) after receiving.\n  - AuthProvider triggers runHooks('onLogin', { user, tokens }) when login succeeds.\n  - Router should call runHooks('onRouteChange', { from, to }) when navigation occurs.\n  - Plugins and features register hooks using registerHook. Example: registerHook('beforeApiRequest', async (ctx, req) => { req.init.headers = { ...req.init.headers, 'X-Correlation-Id': uuid() }; });\n\n- Example usage patterns:\n  - import { registerHook } from '@/core/hooks';\n  - const unregister = registerHook('afterApiResponse', async (ctx, resp) => { if (!resp.success) await sendToErrorTracker(resp); }, 50);\n  - // unregister when plugin is removed:\n  - unregister();\n\n- Implementation notes:\n  - Keep registry small and thread-safe for single-threaded JS. Use arrays per hook point ordered by priority. When run() is invoked, operate on a shallow copy to protect against concurrent register/unregister changes during execution.\n  - Provide TypeScript-friendly overloads for register/run so hook authors get proper contextual typing when possible."
     },
     {
       "id": "core-utils",
       "file_path": "src/core/utils.ts",
-      "description": "Common utilities used across app: fetch wrapper, classNames helper, date formatters, safe JSON parse, sleep, identity helpers.",
-      "dependencies": [
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "fetcher",
-        "classNames",
-        "formatDate",
-        "safeJSONParse",
-        "sleep"
-      ],
-      "priority": 1,
-      "purpose": "Small library of safe, well-typed utility helpers used widely across the app: fetch wrapper adapters, formatting utilities, safe JSON helpers, small encryption helper (optional), classNames utility and debug logging. This file keeps simple helpers centralized to avoid duplication.",
-      "content": "Utilities & function signatures\n- fetcher<T>(input: RequestInfo | string, init?: RequestInit): Promise<import('@/core/contracts').ApiResult<T>>\n  - Should rely on config.apiBaseUrl when provided (import config from '@/app/config')\n  - Automatically parse JSON and normalize errors into ApiError shape from contracts.ts\n  - Attach default headers (Accept: application/json)\n  - Support injecting Authorization header via an optional getToken callback in options\n  - Return ApiResult<T> { success: boolean; data?: T; error?: ApiError }\n  - Example: const resp = await fetcher<User>('/me', { headers: { 'X-Tenant': 'foo' } })\n\n- classNames(...items: Array<string | Record<string, boolean> | undefined | null>): string\n  - Small helper to join class names conditionally. Common signature used across components.\n\n- formatDate(dateOrIso: string | Date, opts?: { dateOnly?: boolean; locale?: string; timeZone?: string }): string\n  - Friendly wrapper around Intl.DateTimeFormat with a sensible default format and safe fallback when Intl not available. Use to format appointment times and display dates across UI.\n\n- safeJSONParse<T>(raw: string | null | undefined, fallback?: T): T | undefined\n  - Try/Catch JSON.parse and return fallback on error; used when reading localStorage or unknown server payloads.\n\n- sleep(ms: number): Promise<void>\n  - Simple delay helper for tests or UI micro-interactions.\n\n- debug(namespace: string): (...args:any[]) => void\n  - Conditional debug logger that respects config.development_mode.verbose_logs and optionally a DEBUG import.meta.env flag.\n  - Implementation example: const log = debug('services:api'); log('request', url)\n\nSmall crypto helper for local storage (optional)\n- simpleBase64Encode/Decode(value: string): string\n- encryptLocal(value: string): string // wrapper around btoa with JSON structure so we can switch to real encryption in future\n- decryptLocal(value: string): string\n\nImplementation notes\n- Keep no direct side effects (no storage writes) in utility functions unless named explicitly.\n- fetcher should be resilient: if response has non-JSON body, still return ApiError with status & text.\n- fetcher must call runHook('beforeApiRequest', ctx) and runHook('afterApiResponse', ctx) from '@/core/hooks' to enable plugins and middleware to observe API calls.\n\nIntegration points\n- services/api.ts will wrap fetcher and provide higher-level helper methods get/post/put/delete.\n- hooks/useLocalStorage uses safeJSONParse, encryptLocal and decryptLocal optionally.\n- debug used across modules to enable verbose logging in development.\n\nExample usage\n- import { fetcher, classNames, formatDate, safeJSONParse } from '@/core/utils'\n- const { success, data } = await fetcher<MyType>('/some-endpoint')\n- <div className={classNames('p-2', { 'opacity-50': isDisabled })}>...</div>"
-    },
-    {
-      "id": "main-entry",
-      "file_path": "src/main.tsx",
-      "description": "Application entry point. Bootstraps providers (QueryProvider, ThemeProvider, AuthProvider, ToastProvider, ModalProvider) and renders the root App into the DOM. Reads import.meta.env via app/config.",
-      "dependencies": [
-        "src/App.tsx",
-        "src/app/config.ts",
-        "src/providers/QueryProvider.tsx",
-        "src/providers/ThemeProvider.tsx",
-        "src/providers/AuthProvider.tsx",
-        "src/providers/ToastProvider.tsx",
-        "src/providers/ModalProvider.tsx",
-        "src/styles/global.css"
-      ],
-      "exports": [
-        "bootstrap (default app bootstrap side-effect)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-auth",
-      "file_path": "src/providers/AuthProvider.tsx",
-      "description": "Authentication context. Manages current user session, token refresh, and exposes useAuth hook. Persists tokens securely (localStorage with simple encryption helper in core/utils if needed).",
-      "dependencies": [
-        "src/services/auth.ts",
-        "src/hooks/useLocalStorage.ts",
-        "src/core/events.ts",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "AuthProvider",
-        "useAuth"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-modal",
-      "file_path": "src/providers/ModalProvider.tsx",
-      "description": "Global modal portal and manager that supports stacking, backdrop blur (glass morphism), focus trap, and ESC to close. Exposes openModal/closeModal via useModal hook.",
-      "dependencies": [
-        "src/shared/components/Modal.tsx",
-        "src/theme/animations.ts",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "ModalProvider",
-        "useModal"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-query",
-      "file_path": "src/providers/QueryProvider.tsx",
-      "description": "TanStack Query (React Query) provider wrapper: creates QueryClient, sets default options, and exposes devtools integration when enabled.",
-      "dependencies": [
-        "src/app/config.ts"
-      ],
-      "exports": [
-        "QueryProvider"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-theme",
-      "file_path": "src/providers/ThemeProvider.tsx",
-      "description": "Context-based ThemeProvider that injects CSS variables, provides a useTheme hook, persists dark/light mode in localStorage, and integrates with Framer Motion's reduced-motion preference.",
-      "dependencies": [
-        "src/theme/index.ts",
-        "src/hooks/useLocalStorage.ts",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "ThemeProvider",
-        "useTheme"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-toast",
-      "file_path": "src/providers/ToastProvider.tsx",
-      "description": "Global toast provider that renders toasts with enter/exit animations, stacking, auto-dismiss and programmatic API (useToast). Uses event bus to allow publishEvent('toast').",
-      "dependencies": [
-        "src/shared/components/Toast.tsx",
-        "src/theme/animations.ts",
-        "src/core/events.ts",
-        "src/hooks/useLocalStorage.ts"
-      ],
-      "exports": [
-        "ToastProvider",
-        "useToast"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "routes",
-      "file_path": "src/routes.tsx",
-      "description": "React Router v6 route declarations. Maps routes to pages and applies layout wrappers and route-level meta (auth required).",
-      "dependencies": [
-        "src/pages/HomePage.tsx",
-        "src/pages/DashboardPage.tsx",
-        "src/pages/LoginPage.tsx",
-        "src/shared/layouts/MainLayout.tsx",
-        "src/shared/layouts/AuthLayout.tsx",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "AppRoutes"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-analytics",
-      "file_path": "src/services/analytics.ts",
-      "description": "Analytics wrapper that sends events to external provider if enabled. Integrates with event bus to automatically capture route changes and key events.",
-      "dependencies": [
-        "src/app/config.ts",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "trackEvent",
-        "initAnalytics"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-api",
-      "file_path": "src/services/api.ts",
-      "description": "Central API client wrapper (fetch wrapper) that handles base URL, auth token injection, error parsing and retries. Small wrapper used by React Query fetchers.",
-      "dependencies": [
-        "src/app/config.ts",
-        "src/core/utils.ts",
-        "src/core/contracts.ts",
-        "src/services/auth.ts"
-      ],
-      "exports": [
-        "apiClient",
-        "get",
-        "post",
-        "put",
-        "del"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-auth",
-      "file_path": "src/services/auth.ts",
-      "description": "High-level auth service: login, logout, refresh, getCurrentUser. Uses apiClient for requests and exposes typed responses matching core/contracts.",
-      "dependencies": [
-        "src/services/api.ts",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "login",
-        "logout",
-        "getCurrentUser",
-        "refreshToken"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "state-store",
-      "file_path": "src/state/store.ts",
-      "description": "Zustand store used for non-server, non-persistent UI state (sidebar collapsed, mobile nav open, last active tab). Exposes typed hooks to read/update store.",
-      "dependencies": [
-        "src/core/contracts.ts",
-        "src/hooks/useLocalStorage.ts"
-      ],
-      "exports": [
-        "useAppStore",
-        "createAppStore"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "styles-global",
-      "file_path": "src/styles/global.css",
-      "description": "Global CSS reset, base typographic scale, CSS variables mapped from tokens (for non-JS components), base utility classes. Includes backdrop-filter for modal blur and glassmorphism helpers.",
-      "dependencies": [
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "globalStyles (CSS file imported for side-effects)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "theme-animations",
-      "file_path": "src/theme/animations.ts",
-      "description": "Animation presets for Framer Motion and CSS transition utilities (e.g., subtle, pop, fade, stagger).",
-      "dependencies": [
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "motionPresets",
-        "transitionPresets"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "theme-index",
-      "file_path": "src/theme/index.ts",
-      "description": "Design tokens (colors, spacing, typography scale, radii, z-index), utility helpers to consume tokens in components, and a theme object shape for ThemeProvider.",
+      "description": "Common utility helpers (formatDate, classNames, safeJsonParse, sleep, buildUrl) used throughout the application.",
       "dependencies": [],
       "exports": [
-        "theme",
-        "tokens",
-        "Theme",
-        "useThemeTokens"
+        "formatDate",
+        "classNames",
+        "safeJsonParse",
+        "sleep",
+        "buildUrl"
       ],
-      "priority": 1
-    },
-    {
-      "id": "component-avatar",
-      "file_path": "src/shared/components/Avatar.tsx",
-      "description": "Avatar component with fallback initials and optional status indicator. Accessible and keyboard-targetable.",
-      "dependencies": [
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "Avatar"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-button",
-      "file_path": "src/shared/components/Button.tsx",
-      "description": "Accessible Button component supporting variants (primary, ghost, outline), size props, loading state (shows spinner), and icon support. Uses theme tokens for consistent visuals.",
-      "dependencies": [
-        "src/shared/components/Icon.tsx",
-        "src/shared/components/Spinner.tsx",
-        "src/theme/index.ts",
-        "src/core/utils.ts"
-      ],
-      "exports": [
-        "Button",
-        "ButtonProps"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-card",
-      "file_path": "src/shared/components/Card.tsx",
-      "description": "Base Card component with elevation, rounded corners and support for header/footer slots. Used by many features.",
-      "dependencies": [
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "Card",
-        "CardHeader",
-        "CardBody",
-        "CardFooter"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-chart",
-      "file_path": "src/shared/components/Chart.tsx",
-      "description": "Small wrapper around a charting library (Recharts/Chart.js). Provides consistent theming, skeleton state and responsive resizing.",
-      "dependencies": [
-        "src/shared/components/Skeleton.tsx",
-        "src/hooks/useWindowSize.ts",
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "Chart",
-        "ChartProps"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-dropdown",
-      "file_path": "src/shared/components/Dropdown.tsx",
-      "description": "Dropdown menu with keyboard navigation, focus trap for nested menus, and animation utilties.",
-      "dependencies": [
-        "src/shared/components/Tooltip.tsx",
-        "src/theme/animations.ts"
-      ],
-      "exports": [
-        "Dropdown",
-        "DropdownItem"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-footer",
-      "file_path": "src/shared/components/Footer.tsx",
-      "description": "Footer used across the app with copyright, links and subtle gradient background.",
-      "dependencies": [
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "Footer"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-glass-card",
-      "file_path": "src/shared/components/GlassCard.tsx",
-      "description": "Card variant using glassmorphism (backdrop-blur, translucent gradient) for elevated UI surfaces.",
-      "dependencies": [
-        "src/shared/components/Card.tsx",
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "GlassCard"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-gradient-badge",
-      "file_path": "src/shared/components/GradientBadge.tsx",
-      "description": "Small badge component with gradient background, suitable for status displays and tags.",
-      "dependencies": [
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "GradientBadge"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-header",
-      "file_path": "src/shared/components/Header.tsx",
-      "description": "Top header bar with global actions (search, notifications, profile). Integrates keyboard shortcuts and accessible menus.",
-      "dependencies": [
-        "src/shared/components/Avatar.tsx",
-        "src/shared/components/Dropdown.tsx",
-        "src/shared/components/Icon.tsx",
-        "src/state/store.ts"
-      ],
-      "exports": [
-        "Header"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-icon",
-      "file_path": "src/shared/components/Icon.tsx",
-      "description": "Lightweight icon component and icon registry. Provides common SVG icons and allows size/color props. Icon set exported from src/shared/icons/index.tsx.",
-      "dependencies": [
-        "src/shared/icons/index.tsx",
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "Icon",
-        "IconProps"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-input",
-      "file_path": "src/shared/components/Input.tsx",
-      "description": "Controlled input with accessible label, optional icon, validation state, and skeleton variant. Integrates with react-hook-form friendly props.",
-      "dependencies": [
-        "src/shared/components/Icon.tsx",
-        "src/theme/index.ts",
-        "src/shared/components/Skeleton.tsx"
-      ],
-      "exports": [
-        "Input",
-        "InputProps"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-modal",
-      "file_path": "src/shared/components/Modal.tsx",
-      "description": "Accessible modal with portal support, backdrop blur, focus trap, aria attributes and animations. Integrates with ModalProvider for stacking.",
-      "dependencies": [
-        "src/theme/animations.ts",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "Modal",
-        "ModalHeader",
-        "ModalBody",
-        "ModalFooter"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-sidebar",
-      "file_path": "src/shared/components/Sidebar.tsx",
-      "description": "Collapsible sidebar with navigation links, active route highlighting and keyboard navigation support. Integrates with MainLayout and useAppStore.",
-      "dependencies": [
-        "src/shared/components/Icon.tsx",
-        "src/state/store.ts",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "Sidebar"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-skeleton",
-      "file_path": "src/shared/components/Skeleton.tsx",
-      "description": "Skeleton loading component with shimmer effect used across lists and charts to indicate loading states.",
-      "dependencies": [
-        "src/theme/animations.ts"
-      ],
-      "exports": [
-        "Skeleton"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-spinner",
-      "file_path": "src/shared/components/Spinner.tsx",
-      "description": "Small CSS/ SVG spinner component used for in-button and page loading states. Honors reduced-motion and theme colors.",
-      "dependencies": [
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "Spinner"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-toast",
-      "file_path": "src/shared/components/Toast.tsx",
-      "description": "Toast visual component implementing enter/exit animations, types (success, error, info), and ARIA live region integration.",
-      "dependencies": [
-        "src/theme/animations.ts",
-        "src/shared/components/Icon.tsx"
-      ],
-      "exports": [
-        "Toast"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "component-tooltip",
-      "file_path": "src/shared/components/Tooltip.tsx",
-      "description": "Accessible tooltip using aria-describedby; supports delay, positioning and motion presets.",
-      "dependencies": [
-        "src/theme/animations.ts"
-      ],
-      "exports": [
-        "Tooltip"
-      ],
-      "priority": 2
+      "priority": 1,
+      "purpose": "Collection of small, well-tested utility helpers used across services, providers and UI. Keep functions pure and free of app state. Designed to be small so they are easy to test and tree-shake.",
+      "content": "Functions and signatures to implement/export:\n\n- formatDate(date: string | Date, options?: Intl.DateTimeFormatOptions, locale?: string): string\n  - Purpose: normalize ISO date strings for UI display using Intl.DateTimeFormat.\n  - Behavior: if input invalid -> return empty string. Support 'short', 'long' presets via options argument.\n  - Example: formatDate('2025-09-01T12:00:00Z', { dateStyle: 'medium' }) -> 'Sep 1, 2025'\n\n- classNames(...chunks: Array<string | Record<string, boolean> | undefined | null>): string\n  - Purpose: compact helper for conditional CSS class concatenation.\n  - Behavior: supports objects where truthy values include the key.\n  - Example: classNames('btn', { 'btn--primary': isPrimary, 'hidden': !visible })\n\n- safeJsonParse<T = any>(input: string | undefined | null, fallback?: T): T\n  - Purpose: parse JSON with try/catch, return fallback on error.\n  - Example: safeJsonParse(localStorage.getItem('foo'), {})\n\n- sleep(ms: number): Promise<void>\n  - Purpose: simple async delay used in tests and mock flows.\n\n- buildUrl(base: string, path: string, params?: Record<string, string | number | boolean | undefined>): string\n  - Purpose: safe URL builder that handles leading/trailing slashes and query params.\n  - Behavior: skip undefined values, encode params with encodeURIComponent.\n  - Example: buildUrl(appConfig.apiBaseUrl, '/appointments', { patientId: '123', page: 2 })\n\n- debugLog(namespace: string, ...args: any[]): void\n  - Purpose: dev-only console logger that respects appConfig.isDevelopment. Use minimal formatting and guard against undefined console.\n  - Implementation: check import.meta.env.MODE === 'development' and return early otherwise.\n\nPatterns and conventions:\n- Keep functions strongly typed, exported as named exports.\n- Avoid DOM access in utils; if necessary, wrap it in small helpers exported separately and used only in UI layers.\n- Unit-test each util; keep behavior deterministic (no randomization).\n\nIntegration points:\n- src/core/events.ts uses sleep and debugLog for async handler utilities.\n- src/app/config.ts may use safeJsonParse when reading local storage for persisted partial config.\n- buildUrl is used by src/services/apiClient.ts to create full endpoint URLs.\n\nExample usages:\n- import { buildUrl, safeJsonParse } from '@/core/utils';\n- const url = buildUrl(appConfig.apiBaseUrl, `/patients/${id}`);\n- const persisted = safeJsonParse<Record<string, any>>(localStorage.getItem('prefs'), {});"
     },
     {
       "id": "hooks-useauth",
       "file_path": "src/hooks/useAuth.ts",
-      "description": "Convenience hook that proxies AuthProvider context to give components currentUser, login, logout and isAuthenticated flags.",
+      "description": "Convenience hook wrapping Auth context to expose typed currentUser, login/logout and authenticated guard helpers.",
       "dependencies": [
         "src/providers/AuthProvider.tsx",
         "src/core/contracts.ts"
       ],
       "exports": [
         "useAuth"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "hooks-usedebounce",
-      "file_path": "src/hooks/useDebounce.ts",
-      "description": "Generic debounce hook used by other hooks and components (search inputs, resize handlers).",
-      "dependencies": [],
-      "exports": [
-        "useDebounce"
       ],
       "priority": 2
     },
     {
       "id": "hooks-usefetch",
       "file_path": "src/hooks/useFetch.ts",
-      "description": "Thin wrapper over React Query's useQuery to enforce consistent fetcher signature and error handling in feature code.",
+      "description": "Light wrapper around React Query to standardize fetch signatures and error handling; leverages apiClient. Provides typed queries/mutations helpers.",
       "dependencies": [
-        "src/services/api.ts",
-        "src/core/utils.ts"
+        "src/services/apiClient.ts",
+        "src/providers/QueryProvider.tsx"
       ],
       "exports": [
-        "useFetch",
-        "useMutationHelper"
+        "useQueryFetch",
+        "useMutationFetch"
       ],
       "priority": 2
     },
     {
       "id": "hooks-uselocalstorage",
       "file_path": "src/hooks/useLocalStorage.ts",
-      "description": "Small typed hook to persist state to localStorage with SSR-safety and optional serializer hooks.",
+      "description": "Small hook for persistent state in localStorage with SSR-safety checks and JSON serialization. Used by AuthProvider for non-sensitive settings.",
       "dependencies": [
         "src/core/utils.ts"
       ],
@@ -631,38 +157,11 @@
       "priority": 2
     },
     {
-      "id": "hooks-usemodal",
-      "file_path": "src/hooks/useModal.ts",
-      "description": "Hook for opening and closing global modals via ModalProvider including typed return for promise-modals.",
-      "dependencies": [
-        "src/providers/ModalProvider.tsx",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "useModal"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "hooks-usetheme",
-      "file_path": "src/hooks/useTheme.ts",
-      "description": "Small hook to access theme tokens and helpers; proxies ThemeProvider context.",
-      "dependencies": [
-        "src/providers/ThemeProvider.tsx",
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "useThemeTokens"
-      ],
-      "priority": 2
-    },
-    {
       "id": "hooks-usetoast",
       "file_path": "src/hooks/useToast.ts",
-      "description": "Hook that exposes toast controls (show, success, error) that internally use the ToastProvider or event bus if outside provider scope.",
+      "description": "Convenience hook providing the toast enqueue API (success, error, info) built on ToastProvider.",
       "dependencies": [
-        "src/providers/ToastProvider.tsx",
-        "src/core/events.ts"
+        "src/providers/ToastProvider.tsx"
       ],
       "exports": [
         "useToast"
@@ -670,86 +169,292 @@
       "priority": 2
     },
     {
-      "id": "hooks-usewindowsize",
-      "file_path": "src/hooks/useWindowSize.ts",
-      "description": "Hook to report viewport width/height and breakpoint booleans. Debounced resize handling for performance.",
+      "id": "providers-authprovider",
+      "file_path": "src/providers/AuthProvider.tsx",
+      "description": "Auth context that stores current user and tokens, exposes login/logout/refresh helpers, persists minimal auth state (securely) and interacts with authService.",
       "dependencies": [
-        "src/hooks/useDebounce.ts"
+        "src/services/authService.ts",
+        "src/core/contracts.ts",
+        "src/hooks/useLocalStorage.ts"
       ],
       "exports": [
-        "useWindowSize"
+        "AuthProvider",
+        "useAuthContext"
       ],
       "priority": 2
     },
     {
-      "id": "shared-icons",
-      "file_path": "src/shared/icons/index.tsx",
-      "description": "Collection of small SVG icon components (Menu, Close, User, Check, Alert, Chart) used across the app.",
+      "id": "providers-index",
+      "file_path": "src/providers/Providers.tsx",
+      "description": "Root provider aggregator composing ThemeProvider, QueryProvider, AuthProvider, ToastProvider, ModalProvider. Import this at app boot.",
+      "dependencies": [
+        "src/providers/ThemeProvider.tsx",
+        "src/providers/QueryProvider.tsx",
+        "src/providers/AuthProvider.tsx",
+        "src/providers/ToastProvider.tsx",
+        "src/providers/ModalProvider.tsx"
+      ],
+      "exports": [
+        "AppProviders"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "providers-modalprovider",
+      "file_path": "src/providers/ModalProvider.tsx",
+      "description": "Modal context and stack manager. Ensures focus trap, ESC to close, backdrop blur, and accessible roles.",
+      "dependencies": [
+        "src/shared/components/Modal/Modal.tsx"
+      ],
+      "exports": [
+        "ModalProvider",
+        "useModalContext"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "providers-queryprovider",
+      "file_path": "src/providers/QueryProvider.tsx",
+      "description": "Sets up React Query's QueryClient and provides global defaults (staleTime, retry), devtools integration optional.",
+      "dependencies": [
+        "src/core/utils.ts"
+      ],
+      "exports": [
+        "QueryProvider"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "providers-themeprovider",
+      "file_path": "src/providers/ThemeProvider.tsx",
+      "description": "React context ThemeProvider that injects tokens into context and provides hooks for theme toggling (light/dark). Connects CSS variables to Theme object.",
+      "dependencies": [
+        "src/theme/index.ts"
+      ],
+      "exports": [
+        "ThemeProvider",
+        "useTheme"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "providers-toastprovider",
+      "file_path": "src/providers/ToastProvider.tsx",
+      "description": "Provides toast stack and imperative API to enqueue toasts. Handles auto-dismiss, pause on hover, and accessibility announcements.",
+      "dependencies": [
+        "src/shared/components/Toast/Toast.tsx",
+        "src/theme/animations.ts"
+      ],
+      "exports": [
+        "ToastProvider",
+        "useToastContext"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "services-api-client",
+      "file_path": "src/services/apiClient.ts",
+      "description": "Fetch/axios wrapper that centralizes baseUrl (from app config), request/response interceptors (auth tokens, refresh), and typed request helpers.",
+      "dependencies": [
+        "src/app/config.ts",
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "apiClient",
+        "get",
+        "post",
+        "put",
+        "del"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "services-auth-service",
+      "file_path": "src/services/authService.ts",
+      "description": "API methods for authentication (login, logout, refresh, me). Returns typed domain contracts.",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "login",
+        "logout",
+        "refreshToken",
+        "getMe"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "services-user-service",
+      "file_path": "src/services/userService.ts",
+      "description": "User-related API methods (profile, update, activity list) used by profile and dashboard features.",
+      "dependencies": [
+        "src/services/apiClient.ts",
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "getProfile",
+        "updateProfile",
+        "getActivity"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-layout-footer",
+      "file_path": "src/shared/layouts/Footer.tsx",
+      "description": "App footer with small utilities and copyright info; used in Shell.",
       "dependencies": [],
       "exports": [
-        "MenuIcon",
-        "CloseIcon",
-        "UserIcon",
-        "CheckIcon",
-        "AlertIcon",
-        "ChartIcon"
+        "Footer"
       ],
       "priority": 2
     },
     {
-      "id": "shared-layout-auth",
-      "file_path": "src/shared/layouts/AuthLayout.tsx",
-      "description": "Layout used for auth-related routes (login, signup). Centers content, sets modest background gradient and applies appropriate padding and accessibility attributes.",
+      "id": "shared-layout-shell",
+      "file_path": "src/shared/layouts/Shell.tsx",
+      "description": "Top-level layout wrapper used by pages. Assembles TopNav, Sidebar and content area. Responsible for page-level responsive behavior.",
       "dependencies": [
-        "src/theme/index.ts",
-        "src/shared/components/Card.tsx"
+        "src/shared/layouts/TopNav.tsx",
+        "src/shared/layouts/Sidebar.tsx",
+        "src/shared/layouts/Footer.tsx"
       ],
       "exports": [
-        "AuthLayout"
+        "Shell"
       ],
       "priority": 2
     },
     {
-      "id": "shared-layout-main",
-      "file_path": "src/shared/layouts/MainLayout.tsx",
-      "description": "Primary application layout: header, collapsible sidebar, main content area and footer. Manages responsive breakpoints and keyboard accessibility for navigation.",
+      "id": "shared-layout-sidebar",
+      "file_path": "src/shared/layouts/Sidebar.tsx",
+      "description": "Left navigation with route links, active states, collapsible behavior (responsive). Uses glassmorphism and depth shadow tokens.",
       "dependencies": [
-        "src/shared/components/Header.tsx",
-        "src/shared/components/Sidebar.tsx",
-        "src/shared/components/Footer.tsx",
-        "src/state/store.ts",
-        "src/hooks/useWindowSize.ts"
+        "src/theme/index.ts"
       ],
       "exports": [
-        "MainLayout"
+        "Sidebar"
       ],
       "priority": 2
     },
     {
-      "id": "feature-activity-feed",
-      "file_path": "src/features/dashboard/ActivityFeed.tsx",
-      "description": "Activity feed component rendering a list of recent events with skeleton while loading. Accessible list with item actions (mark read).",
+      "id": "shared-layout-topnav",
+      "file_path": "src/shared/layouts/TopNav.tsx",
+      "description": "Top navigation bar: branding, search, user menu. Accessible keyboard navigation and compact behaviour on small screens.",
       "dependencies": [
-        "src/shared/components/Skeleton.tsx",
+        "src/assets/logo.svg",
         "src/shared/components/Avatar.tsx",
-        "src/hooks/useFetch.ts",
-        "src/shared/components/Button.tsx"
+        "src/hooks/useAuth.ts"
       ],
       "exports": [
-        "ActivityFeed"
+        "TopNav"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "styles-global",
+      "file_path": "src/styles/global.css",
+      "description": "Global CSS \u2014 base reset, utilities, root-level styles, font imports, and integration point for tokens.css.",
+      "dependencies": [
+        "src/styles/tokens.css"
+      ],
+      "exports": [],
+      "priority": 2
+    },
+    {
+      "id": "styles-tokens",
+      "file_path": "src/styles/tokens.css",
+      "description": "CSS custom properties generated from tokens (colors, spacing, type scales). Used by global styles and non-TSX assets.",
+      "dependencies": [],
+      "exports": [],
+      "priority": 2
+    },
+    {
+      "id": "theme-animations",
+      "file_path": "src/theme/animations.ts",
+      "description": "Animation presets and utility variants for Framer Motion and CSS transitions (durations, easing curves, scale/opacity presets).",
+      "dependencies": [],
+      "exports": [
+        "motions",
+        "fadeIn",
+        "slideUp",
+        "springSoft"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "theme-index",
+      "file_path": "src/theme/index.ts",
+      "description": "Design tokens and theme object (colors, typography, spacing, radii). Exposes a Theme interface consumed by styled components and components.",
+      "dependencies": [
+        "src/theme/animations.ts"
+      ],
+      "exports": [
+        "theme",
+        "tokens",
+        "Theme",
+        "useThemeTokens"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "app-root",
+      "file_path": "src/App.tsx",
+      "description": "Top-level App component that renders the AppRouter and provides global scaffolding (error boundary, suspense fallbacks).",
+      "dependencies": [
+        "src/providers/Providers.tsx",
+        "src/app/router.tsx"
+      ],
+      "exports": [
+        "App"
       ],
       "priority": 3
     },
     {
-      "id": "feature-metric-card",
-      "file_path": "src/features/dashboard/MetricCard.tsx",
-      "description": "Reusable metric card for dashboard: value, delta, sparkline chart, and contextual tooltip. Uses GradientBadge for delta.",
+      "id": "app-router",
+      "file_path": "src/app/router.tsx",
+      "description": "React Router v6 routes mapping; defines public and protected routes. Wire up route guards using useAuth.",
       "dependencies": [
-        "src/shared/components/Card.tsx",
-        "src/shared/components/GradientBadge.tsx",
-        "src/shared/components/Chart.tsx",
-        "src/shared/components/Tooltip.tsx",
-        "src/theme/index.ts"
+        "src/pages/HomePage.tsx",
+        "src/pages/DashboardPage.tsx",
+        "src/pages/ProfilePage.tsx",
+        "src/pages/SettingsPage.tsx",
+        "src/pages/NotFoundPage.tsx",
+        "src/hooks/useAuth.ts"
+      ],
+      "exports": [
+        "AppRouter"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "assets-logo",
+      "file_path": "src/assets/logo.svg",
+      "description": "App logo asset used in TopNav and meta previews.",
+      "dependencies": [],
+      "exports": [],
+      "priority": 3
+    },
+    {
+      "id": "feature-dashboard-activitylist",
+      "file_path": "src/features/dashboard/ActivityList.tsx",
+      "description": "Activity/Feed list for dashboard with skeletons while loading and accessible list semantics.",
+      "dependencies": [
+        "src/services/userService.ts",
+        "src/hooks/useFetch.ts",
+        "src/shared/components/Skeleton.tsx"
+      ],
+      "exports": [
+        "ActivityList"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "feature-dashboard-metriccard",
+      "file_path": "src/features/dashboard/MetricCard.tsx",
+      "description": "Dashboard metric tile showing a key metric, delta, tiny sparkline (uses LineChart), and skeleton state. Uses GlassCard for presentation.",
+      "dependencies": [
+        "src/shared/components/Card/GlassCard.tsx",
+        "src/shared/components/Chart/LineChart.tsx",
+        "src/shared/components/Skeleton.tsx"
       ],
       "exports": [
         "MetricCard"
@@ -757,32 +462,26 @@
       "priority": 3
     },
     {
-      "id": "feature-profile-card",
-      "file_path": "src/features/profile/ProfileCard.tsx",
-      "description": "Small feature component showing user profile info, avatar, editable fields and a save button. Demonstrates integration with services/auth and modals for editing.",
+      "id": "main-entry",
+      "file_path": "src/main.tsx",
+      "description": "Application entry point: mounts React app into DOM, applies global styles and integrates dev-only tooling (React Query Devtools).",
       "dependencies": [
-        "src/shared/components/Card.tsx",
-        "src/shared/components/Avatar.tsx",
-        "src/hooks/useAuth.ts",
-        "src/providers/ModalProvider.tsx",
-        "src/shared/components/Button.tsx"
+        "src/App.tsx",
+        "src/providers/Providers.tsx",
+        "src/styles/global.css"
       ],
-      "exports": [
-        "ProfileCard"
-      ],
+      "exports": [],
       "priority": 3
     },
     {
-      "id": "page-dashboard",
+      "id": "pages-dashboard",
       "file_path": "src/pages/DashboardPage.tsx",
-      "description": "Authenticated dashboard page showing metrics, charts and activity feed. Uses React Query hooks to fetch metrics and displays loading skeletons.",
+      "description": "Authenticated dashboard page composing MetricCard and ActivityList. Fetches data via React Query hooks.",
       "dependencies": [
+        "src/shared/layouts/Shell.tsx",
         "src/features/dashboard/MetricCard.tsx",
-        "src/features/dashboard/ActivityFeed.tsx",
-        "src/shared/components/Chart.tsx",
-        "src/shared/components/Skeleton.tsx",
-        "src/hooks/useFetch.ts",
-        "src/core/contracts.ts"
+        "src/features/dashboard/ActivityList.tsx",
+        "src/hooks/useAuth.ts"
       ],
       "exports": [
         "DashboardPage"
@@ -790,13 +489,12 @@
       "priority": 3
     },
     {
-      "id": "page-home",
+      "id": "pages-home",
       "file_path": "src/pages/HomePage.tsx",
-      "description": "Public landing/home page. Demonstrates hero area, feature cards (GlassCard), and CTA to sign up / login. Includes micro-interactions and animations.",
+      "description": "Public home/marketing page. Lightweight and often static; showcases brand and CTA to login/dashboard.",
       "dependencies": [
-        "src/shared/components/GlassCard.tsx",
-        "src/shared/components/Button.tsx",
-        "src/theme/animations.ts"
+        "src/shared/layouts/Shell.tsx",
+        "src/shared/components/Button.tsx"
       ],
       "exports": [
         "HomePage"
@@ -804,135 +502,267 @@
       "priority": 3
     },
     {
-      "id": "page-login",
-      "file_path": "src/pages/LoginPage.tsx",
-      "description": "Login page with form using Input and Button components. Integrates with AuthProvider and shows proper error handling and focus management for accessibility.",
+      "id": "pages-notfound",
+      "file_path": "src/pages/NotFoundPage.tsx",
+      "description": "404 Not Found page shown for unmatched routes. Simple, accessible and links back to home.",
       "dependencies": [
+        "src/shared/components/Button.tsx"
+      ],
+      "exports": [
+        "NotFoundPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "pages-profile",
+      "file_path": "src/pages/ProfilePage.tsx",
+      "description": "User profile page showing profile details and edit capabilities. Uses Input components and userService for updates.",
+      "dependencies": [
+        "src/shared/layouts/Shell.tsx",
         "src/shared/components/Input.tsx",
-        "src/shared/components/Button.tsx",
-        "src/providers/AuthProvider.tsx",
-        "src/hooks/useAuth.ts",
+        "src/services/userService.ts",
+        "src/hooks/useAuth.ts"
+      ],
+      "exports": [
+        "ProfilePage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "pages-settings",
+      "file_path": "src/pages/SettingsPage.tsx",
+      "description": "Settings page with toggles for theme and other user preferences. Persists small preferences via useLocalStorage hook.",
+      "dependencies": [
+        "src/shared/layouts/Shell.tsx",
+        "src/hooks/useLocalStorage.ts",
+        "src/providers/ThemeProvider.tsx"
+      ],
+      "exports": [
+        "SettingsPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "shared-card-glasscard",
+      "file_path": "src/shared/components/Card/GlassCard.tsx",
+      "description": "Glassmorphism-style Card component with optional gradient header, depth shadow, and variants for stats and content.",
+      "dependencies": [
+        "src/theme/index.ts"
+      ],
+      "exports": [
+        "GlassCard",
+        "GlassCardProps"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "shared-chart-linechart",
+      "file_path": "src/shared/components/Chart/LineChart.tsx",
+      "description": "Small line chart wrapper that accepts typed data, responsive sizing and minimal decorations for dashboards. Built on a lightweight chart library.",
+      "dependencies": [],
+      "exports": [
+        "LineChart",
+        "LineChartProps"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "shared-component-avatar",
+      "file_path": "src/shared/components/Avatar.tsx",
+      "description": "Avatar component with fallback initials, status badge, and optional image lazy-loading.",
+      "dependencies": [],
+      "exports": [
+        "Avatar"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "shared-component-button",
+      "file_path": "src/shared/components/Button.tsx",
+      "description": "Accessible Button component with variants (primary, secondary, ghost), supports loading, icon slots, and gradient/glass styling.",
+      "dependencies": [
+        "src/theme/index.ts"
+      ],
+      "exports": [
+        "Button",
+        "ButtonProps"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "shared-component-icon",
+      "file_path": "src/shared/components/Icon.tsx",
+      "description": "Small icon wrapper and a few built-in SVG icons. Used across UI to keep icon sizing consistent.",
+      "dependencies": [],
+      "exports": [
+        "Icon",
+        "Icons"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "shared-component-input",
+      "file_path": "src/shared/components/Input.tsx",
+      "description": "Accessible input with label, help text, error state, and focus ring. Works for text, password, and search.",
+      "dependencies": [
+        "src/theme/index.ts"
+      ],
+      "exports": [
+        "Input",
+        "InputProps"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "shared-component-skeleton",
+      "file_path": "src/shared/components/Skeleton.tsx",
+      "description": "Skeleton loading component for shimmer placeholders and blocks. Used across lists and cards for perceived performance.",
+      "dependencies": [
         "src/theme/animations.ts"
       ],
       "exports": [
-        "LoginPage"
+        "Skeleton"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "shared-component-spinner",
+      "file_path": "src/shared/components/Spinner.tsx",
+      "description": "Small loading spinner used in buttons and while fetching. Designed to match theme tokens.",
+      "dependencies": [
+        "src/theme/animations.ts"
+      ],
+      "exports": [
+        "Spinner"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "shared-modal-modal",
+      "file_path": "src/shared/components/Modal/Modal.tsx",
+      "description": "Accessible modal component with backdrop blur, focus-trap, close on ESC/click-outside, and Framer Motion transitions.",
+      "dependencies": [
+        "src/theme/animations.ts"
+      ],
+      "exports": [
+        "Modal",
+        "ModalProps"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "shared-toast-toast",
+      "file_path": "src/shared/components/Toast/Toast.tsx",
+      "description": "Toast item component with types (success, error, info), enter/exit animations and ARIA-live support for screen readers.",
+      "dependencies": [
+        "src/theme/animations.ts"
+      ],
+      "exports": [
+        "ToastItem",
+        "ToastProps"
       ],
       "priority": 3
     }
   ],
   "file_paths": [
     "src/app/config.ts",
-    "src/App.tsx",
     "src/core/contracts.ts",
     "src/core/di.ts",
     "src/core/events.ts",
     "src/core/hooks.ts",
     "src/core/utils.ts",
-    "src/main.tsx",
+    "src/hooks/useAuth.ts",
+    "src/hooks/useFetch.ts",
+    "src/hooks/useLocalStorage.ts",
+    "src/hooks/useToast.ts",
     "src/providers/AuthProvider.tsx",
+    "src/providers/Providers.tsx",
     "src/providers/ModalProvider.tsx",
     "src/providers/QueryProvider.tsx",
     "src/providers/ThemeProvider.tsx",
     "src/providers/ToastProvider.tsx",
-    "src/routes.tsx",
-    "src/services/analytics.ts",
-    "src/services/api.ts",
-    "src/services/auth.ts",
-    "src/state/store.ts",
+    "src/services/apiClient.ts",
+    "src/services/authService.ts",
+    "src/services/userService.ts",
+    "src/shared/layouts/Footer.tsx",
+    "src/shared/layouts/Shell.tsx",
+    "src/shared/layouts/Sidebar.tsx",
+    "src/shared/layouts/TopNav.tsx",
     "src/styles/global.css",
+    "src/styles/tokens.css",
     "src/theme/animations.ts",
     "src/theme/index.ts",
-    "src/shared/components/Avatar.tsx",
-    "src/shared/components/Button.tsx",
-    "src/shared/components/Card.tsx",
-    "src/shared/components/Chart.tsx",
-    "src/shared/components/Dropdown.tsx",
-    "src/shared/components/Footer.tsx",
-    "src/shared/components/GlassCard.tsx",
-    "src/shared/components/GradientBadge.tsx",
-    "src/shared/components/Header.tsx",
-    "src/shared/components/Icon.tsx",
-    "src/shared/components/Input.tsx",
-    "src/shared/components/Modal.tsx",
-    "src/shared/components/Sidebar.tsx",
-    "src/shared/components/Skeleton.tsx",
-    "src/shared/components/Spinner.tsx",
-    "src/shared/components/Toast.tsx",
-    "src/shared/components/Tooltip.tsx",
-    "src/hooks/useAuth.ts",
-    "src/hooks/useDebounce.ts",
-    "src/hooks/useFetch.ts",
-    "src/hooks/useLocalStorage.ts",
-    "src/hooks/useModal.ts",
-    "src/hooks/useTheme.ts",
-    "src/hooks/useToast.ts",
-    "src/hooks/useWindowSize.ts",
-    "src/shared/icons/index.tsx",
-    "src/shared/layouts/AuthLayout.tsx",
-    "src/shared/layouts/MainLayout.tsx",
-    "src/features/dashboard/ActivityFeed.tsx",
+    "src/App.tsx",
+    "src/app/router.tsx",
+    "src/assets/logo.svg",
+    "src/features/dashboard/ActivityList.tsx",
     "src/features/dashboard/MetricCard.tsx",
-    "src/features/profile/ProfileCard.tsx",
+    "src/main.tsx",
     "src/pages/DashboardPage.tsx",
     "src/pages/HomePage.tsx",
-    "src/pages/LoginPage.tsx"
+    "src/pages/NotFoundPage.tsx",
+    "src/pages/ProfilePage.tsx",
+    "src/pages/SettingsPage.tsx",
+    "src/shared/components/Card/GlassCard.tsx",
+    "src/shared/components/Chart/LineChart.tsx",
+    "src/shared/components/Avatar.tsx",
+    "src/shared/components/Button.tsx",
+    "src/shared/components/Icon.tsx",
+    "src/shared/components/Input.tsx",
+    "src/shared/components/Skeleton.tsx",
+    "src/shared/components/Spinner.tsx",
+    "src/shared/components/Modal/Modal.tsx",
+    "src/shared/components/Toast/Toast.tsx"
   ],
   "descriptions": [
-    "Materialized runtime configuration using import.meta.env; exposes typed config values (API base URL, feature flags, analytics key).",
-    "Root app component. Composes Router (routes.tsx) and top-level layout & error boundary. Provides global keyboard listeners for accessibility (e.g., ESC to close modals).",
-    "Domain types, API request/response contracts and shared TypeScript interfaces used across the app (e.g., User, AuthTokens, ApiError, DashboardMetric). Central source of truth for types.",
-    "Simple dependency-injection container for substituting services during tests or extensions (getService/setService patterns).",
-    "Lightweight event bus for app-level events (toasts, analytics events, auth changes). Exposes subscribe/publish helpers and typed event names.",
-    "Registry for optional extension hooks. Small helper for registering and retrieving lifecycle hooks for plugins/extensions.",
-    "Common utilities used across app: fetch wrapper, classNames helper, date formatters, safe JSON parse, sleep, identity helpers.",
-    "Application entry point. Bootstraps providers (QueryProvider, ThemeProvider, AuthProvider, ToastProvider, ModalProvider) and renders the root App into the DOM. Reads import.meta.env via app/config.",
-    "Authentication context. Manages current user session, token refresh, and exposes useAuth hook. Persists tokens securely (localStorage with simple encryption helper in core/utils if needed).",
-    "Global modal portal and manager that supports stacking, backdrop blur (glass morphism), focus trap, and ESC to close. Exposes openModal/closeModal via useModal hook.",
-    "TanStack Query (React Query) provider wrapper: creates QueryClient, sets default options, and exposes devtools integration when enabled.",
-    "Context-based ThemeProvider that injects CSS variables, provides a useTheme hook, persists dark/light mode in localStorage, and integrates with Framer Motion's reduced-motion preference.",
-    "Global toast provider that renders toasts with enter/exit animations, stacking, auto-dismiss and programmatic API (useToast). Uses event bus to allow publishEvent('toast').",
-    "React Router v6 route declarations. Maps routes to pages and applies layout wrappers and route-level meta (auth required).",
-    "Analytics wrapper that sends events to external provider if enabled. Integrates with event bus to automatically capture route changes and key events.",
-    "Central API client wrapper (fetch wrapper) that handles base URL, auth token injection, error parsing and retries. Small wrapper used by React Query fetchers.",
-    "High-level auth service: login, logout, refresh, getCurrentUser. Uses apiClient for requests and exposes typed responses matching core/contracts.",
-    "Zustand store used for non-server, non-persistent UI state (sidebar collapsed, mobile nav open, last active tab). Exposes typed hooks to read/update store.",
-    "Global CSS reset, base typographic scale, CSS variables mapped from tokens (for non-JS components), base utility classes. Includes backdrop-filter for modal blur and glassmorphism helpers.",
-    "Animation presets for Framer Motion and CSS transition utilities (e.g., subtle, pop, fade, stagger).",
-    "Design tokens (colors, spacing, typography scale, radii, z-index), utility helpers to consume tokens in components, and a theme object shape for ThemeProvider.",
-    "Avatar component with fallback initials and optional status indicator. Accessible and keyboard-targetable.",
-    "Accessible Button component supporting variants (primary, ghost, outline), size props, loading state (shows spinner), and icon support. Uses theme tokens for consistent visuals.",
-    "Base Card component with elevation, rounded corners and support for header/footer slots. Used by many features.",
-    "Small wrapper around a charting library (Recharts/Chart.js). Provides consistent theming, skeleton state and responsive resizing.",
-    "Dropdown menu with keyboard navigation, focus trap for nested menus, and animation utilties.",
-    "Footer used across the app with copyright, links and subtle gradient background.",
-    "Card variant using glassmorphism (backdrop-blur, translucent gradient) for elevated UI surfaces.",
-    "Small badge component with gradient background, suitable for status displays and tags.",
-    "Top header bar with global actions (search, notifications, profile). Integrates keyboard shortcuts and accessible menus.",
-    "Lightweight icon component and icon registry. Provides common SVG icons and allows size/color props. Icon set exported from src/shared/icons/index.tsx.",
-    "Controlled input with accessible label, optional icon, validation state, and skeleton variant. Integrates with react-hook-form friendly props.",
-    "Accessible modal with portal support, backdrop blur, focus trap, aria attributes and animations. Integrates with ModalProvider for stacking.",
-    "Collapsible sidebar with navigation links, active route highlighting and keyboard navigation support. Integrates with MainLayout and useAppStore.",
-    "Skeleton loading component with shimmer effect used across lists and charts to indicate loading states.",
-    "Small CSS/ SVG spinner component used for in-button and page loading states. Honors reduced-motion and theme colors.",
-    "Toast visual component implementing enter/exit animations, types (success, error, info), and ARIA live region integration.",
-    "Accessible tooltip using aria-describedby; supports delay, positioning and motion presets.",
-    "Convenience hook that proxies AuthProvider context to give components currentUser, login, logout and isAuthenticated flags.",
-    "Generic debounce hook used by other hooks and components (search inputs, resize handlers).",
-    "Thin wrapper over React Query's useQuery to enforce consistent fetcher signature and error handling in feature code.",
-    "Small typed hook to persist state to localStorage with SSR-safety and optional serializer hooks.",
-    "Hook for opening and closing global modals via ModalProvider including typed return for promise-modals.",
-    "Small hook to access theme tokens and helpers; proxies ThemeProvider context.",
-    "Hook that exposes toast controls (show, success, error) that internally use the ToastProvider or event bus if outside provider scope.",
-    "Hook to report viewport width/height and breakpoint booleans. Debounced resize handling for performance.",
-    "Collection of small SVG icon components (Menu, Close, User, Check, Alert, Chart) used across the app.",
-    "Layout used for auth-related routes (login, signup). Centers content, sets modest background gradient and applies appropriate padding and accessibility attributes.",
-    "Primary application layout: header, collapsible sidebar, main content area and footer. Manages responsive breakpoints and keyboard accessibility for navigation.",
-    "Activity feed component rendering a list of recent events with skeleton while loading. Accessible list with item actions (mark read).",
-    "Reusable metric card for dashboard: value, delta, sparkline chart, and contextual tooltip. Uses GradientBadge for delta.",
-    "Small feature component showing user profile info, avatar, editable fields and a save button. Demonstrates integration with services/auth and modals for editing.",
-    "Authenticated dashboard page showing metrics, charts and activity feed. Uses React Query hooks to fetch metrics and displays loading skeletons.",
-    "Public landing/home page. Demonstrates hero area, feature cards (GlassCard), and CTA to sign up / login. Includes micro-interactions and animations.",
-    "Login page with form using Input and Button components. Integrates with AuthProvider and shows proper error handling and focus management for accessibility."
+    "Materialized runtime configuration that reads from import.meta.env and exposes typed appConfig (API base URL, feature flags).",
+    "Domain types, API contract typings, shared DTOs (User, AuthTokens, ApiResponse, Pagination) used across the app.",
+    "Minimal DI container for registering and resolving concrete implementations (services) to ease testing and plugin injection.",
+    "Small typed event bus for decoupled cross-app events (analytics, feedback, keyboard shortcuts).",
+    "Extension hook registry: register plugins/hooks and consume them elsewhere. Lightweight types for hook registration.",
+    "Common utility helpers (formatDate, classNames, safeJsonParse, sleep, buildUrl) used throughout the application.",
+    "Convenience hook wrapping Auth context to expose typed currentUser, login/logout and authenticated guard helpers.",
+    "Light wrapper around React Query to standardize fetch signatures and error handling; leverages apiClient. Provides typed queries/mutations helpers.",
+    "Small hook for persistent state in localStorage with SSR-safety checks and JSON serialization. Used by AuthProvider for non-sensitive settings.",
+    "Convenience hook providing the toast enqueue API (success, error, info) built on ToastProvider.",
+    "Auth context that stores current user and tokens, exposes login/logout/refresh helpers, persists minimal auth state (securely) and interacts with authService.",
+    "Root provider aggregator composing ThemeProvider, QueryProvider, AuthProvider, ToastProvider, ModalProvider. Import this at app boot.",
+    "Modal context and stack manager. Ensures focus trap, ESC to close, backdrop blur, and accessible roles.",
+    "Sets up React Query's QueryClient and provides global defaults (staleTime, retry), devtools integration optional.",
+    "React context ThemeProvider that injects tokens into context and provides hooks for theme toggling (light/dark). Connects CSS variables to Theme object.",
+    "Provides toast stack and imperative API to enqueue toasts. Handles auto-dismiss, pause on hover, and accessibility announcements.",
+    "Fetch/axios wrapper that centralizes baseUrl (from app config), request/response interceptors (auth tokens, refresh), and typed request helpers.",
+    "API methods for authentication (login, logout, refresh, me). Returns typed domain contracts.",
+    "User-related API methods (profile, update, activity list) used by profile and dashboard features.",
+    "App footer with small utilities and copyright info; used in Shell.",
+    "Top-level layout wrapper used by pages. Assembles TopNav, Sidebar and content area. Responsible for page-level responsive behavior.",
+    "Left navigation with route links, active states, collapsible behavior (responsive). Uses glassmorphism and depth shadow tokens.",
+    "Top navigation bar: branding, search, user menu. Accessible keyboard navigation and compact behaviour on small screens.",
+    "Global CSS \u2014 base reset, utilities, root-level styles, font imports, and integration point for tokens.css.",
+    "CSS custom properties generated from tokens (colors, spacing, type scales). Used by global styles and non-TSX assets.",
+    "Animation presets and utility variants for Framer Motion and CSS transitions (durations, easing curves, scale/opacity presets).",
+    "Design tokens and theme object (colors, typography, spacing, radii). Exposes a Theme interface consumed by styled components and components.",
+    "Top-level App component that renders the AppRouter and provides global scaffolding (error boundary, suspense fallbacks).",
+    "React Router v6 routes mapping; defines public and protected routes. Wire up route guards using useAuth.",
+    "App logo asset used in TopNav and meta previews.",
+    "Activity/Feed list for dashboard with skeletons while loading and accessible list semantics.",
+    "Dashboard metric tile showing a key metric, delta, tiny sparkline (uses LineChart), and skeleton state. Uses GlassCard for presentation.",
+    "Application entry point: mounts React app into DOM, applies global styles and integrates dev-only tooling (React Query Devtools).",
+    "Authenticated dashboard page composing MetricCard and ActivityList. Fetches data via React Query hooks.",
+    "Public home/marketing page. Lightweight and often static; showcases brand and CTA to login/dashboard.",
+    "404 Not Found page shown for unmatched routes. Simple, accessible and links back to home.",
+    "User profile page showing profile details and edit capabilities. Uses Input components and userService for updates.",
+    "Settings page with toggles for theme and other user preferences. Persists small preferences via useLocalStorage hook.",
+    "Glassmorphism-style Card component with optional gradient header, depth shadow, and variants for stats and content.",
+    "Small line chart wrapper that accepts typed data, responsive sizing and minimal decorations for dashboards. Built on a lightweight chart library.",
+    "Avatar component with fallback initials, status badge, and optional image lazy-loading.",
+    "Accessible Button component with variants (primary, secondary, ghost), supports loading, icon slots, and gradient/glass styling.",
+    "Small icon wrapper and a few built-in SVG icons. Used across UI to keep icon sizing consistent.",
+    "Accessible input with label, help text, error state, and focus ring. Works for text, password, and search.",
+    "Skeleton loading component for shimmer placeholders and blocks. Used across lists and cards for perceived performance.",
+    "Small loading spinner used in buttons and while fetching. Designed to match theme tokens.",
+    "Accessible modal component with backdrop blur, focus-trap, close on ESC/click-outside, and Framer Motion transitions.",
+    "Toast item component with types (success, error, info), enter/exit animations and ARIA-live support for screen readers."
   ],
-  "total_files": 55
+  "total_files": 48
 }

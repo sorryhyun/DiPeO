@@ -6,11 +6,14 @@ handling loops, conditionals, and dynamic dependencies.
 
 from typing import Any, Optional
 from collections import defaultdict
+import logging
 
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from .execution_context import ExecutionContext
 from dipeo.diagram_generated import NodeID, NodeState, Status, NodeType
 from dipeo.diagram_generated.generated_nodes import ConditionNode
+
+logger = logging.getLogger(__name__)
 
 
 class DomainDynamicOrderCalculator:
@@ -320,16 +323,32 @@ class DomainDynamicOrderCalculator:
             
             # If we have conditional edges, this might be a loop scenario or conditional trigger
             if conditional_edges:
-                # First, check if the condition nodes feeding into this node have been evaluated
-                # This prevents nodes like "Revise Frontend Code" from executing before their
-                # triggering conditions have been checked
-                for edge in conditional_edges:
-                    condition_node_executed = context.get_node_execution_count(edge.source_node_id) > 0 if context else False
-                    condition_node_state = node_states.get(edge.source_node_id)
+                # On first execution, treat conditional edges from unexecuted nodes as loop-backs
+                if target_exec_count == 0:
+                    # Separate conditional edges into those from executed vs unexecuted nodes
+                    active_conditional_edges = []
+                    for edge in conditional_edges:
+                        condition_node_executed = context.get_node_execution_count(edge.source_node_id) > 0 if context else False
+                        if condition_node_executed:
+                            active_conditional_edges.append(edge)
                     
-                    # If the condition node hasn't executed yet, this node should wait
-                    if not condition_node_executed and condition_node_state and condition_node_state.status == Status.PENDING:
-                        return False
+                    # If no condition nodes have executed yet, ignore all conditional edges
+                    # (they're loop-back edges that will be activated later)
+                    if not active_conditional_edges:
+                        # Just check non-conditional edges
+                        non_conditional_edges = [
+                            edge for edge in incoming_edges 
+                            if edge.source_output not in ["condtrue", "condfalse"]
+                        ]
+                        if non_conditional_edges:
+                            return all(
+                                self._is_dependency_satisfied(edge, node_states, context)
+                                for edge in non_conditional_edges
+                            )
+                        return True  # No dependencies to wait for
+                    
+                    # If we have active conditional edges, continue with normal logic
+                    conditional_edges = active_conditional_edges
                 
                 if target_exec_count == 0:
                     # First execution: After conditions are evaluated, check dependencies
@@ -366,26 +385,32 @@ class DomainDynamicOrderCalculator:
             if executed_edges and unexecuted_edges and not conditional_edges and target_exec_count > 0:
                 return False  # Wait for all dependencies to complete
             
-            # Special case: PersonJob nodes can be in loops (receiving from condition nodes)
-            # Check if any unexecuted edges are from condition nodes (loop-back edges)
-            if node.type == NodeType.PERSON_JOB:
-                # Separate edges by whether they're from condition nodes
-                condition_edges = []
-                normal_edges = []
-                
-                for edge in incoming_edges:
-                    # Check if the edge is from a condition node based on source_output
-                    if edge.source_output in ["condtrue", "condfalse"]:
-                        condition_edges.append(edge)
-                    else:
-                        normal_edges.append(edge)
-                
-                # If this is first execution and we have both normal and condition edges
-                if target_exec_count == 0 and normal_edges and condition_edges:
-                    # Only require normal edges for first execution
+            # Handle nodes that can be in loops (receiving from condition nodes)
+            # This applies to any node type that might receive loop-back edges
+            # Separate edges by whether they're from condition nodes
+            loop_back_edges = []
+            normal_edges = []
+            
+            for edge in incoming_edges:
+                # Check if the edge is from a condition node based on source_output
+                if edge.source_output in ["condtrue", "condfalse"]:
+                    loop_back_edges.append(edge)
+                else:
+                    normal_edges.append(edge)
+            
+            # If we have both normal and loop-back edges, handle loop scenario
+            if normal_edges and loop_back_edges:
+                # On first execution, only require normal (non-loop) edges
+                if target_exec_count == 0:
                     return all(
                         self._is_dependency_satisfied(edge, node_states, context)
                         for edge in normal_edges
+                    )
+                else:
+                    # On subsequent executions (in loop), any satisfied edge triggers
+                    return any(
+                        self._is_dependency_satisfied(edge, node_states, context)
+                        for edge in incoming_edges
                     )
         
         # For single input or non-loop cases, require all dependencies

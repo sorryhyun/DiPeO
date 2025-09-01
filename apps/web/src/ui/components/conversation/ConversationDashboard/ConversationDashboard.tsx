@@ -411,34 +411,39 @@ const ConversationDashboard: React.FC = () => {
         
         {/* Content area - Scrollable */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {activeTab === 'conversation' ? (
-            <>
-              <div className="flex-shrink-0">
-                {renderPersonBar()}
-                {showFilters && renderFilters()}
-              </div>
-              <div className="flex-1 flex overflow-hidden">
-                {isLoading ? (
-                  <div className="flex-1 flex items-center justify-center">
-                    <span className="text-gray-500">Loading conversations...</span>
+          {/* Conversation Tab */}
+          <div className={`flex-1 flex flex-col overflow-hidden ${activeTab === 'conversation' ? '' : 'hidden'}`}>
+            <div className="flex-shrink-0">
+              {renderPersonBar()}
+              {showFilters && renderFilters()}
+            </div>
+            <div className="flex-1 flex overflow-hidden">
+              {isLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="text-gray-500">Loading conversations...</span>
+                </div>
+              ) : dashboardSelectedPerson ? (
+                renderConversation()
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Select a person from the left sidebar or click &quot;Whole Conversation&quot;</p>
                   </div>
-                ) : dashboardSelectedPerson ? (
-                  renderConversation()
-                ) : (
-                  <div className="flex-1 flex items-center justify-center text-gray-400">
-                    <div className="text-center">
-                      <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>Select a person from the left sidebar or click &quot;Whole Conversation&quot;</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : activeTab === 'execution-order' ? (
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Execution Order Tab - Always mounted but hidden when not active */}
+          <div className={`flex-1 flex overflow-hidden ${activeTab === 'execution-order' ? '' : 'hidden'}`}>
             <ExecutionOrderView />
-          ) : (
+          </div>
+          
+          {/* Execution Log Tab - Always mounted but hidden when not active */}
+          <div className={`flex-1 flex overflow-hidden ${activeTab === 'execution-log' ? '' : 'hidden'}`}>
             <ExecutionLogView />
-          )}
+          </div>
         </div>
       </div>
     );
