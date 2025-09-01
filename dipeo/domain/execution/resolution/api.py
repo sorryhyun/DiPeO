@@ -15,6 +15,7 @@ from dipeo.domain.diagram.models.executable_diagram import (
     StandardNodeOutput
 )
 from dipeo.domain.execution.transform_rules import DataTransformRules
+from dipeo.diagram_generated import ContentType
 
 from .transformation_engine import StandardTransformationEngine
 from .selectors import select_incoming_edges, compute_special_inputs
@@ -106,6 +107,34 @@ def transform_edge_values(
         
         if value is None:
             continue
+        
+        # Handle edge content_type transformation
+        if hasattr(edge, 'content_type') and edge.content_type:
+            if edge.content_type == ContentType.RAW_TEXT:
+                # Extract text content from complex structures
+                if isinstance(value, dict):
+                    # Try 'default' key first, then any string value
+                    if 'default' in value:
+                        value = value['default']
+                    else:
+                        # Find the first string value in the dict
+                        string_val = next(
+                            (v for v in value.values() if isinstance(v, str)), 
+                            None
+                        )
+                        if string_val:
+                            value = string_val
+                        else:
+                            # If no string found, convert the whole dict to string
+                            value = str(value)
+                # Ensure it's a string
+                value = str(value)
+            elif edge.content_type == ContentType.OBJECT:
+                # Keep as-is for object type
+                pass
+            elif edge.content_type == ContentType.CONVERSATION_STATE:
+                # Keep as-is for conversation state
+                pass
         
         # Get transformation rules (type-based + edge overrides)
         source_node = get_node_by_id(diagram, edge.source_node_id)

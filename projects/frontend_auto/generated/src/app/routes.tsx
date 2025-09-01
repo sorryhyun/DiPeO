@@ -1,1 +1,0 @@
-{'default': "'str' object has no attribute 'get'", 'current_index': 3, 'branch[node_9]': 'condfalse'}
