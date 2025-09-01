@@ -12,11 +12,34 @@
       ],
       "type": "string"
     },
-    "Record<string,string>": {
-      "additionalProperties": false,
+    "JsonObject": {
+      "additionalProperties": {
+        "$ref": "#/definitions/JsonValue"
+      },
       "type": "object"
     },
-    "JsonDict": {
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/JsonObject"
+        },
+        {
+          "items": {
+            "$ref": "#/definitions/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "type": [
+            "null",
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    "Record<string,string>": {
       "additionalProperties": false,
       "type": "object"
     },
@@ -85,31 +108,8 @@
       ],
       "type": "object"
     },
-    "JsonValue": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/JsonObject"
-        },
-        {
-          "items": {
-            "$ref": "#/definitions/JsonValue"
-          },
-          "type": "array"
-        },
-        {
-          "type": [
-            "null",
-            "string",
-            "number",
-            "boolean"
-          ]
-        }
-      ]
-    },
-    "JsonObject": {
-      "additionalProperties": {
-        "$ref": "#/definitions/JsonValue"
-      },
+    "JsonDict": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

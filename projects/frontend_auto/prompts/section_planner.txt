@@ -1,13 +1,15 @@
-Analyze the requirements and create a file structure plan:
+Analyze the requirements and create a modern, polished file structure plan:
 
 App config: {{config}}
 
 Your response MUST include:
 1. Architecture:
    - High-level overview of the application structure
-   - Key patterns and technologies to use
+   - Key patterns and technologies to use (React 18+, TypeScript, Vite)
+   - Design system approach (theme, tokens, components)
    - Folder structure showing organization
-   - Data flow description
+   - Data flow and state management strategy
+   - UI/UX considerations: animations, micro-interactions, responsive design
 
 2. Sections (one per file):
    - id: unique identifier
@@ -26,11 +28,22 @@ REQUIREMENTS:
   * These config files are pre-existing and will be copied from base_configs/
 - Start with core kernel files (priority 0):
   * src/core/contracts.ts - Domain types and API contracts
-  * src/app/config.ts - Materialized configuration
+  * src/app/config.ts - Materialized configuration (use import.meta.env for env vars)
   * src/core/events.ts - Event bus system
   * src/core/hooks.ts - Hook registry for extensions
   * src/core/di.ts - Dependency injection (if needed)
   * src/core/utils.ts - Common utilities (if needed)
-- Then include: pages, providers, services, shared components, hooks, features
+- Then design foundations (priority 1):
+  * src/theme/index.ts - Design tokens, colors, typography, spacing
+  * src/theme/animations.ts - Framer Motion or CSS animation presets
+  * src/shared/layouts/* - Responsive layout components
+- Include polished UI components:
+  * Glass morphism, gradients, shadows for depth
+  * Loading states with skeleton screens
+  * Smooth transitions between states
+  * Toast notifications, modals with backdrop blur
+  * Data visualization components if needed
+- Then include: pages, providers, services, features
+- Consider accessibility: ARIA labels, keyboard navigation, focus management
 - Every import must have a corresponding section
 - All file paths should start with "src/" (not root-level configs)

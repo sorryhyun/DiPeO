@@ -516,7 +516,7 @@ def prepare_node_list_for_batch(inputs: Dict[str, Any]) -> List[Dict[str, str]]:
         if filepath in ['default', 'inputs', 'node_id']:
             continue
         
-        # Check if this is a spec file
+        # Check if this is a spec file (not index.ts.json)
         if not filepath.endswith('.spec.ts.json'):
             continue
         
@@ -524,18 +524,29 @@ def prepare_node_list_for_batch(inputs: Dict[str, Any]) -> List[Dict[str, str]]:
         base_filename = os.path.basename(filepath)
         node_type = base_filename.replace('.spec.ts.json', '')
         
+        # Skip index file or invalid node types
+        if node_type == 'index' or not node_type:
+            continue
+        
         # Parse AST data if string
         if isinstance(ast_data, str):
             ast_data = json.loads(ast_data)
         
         # Verify it contains valid spec
+        has_valid_spec = False
         for const in ast_data.get('constants', []):
             name = const.get('name', '')
             if name.endswith('Spec') or name.endswith('spec'):
-                node_types.append(node_type)
-                break
+                # Additional check: ensure the spec has a nodeType
+                spec_value = const.get('value', {})
+                if isinstance(spec_value, dict) and 'nodeType' in spec_value:
+                    has_valid_spec = True
+                    break
+        
+        if has_valid_spec:
+            node_types.append(node_type)
     
-    # Return list for batch processing
+    # Return list for batch processing, sorted for consistency
     return [{'node_spec_path': node_type} for node_type in sorted(node_types)]
 
 

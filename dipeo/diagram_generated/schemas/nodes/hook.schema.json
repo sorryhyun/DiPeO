@@ -2,10 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/HookNodeData",
   "definitions": {
-    "Record<string,string>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "HookType": {
       "enum": [
         "shell",
@@ -89,6 +85,10 @@
         "hook_type",
         "label"
       ],
+      "type": "object"
+    },
+    "Record<string,string>": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

@@ -27,6 +27,7 @@ Materialize JSON config into TypeScript:
 - Computed flags (isDevelopment, shouldUseMockData, etc.)
 - Feature toggles based on config.features array
 - Mock user data if development_mode.enable_mock_data is true
+- **IMPORTANT**: Use `import.meta.env` for environment variables (NOT `process.env`) as this is a Vite-based browser application
 
 ### 3. Event Bus (src/core/events.ts)
 Typed event system:

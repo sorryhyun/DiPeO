@@ -406,13 +406,31 @@ def render_graphql_schema(inputs):
 
 def generate_summary(inputs):
     """Generate summary of GraphQL schema generation."""
+    import json
+    
     # The connection is labeled 'graphql_data' in the diagram
     graphql_types = inputs.get('graphql_data', inputs.get('graphql_types', inputs.get('default', {})))
     
-    # print(f"GraphQL schema: {len(graphql_types.get('scalars', []))} scalars, {len(graphql_types.get('enums', []))} enums - done!") 
-    # print(f"Generated {len(graphql_types.get('types', []))} types")
-    # print(f"Generated {len(graphql_types.get('input_types', []))} input types")
-    # print(f"\nOutput written to: dipeo/diagram_generated_staged/domain-schema.graphql")
+    # Handle case where graphql_types might be a JSON string
+    if isinstance(graphql_types, str):
+        try:
+            graphql_types = json.loads(graphql_types)
+        except (json.JSONDecodeError, ValueError):
+            # If it's not valid JSON, return an error-like result
+            return {
+                'status': 'error',
+                'message': 'GraphQL types data is not in expected format',
+                'details': {
+                    'scalars_count': 0,
+                    'enums_count': 0,
+                    'types_count': 0,
+                    'input_types_count': 0
+                }
+            }
+    
+    # Ensure graphql_types is a dictionary
+    if not isinstance(graphql_types, dict):
+        graphql_types = {}
     
     result = {
         'status': 'success',

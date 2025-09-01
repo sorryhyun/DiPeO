@@ -51,6 +51,7 @@ def setup_generated_directory(inputs=None):
         "tsconfig.json",
         "tsconfig.node.json",
         "vite.config.ts",
+        "vite-env.d.ts",
         "tailwind.config.js",
         "postcss.config.js",
         "index.html",

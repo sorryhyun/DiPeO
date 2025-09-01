@@ -19,14 +19,15 @@ export const conditionSpec: NodeSpecification = {
       defaultValue: "custom",
       description: "Type of condition to evaluate",
       validation: {
-        allowedValues: ["detect_max_iterations", "check_nodes_executed", "custom"]
+        allowedValues: ["detect_max_iterations", "check_nodes_executed", "custom", "llm_decision"]
       },
       uiConfig: {
         inputType: "select",
         options: [
           { value: "detect_max_iterations", label: "Detect Max Iterations" },
           { value: "check_nodes_executed", label: "Check Nodes Executed" },
-          { value: "custom", label: "Custom Expression" }
+          { value: "custom", label: "Custom Expression" },
+          { value: "llm_decision", label: "LLM Decision" }
         ]
       }
     },
@@ -60,6 +61,78 @@ export const conditionSpec: NodeSpecification = {
       uiConfig: {
         inputType: "nodeSelect",
         placeholder: "Select nodes to monitor"
+      }
+    },
+    {
+      name: "person",
+      type: "string",
+      required: false,
+      description: "AI agent to use for decision making",
+      conditional: {
+        field: "condition_type",
+        values: ["llm_decision"]
+      },
+      uiConfig: {
+        inputType: "personSelect",
+        placeholder: "Select AI agent"
+      }
+    },
+    {
+      name: "judge_by",
+      type: "string",
+      required: false,
+      description: "Prompt for LLM to make a judgment",
+      conditional: {
+        field: "condition_type",
+        values: ["llm_decision"]
+      },
+      uiConfig: {
+        inputType: "textarea",
+        placeholder: "Enter the prompt for LLM to judge (should result in YES/NO)",
+        rows: 5
+      }
+    },
+    {
+      name: "judge_by_file",
+      type: "string",
+      required: false,
+      description: "External prompt file path",
+      conditional: {
+        field: "condition_type",
+        values: ["llm_decision"]
+      },
+      uiConfig: {
+        inputType: "text",
+        placeholder: "e.g., prompts/quality_check.txt"
+      }
+    },
+    {
+      name: "memorize_to",
+      type: "string",
+      required: false,
+      defaultValue: "GOLDFISH",
+      description: "Memory control strategy (e.g., GOLDFISH for fresh evaluation)",
+      conditional: {
+        field: "condition_type",
+        values: ["llm_decision"]
+      },
+      uiConfig: {
+        inputType: "text",
+        placeholder: "e.g., GOLDFISH"
+      }
+    },
+    {
+      name: "at_most",
+      type: "number",
+      required: false,
+      description: "Maximum messages to keep in memory",
+      conditional: {
+        field: "condition_type",
+        values: ["llm_decision"]
+      },
+      uiConfig: {
+        inputType: "number",
+        placeholder: "e.g., 10"
       }
     },
     {

@@ -300,6 +300,8 @@ class ConditionType(str, Enum):
     
     CUSTOM = "custom"
     
+    LLM_DECISION = "llm_decision"
+    
 
 
 class TemplateEngine(str, Enum):

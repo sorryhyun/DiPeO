@@ -428,10 +428,15 @@ class ConditionNodeData(BaseNodeData):
     """Configuration data for Condition nodes that handle conditional branching"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    condition_type: Optional[ConditionType] = Field(default=None, description="Condition type: detect_max_iterations, nodes_executed, or custom")
+    condition_type: Optional[ConditionType] = Field(default=None, description="Condition type: detect_max_iterations, nodes_executed, custom, or llm_decision")
     expression: Optional[str] = Field(default=None, description="Python expression for custom type (access to all variables)")
     node_indices: Optional[List[str]] = Field(default=None, description="List of node indices for nodes_executed condition type")
     expose_index_as: Optional[str] = Field(default=None, description="Variable name to expose the condition node\u0027s execution count (0-based index) to downstream nodes")
+    person: Optional[PersonID] = Field(default=None, description="AI agent to use (when condition_type is LLM_DECISION)")
+    judge_by: Optional[str] = Field(default=None, description="The prompt/criteria for LLM to judge")
+    judge_by_file: Optional[str] = Field(default=None, description="External prompt file in {subdirectory}/prompts/")
+    memorize_to: Optional[str] = Field(default=None, description="Memory control (e.g., \"GOLDFISH\" for fresh evaluation)")
+    at_most: Optional[float] = Field(default=None, description="Max messages to keep in memory")
 
 
 class DBNodeData(BaseNodeData):

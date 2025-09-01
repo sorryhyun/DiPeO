@@ -23,13 +23,17 @@ nodes:
         elif 'default' in locals():
             # Sometimes wrapped in default
             if isinstance(default, dict):
-                node_type = default.get('node_spec_path', 'unknown')
+                node_type = default.get('node_spec_path')
             else:
                 node_type = default
         else:
             # Try to find it in all available variables
             all_vars = {**globals(), **locals()}
-            node_type = all_vars.get('node_spec_path', 'unknown')
+            node_type = all_vars.get('node_spec_path')
+        
+        # Skip if no valid node type found
+        if not node_type or node_type == 'unknown':
+            raise ValueError(f"Invalid or missing node type: {node_type}")
         
         # node_type is like "api-job", "person-job", etc.
         result = node_type

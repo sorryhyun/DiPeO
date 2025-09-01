@@ -449,7 +449,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             env = Environment()
             
             # Add custom filters from the registry
-            from dipeo.infrastructure.shared.template.drivers.jinja_template.filters import create_filter_registry
+            from dipeo.infrastructure.codegen.templates.filters import create_filter_registry
             registry = create_filter_registry()
             for name, func in registry.get_all_filters().items():
                 env.filters[name] = func
