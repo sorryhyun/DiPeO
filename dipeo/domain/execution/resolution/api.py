@@ -137,7 +137,7 @@ def transform_edge_values(
                 pass
         
         # Get transformation rules (type-based + edge overrides)
-        source_node = get_node_by_id(diagram, edge.source_node_id)
+        source_node = diagram.get_node(edge.source_node_id)
         if not source_node:
             continue
         
@@ -237,17 +237,3 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
     return source_output
 
 
-def get_node_by_id(diagram: ExecutableDiagram, node_id: str) -> ExecutableNode | None:
-    """Get a node from the diagram by its ID.
-    
-    Args:
-        diagram: The executable diagram
-        node_id: The node ID to find
-        
-    Returns:
-        The node if found, None otherwise
-    """
-    for node in diagram.nodes:
-        if node.id == node_id:
-            return node
-    return None

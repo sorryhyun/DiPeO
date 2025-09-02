@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 from dipeo.domain.execution.execution_context import ExecutionContext
-from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode
 from dipeo.infrastructure.llm.adapters import LLMDecisionAdapter
 
@@ -35,15 +34,13 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
         self,
         node: ConditionNode,
         context: ExecutionContext,
-        diagram: ExecutableDiagram,
         inputs: dict[str, Any]
     ) -> EvaluationResult:
         """Evaluate a condition using LLM to make a binary decision.
         
         Args:
             node: The condition node with LLM configuration
-            context: Execution context
-            diagram: The executable diagram
+            context: Execution context (contains diagram)
             inputs: Input data from connections
             
         Returns:
@@ -76,10 +73,11 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
             )
         
         # Get prompt
+        # Access diagram through context
         prompt = self._orchestrator.load_prompt(
             prompt_file=getattr(node, 'judge_by_file', None),
             inline_prompt=getattr(node, 'judge_by', None),
-            diagram=diagram,
+            diagram=context.diagram,
             node_label=str(node.id)
         )
         
@@ -113,7 +111,7 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
                 prompt=prompt,
                 template_values=template_values,
                 memory_profile=getattr(node, 'memorize_to', 'GOLDFISH'),
-                diagram=diagram
+                diagram=context.diagram
             )
             
             # Update metadata with node-specific information

@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Protocol, TypedDict
 
 from dipeo.domain.execution.execution_context import ExecutionContext
-from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode
 
 
@@ -22,15 +21,13 @@ class ConditionEvaluator(Protocol):
         self,
         node: ConditionNode,
         context: ExecutionContext,
-        diagram: ExecutableDiagram,
         inputs: dict[str, Any]
     ) -> EvaluationResult:
         """Evaluate the condition.
         
         Args:
             node: The condition node
-            context: Execution context
-            diagram: The executable diagram
+            context: Execution context (contains diagram)
             inputs: Input data
             
         Returns:
@@ -42,10 +39,11 @@ class ConditionEvaluator(Protocol):
 class BaseConditionEvaluator(ABC):
     """Base class for condition evaluators with common functionality."""
     
-    def extract_node_outputs(self, context: ExecutionContext, diagram: ExecutableDiagram) -> dict[str, Any]:
+    def extract_node_outputs(self, context: ExecutionContext) -> dict[str, Any]:
         """Extract node outputs from execution context."""
         node_outputs = {}
-        for node in diagram.nodes:
+        # Access diagram through context
+        for node in context.diagram.nodes:
             node_result = context.get_node_result(node.id)
             if node_result and 'value' in node_result:
                 node_outputs[str(node.id)] = {
@@ -59,7 +57,6 @@ class BaseConditionEvaluator(ABC):
         self,
         node: ConditionNode,
         context: ExecutionContext,
-        diagram: ExecutableDiagram,
         inputs: dict[str, Any]
     ) -> EvaluationResult:
         """Evaluate the condition."""

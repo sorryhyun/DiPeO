@@ -6,7 +6,6 @@ from typing import Any
 
 from .expression_evaluator import ConditionEvaluator as ExpressionEvaluator
 from dipeo.domain.execution.execution_context import ExecutionContext
-from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode
 
 from .base import BaseConditionEvaluator, EvaluationResult
@@ -24,7 +23,6 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
         self,
         node: ConditionNode,
         context: ExecutionContext,
-        diagram: ExecutableDiagram,
         inputs: dict[str, Any]
     ) -> EvaluationResult:
         expression = node.expression or ""

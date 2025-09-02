@@ -4,7 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from dipeo.application.registry.service_registry import ServiceRegistry, ServiceKey
-from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR
+from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, DIAGRAM_ACCESS
 
 if TYPE_CHECKING:
     from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
@@ -108,3 +108,8 @@ def wire_execution(registry: ServiceRegistry) -> None:
         return CliSessionService()
     
     registry.register(CLI_SESSION_USE_CASE, create_cli_session_service)
+    
+    # Wire DiagramAccess helper
+    from dipeo.application.execution.use_cases.diagram_access import DiagramAccess
+    
+    registry.register(DIAGRAM_ACCESS, DiagramAccess())

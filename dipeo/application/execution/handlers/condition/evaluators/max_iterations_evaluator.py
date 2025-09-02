@@ -5,7 +5,6 @@ import logging
 from typing import Any
 
 from dipeo.domain.execution.execution_context import ExecutionContext
-from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
 from dipeo.diagram_generated.enums import Status
 
@@ -25,13 +24,12 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
         self,
         node: ConditionNode,
         context: ExecutionContext,
-        diagram: ExecutableDiagram,
         inputs: dict[str, Any]
     ) -> EvaluationResult:
         """Check if all executed person_job nodes have reached max iterations."""
         # Find all person_job nodes
         person_job_nodes = [
-            n for n in diagram.nodes 
+            n for n in context.diagram.nodes 
             if n.type == NodeType.PERSON_JOB.value
         ]
         
@@ -71,11 +69,11 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
         # Prepare output data based on result
         if result:
             # Aggregate all conversation states when max iterations reached
-            aggregated = self._aggregator.aggregate_conversations(context, diagram)
+            aggregated = self._aggregator.aggregate_conversations(context, context.diagram)
             output_data = aggregated if aggregated else inputs
         else:
             # Get latest conversation state for false branch
-            latest_conversation = self._aggregator.get_latest_conversation(context, diagram)
+            latest_conversation = self._aggregator.get_latest_conversation(context, context.diagram)
             output_data = latest_conversation if latest_conversation else inputs
         
         # Log evaluation details

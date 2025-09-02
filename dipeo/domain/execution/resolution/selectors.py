@@ -26,7 +26,7 @@ def incoming_edges(diagram: ExecutableDiagram, node: ExecutableNode) -> list[Exe
     Returns:
         List of edges targeting the node
     """
-    return [e for e in diagram.edges if e.target_node_id == node.id]
+    return diagram.get_incoming_edges(node.id)
 
 
 def select_incoming_edges(

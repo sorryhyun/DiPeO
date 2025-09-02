@@ -1,10 +1,13 @@
 """Protocol for managing execution context during diagram runtime."""
 
 from abc import abstractmethod
-from typing import Any, Optional, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Protocol, Sequence
 
 from dipeo.diagram_generated import NodeID, NodeState
 from dipeo.domain.execution.envelope import Envelope
+
+if TYPE_CHECKING:
+    from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 
 
 class ExecutionContext(Protocol):
@@ -13,6 +16,9 @@ class ExecutionContext(Protocol):
     This protocol defines the contract for managing execution state during
     diagram runtime, including node states, results, and execution flow.
     """
+    
+    # Diagram reference
+    diagram: "ExecutableDiagram"
     
     # Node State Queries
     

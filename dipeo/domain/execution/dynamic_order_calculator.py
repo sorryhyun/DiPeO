@@ -52,8 +52,9 @@ class DomainDynamicOrderCalculator:
         
         # Build adjacency list
         adj = defaultdict(list)
-        for edge in diagram.edges:
-            adj[edge.source_node_id].append(edge.target_node_id)
+        for node in diagram.nodes:
+            for edge in diagram.get_outgoing_edges(node.id):
+                adj[edge.source_node_id].append(edge.target_node_id)
         
         # BFS to find path
         seen = set()
@@ -204,7 +205,7 @@ class DomainDynamicOrderCalculator:
         node_states = self._get_node_states_from_context(diagram, context)
         
         # Get incoming edges for this node
-        incoming_edges = [e for e in diagram.edges if e.target_node_id == node.id]
+        incoming_edges = diagram.get_incoming_edges(node.id)
         
         # Check if all conditional dependencies are satisfied
         for edge in incoming_edges:
@@ -282,7 +283,7 @@ class DomainDynamicOrderCalculator:
             return False
         
         # Get incoming edges
-        incoming_edges = [e for e in diagram.edges if e.target_node_id == node.id]
+        incoming_edges = diagram.get_incoming_edges(node.id)
         
         # No dependencies - node is ready
         if not incoming_edges:
@@ -447,7 +448,7 @@ class DomainDynamicOrderCalculator:
         Returns True if this node should wait for higher priority siblings to complete.
         """
         # Find all edges pointing to this node
-        incoming_edges = [e for e in diagram.edges if e.target_node_id == node.id]
+        incoming_edges = diagram.get_incoming_edges(node.id)
         if not incoming_edges:
             return False
         
@@ -457,7 +458,7 @@ class DomainDynamicOrderCalculator:
             my_priority = getattr(incoming_edge, 'execution_priority', 0)
             
             # Find all sibling edges (edges from same source)
-            sibling_edges = [e for e in diagram.edges if e.source_node_id == source_node_id]
+            sibling_edges = diagram.get_outgoing_edges(source_node_id)
             
             # Check if any higher priority siblings are still pending
             for sibling_edge in sibling_edges:
@@ -516,10 +517,7 @@ class DomainDynamicOrderCalculator:
     ) -> None:
         """Mark conditional branches based on condition result."""
         # Get outgoing edges from condition node
-        outgoing_edges = [
-            e for e in diagram.edges 
-            if e.source_node_id == condition_node.id
-        ]
+        outgoing_edges = diagram.get_outgoing_edges(condition_node.id)
         
         # Determine which branch to take
         condition_result = output.value if hasattr(output, 'value') else output

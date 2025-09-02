@@ -333,12 +333,37 @@ class ExecutionOrchestrator:
         Returns:
             Created Person instance or None if not found in diagram
         """
-        if not diagram or not hasattr(diagram, 'persons'):
+        # Check if diagram has persons in metadata (ExecutableDiagram)
+        persons_catalog = None
+        if hasattr(diagram, 'metadata') and isinstance(diagram.metadata, dict):
+            persons_catalog = diagram.metadata.get('persons', {})
+        # Fallback to direct persons attribute (DomainDiagram)
+        elif hasattr(diagram, 'persons'):
+            # Convert persons to catalog format
+            persons_catalog = {}
+            persons_list = list(diagram.persons.values()) if isinstance(diagram.persons, dict) else diagram.persons
+            for person in persons_list:
+                p_id = str(person.id) if hasattr(person, 'id') else str(person.name)
+                person_config_dict = {}
+                if hasattr(person, 'llm_config'):
+                    llm_config = person.llm_config
+                    service_value = llm_config.service if hasattr(llm_config, 'service') else "openai"
+                    if hasattr(service_value, 'value'):
+                        person_config_dict["service"] = service_value.value
+                    else:
+                        person_config_dict["service"] = str(service_value)
+                    person_config_dict["model"] = str(llm_config.model) if hasattr(llm_config, 'model') else "gpt-5-nano-2025-08-07"
+                    person_config_dict["api_key_id"] = str(llm_config.api_key_id) if hasattr(llm_config, 'api_key_id') else "default"
+                    if hasattr(llm_config, 'system_prompt') and llm_config.system_prompt:
+                        person_config_dict["system_prompt"] = llm_config.system_prompt
+                persons_catalog[p_id] = person_config_dict
+        
+        if not persons_catalog:
             return None
         
-        # Find person config in diagram
+        # Find person config in catalog
         person_config = None
-        for p_id, config in diagram.persons.items():
+        for p_id, config in persons_catalog.items():
             if PersonID(p_id) == person_id:
                 person_config = config
                 break
@@ -381,10 +406,35 @@ class ExecutionOrchestrator:
         Args:
             diagram: The diagram containing person definitions
         """
-        if not diagram or not hasattr(diagram, 'persons'):
+        # Check if diagram has persons in metadata (ExecutableDiagram)
+        persons_catalog = None
+        if hasattr(diagram, 'metadata') and isinstance(diagram.metadata, dict):
+            persons_catalog = diagram.metadata.get('persons', {})
+        # Fallback to direct persons attribute (DomainDiagram)
+        elif hasattr(diagram, 'persons'):
+            # Convert persons to catalog format (same logic as _create_person_from_diagram)
+            persons_catalog = {}
+            persons_list = list(diagram.persons.values()) if isinstance(diagram.persons, dict) else diagram.persons
+            for person in persons_list:
+                p_id = str(person.id) if hasattr(person, 'id') else str(person.name)
+                person_config_dict = {}
+                if hasattr(person, 'llm_config'):
+                    llm_config = person.llm_config
+                    service_value = llm_config.service if hasattr(llm_config, 'service') else "openai"
+                    if hasattr(service_value, 'value'):
+                        person_config_dict["service"] = service_value.value
+                    else:
+                        person_config_dict["service"] = str(service_value)
+                    person_config_dict["model"] = str(llm_config.model) if hasattr(llm_config, 'model') else "gpt-5-nano-2025-08-07"
+                    person_config_dict["api_key_id"] = str(llm_config.api_key_id) if hasattr(llm_config, 'api_key_id') else "default"
+                    if hasattr(llm_config, 'system_prompt') and llm_config.system_prompt:
+                        person_config_dict["system_prompt"] = llm_config.system_prompt
+                persons_catalog[p_id] = person_config_dict
+        
+        if not persons_catalog:
             return
         
-        for person_id, config in diagram.persons.items():
+        for person_id, _config in persons_catalog.items():
             person_id_obj = PersonID(person_id)
             if person_id_obj not in self._person_cache:
                 person = self._create_person_from_diagram(person_id_obj, diagram)

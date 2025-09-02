@@ -44,7 +44,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         }
         # Instance variables for passing data between methods
         self._current_evaluator = None
-        self._current_diagram = None
 
     @property
     def node_class(self) -> type[ConditionNode]:
@@ -124,9 +123,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 trace_id=request.execution_id or ""
             )
         
-        # Store evaluator and diagram in instance variables for execute_request
+        # Store evaluator in instance variable for execute_request
         self._current_evaluator = evaluator
-        self._current_diagram = diagram
         
         # No early return - proceed to execute_request
         return None
@@ -141,9 +139,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         context = request.context
         legacy_inputs = inputs
         
-        # Use evaluator and diagram from instance variables (set in pre_execute)
+        # Use evaluator from instance variable (set in pre_execute)
         evaluator = self._current_evaluator
-        diagram = self._current_diagram
         
         # For LLM decision evaluator, pass required services
         if node.condition_type == "llm_decision" and hasattr(evaluator, 'set_services'):
@@ -166,7 +163,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             )
         
         # Execute evaluation with pre-selected evaluator
-        eval_result = await evaluator.evaluate(node, context, diagram, legacy_inputs)
+        eval_result = await evaluator.evaluate(node, context, legacy_inputs)
         result = eval_result["result"]
         output_value = eval_result["output_data"] or {}
         
