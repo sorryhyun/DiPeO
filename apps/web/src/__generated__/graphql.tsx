@@ -1122,6 +1122,13 @@ export type ActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type ActiveCliSessionQuery = { __typename?: 'Query', active_cli_session?: { __typename?: 'CliSession', session_id: string, execution_id: string, diagram_name: string, diagram_format: string, started_at: any, is_active: boolean, diagram_data?: string | null } | null };
 
+export type GetExecutionStateQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type GetExecutionStateQuery = { __typename?: 'Query', execution?: { __typename?: 'ExecutionStateType', id: string, status: Status, started_at: string, ended_at?: string | null, node_states: any, node_outputs: any } | null };
+
 export type GetProvidersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -3023,6 +3030,51 @@ export type ActiveCliSessionQueryHookResult = ReturnType<typeof useActiveCliSess
 export type ActiveCliSessionLazyQueryHookResult = ReturnType<typeof useActiveCliSessionLazyQuery>;
 export type ActiveCliSessionSuspenseQueryHookResult = ReturnType<typeof useActiveCliSessionSuspenseQuery>;
 export type ActiveCliSessionQueryResult = Apollo.QueryResult<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>;
+export const GetExecutionStateDocument = gql`
+    query GetExecutionState($id: ID!) {
+  execution(id: $id) {
+    id
+    status
+    started_at
+    ended_at
+    node_states
+    node_outputs
+  }
+}
+    `;
+
+/**
+ * __useGetExecutionStateQuery__
+ *
+ * To run a query within a React component, call `useGetExecutionStateQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetExecutionStateQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetExecutionStateQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetExecutionStateQuery(baseOptions: Apollo.QueryHookOptions<GetExecutionStateQuery, GetExecutionStateQueryVariables> & ({ variables: GetExecutionStateQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetExecutionStateQuery, GetExecutionStateQueryVariables>(GetExecutionStateDocument, options);
+      }
+export function useGetExecutionStateLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetExecutionStateQuery, GetExecutionStateQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetExecutionStateQuery, GetExecutionStateQueryVariables>(GetExecutionStateDocument, options);
+        }
+export function useGetExecutionStateSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetExecutionStateQuery, GetExecutionStateQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetExecutionStateQuery, GetExecutionStateQueryVariables>(GetExecutionStateDocument, options);
+        }
+export type GetExecutionStateQueryHookResult = ReturnType<typeof useGetExecutionStateQuery>;
+export type GetExecutionStateLazyQueryHookResult = ReturnType<typeof useGetExecutionStateLazyQuery>;
+export type GetExecutionStateSuspenseQueryHookResult = ReturnType<typeof useGetExecutionStateSuspenseQuery>;
+export type GetExecutionStateQueryResult = Apollo.QueryResult<GetExecutionStateQuery, GetExecutionStateQueryVariables>;
 export const GetProvidersDocument = gql`
     query GetProviders {
   providers {

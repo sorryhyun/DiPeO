@@ -132,46 +132,73 @@ class LLMDecisionAdapter:
             logger.error("LLM service not available from orchestrator")
             return False, {"error": "LLM service not available"}
         
+        # Build the complete prompt with input data for GOLDFISH mode
+        # GOLDFISH means no conversation history, but we still need to include the current input
+        complete_prompt = prompt
+        if memory_profile == "GOLDFISH" and template_values:
+            # Format all template values as content to evaluate
+            import json
+            content_to_evaluate = json.dumps(template_values, indent=2)
+            
+            # Append the content to the prompt for evaluation
+            if content_to_evaluate:
+                complete_prompt = f"{prompt}\n\n--- Content to Evaluate ---\n{content_to_evaluate}\n--- End of Content ---"
+        
         # Execute decision using person's complete method
         complete_kwargs = {
-            "prompt": prompt,
+            "prompt": complete_prompt,
             "all_messages": [],  # Empty for fresh decision
             "llm_service": llm_service,  # Pass the LLM service
             "temperature": 0,  # Deterministic decisions
-            "max_tokens": 500,  # Decisions should be concise
+            "max_tokens": 8000,  # Decisions should be concise
             "execution_phase": ExecutionPhase.DECISION_EVALUATION,
         }
         
+        # If text_format is in template_values, use it for structured output
+        # This allows passing a Pydantic model for structured decision responses
+        if template_values and 'text_format' in template_values:
+            text_format = template_values.pop('text_format')  # Remove from template_values
+            # Only pass it if it's a valid Pydantic model class
+            if isinstance(text_format, type) and hasattr(text_format, '__mro__'):
+                complete_kwargs['text_format'] = text_format
+        
         try:
             result, incoming_msg, response_msg = await facet.complete(**complete_kwargs)
-            
             # Add messages to conversation if orchestrator supports it
             if hasattr(self._orchestrator, 'add_message'):
                 self._orchestrator.add_message(incoming_msg, "decision", "decision_maker")
                 self._orchestrator.add_message(response_msg, "decision", "decision_maker")
             
-            # Check for structured output first
-            if hasattr(result, 'structured_output') and result.structured_output:
-                # Use structured output if available (from providers that support it)
-                if isinstance(result.structured_output, DecisionOutput):
-                    decision = result.structured_output.decision
-                    reasoning = result.structured_output.reasoning
-                    logger.debug(f"LLM Decision - Using structured output: {decision}")
-                else:
-                    # Fallback to text parsing
-                    response_text = getattr(result, "content", getattr(result, "text", "")) or ""
-                    decision = self._parse_decision(response_text)
-                    reasoning = None
-            else:
-                # Parse from text response
-                response_text = getattr(result, "content", getattr(result, "text", "")) or ""
-                decision = self._parse_decision(response_text)
-                reasoning = None
-            
+            # Extract response text once
             response_text = getattr(result, "content", getattr(result, "text", "")) or ""
-            logger.debug(f"LLM Decision - Prompt: {prompt[:100]}...")
-            logger.debug(f"LLM Decision - Response: {response_text[:200]}")
-            logger.debug(f"LLM Decision - Parsed as: {decision}")
+            
+            # Initialize decision and reasoning
+            decision = False
+            reasoning = None
+            
+            # Check for structured output first
+            llm_response = result.raw_response if hasattr(result, 'raw_response') else result
+            
+            if hasattr(llm_response, 'structured_output') and llm_response.structured_output:
+                structured = llm_response.structured_output
+                
+                # Check if structured output has a decision field
+                if isinstance(structured, DecisionOutput):
+                    decision = structured.decision
+                    reasoning = structured.reasoning
+                elif hasattr(structured, 'decision'):
+                    # Custom Pydantic model with decision field
+                    decision = bool(structured.decision)
+                    reasoning = getattr(structured, 'reasoning', None)
+                else:
+                    # No decision field in structured output, parse text instead
+                    decision = self._parse_text_decision(response_text)
+            else:
+                # No structured output, parse from text response
+                decision = self._parse_text_decision(response_text)
+            
+            # Single concise debug log
+            logger.debug(f"LLM Decision: {decision} (reasoning: {reasoning[:50] + '...' if reasoning and len(reasoning) > 50 else reasoning})")
             
             metadata = {
                 "response": response_text,
@@ -190,21 +217,22 @@ class LLMDecisionAdapter:
             logger.error(f"LLM decision failed: {e}")
             return False, {"error": str(e)}
     
-    def _parse_decision(self, response: str) -> bool:
-        """Parse LLM response to extract boolean decision.
+    def _parse_text_decision(self, response_text: str) -> bool:
+        """Parse text response to extract boolean decision.
         
         Looks for affirmative/negative keywords to determine decision.
         
         Args:
-            response: The LLM response text
+            response_text: The text response from LLM
             
         Returns:
             Boolean decision
         """
-        if not response:
+        if not response_text:
             return False
         
-        response_lower = response.lower().strip()
+        # Convert to lowercase for keyword matching
+        response_lower = response_text.lower().strip()
         
         # Remove any markdown or formatting
         response_lower = re.sub(r'[*_`#\[\]()]', '', response_lower)
@@ -242,5 +270,5 @@ class LLMDecisionAdapter:
             return False
         
         # Default to False if ambiguous
-        logger.warning(f"Ambiguous LLM response for decision: {response[:100]}...")
+        logger.warning(f"Ambiguous LLM response for decision: {response_text[:100]}...")
         return False

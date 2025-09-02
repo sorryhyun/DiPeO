@@ -149,7 +149,7 @@ class PhaseHandler:
         elif phase == ExecutionPhase.DECISION_EVALUATION:
             # Decision evaluation needs structured output for binary decisions
             params['temperature'] = 0  # Deterministic decisions
-            params['max_tokens'] = 200  # Decisions should be concise
+            params['max_tokens'] = 8000  # Decisions should be concise
             
             if self.provider == ProviderType.OPENAI:
                 # OpenAI will use DecisionOutput model via structured_output.py
@@ -208,23 +208,52 @@ class PhaseHandler:
                     decision=response.parsed.get('decision', False),
                     reasoning=response.parsed.get('reasoning')
                 )
+            # Handle new OpenAI response format
+            elif hasattr(response, 'output') and isinstance(response.output, list):
+                # Extract text from new format response
+                for message in response.output:
+                    if hasattr(message, 'content') and isinstance(message.content, list):
+                        text_parts = []
+                        for content_block in message.content:
+                            if hasattr(content_block, 'text'):
+                                text_parts.append(content_block.text)
+                        if text_parts:
+                            content = ''.join(text_parts)
+                            content_lower = content.lower().strip()
+                            if content_lower.startswith('yes'):
+                                decision = True
+                            elif content_lower.startswith('no'):
+                                decision = False
+                            return DecisionOutput(decision=decision, reasoning=content[:200])
         
         # Fallback: parse from text
-        if hasattr(response, 'content'):
+        content = None
+        if hasattr(response, 'content') and isinstance(response.content, str):
             content = response.content
-        elif hasattr(response, 'text'):
+        elif hasattr(response, 'text') and isinstance(response.text, str):
             content = response.text
-        else:
+        elif hasattr(response, '__class__') and 'ResponseTextConfig' in response.__class__.__name__:
+            # This is a config object, not a response - log error and return false
+            import logging
+            logging.error(f"Received ResponseTextConfig instead of actual response in decision evaluation")
+            return DecisionOutput(decision=False, reasoning="Error: Invalid response object")
+        
+        # Only convert to string if we don't have content yet and it's not a config object
+        if content is None:
             content = str(response)
         
         # Simple YES/NO detection
-        content_lower = content.lower().strip()
-        if content_lower.startswith('yes'):
-            decision = True
-        elif content_lower.startswith('no'):
-            decision = False
+        if isinstance(content, str):
+            content_lower = content.lower().strip()
+            if content_lower.startswith('yes'):
+                decision = True
+            elif content_lower.startswith('no'):
+                decision = False
+            reasoning_text = content[:200] if content else None
+        else:
+            reasoning_text = "Unable to parse response"
         
-        return DecisionOutput(decision=decision, reasoning=content[:200])
+        return DecisionOutput(decision=decision, reasoning=reasoning_text)
     
     def validate_phase_transition(
         self,

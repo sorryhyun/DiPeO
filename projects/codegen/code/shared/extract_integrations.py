@@ -48,7 +48,7 @@ def extract_integration_interfaces(ast_data: dict) -> List[dict]:
     # Filter for specific integration interfaces we want to include
     integration_interfaces = [
         'ToolConfig', 'WebSearchResult', 'ImageGenerationResult', 
-        'ToolOutput', 'ChatResult', 'LLMRequestOptions'
+        'ToolOutput', 'LLMRequestOptions'
     ]
     
     interfaces = []

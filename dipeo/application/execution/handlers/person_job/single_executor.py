@@ -60,7 +60,7 @@ class SinglePersonJobExecutor:
         trace_id = request.execution_id or ""
         
         # Get inputs from request (already resolved by engine)
-        inputs = request.inputs or {}
+        inputs = request.inputs
         
         # Direct typed access to person_id
         person_id = node.person
@@ -329,17 +329,12 @@ class SinglePersonJobExecutor:
     
     def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str, trace_id: str = "", selected_messages: Optional[list] = None) -> Envelope:
         """Build node output with envelope support for proper conversion."""
-        from dipeo.diagram_generated import TokenUsage
-        
         # Extract token usage as typed field
         token_usage = None
         if hasattr(result, 'token_usage') and result.token_usage:
-            token_usage = TokenUsage(
-                input=result.token_usage.input_tokens,
-                output=result.token_usage.output_tokens,
-                cached=result.token_usage.cached if hasattr(result.token_usage, 'cached') else None,
-                total=result.token_usage.total_tokens if hasattr(result.token_usage, 'total_tokens') else None
-            )
+            # The token_usage is already a domain TokenUsage object with correct fields
+            # Just use it directly
+            token_usage = result.token_usage
         
         # Get person and conversation IDs
         person_id = str(person.id) if person.id else None

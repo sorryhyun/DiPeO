@@ -64,7 +64,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             # Create minimal in-memory execution state with isolated service registry
             execution_state = self._create_in_memory_state(
                 diagram=executable_diagram,
-                inputs=request.inputs or {}
+                inputs=request.inputs
             )
             
             # Run the engine without observers or state persistence

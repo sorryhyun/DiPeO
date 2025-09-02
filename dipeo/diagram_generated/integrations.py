@@ -87,23 +87,6 @@ class ToolOutput(BaseModel):
         validate_assignment = True
 
 
-class ChatResult(BaseModel):
-    """ChatResult model"""
-    
-    text: str
-    
-    token_usage: Optional[TokenUsage] = Field(default=None)
-    
-    raw_response: Optional[Any] = Field(default=None)
-    
-    tool_outputs: Optional[List[ToolOutput]] = Field(default=None)
-    
-
-    class Config:
-        extra = "forbid"
-        validate_assignment = True
-
-
 class LLMRequestOptions(BaseModel):
     """LLMRequestOptions model"""
     
@@ -148,8 +131,6 @@ __all__ = [
     "ImageGenerationResult",
     
     "ToolOutput",
-    
-    "ChatResult",
     
     "LLMRequestOptions",
     

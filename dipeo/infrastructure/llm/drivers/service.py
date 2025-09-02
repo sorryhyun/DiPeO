@@ -193,10 +193,50 @@ class LLMInfraService(BaseService, LLMServicePort):
                 )
                 
                 if hasattr(self, 'logger') and result:
-                    response_text = getattr(result, 'content', getattr(result, 'text', str(result)))[:50]
+                    # Safely extract response text for logging
+                    if isinstance(result, type):
+                        # It's a class (like Pydantic model class), not an instance
+                        response_text = f"<class {result.__name__}>"
+                    elif hasattr(result, 'content'):
+                        response_text = str(result.content)[:50]
+                    elif hasattr(result, 'text'):
+                        response_text = str(result.text)[:50]
+                    else:
+                        response_text = str(result)[:50]
                     self.logger.debug(f"LLM response: {response_text}")
                 
-                return result
+                # Convert LLMResponse to ChatResult
+                # If result is already a ChatResult, return it directly
+                if isinstance(result, ChatResult):
+                    return result
+                
+                # Convert token usage from infrastructure TokenUsage to domain TokenUsage
+                token_usage = None
+                if hasattr(result, 'usage') and result.usage:
+                    # Import the domain TokenUsage model
+                    from dipeo.diagram_generated.domain_models import TokenUsage
+                    # Convert infrastructure TokenUsage (dataclass) to domain TokenUsage (Pydantic)
+                    token_usage = TokenUsage(
+                        input=result.usage.input_tokens,
+                        output=result.usage.output_tokens,
+                        total=result.usage.total_tokens
+                    )
+                
+                # Convert LLMResponse to ChatResult
+                chat_result = ChatResult(
+                    text=result.content if hasattr(result, 'content') else str(result),
+                    token_usage=token_usage,
+                    raw_response=result.raw_response if hasattr(result, 'raw_response') else result,
+                    tool_outputs=result.tool_outputs if hasattr(result, 'tool_outputs') else None
+                )
+                
+                # If there's structured output, attach it to the ChatResult
+                if hasattr(result, 'structured_output'):
+                    # Store structured output in raw_response for now
+                    # This will be accessible to the decision adapter
+                    chat_result.raw_response = result
+                
+                return chat_result
             except Exception as inner_e:
                 if hasattr(self, 'logger'):
                     self.logger.error(f"LLM call failed: {type(inner_e).__name__}: {inner_e!s}")

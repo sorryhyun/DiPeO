@@ -44,12 +44,12 @@ persons:
       Every file must be immediately usable with no placeholders or TODOs.
 
   Frontend Generator:
-    service: openai
-    model: gpt-5-nano-2025-08-07
-    api_key_id: APIKEY_52609F
-#    service: claude-code
-#    model: claude-code
-#    api_key_id: APIKEY_CLAUDE
+#    service: openai
+#    model: gpt-5-nano-2025-08-07
+#    api_key_id: APIKEY_52609F
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
       
@@ -62,12 +62,12 @@ persons:
 
 
   Frontend Verdict:
-    service: openai
-    model: gpt-5-nano-2025-08-07
-    api_key_id: APIKEY_52609F
-#    service: claude-code
-#    model: claude-code
-#    api_key_id: APIKEY_CLAUDE
+#    service: openai
+#    model: gpt-5-nano-2025-08-07
+#    api_key_id: APIKEY_52609F
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
       
@@ -217,7 +217,7 @@ nodes:
       expression: current_index >= 4
 #      expression: current_index >= default.total_files
       expose_index_as: current_index
-      flipped: [true, true]
+      flipped: [false, true]
 
   - label: load Data again
     type: db
@@ -240,12 +240,13 @@ nodes:
 
   - label: Check Output Quality
     type: condition
-    position: {x: 2600, y: 500}
+    position: {x: 2600, y: 240}
     props:
       condition_type: llm_decision
       person: Frontend Verdict
       memorize_to: GOLDFISH
       judge_by: Review this generated code output and determine if it's severely invalid or acceptable.
+      flipped: [true, false]
 
   - label: Revise Frontend Code
     type: person_job
@@ -279,6 +280,8 @@ nodes:
       sub_type: file
       format: text
       source_details: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
+      flipped: [true, false]
+
   - label: Write revised Result
     type: db
     position: {x: 3000, y: 800}
@@ -287,6 +290,7 @@ nodes:
       sub_type: file
       format: text
       source_details: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
+      flipped: [true, false]
 
   - label: Rename Files
     type: code_job
@@ -328,12 +332,11 @@ connections:
 
   # From Generate to Condition
   - { from: load Data again, to: Generate Frontend Code, content_type: object }
-  - {from: Generate Frontend Code, to: Check Output Quality, label: generated_output, content_type: object}
+  - {from: Generate Frontend Code, to: Check Output Quality, content_type: object}
   - {from: Generate Frontend Code, to: Write Section Result, content_type: raw_text}
   - {from: Check Output Quality_condtrue, to: Check Continue, content_type: raw_text}
 
   - {from: Check Output Quality_condfalse, to: Revise Frontend Code, label: generated_output, content_type: object}
   - {from: load Data again, to: Revise Frontend Code, content_type: object}
   - {from: Revise Frontend Code, to: Write revised Result, content_type: raw_text}
-
-  - {from: Write revised Result, to: Check Continue, content_type: object}
+  - {from: Revise Frontend Code, to: Check Continue, content_type: object}
