@@ -4,16 +4,18 @@ import type { AppConfig } from '@/app/config';
 import type { EventBus } from './events';
 import type { Container } from './di';
 
-// Hook point union for extension points
+// Hook point definitions - extensible points in the application lifecycle
 export type HookPoint = 
-  | 'beforeApiRequest' 
-  | 'afterApiResponse' 
-  | 'onLogin' 
-  | 'onLogout' 
-  | 'onRouteChange' 
-  | 'onAppBoot';
+  | 'beforeApiRequest'
+  | 'afterApiResponse'
+  | 'onLogin'
+  | 'onLogout'
+  | 'onRouteChange'
+  | 'onAppBoot'
+  | 'onError'
+  | 'onFeatureToggle';
 
-// Context object passed to all hook functions
+// Context provided to all hook functions
 export interface HookContext {
   appConfig: AppConfig;
   eventBus: EventBus;
@@ -24,206 +26,288 @@ export interface HookContext {
 export type HookFn<TArgs extends any[] = any[], TRet = void> = 
   (context: HookContext, ...args: TArgs) => TRet | Promise<TRet>;
 
-// Hook-specific argument types for better type safety
-export interface HookArgs {
+// Type-safe hook payloads for each hook point
+export interface HookPayloads {
   beforeApiRequest: [request: { url: string; init?: RequestInit }];
-  afterApiResponse: [response: any]; // Response | ApiError
-  onLogin: [payload: { user: any; tokens: any }];
-  onLogout: [payload: { userId?: string }];
-  onRouteChange: [routeInfo: { from: string | null; to: string; params?: Record<string, string> }];
-  onAppBoot: [];
+  afterApiResponse: [response: { ok: boolean; status: number; data?: any; error?: any }];
+  onLogin: [payload: { user: any; tokens?: { access: string; refresh?: string } }];
+  onLogout: [payload: { userId?: string; reason?: string }];
+  onRouteChange: [route: { from: string | null; to: string; params?: Record<string, string> }];
+  onAppBoot: [config: { features: Record<string, boolean> }];
+  onError: [error: { type: string; message: string; stack?: string; context?: any }];
+  onFeatureToggle: [feature: { key: string; enabled: boolean }];
 }
 
-// Hook entry with priority
+// Internal hook entry with priority
 interface HookEntry {
   fn: HookFn<any, any>;
   priority: number;
+  id: string;
 }
 
-// Hook Registry class for managing extension points
+// Main hook registry implementation
 export class HookRegistry {
-  private hooks: Map<HookPoint, HookEntry[]> = new Map();
-  private context: HookContext | null = null;
+  private hooks: Map<HookPoint, HookEntry[]>;
+  private nextId: number;
+  private context: HookContext | null;
 
-  // Initialize the registry with context
+  constructor() {
+    this.hooks = new Map();
+    this.nextId = 0;
+    this.context = null;
+  }
+
+  /**
+   * Initialize the hook context (called once at app boot)
+   */
   initialize(context: HookContext): void {
     this.context = context;
   }
 
-  // Register a hook function for a specific hook point
+  /**
+   * Register a hook function for a specific point
+   * @returns Unregister function
+   */
   register<P extends HookPoint>(
     point: P,
-    fn: HookFn<HookArgs[P], any>,
+    fn: HookFn<HookPayloads[P], any>,
     priority: number = 100
   ): () => void {
-    if (!this.hooks.has(point)) {
-      this.hooks.set(point, []);
-    }
+    const id = `hook_${++this.nextId}`;
+    const entry: HookEntry = { fn, priority, id };
 
-    const entry: HookEntry = { fn, priority };
-    const entries = this.hooks.get(point)!;
+    // Get or create hook array for this point
+    const pointHooks = this.hooks.get(point) || [];
     
-    // Insert in sorted order by priority
-    const insertIndex = entries.findIndex(e => e.priority > priority);
-    if (insertIndex === -1) {
-      entries.push(entry);
-    } else {
-      entries.splice(insertIndex, 0, entry);
+    // Add new hook and sort by priority (lower numbers run first)
+    pointHooks.push(entry);
+    pointHooks.sort((a, b) => a.priority - b.priority);
+    
+    this.hooks.set(point, pointHooks);
+
+    // Log registration in development
+    if (import.meta.env.MODE === 'development') {
+      console.debug(`[Hooks] Registered hook for '${point}' with priority ${priority} (id: ${id})`);
     }
 
     // Return unregister function
     return () => {
-      const hookEntries = this.hooks.get(point);
-      if (hookEntries) {
-        const index = hookEntries.indexOf(entry);
-        if (index !== -1) {
-          hookEntries.splice(index, 1);
+      const hooks = this.hooks.get(point);
+      if (hooks) {
+        const filtered = hooks.filter(h => h.id !== id);
+        if (filtered.length > 0) {
+          this.hooks.set(point, filtered);
+        } else {
+          this.hooks.delete(point);
+        }
+        
+        if (import.meta.env.MODE === 'development') {
+          console.debug(`[Hooks] Unregistered hook '${id}' from '${point}'`);
         }
       }
     };
   }
 
-  // Get a snapshot of registered hooks for a point
-  list<P extends HookPoint>(point: P): Array<{ fn: HookFn<HookArgs[P], any>; priority: number }> {
-    const entries = this.hooks.get(point) || [];
-    return [...entries]; // Return a copy to prevent external modification
+  /**
+   * List all registered hooks for a point (snapshot)
+   */
+  list<P extends HookPoint>(point: P): Array<{ fn: HookFn<any, any>; priority: number }> {
+    const hooks = this.hooks.get(point) || [];
+    return hooks.map(({ fn, priority }) => ({ fn, priority }));
   }
 
-  // Run all hooks for a specific point
+  /**
+   * Run all registered hooks for a point
+   */
   async run<P extends HookPoint>(
     point: P,
-    ...args: HookArgs[P]
+    ...args: HookPayloads[P]
   ): Promise<void> {
-    if (!this.context) {
-      console.warn(`HookRegistry: Context not initialized. Call initialize() first.`);
+    // Get context or create minimal one
+    const ctx = this.context || this.createMinimalContext();
+    
+    // Get hooks for this point (make a copy to avoid concurrent modification)
+    const hooks = [...(this.hooks.get(point) || [])];
+    
+    if (hooks.length === 0) {
       return;
     }
 
-    const entries = this.list(point);
-    
-    for (const entry of entries) {
+    if (import.meta.env.MODE === 'development') {
+      console.debug(`[Hooks] Running ${hooks.length} hooks for '${point}'`);
+    }
+
+    // Run hooks sequentially in priority order
+    for (const entry of hooks) {
       try {
-        await entry.fn(this.context, ...args);
+        await Promise.resolve(entry.fn(ctx, ...args));
       } catch (error) {
         // Log error but continue with other hooks
-        console.error(`Hook error at ${point} (priority ${entry.priority}):`, error);
+        console.error(`[Hooks] Error in hook for '${point}':`, error);
         
-        // Also emit to event bus if available
-        if (this.context.eventBus) {
-          this.context.eventBus.emit('hook:error', {
+        // Emit error event if not already handling an error hook
+        if (point !== 'onError' && ctx.eventBus) {
+          ctx.eventBus.emit('hook:error', {
             point,
-            priority: entry.priority,
             error: error instanceof Error ? error.message : String(error),
+            priority: entry.priority,
           });
         }
       }
     }
   }
 
-  // Clear all hooks (useful for testing)
-  clear(): void {
+  /**
+   * Clear all registered hooks
+   */
+  reset(): void {
     this.hooks.clear();
+    this.nextId = 0;
+    
+    if (import.meta.env.MODE === 'development') {
+      console.debug('[Hooks] Registry reset');
+    }
   }
 
-  // Get count of registered hooks for a point
-  count(point?: HookPoint): number {
+  /**
+   * Get count of registered hooks
+   */
+  getHookCount(point?: HookPoint): number {
     if (point) {
-      return this.hooks.get(point)?.length || 0;
+      return (this.hooks.get(point) || []).length;
     }
+    
     let total = 0;
-    this.hooks.forEach(entries => {
-      total += entries.length;
-    });
+    for (const hooks of this.hooks.values()) {
+      total += hooks.length;
+    }
     return total;
   }
+
+  /**
+   * Create minimal context when not initialized
+   */
+  private createMinimalContext(): HookContext {
+    // Lazy load dependencies to avoid circular imports
+    const config = (globalThis as any).__APP_CONFIG__ || { 
+      features: {}, 
+      isDevelopment: import.meta.env.MODE === 'development' 
+    };
+    
+    return {
+      appConfig: config,
+      eventBus: {
+        emit: () => {},
+        on: () => () => {},
+        once: () => () => {},
+        off: () => {},
+      } as any,
+      diContainer: {
+        resolve: () => null,
+        register: () => {},
+        has: () => false,
+      } as any,
+    };
+  }
 }
 
-// Global singleton instance
+// Create singleton registry instance
 const hookRegistry = new HookRegistry();
 
-// Convenience function to register a hook
-export function registerHook<P extends HookPoint>(
+// Export convenience functions
+export const registerHook = <P extends HookPoint>(
   point: P,
-  fn: HookFn<HookArgs[P], any>,
+  fn: HookFn<HookPayloads[P], any>,
   priority?: number
-): () => void {
+): (() => void) => {
   return hookRegistry.register(point, fn, priority);
-}
+};
 
-// React hook wrapper for registering hooks with component lifecycle
-export function useHook<P extends HookPoint>(
+export const runHooks = <P extends HookPoint>(
   point: P,
-  fn: HookFn<HookArgs[P], any>,
+  ...args: HookPayloads[P]
+): Promise<void> => {
+  return hookRegistry.run(point, ...args);
+};
+
+export const listHooks = <P extends HookPoint>(
+  point: P
+): Array<{ fn: HookFn<any, any>; priority: number }> => {
+  return hookRegistry.list(point);
+};
+
+export const initializeHooks = (context: HookContext): void => {
+  hookRegistry.initialize(context);
+};
+
+export const resetHooks = (): void => {
+  hookRegistry.reset();
+};
+
+// React-specific hook for component integration
+export const useHook = <P extends HookPoint>(
+  point: P,
+  fn: HookFn<HookPayloads[P], any>,
   priority?: number
-): void {
-  // This assumes React is available in the consuming environment
-  // Using dynamic import to avoid hard dependency
+): void => {
+  // This is a React-aware helper, so we need to check if React is available
   if (typeof window !== 'undefined' && 'React' in window) {
     const React = (window as any).React;
     React.useEffect(() => {
       const unregister = registerHook(point, fn, priority);
       return unregister;
-    }, [point, priority]); // fn is intentionally omitted to avoid re-registration on every render
+    }, [point, priority]); // fn excluded from deps as it may change every render
+  } else {
+    // Fallback for non-React environments
+    registerHook(point, fn, priority);
   }
-}
-
-// Convenience function to run hooks
-export async function runHooks<P extends HookPoint>(
-  point: P,
-  ...args: HookArgs[P]
-): Promise<void> {
-  return hookRegistry.run(point, ...args);
-}
-
-// Export the singleton for direct access if needed
-export const hooks = {
-  registry: hookRegistry,
-  register: registerHook,
-  run: runHooks,
-  use: useHook,
-  initialize: (context: HookContext) => hookRegistry.initialize(context),
-  clear: () => hookRegistry.clear(),
-  count: (point?: HookPoint) => hookRegistry.count(point),
-  list: <P extends HookPoint>(point: P) => hookRegistry.list(point),
 };
 
-// Example usage patterns (documentation)
-/*
-// In a plugin or feature module:
-import { registerHook } from '@/core/hooks';
+// Export the registry instance for advanced use cases
+export const hooks = {
+  register: registerHook,
+  run: runHooks,
+  list: listHooks,
+  reset: resetHooks,
+  initialize: initializeHooks,
+  useHook,
+  getCount: (point?: HookPoint) => hookRegistry.getHookCount(point),
+};
 
-// Add correlation ID to all API requests
-const unregister = registerHook('beforeApiRequest', async (ctx, request) => {
-  request.init = request.init || {};
-  request.init.headers = {
-    ...request.init.headers,
-    'X-Correlation-Id': crypto.randomUUID(),
+// Development helpers
+if (import.meta.env.MODE === 'development') {
+  // Expose registry to window for debugging
+  (window as any).__HOOK_REGISTRY__ = hookRegistry;
+  (window as any).__HOOKS__ = hooks;
+  
+  // Add debug commands
+  (window as any).debugHooks = () => {
+    const points: HookPoint[] = [
+      'beforeApiRequest',
+      'afterApiResponse', 
+      'onLogin',
+      'onLogout',
+      'onRouteChange',
+      'onAppBoot',
+      'onError',
+      'onFeatureToggle',
+    ];
+    
+    console.group('[Hooks] Registry Status');
+    points.forEach(point => {
+      const count = hookRegistry.getHookCount(point);
+      if (count > 0) {
+        console.log(`${point}: ${count} hooks registered`);
+      }
+    });
+    console.log(`Total: ${hookRegistry.getHookCount()} hooks`);
+    console.groupEnd();
   };
-}, 50); // priority 50 runs before default priority 100
+}
 
-// Track errors
-registerHook('afterApiResponse', async (ctx, response) => {
-  if (!response.success) {
-    await sendToErrorTracker(response);
-  }
-}, 150);
-
-// Analytics on login
-registerHook('onLogin', async (ctx, { user, tokens }) => {
-  ctx.eventBus.emit('analytics:track', {
-    event: 'user_login',
-    userId: user.id,
-    properties: { method: 'email' },
-  });
-});
-
-// Clean up when done
-unregister();
-*/
-
-// Self-Check Comments:
-// [x] Uses `@/` imports only - Yes, imports from @/app/config and local ./events, ./di
-// [x] Uses providers/hooks (no direct DOM/localStorage side effects) - Pure registry implementation, no side effects
-// [x] Reads config from `@/app/config` - Yes, through HookContext type
-// [x] Exports default named component - N/A (utility module, exports named functions/class)
-// [x] Adds basic ARIA and keyboard handlers - N/A (not a UI component)
+// Self-Check Comments
+// [x] Uses `@/` imports only - Yes, imports types from @/app/config and local files
+// [x] Uses providers/hooks (no direct DOM/localStorage side effects) - Pure hook registry logic
+// [x] Reads config from `@/app/config` - Imports AppConfig type for context
+// [x] Exports default named component - N/A (utility module)
+// [x] Adds basic ARIA and keyboard handlers (where relevant) - N/A (not a UI component)

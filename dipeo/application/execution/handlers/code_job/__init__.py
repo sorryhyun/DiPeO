@@ -187,6 +187,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     ) -> Any:
         """Execute code with prepared context."""
         import logging
+        import time
         node = request.node
         exec_context = inputs
         
@@ -194,6 +195,9 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         timeout = self._current_timeout
         function_name = self._current_function_name
         executor = self._current_executor
+        
+        # Track execution time
+        start_time = time.time()
         
         if node.code:
             request.add_metadata("inline_code", True)
@@ -204,58 +208,123 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             request.add_metadata("filePath", str(file_path))
             result = await executor.execute_file(file_path, exec_context, timeout, function_name)
         
+        # Store execution metadata for building representations
+        self._execution_time = time.time() - start_time
+        self._execution_meta = {
+            "execution_time": self._execution_time,
+            "exit_code": 0 if result is not None else 1,
+            "stdout": getattr(executor, 'last_stdout', ''),
+            "stderr": getattr(executor, 'last_stderr', '')
+        }
+        
         return result
 
+    def _build_node_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[CodeJobNode]
+    ) -> dict[str, Any]:
+        """Build multi-representation output for code execution."""
+        node = request.node
+        execution_meta = getattr(self, '_execution_meta', {})
+        
+        # Build representations
+        representations = {
+            "text": str(result) if result is not None else "",
+            "object": result if isinstance(result, (dict, list)) else None,
+            "stdout": execution_meta.get("stdout", ""),
+            "stderr": execution_meta.get("stderr", ""),
+            "return_value": result,
+            "execution_info": {
+                "language": self._current_language,
+                "execution_time": execution_meta.get("execution_time", 0),
+                "exit_code": execution_meta.get("exit_code", 0),
+                "function_name": self._current_function_name,
+                "timeout": self._current_timeout
+            }
+        }
+        
+        # Add code/file info
+        if node.code:
+            representations["code_info"] = {
+                "type": "inline",
+                "code_hash": hash(node.code),
+                "lines": len(node.code.splitlines())
+            }
+        else:
+            representations["code_info"] = {
+                "type": "file",
+                "file_path": str(self._current_file_path),
+                "file_hash": hash(str(self._current_file_path))
+            }
+        
+        # Determine primary body for backward compatibility
+        if result is None:
+            primary = ""
+        elif isinstance(result, (str, bytes)):
+            primary = result
+        elif isinstance(result, (dict, list)):
+            primary = result
+        else:
+            primary = str(result)
+        
+        return {
+            "primary": primary,
+            "representations": representations,
+            "meta": {
+                "execution_time": self._execution_time if hasattr(self, '_execution_time') else 0,
+                "code_hash": hash(node.code) if node.code else hash(str(self._current_file_path)),
+                "language": self._current_language,
+                "result_type": type(result).__name__
+            }
+        }
+    
     def serialize_output(
         self,
         result: Any,
         request: ExecutionRequest[CodeJobNode]
     ) -> Envelope:
-        """Serialize code execution result to appropriate envelope type."""
+        """Serialize code execution result to multi-representation envelope."""
         node = request.node
         trace_id = request.execution_id or ""
-        language = self._current_language
         
-        # Determine output type and create envelope
-        if result is None:
+        # Build multi-representation output
+        output = self._build_node_output(result, request)
+        
+        # Determine content type based on primary value
+        primary = output["primary"]
+        if isinstance(primary, str):
             output_envelope = EnvelopeFactory.text(
-                "",
+                primary,
                 produced_by=node.id,
                 trace_id=trace_id
             )
-        elif isinstance(result, str):
-            output_envelope = EnvelopeFactory.text(
-                result,
-                produced_by=node.id,
-                trace_id=trace_id
-            )
-        elif isinstance(result, (dict, list)):
+        elif isinstance(primary, (dict, list)):
             output_envelope = EnvelopeFactory.json(
-                result,
+                primary,
                 produced_by=node.id,
                 trace_id=trace_id
             )
-        elif isinstance(result, bytes):
+        elif isinstance(primary, bytes):
             output_envelope = EnvelopeFactory.binary(
-                result,
+                primary,
                 produced_by=node.id,
                 trace_id=trace_id
             )
         else:
-            # Convert to string as fallback
             output_envelope = EnvelopeFactory.text(
-                str(result),
+                str(primary),
                 produced_by=node.id,
                 trace_id=trace_id
             )
         
-        # Add execution metadata
-        output_envelope = output_envelope.with_meta(
-            execution_time=self._current_timeout,
-            code_hash=hash(node.code) if node.code else hash(str(self._current_file_path)),
-            language=language,
-            result_type="dict" if isinstance(result, dict) else "string"
-        )
+        # Add representations to envelope
+        if "representations" in output:
+            output_envelope = output_envelope.with_representations(output["representations"])
+        
+        # Add metadata
+        if "meta" in output:
+            output_envelope = output_envelope.with_meta(**output["meta"])
         
         return output_envelope
     

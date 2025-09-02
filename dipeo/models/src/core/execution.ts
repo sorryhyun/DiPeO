@@ -84,6 +84,7 @@ export interface SerializedEnvelope {
   serialization_format?: string;
   body: any;
   meta: EnvelopeMeta;
+  representations?: Record<string, any>;  // Multiple representations of the output
 }
 
 // SerializedNodeOutput is now just SerializedEnvelope

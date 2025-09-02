@@ -249,6 +249,9 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         """Execute template rendering with support for foreach and preprocessor."""
         node = request.node
         template_vars = inputs
+        
+        # Store template variables for building representations
+        self._template_vars = template_vars.copy()
 
         # Use services from instance variables (set in pre_execute)
         filesystem_adapter = self._current_filesystem_adapter
@@ -421,24 +424,86 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             return rendered
 
+    def _build_node_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[TemplateJobNode]
+    ) -> dict[str, Any]:
+        """Build multi-representation output for template rendering."""
+        node = request.node
+        template_vars = getattr(self, '_template_vars', {})
+        
+        # Handle foreach mode results
+        if isinstance(result, dict) and 'written' in result:
+            # Foreach mode - multiple files written
+            rendered_text = f"Written {result['count']} files: {', '.join(result['written'])}"
+            primary = rendered_text
+        else:
+            # Single file mode
+            rendered_text = result if isinstance(result, str) else str(result)
+            primary = rendered_text
+        
+        # Build representations
+        representations = {
+            "text": rendered_text,
+            "object": {
+                "rendered": rendered_text,
+                "variables": template_vars
+            },
+            "metadata": {
+                "engine": self._current_engine,
+                "template_path": node.template_path,
+                "output_path": str(self._current_output_path) if hasattr(self, '_current_output_path') and self._current_output_path else None,
+                "foreach": node.foreach is not None
+            }
+        }
+        
+        # Add file write info if available
+        if isinstance(result, dict) and 'written' in result:
+            representations["files"] = result['written']
+            representations["file_count"] = result['count']
+        elif hasattr(self, '_current_output_path') and self._current_output_path:
+            representations["files"] = [str(self._current_output_path)]
+            representations["file_count"] = 1
+        
+        return {
+            "primary": primary,
+            "representations": representations,
+            "meta": {
+                "engine": self._current_engine,
+                "template_path": node.template_path,
+                "output_path": str(self._current_output_path) if hasattr(self, '_current_output_path') and self._current_output_path else None
+            }
+        }
+    
     def serialize_output(
         self,
         result: Any,
         request: ExecutionRequest[TemplateJobNode]
     ) -> Envelope:
-        """Serialize rendered template to text envelope."""
+        """Serialize rendered template to multi-representation envelope."""
         node = request.node
         trace_id = request.execution_id or ""
         
-        return EnvelopeFactory.text(
-            result,
+        # Build multi-representation output
+        output = self._build_node_output(result, request)
+        
+        # Create envelope with primary body for backward compatibility
+        envelope = EnvelopeFactory.text(
+            output["primary"],
             produced_by=node.id,
             trace_id=trace_id
-        ).with_meta(
-            engine=self._current_engine,
-            template_path=node.template_path,
-            output_path=str(self._current_output_path) if hasattr(self, '_current_output_path') and self._current_output_path else None
         )
+        
+        # Add representations to envelope
+        if "representations" in output:
+            envelope = envelope.with_representations(output["representations"])
+        
+        # Add metadata
+        if "meta" in output:
+            envelope = envelope.with_meta(**output["meta"])
+        
+        return envelope
     
     async def _render_jinja2(self, template: str, variables: dict[str, Any]) -> str:
         """Render template using Jinja2 with custom filters."""

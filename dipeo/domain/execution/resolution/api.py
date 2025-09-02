@@ -185,7 +185,16 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
     """
     # Handle Envelope format
     if isinstance(source_output, Envelope):
-        # Extract based on content type
+        # NEW: Check for representation based on edge content_type
+        if source_output.representations and hasattr(edge, 'content_type'):
+            if edge.content_type == ContentType.RAW_TEXT and "text" in source_output.representations:
+                return source_output.representations["text"]
+            elif edge.content_type == ContentType.OBJECT and "object" in source_output.representations:
+                return source_output.representations["object"]
+            elif edge.content_type == ContentType.CONVERSATION_STATE and "conversation" in source_output.representations:
+                return source_output.representations["conversation"]
+        
+        # Fallback to primary body based on envelope content_type
         if source_output.content_type == "raw_text":
             return str(source_output.body)
         elif source_output.content_type == "object":

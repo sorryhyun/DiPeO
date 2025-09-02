@@ -230,7 +230,7 @@ nodes:
 
   - label: Generate Frontend Code
     type: person_job
-    position: {x: 2300, y: 500}
+    position: {x: 2500, y: 600}
     props:
       person: Frontend Generator
       max_iteration: 100
@@ -240,7 +240,7 @@ nodes:
 
   - label: Check Output Quality
     type: condition
-    position: {x: 2600, y: 240}
+    position: {x: 2500, y: 240}
     props:
       condition_type: llm_decision
       person: Frontend Verdict
@@ -250,7 +250,7 @@ nodes:
 
   - label: Revise Frontend Code
     type: person_job
-    position: {x: 3000, y: 500}
+    position: {x: 2800, y: 400}
     props:
       person: Frontend Generator
       memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
@@ -274,7 +274,7 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 2300, y: 800}
+    position: {x: 2500, y: 800}
     props:
       operation: write
       sub_type: file
@@ -284,7 +284,7 @@ nodes:
 
   - label: Write revised Result
     type: db
-    position: {x: 3000, y: 800}
+    position: {x: 2800, y: 800}
     props:
       operation: write
       sub_type: file

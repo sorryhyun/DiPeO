@@ -281,6 +281,9 @@ class SinglePersonJobExecutor:
     
     def _build_node_output(self, result: Any, person: Person, node: PersonJobNode, diagram: Any, model: str, trace_id: str = "", selected_messages: Optional[list] = None) -> Envelope:
         """Build node output with envelope support for proper conversion."""
+        from dataclasses import replace
+        from dipeo.diagram_generated.enums import ContentType
+        
         # Extract token usage as typed field
         token_usage = None
         if hasattr(result, 'token_usage') and result.token_usage:
@@ -292,22 +295,90 @@ class SinglePersonJobExecutor:
         person_id = str(person.id) if person.id else None
         conversation_id = None  # Person doesn't directly store conversation_id
         
-        # Check if conversation output is needed
+        # Build all representations
+        text_repr = self._extract_text(result)
+        object_repr = self._extract_object(result, node)
+        
+        # Lazy evaluation for conversation (only if needed)
+        conversation_repr = None
+        if self._any_edge_needs_conversation(node.id, diagram):
+            conversation_repr = self._build_conversation_repr(
+                person, selected_messages, model, result
+            )
+        
+        # Determine primary body for backward compatibility
+        primary_envelope = self._determine_primary_envelope(
+            node, diagram, text_repr, object_repr, conversation_repr,
+            person_id, conversation_id, model, token_usage, trace_id
+        )
+        
+        # Add all representations
+        representations = {"text": text_repr}
+        if object_repr is not None:
+            representations["object"] = object_repr
+        if conversation_repr is not None:
+            representations["conversation"] = conversation_repr
+        
+        return replace(primary_envelope, representations=representations)
+    
+    def _extract_text(self, result):
+        """Extract text representation from result."""
+        if hasattr(result, 'content'):
+            return result.content
+        elif hasattr(result, 'text'):
+            return result.text
+        return str(result)
+    
+    def _extract_object(self, result, node):
+        """Extract structured object if text_format was used."""
+        has_text_format = (hasattr(node, 'text_format') and node.text_format) or \
+                          (hasattr(node, 'text_format_file') and node.text_format_file)
+        
+        if has_text_format:
+            return self._text_format_handler.process_structured_output(result, True)
+        return None
+    
+    def _build_conversation_repr(self, person, selected_messages, model, result):
+        """Build conversation representation."""
+        # If memorize_to was used, return the selected subset
+        if selected_messages is not None:
+            messages = selected_messages
+        else:
+            # Get all messages from conversation repository
+            all_conv_messages = self._execution_orchestrator.get_conversation().messages if hasattr(self._execution_orchestrator, 'get_conversation') else []
+            # Filter messages from person's perspective
+            messages = person.get_messages(all_conv_messages)
+        
+        return {
+            "messages": messages,
+            "last_message": messages[-1] if messages else None,
+            "person_id": str(person.id),
+            "model": model,
+            "token_usage": result.token_usage.model_dump() if hasattr(result, 'token_usage') and result.token_usage else None
+        }
+    
+    def _any_edge_needs_conversation(self, node_id, diagram):
+        """Check if any outgoing edge needs conversation representation."""
+        from dipeo.diagram_generated.enums import ContentType
+        
+        if not diagram or not hasattr(diagram, 'get_outgoing_edges'):
+            return False
+        
+        edges = diagram.get_outgoing_edges(node_id)
+        return any(
+            hasattr(edge, 'content_type') and edge.content_type == ContentType.CONVERSATION_STATE 
+            for edge in edges
+        )
+    
+    def _determine_primary_envelope(self, node, diagram, text_repr, object_repr, conversation_repr,
+                                     person_id, conversation_id, model, token_usage, trace_id):
+        """Determine primary envelope for backward compatibility."""
+        # Check if conversation output is needed (backward compatibility)
         if self._conversation_handler.needs_conversation_output(str(node.id), diagram):
-            # Return PersonJobOutput with messages
-            # If memorize_to was used, return the selected subset
-            if selected_messages is not None:
-                messages = selected_messages
-            else:
-                # Get all messages from conversation repository
-                all_conv_messages = self._execution_orchestrator.get_conversation().messages if hasattr(self._execution_orchestrator, 'get_conversation') else []
-                # Filter messages from person's perspective
-                messages = person.get_messages(all_conv_messages)
-            
-            # Return conversation envelope directly
-            conversation_state = {
-                "messages": messages,
-                "last_message": messages[-1] if messages else None
+            # Return conversation envelope
+            conversation_state = conversation_repr if conversation_repr else {
+                "messages": [],
+                "last_message": None
             }
             return EnvelopeFactory.conversation(
                 conversation_state,
@@ -319,35 +390,28 @@ class SinglePersonJobExecutor:
                 model=model,
                 token_usage=token_usage.model_dump() if token_usage else None
             )
-        else:
-            # Check if we used text_format (structured output)
-            has_text_format = (hasattr(node, 'text_format') and node.text_format) or \
-                              (hasattr(node, 'text_format_file') and node.text_format_file)
-            
-            structured_data = self._text_format_handler.process_structured_output(result, has_text_format)
-            if structured_data:
-                # Return JSON envelope for structured data
-                return EnvelopeFactory.json(
-                    structured_data,
-                    produced_by=str(node.id),
-                    trace_id=trace_id
-                ).with_meta(
-                    person_id=person_id,
-                    model=model,
-                    is_structured=True,
-                    token_usage=token_usage.model_dump() if token_usage else None
-                )
-            
-            # Default: return text output
-            text_value = result.content if hasattr(result, 'content') else (result.text if hasattr(result, 'text') else str(result))
-            output = EnvelopeFactory.text(
-                text_value,
+        
+        # Check if we have structured data
+        if object_repr is not None:
+            # Return JSON envelope for structured data
+            return EnvelopeFactory.json(
+                object_repr,
                 produced_by=str(node.id),
                 trace_id=trace_id
             ).with_meta(
                 person_id=person_id,
                 model=model,
+                is_structured=True,
                 token_usage=token_usage.model_dump() if token_usage else None
             )
-            
-            return output
+        
+        # Default: return text output
+        return EnvelopeFactory.text(
+            text_repr,
+            produced_by=str(node.id),
+            trace_id=trace_id
+        ).with_meta(
+            person_id=person_id,
+            model=model,
+            token_usage=token_usage.model_dump() if token_usage else None
+        )

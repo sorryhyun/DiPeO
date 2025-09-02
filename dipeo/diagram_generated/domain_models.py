@@ -217,6 +217,7 @@ class SerializedEnvelope(BaseModel):
     serialization_format: Optional[str] = Field(default=None)
     body: Any
     meta: EnvelopeMeta
+    representations: Optional[Dict[str, Any]] = Field(default=None)
 
 
 class ExecutionState(BaseModel):

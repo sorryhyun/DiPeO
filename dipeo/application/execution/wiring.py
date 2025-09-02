@@ -4,7 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from dipeo.application.registry.service_registry import ServiceRegistry, ServiceKey
-from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR
+from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, PREPARE_DIAGRAM_USE_CASE
 
 if TYPE_CHECKING:
     from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 # Define service keys for execution context
 EXECUTE_DIAGRAM_USE_CASE = ServiceKey["ExecuteDiagramUseCase"]("execution.use_case.execute_diagram")
-PREPARE_DIAGRAM_USE_CASE = ServiceKey["PrepareDiagramForExecutionUseCase"]("execution.use_case.prepare_diagram")
 CLI_SESSION_USE_CASE = ServiceKey["CliSessionService"]("execution.use_case.cli_session")
 
 

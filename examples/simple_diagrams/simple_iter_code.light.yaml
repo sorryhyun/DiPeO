@@ -25,8 +25,9 @@ nodes:
   position: {x: 612, y: 447}
   props:
     condition_type: custom
-    expression: a>10
+    expression: a > 10
     flipped: true
+    skippable: true
 - label: Code Job~1
   type: code_job
   position: {x: 306, y: 204}
@@ -36,6 +37,7 @@ nodes:
 connections:
 - from: Code Job
   to: Condition
+  label: a
   content_type: raw_text
 - from: Condition_condfalse
   to: Code Job

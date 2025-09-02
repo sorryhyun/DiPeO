@@ -137,7 +137,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         ast_data = {}
     
     node_type = inputs.get('node_type', '')
-    
+    print(inputs)
     # Convert node type to spec name (e.g., "person-job" -> "personJobSpec") 
     # Note: node_type now comes with hyphens (person-job) to match file names
     # Convert to camelCase for the spec name

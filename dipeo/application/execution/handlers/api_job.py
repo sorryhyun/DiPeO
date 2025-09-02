@@ -213,33 +213,89 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             expected_status_codes=list(range(200, 300))
         )
         
+        # Store raw response data for building representations
+        if hasattr(api_service, 'last_response'):
+            self._last_response = api_service.last_response
+        else:
+            self._last_response = None
+            
         # Convert response to dict format and include metadata
         response_dict = response_data if isinstance(response_data, dict) else {"result": str(response_data)}
         response_dict['_api_meta'] = {
             'url': url,
             'method': method_value,
-            'status_code': 200  # Default success code
+            'status_code': 200,  # Default success code
+            'request_headers': headers,
+            'response_headers': getattr(self._last_response, 'headers', {}) if self._last_response else {}
         }
         
         return response_dict
 
+    def _build_node_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[ApiJobNode]
+    ) -> dict[str, Any]:
+        """Build multi-representation output for API response."""
+        # Extract metadata if present
+        meta = result.pop('_api_meta', {}) if isinstance(result, dict) else {}
+        
+        # Build representations
+        representations = {
+            "text": str(result) if not isinstance(result, dict) else json.dumps(result, indent=2),
+            "object": result,
+            "headers": meta.get('response_headers', {}),
+            "full_response": {
+                "status": meta.get('status_code', 200),
+                "headers": meta.get('response_headers', {}),
+                "body": result,
+                "url": meta.get('url', ''),
+                "method": meta.get('method', '')
+            }
+        }
+        
+        # Include request details for debugging
+        if meta.get('request_headers'):
+            representations["request_details"] = {
+                "headers": meta.get('request_headers', {}),
+                "url": meta.get('url', ''),
+                "method": meta.get('method', '')
+            }
+        
+        return {
+            "primary": result,  # For backward compatibility
+            "representations": representations,
+            "meta": meta
+        }
+    
     def serialize_output(
         self,
         result: Any,
         request: ExecutionRequest[ApiJobNode]
     ) -> Envelope:
-        """Serialize API response to JSON envelope."""
+        """Serialize API response to multi-representation envelope."""
         node = request.node
         trace_id = request.execution_id or ""
         
-        # Extract metadata if present
-        meta = result.pop('_api_meta', {}) if isinstance(result, dict) else {}
+        # Build multi-representation output
+        output = self._build_node_output(result, request)
         
-        return EnvelopeFactory.json(
-            result,
+        # Create envelope with primary body for backward compatibility
+        envelope = EnvelopeFactory.json(
+            output["primary"],
             produced_by=node.id,
             trace_id=trace_id
-        ).with_meta(**meta)
+        )
+        
+        # Add representations to envelope
+        if "representations" in output:
+            envelope = envelope.with_representations(output["representations"])
+        
+        # Add metadata
+        if "meta" in output:
+            envelope = envelope.with_meta(**output["meta"])
+        
+        return envelope
 
     def _parse_json_inputs(
         self, headers: Any, params: Any, body: Any, auth_config: Any
