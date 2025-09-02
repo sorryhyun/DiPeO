@@ -235,13 +235,14 @@ class TypedExecutionContext(ExecutionContextProtocol):
                 active_branch = "condfalse"
 
             # Only process edges on the active branch
+            all_outgoing = self.diagram.get_outgoing_edges(node_id)
             outgoing_edges = [
-                e for e in self.diagram.edges 
-                if e.source_node_id == node_id and e.source_output == active_branch
+                e for e in all_outgoing
+                if e.source_output == active_branch
             ]
         else:
             # For non-condition nodes, process all outgoing edges as before
-            outgoing_edges = [e for e in self.diagram.edges if e.source_node_id == node_id]
+            outgoing_edges = self.diagram.get_outgoing_edges(node_id)
         
         nodes_to_reset = []
         
@@ -270,7 +271,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
             # For condition nodes, allow reset if they're part of a loop
             # Check if any of its outgoing edges point back to an already-executed node
             if isinstance(target_node, ConditionNode):
-                cond_outgoing = [e for e in self.diagram.edges if e.source_node_id == target_node.id]
+                cond_outgoing = self.diagram.get_outgoing_edges(target_node.id)
                 # Check if this condition has a loop back (at least one edge points to an executed node)
                 has_loop_back = False
                 for edge in cond_outgoing:
@@ -369,8 +370,8 @@ class TypedExecutionContext(ExecutionContextProtocol):
         # Check if any endpoint nodes have been reached
         from dipeo.diagram_generated.generated_nodes import NodeType
         has_endpoint = False
-        for node in self.diagram.nodes:
-            if node.type == NodeType.ENDPOINT.value:
+        endpoints = self.diagram.get_nodes_by_type(NodeType.ENDPOINT)
+        for node in endpoints:
                 has_endpoint = True
                 node_state = self.get_node_state(node.id)
                 if node_state and node_state.status in [Status.COMPLETED, Status.MAXITER_REACHED]:
@@ -383,8 +384,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         # If there's an endpoint node but it hasn't been executed yet, execution is not complete
         if has_endpoint:
             # Check if endpoint dependencies are met but endpoint hasn't run
-            for node in self.diagram.nodes:
-                if node.type == NodeType.ENDPOINT.value:
+            for node in endpoints:
                     node_state = self.get_node_state(node.id)
                     # If endpoint has no state yet, execution is not complete
                     if not node_state:
@@ -418,10 +418,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
             return {}
         
         # Get incoming edges
-        incoming_edges = [
-            edge for edge in self.diagram.edges 
-            if edge.target_node_id == node.id
-        ]
+        incoming_edges = self.diagram.get_incoming_edges(node.id)
         
         # Build resolver context (self implements the protocol)
         return self.runtime_resolver.resolve_node_inputs(
@@ -612,7 +609,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         )
         
         # Initialize remaining nodes
-        for node in diagram.nodes:
+        for node in diagram.get_nodes_by_type(None) or diagram.nodes:
             if node.id not in context._node_states:
                 context._node_states[node.id] = NodeState(
                     status=Status.PENDING

@@ -63,7 +63,8 @@ class NodeScheduler:
     def _initialize_dependencies(self) -> None:
         """Initialize indegree counts and dependency mappings."""
         # Initialize all nodes with 0 indegree
-        for node in self.diagram.nodes:
+        all_nodes = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
+        for node in all_nodes:
             self._indegree[node.id] = 0
         
         # Track incoming edges for each node
@@ -72,10 +73,15 @@ class NodeScheduler:
         
         # Build dependency graph and priority relationships
         edges_by_source: dict[NodeID, list] = defaultdict(list)
-        for edge in self.diagram.edges:
-            edges_by_source[edge.source_node_id].append(edge)
-            incoming_by_target[edge.target_node_id].append(edge)
-            
+        all_edges = []
+        for node in all_nodes:
+            for edge in self.diagram.get_outgoing_edges(node.id):
+                edges_by_source[edge.source_node_id].append(edge)
+                incoming_by_target[edge.target_node_id].append(edge)
+                all_edges.append(edge)
+        
+        # Process all edges for indegree calculation
+        for edge in all_edges:
             # Skip conditional edges (like condition branches) - use defensive check
             if self._is_conditional_edge(edge):
                 continue
@@ -162,9 +168,10 @@ class NodeScheduler:
             self._processed_nodes.remove(node_id)
             
         # Recalculate indegree for this node using defensive check
+        incoming_edges = self.diagram.get_incoming_edges(node_id)
         incoming_count = sum(
-            1 for edge in self.diagram.edges 
-            if edge.target_node_id == node_id and not self._is_conditional_edge(edge)
+            1 for edge in incoming_edges
+            if not self._is_conditional_edge(edge)
         )
         self._indegree[node_id] = incoming_count
     
@@ -174,7 +181,8 @@ class NodeScheduler:
         Returns:
             List of unprocessed node IDs
         """
-        all_nodes = {node.id for node in self.diagram.nodes}
+        all_nodes_list = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
+        all_nodes = {node.id for node in all_nodes_list}
         return list(all_nodes - self._processed_nodes)
     
     def _create_calculator_context(self, context: "TypedExecutionContext") -> Any:
@@ -197,7 +205,8 @@ class NodeScheduler:
         
         # Get execution counts for ALL nodes (including reset/pending ones)
         # This is crucial for loop handling where nodes are reset but maintain their count
-        for node in self.diagram.nodes:
+        all_nodes_for_counts = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
+        for node in all_nodes_for_counts:
             count = context.get_node_execution_count(node.id)
             if count > 0:  # Only store non-zero counts for efficiency
                 node_exec_counts[str(node.id)] = count
@@ -250,7 +259,7 @@ class NodeScheduler:
             Dictionary with scheduling statistics
         """
         return {
-            "total_nodes": len(self.diagram.nodes),
+            "total_nodes": len(self.diagram.get_nodes_by_type(None) or self.diagram.nodes),
             "processed_nodes": len(self._processed_nodes),
             "pending_nodes": len(self.get_pending_nodes()),
             "ready_queue_size": self._ready_queue.qsize(),

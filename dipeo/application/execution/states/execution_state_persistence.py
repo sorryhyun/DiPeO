@@ -82,7 +82,8 @@ class ExecutionStatePersistence:
         
         # Serialize protocol outputs for storage
         serialized_outputs = {}
-        for node in diagram.nodes:
+        all_nodes = diagram.get_nodes_by_type(None) or diagram.nodes
+        for node in all_nodes:
             protocol_output = tracker.get_last_output(node.id)
             if protocol_output:
                 serialized_outputs[str(node.id)] = serialize_protocol(protocol_output)

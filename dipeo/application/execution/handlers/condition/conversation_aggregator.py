@@ -18,12 +18,13 @@ class ConversationAggregator:
     ) -> dict[str, Any]:
         aggregated = {"messages": []}
         
+        from dipeo.diagram_generated.generated_nodes import NodeType
         person_job_nodes = []
-        for node in diagram.nodes:
-            if hasattr(node, 'type') and node.type == 'person_job':
-                node_result = context.get_node_result(node.id)
-                if node_result:
-                    person_job_nodes.append(node)
+        all_person_jobs = diagram.get_nodes_by_type(NodeType.PERSON_JOB)
+        for node in all_person_jobs:
+            node_result = context.get_node_result(node.id)
+            if node_result:
+                person_job_nodes.append(node)
 
         for node in person_job_nodes:
             node_result = context.get_node_result(node.id)
@@ -55,15 +56,16 @@ class ConversationAggregator:
         context: ExecutionContext,
         diagram: Any
     ) -> dict[str, Any] | None:
-        for node in diagram.nodes:
-            if hasattr(node, 'type') and node.type == 'person_job':
-                node_result = context.get_node_result(node.id)
-                if node_result:
-                    value = node_result.get('value')
-                    if isinstance(value, list) and len(value) > 0:
-                        return {"messages": value}
-                    elif isinstance(value, dict) and 'conversation' in value:
-                        return {"messages": value['conversation']}
+        from dipeo.diagram_generated.generated_nodes import NodeType
+        person_job_nodes = diagram.get_nodes_by_type(NodeType.PERSON_JOB)
+        for node in person_job_nodes:
+            node_result = context.get_node_result(node.id)
+            if node_result:
+                value = node_result.get('value')
+                if isinstance(value, list) and len(value) > 0:
+                    return {"messages": value}
+                elif isinstance(value, dict) and 'conversation' in value:
+                    return {"messages": value['conversation']}
         return None
     
     def _is_conversation_list(self, value: Any) -> bool:

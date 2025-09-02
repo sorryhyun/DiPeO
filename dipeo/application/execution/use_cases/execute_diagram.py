@@ -348,8 +348,10 @@ class ExecuteDiagramUseCase(BaseService):
         
         if conversation_service:
             # Extract person configs from typed nodes
+            from dipeo.diagram_generated.generated_nodes import NodeType
             person_configs = {}
-            for node in typed_diagram.nodes:
+            person_job_nodes = typed_diagram.get_nodes_by_type(NodeType.PERSON_JOB)
+            for node in person_job_nodes:
                 if isinstance(node, PersonJobNode) and node.person:
                     # Use the actual person_id from the node, not the node ID
                     person_id = str(node.person)

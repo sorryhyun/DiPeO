@@ -213,7 +213,8 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         """Create a minimal in-memory execution state."""
         # Create node states for all nodes
         node_states = {}
-        for node in diagram.nodes:
+        all_nodes = diagram.get_nodes_by_type(None) or diagram.nodes
+        for node in all_nodes:
             node_state = NodeState(
                 status=Status.PENDING,
                 started_at=None,

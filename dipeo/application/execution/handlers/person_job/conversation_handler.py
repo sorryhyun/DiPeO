@@ -132,11 +132,11 @@ class ConversationHandler:
         Returns:
             True if any edge from this node expects conversation output
         """
-        if not diagram or not hasattr(diagram, 'edges'):
+        if not diagram or not hasattr(diagram, 'get_outgoing_edges'):
             return False
         
-        for edge in diagram.edges:
-            if str(edge.source_node_id) == node_id:
+        outgoing_edges = diagram.get_outgoing_edges(node_id)
+        for edge in outgoing_edges:
                 # Check for explicit conversation output
                 if edge.source_output == "conversation":
                     return True

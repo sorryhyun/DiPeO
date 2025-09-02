@@ -28,10 +28,7 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
     ) -> EvaluationResult:
         """Check if all executed person_job nodes have reached max iterations."""
         # Find all person_job nodes
-        person_job_nodes = [
-            n for n in context.diagram.nodes 
-            if n.type == NodeType.PERSON_JOB.value
-        ]
+        person_job_nodes = context.diagram.get_nodes_by_type(NodeType.PERSON_JOB)
         
         if not person_job_nodes:
             return EvaluationResult(
