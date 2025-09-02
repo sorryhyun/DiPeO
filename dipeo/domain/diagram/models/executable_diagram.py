@@ -60,6 +60,7 @@ class ExecutableEdgeV2:
     # Runtime behavior hints
     is_conditional: bool = False
     requires_first_execution: bool = False
+    execution_priority: int = 0  # Higher priority edges execute first (default: 0)
     
     # Additional metadata
     metadata: dict[str, Any] = field(default_factory=dict)

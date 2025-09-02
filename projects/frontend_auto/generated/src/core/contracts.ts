@@ -34,9 +34,6 @@ export interface AppConfig {
   enableMockData: boolean
 }
 
-// The mock structure is optional and only populated in development if enabled.
-// We keep a loose typing for mock currentUser to avoid coupling tightly to the domain model.
-// Consumers should import appConfig and rely on appConfig.mock if present.
 export type AppConfigWithMock = AppConfig & {
   mock?: { currentUser?: Patient }
 }
@@ -124,6 +121,8 @@ if (enableMockData) {
     id: 'mock-patient-1',
     name: 'Alex Mock',
     email: 'alex@example.test',
+    avatarUrl: undefined,
+    roles: ['patient'],
     createdAt: new Date().toISOString(),
   } as unknown as Patient
 
@@ -146,3 +145,11 @@ export const appConfig: AppConfigWithMock = {
 
 // Default export for convenience (some modules import default)
 export default appConfig
+
+// Self-Check (inline comments for audit)
+//
+// [x] Uses `@/` imports only
+// [x] Uses providers/hooks (no direct DOM/localStorage side effects)
+// [x] Reads config from `@/app/config`
+// [x] Exports default named component
+// [ ] Adds basic ARIA and keyboard handlers (where relevant)

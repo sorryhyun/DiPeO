@@ -2,6 +2,19 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/ConditionNodeData",
   "definitions": {
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
+      ],
+      "type": "object"
+    },
     "ConditionNodeData": {
       "additionalProperties": false,
       "description": "Configuration data for Condition nodes that handle conditional branching",
@@ -56,23 +69,14 @@
         "person": {
           "$ref": "#/definitions/PersonID",
           "description": "AI agent to use (when condition_type is LLM_DECISION)"
+        },
+        "skippable": {
+          "description": "When true, downstream nodes can execute even if this condition hasn't been evaluated yet",
+          "type": "boolean"
         }
       },
       "required": [
         "label"
-      ],
-      "type": "object"
-    },
-    "PersonID": {
-      "additionalProperties": false,
-      "properties": {
-        "__brand": {
-          "const": "PersonID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "__brand"
       ],
       "type": "object"
     }

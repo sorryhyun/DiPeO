@@ -144,6 +144,16 @@ export const conditionSpec: NodeSpecification = {
         inputType: "text",
         placeholder: "e.g., current_index, loop_counter"
       }
+    },
+    {
+      name: "skippable",
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: "When true, downstream nodes can execute even if this condition hasn't been evaluated yet",
+      uiConfig: {
+        inputType: "checkbox"
+      }
     }
   ],
   

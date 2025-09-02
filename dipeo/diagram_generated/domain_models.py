@@ -69,6 +69,7 @@ class DomainArrow(BaseModel):
     content_type: Optional[ContentType] = Field(default=None)
     label: Optional[str] = Field(default=None)
     packing: Optional[Literal["pack", "spread"]] = Field(default=None)
+    execution_priority: Optional[float] = Field(default=None)
     data: Optional[Dict[str, Any]] = Field(default=None)
 
 
@@ -432,6 +433,7 @@ class ConditionNodeData(BaseNodeData):
     expression: Optional[str] = Field(default=None, description="Python expression for custom type (access to all variables)")
     node_indices: Optional[List[str]] = Field(default=None, description="List of node indices for nodes_executed condition type")
     expose_index_as: Optional[str] = Field(default=None, description="Variable name to expose the condition node\u0027s execution count (0-based index) to downstream nodes")
+    skippable: Optional[bool] = Field(default=None, description="When true, downstream nodes can execute even if this condition hasn\u0027t been evaluated yet")
     person: Optional[PersonID] = Field(default=None, description="AI agent to use (when condition_type is LLM_DECISION)")
     judge_by: Optional[str] = Field(default=None, description="The prompt/criteria for LLM to judge")
     judge_by_file: Optional[str] = Field(default=None, description="External prompt file in {subdirectory}/prompts/")

@@ -112,7 +112,8 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
                 person_id=person_id,
                 prompt=prompt,
                 template_values=template_values,
-                memory_profile=getattr(node, 'memorize_to', 'GOLDFISH')
+                memory_profile=getattr(node, 'memorize_to', 'GOLDFISH'),
+                diagram=diagram
             )
             
             # Update metadata with node-specific information

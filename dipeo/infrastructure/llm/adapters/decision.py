@@ -63,11 +63,12 @@ class LLMDecisionAdapter:
               "- Be decisive and clear in your judgment."
         )
     
-    def _get_or_create_decision_facet(self, person_id: PersonID) -> Person:
+    def _get_or_create_decision_facet(self, person_id: PersonID, diagram: Optional[Any] = None) -> Person:
         """Get or create a decision facet for the person.
         
         Args:
             person_id: The person ID to create a facet for
+            diagram: Optional diagram for person creation from diagram
             
         Returns:
             Person instance configured for decision making
@@ -77,8 +78,8 @@ class LLMDecisionAdapter:
         if facet_id in persons:
             return persons[facet_id]
         
-        # Get the base person to derive LLM config
-        base_person = self._orchestrator.get_person(person_id)
+        # Get the base person to derive LLM config (create if doesn't exist)
+        base_person = self._orchestrator.get_or_create_person(person_id, diagram=diagram)
         llm = base_person.llm_config
         
         facet_cfg = PersonLLMConfig(
@@ -103,7 +104,8 @@ class LLMDecisionAdapter:
         person_id: PersonID,
         prompt: str,
         template_values: Optional[dict[str, Any]] = None,
-        memory_profile: str = "GOLDFISH"
+        memory_profile: str = "GOLDFISH",
+        diagram: Optional[Any] = None
     ) -> tuple[bool, dict[str, Any]]:
         """Make a binary decision using LLM.
         
@@ -112,6 +114,7 @@ class LLMDecisionAdapter:
             prompt: The decision prompt
             template_values: Optional template values for the prompt
             memory_profile: Memory profile to use (default: GOLDFISH for unbiased decisions)
+            diagram: Optional diagram for person creation from diagram
             
         Returns:
             Tuple of (decision: bool, metadata: dict with response details)
@@ -121,7 +124,7 @@ class LLMDecisionAdapter:
             return False, {"error": "Empty prompt"}
         
         # Get or create decision facet
-        facet = self._get_or_create_decision_facet(person_id)
+        facet = self._get_or_create_decision_facet(person_id, diagram=diagram)
         
         # Execute decision using person's complete method
         complete_kwargs = {

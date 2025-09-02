@@ -15,6 +15,8 @@ export interface ConditionNodeData extends BaseNodeData {
   node_indices?: string[];
   /** Variable name to expose the condition node's execution count (0-based index) to downstream nodes */
   expose_index_as?: string;
+  /** When true, downstream nodes can execute even if this condition hasn't been evaluated yet */
+  skippable?: boolean;
   
   // LLM_DECISION specific fields
   /** AI agent to use (when condition_type is LLM_DECISION) */

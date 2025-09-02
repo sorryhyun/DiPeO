@@ -46,7 +46,19 @@ class NodeScheduler:
         self._ready_queue: asyncio.Queue[NodeID] = asyncio.Queue()
         self._processed_nodes: set[NodeID] = set()
         
+        # Track high-priority edges to enforce sequential execution
+        self._priority_dependencies: dict[NodeID, set[NodeID]] = defaultdict(set)
+        
         self._initialize_dependencies()
+    
+    def _is_conditional_edge(self, edge) -> bool:
+        """Defensively check if an edge is conditional.
+        
+        Treats as conditional if either flag is set OR the source_output looks like a branch.
+        """
+        if getattr(edge, "is_conditional", False):
+            return True
+        return str(getattr(edge, "source_output", "")).lower() in ("condtrue", "condfalse")
     
     def _initialize_dependencies(self) -> None:
         """Initialize indegree counts and dependency mappings."""
@@ -54,36 +66,53 @@ class NodeScheduler:
         for node in self.diagram.nodes:
             self._indegree[node.id] = 0
         
-        # Track which nodes have any non-conditional incoming edges
+        # Track incoming edges for each node
         nodes_with_non_conditional_deps: set[NodeID] = set()
+        incoming_by_target: dict[NodeID, list] = defaultdict(list)
         
-        # Build dependency graph
+        # Build dependency graph and priority relationships
+        edges_by_source: dict[NodeID, list] = defaultdict(list)
         for edge in self.diagram.edges:
-            # Skip conditional edges (like condition branches)
-            if edge.is_conditional:
-                continue
+            edges_by_source[edge.source_node_id].append(edge)
+            incoming_by_target[edge.target_node_id].append(edge)
             
+            # Skip conditional edges (like condition branches) - use defensive check
+            if self._is_conditional_edge(edge):
+                continue
             self._indegree[edge.target_node_id] += 1
             self._dependents[edge.source_node_id].add(edge.target_node_id)
             nodes_with_non_conditional_deps.add(edge.target_node_id)
         
-        # Queue nodes with no dependencies OR nodes that have only conditional dependencies
-        # But don't queue nodes that have ONLY conditional dependencies (they need to wait)
+        # Build priority dependencies: nodes with lower priority must wait for higher priority siblings
+        for source_id, edges in edges_by_source.items():
+            # Sort edges by priority (higher priority first)
+            sorted_edges = sorted(edges, key=lambda e: -getattr(e, 'execution_priority', 0))
+            
+            # Each lower priority edge depends on all higher priority edges from same source
+            for i, lower_edge in enumerate(sorted_edges):
+                for higher_edge in sorted_edges[:i]:
+                    if getattr(higher_edge, 'execution_priority', 0) > getattr(lower_edge, 'execution_priority', 0):
+                        # Lower priority target must wait for higher priority target
+                        self._priority_dependencies[lower_edge.target_node_id].add(higher_edge.target_node_id)
+        
+        # Initial ready queue: nodes with indegree 0 AND not waiting for conditional branches
         for node_id, count in self._indegree.items():
             if count == 0:
-                # Check if this node has any incoming edges at all
-                has_any_incoming = any(
-                    edge.target_node_id == node_id 
-                    for edge in self.diagram.edges
+                # Get all incoming edges for this node
+                incoming = incoming_by_target.get(node_id, [])
+                
+                # Check if ALL incoming edges are conditional (using defensive check)
+                has_only_conditional = len(incoming) > 0 and all(
+                    self._is_conditional_edge(e) for e in incoming
                 )
                 
-                # If it has incoming edges but count is 0, they must all be conditional
-                # Don't add it to ready queue - let the domain order calculator handle it
-                if has_any_incoming and node_id not in nodes_with_non_conditional_deps:
+                # If node has only conditional dependencies, don't add to initial queue
+                # It must wait for a condition branch to activate it
+                if has_only_conditional:
                     logger.debug(f"Node {node_id} has only conditional dependencies, not adding to initial ready queue")
                     continue
                 
-                # Otherwise, it's truly ready (no dependencies at all)
+                # Otherwise, it's truly ready (no dependencies or has non-conditional deps satisfied)
                 self._ready_queue.put_nowait(node_id)
     
     async def get_ready_nodes(self, context: "TypedExecutionContext") -> list[ExecutableNode]:
@@ -146,10 +175,10 @@ class NodeScheduler:
         if node_id in self._processed_nodes:
             self._processed_nodes.remove(node_id)
             
-        # Recalculate indegree for this node
+        # Recalculate indegree for this node using defensive check
         incoming_count = sum(
             1 for edge in self.diagram.edges 
-            if edge.target_node_id == node_id and not edge.is_conditional
+            if edge.target_node_id == node_id and not self._is_conditional_edge(edge)
         )
         self._indegree[node_id] = incoming_count
     
