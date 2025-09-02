@@ -4,7 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from dipeo.application.registry.service_registry import ServiceRegistry, ServiceKey
-from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, DIAGRAM_ACCESS
+from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR
 
 if TYPE_CHECKING:
     from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
@@ -92,11 +92,15 @@ def wire_execution(registry: ServiceRegistry) -> None:
     
     # Wire prepare diagram use case
     from dipeo.application.execution.use_cases.prepare_diagram import PrepareDiagramForExecutionUseCase
+    from dipeo.application.registry.keys import API_KEY_SERVICE
     
     def create_prepare_diagram() -> PrepareDiagramForExecutionUseCase:
         """Factory for prepare diagram use case."""
-        # PrepareDiagramForExecutionUseCase also uses service_registry
-        return PrepareDiagramForExecutionUseCase(service_registry=registry)
+        api_key_service = registry.resolve(API_KEY_SERVICE)
+        return PrepareDiagramForExecutionUseCase(
+            api_key_service=api_key_service,
+            service_registry=registry
+        )
     
     registry.register(PREPARE_DIAGRAM_USE_CASE, create_prepare_diagram)
     
@@ -108,8 +112,3 @@ def wire_execution(registry: ServiceRegistry) -> None:
         return CliSessionService()
     
     registry.register(CLI_SESSION_USE_CASE, create_cli_session_service)
-    
-    # Wire DiagramAccess helper
-    from dipeo.application.execution.use_cases.diagram_access import DiagramAccess
-    
-    registry.register(DIAGRAM_ACCESS, DiagramAccess())

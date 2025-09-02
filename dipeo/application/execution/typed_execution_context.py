@@ -396,19 +396,6 @@ class TypedExecutionContext(ExecutionContextProtocol):
         return not has_pending
     
     
-    def calculate_progress(self) -> dict[str, Any]:
-        """Calculate execution progress."""
-        total = len(self._node_states)
-        completed = sum(
-            1 for state in self._node_states.values()
-            if state.status in [Status.COMPLETED, Status.MAXITER_REACHED]
-        )
-        
-        return {
-            "total_nodes": total,
-            "completed_nodes": completed,
-            "percentage": (completed / total * 100) if total > 0 else 0
-        }
     
     # ========== Input Resolution ==========
     
@@ -537,104 +524,128 @@ class TypedExecutionContext(ExecutionContextProtocol):
         if event:
             await self.event_bus.publish(event)
     
-    # ========== Service Access ==========
+    # ========== Event Helper Methods ==========
     
-    def get_service(self, service_key: Any) -> Any:
-        """Get a service from the registry."""
-        if not self.service_registry:
-            return None
-        
-        from dipeo.application.registry import ServiceKey
-        if not isinstance(service_key, ServiceKey):
-            service_key = ServiceKey(service_key)
-        
-        return self.service_registry.get(service_key)
-    
-    def create_sub_container(self, sub_execution_id: str, config_overrides: dict | None = None):
-        """Create a sub-container for nested execution."""
-        if self.container is None:
-            return None
-        
-        return self.container.create_sub_container(
-            parent_execution_id=self.execution_id,
-            sub_execution_id=sub_execution_id,
-            config_overrides=config_overrides or {}
+    async def emit_execution_started(self, diagram_name: str | None = None) -> None:
+        """Emit execution started event with minimal data."""
+        await self.emit_event(
+            EventType.EXECUTION_STARTED,
+            {
+                "diagram_id": self.diagram_id,
+                "diagram_name": diagram_name or self.diagram.metadata.get("name", "unknown") if self.diagram.metadata else "unknown"
+            }
         )
     
-    # ========== State Persistence ==========
+    async def emit_execution_completed(self, status: Any = None, total_steps: int = 0, execution_path: list[str] | None = None) -> None:
+        """Emit execution completed event."""
+        from dipeo.diagram_generated import Status
+        await self.emit_event(
+            EventType.EXECUTION_COMPLETED,
+            {
+                "status": status or Status.COMPLETED,
+                "total_steps": total_steps,
+                "execution_path": execution_path or []
+            }
+        )
     
-    def to_execution_state(self) -> ExecutionState:
-        """Convert current context to ExecutionState for persistence."""
-        # Create the execution state
-        exec_state = ExecutionStatePersistence.save_to_state(
-            self.execution_id,
-            self.diagram_id,
-            self.diagram,
-            self._node_states,
-            self._tracker
+    async def emit_execution_error(self, exc: Exception) -> None:
+        """Emit execution error event."""
+        await self.emit_event(
+            EventType.EXECUTION_ERROR,
+            {
+                "error": str(exc),
+                "error_type": type(exc).__name__
+            }
         )
-        
-        # Add variables (ExecutionState has this field)
-        exec_state.variables = self._variables
-        
-        return exec_state
     
-    @classmethod
-    def from_execution_state(
-        cls,
-        execution_state: ExecutionState,
-        diagram: ExecutableDiagram,
-        service_registry: Optional["ServiceRegistry"] = None,
-        runtime_resolver: Optional[RuntimeInputResolver] = None,
-        event_bus: Optional[DomainEventBus] = None,
-        container: Optional["Container"] = None
-    ) -> "TypedExecutionContext":
-        """Create context from persisted execution state."""
-        # Create new context
-        context = cls(
-            execution_id=str(execution_state.id),
-            diagram_id=str(execution_state.diagram_id),
-            diagram=diagram,
-            service_registry=service_registry,
-            runtime_resolver=runtime_resolver,
-            event_bus=event_bus,
-            container=container
+    async def emit_node_started(self, node: ExecutableNode) -> None:
+        """Emit node started event."""
+        await self.emit_event(
+            EventType.NODE_STARTED,
+            {
+                "node_id": str(node.id),
+                "node_type": node.type,
+                "node_name": getattr(node, 'name', str(node.id))
+            }
         )
+    
+    async def emit_node_completed(self, node: ExecutableNode, envelope: Envelope | None, exec_count: int) -> None:
+        """Emit node completed event with envelope data."""
+        event_data = {
+            "node_id": str(node.id),
+            "node_type": node.type,
+            "node_name": getattr(node, 'name', str(node.id)),
+            "execution_count": exec_count
+        }
         
-        # Load persisted state
-        ExecutionStatePersistence.load_from_state(
-            execution_state,
-            context._node_states,
-            context._tracker
+        if envelope:
+            # Serialize output
+            if hasattr(envelope.body, 'dict'):
+                output = envelope.body.dict()
+            elif hasattr(envelope.body, 'model_dump'):
+                output = envelope.body.model_dump()
+            elif isinstance(envelope.body, dict):
+                output = envelope.body
+            else:
+                output = {"value": str(envelope.body)}
+            
+            event_data["output"] = output
+            event_data["output_summary"] = str(envelope.body)[:100] if envelope.body else ""
+            
+            # Extract metrics from envelope meta
+            if envelope.meta:
+                event_data["metrics"] = {
+                    "execution_time_ms": envelope.meta.get("execution_time_ms", 0),
+                    "execution_count": exec_count
+                }
+                # Extract token usage if present
+                if "token_usage" in envelope.meta:
+                    event_data["metrics"]["token_usage"] = envelope.meta["token_usage"]
+        else:
+            # For maxiter or other special cases without envelope
+            event_data["output"] = {"value": "", "status": "MAXITER_REACHED"}
+            event_data["metrics"] = {
+                "execution_time_ms": 0,
+                "execution_count": exec_count
+            }
+        
+        await self.emit_event(EventType.NODE_COMPLETED, event_data)
+    
+    async def emit_node_error(self, node: ExecutableNode, exc: Exception) -> None:
+        """Emit node error event."""
+        await self.emit_event(
+            EventType.NODE_ERROR,
+            {
+                "node_id": str(node.id),
+                "node_type": node.type,
+                "node_name": getattr(node, 'name', str(node.id)),
+                "error": str(exc),
+                "error_type": type(exc).__name__
+            }
         )
-        
-        # Initialize remaining nodes
-        for node in diagram.get_nodes_by_type(None) or diagram.nodes:
-            if node.id not in context._node_states:
-                context._node_states[node.id] = NodeState(
-                    status=Status.PENDING
-                )
-        
-        # Load variables (metadata is not persisted in ExecutionState)
-        context._variables = execution_state.variables or {}
-        context._metadata = {}  # Metadata is not persisted
-        
-        return context
+    
+    # ========== State Access (for persistence) ==========
+    
+    def get_node_states(self) -> dict[NodeID, NodeState]:
+        """Get all node states for persistence."""
+        with self._state_lock:
+            return self._node_states.copy()
+    
+    def get_tracker(self) -> ExecutionTracker:
+        """Get execution tracker for persistence."""
+        return self._tracker
+    
+    def get_variables(self) -> dict[str, Any]:
+        """Get execution variables."""
+        return self._variables
+    
+    def set_variables(self, variables: dict[str, Any]) -> None:
+        """Set execution variables."""
+        self._variables = variables
+    
     
     # ========== Handler Support Methods ==========
     
-    def get_execution_summary(self) -> dict[str, Any]:
-        """Get execution summary from tracker."""
-        return self._tracker.get_execution_summary()
-    
-    def count_nodes_by_status(self, statuses: list[str]) -> int:
-        """Count nodes by status."""
-        status_enums = [Status[status] for status in statuses]
-        with self._state_lock:
-            return sum(
-                1 for state in self._node_states.values()
-                if state.status in status_enums
-            )
     
     def has_running_nodes(self) -> bool:
         """Check if any nodes are currently running."""

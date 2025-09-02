@@ -12,6 +12,10 @@ from dipeo.application.registry.keys import (
     RUNTIME_RESOLVER,
     TRANSFORMATION_ENGINE,
     DIAGRAM_PORT,
+    COMPILE_DIAGRAM_USE_CASE,
+    VALIDATE_DIAGRAM_USE_CASE,
+    SERIALIZE_DIAGRAM_USE_CASE,
+    LOAD_DIAGRAM_USE_CASE,
 )
 
 if TYPE_CHECKING:
@@ -30,10 +34,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Define service keys for diagram context
-COMPILE_DIAGRAM_USE_CASE = ServiceKey["CompileDiagramUseCase"]("diagram.use_case.compile")
-VALIDATE_DIAGRAM_USE_CASE = ServiceKey["ValidateDiagramUseCase"]("diagram.use_case.validate")
-SERIALIZE_DIAGRAM_USE_CASE = ServiceKey["SerializeDiagramUseCase"]("diagram.use_case.serialize")
+# Define service keys for diagram context (only internal keys)
 DIAGRAM_RESOLVER_KEY = ServiceKey["DiagramResolver"]("diagram.resolver")
 
 
@@ -63,14 +64,11 @@ def wire_diagram(registry: ServiceRegistry) -> None:
 
 def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
     """Wire diagram-specific use cases."""
-    from dipeo.application.registry.keys import (
-        DIAGRAM_COMPILER,
-        DIAGRAM_SERIALIZER,
-    )
     from dipeo.application.diagram.use_cases import (
         CompileDiagramUseCase,
         ValidateDiagramUseCase, 
         SerializeDiagramUseCase,
+        LoadDiagramUseCase,
     )
     
     # Wire compile diagram use case
@@ -96,6 +94,14 @@ def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
         return SerializeDiagramUseCase(diagram_serializer=serializer)
     
     registry.register(SERIALIZE_DIAGRAM_USE_CASE, create_serialize_diagram)
+    
+    # Wire load diagram use case
+    def create_load_diagram() -> LoadDiagramUseCase:
+        """Factory for load diagram use case."""
+        diagram_service = registry.resolve(DIAGRAM_PORT)
+        return LoadDiagramUseCase(diagram_service=diagram_service)
+    
+    registry.register(LOAD_DIAGRAM_USE_CASE, create_load_diagram)
 
 
 def wire_diagram_resolvers(registry: ServiceRegistry) -> None:

@@ -15,6 +15,7 @@ from tenacity import (
 
 from dipeo.domain.base import APIKeyError, BaseService, LLMServiceError
 from dipeo.config import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.config.services import LLMServiceName
 from dipeo.domain.integrations.ports import APIKeyPort, LLMService as LLMServicePort
 from dipeo.config import get_settings
 from dipeo.infrastructure.shared.drivers.utils import SingleFlightCache
@@ -34,35 +35,31 @@ class LLMInfraService(BaseService, LLMServicePort):
         self._settings = get_settings()
         self.logger = logging.getLogger(__name__)
         
-        self._provider_mapping = {
-            "gpt": "openai",
-            "o1": "openai",
-            "o3": "openai",
-            "dall-e": "openai",
-            "whisper": "openai",
-            "embedding": "openai",
-            "claude-code": "claude-code",
-            "claude_code": "claude-code",
-            "claude-sdk": "claude-code",
-            "claude": "anthropic",
-            "haiku": "anthropic",
-            "sonnet": "anthropic",
-            "opus": "anthropic",
-            "gemini": "google",
-            "bison": "google",
-            "palm": "google",
-            "llama": "ollama",
-            "mistral": "ollama",
-            "mixtral": "ollama",
-            "gemma": "ollama",
-            "phi": "ollama",
-            "qwen": "ollama",
-            "vicuna": "ollama",
-            "orca": "ollama",
-            "neural-chat": "ollama",
-            "starling": "ollama",
-            "codellama": "ollama",
-            "deepseek-coder": "ollama"
+        # Model-specific keywords that help infer the provider
+        self._model_keywords = {
+            "gpt": LLMServiceName.OPENAI.value,
+            "o1": LLMServiceName.OPENAI.value,
+            "o3": LLMServiceName.OPENAI.value,
+            "dall-e": LLMServiceName.OPENAI.value,
+            "whisper": LLMServiceName.OPENAI.value,
+            "embedding": LLMServiceName.OPENAI.value,
+            "haiku": LLMServiceName.ANTHROPIC.value,
+            "sonnet": LLMServiceName.ANTHROPIC.value,
+            "opus": LLMServiceName.ANTHROPIC.value,
+            "bison": LLMServiceName.GOOGLE.value,
+            "palm": LLMServiceName.GOOGLE.value,
+            "llama": LLMServiceName.OLLAMA.value,
+            "mistral": LLMServiceName.OLLAMA.value,
+            "mixtral": LLMServiceName.OLLAMA.value,
+            "gemma": LLMServiceName.OLLAMA.value,
+            "phi": LLMServiceName.OLLAMA.value,
+            "qwen": LLMServiceName.OLLAMA.value,
+            "vicuna": LLMServiceName.OLLAMA.value,
+            "orca": LLMServiceName.OLLAMA.value,
+            "neural-chat": LLMServiceName.OLLAMA.value,
+            "starling": LLMServiceName.OLLAMA.value,
+            "codellama": LLMServiceName.OLLAMA.value,
+            "deepseek-coder": LLMServiceName.OLLAMA.value
         }
 
     async def initialize(self) -> None:
@@ -113,7 +110,7 @@ class LLMInfraService(BaseService, LLMServicePort):
                     del self._adapter_pool[cache_key]
         
         async def create_new_adapter():
-            if provider == "ollama":
+            if provider == LLMServiceName.OLLAMA.value:
                 raw_key = ""
                 base_url = self._settings.ollama_host if hasattr(self._settings, 'ollama_host') else None
                 adapter = create_adapter(provider, model, raw_key, base_url=base_url, async_mode=async_mode)
@@ -248,11 +245,17 @@ class LLMInfraService(BaseService, LLMServicePort):
     def _infer_service_from_model(self, model: str) -> str:
         model_lower = model.lower()
         
-        for keyword, provider in self._provider_mapping.items():
+        # First try normalize_service_name in case it's a direct service name
+        normalized = normalize_service_name(model_lower)
+        if normalized in VALID_LLM_SERVICES:
+            return normalized
+        
+        # Then check for model-specific keywords
+        for keyword, provider in self._model_keywords.items():
             if keyword in model_lower:
                 return provider
         
-        return "openai"
+        return LLMServiceName.OPENAI.value
 
 
     async def get_available_models(self, api_key_id: str) -> list[str]:
@@ -300,14 +303,16 @@ class LLMInfraService(BaseService, LLMServicePort):
     
     def _get_default_model_for_provider(self, provider: str) -> str:
         """Get a default model for a provider."""
-        provider = provider.lower()
-        if provider == "openai":
+        provider = normalize_service_name(provider)
+        if provider == LLMServiceName.OPENAI.value:
             return "gpt-5-nano-2025-08-07"
-        elif provider in ["anthropic", "claude"]:
+        elif provider == LLMServiceName.ANTHROPIC.value:
             return "claude-3-5-sonnet-20241022"
-        elif provider in ["google", "gemini"]:
+        elif provider == LLMServiceName.CLAUDE_CODE.value:
+            return "claude-3-5-sonnet-20241022"
+        elif provider in [LLMServiceName.GOOGLE.value, LLMServiceName.GEMINI.value]:
             return "gemini-1.5-pro"
-        elif provider == "ollama":
+        elif provider == LLMServiceName.OLLAMA.value:
             return "llama3"
         else:
             return "gpt-5-nano-2025-08-07"

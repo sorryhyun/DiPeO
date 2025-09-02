@@ -1,6 +1,5 @@
 """Single person job executor - handles execution for a single person."""
 
-import json
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -9,7 +8,7 @@ from dipeo.config.llm import PERSON_JOB_TEMPERATURE, PERSON_JOB_MAX_TOKENS
 from dipeo.domain.conversation import Person
 from dipeo.diagram_generated.generated_nodes import PersonJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.diagram_generated.domain_models import Message, PersonID
+from dipeo.diagram_generated.domain_models import PersonID
 from dipeo.application.execution.use_cases import PromptLoadingUseCase
 
 from .text_format_handler import TextFormatHandler
@@ -140,11 +139,11 @@ class SinglePersonJobExecutor:
         memorize_to = getattr(node, "memorize_to", None)
         at_most = getattr(node, "at_most", None)
         
-        # Prepare template values early for task preview
+        # Prepare template values for prompt building
         input_values = self._prompt_builder.prepare_template_values(transformed_inputs)
         logger.debug(f"[PersonJob] input_values keys after prepare: {list(input_values.keys())}")
         
-        # Get conversation context with all messages first (will be filtered later)
+        # Get conversation context with all messages for template building
         conversation_context = person.get_conversation_context(all_messages)
         
         # Combine input values with conversation context
@@ -155,70 +154,6 @@ class SinglePersonJobExecutor:
         
         # Merge global variables from context to make them available in templates
         variables = context.get_variables() if hasattr(context, "get_variables") else {}
-        template_values = {**variables, **template_values}
-        
-        # Apply memory settings through the person's brain if available
-        if memorize_to or at_most:
-            # Build task preview with template substitution
-            task_preview_raw = prompt_content or first_only_content or ""
-            task_preview = self._prompt_builder.build(
-                prompt=task_preview_raw,
-                template_values=template_values,
-                first_only_prompt=None,
-                execution_count=execution_count
-            )
-            
-            # Use the Person's brain for memory selection
-            # The brain is now properly wired with a memory selector
-            selected_result = await person.select_memories(
-                candidate_messages=all_messages,
-                prompt_preview=task_preview,
-                memorize_to=memorize_to,
-                at_most=at_most,
-                llm_service=self._llm_service,
-            )
-            # Brain returns None if no criteria, or list of messages
-            filtered_messages = selected_result if selected_result is not None else person.get_messages(all_messages)
-            
-            # Special handling for GOLDFISH mode - clear conversation for this person
-            if memorize_to and memorize_to.strip().upper() == "GOLDFISH":
-                if hasattr(self._execution_orchestrator, 'clear_person_messages'):
-                    self._execution_orchestrator.clear_person_messages(person.id)
-                person.reset_memory()
-        else:
-            # Default behavior - use person's standard filtering through get_messages
-            filtered_messages = person.get_messages(all_messages)
-        
-        # Update conversation context with filtered messages
-        conversation_context = person.get_conversation_context(filtered_messages)
-        
-        # Extract and parse JSON content from selected memories for template use
-        memory_data = {}
-        if filtered_messages:
-            for msg in filtered_messages:
-                # Try to parse JSON content from messages
-                if msg.content:
-                    try:
-                        parsed_content = json.loads(msg.content)
-                        # Merge parsed content into memory_data
-                        if isinstance(parsed_content, dict):
-                            memory_data.update(parsed_content)
-                            logger.debug(f"[PersonJob] Extracted memory data keys: {list(parsed_content.keys())}")
-                    except (json.JSONDecodeError, TypeError):
-                        # Not JSON or not parseable, skip - this is expected for most messages
-                        pass
-        
-        if memory_data:
-            logger.info(f"[PersonJob] Successfully extracted memory data with keys: {list(memory_data.keys())}")
-        
-        # Update template values with the filtered conversation context and memory data
-        template_values = {
-            **input_values,
-            **conversation_context,
-            **memory_data  # Add parsed memory content
-        }
-        
-        # Re-merge global variables to ensure they're still available
         template_values = {**variables, **template_values}
         
         
@@ -288,15 +223,32 @@ class SinglePersonJobExecutor:
         pydantic_model = self._text_format_handler.get_pydantic_model(node)
         if pydantic_model:
             complete_kwargs["text_format"] = pydantic_model
-            
-        # Use filtered messages for completion
-        messages_for_completion = filtered_messages
         
-        # Use the simplified Person.complete() directly
-        result, incoming_msg, response_msg = await person.complete(
-            all_messages=messages_for_completion,
+        # Build task preview for memory selection
+        task_preview = None
+        if memorize_to or at_most:
+            task_preview_raw = prompt_content or first_only_content or ""
+            task_preview = self._prompt_builder.build(
+                prompt=task_preview_raw,
+                template_values=template_values,
+                first_only_prompt=None,
+                execution_count=execution_count
+            )
+        
+        # Use the consolidated complete_with_memory method
+        result, incoming_msg, response_msg, selected_messages = await person.complete_with_memory(
+            all_messages=all_messages,
+            memorize_to=memorize_to,
+            at_most=at_most,
+            prompt_preview=task_preview,
             **complete_kwargs
         )
+        
+        # Special handling for GOLDFISH mode - clear conversation after completion
+        if memorize_to and memorize_to.strip().upper() == "GOLDFISH":
+            if hasattr(self._execution_orchestrator, 'clear_person_messages'):
+                self._execution_orchestrator.clear_person_messages(person.id)
+            person.reset_memory()
         
         # Add messages to conversation via orchestrator
         if hasattr(self._execution_orchestrator, 'add_message'):
@@ -322,7 +274,7 @@ class SinglePersonJobExecutor:
             diagram=self._diagram,
             model=person.llm_config.model,
             trace_id=trace_id,
-            selected_messages=filtered_messages
+            selected_messages=selected_messages
         )
     
     

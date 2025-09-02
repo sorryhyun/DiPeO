@@ -5,6 +5,7 @@ import logging
 import re
 from typing import Any, Optional, Sequence, TYPE_CHECKING
 
+from dipeo.config.services import LLMServiceName, normalize_service_name
 from dipeo.diagram_generated.domain_models import Message, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
 from dipeo.domain.conversation.brain import MemorySelectionConfig
@@ -29,15 +30,17 @@ class LLMMemorySelectionAdapter:
         self._facet_cache: dict[str, Person] = {}
         self._config = config or MemorySelectionConfig()
 
-    def _selector_id(self, person_id: PersonID) -> PersonID:
-        return PersonID(f"{str(person_id)}.__selector")
+    def _selector_id(self, person_id: PersonID, service: str | None = None) -> PersonID:
+        svc = normalize_service_name(service) if service else ""
+        suffix = f"::{svc}" if svc else ""
+        return PersonID(f"{str(person_id)}.__selector{suffix}")
     
     def _selector_system_prompt(self, base_prompt: Optional[str], llm_service: Optional[str] = None) -> str:
         base = (base_prompt or "").strip()
         
         # Claude Code adapter provides its own MEMORY_SELECTION_PROMPT when execution_phase="memory_selection"
-        # So we skip adding instructions for claude_code to avoid duplication
-        if llm_service == "claude_code":
+        # So we skip adding instructions for claude-code to avoid duplication
+        if llm_service and normalize_service_name(llm_service) == LLMServiceName.CLAUDE_CODE.value:
             return base
         
         # For other adapters (OpenAI, Anthropic, Google, etc.), we need to provide instructions
@@ -58,23 +61,30 @@ class LLMMemorySelectionAdapter:
         )
     
     def _get_or_create_selector_facet(self, person_id: PersonID, llm_service: Optional[str] = None) -> Person:
-        sid = self._selector_id(person_id)
+        # Use the provided llm_service or fall back; normalize service name
+        base_person = self._orchestrator.get_person(person_id)
+        llm = base_person.llm_config
+        
+        # Handle case where llm_service is an object (LLMInfraService) instead of string
+        if llm_service and isinstance(llm_service, str):
+            raw_service = llm_service
+        else:
+            # Fall back to the person's configured service
+            # Use .value to get the enum value, not str() which returns the full representation
+            raw_service = llm.service.value if hasattr(llm.service, 'value') else str(llm.service)
+        
+        service_str = normalize_service_name(raw_service)
+        
+        sid = self._selector_id(person_id, service_str)
         persons = self._orchestrator.get_all_persons()
         if sid in persons:
             return persons[sid]
         
-        # Get the base person to derive LLM config
-        base_person = self._orchestrator.get_person(person_id)
-        llm = base_person.llm_config
-        
-        # Use the provided llm_service or fall back to the person's configured service
-        service = llm_service or llm.service
-        
         facet_cfg = PersonLLMConfig(
-            service=llm.service,
+            service=service_str,
             model=llm.model,
             api_key_id=llm.api_key_id,
-            system_prompt=self._selector_system_prompt(llm.system_prompt, service),
+            system_prompt=self._selector_system_prompt(llm.system_prompt, service_str),
             prompt_file=None,
         )
         facet = self._orchestrator.get_or_create_person(
@@ -181,9 +191,8 @@ class LLMMemorySelectionAdapter:
             "max_tokens": 8000,
         }
         
-        # Only pass execution_phase for claude_code adapter
-        if llm_service == "claude_code":
-            complete_kwargs["execution_phase"] = "memory_selection"
+        # Always pass phase; adapters that care will use it
+        complete_kwargs["execution_phase"] = "memory_selection"
         
         result, incoming_msg, response_msg = await facet.complete(**complete_kwargs)
         

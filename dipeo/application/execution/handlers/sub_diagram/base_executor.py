@@ -5,7 +5,6 @@ import uuid
 import yaml
 from typing import TYPE_CHECKING, Any
 
-from dipeo.application.execution.use_cases import DiagramLoadingUseCase
 
 if TYPE_CHECKING:
     from dipeo.diagram_generated.generated_nodes import SubDiagramNode
@@ -23,8 +22,9 @@ class BaseSubDiagramExecutor:
         self._message_router = None
         self._diagram_service = None
         self._prepare_use_case = None
-        # Use case for diagram loading
-        self._diagram_loading_use_case = DiagramLoadingUseCase()
+        # Use case for diagram loading (will be resolved from registry)
+        self._load_diagram_use_case = None
+        self._service_registry = None
     
     def set_services(self, **kwargs):
         """Set services for the executor to use.
@@ -35,9 +35,15 @@ class BaseSubDiagramExecutor:
         self._message_router = kwargs.get('message_router')
         self._diagram_service = kwargs.get('diagram_service')
         self._prepare_use_case = kwargs.get('prepare_use_case')
-        # Set diagram service for the use case
-        if self._diagram_service:
-            self._diagram_loading_use_case.set_diagram_service(self._diagram_service)
+        self._service_registry = kwargs.get('service_registry')
+        
+        # Resolve LoadDiagramUseCase from registry if available
+        if self._service_registry and not self._load_diagram_use_case:
+            from dipeo.application.registry.keys import LOAD_DIAGRAM_USE_CASE
+            try:
+                self._load_diagram_use_case = self._service_registry.resolve(LOAD_DIAGRAM_USE_CASE)
+            except Exception:
+                logger.warning("LoadDiagramUseCase not found in registry, diagram loading may fail")
     
     def _construct_diagram_path(self, node: "SubDiagramNode") -> str:
         """Construct the file path for a diagram.
@@ -48,7 +54,18 @@ class BaseSubDiagramExecutor:
         Returns:
             The constructed file path for the diagram
         """
-        return self._diagram_loading_use_case.construct_diagram_path(
+        if not self._load_diagram_use_case:
+            # Fallback to simple path construction if use case not available
+            format_map = {
+                'light': '.light.yaml',
+                'native': '.native.json',
+                'readable': '.readable.yaml'
+            }
+            format_suffix = format_map.get(node.diagram_format or 'light', '.light.yaml')
+            return f"examples/{node.diagram_name}{format_suffix}"
+        
+        # Use LoadDiagramUseCase's construct_diagram_path method
+        return self._load_diagram_use_case.construct_diagram_path(
             node.diagram_name,
             node.diagram_format
         )
@@ -65,7 +82,22 @@ class BaseSubDiagramExecutor:
         Returns:
             The processed output value
         """
-        return self._diagram_loading_use_case.process_output_mapping(execution_results)
+        # First check for endpoint outputs
+        endpoint_outputs = self._find_endpoint_outputs(execution_results)
+        
+        if endpoint_outputs:
+            # If there's exactly one endpoint, return its value
+            if len(endpoint_outputs) == 1:
+                return list(endpoint_outputs.values())[0]
+            # Otherwise return all endpoint outputs
+            return endpoint_outputs
+        
+        # Fall back to last output
+        if execution_results:
+            last_key = max(execution_results.keys())
+            return execution_results.get(last_key)
+        
+        return None
     
     def _find_endpoint_outputs(self, execution_results: dict[str, Any]) -> dict[str, Any]:
         """Find endpoint node outputs in execution results.
@@ -76,7 +108,10 @@ class BaseSubDiagramExecutor:
         Returns:
             A dictionary of endpoint outputs
         """
-        return self._diagram_loading_use_case.find_endpoint_outputs(execution_results)
+        return {
+            k: v for k, v in execution_results.items()
+            if k.startswith("endpoint") or k.startswith("end")
+        }
     
     async def _load_diagram(self, node: "SubDiagramNode") -> Any:
         """Load diagram as DomainDiagram.
@@ -87,8 +122,11 @@ class BaseSubDiagramExecutor:
         Returns:
             The loaded DomainDiagram
         """
-        return self._diagram_loading_use_case.load_diagram(
-            diagram_name=node.diagram_name,
+        if not self._load_diagram_use_case:
+            raise ValueError("LoadDiagramUseCase not available")
+        
+        return await self._load_diagram_use_case.load_diagram(
+            diagram_name=node.diagram_name if not node.diagram_data else None,
             diagram_format=node.diagram_format,
             diagram_data=node.diagram_data
         )

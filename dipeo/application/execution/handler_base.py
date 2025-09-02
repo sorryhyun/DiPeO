@@ -220,10 +220,11 @@ class TypedNodeHandler(Generic[T], ABC):
             
             # Step 4: Emit completion event if context supports it
             if hasattr(request.context, 'emit_node_completed'):
+                exec_count = request.context.get_node_execution_count(request.node.id)
                 await request.context.emit_node_completed(
-                    request.node.id,
+                    request.node,
                     envelope,
-                    request.execution_id
+                    exec_count
                 )
             
             return envelope

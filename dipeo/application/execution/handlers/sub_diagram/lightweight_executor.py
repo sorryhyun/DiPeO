@@ -38,11 +38,12 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         # Track if fail_fast is enabled
         self._fail_fast = os.getenv("DIPEO_FAIL_FAST", "false").lower() == "true"
     
-    def set_services(self, prepare_use_case, diagram_service):
+    def set_services(self, prepare_use_case, diagram_service, service_registry=None):
         """Set services for the executor to use."""
         super().set_services(
             prepare_use_case=prepare_use_case,
-            diagram_service=diagram_service
+            diagram_service=diagram_service,
+            service_registry=service_registry
         )
     
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope:

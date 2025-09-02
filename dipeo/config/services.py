@@ -1,18 +1,22 @@
 """Service configuration and utilities for DiPeO."""
 
+from enum import Enum
 from typing import Set
 from dipeo.diagram_generated import APIServiceType, LLMService
 
 
-# Valid LLM service names
-VALID_LLM_SERVICES: Set[str] = {
-    "openai",
-    "anthropic",
-    "claude-code",
-    "gemini",
-    "google",
-    "ollama",
-}
+class LLMServiceName(str, Enum):
+    """Canonical LLM service names used throughout DiPeO."""
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    CLAUDE_CODE = "claude-code"
+    GEMINI = "gemini"
+    GOOGLE = "google"
+    OLLAMA = "ollama"
+
+
+# Valid LLM service names (for backward compatibility)
+VALID_LLM_SERVICES: Set[str] = {item.value for item in LLMServiceName}
 
 # Set of APIServiceType values that are LLM services
 LLM_SERVICE_TYPES: set[APIServiceType] = {
@@ -33,24 +37,28 @@ def normalize_service_name(service: str) -> str:
         service: Service name to normalize
         
     Returns:
-        Normalized service name
+        Normalized service name (LLMServiceName value)
     """
-    normalized = service.lower().strip()
+    normalized = service.lower().strip().replace("_", "-")
 
-    # Service aliases
+    # Service aliases mapping to LLMServiceName values
     aliases = {
-        "claude": "anthropic",
-        "claude-sdk": "claude-code",
-        "claude_code": "claude-code",
-        "chatgpt": "openai",
-        "gpt": "openai",
-        "gpt-4": "openai",
-        "gpt-3.5": "openai",
-        "google": "gemini",
-        "llama": "ollama",
-        "mistral": "ollama",
-        "gemma": "ollama",
-        "phi": "ollama",
+        "claude": LLMServiceName.ANTHROPIC.value,
+        "claude-sdk": LLMServiceName.CLAUDE_CODE.value,
+        "claude-code": LLMServiceName.CLAUDE_CODE.value,
+        "chatgpt": LLMServiceName.OPENAI.value,
+        "gpt": LLMServiceName.OPENAI.value,
+        "gpt-4": LLMServiceName.OPENAI.value,
+        "gpt-3.5": LLMServiceName.OPENAI.value,
+        "google": LLMServiceName.GEMINI.value,
+        "gemini": LLMServiceName.GEMINI.value,
+        "llama": LLMServiceName.OLLAMA.value,
+        "mistral": LLMServiceName.OLLAMA.value,
+        "gemma": LLMServiceName.OLLAMA.value,
+        "phi": LLMServiceName.OLLAMA.value,
+        "openai": LLMServiceName.OPENAI.value,
+        "anthropic": LLMServiceName.ANTHROPIC.value,
+        "ollama": LLMServiceName.OLLAMA.value,
     }
 
     return aliases.get(normalized, normalized)

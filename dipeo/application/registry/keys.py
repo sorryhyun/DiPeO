@@ -51,8 +51,13 @@ if TYPE_CHECKING:
     from dipeo.application.execution.handler_factory import HandlerRegistry
     from dipeo.application.execution.orchestrators import ExecutionOrchestrator
     from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
-    from dipeo.application.execution.use_cases.diagram_access import DiagramAccess
     from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
+    from dipeo.application.diagram.use_cases import (
+        CompileDiagramUseCase,
+        ValidateDiagramUseCase,
+        SerializeDiagramUseCase,
+    )
+    from dipeo.application.diagram.use_cases.load_diagram import LoadDiagramUseCase
     from typing import Any, Dict
 
 
@@ -87,7 +92,6 @@ PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder")
 TEMPLATE_PROCESSOR = ServiceKey["TemplateProcessorPort"]("template_processor")
 PROMPT_LOADING_SERVICE = ServiceKey["PromptLoadingUseCase"]("prompt_loading_service")
 MEMORY_SELECTOR = ServiceKey["LLMMemorySelectionAdapter"]("memory_selector")
-DIAGRAM_ACCESS = ServiceKey["DiagramAccess"]("execution.use_case.diagram_access")
 
 # Domain Services
 DB_OPERATIONS_SERVICE = ServiceKey["DBOperationsDomainService"]("db_operations_service")
@@ -119,6 +123,12 @@ NODE_EXEC_COUNTS = ServiceKey["Dict[str, int]"]("node_exec_counts")
 EXECUTION_SERVICE = ServiceKey["ExecutionService"]("execution_service")
 COMPILATION_SERVICE = ServiceKey["CompilationService"]("compilation_service")
 PREPARE_DIAGRAM_USE_CASE = ServiceKey["PrepareDiagramForExecutionUseCase"]("prepare_diagram_use_case")
+
+# Diagram Use Cases
+COMPILE_DIAGRAM_USE_CASE = ServiceKey["CompileDiagramUseCase"]("diagram.use_case.compile")
+VALIDATE_DIAGRAM_USE_CASE = ServiceKey["ValidateDiagramUseCase"]("diagram.use_case.validate")
+SERIALIZE_DIAGRAM_USE_CASE = ServiceKey["SerializeDiagramUseCase"]("diagram.use_case.serialize")
+LOAD_DIAGRAM_USE_CASE = ServiceKey["LoadDiagramUseCase"]("diagram.use_case.load")
 
 # Infrastructure Adapters
 DATABASE = ServiceKey["DatabasePort"]("database")
@@ -192,7 +202,6 @@ __all__ = [
     "TEMPLATE_PROCESSOR",
     "PROMPT_LOADING_SERVICE",
     "MEMORY_SELECTOR",
-    "DIAGRAM_ACCESS",
     
     # Domain
     "DB_OPERATIONS_SERVICE",

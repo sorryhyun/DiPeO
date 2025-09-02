@@ -130,18 +130,21 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             self.single_executor.set_services(
                 state_store=state_store,
                 message_router=message_router,
-                diagram_service=diagram_service
+                diagram_service=diagram_service,
+                service_registry=request.services
             )
             
             self.batch_executor.set_services(
                 state_store=state_store,
                 message_router=message_router,
-                diagram_service=diagram_service
+                diagram_service=diagram_service,
+                service_registry=request.services
             )
             
             self.lightweight_executor.set_services(
                 prepare_use_case=prepare_use_case,
-                diagram_service=diagram_service
+                diagram_service=diagram_service,
+                service_registry=request.services
             )
             
             self._services_configured = True

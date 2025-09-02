@@ -110,7 +110,7 @@ class ApplicationContainer:
         diagram_service = self.registry.resolve(DIAGRAM_PORT)
         if diagram_service:
             self.registry.register(DIAGRAM_PORT, diagram_service)
-        from dipeo.application.execution.use_cases import ExecuteDiagramUseCase, PrepareDiagramForExecutionUseCase
+        from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
         self.registry.register(
             EXECUTION_SERVICE,
             lambda: ExecuteDiagramUseCase(
@@ -120,12 +120,4 @@ class ApplicationContainer:
                 diagram_service=self.registry.resolve(DIAGRAM_PORT),
             )
         )
-        self.registry.register(
-            PREPARE_DIAGRAM_USE_CASE,
-            lambda: PrepareDiagramForExecutionUseCase(
-                diagram_service=self.registry.resolve(DIAGRAM_PORT),
-                validator=self.registry.resolve(DIAGRAM_VALIDATOR),
-                api_key_service=self.registry.resolve(API_KEY_SERVICE),
-                service_registry=self.registry,
-            )
-        )
+        # PrepareDiagramForExecutionUseCase is now registered by wire_execution() in _wire_bounded_contexts()

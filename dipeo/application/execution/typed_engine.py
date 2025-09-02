@@ -81,14 +81,35 @@ class TypedExecutionEngine:
         log_handler = None
         try:
             # Create execution context
-            context = TypedExecutionContext.from_execution_state(
-                execution_state=execution_state,
+            from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
+            from dipeo.diagram_generated import NodeState, Status
+            
+            context = TypedExecutionContext(
+                execution_id=str(execution_state.id),
+                diagram_id=str(execution_state.diagram_id),
                 diagram=diagram,
                 service_registry=self.service_registry,
                 runtime_resolver=self.runtime_resolver,
                 event_bus=self.event_bus,
                 container=container
             )
+            
+            # Load persisted state
+            ExecutionStatePersistence.load_from_state(
+                execution_state,
+                context._node_states,
+                context._tracker
+            )
+            
+            # Initialize remaining nodes
+            for node in diagram.get_nodes_by_type(None) or diagram.nodes:
+                if node.id not in context._node_states:
+                    context._node_states[node.id] = NodeState(
+                        status=Status.PENDING
+                    )
+            
+            # Load variables (metadata is not persisted in ExecutionState)
+            context.set_variables(execution_state.variables or {})
             
             # Store parent metadata from options for nested sub-diagrams
             if 'parent_metadata' in options:
@@ -110,13 +131,7 @@ class TypedExecutionEngine:
                 context.set_execution_metadata(key, value)
             
             # Emit execution started event
-            await context.emit_event(
-                EventType.EXECUTION_STARTED,
-                {
-                    "diagram_id": context.diagram_id,
-                    "diagram_name": diagram.metadata.get("name", "unknown") if diagram.metadata else "unknown"
-                }
-            )
+            await context.emit_execution_started()
             
             # Store interactive handler in service registry for handlers to access
             from dipeo.application.registry import ServiceKey
@@ -146,7 +161,8 @@ class TypedExecutionEngine:
                     self._scheduler.mark_node_completed(NodeID(node_id), context)
                 
                 # Calculate progress
-                progress = context.calculate_progress()
+                from dipeo.application.execution.reporting import calculate_progress
+                progress = calculate_progress(context)
                 
                 # Yield step result
                 yield {
@@ -161,13 +177,10 @@ class TypedExecutionEngine:
             execution_path = [str(node_id) for node_id in context.get_completed_nodes()]
             from dipeo.diagram_generated import Status
             
-            await context.emit_event(
-                EventType.EXECUTION_COMPLETED,
-                {
-                    "status": Status.COMPLETED,
-                    "total_steps": step_count,
-                    "execution_path": execution_path
-                }
+            await context.emit_execution_completed(
+                status=Status.COMPLETED,
+                total_steps=step_count,
+                execution_path=execution_path
             )
             
             yield {
@@ -181,13 +194,7 @@ class TypedExecutionEngine:
             from dipeo.diagram_generated import Status
             
             if context:
-                await context.emit_event(
-                    EventType.EXECUTION_ERROR,
-                    {
-                        "error": str(e),
-                        "error_type": type(e).__name__
-                    }
-                )
+                await context.emit_execution_error(e)
             
             yield {
                 "type": "execution_error",
@@ -322,21 +329,8 @@ class TypedExecutionEngine:
         # Transition state
         context.transition_node_to_maxiter(node_id, output)
         
-        # Emit completion event
-        await context.emit_event(
-            EventType.NODE_COMPLETED,
-            {
-                "node_id": str(node_id),
-                "node_type": node.type,
-                "node_name": getattr(node, 'name', str(node_id)),
-                "status": "MAXITER_REACHED",
-                "output": {"value": "", "status": "MAXITER_REACHED"},
-                "metrics": {
-                    "execution_time_ms": 0,
-                    "execution_count": current_count
-                }
-            }
-        )
+        # Emit completion event for maxiter
+        await context.emit_node_completed(node, None, current_count)
         
         return {"value": "", "status": "MAXITER_REACHED"}
     
@@ -416,47 +410,26 @@ class TypedExecutionEngine:
         node: ExecutableNode
     ) -> None:
         """Emit node started event."""
-        await context.emit_event(
-            EventType.NODE_STARTED,
-            {
-                "node_id": str(node.id),
-                "node_type": node.type,
-                "node_name": getattr(node, 'name', str(node.id))
-            }
-        )
+        await context.emit_node_started(node)
     
     async def _emit_node_completed(
         self,
         context: TypedExecutionContext,
         node: ExecutableNode,
-        output: Any,
+        envelope: Any,  # Should be Envelope but keeping Any for now
         duration_ms: float,
         start_time: float,
         token_usage: dict | None
     ) -> None:
         """Emit node completed event."""
-        node_state = context.get_node_state(node.id)
+        # Add timing metadata to envelope if it's an Envelope
+        if hasattr(envelope, 'meta') and isinstance(envelope.meta, dict):
+            envelope.meta['execution_time_ms'] = duration_ms
+            if token_usage:
+                envelope.meta['token_usage'] = token_usage
+        
         exec_count = context.get_node_execution_count(node.id)
-        
-        event_data = {
-            "node_id": str(node.id),
-            "node_type": node.type,
-            "node_name": getattr(node, 'name', str(node.id)),
-            "status": node_state.status.value if node_state else "unknown",
-            "output": self._serialize_output(output),
-            "state": node_state,  # Changed from node_state to state
-            "metrics": {
-                "duration_ms": duration_ms,
-                "start_time": start_time,
-                "end_time": start_time + duration_ms / 1000,
-                "execution_count": exec_count
-            }
-        }
-        
-        if token_usage:
-            event_data["metrics"]["token_usage"] = token_usage
-        
-        await context.emit_event(EventType.NODE_COMPLETED, event_data)
+        await context.emit_node_completed(node, envelope, exec_count)
     
     async def _handle_node_failure(
         self,
@@ -471,28 +444,31 @@ class TypedExecutionEngine:
         context.transition_node_to_failed(node.id, str(error))
         
         # Emit node failed event
-        await context.emit_event(
-            EventType.NODE_ERROR,
-            {
-                "node_id": str(node.id),
-                "node_type": node.type,
-                "node_name": getattr(node, 'name', str(node.id)),
-                "error": str(error),
-                "error_type": type(error).__name__
-            }
-        )
+        await context.emit_node_error(node, error)
     
-    def _format_node_result(self, output: Any) -> dict[str, Any]:
-        """Format node output for return."""
-        if hasattr(output, 'to_dict'):
-            return output.to_dict()
-        elif hasattr(output, 'value'):
-            result = {"value": output.value}
-            if hasattr(output, 'metadata') and output.metadata:
-                result["metadata"] = output.metadata
+    def _format_node_result(self, envelope: Any) -> dict[str, Any]:
+        """Format envelope output for return."""
+        # If it's an Envelope, extract the body
+        if hasattr(envelope, 'body'):
+            body = envelope.body
+            if hasattr(body, 'dict'):
+                return body.dict()
+            elif hasattr(body, 'model_dump'):
+                return body.model_dump()
+            elif isinstance(body, dict):
+                return body
+            else:
+                return {"value": str(body)}
+        # Fallback for non-Envelope (should be removed eventually)
+        elif hasattr(envelope, 'to_dict'):
+            return envelope.to_dict()
+        elif hasattr(envelope, 'value'):
+            result = {"value": envelope.value}
+            if hasattr(envelope, 'metadata') and envelope.metadata:
+                result["metadata"] = envelope.metadata
             return result
         else:
-            return {"value": output}
+            return {"value": envelope}
     
     def _get_handler(self, node_type: str):
         """Get handler for node type."""
@@ -512,25 +488,38 @@ class TypedExecutionEngine:
     async def _handle_node_completion(
         self,
         node: ExecutableNode,
-        output: Any,
+        envelope: Any,  # Should be Envelope
         context: TypedExecutionContext
     ) -> None:
         """Handle node completion and state transitions."""
         # All nodes complete normally - PersonJob max_iteration is handled in the handler
-        context.transition_node_to_completed(node.id, output)
+        context.transition_node_to_completed(node.id, envelope)
     
-    def _serialize_output(self, output: Any) -> dict[str, Any]:
-        """Serialize node output for event data."""
+    # DEPRECATED: This method is no longer needed as envelopes handle their own serialization
+    # It can be removed once all references are updated
+    def _serialize_output(self, envelope: Any) -> dict[str, Any]:
+        """[DEPRECATED] Serialize envelope output for event data."""
         try:
-            if hasattr(output, 'to_dict'):
-                return output.to_dict()
-            elif hasattr(output, 'value'):
-                result = {"value": output.value}
-                if hasattr(output, 'metadata') and output.metadata:
-                    result["metadata"] = output.metadata
+            if hasattr(envelope, 'body'):
+                body = envelope.body
+                if hasattr(body, 'dict'):
+                    return body.dict()
+                elif hasattr(body, 'model_dump'):
+                    return body.model_dump()
+                elif isinstance(body, dict):
+                    return body
+                else:
+                    return {"value": str(body)}
+            # Fallback for non-Envelope
+            elif hasattr(envelope, 'to_dict'):
+                return envelope.to_dict()
+            elif hasattr(envelope, 'value'):
+                result = {"value": envelope.value}
+                if hasattr(envelope, 'metadata') and envelope.metadata:
+                    result["metadata"] = envelope.metadata
                 return result
             else:
-                return {"value": str(output)}
+                return {"value": str(envelope)}
         except Exception as e:
             logger.warning(f"Failed to serialize output: {e}")
             return {"value": "output_serialization_failed"}
