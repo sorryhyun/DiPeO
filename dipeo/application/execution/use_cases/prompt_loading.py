@@ -139,9 +139,6 @@ class PromptLoadingUseCase:
         if prompt_filename.startswith(('projects/', 'files/')):
             base_relative_path = Path(self._base_dir) / prompt_filename
             if self.filesystem.exists(base_relative_path):
-                logger.debug(
-                    f"[PromptLoadingUseCase] Found prompt at base-relative path: {base_relative_path}"
-                )
                 return base_relative_path
         
         # Try relative to diagram directory if diagram source path is provided
@@ -154,9 +151,6 @@ class PromptLoadingUseCase:
                 diagram_dir = Path(diagram_source_path).parent
                 local_path = diagram_dir / 'prompts' / prompt_filename
                 if self.filesystem.exists(local_path):
-                    logger.debug(
-                        f"[PromptLoadingUseCase] Found prompt at diagram-relative path: {local_path}"
-                    )
                     return local_path
                 else:
                     logger.debug(
@@ -191,7 +185,6 @@ class PromptLoadingUseCase:
                 source_path = diagram.metadata.get('diagram_id')
             
             if source_path:
-                logger.debug(f"[PromptLoadingUseCase] Found source path in metadata: {source_path}")
                 return source_path
         
         logger.debug("[PromptLoadingUseCase] No source path found in diagram metadata")

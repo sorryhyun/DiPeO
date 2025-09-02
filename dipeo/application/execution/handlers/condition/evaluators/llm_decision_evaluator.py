@@ -5,7 +5,6 @@ from typing import Any
 
 from dipeo.domain.execution.execution_context import ExecutionContext
 from dipeo.diagram_generated.generated_nodes import ConditionNode
-from dipeo.infrastructure.llm.adapters import LLMDecisionAdapter
 
 from .base import BaseConditionEvaluator, EvaluationResult
 
@@ -19,7 +18,6 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
         """Initialize the LLM decision evaluator."""
         super().__init__()
         # Services will be set by the handler
-        self._decision_adapter = None
         self._orchestrator = None
         self._prompt_builder = None
     
@@ -27,8 +25,6 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
         """Set services for the evaluator to use."""
         self._orchestrator = orchestrator
         self._prompt_builder = prompt_builder
-        # Initialize the decision adapter with the orchestrator
-        self._decision_adapter = LLMDecisionAdapter(orchestrator)
     
     async def evaluate(
         self,
@@ -51,14 +47,6 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
             return EvaluationResult(
                 result=False,
                 metadata={"error": "Orchestrator service not available"},
-                output_data=inputs
-            )
-        
-        if not self._decision_adapter:
-            logger.error("Decision adapter not available for LLM decision")
-            return EvaluationResult(
-                result=False,
-                metadata={"error": "Decision adapter not available"},
                 output_data=inputs
             )
         
@@ -104,9 +92,9 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
             except Exception as e:
                 logger.warning(f"Failed to process prompt template: {e}. Using raw prompt.")
         
-        # Use the adapter to make the decision
+        # Use the orchestrator to make the decision
         try:
-            decision, metadata = await self._decision_adapter.make_decision(
+            decision, metadata = await self._orchestrator.make_llm_decision(
                 person_id=person_id,
                 prompt=prompt,
                 template_values=template_values,

@@ -159,16 +159,16 @@ class LLMDecisionAdapter:
                     logger.debug(f"LLM Decision - Using structured output: {decision}")
                 else:
                     # Fallback to text parsing
-                    response_text = getattr(result, "text", "") or ""
+                    response_text = getattr(result, "content", getattr(result, "text", "")) or ""
                     decision = self._parse_decision(response_text)
                     reasoning = None
             else:
                 # Parse from text response
-                response_text = getattr(result, "text", "") or ""
+                response_text = getattr(result, "content", getattr(result, "text", "")) or ""
                 decision = self._parse_decision(response_text)
                 reasoning = None
             
-            response_text = getattr(result, "text", "") or ""
+            response_text = getattr(result, "content", getattr(result, "text", "")) or ""
             logger.debug(f"LLM Decision - Prompt: {prompt[:100]}...")
             logger.debug(f"LLM Decision - Response: {response_text[:200]}")
             logger.debug(f"LLM Decision - Parsed as: {decision}")

@@ -193,7 +193,7 @@ class LLMMemorySelectionAdapter:
             self._orchestrator.add_message(response_msg, "memory_selection", "memory_selector")
 
         # Robust parse with multiple fallback strategies
-        text = getattr(result, "text", "") or ""
+        text = getattr(result, "content", getattr(result, "text", "")) or ""
         
         try:
             # Try 1: Direct JSON parsing

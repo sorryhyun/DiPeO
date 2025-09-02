@@ -392,7 +392,7 @@ class SinglePersonJobExecutor:
                 )
             
             # Default: return text output
-            text_value = result.text if hasattr(result, 'text') else str(result)
+            text_value = result.content if hasattr(result, 'content') else (result.text if hasattr(result, 'text') else str(result))
             output = EnvelopeFactory.text(
                 text_value,
                 produced_by=str(node.id),

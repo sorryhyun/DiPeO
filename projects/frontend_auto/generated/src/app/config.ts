@@ -1,10 +1,7 @@
 // src/app/config.ts
+import { Patient } from '@/core/contracts'
 
-import type { User, Patient } from '@/core/contracts'
-
-/**
- * Raw environment variables surface
- */
+// Raw environment interface
 export interface RawEnv {
   VITE_APP_NAME?: string
   VITE_API_BASE_URL?: string
@@ -15,9 +12,7 @@ export interface RawEnv {
   VITE_BUILD_TIME?: string
 }
 
-/**
- * Feature flags for the app
- */
+// Feature flags contract
 export interface AppFeatures {
   appointments: boolean
   prescriptions: boolean
@@ -28,9 +23,7 @@ export interface AppFeatures {
   [key: string]: boolean
 }
 
-/**
- * Runtime app configuration
- */
+// Runtime app config
 export interface AppConfig {
   appName: string
   env: 'development' | 'production' | 'test'
@@ -43,133 +36,90 @@ export interface AppConfig {
   buildTimestamp?: string
 }
 
-/**
- * Helper to parse VITE_FEATURES CSV into AppFeatures
- */
-const knownFeatureKeys: Array<keyof AppFeatures> = [
-  'appointments',
-  'prescriptions',
-  'lab_results',
-  'telemedicine',
-  'analytics',
-  'mock_data',
-]
-
-const parseFeatures = (csv?: string): AppFeatures => {
-  const features: AppFeatures = {
-    appointments: false,
-    prescriptions: false,
-    lab_results: false,
-    telemedicine: false,
-    analytics: false,
-    mock_data: false
-  }
-
-  if (!csv) return features
-
-  const keys = csv
-    .split(',')
-    .map((k) => k.trim())
-    .filter((k) => k.length > 0)
-
-  for (const key of keys) {
-    if (knownFeatureKeys.includes(key as keyof AppFeatures)) {
-      features[key as keyof AppFeatures] = true
-    } else {
-      // Unknown keys are ignored to preserve type-safety
-    }
-  }
-
-  return features
+// Deterministic mock user (cast to Patient to satisfy type)
+const mockPatientFromDev: unknown = {
+  id: 'mock-patient-1',
+  name: 'Alex Mock',
+  email: 'alex.mock@example.test',
+  createdAt: new Date().toISOString(),
 }
+const mockPatient: Patient = mockPatientFromDev as Patient
 
-/**
- * Materialized runtime config from environment
- */
+// Materialized raw env using import.meta.env
 const raw = (import.meta.env as unknown) as RawEnv
 
 // Determine environment
-const envCandidate = (raw.VITE_NODE_ENV ?? (import.meta.env.MODE ?? 'development')) as
-  | 'development'
-  | 'production'
-  | 'test'
+// Prefer VITE_NODE_ENV if provided, otherwise rely on Vite's MODE
+const mode = ((import.meta.env as any).MODE ?? 'production') as string
+const envFromMode = mode === 'development' ? 'development' : mode === 'test' ? 'test' : 'production'
+const env: AppConfig['env'] = (raw.VITE_NODE_ENV ?? envFromMode) as AppConfig['env']
 
-const isDevelopment = envCandidate === 'development'
-const isProduction = envCandidate === 'production'
+const isDevelopment = env === 'development'
+const isProduction = env === 'production'
 
-// API base URL - prefer explicit env, fallback to window origin + /api or /api
-let apiBaseUrl: string =
-  raw.VITE_API_BASE_URL ??
-  (typeof window !== 'undefined'
-    ? `${window.location.origin}/api`
-    : '/api')
+// API base URL determination
+const rawApiBase = raw.VITE_API_BASE_URL
+const defaultBase = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin : ''
+const apiBaseUrl = (rawApiBase && rawApiBase.length > 0)
+  ? rawApiBase
+  : (defaultBase ? `${defaultBase}/api` : 'http://localhost:3000/api')
 
-// WS URL (optional)
-const wsUrl = raw.VITE_WS_URL
+// WebSocket URL (optional)
+const wsUrl = raw.VITE_WS_URL || undefined
 
-// Features parsed from VITE_FEATURES
-const features = parseFeatures(raw.VITE_FEATURES)
+// Parse features from CSV
+const featuresFromEnv = ((raw.VITE_FEATURES ?? '') as string)
+  .split(',')
+  .map((s) => s.trim())
+  .filter((s) => s.length > 0)
 
-// Mock data enablement
-const enableMockData = raw.VITE_ENABLE_MOCKS === 'true' || features.mock_data === true
-
-// App name
-const appName = raw.VITE_APP_NAME ?? 'App'
-
-// Build timestamp (optional, for development)
-const buildTimestamp = (raw.VITE_BUILD_TIME ?? new Date().toISOString()) as string
-
-// Prepare mock data (only if enabled)
-type AppConfigWithMock = AppConfig & { mock?: { currentUser?: Patient } }
-let mockCurrentUser: Patient | undefined
-if (enableMockData) {
-  const mockUser = {
-    id: 'mock-user-1',
-    name: 'Alex Mock',
-    email: 'alex.mock@example.test',
-    role: 'patient'
-  } as unknown as User
-
-  // Cast to Patient to satisfy the mock_currentUser shape
-  mockCurrentUser = mockUser as unknown as Patient
+const features: AppFeatures = {
+  appointments: featuresFromEnv.includes('appointments'),
+  prescriptions: featuresFromEnv.includes('prescriptions'),
+  lab_results: featuresFromEnv.includes('lab_results'),
+  telemedicine: featuresFromEnv.includes('telemedicine'),
+  analytics: featuresFromEnv.includes('analytics'),
+  mock_data: featuresFromEnv.includes('mock_data'),
 }
 
-const baseConfig: AppConfig = {
+// Enable mock data if explicitly enabled or if the mock_data feature flag is on
+const enableMockData = (raw.VITE_ENABLE_MOCKS === 'true') || features.mock_data
+
+// Build timestamp for traceability
+const buildTimestamp = (raw.VITE_BUILD_TIME && raw.VITE_BUILD_TIME.length > 0)
+  ? raw.VITE_BUILD_TIME
+  : new Date().toISOString()
+
+// App name
+const appName = raw.VITE_APP_NAME?.trim() || 'App'
+
+// Base app config object (immutable at runtime)
+export const appConfig: AppConfig & { mock?: { currentUser: Patient; patients?: Patient[] } } = {
   appName,
-  env: envCandidate,
+  env,
   isDevelopment,
   isProduction,
   apiBaseUrl,
   wsUrl,
   features,
   enableMockData,
-  buildTimestamp
-}
-
-// Final appConfig export with optional mock data
-export const appConfig: AppConfigWithMock = {
-  ...baseConfig,
-  ...(enableMockData && mockCurrentUser
+  buildTimestamp,
+  ...(enableMockData
     ? {
         mock: {
-          currentUser: mockCurrentUser
-        }
+          currentUser: mockPatient,
+          patients: [mockPatient],
+        },
       }
     : {})
 }
 
-// Re-exports for convenience (in case other modules import by name)
-export type { AppConfigWithMock as AppConfigRuntime }
-
+// Self-check comments (appending for tooling visibility)
+//
 /*
-Notes:
-- All env access uses import.meta.env (Vite) as required.
-- The mock data is deterministic and only attached when enableMockData is true.
-- The appConfig is immutable at runtime except for the optional mock property in development.
+[ ] Uses `@/` imports only
+[ ] Uses providers/hooks (no direct DOM/localStorage side effects)
+[ ] Reads config from `@/app/config`
+[ ] Exports default named component
+[ ] Adds basic ARIA and keyboard handlers (where relevant)
 */
-
-// [ ] Uses `@/` imports only
-// [ ] Uses providers/hooks (no direct DOM/localStorage side effects)
-// [ ] Reads config from `@/app/config`
-// [ ] Exports default named component
-// [ ] Adds basic ARIA and keyboard handlers (where relevant)

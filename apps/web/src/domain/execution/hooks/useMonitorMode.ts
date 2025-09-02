@@ -58,7 +58,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   // Poll for active CLI session when in monitor mode
   const { data: cliSessionData, loading: cliSessionLoading, error: cliSessionError } = useQuery(ACTIVE_CLI_SESSION_QUERY, {
     skip: !isMonitorMode() || !pollCliSessions,
-    pollInterval: 500, // Poll every 500ms for faster response
+    pollInterval: 200, // Poll every 200ms for faster response
     fetchPolicy: 'network-only',
   });
   
@@ -109,7 +109,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
           // console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
           execution.connectToExecution(activeSession.execution_id, nodeCount);
           hasStartedRef.current = true;
-        }, 100); // 100ms delay for React Flow to initialize
+        }, 50); // 50ms delay for React Flow to initialize
       }
     } else if (lastSessionIdRef.current) {
       // CLI session ended

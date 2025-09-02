@@ -6,11 +6,11 @@ from typing import Any, Optional, TYPE_CHECKING
 from dipeo.diagram_generated import ApiKeyID, LLMService, Message, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Conversation, Person
 from dipeo.domain.conversation.ports import ConversationRepository, PersonRepository
-from dipeo.infrastructure.llm.core.types import ExecutionPhase, LLMResponse
 
 if TYPE_CHECKING:
     from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
     from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
+    from dipeo.infrastructure.llm.adapters.decision import LLMDecisionAdapter
     from dipeo.domain.integrations.ports import LLMService as LLMServicePort
 
 logger = logging.getLogger(__name__)
@@ -41,6 +41,9 @@ class ExecutionOrchestrator:
         
         # Unified person cache for all execution-time person management
         self._person_cache: dict[PersonID, Person] = {}
+        
+        # LLM Decision adapter for binary decision making
+        self._decision_adapter: Optional["LLMDecisionAdapter"] = None
         
         # Wire orchestrator back to repository for brain/hand components
         if hasattr(self._person_repo, 'set_orchestrator'):
@@ -188,7 +191,8 @@ class ExecutionOrchestrator:
     
     async def initialize(self) -> None:
         """Initialize the orchestrator."""
-        # No need to wire up persons anymore
+        # Initialize the decision adapter lazily when needed
+        # (it requires self, so can't do it in __init__)
         pass
     
     # ===== Helper Methods =====
@@ -214,76 +218,44 @@ class ExecutionOrchestrator:
             return person.llm_config
         return None
     
-    # ===== New Centralized Methods =====
+    # ===== LLM Decision Methods =====
     
-    async def execute_llm_decision(
+    async def make_llm_decision(
         self,
-        person_id: str,
-        prompt_content: str,
-        template_values: dict[str, Any],
+        person_id: PersonID,
+        prompt: str,
+        template_values: Optional[dict[str, Any]] = None,
         memory_profile: str = "GOLDFISH",
-        execution_phase: ExecutionPhase = ExecutionPhase.DECISION_EVALUATION,
-        at_most: Optional[int] = None
-    ) -> LLMResponse:
-        """Execute LLM call with proper person, memory, and prompt handling.
+        diagram: Optional[Any] = None
+    ) -> tuple[bool, dict[str, Any]]:
+        """Make a binary decision using LLM.
         
-        This centralizes the logic for LLM-based decisions, managing:
-        - Person creation/retrieval (with caching)
-        - Memory selection based on profile
-        - Template processing
-        - LLM execution
+        This uses the LLMDecisionAdapter internally to handle decision-specific
+        logic like decision facets and YES/NO parsing.
         
         Args:
-            person_id: ID of the person to use for the decision
-            prompt_content: The prompt content (already loaded)
-            template_values: Values for template substitution
-            memory_profile: Memory management strategy
-            execution_phase: The phase of execution (for phase-aware adapters)
-            at_most: Maximum messages for CUSTOM memory profile
+            person_id: The person to use for decision making
+            prompt: The decision prompt
+            template_values: Optional template values for the prompt
+            memory_profile: Memory profile to use (default: GOLDFISH for unbiased decisions)
+            diagram: Optional diagram for person creation from diagram
             
         Returns:
-            LLMResponse from the LLM service
+            Tuple of (decision: bool, metadata: dict with response details)
         """
-        if not self._llm_service:
-            raise ValueError("LLM service not configured for orchestrator")
+        # Lazy initialization of decision adapter
+        if not self._decision_adapter:
+            from dipeo.infrastructure.llm.adapters.decision import LLMDecisionAdapter
+            self._decision_adapter = LLMDecisionAdapter(self)
         
-        # Get or create person with caching
-        person_id_obj = PersonID(person_id)
-        person = self.get_or_create_person(person_id_obj)
-        
-        # Get conversation history based on memory profile
-        messages = []
-        if memory_profile != "GOLDFISH":
-            # Get conversation history from person's perspective
-            history = self.get_conversation_history(person_id)
-            
-            # Apply memory profile filtering
-            if memory_profile == "MINIMAL":
-                # System + last 5 messages
-                system_msgs = [m for m in history if m.get("role") == "system"]
-                non_system = [m for m in history if m.get("role") != "system"]
-                messages = system_msgs + non_system[-5:]
-            elif memory_profile == "FOCUSED":
-                # Last 20 conversation pairs
-                messages = history[-40:]  # 20 pairs = 40 messages
-            elif memory_profile == "FULL":
-                messages = history
-            elif memory_profile == "CUSTOM" and at_most:
-                # Custom with at_most limit
-                messages = history[-at_most:]
-        
-        # Execute LLM call
-        response = await self._llm_service.complete(
-            messages=messages,
-            prompt=prompt_content,
-            model=person.llm_config.model if person.llm_config else None,
-            service=person.llm_config.service if person.llm_config else None,
-            api_key_id=person.llm_config.api_key_id if person.llm_config else None,
-            temperature=0,  # Decision evaluation should be deterministic
-            execution_phase=execution_phase.value if execution_phase else None
+        # Delegate to the adapter
+        return await self._decision_adapter.make_decision(
+            person_id=person_id,
+            prompt=prompt,
+            template_values=template_values,
+            memory_profile=memory_profile,
+            diagram=diagram
         )
-        
-        return response
     
     def load_prompt(
         self,

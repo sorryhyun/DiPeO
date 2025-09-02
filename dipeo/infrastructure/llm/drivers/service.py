@@ -193,7 +193,7 @@ class LLMInfraService(BaseService, LLMServicePort):
                 )
                 
                 if hasattr(self, 'logger') and result:
-                    response_text = getattr(result, 'text', str(result))[:50]
+                    response_text = getattr(result, 'content', getattr(result, 'text', str(result)))[:50]
                     self.logger.debug(f"LLM response: {response_text}")
                 
                 return result
