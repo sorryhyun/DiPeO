@@ -217,11 +217,11 @@ nodes:
       expression: current_index >= 4
 #      expression: current_index >= default.total_files
       expose_index_as: current_index
-      flipped: [false, true]
+      flipped: [true, true]
 
   - label: load Data again
     type: db
-    position: {x: 1700, y: 240}
+    position: {x: 2000, y: 500}
     props:
       operation: read
       sub_type: file
@@ -230,7 +230,7 @@ nodes:
 
   - label: Generate Frontend Code
     type: person_job
-    position: {x: 300, y: 300}
+    position: {x: 2300, y: 500}
     props:
       person: Frontend Generator
       max_iteration: 100
@@ -240,7 +240,7 @@ nodes:
 
   - label: Check Output Quality
     type: condition
-    position: {x: 500, y: 300}
+    position: {x: 2600, y: 500}
     props:
       condition_type: llm_decision
       person: Frontend Verdict
@@ -249,7 +249,7 @@ nodes:
 
   - label: Revise Frontend Code
     type: person_job
-    position: {x: 700, y: 400}
+    position: {x: 3000, y: 500}
     props:
       person: Frontend Generator
       memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
@@ -273,7 +273,7 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 1100, y: 300}
+    position: {x: 2300, y: 800}
     props:
       operation: write
       sub_type: file
@@ -281,7 +281,7 @@ nodes:
       source_details: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
   - label: Write revised Result
     type: db
-    position: {x: 1100, y: 300}
+    position: {x: 3000, y: 800}
     props:
       operation: write
       sub_type: file
@@ -290,7 +290,7 @@ nodes:
 
   - label: Rename Files
     type: code_job
-    position: {x: 1950, y: 800}
+    position: {x: 3000, y: 1200}
     props:
       language: python
       filePath: projects/frontend_auto/rename_generated_files.py
@@ -298,7 +298,7 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 2200, y: 800}
+    position: {x: 3300, y: 1200}
     props:
       save_to_file: false
 

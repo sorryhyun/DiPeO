@@ -1,155 +1,196 @@
-// FILE: src/app/config.ts
-import { Patient } from '@/core/contracts'
+// FILE: src/core/contracts.ts
 
-// Section-local helpers and types
-export interface RawEnv {
-  VITE_APP_NAME?: string
-  VITE_API_BASE_URL?: string
-  VITE_ENABLE_MOCKS?: 'true' | 'false'
-  VITE_NODE_ENV?: 'development' | 'production' | 'test'
-  VITE_FEATURES?: string // comma separated feature keys
-  VITE_WS_URL?: string
-  VITE_BUILD_TIME?: string
+// Domain roles
+export type Role = 'patient' | 'doctor' | 'nurse' | 'admin';
+
+// Base user identity
+interface UserBase {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl?: string;
+  roles: Role[];
+  createdAt: string; // ISO date string
+  updatedAt?: string;
 }
 
-export interface AppFeatures {
-  appointments: boolean
-  prescriptions: boolean
-  lab_results: boolean
-  telemedicine: boolean
-  analytics: boolean
-  mock_data: boolean
-  [key: string]: boolean
+// Patient-specific user
+interface Patient extends UserBase {
+  dob?: string; // date of birth ISO string or date
+  gender?: 'male' | 'female' | 'other';
+  medicalRecordId?: string;
+  primaryDoctorId?: string;
 }
 
-export interface AppConfig {
-  appName: string
-  env: 'development' | 'production' | 'test'
-  isDevelopment: boolean
-  isProduction: boolean
-  apiBaseUrl: string
-  wsUrl?: string
-  buildTimestamp?: string
-  features: AppFeatures
-  enableMockData: boolean
+// Doctor-specific user
+interface Doctor extends UserBase {
+  specialty?: string;
+  licenseNumber?: string;
+  clinicIds?: string[];
 }
 
-export type AppConfigWithMock = AppConfig & {
-  mock?: { currentUser?: Patient }
+// Nurse-specific user
+interface Nurse extends UserBase {
+  department?: string;
 }
 
-// Known, default feature keys (extendable via VITE_FEATURES)
-const KNOWN_FEATURE_KEYS = [
-  'appointments',
-  'prescriptions',
-  'lab_results',
-  'telemedicine',
-  'analytics',
-  'mock_data'
-] as const
+// Public User type (exported for external usage)
+export type User = Patient | Doctor | Nurse | UserBase;
 
-// Helper: parse comma-separated features into AppFeatures with safe defaults
-function parseFeatures(csv?: string): AppFeatures {
-  const featuresMap: Record<string, boolean> = {}
-  if (typeof csv === 'string' && csv.trim().length > 0) {
-    csv
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0)
-      .forEach((key) => {
-        featuresMap[key] = true
-      })
-  }
+// Healthcare domain models
 
-  // Build typed feature set with explicit known keys
-  const base: AppFeatures = {
-    appointments: !!featuresMap['appointments'],
-    prescriptions: !!featuresMap['prescriptions'],
-    lab_results: !!featuresMap['lab_results'],
-    telemedicine: !!featuresMap['telemedicine'],
-    analytics: !!featuresMap['analytics'],
-    mock_data: !!featuresMap['mock_data'],
-  }
-
-  // Carry over any non-known feature flags as extra entries (keeps type-safe extensibility)
-  const extras: Record<string, boolean> = {}
-  Object.entries(featuresMap).forEach(([k, v]) => {
-    if (!KNOWN_FEATURE_KEYS.includes(k as any)) {
-      extras[k] = v
-    }
-  })
-
-  // Merge extras while preserving explicit known keys
-  return { ...base, ...extras }
+export interface Appointment {
+  id: string;
+  patientId: string;
+  providerId: string;
+  startAt: string; // ISO datetime
+  endAt: string; // ISO datetime
+  status: 'scheduled' | 'cancelled' | 'completed' | 'no_show';
+  location?: string;
+  type: 'in_person' | 'telemedicine';
+  notes?: string;
+  metadata?: Record<string, unknown>;
 }
 
-// Materialize runtime config from environment
-const raw: RawEnv = (import.meta.env as unknown) as RawEnv
-
-// Determine environment mode
-const modeFromMeta = (import.meta.env.MODE || 'production') as 'development' | 'production' | 'test'
-const envMode = (raw.VITE_NODE_ENV ?? modeFromMeta) as 'development' | 'production' | 'test'
-const isDevelopment = envMode === 'development'
-const isProduction = envMode === 'production'
-
-// API base URL resolution
-let apiBaseUrl = raw.VITE_API_BASE_URL ?? ''
-if (!apiBaseUrl) {
-  if (typeof window !== 'undefined' && (window.location?.origin ?? '') !== '') {
-    apiBaseUrl = window.location.origin + '/api'
-  } else {
-    apiBaseUrl = ''
-  }
+interface Diagnosis {
+  code: string;
+  name: string;
+  recordedAt: string;
+  notes?: string;
 }
 
-// WebSocket URL (optional)
-const wsUrl = raw.VITE_WS_URL ?? undefined
-
-// Features parsed from VITE_FEATURES CSV
-const features = parseFeatures(raw.VITE_FEATURES)
-
-// Development mocks flag
-const enableMockData = raw.VITE_ENABLE_MOCKS === 'true' || features.mock_data === true
-
-// Build timestamp (optional)
-const buildTimestamp = (raw.VITE_BUILD_TIME ?? new Date().toISOString()) as string
-
-// Lightweight deterministic mock data (only when enabled)
-let mock: AppConfigWithMock['mock'] | undefined
-if (enableMockData) {
-  const mockCurrentUser = {
-    id: 'mock-patient-1',
-    name: 'Alex Mock',
-    email: 'alex@example.test',
-    avatarUrl: undefined,
-    roles: ['patient'],
-    createdAt: new Date().toISOString(),
-  } as unknown as Patient
-
-  mock = { currentUser: mockCurrentUser }
+export interface MedicalRecordEntry {
+  id: string;
+  type: 'note' | 'lab' | 'imaging' | 'prescription';
+  authorId: string;
+  createdAt: string;
+  data: Record<string, any>;
 }
 
-// App configuration object (immutable by convention)
-export const appConfig: AppConfigWithMock = {
-  appName: raw.VITE_APP_NAME ?? 'App',
-  env: envMode,
-  isDevelopment,
-  isProduction,
-  apiBaseUrl,
-  wsUrl,
-  buildTimestamp,
-  features,
-  enableMockData,
-  ...(enableMockData ? { mock } : {})
+export interface MedicalRecord {
+  id: string;
+  patientId: string;
+  diagnoses: Diagnosis[];
+  allergies: string[];
+  medicationsSummary?: string;
+  entries: MedicalRecordEntry[];
 }
 
-// Default export for convenience (some modules import default)
-export default appConfig
+export interface Prescription {
+  id: string;
+  patientId: string;
+  prescriberId: string;
+  medication: string;
+  dose: string;
+  frequency: string;
+  startDate?: string;
+  endDate?: string;
+  instructions?: string;
+  refills?: number;
+}
 
-// Self-Check (inline comments for audit)
-//
-// [x] Uses `@/` imports only
-// [x] Uses providers/hooks (no direct DOM/localStorage side effects)
-// [x] Reads config from `@/app/config`
-// [x] Exports default named component
+export interface LabResult {
+  id: string;
+  patientId: string;
+  testName: string;
+  orderedById?: string;
+  specimenDate?: string;
+  resultDate?: string;
+  value?: string | number;
+  unit?: string;
+  normalRange?: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  attachments?: string[];
+}
+
+// API response contracts
+
+export type ApiResult<T> = {
+  success: true;
+  data: T;
+  meta?: Record<string, any>;
+};
+
+export type ApiError = {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+};
+
+// Generic API response that callers can handle uniformly
+export type ApiResponse<T> = ApiResult<T> | ApiError;
+
+// Pagination helpers
+
+export interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+// Auth and payload typings
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: string | number;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+  otp?: string;
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  role?: Role;
+}
+
+// WebSocket-related internal types (not exported for external consumption by default)
+type WebSocketEventMap = {
+  'appointment.updated': { appointment: Appointment };
+  'labresult.created': { lab: LabResult };
+  'message.received': { fromId: string; toId: string; message: string; sentAt: string };
+  'user.status': { userId: string; online: boolean };
+};
+
+type WebSocketEvent<K extends keyof WebSocketEventMap = keyof WebSocketEventMap> = {
+  type: K;
+  payload: WebSocketEventMap[K];
+  ts: string;
+};
+
+// UI state helpers (internal)
+type LoadingState = 'idle' | 'loading' | 'succeeded' | 'failed';
+interface FormState<T = any> {
+  values: T;
+  touched: Partial<Record<string, boolean>>;
+  errors: Partial<Record<string, string>>;
+  isValid: boolean;
+  isSubmitting: boolean;
+}
+
+// Runtime helpers (example guards)
+
+/**
+ * Simple runtime check for AuthTokens shape
+ */
+export function isAuthTokens(obj: any): obj is AuthTokens {
+  return !!obj && typeof obj === 'object' && typeof obj.accessToken === 'string';
+}
+
+// Self-check footer for tooling compatibility
+// [ ] Uses `@/` imports only
+// [ ] Uses providers/hooks (no direct DOM/localStorage side effects)
+// [ ] Reads config from `@/app/config`
+// [ ] Exports default named component
 // [ ] Adds basic ARIA and keyboard handlers (where relevant)
+
+
+// End of core/contracts.ts

@@ -98,20 +98,6 @@ class NodeScheduler:
         # Initial ready queue: nodes with indegree 0 AND not waiting for conditional branches
         for node_id, count in self._indegree.items():
             if count == 0:
-                # Get all incoming edges for this node
-                incoming = incoming_by_target.get(node_id, [])
-                
-                # Check if ALL incoming edges are conditional (using defensive check)
-                has_only_conditional = len(incoming) > 0 and all(
-                    self._is_conditional_edge(e) for e in incoming
-                )
-                
-                # If node has only conditional dependencies, don't add to initial queue
-                # It must wait for a condition branch to activate it
-                if has_only_conditional:
-                    logger.debug(f"Node {node_id} has only conditional dependencies, not adding to initial ready queue")
-                    continue
-                
                 # Otherwise, it's truly ready (no dependencies or has non-conditional deps satisfied)
                 self._ready_queue.put_nowait(node_id)
     

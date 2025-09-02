@@ -1,45 +1,50 @@
-// File: src/core/contracts.ts
+// FILE: src/core/contracts.ts
 
 // Domain roles
-export type Role = 'patient' | 'doctor' | 'nurse' | 'admin'
+export type Role = 'patient' | 'doctor' | 'nurse' | 'admin';
 
-// User hierarchy
+// Base user identity
 export interface UserBase {
   id: string
   email: string
   name: string
   avatarUrl?: string
   roles: Role[]
-  createdAt: string
+  createdAt: string // ISO date string
   updatedAt?: string
 }
 
+// Patient-specific user
 export interface Patient extends UserBase {
-  dob?: string
+  dob?: string // date of birth ISO string or date
   gender?: 'male' | 'female' | 'other'
   medicalRecordId?: string
   primaryDoctorId?: string
 }
 
+// Doctor-specific user
 export interface Doctor extends UserBase {
   specialty?: string
   licenseNumber?: string
   clinicIds?: string[]
 }
 
+// Nurse-specific user
 export interface Nurse extends UserBase {
   department?: string
 }
 
-export type User = Patient | Doctor | Nurse | UserBase
+// Public User type (exported for external usage)
+export type User = Patient | Doctor | Nurse | UserBase;
 
 // Healthcare domain models
+
 export interface Appointment {
   id: string
   patientId: string
   providerId: string
-  startAt: string
-  endAt?: string
+  startAt: string // ISO datetime
+  endAt: string // ISO datetime
   status: 'scheduled' | 'cancelled' | 'completed' | 'no_show'
   location?: string
   type: 'in_person' | 'telemedicine'
@@ -47,7 +52,7 @@ export interface Appointment {
   metadata?: Record<string, unknown>
 }
 
-export interface Diagnosis {
+interface Diagnosis {
   code: string
   name: string
   recordedAt: string
@@ -57,7 +62,7 @@ export interface Diagnosis {
 export interface MedicalRecordEntry {
   id: string
   type: 'note' | 'lab' | 'imaging' | 'prescription'
-  authorId?: string
+  authorId: string
   createdAt: string
   data: Record<string, any>
 }
@@ -74,7 +79,7 @@ export interface MedicalRecord {
 export interface Prescription {
   id: string
   patientId: string
-  prescriberId?: string
+  prescriberId: string
   medication: string
   dose: string
   frequency: string
@@ -98,7 +103,8 @@ export interface LabResult {
   attachments?: string[]
 }
 
-// API response types
+// API response contracts
+
 export type ApiResult<T> = {
   success: true
   data: T
@@ -114,15 +120,19 @@ export type ApiError = {
   }
 }
 
-export type PaginatedResponse<T> = ApiResult<{ items: T[]; page: number; pageSize: number; total: number }>
+// Generic API response that callers can handle uniformly
+export type ApiResponse<T> = ApiResult<T> | ApiError
 
-// Compatibility alias: some parts of the app may refer to ApiResponse
-export type ApiResponse<T> = ApiResult<T>
+// Pagination helpers
 
-// Pagination helper type (as a standalone alias for easy usage across UI layers)
-export type Pagination<T> = { items: T[]; page: number; pageSize: number; total: number }
+export interface Pagination {
+  page: number
+  pageSize: number
+  total: number
+}
 
-// Auth and payload types
+// Auth and payload typings
+
 export interface AuthTokens {
   accessToken: string
   refreshToken?: string
@@ -142,24 +152,23 @@ export interface RegisterPayload {
   role?: Role
 }
 
-// WebSocket & real-time event typings (optional per feature flag)
-export type WebSocketEventMap = {
+// WebSocket-related internal types (not exported for external consumption by default)
+type WebSocketEventMap = {
   'appointment.updated': { appointment: Appointment }
   'labresult.created': { lab: LabResult }
   'message.received': { fromId: string; toId: string; message: string; sentAt: string }
   'user.status': { userId: string; online: boolean }
 }
 
-export type WebSocketEvent<K extends keyof WebSocketEventMap = keyof WebSocketEventMap> = {
+type WebSocketEvent<K extends keyof WebSocketEventMap = keyof WebSocketEventMap> = {
   type: K
   payload: WebSocketEventMap[K]
   ts: string
 }
 
-// UI state and helpers
-export type LoadingState = 'idle' | 'loading' | 'succeeded' | 'failed'
-
-export interface FormState<T = any> {
+// UI state helpers (internal)
+type LoadingState = 'idle' | 'loading' | 'succeeded' | 'failed'
+interface FormState<T = any> {
   values: T
   touched: Partial<Record<string, boolean>>
   errors: Partial<Record<string, string>>
@@ -167,11 +176,22 @@ export interface FormState<T = any> {
   isSubmitting: boolean
 }
 
-// Optional: simple runtime-safe helpers (types only; no runtime logic here)
+// Runtime helpers (example guards)
 
-// Self-Check (inline): 
+/**
+ * Simple runtime check for AuthTokens shape
+ */
+export function isAuthTokens(obj: any): obj is AuthTokens {
+  return !!obj && typeof obj === 'object' && typeof obj.accessToken === 'string'
+}
+
+// Self-check footer for tooling compatibility
 // [ ] Uses `@/` imports only
 // [ ] Uses providers/hooks (no direct DOM/localStorage side effects)
 // [ ] Reads config from `@/app/config`
 // [ ] Exports default named component
 // [ ] Adds basic ARIA and keyboard handlers (where relevant)
+
+
+// End of core/contracts.ts
+

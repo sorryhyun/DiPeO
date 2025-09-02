@@ -126,10 +126,17 @@ class LLMDecisionAdapter:
         # Get or create decision facet
         facet = self._get_or_create_decision_facet(person_id, diagram=diagram)
         
+        # Get LLM service from orchestrator
+        llm_service = self._orchestrator.get_llm_service()
+        if not llm_service:
+            logger.error("LLM service not available from orchestrator")
+            return False, {"error": "LLM service not available"}
+        
         # Execute decision using person's complete method
         complete_kwargs = {
             "prompt": prompt,
             "all_messages": [],  # Empty for fresh decision
+            "llm_service": llm_service,  # Pass the LLM service
             "temperature": 0,  # Deterministic decisions
             "max_tokens": 500,  # Decisions should be concise
             "execution_phase": ExecutionPhase.DECISION_EVALUATION,

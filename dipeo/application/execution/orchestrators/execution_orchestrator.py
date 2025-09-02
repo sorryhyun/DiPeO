@@ -98,6 +98,10 @@ class ExecutionOrchestrator:
         """Get all registered persons."""
         return self._person_repo.get_all()
     
+    def get_llm_service(self):
+        """Get the LLM service instance."""
+        return self._llm_service
+    
     # ===== Conversation Management =====
     
     def get_conversation(self):
@@ -343,10 +347,18 @@ class ExecutionOrchestrator:
             return None
         
         # Create LLM config from diagram person config
+        # Default to APIKEY_52609F if no api_key_id is specified (common in most diagrams)
+        api_key_id = person_config.get('api_key_id')
+        if not api_key_id:
+            # Try to find a reasonable default from the diagram's other persons
+            # or use APIKEY_52609F which is the most common one
+            api_key_id = 'APIKEY_52609F'
+            logger.warning(f"No api_key_id for person {person_id}, defaulting to {api_key_id}")
+        
         llm_config = PersonLLMConfig(
             service=person_config.get('service', 'openai'),
             model=person_config.get('model', 'gpt-5-nano-2025-08-07'),
-            api_key_id=person_config.get('api_key_id'),
+            api_key_id=ApiKeyID(api_key_id),
             system_prompt=person_config.get('system_prompt'),
             prompt_file=person_config.get('prompt_file')
         )
