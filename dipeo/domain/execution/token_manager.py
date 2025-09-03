@@ -149,21 +149,22 @@ class TokenManager:
             # Track which branch was taken based on available outputs
             if "condtrue" in outputs:
                 self._branch_decisions[node_id] = "condtrue"
-                logger.debug(f"[TOKEN] Condition {node_id} selected branch: condtrue")
             elif "condfalse" in outputs:
                 self._branch_decisions[node_id] = "condfalse"
-                logger.debug(f"[TOKEN] Condition {node_id} selected branch: condfalse")
+
+        # Debug logging
+        logger.debug(f"[TOKEN] emit_outputs: node_id={node_id}, outputs keys={list(outputs.keys())}")
         
         # Emit tokens on outgoing edges
         for edge in self._out_edges.get(node_id, []):
             # Match output port to edge source_output
             # For edges from condition nodes, source_output will be "condtrue" or "condfalse"
             out_key = edge.source_output or "default"
+
             payload = outputs.get(out_key)
             
             if payload is None:
                 # No output for this port - edge won't get a token
-                logger.debug(f"[TOKEN] No output for port {out_key} on edge from {node_id}")
                 continue
             
             self.publish_token(edge, payload, epoch=epoch)
@@ -197,7 +198,10 @@ class TokenManager:
         
         for edge in self._in_edges.get(node_id, []):
             seq = self._edge_seq.get((edge, epoch), 0)
-            if seq == 0:
+            last_consumed = self._last_consumed.get((node_id, edge, epoch), 0)
+            
+            # Only consume NEW tokens (seq > last_consumed)
+            if seq <= last_consumed:
                 continue
             
             # Mark as consumed
@@ -210,7 +214,6 @@ class TokenManager:
                 key = edge.source_output or "default"
                 inputs[key] = payload
         
-        logger.debug(f"[TOKEN] Node {node_id} consumed {len(inputs)} inputs for epoch {epoch}")
         return inputs
     
     # ========== Token Readiness ==========
@@ -238,11 +241,9 @@ class TokenManager:
         node_exec_count = 0
         if self._execution_tracker:
             node_exec_count = self._execution_tracker.get_node_execution_count(node_id)
-        
-        # Categorize edges
-        active_edges = []
-        skippable_edges = []
-        
+
+        # First filter out edges we should ignore completely
+        relevant_edges = []
         for edge in edges:
             source_node = self.diagram.get_node(edge.source_node_id)
             
@@ -252,16 +253,27 @@ class TokenManager:
                 if node_exec_count > 0:
                     # This node already executed, so it already consumed START's token
                     # Don't require it again
-                    logger.debug(f"[TOKEN] Node {node_id}: Already executed, ignoring edge from START {edge.source_node_id}")
                     continue
             
+            relevant_edges.append(edge)
+        
+        # Now categorize the relevant edges
+        active_edges = []
+        skippable_edges = []
+
+        for edge in relevant_edges:
+            source_node = self.diagram.get_node(edge.source_node_id)
+
             # Check if edge is from a skippable condition
             # Skippable conditions can only be skipped if the target has alternative paths
             if source_node and hasattr(source_node, 'type') and source_node.type == NodeType.CONDITION:
-                if getattr(source_node, 'skippable', False):
+                is_skippable = getattr(source_node, 'skippable', False)
+
+                if is_skippable:
                     # Count unique sources for this node to determine if skippable
-                    unique_sources = set(e.source_node_id for e in edges)
-                    
+                    # Use relevant_edges instead of all edges to exclude ignored START edges
+                    unique_sources = set(e.source_node_id for e in relevant_edges)
+
                     if len(unique_sources) > 1:
                         # This node has multiple sources - condition edge can be skippable
                         skippable_edges.append(edge)
@@ -269,38 +281,46 @@ class TokenManager:
                     else:
                         # This is the only source - cannot be skipped even if marked skippable
                         logger.debug(f"[TOKEN] Node {node_id}: Treating skippable condition edge as required (only source)")
-            
+
             active_edges.append(edge)
         
         # If only skippable edges remain after filtering, they become required
         # This prevents deadlock when skippable conditions are the only dependencies
+        logger.debug(f"[TOKEN] Node {node_id}: active_edges={len(active_edges)}, skippable_edges={len(skippable_edges)}")
         if not active_edges and skippable_edges:
-            logger.debug(f"[TOKEN] Node {node_id}: Skippable edges becoming required (no other edges left)")
             active_edges = skippable_edges
             skippable_edges = []
         
         # Filter out inactive conditional branches
         required_edges = []
+
         for edge in active_edges:
+
             # For conditional branches, only include the active branch
             if edge.source_output in ["condtrue", "condfalse"]:
                 branch_decision = self._branch_decisions.get(edge.source_node_id)
+
                 # If we know the branch decision, filter out the inactive branch
                 if branch_decision and branch_decision != edge.source_output:
-                    logger.debug(f"[TOKEN] Node {node_id}: Skipping inactive branch {edge.source_output} from {edge.source_node_id}")
                     continue
+                else:
+                    logger.debug(f"[TOKEN] Node {node_id}: Including active/matching branch {edge.source_output} from {edge.source_node_id}")
             
+            logger.debug(f"[TOKEN] Node {node_id}: Adding edge to required_edges")
             required_edges.append(edge)
         
         # Apply join policy
         if join_policy == "all":
             # ALL: Require new tokens on all required edges
+            logger.debug(f"[TOKEN] Node {node_id}: Checking {len(required_edges)} required edges with ALL policy")
             for edge in required_edges:
                 seq = self._edge_seq.get((edge, epoch), 0)
                 last_consumed = self._last_consumed.get((node_id, edge, epoch), 0)
                 if seq <= last_consumed:
+                    logger.debug(f"[TOKEN] RESULT: Node {node_id} has_new_inputs=False (missing token)")
                     return False
-            return len(required_edges) > 0
+            result = len(required_edges) > 0
+            return result
             
         elif join_policy == "any":
             # ANY: Require new token on at least one edge
@@ -312,10 +332,11 @@ class TokenManager:
             return False
         
         # Default to ALL
-        return all(
+        result = all(
             self._edge_seq.get((edge, epoch), 0) > self._last_consumed.get((node_id, edge, epoch), 0)
             for edge in required_edges
         ) if required_edges else False
+        return result
     
     # ========== Utility Methods ==========
     

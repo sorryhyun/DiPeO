@@ -248,8 +248,17 @@ class NodeScheduler:
         
         target = edge.target_node_id
         
+        # Debug logging
+        logger.debug(f"[SCHEDULER] on_token_published: edge {edge.source_node_id}->{target}, epoch={epoch}")
+        
         # Check if the node has new inputs and can be armed
-        if self.context.has_new_inputs(target, epoch) and self._can_arm(target, epoch):
+        has_inputs = self.context.has_new_inputs(target, epoch)
+        can_arm = self._can_arm(target, epoch)
+        
+        logger.debug(f"[SCHEDULER] Node {target}: has_new_inputs={has_inputs}, can_arm={can_arm}")
+        
+        if has_inputs and can_arm:
+            logger.debug(f"[SCHEDULER] Arming and enqueuing node {target} for epoch {epoch}")
             self._arm_and_enqueue(target, epoch)
     
     def _can_arm(self, node_id: NodeID, epoch: int) -> bool:

@@ -390,6 +390,10 @@ class TypedExecutionEngine:
             if output is None:
                 output = await handler.execute_with_envelopes(request, inputs)
             
+            # Call post_execute hook if handler defines it
+            if hasattr(handler, 'post_execute'):
+                output = handler.post_execute(request, output)
+            
             return output
     
     def _create_execution_request(

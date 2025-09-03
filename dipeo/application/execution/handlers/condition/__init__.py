@@ -295,26 +295,18 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     ) -> Envelope:
         """Post-execution hook to emit tokens on the correct branch.
         
-        Emits the output on either "condtrue" or "condfalse" port.
+        Only emits token on the active branch port to avoid confusion in TokenManager.
         TokenManager will match these ports to edges with matching source_output.
         """
         # Use the branch decision from serialize_output
         active_branch = getattr(self, '_active_branch', 'condfalse')
         
-        # Emit output on the specific branch port
-        # Edges with source_output="condtrue" will only get tokens from "condtrue" port
+        # Emit output ONLY on the active branch port
+        # This ensures TokenManager correctly tracks which branch was taken
         context = request.context
         node_id = request.node.id
         outputs = {active_branch: output}
         context.emit_outputs_as_tokens(node_id, outputs)
-        
-        # Debug logging
-        condition_type = request.node.condition_type
-        result = (active_branch == "condtrue")
-        print(f"[ConditionNode] Evaluated {condition_type} condition - Result: {result}, Branch: {active_branch}")
-        
-        if self._current_evaluation_metadata:
-            print(f"[ConditionNode] Evaluation details: {self._current_evaluation_metadata}")
         
         return output
     

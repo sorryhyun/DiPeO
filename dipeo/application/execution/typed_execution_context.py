@@ -58,8 +58,8 @@ class TypedExecutionContext(ExecutionContextProtocol):
     def __post_init__(self):
         """Initialize token and state managers."""
         # Initialize managers
-        self._token_manager = TokenManager(self.diagram)
         self._state_tracker = StateTracker()
+        self._token_manager = TokenManager(self.diagram, execution_tracker=self._state_tracker)
         
         # Configure join policies from diagram
         if self.scheduler and hasattr(self.scheduler, 'configure_join_policies'):
@@ -101,12 +101,25 @@ class TypedExecutionContext(ExecutionContextProtocol):
         
         This method adds scheduler notification on top of token manager.
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         self._token_manager.emit_outputs(node_id, outputs, epoch)
         
         # Notify scheduler if available
-        if self.scheduler and hasattr(self.scheduler, 'on_tokens_published'):
-            for edge in self._token_manager._out_edges.get(node_id, []):
-                self.scheduler.on_token_published(edge, epoch or self.current_epoch())
+        logger.debug(f"[CONTEXT] emit_outputs_as_tokens: scheduler={self.scheduler is not None}, node_id={node_id}")
+        if self.scheduler:
+            logger.debug(f"[CONTEXT] Scheduler available, has on_token_published: {hasattr(self.scheduler, 'on_token_published')}")
+            if hasattr(self.scheduler, 'on_token_published'):
+                edges = self._token_manager._out_edges.get(node_id, [])
+                logger.debug(f"[CONTEXT] Found {len(edges)} outgoing edges from {node_id}")
+                for edge in edges:
+                    logger.debug(f"[CONTEXT] Notifying scheduler of token on edge {edge.source_node_id}->{edge.target_node_id}")
+                    self.scheduler.on_token_published(edge, epoch or self.current_epoch())
+            else:
+                logger.debug("[CONTEXT] Scheduler does not have on_token_published method")
+        else:
+            logger.debug("[CONTEXT] No scheduler available")
     
     def has_new_inputs(self, node_id: NodeID, epoch: int | None = None) -> bool:
         """Check if a node has unconsumed tokens ready.
