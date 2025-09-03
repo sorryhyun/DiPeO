@@ -137,10 +137,16 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         request: ExecutionRequest[HookNode],
         inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelope inputs to legacy format for hook execution."""
+        """Convert envelope inputs to legacy format for hook execution.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
+        
         # Convert envelope inputs to legacy format
         prepared_inputs = {}
-        for key, envelope in inputs.items():
+        for key, envelope in envelope_inputs.items():
             try:
                 # Try to parse as JSON first
                 prepared_inputs[key] = envelope.as_json()
@@ -267,6 +273,20 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             output_envelope = output_envelope.with_meta(**output["meta"])
         
         return output_envelope
+    
+    def post_execute(
+        self,
+        request: ExecutionRequest[HookNode],
+        output: Envelope
+    ) -> Envelope:
+        """Post-execution hook to emit tokens.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
+        
+        return output
     
     async def _execute_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
         # Hook type already validated in pre_execute

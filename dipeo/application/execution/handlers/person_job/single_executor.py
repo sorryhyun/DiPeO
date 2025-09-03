@@ -279,12 +279,12 @@ class SinglePersonJobExecutor:
         from dataclasses import replace
         from dipeo.diagram_generated.enums import ContentType
         
-        # Extract token usage as typed field
-        token_usage = None
-        if hasattr(result, 'token_usage') and result.token_usage:
-            # The token_usage is already a domain TokenUsage object with correct fields
+        # Extract LLM usage as typed field
+        llm_usage = None
+        if hasattr(result, 'llm_usage') and result.llm_usage:
+            # The llm_usage is already a domain LLMUsage object with correct fields
             # Just use it directly
-            token_usage = result.token_usage
+            llm_usage = result.llm_usage
         
         # Get person and conversation IDs
         person_id = str(person.id) if person.id else None
@@ -304,7 +304,7 @@ class SinglePersonJobExecutor:
         # Determine primary body for backward compatibility
         primary_envelope = self._determine_primary_envelope(
             node, diagram, text_repr, object_repr, conversation_repr,
-            person_id, conversation_id, model, token_usage, trace_id
+            person_id, conversation_id, model, llm_usage, trace_id
         )
         
         # Add all representations
@@ -349,7 +349,7 @@ class SinglePersonJobExecutor:
             "last_message": messages[-1] if messages else None,
             "person_id": str(person.id),
             "model": model,
-            "token_usage": result.token_usage.model_dump() if hasattr(result, 'token_usage') and result.token_usage else None
+            "llm_usage": result.llm_usage.model_dump() if hasattr(result, 'llm_usage') and result.llm_usage else None
         }
     
     def _any_edge_needs_conversation(self, node_id, diagram):
@@ -366,7 +366,7 @@ class SinglePersonJobExecutor:
         )
     
     def _determine_primary_envelope(self, node, diagram, text_repr, object_repr, conversation_repr,
-                                     person_id, conversation_id, model, token_usage, trace_id):
+                                     person_id, conversation_id, model, llm_usage, trace_id):
         """Determine primary envelope for backward compatibility."""
         # Check if conversation output is needed (backward compatibility)
         if self._conversation_handler.needs_conversation_output(str(node.id), diagram):
@@ -383,7 +383,7 @@ class SinglePersonJobExecutor:
                 person_id=person_id,
                 conversation_id=conversation_id,
                 model=model,
-                token_usage=token_usage.model_dump() if token_usage else None
+                llm_usage=llm_usage.model_dump() if llm_usage else None
             )
         
         # Check if we have structured data
@@ -397,7 +397,7 @@ class SinglePersonJobExecutor:
                 person_id=person_id,
                 model=model,
                 is_structured=True,
-                token_usage=token_usage.model_dump() if token_usage else None
+                llm_usage=llm_usage.model_dump() if llm_usage else None
             )
         
         # Default: return text output
@@ -408,5 +408,5 @@ class SinglePersonJobExecutor:
         ).with_meta(
             person_id=person_id,
             model=model,
-            token_usage=token_usage.model_dump() if token_usage else None
+            llm_usage=llm_usage.model_dump() if llm_usage else None
         )

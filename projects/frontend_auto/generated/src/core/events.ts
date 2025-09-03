@@ -1,121 +1,187 @@
-// FILE: src/core/events.ts
+// FILE:/src/core/contracts.ts
 
-import { User, Patient, Appointment, ApiResult } from '@/core/contracts'
+// Core domain contracts and API surface for healthcare domain models
 
-// Core Events: Typed EventBus for cross-module communication.
-// This module purposely avoids circular imports by exporting the bus from here
-// and letting other modules import { eventBus, on, off, emit } from this file.
+// Roles
+export type Role = 'patient' | 'doctor' | 'nurse' | 'admin'
 
-export type EventMap = {
-  'analytics.track': { event: string; payload?: Record<string, any> }
-  'user.login': { userId: string; tokens?: { accessToken?: string; refreshToken?: string } }
-  'user.logout': { userId?: string }
-  'appointment.created': { appointmentId: string }
-  'appointment.updated': { appointmentId: string; changes?: Partial<Appointment> }
-  'labresult.completed': { labId: string }
-  // Allow augmentation by other modules:
-  [key: string]: any
+// Base user
+export interface UserBase {
+  id: string
+  email: string
+  name: string
+  avatarUrl?: string
+  roles: Role[]
+  createdAt: string
+  updatedAt?: string
 }
 
-export type EventHandler<T> = (payload: T, meta?: { ts: string }) => void | Promise<void>
-
-class EventBus<EM extends Record<string, any> = EventMap> {
-  private handlers = new Map<string, Set<EventHandler<any>>>()
-
-  on<K extends keyof EM>(event: K, handler: EventHandler<EM[K]>): () => void {
-    const key = String(event)
-    let set = this.handlers.get(key)
-    if (!set) {
-      set = new Set<EventHandler<any>>()
-      this.handlers.set(key, set)
-    }
-    set.add(handler as EventHandler<any>)
-    // unsubscribe function
-    return () => this.off(event, handler)
-  }
-
-  off<K extends keyof EM>(event: K, handler?: EventHandler<EM[K]>): void {
-    const key = String(event)
-    const set = this.handlers.get(key)
-    if (!set) return
-    if (!handler) {
-      // remove all handlers for this event
-      this.handlers.delete(key)
-      return
-    }
-    set.delete(handler as EventHandler<any>)
-    if (set.size === 0) this.handlers.delete(key)
-  }
-
-  async emit<K extends keyof EM>(
-    event: K,
-    payload: EM[K],
-    options?: { async?: boolean }
-  ): Promise<void> {
-    const key = String(event)
-    const set = this.handlers.get(key)
-    if (!set || set.size === 0) return
-
-    const ts = new Date().toISOString()
-    const snapshot = Array.from(set)
-
-    // If explicit async mode requested, await handlers sequentially
-    if (options?.async) {
-      for (const handler of snapshot) {
-        try {
-          await (handler as EventHandler<any>)(payload, { ts })
-        } catch (err) {
-          // Swallow to avoid breaking app flow; log for dev/debugger
-          try {
-            // eslint-disable-next-line no-console
-            console.error('[EventBus] async handler error', err)
-          } catch {
-            // ignore
-          }
-        }
-      }
-      return
-    }
-
-    // Default: fire-and-forget with promise handling to avoid unhandled rejections
-    for (const handler of snapshot) {
-      try {
-        const r = (handler as EventHandler<any>)(payload, { ts })
-        if (r && typeof (r as any).then === 'function') {
-          (r as Promise<any>).catch((e) => {
-            try {
-              // eslint-disable-next-line no-console
-              console.error('[EventBus] handler promise rejection', e)
-            } catch {
-              // ignore
-            }
-          })
-        }
-      } catch (err) {
-        try {
-          // eslint-disable-next-line no-console
-          console.error('[EventBus] handler error', err)
-        } catch {
-          // ignore
-        }
-      }
-    }
-  }
-
-  clear(): void {
-    this.handlers.clear()
-  }
+// Patient-specific
+export interface Patient extends UserBase {
+  dob?: string
+  gender?: 'male' | 'female' | 'other'
+  medicalRecordId?: string
+  primaryDoctorId?: string
 }
 
-// Singleton instance for app-wide usage
-export const eventBus = new EventBus<EventMap>()
+// Doctor-specific
+export interface Doctor extends UserBase {
+  specialty?: string
+  licenseNumber?: string
+  clinicIds?: string[]
+}
 
-// Convenience bindings
-export const on = eventBus.on.bind(eventBus)
-export const off = eventBus.off.bind(eventBus)
-export const emit = eventBus.emit.bind(eventBus)
+// Nurse-specific
+export interface Nurse extends UserBase {
+  department?: string
+}
 
-// Self-Check
+// Generic User union
+export type User = Patient | Doctor | Nurse | UserBase
+
+// Domain models
+
+export interface Appointment {
+  id: string
+  patientId: string
+  providerId: string
+  startAt: string
+  endAt?: string
+  status: 'scheduled' | 'cancelled' | 'completed' | 'no_show'
+  location?: string
+  type: 'in_person' | 'telemedicine'
+  notes?: string
+  metadata?: Record<string, unknown>
+}
+
+export interface MedicalRecordEntry {
+  id: string
+  type: 'note' | 'lab' | 'imaging' | 'prescription'
+  authorId?: string
+  createdAt: string
+  data: Record<string, any>
+}
+
+export interface MedicalRecord {
+  id: string
+  patientId: string
+  diagnoses: { code: string; name: string; recordedAt: string; notes?: string }[]
+  allergies: string[]
+  medicationsSummary?: string
+  entries: MedicalRecordEntry[]
+}
+
+export interface Prescription {
+  id: string
+  patientId: string
+  prescriberId?: string
+  medication: string
+  dose: string
+  frequency: string
+  startDate?: string
+  endDate?: string
+  instructions?: string
+  refills?: number
+}
+
+export interface LabResult {
+  id: string
+  patientId: string
+  testName: string
+  orderedById?: string
+  specimenDate?: string
+  resultDate?: string
+  value?: string | number
+  unit?: string
+  normalRange?: string
+  status: 'pending' | 'completed' | 'cancelled'
+  attachments?: string[]
+}
+
+// Authentication tokens
+export interface AuthTokens {
+  accessToken: string
+  refreshToken?: string
+  expiresAt?: string | number
+}
+
+// API surface
+
+export type ApiResult<T> = {
+  success: true
+  data: T
+  meta?: Record<string, any>
+}
+
+// API error shape
+export type ApiError = {
+  success: false
+  error: { code: string; message: string; details?: any }
+}
+
+// Unified API response type
+export type ApiResponse<T> = ApiResult<T> | ApiError
+
+// Pagination wrapper
+export interface Pagination<T> {
+  items: T[]
+  page: number
+  pageSize: number
+  total: number
+}
+
+// Auth payloads
+export interface LoginPayload {
+  email: string
+  password: string
+  otp?: string
+}
+
+export interface RegisterPayload {
+  name: string
+  email: string
+  password: string
+  role?: Role
+}
+
+// WebSocket event map (real-time)
+export type WebSocketEventMap = {
+  'appointment.updated': { appointment: Appointment }
+  'labresult.created': { lab: LabResult }
+  'message.received': { fromId: string; toId: string; message: string; sentAt: string }
+  'user.status': { userId: string; online: boolean }
+}
+
+// Generic WebSocket event type
+export type WebSocketEvent<K extends keyof WebSocketEventMap = keyof WebSocketEventMap> = {
+  type: K
+  payload: WebSocketEventMap[K]
+  ts: string
+}
+
+// UI state helpers
+export type LoadingState = 'idle' | 'loading' | 'succeeded' | 'failed'
+
+export interface FormState<T = any> {
+  values: T
+  touched: Partial<Record<string, boolean>>
+  errors: Partial<Record<string, string>>
+  isValid: boolean
+  isSubmitting: boolean
+}
+
+// Exported alias for external usage (as per spec)
+export type { User as UserType }
+
+// Note: LabResult type is defined earlier in this file to satisfy WebSocketEventMap dependency.
+// The rest of the codebase should import these types from '@/core/contracts'
+
+// ARIA/keyboard-friendly helpers (types-only placeholders for future integration)
+export type AriaLabel = string
+
+// End of contracts file
+
+// Self-check comments
 // [ ] Uses `@/` imports only
 // [ ] Uses providers/hooks (no direct DOM/localStorage side effects)
 // [ ] Reads config from `@/app/config`

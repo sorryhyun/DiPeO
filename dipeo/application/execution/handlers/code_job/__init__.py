@@ -153,14 +153,20 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         request: ExecutionRequest[CodeJobNode],
         inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Prepare execution context from envelopes."""
+        """Prepare execution context from envelopes.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
         node = request.node
+        
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
         
         # Prepare execution context from envelopes
         exec_context = {}
         
         # Add all inputs to context
-        for key, envelope in inputs.items():
+        for key, envelope in envelope_inputs.items():
             # Convert envelope to appropriate Python type
             if envelope.content_type == "raw_text":
                 exec_context[key] = envelope.as_text()
@@ -337,6 +343,10 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         request: ExecutionRequest[CodeJobNode],
         output: Envelope
     ) -> Envelope:
+        """Post-execution hook for logging and token emission.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
         # Use instance variable for language
         if request.metadata and request.metadata.get("debug"):
             language = self._current_language
@@ -345,6 +355,9 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             print(f"[CodeJobNode] Executed {language} code - Success: {not is_error}")
             if is_error and hasattr(output, 'value'):
                 print(f"[CodeJobNode] Error: {output.value}")
+        
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
         
         return output
     

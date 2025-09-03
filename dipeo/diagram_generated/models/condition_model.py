@@ -19,6 +19,7 @@ class ConditionNodeData(BaseModel):
     memorize_to: Optional[str] = Field(description="Memory control strategy (e.g., GOLDFISH for fresh evaluation)")
     at_most: Optional[float] = Field(description="Maximum messages to keep in memory")
     expose_index_as: Optional[str] = Field(description="Variable name to expose the condition node's execution count (0-based index) to downstream nodes")
+    skippable: Optional[bool] = Field(description="When true, downstream nodes can execute even if this condition hasn't been evaluated yet")
 
     class Config:
         extra = "forbid"

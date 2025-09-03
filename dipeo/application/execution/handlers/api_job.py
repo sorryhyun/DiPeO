@@ -123,8 +123,14 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         request: ExecutionRequest[ApiJobNode],
         inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Prepare API request inputs from envelopes and node configuration."""
+        """Prepare API request inputs from envelopes and node configuration.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
         node = request.node
+        
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
         
         # Start with pre-validated data from instance variables (set in pre_execute)
         api_config = {
@@ -140,10 +146,10 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         }
         
         # Process any dynamic inputs from envelopes
-        if url_envelope := self.get_optional_input(inputs, 'url'):
+        if url_envelope := self.get_optional_input(envelope_inputs, 'url'):
             api_config['url'] = url_envelope.as_text()
         
-        if headers_envelope := self.get_optional_input(inputs, 'headers'):
+        if headers_envelope := self.get_optional_input(envelope_inputs, 'headers'):
             try:
                 api_config['headers'] = headers_envelope.as_json()
             except ValueError:
@@ -153,7 +159,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 except json.JSONDecodeError:
                     raise ValueError("Invalid headers format in input")
         
-        if params_envelope := self.get_optional_input(inputs, 'params'):
+        if params_envelope := self.get_optional_input(envelope_inputs, 'params'):
             try:
                 api_config['params'] = params_envelope.as_json()
             except ValueError:
@@ -163,7 +169,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 except json.JSONDecodeError:
                     raise ValueError("Invalid params format in input")
         
-        if body_envelope := self.get_optional_input(inputs, 'body'):
+        if body_envelope := self.get_optional_input(envelope_inputs, 'body'):
             try:
                 api_config['body'] = body_envelope.as_json()
             except ValueError:
@@ -380,6 +386,13 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         request: ExecutionRequest[ApiJobNode],
         output: Envelope
     ) -> Envelope:
+        """Post-execution hook to emit tokens.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
+        
         # Post-execution logging can use node properties or output fields
         # No need for metadata access
         return output

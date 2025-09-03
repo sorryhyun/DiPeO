@@ -410,7 +410,7 @@ class ExecuteDiagramUseCase(BaseService):
         """Initialize execution state for typed diagram."""
         from datetime import datetime
 
-        from dipeo.diagram_generated import ExecutionState, Status, TokenUsage
+        from dipeo.diagram_generated import ExecutionState, Status, LLMUsage
         
         # Create initial execution state
         initial_state = ExecutionState(
@@ -422,7 +422,7 @@ class ExecuteDiagramUseCase(BaseService):
             node_outputs={},
             variables=options.get("variables", {}),
             is_active=True,
-            token_usage=TokenUsage(input=0, output=0),
+            llm_usage=LLMUsage(input=0, output=0),
             exec_counts={},
             executed_nodes=[],
         )

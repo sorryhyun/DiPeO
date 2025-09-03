@@ -38,6 +38,7 @@ class ConditionNode:
     memorize_to: str = ""
     at_most: float = 0
     expose_index_as: str = ""
+    skippable: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -61,4 +62,5 @@ class ConditionNode:
         data["memorize_to"] = self.memorize_to
         data["at_most"] = self.at_most
         data["expose_index_as"] = self.expose_index_as
+        data["skippable"] = self.skippable
         return data

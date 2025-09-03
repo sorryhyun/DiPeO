@@ -1,16 +1,18 @@
-"""Scheduler for managing node execution order with indegree tracking.
+"""Scheduler for managing node execution order with indegree and token-based tracking.
 
 This module implements a dedicated scheduler that tracks node dependencies 
-and maintains a ready queue for efficient execution ordering.
+and maintains a ready queue for efficient execution ordering, with support 
+for token-based scheduling while maintaining status for UI compatibility.
 """
 
 import asyncio
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Set
+from typing import TYPE_CHECKING, Any, Set, Optional
 
 from dipeo.diagram_generated import NodeID, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
+from dipeo.domain.execution.token_types import EdgeRef, JoinPolicy, ConcurrencyPolicy
 
 if TYPE_CHECKING:
     from dipeo.application.execution.typed_execution_context import TypedExecutionContext
@@ -24,21 +26,25 @@ class NodeScheduler:
     
     This scheduler extracts the scheduling complexity from TypedExecutionEngine,
     providing a clean interface for determining which nodes are ready to execute.
+    Supports both traditional status-based and token-based scheduling.
     """
     
     def __init__(
         self, 
         diagram: ExecutableDiagram,
-        order_calculator: "DomainDynamicOrderCalculator"
+        order_calculator: "DomainDynamicOrderCalculator",
+        context: Optional["TypedExecutionContext"] = None
     ):
         """Initialize the scheduler with a diagram.
         
         Args:
             diagram: The executable diagram to schedule
             order_calculator: Domain calculator for determining node readiness
+            context: Optional execution context for token-based scheduling
         """
         self.diagram = diagram
         self.order_calculator = order_calculator
+        self.context = context
         
         # Build dependency tracking structures
         self._indegree: dict[NodeID, int] = {}
@@ -49,7 +55,17 @@ class NodeScheduler:
         # Track high-priority edges to enforce sequential execution
         self._priority_dependencies: dict[NodeID, set[NodeID]] = defaultdict(set)
         
+        # Token-aware scheduling structures
+        self._ready_queue_by_epoch: dict[int, asyncio.Queue[NodeID]] = defaultdict(asyncio.Queue)
+        self._armed_nodes: dict[tuple[NodeID, int], bool] = {}  # Track if node is armed (pending/running) for epoch
+        self._running_nodes: dict[tuple[NodeID, int], bool] = {}  # Track if node is currently running for epoch
+        
+        # Join policies - default to 'all' for backward compatibility
+        self._join_policies: dict[NodeID, JoinPolicy] = {}
+        self._concurrency_policies: dict[NodeID, ConcurrencyPolicy] = {}
+        
         self._initialize_dependencies()
+        self._initialize_policies()
     
     def _is_conditional_edge(self, edge) -> bool:
         """Defensively check if an edge is conditional.
@@ -106,6 +122,30 @@ class NodeScheduler:
             if count == 0:
                 # Otherwise, it's truly ready (no dependencies or has non-conditional deps satisfied)
                 self._ready_queue.put_nowait(node_id)
+    
+    def _initialize_policies(self) -> None:
+        """Initialize join and concurrency policies for nodes."""
+        all_nodes = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
+        for node in all_nodes:
+            # Extract join policy from node metadata or use default
+            if hasattr(node, 'join_policy'):
+                if isinstance(node.join_policy, str):
+                    self._join_policies[node.id] = JoinPolicy(policy_type=node.join_policy)
+                else:
+                    self._join_policies[node.id] = node.join_policy
+            else:
+                # Default to 'all' for backward compatibility
+                self._join_policies[node.id] = JoinPolicy(policy_type="all")
+            
+            # Extract concurrency policy from node metadata or use default
+            if hasattr(node, 'concurrency_policy'):
+                if isinstance(node.concurrency_policy, str):
+                    self._concurrency_policies[node.id] = ConcurrencyPolicy(mode=node.concurrency_policy)
+                else:
+                    self._concurrency_policies[node.id] = node.concurrency_policy
+            else:
+                # Default to singleton for backward compatibility
+                self._concurrency_policies[node.id] = ConcurrencyPolicy(mode="singleton")
     
     async def get_ready_nodes(self, context: "TypedExecutionContext") -> list[ExecutableNode]:
         """Get nodes that are ready to execute.
@@ -184,6 +224,100 @@ class NodeScheduler:
         all_nodes_list = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
         all_nodes = {node.id for node in all_nodes_list}
         return list(all_nodes - self._processed_nodes)
+    
+    def on_token_published(self, edge: EdgeRef, epoch: int) -> None:
+        """Handle token publication event - Phase 2.1 of token migration.
+        
+        Called when a token is published on an edge. Checks if the target node 
+        is ready and enqueues it if so. Maintains status for UI compatibility.
+        
+        Args:
+            edge: The edge on which the token was published
+            epoch: The epoch for which the token was published
+        """
+        if not self.context:
+            return  # Skip if not in token mode
+        
+        target = edge.target_node_id
+        
+        # Check if the node has new inputs and can be armed
+        if self.context.has_new_inputs(target, epoch) and self._can_arm(target, epoch):
+            self._arm_and_enqueue(target, epoch)
+    
+    def _can_arm(self, node_id: NodeID, epoch: int) -> bool:
+        """Check if a node can be armed for execution.
+        
+        Args:
+            node_id: The node to check
+            epoch: The epoch to check for
+            
+        Returns:
+            True if the node can be armed (not already running/armed)
+        """
+        key = (node_id, epoch)
+        
+        # Check concurrency policy
+        policy = self._concurrency_policies.get(node_id, ConcurrencyPolicy(mode="singleton"))
+        
+        # Count current running instances for this node
+        running_count = sum(1 for (nid, ep), running in self._running_nodes.items() 
+                          if nid == node_id and ep == epoch and running)
+        
+        # Use the policy's can_arm method
+        return policy.can_arm(running_count)
+    
+    def _arm_and_enqueue(self, node_id: NodeID, epoch: int) -> None:
+        """Arm a node and add it to the ready queue.
+        
+        Sets the node status to PENDING for UI compatibility and adds to queue.
+        
+        Args:
+            node_id: The node to arm
+            epoch: The epoch to arm for
+        """
+        key = (node_id, epoch)
+        
+        # Mark as armed to prevent duplicate enqueuing
+        self._armed_nodes[key] = True
+        
+        # Set status to PENDING for UI compatibility if context available
+        if self.context:
+            from dipeo.diagram_generated import NodeState, Status
+            # Only update to PENDING if not already in a terminal state
+            current_state = self.context._node_states.get(node_id)
+            if current_state and current_state.status in [Status.COMPLETED, Status.FAILED]:
+                # Reset for re-execution
+                self.context._node_states[node_id] = NodeState(status=Status.PENDING)
+            elif not current_state or current_state.status not in [Status.PENDING, Status.RUNNING]:
+                self.context._node_states[node_id] = NodeState(status=Status.PENDING)
+        
+        # Add to epoch-specific ready queue
+        self._ready_queue_by_epoch[epoch].put_nowait(node_id)
+        # Also add to main queue for backward compatibility
+        self._ready_queue.put_nowait(node_id)
+    
+    def mark_node_running(self, node_id: NodeID, epoch: int) -> None:
+        """Mark a node as running for concurrency tracking.
+        
+        Args:
+            node_id: The node that started running
+            epoch: The epoch it's running for
+        """
+        key = (node_id, epoch)
+        self._running_nodes[key] = True
+        # Clear armed state since it's now running
+        self._armed_nodes.pop(key, None)
+    
+    def mark_node_complete(self, node_id: NodeID, epoch: int) -> None:
+        """Mark a node as complete for concurrency tracking.
+        
+        Args:
+            node_id: The node that completed
+            epoch: The epoch it completed for
+        """
+        key = (node_id, epoch)
+        self._running_nodes.pop(key, None)
+        self._armed_nodes.pop(key, None)
     
     def _create_calculator_context(self, context: "TypedExecutionContext") -> Any:
         """Create a context wrapper for the order calculator.

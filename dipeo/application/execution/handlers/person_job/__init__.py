@@ -139,12 +139,19 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     ) -> dict[str, Any]:
         """Convert envelope inputs to data for person job.
         
+        Phase 5: Now consumes tokens from incoming edges when available.
         Envelopes allow clean, typed communication between nodes.
         """
         node = request.node
         
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
+        
         # Store raw inputs for batch processing
-        self._envelope_inputs = inputs
+        self._envelope_inputs = envelope_inputs
+        
+        # Continue with existing logic, but use envelope_inputs instead of inputs
+        inputs = envelope_inputs
         
         # Extract prompt from envelope (optional, use default_prompt if not provided)
         prompt_envelope = self.get_optional_input(inputs, 'prompt')
@@ -336,7 +343,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         request: ExecutionRequest[PersonJobNode],
         output: Envelope
     ) -> Envelope:
-        """Post-execution hook to log execution details."""
+        """Post-execution hook to log execution details and emit tokens.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
         # Log execution details if in debug mode (using instance variable)
         if self._current_debug:
             is_batch = getattr(request.node, 'batch', False)
@@ -347,5 +357,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 logger.debug(f"Batch person job completed: {successful}/{total} successful")
             else:
                 logger.debug(f"Person job completed for {request.node.person}")
+        
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
         
         return output

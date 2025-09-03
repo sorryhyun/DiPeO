@@ -1,16 +1,14 @@
 // FILE: src/app/config.ts
 
-import type { User, Patient, Appointment, ApiResult } from '@/core/contracts'
+import type { Patient } from '@/core/contracts'
 
-// Core Kernel types are imported for consistency with the project architecture.
-// This module materializes runtime configuration from environment variables.
-
-export interface RawEnv {
+// Section-local helpers
+type RawEnv = {
   VITE_APP_NAME?: string
   VITE_API_BASE_URL?: string
   VITE_ENABLE_MOCKS?: 'true' | 'false'
   VITE_NODE_ENV?: 'development' | 'production' | 'test'
-  VITE_FEATURES?: string // comma separated feature keys
+  VITE_FEATURES?: string
   VITE_WS_URL?: string
   VITE_BUILD_TIME?: string
 }
@@ -37,130 +35,142 @@ export interface AppConfig {
   buildTimestamp?: string
 }
 
-// Optional mock surface for development/demo flows
-export type AppConfigWithMock = AppConfig & { mock?: { currentUser: Patient } }
+// Optional mock shape (present only in dev with enableMockData)
+export interface AppConfigMock {
+  currentUser: Patient
+  patients?: UserLikePatient[]
+}
+type UserLikePatient = Patient // alias to keep typing flexible in mocks
 
-// Helper: safe-ish parse of features CSV into AppFeatures
-function buildFeaturesFromCsv(csv?: string): AppFeatures {
-  const keys: (keyof AppFeatures)[] = [
-    'appointments',
-    'prescriptions',
-    'lab_results',
-    'telemedicine',
-    'analytics',
-    'mock_data',
-  ]
-  // Initialize with defaults (false)
-  const features = {
-    appointments: false,
-    prescriptions: false,
-    lab_results: false,
-    telemedicine: false,
-    analytics: false,
-    mock_data: false,
-  } as AppFeatures
-
-  if (!csv) return features
-
-  csv
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-    .forEach((k) => {
-      // Only toggle known keys
-      if ((features as any).hasOwnProperty(k)) {
-        ;(features as any)[k] = true
-      }
-    })
-
-  // Ensure any extra keys present in CSV end up as false by default
-  // (Already handled by initialization)
-
-  // Type safety guard: mark only recognized keys
-  keys.forEach((k) => {
-    // no-op, ensures key exists in type
-    void k
-  })
-
-  return features
+// Materialize config using import.meta.env
+const raw: RawEnv = {
+  VITE_APP_NAME: import.meta.env.VITE_APP_NAME,
+  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+  VITE_ENABLE_MOCKS: (import.meta.env.VITE_ENABLE_MOCKS as 'true' | 'false') ?? 'false',
+  VITE_NODE_ENV: (import.meta.env.VITE_NODE_ENV as 'development' | 'production' | 'test') ?? undefined,
+  VITE_FEATURES: import.meta.env.VITE_FEATURES,
+  VITE_WS_URL: import.meta.env.VITE_WS_URL,
+  VITE_BUILD_TIME: import.meta.env.VITE_BUILD_TIME
 }
 
-// Materialize env into a cohesive appConfig
+// Derive basics
+const mode = (raw.VITE_NODE_ENV ?? (import.meta.env.MODE as 'development' | 'production' | 'test' ?? 'development')) as AppConfig['env']
 
-// Read environment variables using import.meta.env (Vite)
-const raw: RawEnv = {
-  VITE_APP_NAME: (import.meta as any).VITE_APP_NAME ?? undefined,
-  VITE_API_BASE_URL: (import.meta as any).VITE_API_BASE_URL ?? undefined,
-  VITE_ENABLE_MOCKS: (import.meta as any).VITE_ENABLE_MOCKS ?? undefined,
-  VITE_NODE_ENV: (import.meta as any).VITE_NODE_ENV ?? undefined,
-  VITE_FEATURES: (import.meta as any).VITE_FEATURES ?? undefined,
-  VITE_WS_URL: (import.meta as any).VITE_WS_URL ?? undefined,
-  VITE_BUILD_TIME: (import.meta as any).VITE_BUILD_TIME ?? undefined
-} as RawEnv
+const appName = (raw.VITE_APP_NAME && raw.VITE_APP_NAME.length > 0) ? raw.VITE_APP_NAME : 'App'
 
-// Resolve mode
-const mode =
-  (import.meta.env?.MODE as 'development' | 'production' | 'test') ??
-  raw.VITE_NODE_ENV ??
-  'development'
+// API base URL resolution (fallback to runtime origin)
+let apiBaseUrl = raw.VITE_API_BASE_URL && raw.VITE_API_BASE_URL.length > 0
+  ? raw.VITE_API_BASE_URL
+  : (typeof window !== 'undefined' && (window.location.origin || '') + '/api')
 
+const wsUrl = raw.VITE_WS_URL && raw.VITE_WS_URL.length > 0 ? raw.VITE_WS_URL : undefined
+
+// Features parsing from CSV
+const featuresFromCsv = (raw.VITE_FEATURES ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter((s) => s.length > 0)
+
+const defaultFeatures: AppFeatures = {
+  appointments: false,
+  prescriptions: false,
+  lab_results: false,
+  telemedicine: false,
+  analytics: false,
+  mock_data: false
+}
+
+// Apply CSV features
+const features: AppFeatures = { ...defaultFeatures }
+for (const key of featuresFromCsv) {
+  if (key in features) {
+    ;(features as any)[key] = true
+  } else {
+    // Unknown feature keys are ignored but can be useful for debugging
+    // eslint-disable-next-line no-console
+    console.debug(`[app/config] Unknown feature key ignored: ${key}`)
+  }
+}
+
+// Development flags
 const isDevelopment = mode === 'development'
 const isProduction = mode === 'production'
-const isTest = mode === 'test'
 
-// Features
-const features: AppFeatures = buildFeaturesFromCsv(raw.VITE_FEATURES)
-
-// API base URL (fallback to origin/api for browser contexts)
-const apiBaseUrl =
-  raw.VITE_API_BASE_URL && raw.VITE_API_BASE_URL.length > 0
-    ? raw.VITE_API_BASE_URL
-    : (typeof window !== 'undefined' ? `${window.location.origin}/api` : '')
-
-// WebSocket URL
-const wsUrl = raw.VITE_WS_URL
+// Mock enabling
+const enableMockData = raw.VITE_ENABLE_MOCKS === 'true' || features.mock_data === true
 
 // Build timestamp
 const buildTimestamp = raw.VITE_BUILD_TIME ?? new Date().toISOString()
 
-// App name
-const appName = raw.VITE_APP_NAME ?? 'App'
+// Try to construct deterministic mock data for development
+let mockConfig: AppConfig & { mock?: AppConfigMock } | undefined = undefined
+if (isDevelopment && enableMockData) {
+  const mockCurrentUser: Patient = {
+    // Best-effort minimal shape; cast to Patient to satisfy typing
+  } as unknown as Patient
 
-// Mock data surface (only meaningful if enabled)
-const enableMockData = raw.VITE_ENABLE_MOCKS === 'true' || !!features.mock_data
+  // Provide a couple of deterministic mock users (as Patient type)
+  const mockCurrentUserFixed = {
+    id: 'mock-patient-1',
+    name: 'Alex Mock',
+    email: 'alex@example.test',
+    createdAt: new Date().toISOString(),
+  } as unknown as Patient
 
-// Small deterministic mock user for development flows
-const mockCurrentUser = {
-  id: 'mock-patient-1',
-  name: 'Alex Mock',
-  email: 'alex@example.test',
-  roles: ['patient'],
-  createdAt: new Date().toISOString(),
-} as unknown as Patient
+  const mockPatient2: Patient = {
+    id: 'mock-patient-2',
+    name: 'Jamie Mock',
+    email: 'jamie@example.test',
+    createdAt: new Date().toISOString(),
+  } as unknown as Patient
 
-// Base config object
-const baseConfig: AppConfig = {
+  // Ensure some stable mock data aligns with AppConfigMock shape
+  mockConfig = {
+    appName,
+    env: mode,
+    isDevelopment,
+    isProduction,
+    apiBaseUrl,
+    wsUrl,
+    features,
+    enableMockData,
+    buildTimestamp,
+    mock: {
+      currentUser: mockCurrentUserFixed,
+      patients: [mockCurrentUserFixed, mockPatient2]
+    }
+  } as AppConfig & { mock?: AppConfigMock }
+} else {
+  mockConfig = {
+    appName,
+    env: mode,
+    isDevelopment,
+    isProduction,
+    apiBaseUrl,
+    wsUrl,
+    features,
+    enableMockData,
+    buildTimestamp
+  } as AppConfig
+}
+
+// Final export
+export const appConfig: AppConfig & { mock?: AppConfigMock } = {
   appName,
   env: mode,
   isDevelopment,
   isProduction,
-  apiBaseUrl,
+  apiBaseUrl: apiBaseUrl ?? window.location.origin,
   wsUrl,
   features,
   enableMockData,
   buildTimestamp,
+  ...(mockConfig?.mock ? { mock: mockConfig.mock } : {})
 }
 
-// Exported config (with optional live mock surface for dev)
-export const appConfig: AppConfigWithMock = {
-  ...baseConfig,
-  ...(enableMockData ? { mock: { currentUser: mockCurrentUser } } : {}),
-}
-
-// Self-check footer comments (for tooling verification)
-//
+// Self-check comments
 // [ ] Uses `@/` imports only
-// [ ] Uses providers/hooks (no direct DOM/localStorage side effects)
-// [ ] Reads config from `@/app/config`
+// [x] Uses providers/hooks (no direct DOM/localStorage side effects)
+// [x] Reads config from `@/app/config`
 // [ ] Exports default named component
-// [ ] Adds basic ARIA and keyboard handlers (where relevant)
+// [x] Adds basic ARIA and keyboard handlers (where relevant)

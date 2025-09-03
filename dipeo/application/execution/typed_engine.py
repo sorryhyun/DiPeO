@@ -124,7 +124,10 @@ class TypedExecutionEngine:
             )
             
             # Initialize scheduler for this execution
-            self._scheduler = NodeScheduler(diagram, self.order_calculator)
+            self._scheduler = NodeScheduler(diagram, self.order_calculator, context)
+            
+            # Set scheduler reference in context for token events
+            context.scheduler = self._scheduler
             
             # Extract metadata from options
             for key, value in options.get('metadata', {}).items():
@@ -255,9 +258,15 @@ class TypedExecutionEngine:
         """Execute a single node with event notifications.
         
         Simplified version that delegates to helper methods for cleaner organization.
+        Now includes token consumption and emission for Phase 2.2.
         """
         node_id = node.id
         start_time = time.time()
+        
+        # Mark node as running in scheduler for concurrency tracking
+        epoch = context.current_epoch()
+        if self._scheduler:
+            self._scheduler.mark_node_running(node_id, epoch)
         
         # Emit node started event
         await self._emit_node_started(context, node)
@@ -270,12 +279,22 @@ class TypedExecutionEngine:
             # Execute the node
             output = await self._execute_node_handler(node, context)
             
+            # Emit outputs as tokens (Phase 2.2)
+            # Convert single output to dict for compatibility
+            if output:
+                outputs = {"default": output} if not isinstance(output, dict) else output
+                context.emit_outputs_as_tokens(node_id, outputs, epoch)
+            
             # Process completion
             duration_ms = (time.time() - start_time) * 1000
             token_usage = self._extract_token_usage(output)
             
             # Mark node as completed
             await self._handle_node_completion(node, output, context)
+            
+            # Mark complete in scheduler for concurrency tracking
+            if self._scheduler:
+                self._scheduler.mark_node_complete(node_id, epoch)
             
             # Emit completion event
             await self._emit_node_completed(
@@ -287,6 +306,9 @@ class TypedExecutionEngine:
             return self._format_node_result(output)
             
         except Exception as e:
+            # Mark complete in scheduler even on failure
+            if self._scheduler:
+                self._scheduler.mark_node_complete(node_id, epoch)
             await self._handle_node_failure(context, node, e)
             raise
     

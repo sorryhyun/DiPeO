@@ -301,12 +301,12 @@ export type ExecutionStateType = {
   executed_nodes: Array<Scalars['String']['output']>;
   id: Scalars['String']['output'];
   is_active?: Maybe<Scalars['Boolean']['output']>;
+  llm_usage: LLMUsageType;
   metrics?: Maybe<Scalars['JSON']['output']>;
   node_outputs: Scalars['JSON']['output'];
   node_states: Scalars['JSON']['output'];
   started_at: Scalars['String']['output'];
   status: Status;
-  token_usage: TokenUsageType;
   variables?: Maybe<Scalars['JSON']['output']>;
 };
 
@@ -340,6 +340,14 @@ export type InteractiveResponseInput = {
 };
 
 export { LLMService };
+
+export type LLMUsageType = {
+  __typename?: 'LLMUsageType';
+  cached?: Maybe<Scalars['Int']['output']>;
+  input: Scalars['Int']['output'];
+  output: Scalars['Int']['output'];
+  total?: Maybe<Scalars['Int']['output']>;
+};
 
 export type Mutation = {
   __typename?: 'Mutation';
@@ -757,14 +765,6 @@ export type TestApiKeyResult = {
   message?: Maybe<Scalars['String']['output']>;
   model_info?: Maybe<Scalars['JSON']['output']>;
   success: Scalars['Boolean']['output'];
-};
-
-export type TokenUsageType = {
-  __typename?: 'TokenUsageType';
-  cached?: Maybe<Scalars['Int']['output']>;
-  input: Scalars['Int']['output'];
-  output: Scalars['Int']['output'];
-  total?: Maybe<Scalars['Int']['output']>;
 };
 
 export type UnregisterCliSessionInput = {

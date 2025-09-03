@@ -202,7 +202,7 @@ nodes:
 
   - label: load Data
     type: db
-    position: {x: 1700, y: 240}
+    position: {x: 1500, y: 240}
     props:
       operation: read
       sub_type: file
@@ -222,7 +222,7 @@ nodes:
 
   - label: load Data again
     type: db
-    position: {x: 2000, y: 500}
+    position: {x: 2200, y: 600}
     props:
       operation: read
       sub_type: file
@@ -231,7 +231,7 @@ nodes:
 
   - label: Generate Frontend Code
     type: person_job
-    position: {x: 2400, y: 600}
+    position: {x: 2200, y: 800}
     props:
       person: Frontend Generator
       max_iteration: 100
@@ -247,7 +247,7 @@ nodes:
       person: Frontend Verdict
       memorize_to: GOLDFISH
       judge_by: Review this generated code output and determine if it's severely invalid or acceptable.
-      flipped: [true, false]  # only for UI, does not affect on logic
+      flipped: [false, false]  # only for UI, does not affect on logic
 
   - label: load Data for revise
     type: db
@@ -284,7 +284,7 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 3200, y: 800}
+    position: {x: 2200, y: 1100}
     props:
       operation: write
       sub_type: file

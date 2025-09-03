@@ -11,6 +11,7 @@ export interface ConditionNodeData {
   memorize_to?: string;
   at_most?: number;
   expose_index_as?: string;
+  skippable?: boolean;
 }
 
 // Zod schema for validation
@@ -24,4 +25,5 @@ export const ConditionNodeDataSchema = z.object({
   memorize_to: z.string().optional(),
   at_most: z.number().optional(),
   expose_index_as: z.string().optional(),
+  skippable: z.boolean().optional(),
 });

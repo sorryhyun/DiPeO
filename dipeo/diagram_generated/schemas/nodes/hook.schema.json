@@ -78,6 +78,10 @@
       ],
       "type": "object"
     },
+    "Record<string,string>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "HookType": {
       "enum": [
         "shell",
@@ -86,10 +90,6 @@
         "file"
       ],
       "type": "string"
-    },
-    "Record<string,string>": {
-      "additionalProperties": false,
-      "type": "object"
     }
   }
 }

@@ -157,11 +157,17 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         request: ExecutionRequest[SubDiagramNode],
         inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelopes to legacy inputs for executors."""
+        """Convert envelopes to legacy inputs for executors.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
+        
         # Convert envelopes to legacy inputs for executors (temporary during migration)
         # This allows existing executors to work without modification
         legacy_inputs = {}
-        for key, envelope in inputs.items():
+        for key, envelope in envelope_inputs.items():
             if envelope.content_type == "raw_text":
                 legacy_inputs[key] = envelope.as_text()
             elif envelope.content_type == "object":
@@ -351,7 +357,10 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         request: ExecutionRequest[SubDiagramNode],
         output: Envelope
     ) -> Envelope:
-        """Post-execution hook to log execution details."""
+        """Post-execution hook to log execution details and emit tokens.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
         # Log execution details in debug mode
         if logger.isEnabledFor(logging.DEBUG):
             is_batch = getattr(request.node, 'batch', False)
@@ -359,5 +368,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 batch_info = output.value if hasattr(output, 'value') else {}
                 total = batch_info.get('total_items', 0)
                 successful = batch_info.get('successful', 0)
+        
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
 
         return output

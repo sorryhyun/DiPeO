@@ -51,12 +51,18 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
         request: ExecutionRequest[UserResponseNode],
         inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelope inputs to context for user prompt."""
+        """Convert envelope inputs to context for user prompt.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
+        
         # Convert envelope inputs to text for context
         input_context = None
-        if inputs:
+        if envelope_inputs:
             # Check for default input first
-            if default_envelope := self.get_optional_input(inputs, 'default'):
+            if default_envelope := self.get_optional_input(envelope_inputs, 'default'):
                 try:
                     input_context = default_envelope.as_json()
                 except ValueError:
@@ -64,7 +70,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
             else:
                 # Collect all inputs
                 input_data = {}
-                for key, envelope in inputs.items():
+                for key, envelope in envelope_inputs.items():
                     try:
                         input_data[key] = envelope.as_json()
                     except ValueError:
@@ -144,3 +150,17 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
             )
         
         return output_envelope
+    
+    def post_execute(
+        self,
+        request: ExecutionRequest[UserResponseNode],
+        output: Envelope
+    ) -> Envelope:
+        """Post-execution hook to emit tokens.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
+        
+        return output

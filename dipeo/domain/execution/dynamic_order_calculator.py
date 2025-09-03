@@ -273,10 +273,47 @@ class DomainDynamicOrderCalculator:
         node_states: dict[NodeID, NodeState],
         context: ExecutionContext
     ) -> bool:
-        """Check if a node is ready for execution."""
+        """Check if a node is ready for execution - Phase 2.3 token-aware version.
+        
+        For dual mode operation: Accept PENDING nodes with no tokens (deprecation warning)
+        OR nodes with new token inputs regardless of status.
+        """
         node_state = node_states.get(node.id)
+        
+        # Token-based readiness check (Phase 2.3)
+        if hasattr(context, 'has_new_inputs') and hasattr(context, 'current_epoch'):
+            epoch = context.current_epoch()
+            has_tokens = context.has_new_inputs(node.id, epoch)
+            
+            if has_tokens:
+                # Node has new tokens - it's ready regardless of status
+                # Check loop constraints first
+                if not self.handle_loop_node(node, diagram, context):
+                    return False
+                    
+                # Check conditional dependencies
+                incoming_edges = diagram.get_incoming_edges(node.id)
+                if incoming_edges:
+                    result = self._check_dependencies(node, incoming_edges, node_states, context, diagram)
+                    if not result:
+                        return False
+                        
+                # Check priority siblings
+                if self._has_pending_higher_priority_siblings(node, diagram, node_states):
+                    return False
+                    
+                return True
+        
+        # Fallback to status-based for backward compatibility
         if not node_state or node_state.status != Status.PENDING:
             return False
+            
+        # Legacy path - log deprecation warning for PENDING without tokens
+        if hasattr(context, 'has_new_inputs') and hasattr(context, 'current_epoch'):
+            epoch = context.current_epoch()
+            if not context.has_new_inputs(node.id, epoch):
+                logger.warning(f"[DEPRECATION] Node {node.id} is PENDING but has no tokens. "
+                             f"This will not trigger execution in future versions.")
         
         # Check loop constraints
         if not self.handle_loop_node(node, diagram, context):

@@ -5,27 +5,25 @@ that manages all execution state, coordinates state transitions, and provides
 a clean API for both the execution engine and node handlers.
 """
 
-import asyncio
 import logging
 import threading
-import time
+from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.application.execution.states.execution_state_persistence import ExecutionStatePersistence
-from dipeo.domain.events import DomainEventBus, EventType, DomainEvent
-from dipeo.domain.execution.execution_context import ExecutionContext as ExecutionContextProtocol
-from dipeo.domain.execution.execution_tracker import CompletionStatus, ExecutionTracker
-from dipeo.domain.execution.envelope import Envelope
-from dipeo.domain.execution.resolution import RuntimeInputResolver
 from dipeo.diagram_generated import (
-    ExecutionState,
-    Status,
     NodeID,
     NodeState,
+    Status,
 )
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
+from dipeo.domain.events import DomainEvent, DomainEventBus, EventType
+from dipeo.domain.execution.envelope import Envelope
+from dipeo.domain.execution.execution_context import ExecutionContext as ExecutionContextProtocol
+from dipeo.domain.execution.execution_tracker import CompletionStatus, ExecutionTracker
+from dipeo.domain.execution.resolution import RuntimeInputResolver
+from dipeo.domain.execution.token_types import EdgeRef, Token
 
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
@@ -60,7 +58,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     # Runtime data
     _variables: dict[str, Any] = field(default_factory=dict)
     _metadata: dict[str, Any] = field(default_factory=dict)
-    _current_node_id: Optional[NodeID] = None
+    _current_node_id: NodeID | None = None
     
     # Node metadata storage
     _node_metadata: dict[NodeID, dict[str, Any]] = field(default_factory=dict)
@@ -71,9 +69,331 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     # Dependencies
     service_registry: Optional["ServiceRegistry"] = None
-    runtime_resolver: Optional[RuntimeInputResolver] = None
-    event_bus: Optional[DomainEventBus] = None
+    runtime_resolver: RuntimeInputResolver | None = None
+    event_bus: DomainEventBus | None = None
     container: Optional["Container"] = None
+    scheduler: Any = None  # Reference to NodeScheduler for token events
+    
+    # Epoch tracking for flow control
+    _epoch: int = field(default_factory=lambda: 0)
+    _last_epoch_run: dict[NodeID, int] = field(default_factory=dict)
+    
+    # Token management
+    _edge_seq: dict[tuple[EdgeRef, int], int] = field(default_factory=lambda: defaultdict(int))
+    _edge_tokens: dict[tuple[EdgeRef, int, int], Envelope] = field(default_factory=dict)
+    _last_consumed: dict[tuple[NodeID, EdgeRef, int], int] = field(default_factory=lambda: defaultdict(int))
+    
+    # Quick edge maps (initialized in __post_init__)
+    _in_edges: dict[NodeID, list[EdgeRef]] = field(default_factory=dict)
+    _out_edges: dict[NodeID, list[EdgeRef]] = field(default_factory=dict)
+    
+    # Phase 3.3: Loop control
+    _node_iterations_per_epoch: dict[tuple[NodeID, int], int] = field(default_factory=lambda: defaultdict(int))
+    _edge_ttl: dict[EdgeRef, int] = field(default_factory=dict)  # Time-to-live for edge tokens
+    _max_iterations_per_epoch: int = 100  # Default max iterations per node per epoch
+    
+    def __post_init__(self):
+        """Initialize edge maps from the diagram."""
+        self._initialize_edge_maps()
+    
+    def _initialize_edge_maps(self):
+        """Build incoming and outgoing edge maps for efficient lookups."""
+        for edge in self.diagram.edges:
+            edge_ref = EdgeRef(
+                source_node_id=edge.source_node_id,
+                source_output=edge.source_output,
+                target_node_id=edge.target_node_id
+            )
+            
+            # Add to outgoing edges
+            if edge.source_node_id not in self._out_edges:
+                self._out_edges[edge.source_node_id] = []
+            self._out_edges[edge.source_node_id].append(edge_ref)
+            
+            # Add to incoming edges
+            if edge.target_node_id not in self._in_edges:
+                self._in_edges[edge.target_node_id] = []
+            self._in_edges[edge.target_node_id].append(edge_ref)
+    
+    # ========== Token API ==========
+    
+    def current_epoch(self) -> int:
+        """Get the current execution epoch."""
+        return self._epoch
+    
+    def begin_epoch(self) -> int:
+        """Start a new epoch (e.g., for loop entry).
+        
+        Phase 3.3: Allows loop controllers to bump epochs deliberately.
+        
+        Returns:
+            The new epoch number
+        """
+        self._epoch += 1
+        logger.info(f"[TOKEN] Beginning new epoch: {self._epoch}")
+        return self._epoch
+    
+    def can_execute_in_loop(self, node_id: NodeID, epoch: int | None = None) -> bool:
+        """Check if a node can execute within loop iteration limits.
+        
+        Phase 3.3: Enforces max iterations per epoch to prevent infinite loops.
+        
+        Args:
+            node_id: The node to check
+            epoch: The epoch (defaults to current)
+            
+        Returns:
+            True if the node hasn't exceeded max iterations for this epoch
+        """
+        if epoch is None:
+            epoch = self._epoch
+            
+        key = (node_id, epoch)
+        current_count = self._node_iterations_per_epoch[key]
+        
+        # Check node-specific max iterations (e.g., PersonJobNode)
+        node = self.diagram.get_node(node_id) if self.diagram else None
+        if node and hasattr(node, 'max_iteration'):
+            return current_count < node.max_iteration
+            
+        # Check global max iterations per epoch
+        return current_count < self._max_iterations_per_epoch
+    
+    def publish_token(self, edge: EdgeRef, payload: Envelope, epoch: int | None = None) -> Token:
+        """Publish a token on an edge.
+        
+        Args:
+            edge: The edge to publish on
+            payload: The envelope to send
+            epoch: The epoch (defaults to current)
+            
+        Returns:
+            The published token
+        """
+        if epoch is None:
+            epoch = self._epoch
+            
+        with self._state_lock:
+            # Increment sequence number for this edge/epoch
+            seq_key = (edge, epoch)
+            self._edge_seq[seq_key] += 1
+            seq = self._edge_seq[seq_key]
+            
+            # Create and store the token
+            token = Token(
+                epoch=epoch,
+                seq=seq,
+                content=payload
+            )
+            
+            # Store the envelope for later consumption
+            self._edge_tokens[(edge, epoch, seq)] = payload
+            
+            logger.debug(f"[TOKEN] Published token on {edge.source_node_id}->{edge.target_node_id} "
+                       f"(epoch={epoch}, seq={seq})")
+            
+            # Signal the scheduler if available (Phase 2.1 integration)
+            if self.scheduler and hasattr(self.scheduler, 'on_token_published'):
+                self.scheduler.on_token_published(edge, epoch)
+            
+            return token
+    
+    def get_inbound_tokens(self, node_id: NodeID, epoch: int | None = None) -> dict[EdgeRef, tuple[int, Envelope]]:
+        """Get the latest tokens on all inbound edges without consuming them.
+        
+        Args:
+            node_id: The node to check
+            epoch: The epoch (defaults to current)
+            
+        Returns:
+            Map of edge to (seq, envelope)
+        """
+        if epoch is None:
+            epoch = self._epoch
+            
+        result = {}
+        with self._state_lock:
+            for edge in self._in_edges.get(node_id, []):
+                seq = self._edge_seq[(edge, epoch)]
+                if seq > 0:
+                    envelope = self._edge_tokens.get((edge, epoch, seq))
+                    if envelope is not None:
+                        result[edge] = (seq, envelope)
+        return result
+    
+    def has_new_inputs(self, node_id: NodeID, epoch: int | None = None) -> bool:
+        """Check if a node has new inputs to process.
+        
+        Phase 3.2: Respects join policies (all, any, k_of_n).
+        
+        Args:
+            node_id: The node to check
+            epoch: The epoch (defaults to current)
+            
+        Returns:
+            True if the node has unconsumed tokens on required edges per join policy
+        """
+        if epoch is None:
+            epoch = self._epoch
+            
+        edges = self._in_edges.get(node_id, [])
+        if not edges:
+            # Source nodes are always ready
+            return True
+        
+        # Get join policy for this node (default to 'all' for backward compatibility)
+        from dipeo.domain.execution.token_types import JoinPolicy
+        join_policy = JoinPolicy(policy_type="all")  # Default
+        
+        # Check if scheduler has join policy configured
+        if hasattr(self, 'scheduler') and self.scheduler:
+            node_policy = self.scheduler._join_policies.get(node_id)
+            if node_policy:
+                join_policy = node_policy
+        
+        # Separate conditional and non-conditional edges
+        conditional_edges = []
+        non_conditional_edges = []
+        for edge in edges:
+            if edge.source_output in ["condtrue", "condfalse"]:
+                conditional_edges.append(edge)
+            else:
+                non_conditional_edges.append(edge)
+        
+        # Count edges with new tokens
+        new_token_count = 0
+        edges_to_check = non_conditional_edges  # Default to non-conditional
+        
+        # For conditional edges, only check active branches
+        if conditional_edges:
+            for edge in conditional_edges:
+                # Check if this branch is active
+                branch_var = self.get_variable(f"branch[{edge.source_node_id}]")
+                if branch_var == edge.source_output:
+                    edges_to_check.append(edge)
+        
+        # Apply join policy
+        if join_policy.policy_type == "all":
+            # ALL: Require new tokens on all active edges
+            for edge in edges_to_check:
+                seq = self._edge_seq[(edge, epoch)]
+                last_consumed = self._last_consumed[(node_id, edge, epoch)]
+                if seq <= last_consumed:
+                    return False  # Missing token on required edge
+            return len(edges_to_check) > 0  # Must have at least one edge
+            
+        elif join_policy.policy_type == "any":
+            # ANY: Require new token on at least one edge
+            for edge in edges_to_check:
+                seq = self._edge_seq[(edge, epoch)]
+                last_consumed = self._last_consumed[(node_id, edge, epoch)]
+                if seq > last_consumed:
+                    return True  # Found at least one new token
+            return False
+            
+        elif join_policy.policy_type == "k_of_n" and join_policy.k:
+            # K_OF_N: Require new tokens on at least K edges
+            k = join_policy.k
+            for edge in edges_to_check:
+                seq = self._edge_seq[(edge, epoch)]
+                last_consumed = self._last_consumed[(node_id, edge, epoch)]
+                if seq > last_consumed:
+                    new_token_count += 1
+                    if new_token_count >= k:
+                        return True
+            return False
+            
+        # Fallback to ALL
+        return all(
+            self._edge_seq[(edge, epoch)] > self._last_consumed[(node_id, edge, epoch)]
+            for edge in edges_to_check
+        ) if edges_to_check else False
+    
+    def consume_inbound(self, node_id: NodeID, epoch: int | None = None) -> dict[str, Envelope]:
+        """Atomically consume inbound tokens for a node.
+        
+        Args:
+            node_id: The node consuming tokens
+            epoch: The epoch (defaults to current)
+            
+        Returns:
+            Map of port name to envelope
+        """
+        if epoch is None:
+            epoch = self._epoch
+            
+        inputs: dict[str, Envelope] = {}
+        with self._state_lock:
+            for edge in self._in_edges.get(node_id, []):
+                seq = self._edge_seq[(edge, epoch)]
+                if seq == 0:
+                    continue
+                    
+                # Mark as consumed
+                self._last_consumed[(node_id, edge, epoch)] = seq
+                
+                # Get the payload
+                payload = self._edge_tokens.get((edge, epoch, seq))
+                if payload is not None:
+                    # Use source_output as the port key, default to "default"
+                    key = edge.source_output or "default"
+                    inputs[key] = payload
+                    
+            logger.debug(f"[TOKEN] Node {node_id} consumed {len(inputs)} inputs for epoch {epoch}")
+        
+        return inputs
+    
+    def emit_outputs_as_tokens(self, node_id: NodeID, outputs: dict[str, Envelope], epoch: int | None = None) -> None:
+        """Compatibility helper to emit handler outputs as tokens.
+        
+        Phase 3.1: Filters conditional branches - only publishes tokens on active branches.
+        
+        Args:
+            node_id: The node emitting outputs
+            outputs: Map of output port to envelope
+            epoch: The epoch (defaults to current)
+        """
+        if epoch is None:
+            epoch = self._epoch
+            
+        # Check if this is a condition node emitting branches
+        node = self.diagram.get_node(node_id) if self.diagram else None
+        is_condition = node and hasattr(node, 'type') and str(node.type).lower() == 'condition'
+        
+        # Determine active branch if this is a condition node
+        active_branch = None
+        if is_condition and "default" in outputs:
+            # Extract condition result from output
+            output = outputs["default"]
+            if hasattr(output, 'body'):
+                body = output.body
+                if isinstance(body, dict) and "result" in body:
+                    active_branch = "condtrue" if bool(body["result"]) else "condfalse"
+                elif isinstance(body, bool):
+                    active_branch = "condtrue" if body else "condfalse"
+            
+            # Store branch decision for downstream nodes
+            if active_branch:
+                self.set_variable(f"branch[{node_id}]", active_branch)
+                logger.debug(f"[TOKEN] Condition node {node_id} selected branch: {active_branch}")
+        
+        for edge in self._out_edges.get(node_id, []):
+            # Phase 3.1: Filter non-selected branches for condition nodes
+            if is_condition and active_branch:
+                # Only emit on the active branch
+                if edge.source_output not in [active_branch, None, "default"]:
+                    logger.debug(f"[TOKEN] Skipping inactive branch {edge.source_output} from {node_id}")
+                    continue
+            
+            # Match output port or use default
+            out_key = edge.source_output or "default"
+            payload = outputs.get(out_key) or outputs.get("default")
+            
+            if payload is None:
+                logger.debug(f"[TOKEN] No output for port {out_key} on edge from {node_id}")
+                continue
+                
+            self.publish_token(edge, payload, epoch=epoch)
     
     # ========== Node State Queries ==========
     
@@ -133,10 +453,18 @@ class TypedExecutionContext(ExecutionContextProtocol):
     # ========== State Transitions ==========
     
     def transition_node_to_running(self, node_id: NodeID) -> int:
-        """Transition a node to running state. Returns execution count."""
+        """Transition a node to running state. Returns execution count.
+        
+        Phase 3.3: Tracks iterations per epoch for loop control.
+        """
         with self._state_lock:
             self._node_states[node_id] = NodeState(status=Status.RUNNING)
             self._tracker.start_execution(node_id)
+            
+            # Track iterations per epoch for loop control (Phase 3.3)
+            key = (node_id, self._epoch)
+            self._node_iterations_per_epoch[key] += 1
+            
             return self._tracker.get_execution_count(node_id)
     
     def transition_node_to_completed(self, node_id: NodeID, output: Any = None, token_usage: dict[str, int] | None = None) -> None:
@@ -166,7 +494,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
                 error=error
             )
     
-    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[Envelope] = None) -> None:
+    def transition_node_to_maxiter(self, node_id: NodeID, output: Envelope | None = None) -> None:
         """Transition a node to max iterations state."""
         logger.debug(f"[MAXITER] Transitioning {node_id} to MAXITER_REACHED")
         with self._state_lock:
@@ -226,9 +554,8 @@ class TypedExecutionContext(ExecutionContextProtocol):
             if not active_branch:
                 output = self._tracker.get_last_output(node_id)
                 from dipeo.domain.execution.envelope import Envelope
-                if isinstance(output, Envelope) and output:
-                    if isinstance(output.body, dict) and "result" in output.body:
-                        active_branch = "condtrue" if bool(output.body["result"]) else "condfalse"
+                if isinstance(output, Envelope) and output and isinstance(output.body, dict) and "result" in output.body:
+                    active_branch = "condtrue" if bool(output.body["result"]) else "condfalse"
             
             if not active_branch:
                 # Default safe branch
@@ -296,6 +623,59 @@ class TypedExecutionContext(ExecutionContextProtocol):
             # Cascade resets but prevent circular resets by tracking the initiator
             self._reset_downstream_nodes_if_needed(node_id_to_reset, initiating_node_id)
     
+    # ========== Epoch and Path Reset ==========
+    
+    def begin_epoch(self, start_node_id: NodeID, endpoints: list[NodeID] | None = None) -> list[NodeID]:
+        """Start a new flow epoch and reset reachable nodes on the start→endpoint path."""
+        from dipeo.diagram_generated import Status
+        self._epoch += 1
+
+        path_nodes = self._compute_reachable_nodes(start_node_id, endpoints)
+
+        with self._state_lock:
+            for nid in path_nodes:
+                st = self._node_states.get(nid)
+                if st and st.status in {Status.COMPLETED, Status.SKIPPED, Status.FAILED, Status.PAUSED}:
+                    # Do not touch RUNNING nodes to avoid preemption
+                    self.reset_node(nid)
+                # Track that this node can run in this epoch
+                self._last_epoch_run[nid] = self._epoch
+
+        logger.info(f"[EPOCH] Started epoch {self._epoch}, reset {len(path_nodes)} reachable nodes from {start_node_id}")
+        return path_nodes
+
+    def _compute_reachable_nodes(self, start_id: NodeID, endpoints: list[NodeID] | None) -> list[NodeID]:
+        """Lightweight BFS over non-conditional edges to get the flow path.
+           If endpoints provided, we can early-stop upon reaching any of them."""
+        diagram = self.diagram
+        # Build outgoing edges map if needed
+        out_edges = {}
+        for edge in diagram.edges:
+            if edge.source_node_id not in out_edges:
+                out_edges[edge.source_node_id] = []
+            out_edges[edge.source_node_id].append(edge)
+        
+        seen, q = set(), [start_id]
+        seen.add(start_id)
+        order = []
+
+        while q:
+            u = q.pop(0)
+            order.append(u)
+            for e in out_edges.get(u, []):
+                # Skip explicit conditional label edges if you want; or keep it simple and include all
+                v = e.target_node_id
+                if v not in seen:
+                    seen.add(v)
+                    q.append(v)
+
+        if endpoints:
+            # Optionally trim to nodes that are on at least one path to an endpoint
+            # (left simple: return order as-is; good enough for minimal viable behavior)
+            pass
+
+        return order
+    
     # ========== Runtime Context ==========
     
     def get_execution_metadata(self) -> dict[str, Any]:
@@ -344,9 +724,6 @@ class TypedExecutionContext(ExecutionContextProtocol):
         """Set a variable value."""
         self._variables[name] = value
     
-    def get_variables(self) -> dict[str, Any]:
-        """Get all variables."""
-        return self._variables.copy()
     
     @property
     def current_node_id(self) -> NodeID | None:
@@ -423,15 +800,14 @@ class TypedExecutionContext(ExecutionContextProtocol):
         
         # Import factory functions and classes
         from dipeo.domain.events import (
-            execution_started,
+            EventScope,
+            NodeOutputPayload,
             execution_completed,
             execution_error,
-            node_started,
+            execution_started,
             node_completed,
             node_error,
-            DomainEvent,
-            EventScope,
-            NodeOutputPayload
+            node_started,
         )
         
         processed_data = data or {}
@@ -651,7 +1027,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         """Check if any nodes are currently running."""
         return len(self.get_running_nodes()) > 0
     
-    def get_node(self, node_id: NodeID) -> Optional[ExecutableNode]:
+    def get_node(self, node_id: NodeID) -> ExecutableNode | None:
         """Get node by ID from diagram."""
         return self.diagram.get_node(node_id)
     

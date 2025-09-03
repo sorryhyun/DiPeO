@@ -5,7 +5,7 @@
  */
 
 import { LLMService, APIServiceType, ToolType } from './enums/integrations.js';
-import { TokenUsage } from './execution.js';
+import { LLMUsage } from './execution.js';
 
 export { LLMService, APIServiceType, ToolType };
 
@@ -38,7 +38,7 @@ export interface ToolOutput {
 
 export interface ChatResult {
   text: string;
-  token_usage?: TokenUsage | null;
+  llm_usage?: LLMUsage | null;
   raw_response?: any | null;
   tool_outputs?: ToolOutput[] | null;
 }

@@ -91,13 +91,19 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         request: ExecutionRequest[JsonSchemaValidatorNode],
         inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelope inputs to data for validation."""
+        """Convert envelope inputs to data for validation.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
+        
         node = request.node
         services = request.services
         filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
         
         # Store inputs as envelope dict for data extraction
-        self._envelope_inputs = inputs
+        self._envelope_inputs = envelope_inputs
         
         # Check if data_path is provided
         if node.data_path:
@@ -113,13 +119,13 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                 data_to_validate = json.loads(f.read().decode('utf-8'))
         else:
             # Use input data from envelopes
-            if not inputs:
+            if not envelope_inputs:
                 raise ValueError("No input data provided and no data_path specified")
             
             # Convert envelope inputs to data
-            if len(inputs) == 1:
+            if len(envelope_inputs) == 1:
                 # Single input - use it directly
-                envelope = list(inputs.values())[0]
+                envelope = list(envelope_inputs.values())[0]
                 try:
                     data_to_validate = envelope.as_json()
                 except ValueError:
@@ -134,7 +140,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
             else:
                 # Multiple inputs - create object from them
                 data_to_validate = {}
-                for key, envelope in inputs.items():
+                for key, envelope in envelope_inputs.items():
                     try:
                         data_to_validate[key] = envelope.as_json()
                     except ValueError:
@@ -303,6 +309,13 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         request: ExecutionRequest[JsonSchemaValidatorNode],
         output: Envelope
     ) -> Envelope:
+        """Post-execution hook to emit tokens.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
+        
         # Debug logging without using request.metadata
         if self._current_debug:
             if not output.has_error():

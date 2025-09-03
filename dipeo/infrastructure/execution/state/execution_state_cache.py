@@ -10,7 +10,7 @@ from dipeo.diagram_generated import (
     ExecutionID,
     ExecutionState,
     Status,
-    TokenUsage,
+    LLMUsage,
 )
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class ExecutionCache:
         self.node_statuses: dict[str, Status] = {}
         self.node_errors: dict[str, str] = {}
         self.variables: dict[str, Any] = {}
-        self.token_usage: TokenUsage | None = None
+        self.llm_usage: LLMUsage | None = None
         self._local_lock = asyncio.Lock()  # Per-execution lock
         self._last_access = time.time()
         self._dirty = False  # Track if cache needs persistence
@@ -83,25 +83,25 @@ class ExecutionCache:
             self._last_access = time.time()
             self._dirty = True
     
-    async def update_token_usage(self, tokens: TokenUsage) -> None:
-        """Update token usage."""
+    async def update_llm_usage(self, usage: LLMUsage) -> None:
+        """Update LLM usage."""
         async with self._local_lock:
-            self.token_usage = tokens
+            self.llm_usage = usage
             self._last_access = time.time()
             self._dirty = True
     
-    async def add_token_usage(self, tokens: TokenUsage) -> None:
-        """Add to token usage."""
+    async def add_llm_usage(self, usage: LLMUsage) -> None:
+        """Add to LLM usage."""
         async with self._local_lock:
-            if self.token_usage is None:
-                self.token_usage = tokens
+            if self.llm_usage is None:
+                self.llm_usage = usage
             else:
-                # Add token counts
-                self.token_usage = TokenUsage(
-                    input=self.token_usage.input + tokens.input,
-                    output=self.token_usage.output + tokens.output,
-                    cached=(self.token_usage.cached or 0) + (tokens.cached or 0) if tokens.cached else self.token_usage.cached,
-                    total=self.token_usage.input + tokens.input + self.token_usage.output + tokens.output,
+                # Add usage counts
+                self.llm_usage = LLMUsage(
+                    input=self.llm_usage.input + usage.input,
+                    output=self.llm_usage.output + usage.output,
+                    cached=(self.llm_usage.cached or 0) + (usage.cached or 0) if usage.cached else self.llm_usage.cached,
+                    total=self.llm_usage.input + usage.input + self.llm_usage.output + usage.output,
                 )
             self._last_access = time.time()
             self._dirty = True

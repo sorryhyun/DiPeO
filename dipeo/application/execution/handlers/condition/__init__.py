@@ -129,6 +129,21 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # No early return - proceed to execute_request
         return None
     
+    async def prepare_inputs(
+        self,
+        request: ExecutionRequest[ConditionNode],
+        inputs: dict[str, Envelope]
+    ) -> dict[str, Any]:
+        """Prepare inputs with token consumption.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
+        
+        # Call parent prepare_inputs for default envelope conversion
+        return await super().prepare_inputs(request, envelope_inputs)
+    
     async def run(
         self,
         inputs: dict[str, Any],
@@ -258,6 +273,15 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         request: ExecutionRequest[ConditionNode],
         output: Envelope
     ) -> Envelope:
+        """Post-execution hook to emit tokens with conditional filtering.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        Condition nodes use emit_outputs_as_tokens which handles conditional branch filtering.
+        """
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        # emit_token_outputs will automatically handle conditional branch filtering
+        self.emit_token_outputs(request, output)
+        
         # Debug logging without using request.metadata
         condition_type = request.node.condition_type
         result = output.value if hasattr(output, 'value') else None

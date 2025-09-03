@@ -207,13 +207,13 @@ class LLMInfraService(BaseService, LLMServicePort):
                 if isinstance(result, ChatResult):
                     return result
                 
-                # Convert token usage from infrastructure TokenUsage to domain TokenUsage
-                token_usage = None
+                # Convert token usage from infrastructure TokenUsage to domain LLMUsage
+                llm_usage = None
                 if hasattr(result, 'usage') and result.usage:
-                    # Import the domain TokenUsage model
-                    from dipeo.diagram_generated.domain_models import TokenUsage
-                    # Convert infrastructure TokenUsage (dataclass) to domain TokenUsage (Pydantic)
-                    token_usage = TokenUsage(
+                    # Import the domain LLMUsage model
+                    from dipeo.diagram_generated.domain_models import LLMUsage
+                    # Convert infrastructure TokenUsage (dataclass) to domain LLMUsage (Pydantic)
+                    llm_usage = LLMUsage(
                         input=result.usage.input_tokens,
                         output=result.usage.output_tokens,
                         total=result.usage.total_tokens
@@ -222,7 +222,7 @@ class LLMInfraService(BaseService, LLMServicePort):
                 # Convert LLMResponse to ChatResult
                 chat_result = ChatResult(
                     text=result.content if hasattr(result, 'content') else str(result),
-                    token_usage=token_usage,
+                    llm_usage=llm_usage,
                     raw_response=result.raw_response if hasattr(result, 'raw_response') else result,
                     tool_outputs=result.tool_outputs if hasattr(result, 'tool_outputs') else None
                 )

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.diagram_generated import ExecutionID, ExecutionState, NodeState, Status, TokenUsage
+from dipeo.diagram_generated import ExecutionID, ExecutionState, NodeState, Status, LLMUsage
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 from dipeo.infrastructure.execution.messaging import NullEventBus
 
@@ -222,7 +222,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
                 ended_at=None,
                 output=None,
                 error=None,
-                token_usage=None
+                llm_usage=None
             )
             node_states[str(node.id)] = node_state
         
@@ -245,7 +245,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             started_at=datetime.now(UTC).isoformat(),
             node_states=node_states,
             node_outputs={},  # Initialize empty
-            token_usage=TokenUsage(input=0, output=0, total=0),
+            llm_usage=LLMUsage(input=0, output=0, total=0),
             exec_counts={},  # Initialize empty
             executed_nodes=[],  # Initialize empty
             variables=variables  # Use the properly formatted variables

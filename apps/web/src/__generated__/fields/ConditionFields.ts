@@ -89,4 +89,12 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     placeholder: 'e.g., current_index, loop_counter',
     description: 'Variable name to expose the condition node\'s execution count (0-based index) to downstream nodes',
   },
+  {
+    name: 'skippable',
+    type: 'checkbox',
+    label: 'Skippable',
+    required: false,
+    defaultValue: false,
+    description: 'When true, downstream nodes can execute even if this condition hasn\'t been evaluated yet',
+  },
 ];
