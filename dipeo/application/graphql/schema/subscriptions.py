@@ -153,24 +153,60 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                             
                             # For node events, restructure the data to match frontend expectations
                             if event_type in ["NODE_STARTED", "NODE_COMPLETED", "NODE_FAILED"]:
-                                # Extract node-specific fields - they are already in snake_case from the engine
+                                # node_id is at the top level of the event, not in data
+                                # data field contains the payload (node_type, output, etc.)
+                                event_data = event.get("data", {})
+                                
+                                # Handle None case explicitly
+                                if event_data is None:
+                                    event_data = {}
+                                elif isinstance(event_data, str):
+                                    try:
+                                        event_data = json.loads(event_data)
+                                    except:
+                                        event_data = {}
+                                
+                                # Extract node_id from top level, other fields from data payload
                                 data = {
-                                    "node_id": event.get("node_id"),
-                                    "node_type": event.get("node_type"),
-                                    "status": event.get("status"),
-                                    "output": event.get("output"),
-                                    "metrics": event.get("metrics"),
-                                    "error": event.get("error"),
+                                    "node_id": event.get("node_id"),  # From top level
+                                    "node_type": event_data.get("node_type"),  # From data payload
+                                    "status": "RUNNING" if event_type == "NODE_STARTED" else 
+                                            "COMPLETED" if event_type == "NODE_COMPLETED" else "FAILED",
+                                    "output": event_data.get("output"),
+                                    "metrics": event_data.get("metrics"),
+                                    "error": event_data.get("error"),
                                 }
                                 # Remove None values
                                 data = {k: v for k, v in data.items() if v is not None}
                             elif event_type == "NODE_STATUS_CHANGED":
-                                # Handle NODE_STATUS_CHANGED events from UnifiedEventObserver
-                                # The data is already in the correct format
-                                data = event.get("data", {})
+                                # Handle NODE_STATUS_CHANGED events
+                                # node_id is at top level, status and other data in payload
+                                event_data = event.get("data", {})
+                                if event_data is None:
+                                    event_data = {}
+                                elif isinstance(event_data, str):
+                                    try:
+                                        event_data = json.loads(event_data)
+                                    except:
+                                        event_data = {}
+                                
+                                # Combine top-level node_id with data payload
+                                data = {
+                                    "node_id": event.get("node_id"),  # From top level
+                                    "status": event_data.get("status"),
+                                    "timestamp": event_data.get("timestamp") or event.get("timestamp"),
+                                    **{k: v for k, v in event_data.items() if k not in ["node_id", "status", "timestamp"]}
+                                }
                             elif event_type == "EXECUTION_STATUS_CHANGED":
                                 # Handle EXECUTION_STATUS_CHANGED events for execution start/stop
                                 data = event.get("data", {})
+                                if data is None:
+                                    data = {}
+                                elif isinstance(data, str):
+                                    try:
+                                        data = json.loads(data)
+                                    except:
+                                        data = {}
                             else:
                                 # For other events, pass through the data as-is
                                 data = {k: v for k, v in event.items() if k not in ["type", "timestamp", "executionId"]}
