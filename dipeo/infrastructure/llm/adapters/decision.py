@@ -231,6 +231,18 @@ class LLMDecisionAdapter:
         if not response_text:
             return False
         
+        # First, try to parse as JSON if it looks like JSON
+        response_stripped = response_text.strip()
+        if response_stripped.startswith('{') and response_stripped.endswith('}'):
+            try:
+                import json
+                json_data = json.loads(response_stripped)
+                if 'decision' in json_data:
+                    return bool(json_data['decision'])
+            except (json.JSONDecodeError, ValueError):
+                # Not valid JSON, continue with text parsing
+                pass
+        
         # Convert to lowercase for keyword matching
         response_lower = response_text.lower().strip()
         

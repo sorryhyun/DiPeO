@@ -17,6 +17,7 @@ nodes:
       language: python
       code: |
         # node_type is like "api-job", "person-job", etc.
+        # Extract just the string value for template substitution
         result = default['default']['node_spec_path']
   
   # Load cached AST data for this node spec
@@ -141,13 +142,13 @@ connections:
   # Parse input first
   - {from: Start, to: Parse Node Type, content_type: object}
     
-  # Load resources in parallel
-  - {from: Parse Node Type, to: Load Cached AST, label: node_type, content_type: object}
+  # Load resources in parallel (node_type passed as text for template substitution)
+  - {from: Parse Node Type, to: Load Cached AST, label: node_type}
   - {from: Parse Node Type, to: Load Codegen Mappings}
     
-  # Extract specification from AST
+  # Extract specification from AST  
   - {from: Load Cached AST, to: Extract Specification, label: ast_data, content_type: object}
-  - {from: Parse Node Type, to: Extract Specification, label: node_type, content_type: object}
+  - {from: Parse Node Type, to: Extract Specification, label: node_type}
     
   # Extract mappings
   - {from: Load Codegen Mappings, to: Extract Mappings, content_type: object}

@@ -79,6 +79,17 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
             f"all_reached_max={all_reached_max}, result={result}"
         )
         
+        # Include exposed loop index in output data
+        if hasattr(node, 'expose_index_as') and node.expose_index_as:
+            if hasattr(context, 'get_variable'):
+                loop_value = context.get_variable(node.expose_index_as)
+                if loop_value is not None:
+                    if isinstance(output_data, dict):
+                        output_data[node.expose_index_as] = loop_value
+                    else:
+                        # If output_data is not a dict, wrap it
+                        output_data = {"data": output_data, node.expose_index_as: loop_value}
+        
         return EvaluationResult(
             result=result,
             metadata={

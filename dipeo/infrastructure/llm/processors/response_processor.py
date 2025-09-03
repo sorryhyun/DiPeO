@@ -44,8 +44,22 @@ class ResponseProcessor:
         if hasattr(response, 'output_parsed'):
             # Structured output from parse() method
             structured_output = response.output_parsed
-            # Convert to string for content field
-            content = str(structured_output) if structured_output else ""
+            # Convert to JSON string for content field if it's a Pydantic model or dict
+            if structured_output:
+                if hasattr(structured_output, 'model_dump_json'):
+                    # Pydantic v2 model
+                    content = structured_output.model_dump_json()
+                elif hasattr(structured_output, 'json'):
+                    # Pydantic v1 model
+                    content = structured_output.json()
+                elif isinstance(structured_output, dict):
+                    # Plain dict
+                    content = json.dumps(structured_output)
+                else:
+                    # Fallback for other types
+                    content = json.dumps(structured_output) if hasattr(json, 'dumps') else str(structured_output)
+            else:
+                content = ""
         
         # Handle new responses.create API format (based on actual response structure)
         elif hasattr(response, 'output') and isinstance(response.output, list):

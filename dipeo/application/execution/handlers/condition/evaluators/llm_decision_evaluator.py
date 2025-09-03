@@ -44,20 +44,34 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
         """
         if not self._orchestrator:
             logger.error("Orchestrator service not available for LLM decision")
+            # Include exposed loop index even in error cases
+            output_data = inputs if inputs else {}
+            if hasattr(node, 'expose_index_as') and node.expose_index_as:
+                if hasattr(context, 'get_variable'):
+                    loop_value = context.get_variable(node.expose_index_as)
+                    if loop_value is not None:
+                        output_data[node.expose_index_as] = loop_value
             return EvaluationResult(
                 result=False,
                 metadata={"error": "Orchestrator service not available"},
-                output_data=inputs
+                output_data=output_data
             )
         
         # Get person configuration
         person_id = getattr(node, 'person', None)
         if not person_id:
             logger.error("No person specified for LLM decision")
+            # Include exposed loop index even in error cases
+            output_data = inputs if inputs else {}
+            if hasattr(node, 'expose_index_as') and node.expose_index_as:
+                if hasattr(context, 'get_variable'):
+                    loop_value = context.get_variable(node.expose_index_as)
+                    if loop_value is not None:
+                        output_data[node.expose_index_as] = loop_value
             return EvaluationResult(
                 result=False,
                 metadata={"error": "No person specified"},
-                output_data=inputs
+                output_data=output_data
             )
         
         # Get prompt
@@ -71,10 +85,17 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
         
         if not prompt:
             logger.error("No prompt specified (neither judge_by nor judge_by_file)")
+            # Include exposed loop index even in error cases
+            output_data = inputs if inputs else {}
+            if hasattr(node, 'expose_index_as') and node.expose_index_as:
+                if hasattr(context, 'get_variable'):
+                    loop_value = context.get_variable(node.expose_index_as)
+                    if loop_value is not None:
+                        output_data[node.expose_index_as] = loop_value
             return EvaluationResult(
                 result=False,
                 metadata={"error": "No prompt specified"},
-                output_data=inputs
+                output_data=output_data
             )
         
         # Build template values from inputs and context
@@ -108,16 +129,28 @@ class LLMDecisionEvaluator(BaseConditionEvaluator):
                 "prompt_preview": prompt[:200],
             })
             
+            # Include exposed loop index in output data for downstream nodes
+            output_data = inputs if inputs else {}
+            if hasattr(node, 'expose_index_as') and node.expose_index_as and node.expose_index_as in template_values:
+                output_data[node.expose_index_as] = template_values[node.expose_index_as]
+            
             return EvaluationResult(
                 result=decision,
                 metadata=metadata,
-                output_data=inputs
+                output_data=output_data
             )
             
         except Exception as e:
             logger.error(f"LLM decision execution failed: {e}")
+            # Include exposed loop index even in error cases
+            output_data = inputs if inputs else {}
+            if hasattr(node, 'expose_index_as') and node.expose_index_as:
+                if hasattr(context, 'get_variable'):
+                    loop_value = context.get_variable(node.expose_index_as)
+                    if loop_value is not None:
+                        output_data[node.expose_index_as] = loop_value
             return EvaluationResult(
                 result=False,
                 metadata={"error": str(e)},
-                output_data=inputs
+                output_data=output_data
             )

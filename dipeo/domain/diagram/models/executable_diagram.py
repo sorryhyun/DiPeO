@@ -5,6 +5,7 @@ from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated import ContentType
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Protocol
+import warnings
 
 @dataclass(frozen=True)
 class BaseExecutableNode:
@@ -106,11 +107,30 @@ class NodeOutputProtocolV2(Protocol):
 
 @dataclass
 class StandardNodeOutput:
-    """Standard implementation of NodeOutputProtocolV2."""
+    """Standard implementation of NodeOutputProtocolV2.
+    
+    DEPRECATED: This class is deprecated in favor of the Envelope pattern
+    with multi-representation support. Use Envelope.with_representations()
+    for new code. This class will be removed in future releases.
+    
+    Migration path:
+    - For new handlers: Return Envelope directly from serialize_output()
+    - For existing code: Continue using StandardNodeOutput with fallback support
+    - See: /docs/migration/envelope_migration_guide.md for details
+    """
     
     value: Any
     outputs: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+    
+    def __post_init__(self):
+        """Issue deprecation warning on instantiation."""
+        warnings.warn(
+            "StandardNodeOutput is deprecated. Use Envelope with representations instead. "
+            "See /docs/migration/envelope_migration_guide.md for migration guide.",
+            DeprecationWarning,
+            stacklevel=2
+        )
     
     def get_output(self, name: str = "default") -> Any:
         """Get a specific named output or default value."""
@@ -126,12 +146,30 @@ class StandardNodeOutput:
     
     @classmethod
     def from_value(cls, value: Any) -> "StandardNodeOutput":
-        """Create from a simple value."""
+        """Create from a simple value.
+        
+        DEPRECATED: Use EnvelopeFactory instead.
+        """
+        warnings.warn(
+            "StandardNodeOutput.from_value() is deprecated. "
+            "Use EnvelopeFactory.text() or EnvelopeFactory.json() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         return cls(value=value, outputs={"default": value})
     
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "StandardNodeOutput":
-        """Create from a dictionary representation."""
+        """Create from a dictionary representation.
+        
+        DEPRECATED: Use EnvelopeFactory instead.
+        """
+        warnings.warn(
+            "StandardNodeOutput.from_dict() is deprecated. "
+            "Use EnvelopeFactory with representations instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if "value" in data:
             return cls(
                 value=data["value"],

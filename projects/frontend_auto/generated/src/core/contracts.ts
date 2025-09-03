@@ -1,1 +1,1 @@
-'TokenUsage' object has no attribute 'input_tokens'
+1

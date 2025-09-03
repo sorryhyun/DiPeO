@@ -48,8 +48,13 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
             context_values=eval_context
         )
         
-        # Pass through inputs directly without wrapping
+        # Pass through inputs and include exposed variables for downstream nodes
         output_data = inputs if inputs else {}
+        
+        # Include the exposed loop index and other critical variables in output
+        # This ensures downstream nodes have access to loop control variables
+        if hasattr(node, 'expose_index_as') and node.expose_index_as and node.expose_index_as in eval_context:
+            output_data[node.expose_index_as] = eval_context[node.expose_index_as]
 
         return EvaluationResult(
             result=result,

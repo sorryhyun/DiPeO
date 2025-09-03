@@ -6,6 +6,7 @@ orchestrating all the domain resolution functions.
 
 from typing import Dict, Any
 import json
+import logging
 
 from dipeo.domain.execution.execution_context import ExecutionContext
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -21,6 +22,8 @@ from .transformation_engine import StandardTransformationEngine
 from .selectors import select_incoming_edges, compute_special_inputs
 from .defaults import apply_defaults
 from .errors import TransformationError, SpreadCollisionError
+
+logger = logging.getLogger(__name__)
 
 
 def resolve_inputs(
@@ -176,6 +179,12 @@ def transform_edge_values(
 def extract_edge_value(source_output: Any, edge: Any) -> Any:
     """Extract the actual value from a source node's output.
     
+    Priority order:
+    1. Envelope representations (if content_type specified)
+    2. Envelope body based on content_type
+    3. StandardNodeOutput (deprecated, with warning)
+    4. Raw dict/value (backward compatibility)
+    
     Args:
         source_output: The output from the source node
         edge: The edge defining the connection
@@ -183,18 +192,34 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
     Returns:
         The extracted value, or None if not available
     """
-    # Handle Envelope format
+    # Handle Envelope format (PREFERRED)
     if isinstance(source_output, Envelope):
-        # NEW: Check for representation based on edge content_type
-        if source_output.representations and hasattr(edge, 'content_type'):
-            if edge.content_type == ContentType.RAW_TEXT and "text" in source_output.representations:
-                return source_output.representations["text"]
-            elif edge.content_type == ContentType.OBJECT and "object" in source_output.representations:
-                return source_output.representations["object"]
-            elif edge.content_type == ContentType.CONVERSATION_STATE and "conversation" in source_output.representations:
-                return source_output.representations["conversation"]
+        # Priority 1: Use representations when available and content_type specified
+        if hasattr(edge, 'content_type') and edge.content_type:
+            if source_output.representations:
+                # Map ContentType to representation key
+                repr_mapping = {
+                    ContentType.RAW_TEXT: "text",
+                    ContentType.OBJECT: "object",
+                    ContentType.CONVERSATION_STATE: "conversation"
+                }
+                
+                repr_key = repr_mapping.get(edge.content_type)
+                if repr_key and repr_key in source_output.representations:
+                    logger.debug(
+                        f"Using '{repr_key}' representation for edge "
+                        f"{edge.source_node_id} -> {edge.target_node_id}"
+                    )
+                    return source_output.representations[repr_key]
+                elif repr_key:
+                    # Log warning for missing expected representation
+                    logger.warning(
+                        f"Edge requested '{repr_key}' representation but envelope "
+                        f"only has: {list(source_output.representations.keys())}. "
+                        f"Falling back to body."
+                    )
         
-        # Fallback to primary body based on envelope content_type
+        # Priority 2: Fallback to body based on envelope content_type
         if source_output.content_type == "raw_text":
             return str(source_output.body)
         elif source_output.content_type == "object":
@@ -205,8 +230,13 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
             # Unknown content type - return body as-is
             return source_output.body
     
-    # Handle StandardNodeOutput format
+    # Handle StandardNodeOutput format (DEPRECATED)
     if isinstance(source_output, StandardNodeOutput):
+        logger.debug(
+            f"Edge {edge.source_node_id} -> {edge.target_node_id} using deprecated "
+            f"StandardNodeOutput. Consider migrating to Envelope with representations."
+        )
+        
         output_key = edge.source_output or "default"
         
         # Check if this is structured output

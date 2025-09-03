@@ -44,12 +44,12 @@ persons:
       Every file must be immediately usable with no placeholders or TODOs.
 
   Frontend Generator:
-#    service: openai
-#    model: gpt-5-nano-2025-08-07
-#    api_key_id: APIKEY_52609F
-    service: claude-code
-    model: claude-code
-    api_key_id: APIKEY_CLAUDE
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+#    service: claude-code
+#    model: claude-code
+#    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
       
@@ -62,12 +62,12 @@ persons:
 
 
   Frontend Verdict:
-#    service: openai
-#    model: gpt-5-nano-2025-08-07
-#    api_key_id: APIKEY_52609F
-    service: claude-code
-    model: claude-code
-    api_key_id: APIKEY_CLAUDE
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+#    service: claude-code
+#    model: claude-code
+#    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
       
@@ -216,8 +216,9 @@ nodes:
       condition_type: custom
       expression: current_index >= 4
 #      expression: current_index >= default.total_files
+      skippable: true
       expose_index_as: current_index
-      flipped: [false, true]
+      flipped: [false, true]  # only for UI, does not affect on logic
 
   - label: load Data again
     type: db
@@ -230,7 +231,7 @@ nodes:
 
   - label: Generate Frontend Code
     type: person_job
-    position: {x: 2500, y: 600}
+    position: {x: 2400, y: 600}
     props:
       person: Frontend Generator
       max_iteration: 100
@@ -240,13 +241,22 @@ nodes:
 
   - label: Check Output Quality
     type: condition
-    position: {x: 2500, y: 240}
+    position: {x: 2400, y: 240}
     props:
       condition_type: llm_decision
       person: Frontend Verdict
       memorize_to: GOLDFISH
       judge_by: Review this generated code output and determine if it's severely invalid or acceptable.
-      flipped: [true, false]
+      flipped: [true, false]  # only for UI, does not affect on logic
+
+  - label: load Data for revise
+    type: db
+    position: {x: 2000, y: 500}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      source_details: projects/frontend_auto/generated/sections_data.json
 
   - label: Revise Frontend Code
     type: person_job
@@ -274,13 +284,13 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 2500, y: 800}
+    position: {x: 2400, y: 800}
     props:
       operation: write
       sub_type: file
       format: text
       source_details: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
-      flipped: [true, false]
+      flipped: [true, false]  # only for UI, does not affect on logic
 
   - label: Write revised Result
     type: db
@@ -290,7 +300,7 @@ nodes:
       sub_type: file
       format: text
       source_details: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
-      flipped: [true, false]
+      flipped: [true, false]  # only for UI, does not affect on logic
 
   - label: Rename Files
     type: code_job
@@ -334,9 +344,9 @@ connections:
   - { from: load Data again, to: Generate Frontend Code, content_type: object }
   - {from: Generate Frontend Code, to: Check Output Quality, content_type: object}
   - {from: Generate Frontend Code, to: Write Section Result, content_type: raw_text}
-  - {from: Check Output Quality_condtrue, to: Check Continue, content_type: raw_text}
+  - {from: Check Output Quality_condtrue, to: Check Continue, content_type: object}
 
   - {from: Check Output Quality_condfalse, to: Revise Frontend Code, label: generated_output, content_type: object}
-  - {from: load Data again, to: Revise Frontend Code, content_type: object}
-  - {from: Revise Frontend Code, to: Write revised Result, content_type: raw_text}
+  - {from: load Data for revise, to: Revise Frontend Code, content_type: object}
+  - {from: Revise Frontend Code, to: Write revised Result, content_type: object}
   - {from: Revise Frontend Code, to: Check Continue, content_type: object}

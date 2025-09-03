@@ -176,7 +176,20 @@ class PhaseHandler:
         message_ids = []
         
         if self.provider == ProviderType.OPENAI:
-            if hasattr(response, 'choices') and response.choices:
+            # OpenAI structured output from parse() API
+            if hasattr(response, 'output_parsed') and response.output_parsed:
+                # output_parsed is already a MemorySelectionOutput instance
+                if isinstance(response.output_parsed, MemorySelectionOutput):
+                    return response.output_parsed
+                # If it's a dict, convert to MemorySelectionOutput
+                elif isinstance(response.output_parsed, dict):
+                    message_ids = response.output_parsed.get('message_ids', [])
+                    return MemorySelectionOutput(message_ids=message_ids)
+                # If it's another Pydantic model with message_ids field
+                elif hasattr(response.output_parsed, 'message_ids'):
+                    return MemorySelectionOutput(message_ids=response.output_parsed.message_ids)
+            # Fallback to old format for compatibility
+            elif hasattr(response, 'choices') and response.choices:
                 content = response.choices[0].message.content
                 if content:
                     import json
@@ -202,8 +215,25 @@ class PhaseHandler:
         reasoning = None
         
         if self.provider == ProviderType.OPENAI:
-            # OpenAI structured output
-            if hasattr(response, 'parsed') and response.parsed:
+            # OpenAI structured output from parse() API
+            if hasattr(response, 'output_parsed') and response.output_parsed:
+                # output_parsed is already a DecisionOutput instance
+                if isinstance(response.output_parsed, DecisionOutput):
+                    return response.output_parsed
+                # If it's a dict, convert to DecisionOutput
+                elif isinstance(response.output_parsed, dict):
+                    return DecisionOutput(
+                        decision=response.output_parsed.get('decision', False),
+                        reasoning=response.output_parsed.get('reasoning')
+                    )
+                # If it's another Pydantic model with decision field
+                elif hasattr(response.output_parsed, 'decision'):
+                    return DecisionOutput(
+                        decision=response.output_parsed.decision,
+                        reasoning=getattr(response.output_parsed, 'reasoning', None)
+                    )
+            # Fallback to old format for compatibility
+            elif hasattr(response, 'parsed') and response.parsed:
                 return DecisionOutput(
                     decision=response.parsed.get('decision', False),
                     reasoning=response.parsed.get('reasoning')
