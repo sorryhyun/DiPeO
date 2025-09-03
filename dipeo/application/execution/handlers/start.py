@@ -108,10 +108,8 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         node = request.node
         context = request.context
         
-        # Begin a new epoch - reset all reachable nodes on the flow path
-        from dipeo.diagram_generated.generated_nodes import NodeType
-        endpoints = [n.id for n in context.diagram.get_nodes_by_type(NodeType.ENDPOINT)]
-        context.begin_epoch(node.id, endpoints=endpoints or None)
+        # Start a new token epoch; do not reset NodeState
+        context.begin_epoch()
         
         # Merge with input variables
         combined_data = {**self._current_input_variables, **inputs}

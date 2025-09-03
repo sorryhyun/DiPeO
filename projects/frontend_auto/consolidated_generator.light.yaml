@@ -216,13 +216,12 @@ nodes:
       condition_type: custom
       expression: current_index >= 4
 #      expression: current_index >= default.total_files
-      skippable: true
       expose_index_as: current_index
       flipped: [false, true]  # only for UI, does not affect on logic
 
   - label: load Data again
     type: db
-    position: {x: 2200, y: 600}
+    position: {x: 1900, y: 700}
     props:
       operation: read
       sub_type: file
@@ -241,7 +240,7 @@ nodes:
 
   - label: Check Output Quality
     type: condition
-    position: {x: 2800, y: 240}
+    position: {x: 2400, y: 700}
     props:
       condition_type: llm_decision
       person: Frontend Verdict
@@ -251,7 +250,7 @@ nodes:
 
   - label: load Data for revise
     type: db
-    position: {x: 2000, y: 500}
+    position: {x: 2600, y: 800}
     props:
       operation: read
       sub_type: file
@@ -260,7 +259,7 @@ nodes:
 
   - label: Revise Frontend Code
     type: person_job
-    position: {x: 3200, y: 400}
+    position: {x: 2800, y: 1000}
     props:
       person: Frontend Generator
       memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
@@ -284,7 +283,7 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 2200, y: 1100}
+    position: {x: 2200, y: 1000}
     props:
       operation: write
       sub_type: file
@@ -294,7 +293,7 @@ nodes:
 
   - label: Write revised Result
     type: db
-    position: {x: 2800, y: 800}
+    position: {x: 2800, y: 1000}
     props:
       operation: write
       sub_type: file
@@ -346,7 +345,7 @@ connections:
   - {from: Generate Frontend Code, to: Write Section Result, content_type: raw_text}
   - {from: Check Output Quality_condtrue, to: Check Continue, content_type: object}
 
-  - {from: Check Output Quality_condfalse, to: Revise Frontend Code, label: generated_output, content_type: object}
+  - {from: Check Output Quality_condfalse, to: load Data for revise, label: generated_output, content_type: object}
   - {from: load Data for revise, to: Revise Frontend Code, content_type: object}
   - {from: Revise Frontend Code, to: Write revised Result, content_type: object}
   - {from: Write revised Result, to: Check Continue, content_type: object}

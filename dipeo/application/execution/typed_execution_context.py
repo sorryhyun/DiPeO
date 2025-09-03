@@ -251,20 +251,29 @@ class TypedExecutionContext(ExecutionContextProtocol):
             if node_policy:
                 join_policy = node_policy
         
-        # Separate conditional and non-conditional edges
+        # Separate edges into categories
         conditional_edges = []
         non_conditional_edges = []
+        skippable_condition_edges = []
+        
         for edge in edges:
             if edge.source_output in ["condtrue", "condfalse"]:
+                # Check if this is from a skippable condition
+                if self.diagram:
+                    source_node = self.diagram.get_node(edge.source_node_id)
+                    if source_node and hasattr(source_node, 'skippable') and source_node.skippable:
+                        # Skippable conditions are completely optional - exclude from requirements
+                        skippable_condition_edges.append(edge)
+                        continue
                 conditional_edges.append(edge)
             else:
                 non_conditional_edges.append(edge)
         
-        # Count edges with new tokens
-        new_token_count = 0
-        edges_to_check = non_conditional_edges  # Default to non-conditional
+        # Build list of edges that are REQUIRED by the join policy
+        # Skippable condition edges are NOT included in requirements
+        edges_to_check = non_conditional_edges.copy()
         
-        # For conditional edges, only check active branches
+        # For non-skippable conditional edges, only include the active branch
         if conditional_edges:
             for edge in conditional_edges:
                 # Check if this branch is active
@@ -276,8 +285,8 @@ class TypedExecutionContext(ExecutionContextProtocol):
         if join_policy.policy_type == "all":
             # ALL: Require new tokens on all active edges
             for edge in edges_to_check:
-                seq = self._edge_seq[(edge, epoch)]
-                last_consumed = self._last_consumed[(node_id, edge, epoch)]
+                seq = self._edge_seq.get((edge, epoch), 0)
+                last_consumed = self._last_consumed.get((node_id, edge, epoch), 0)
                 if seq <= last_consumed:
                     return False  # Missing token on required edge
             return len(edges_to_check) > 0  # Must have at least one edge
@@ -285,8 +294,8 @@ class TypedExecutionContext(ExecutionContextProtocol):
         elif join_policy.policy_type == "any":
             # ANY: Require new token on at least one edge
             for edge in edges_to_check:
-                seq = self._edge_seq[(edge, epoch)]
-                last_consumed = self._last_consumed[(node_id, edge, epoch)]
+                seq = self._edge_seq.get((edge, epoch), 0)
+                last_consumed = self._last_consumed.get((node_id, edge, epoch), 0)
                 if seq > last_consumed:
                     return True  # Found at least one new token
             return False
@@ -527,8 +536,12 @@ class TypedExecutionContext(ExecutionContextProtocol):
     
     # ========== Epoch and Path Reset ==========
     
-    def begin_epoch(self, start_node_id: NodeID, endpoints: list[NodeID] | None = None) -> list[NodeID]:
-        """Start a new flow epoch and reset reachable nodes on the start→endpoint path."""
+    def reset_path_states(self, start_node_id: NodeID, endpoints: list[NodeID] | None = None) -> list[NodeID]:
+        """Legacy method: Reset reachable nodes on the start→endpoint path.
+        
+        NOTE: This is kept for backward compatibility but should not be used in token mode.
+        Token-driven execution uses begin_epoch() without parameters instead.
+        """
         from dipeo.diagram_generated import Status
         # Don't increment epoch here - we're resetting nodes for the CURRENT epoch
         # The epoch is managed by the execution engine, not by individual nodes
@@ -646,34 +659,26 @@ class TypedExecutionContext(ExecutionContextProtocol):
     # ========== Execution Queries ==========
     
     def is_execution_complete(self) -> bool:
-        """Check if execution is complete."""
-        # Check if any endpoint nodes have been reached
+        """Check if execution is complete using token-driven quiescence detection."""
         from dipeo.diagram_generated.generated_nodes import NodeType
-        has_endpoint = False
-        endpoints = self.diagram.get_nodes_by_type(NodeType.ENDPOINT)
-        for node in endpoints:
-                has_endpoint = True
-                node_state = self.get_node_state(node.id)
-                if node_state and node_state.status in [Status.COMPLETED, Status.MAXITER_REACHED]:
-                    return True
+        epoch = self.current_epoch()
         
-        # Check if any nodes are running
+        # If anything is RUNNING (UI), we're not done
         if any(state.status == Status.RUNNING for state in self._node_states.values()):
             return False
         
-        # If there's an endpoint node but it hasn't been executed yet, execution is not complete
-        if has_endpoint:
-            # Check if endpoint dependencies are met but endpoint hasn't run
-            for node in endpoints:
-                    node_state = self.get_node_state(node.id)
-                    # If endpoint has no state yet, execution is not complete
-                    if not node_state:
-                        return False
+        # If any node still has unconsumed tokens, we're not done
+        for node in self.diagram.nodes:
+            if self.has_new_inputs(node.id, epoch):
+                return False
         
-        # Check if all nodes have been processed (no pending nodes with met dependencies)
-        # This is a simplified check - the engine's order calculator determines actual readiness
-        has_pending = any(state.status == Status.PENDING for state in self._node_states.values())
-        return not has_pending
+        # If endpoints exist: finish when at least one endpoint executed this epoch
+        endpoints = self.diagram.get_nodes_by_type(NodeType.ENDPOINT)
+        if endpoints:
+            return any(self._tracker.has_executed(ep.id) for ep in endpoints)
+        
+        # No endpoints: finish on quiescence
+        return True
     
     
     

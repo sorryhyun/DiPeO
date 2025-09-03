@@ -279,41 +279,44 @@ class DomainDynamicOrderCalculator:
         Tokens are the primary scheduling mechanism. Status is kept for UI only.
         A node is ready when it has new token inputs and dependencies are satisfied.
         """
-        # START nodes should only execute once at the beginning
-        if node.type == NodeType.START:
-            node_state = node_states.get(node.id)
-            # Only ready if it hasn't been executed yet
-            if node_state and node_state.status != Status.PENDING:
-                return False
-            # For START nodes, if they're PENDING and have no incoming edges, they're ready
-            if not diagram.get_incoming_edges(node.id):
-                return True
+        # START nodes should only execute once per epoch
+        if node.type == NodeType.START and not diagram.get_incoming_edges(node.id):
+            # Run once per epoch; rely on execution count (tracker), not UI status
+            return context.get_node_execution_count(node.id) == 0
         
         # Token-based readiness check (Phase 6 - tokens are primary)
         if hasattr(context, 'has_new_inputs') and hasattr(context, 'current_epoch'):
             epoch = context.current_epoch()
+            
+            # Check if node has tokens from dependencies
+            incoming_edges = diagram.get_incoming_edges(node.id)
+            if not incoming_edges:
+                # Source nodes are always ready
+                return True
+                
+            # Separate conditional and non-conditional edges
+            conditional_edges = []
+            non_conditional_edges = []
+            for edge in incoming_edges:
+                if edge.source_output in ["condtrue", "condfalse"]:
+                    conditional_edges.append(edge)
+                else:
+                    non_conditional_edges.append(edge)
+            
+            # has_new_inputs already handles skippable conditions correctly
+            # by excluding them from join policy requirements
             has_tokens = context.has_new_inputs(node.id, epoch)
             
+            # Standard readiness check
             if has_tokens:
-                # Node has new tokens - check other constraints
-                # Check loop constraints first
+                # Node has tokens - check other constraints
                 if not self.handle_loop_node(node, diagram, context):
                     return False
-                    
-                # Check conditional dependencies
-                incoming_edges = diagram.get_incoming_edges(node.id)
-                if incoming_edges:
-                    result = self._check_dependencies(node, incoming_edges, node_states, context, diagram)
-                    if not result:
-                        return False
-                        
-                # Check priority siblings
                 if self._has_pending_higher_priority_siblings(node, diagram, node_states):
                     return False
-                    
                 return True
             else:
-                # No tokens = not ready (Phase 6 - strict token requirement)
+                # No tokens = not ready
                 return False
         
         # Fallback for systems without token support (should not happen in Phase 6)
@@ -365,15 +368,13 @@ class DomainDynamicOrderCalculator:
                 edges_by_condition[edge.source_node_id].append(edge)
             
             for condition_node_id, edges in edges_by_condition.items():
-                source_state = node_states.get(condition_node_id)
-                
                 # Check if condition is skippable (only if node has alternative paths)
                 source_node = next((n for n in diagram.nodes if n.id == condition_node_id), None)
                 is_skippable = (source_node and source_node.type == NodeType.CONDITION and
                               getattr(source_node, 'skippable', False))
                 
-                # If condition hasn't executed yet
-                if not source_state or source_state.status == Status.PENDING:
+                # If condition hasn't executed yet (check execution count instead of status)
+                if context.get_node_execution_count(condition_node_id) == 0:
                     # Skippable only helps if there are other satisfied dependencies
                     if is_skippable and non_conditional_edges:
                         continue  # Can skip this pending condition

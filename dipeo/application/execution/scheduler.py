@@ -132,6 +132,7 @@ class NodeScheduler:
     
     def _initialize_policies(self) -> None:
         """Initialize join and concurrency policies for nodes."""
+        from dipeo.diagram_generated import NodeType
         all_nodes = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
         for node in all_nodes:
             # Extract join policy from node metadata or use default
@@ -141,8 +142,14 @@ class NodeScheduler:
                 else:
                     self._join_policies[node.id] = node.join_policy
             else:
-                # Default to 'all' for backward compatibility
-                self._join_policies[node.id] = JoinPolicy(policy_type="all")
+                # If condition node has skippable=true, use 'any' policy
+                # This allows it to execute as soon as ANY input arrives
+                if (hasattr(node, 'type') and node.type == NodeType.CONDITION and 
+                    getattr(node, 'skippable', False)):
+                    self._join_policies[node.id] = JoinPolicy(policy_type="any")
+                else:
+                    # Other nodes default to 'all' for backward compatibility
+                    self._join_policies[node.id] = JoinPolicy(policy_type="all")
             
             # Extract concurrency policy from node metadata or use default
             if hasattr(node, 'concurrency_policy'):
@@ -205,32 +212,9 @@ class NodeScheduler:
         
         return newly_ready
     
-    def reset_node(self, node_id: NodeID) -> None:
-        """Reset a node for re-execution (used for loops).
-        
-        Args:
-            node_id: The node to reset
-        """
-        if node_id in self._processed_nodes:
-            self._processed_nodes.remove(node_id)
-            
-        # Recalculate indegree for this node using defensive check
-        incoming_edges = self.diagram.get_incoming_edges(node_id)
-        incoming_count = sum(
-            1 for edge in incoming_edges
-            if not self._is_conditional_edge(edge)
-        )
-        self._indegree[node_id] = incoming_count
+    # DEPRECATED: reset_node() removed - tokens handle re-execution automatically
     
-    def get_pending_nodes(self) -> list[NodeID]:
-        """Get all nodes that haven't been processed yet.
-        
-        Returns:
-            List of unprocessed node IDs
-        """
-        all_nodes_list = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
-        all_nodes = {node.id for node in all_nodes_list}
-        return list(all_nodes - self._processed_nodes)
+    # DEPRECATED: get_pending_nodes() removed - use token-based readiness instead
     
     def on_token_published(self, edge: EdgeRef, epoch: int) -> None:
         """Handle token publication event - Phase 2.1 of token migration.
@@ -287,15 +271,7 @@ class NodeScheduler:
         # Mark as armed to prevent duplicate enqueuing
         self._armed_nodes[key] = True
         
-        # Phase 6: Set status to PENDING for UI visualization only
-        # Status is not used for scheduling decisions
-        if self.context:
-            from dipeo.diagram_generated import NodeState, Status
-            # Update status for UI - this does not affect scheduling
-            current_state = self.context._node_states.get(node_id)
-            if not current_state or current_state.status not in [Status.RUNNING]:
-                # Set to PENDING for UI to show node is queued
-                self.context._node_states[node_id] = NodeState(status=Status.PENDING)
+        # Phase 6: Status updates removed - UI status managed separately
         
         # Add to epoch-specific ready queue
         self._ready_queue_by_epoch[epoch].put_nowait(node_id)
@@ -411,10 +387,13 @@ class NodeScheduler:
         Returns:
             Dictionary with scheduling statistics
         """
+        all_nodes_list = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
+        all_nodes = {node.id for node in all_nodes_list}
+        pending_count = len(all_nodes - self._processed_nodes)
         return {
-            "total_nodes": len(self.diagram.get_nodes_by_type(None) or self.diagram.nodes),
+            "total_nodes": len(all_nodes_list),
             "processed_nodes": len(self._processed_nodes),
-            "pending_nodes": len(self.get_pending_nodes()),
+            "pending_nodes": pending_count,
             "ready_queue_size": self._ready_queue.qsize(),
             "nodes_with_dependencies": sum(1 for c in self._indegree.values() if c > 0)
         }
