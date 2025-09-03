@@ -6,20 +6,23 @@ orchestrating all the domain resolution functions.
 
 from typing import Dict, Any
 import json
+import logging
 
 from dipeo.domain.execution.execution_context import ExecutionContext
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.domain.diagram.models.executable_diagram import (
     ExecutableDiagram,
-    ExecutableNode,
-    StandardNodeOutput
+    ExecutableNode
 )
 from dipeo.domain.execution.transform_rules import DataTransformRules
+from dipeo.diagram_generated import ContentType
 
 from .transformation_engine import StandardTransformationEngine
 from .selectors import select_incoming_edges, compute_special_inputs
 from .defaults import apply_defaults
 from .errors import TransformationError, SpreadCollisionError
+
+logger = logging.getLogger(__name__)
 
 
 def resolve_inputs(
@@ -96,7 +99,7 @@ def transform_edge_values(
     
     for edge in edges:
         # Get the output from source node
-        source_output = ctx.get_node_output(edge.source_node_id)
+        source_output = ctx.state.get_node_output(edge.source_node_id)
         
         if not source_output:
             continue
@@ -107,8 +110,36 @@ def transform_edge_values(
         if value is None:
             continue
         
+        # Handle edge content_type transformation
+        if hasattr(edge, 'content_type') and edge.content_type:
+            if edge.content_type == ContentType.RAW_TEXT:
+                # Extract text content from complex structures
+                if isinstance(value, dict):
+                    # Try 'default' key first, then any string value
+                    if 'default' in value:
+                        value = value['default']
+                    else:
+                        # Find the first string value in the dict
+                        string_val = next(
+                            (v for v in value.values() if isinstance(v, str)), 
+                            None
+                        )
+                        if string_val:
+                            value = string_val
+                        else:
+                            # If no string found, convert the whole dict to string
+                            value = str(value)
+                # Ensure it's a string
+                value = str(value)
+            elif edge.content_type == ContentType.OBJECT:
+                # Keep as-is for object type
+                pass
+            elif edge.content_type == ContentType.CONVERSATION_STATE:
+                # Keep as-is for conversation state
+                pass
+        
         # Get transformation rules (type-based + edge overrides)
-        source_node = get_node_by_id(diagram, edge.source_node_id)
+        source_node = diagram.get_node(edge.source_node_id)
         if not source_node:
             continue
         
@@ -147,6 +178,11 @@ def transform_edge_values(
 def extract_edge_value(source_output: Any, edge: Any) -> Any:
     """Extract the actual value from a source node's output.
     
+    Priority order:
+    1. Envelope representations (if content_type specified)
+    2. Envelope body based on content_type
+    3. Raw dict/value (backward compatibility)
+    
     Args:
         source_output: The output from the source node
         edge: The edge defining the connection
@@ -154,9 +190,34 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
     Returns:
         The extracted value, or None if not available
     """
-    # Handle Envelope format
+    # Handle Envelope format (PREFERRED)
     if isinstance(source_output, Envelope):
-        # Extract based on content type
+        # Priority 1: Use representations when available and content_type specified
+        if hasattr(edge, 'content_type') and edge.content_type:
+            if source_output.representations:
+                # Map ContentType to representation key
+                repr_mapping = {
+                    ContentType.RAW_TEXT: "text",
+                    ContentType.OBJECT: "object",
+                    ContentType.CONVERSATION_STATE: "conversation"
+                }
+                
+                repr_key = repr_mapping.get(edge.content_type)
+                if repr_key and repr_key in source_output.representations:
+                    logger.debug(
+                        f"Using '{repr_key}' representation for edge "
+                        f"{edge.source_node_id} -> {edge.target_node_id}"
+                    )
+                    return source_output.representations[repr_key]
+                elif repr_key:
+                    # Log warning for missing expected representation
+                    logger.warning(
+                        f"Edge requested '{repr_key}' representation but envelope "
+                        f"only has: {list(source_output.representations.keys())}. "
+                        f"Falling back to body."
+                    )
+        
+        # Priority 2: Fallback to body based on envelope content_type
         if source_output.content_type == "raw_text":
             return str(source_output.body)
         elif source_output.content_type == "object":
@@ -167,35 +228,6 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
             # Unknown content type - return body as-is
             return source_output.body
     
-    # Handle StandardNodeOutput format
-    if isinstance(source_output, StandardNodeOutput):
-        output_key = edge.source_output or "default"
-        
-        # Check if this is structured output
-        is_structured = source_output.metadata.get("is_structured", False)
-        
-        # Extract the actual value
-        if not isinstance(source_output.value, dict):
-            # Non-dict values are wrapped
-            output_dict = {"default": source_output.value}
-        else:
-            output_dict = source_output.value
-        
-        if output_key in output_dict:
-            return output_dict[output_key]
-        elif output_key == "default":
-            # Special handling for default output
-            if is_structured:
-                # Preserve full structure
-                return source_output.value
-            elif "default" in output_dict:
-                return output_dict["default"]
-            else:
-                # Return entire dict for single-key dicts
-                return output_dict
-        else:
-            # No matching output
-            return None
     
     # Handle dict format (backward compatibility)
     if isinstance(source_output, dict):
@@ -208,17 +240,3 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
     return source_output
 
 
-def get_node_by_id(diagram: ExecutableDiagram, node_id: str) -> ExecutableNode | None:
-    """Get a node from the diagram by its ID.
-    
-    Args:
-        diagram: The executable diagram
-        node_id: The node ID to find
-        
-    Returns:
-        The node if found, None otherwise
-    """
-    for node in diagram.nodes:
-        if node.id == node_id:
-            return node
-    return None

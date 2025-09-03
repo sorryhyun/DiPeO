@@ -51,12 +51,12 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
                                 # Fallback to getting diagram dict
                                 diagram_dict = await diagram_service.get_diagram(diagram_path)
                                 # Convert to DomainDiagram
-                                from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
-                                converter = DiagramConverterService()
-                                await converter.initialize()
+                                from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
+                                serializer = UnifiedSerializerAdapter()
+                                await serializer.initialize()
                                 import json
                                 json_content = json.dumps(diagram_dict)
-                                domain_diagram = converter.deserialize_from_storage(json_content, "native")
+                                domain_diagram = serializer.deserialize_from_storage(json_content, "native")
                             
                             if domain_diagram:
                                 # Convert DomainDiagram to dict for frontend

@@ -19,7 +19,7 @@ from dipeo.diagram_generated.domain_models import (
     DomainApiKey,
     ExecutionState,
     NodeState,
-    TokenUsage,
+    LLMUsage,
     DiagramMetadata,
     PersonLLMConfig,
     Vec2,
@@ -58,8 +58,8 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 class Vec2Type:
     pass
 
-@strawberry.experimental.pydantic.type(TokenUsage, all_fields=True)
-class TokenUsageType:
+@strawberry.experimental.pydantic.type(LLMUsage, all_fields=True)
+class LLMUsageType:
     pass
 
 @strawberry.experimental.pydantic.type(PersonLLMConfig, all_fields=True)
@@ -73,7 +73,7 @@ class NodeStateType:
     started_at: strawberry.auto
     ended_at: strawberry.auto
     error: strawberry.auto
-    token_usage: strawberry.auto
+    llm_usage: strawberry.auto
     
     @strawberry.field
     def output(self) -> Optional[JSONScalar]:
@@ -83,7 +83,7 @@ class NodeStateType:
 @strawberry.experimental.pydantic.type(EnvelopeMeta)
 class EnvelopeMetaType:
     node_id: Optional[str] = None
-    token_usage: Optional[TokenUsageType] = None
+    llm_usage: Optional[LLMUsageType] = None
     execution_time: Optional[float] = None
     retry_count: Optional[int] = None
     error: Optional[str] = None
@@ -174,7 +174,7 @@ class ExecutionStateType:
     diagram_id: strawberry.auto
     started_at: strawberry.auto
     ended_at: strawberry.auto
-    token_usage: strawberry.auto
+    llm_usage: strawberry.auto
     error: strawberry.auto
     duration_seconds: strawberry.auto
     is_active: strawberry.auto
@@ -228,7 +228,7 @@ class DomainDiagramType:
 # Export all types
 __all__ = [
     'Vec2Type',
-    'TokenUsageType',
+    'LLMUsageType',
     'NodeStateType',
     'SerializedNodeOutputType',
     'DomainHandleType',

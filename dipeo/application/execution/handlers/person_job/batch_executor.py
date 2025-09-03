@@ -25,10 +25,9 @@ class BatchPersonJobExecutor:
     DEFAULT_MAX_CONCURRENT = 10  # Maximum concurrent executions
     DEFAULT_BATCH_SIZE = 100     # Maximum items to process in one batch
     
-    def __init__(self, person_cache: dict[str, Person]):
-        """Initialize with shared person cache."""
-        self._person_cache = person_cache
-        self._single_executor = SinglePersonJobExecutor(person_cache)
+    def __init__(self):
+        """Initialize the batch executor."""
+        self._single_executor = SinglePersonJobExecutor()
     
     def _get_batch_configuration(self, node: PersonJobNode) -> Dict[str, Any]:
         """Extract batch configuration from node."""
@@ -44,7 +43,7 @@ class BatchPersonJobExecutor:
         batch_config: Dict[str, Any],
         trace_id: str = ""
     ) -> Envelope:
-        """Create an Envelope for empty batch."""
+        """Create an Envelope for empty batch with multi-representation."""
         logger.warning(f"Batch mode enabled but no items found for key '{batch_config['input_key']}'")
         
         empty_result = {
@@ -55,16 +54,39 @@ class BatchPersonJobExecutor:
             'errors': None
         }
         
-        # Return envelope directly
-        return EnvelopeFactory.json(
+        # Build representations for empty batch
+        representations = {
+            "text": "No items to process (empty batch)",
+            "object": empty_result,
+            "summary": {
+                "total_items": 0,
+                "successful": 0,
+                "failed": 0,
+                "success_rate": "N/A"
+            },
+            "outputs": [],
+            "detailed_results": [],
+            "errors": []
+        }
+        
+        # Create envelope with representations
+        envelope = EnvelopeFactory.json(
             empty_result,
             produced_by=node.id,
             trace_id=trace_id
-        ).with_meta(
+        )
+        
+        # Add representations
+        envelope = envelope.with_representations(representations)
+        
+        # Add metadata
+        envelope = envelope.with_meta(
             batch_mode="empty",
             batch_parallel=batch_config['parallel'],
             person_id=node.person
         )
+        
+        return envelope
     
     async def _execute_batch(
         self,
@@ -82,6 +104,60 @@ class BatchPersonJobExecutor:
         else:
             return await self._execute_sequential(batch_items, request)
     
+    def _build_batch_output(
+        self,
+        batch_items: List[Any],
+        results: List[Any],
+        errors: List[Dict[str, Any]],
+        batch_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Build multi-representation output for batch execution."""
+        batch_output = {
+            'total_items': len(batch_items),
+            'successful': len(results),
+            'failed': len(errors),
+            'results': results,
+            'errors': errors if errors else None
+        }
+        
+        # Build text representation
+        text_parts = [f"Processed {len(batch_items)} items"]
+        if results:
+            text_parts.append(f"{len(results)} successful")
+        if errors:
+            text_parts.append(f"{len(errors)} failed")
+        text_representation = ", ".join(text_parts)
+        
+        # Extract just the outputs from results for a cleaner view
+        outputs_only = [r.get('output') for r in results if 'output' in r]
+        
+        # Build representations
+        representations = {
+            "text": text_representation,
+            "object": batch_output,
+            "summary": {
+                "total_items": len(batch_items),
+                "successful": len(results),
+                "failed": len(errors),
+                "success_rate": f"{(len(results) / len(batch_items) * 100):.1f}%" if batch_items else "N/A"
+            },
+            "outputs": outputs_only,
+            "detailed_results": results,
+            "errors": errors if errors else []
+        }
+        
+        return {
+            "primary": batch_output,
+            "representations": representations,
+            "meta": {
+                "batch_mode": "completed",
+                "batch_parallel": batch_config['parallel'],
+                "total_items": len(batch_items),
+                "successful": len(results),
+                "failed": len(errors)
+            }
+        }
+    
     def _create_batch_output(
         self,
         node: PersonJobNode,
@@ -91,28 +167,27 @@ class BatchPersonJobExecutor:
         batch_config: Dict[str, Any],
         trace_id: str = ""
     ) -> Envelope:
-        """Create an Envelope containing batch execution results."""
-        batch_output = {
-            'total_items': len(batch_items),
-            'successful': len(results),
-            'failed': len(errors),
-            'results': results,
-            'errors': errors if errors else None
-        }
+        """Create an Envelope containing batch execution results with multi-representation."""
+        # Build multi-representation output
+        output = self._build_batch_output(batch_items, results, errors, batch_config)
         
-        # Return envelope directly with batch metadata
-        return EnvelopeFactory.json(
-            batch_output,
+        # Create envelope with primary body for backward compatibility
+        envelope = EnvelopeFactory.json(
+            output["primary"],
             produced_by=node.id,
             trace_id=trace_id
-        ).with_meta(
-            batch_mode="completed",
-            batch_parallel=batch_config['parallel'],
-            person_id=node.person,
-            total_items=len(batch_items),
-            successful=len(results),
-            failed=len(errors)
         )
+        
+        # Add representations
+        if "representations" in output:
+            envelope = envelope.with_representations(output["representations"])
+        
+        # Add metadata including person_id
+        meta = output.get("meta", {})
+        meta["person_id"] = node.person
+        envelope = envelope.with_meta(**meta)
+        
+        return envelope
     
     async def execute(self, request: ExecutionRequest[PersonJobNode]) -> Envelope:
         """Execute person job for each item in the batch and return an Envelope."""

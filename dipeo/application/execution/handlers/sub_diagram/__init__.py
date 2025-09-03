@@ -130,18 +130,21 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             self.single_executor.set_services(
                 state_store=state_store,
                 message_router=message_router,
-                diagram_service=diagram_service
+                diagram_service=diagram_service,
+                service_registry=request.services
             )
             
             self.batch_executor.set_services(
                 state_store=state_store,
                 message_router=message_router,
-                diagram_service=diagram_service
+                diagram_service=diagram_service,
+                service_registry=request.services
             )
             
             self.lightweight_executor.set_services(
                 prepare_use_case=prepare_use_case,
-                diagram_service=diagram_service
+                diagram_service=diagram_service,
+                service_registry=request.services
             )
             
             self._services_configured = True
@@ -154,11 +157,17 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         request: ExecutionRequest[SubDiagramNode],
         inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelopes to legacy inputs for executors."""
+        """Convert envelopes to legacy inputs for executors.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
+        
         # Convert envelopes to legacy inputs for executors (temporary during migration)
         # This allows existing executors to work without modification
         legacy_inputs = {}
-        for key, envelope in inputs.items():
+        for key, envelope in envelope_inputs.items():
             if envelope.content_type == "raw_text":
                 legacy_inputs[key] = envelope.as_text()
             elif envelope.content_type == "object":
@@ -208,43 +217,117 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         
         return result
     
+    def _build_node_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[SubDiagramNode]
+    ) -> dict[str, Any]:
+        """Build multi-representation output for sub-diagram execution."""
+        node = request.node
+        is_batch = getattr(node, 'batch', False)
+        
+        # Extract primary value from result
+        if hasattr(result, 'value'):
+            primary_value = result.value
+        else:
+            primary_value = result
+        
+        # Build representations based on execution mode
+        if is_batch and isinstance(primary_value, dict):
+            # Batch mode representations
+            total_items = primary_value.get('total_items', 0)
+            successful = primary_value.get('successful', 0)
+            failed = primary_value.get('failed', 0)
+            
+            representations = {
+                "text": f"Sub-diagram batch: {successful}/{total_items} successful",
+                "object": primary_value,
+                "outputs": primary_value.get('results', []) if isinstance(primary_value, dict) else [],
+                "execution_stats": {
+                    "nodes_executed": total_items,
+                    "successful": successful,
+                    "failed": failed,
+                    "execution_mode": "batch"
+                }
+            }
+        else:
+            # Single execution mode representations
+            representations = {
+                "text": str(primary_value) if not isinstance(primary_value, dict) else self._summarize_execution(primary_value),
+                "object": primary_value,
+                "outputs": self._extract_outputs(primary_value),
+                "execution_stats": {
+                    "nodes_executed": len(primary_value) if isinstance(primary_value, dict) else 1,
+                    "execution_mode": "single" if getattr(node, 'use_standard_execution', False) else "lightweight"
+                }
+            }
+        
+        return {
+            "primary": primary_value,
+            "representations": representations,
+            "meta": {
+                "diagram_name": node.diagram_name or "inline",
+                "execution_mode": "batch" if is_batch else ("single" if getattr(node, 'use_standard_execution', False) else "lightweight")
+            }
+        }
+    
+    def _summarize_execution(self, result: dict) -> str:
+        """Create a text summary of diagram execution results."""
+        if not isinstance(result, dict):
+            return str(result)
+        
+        node_count = len(result)
+        return f"Executed {node_count} nodes in sub-diagram"
+    
+    def _extract_outputs(self, result: Any) -> dict:
+        """Extract node outputs from execution result."""
+        if not isinstance(result, dict):
+            return {}
+        
+        # Extract outputs with node IDs as keys
+        outputs = {}
+        for node_id, value in result.items():
+            if hasattr(value, 'body'):
+                outputs[node_id] = value.body
+            else:
+                outputs[node_id] = value
+        
+        return outputs
+    
     def serialize_output(
         self,
         result: Any,
         request: ExecutionRequest[SubDiagramNode]
     ) -> Envelope:
-        """Convert executor result to envelope."""
+        """Convert executor result to multi-representation envelope."""
         node = request.node
         trace_id = request.execution_id or ""
         
-        # Convert result to envelope
-        if hasattr(result, 'value'):
-            # Check if it's a dict (typical for batch or complex results)
-            if isinstance(result.value, dict):
-                output_envelope = EnvelopeFactory.json(
-                    result.value,
-                    produced_by=node.id,
-                    trace_id=trace_id
-                ).with_meta(
-                    diagram_name=node.diagram_name or "inline",
-                    execution_mode="batch" if getattr(node, 'batch', False) else "single"
-                )
-            else:
-                # Text output
-                output_envelope = EnvelopeFactory.text(
-                    str(result.value),
-                    produced_by=node.id,
-                    trace_id=trace_id
-                ).with_meta(
-                    diagram_name=node.diagram_name or "inline"
-                )
-        else:
-            # Fallback for unexpected result format
-            output_envelope = EnvelopeFactory.text(
-                str(result),
+        # Build multi-representation output
+        output = self._build_node_output(result, request)
+        
+        # Determine content type based on primary value
+        primary = output["primary"]
+        if isinstance(primary, dict):
+            output_envelope = EnvelopeFactory.json(
+                primary,
                 produced_by=node.id,
                 trace_id=trace_id
             )
+        else:
+            output_envelope = EnvelopeFactory.text(
+                str(primary),
+                produced_by=node.id,
+                trace_id=trace_id
+            )
+        
+        # Add representations
+        if "representations" in output:
+            output_envelope = output_envelope.with_representations(output["representations"])
+        
+        # Add metadata
+        if "meta" in output:
+            output_envelope = output_envelope.with_meta(**output["meta"])
         
         return output_envelope
     
@@ -274,7 +357,10 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         request: ExecutionRequest[SubDiagramNode],
         output: Envelope
     ) -> Envelope:
-        """Post-execution hook to log execution details."""
+        """Post-execution hook to log execution details and emit tokens.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
         # Log execution details in debug mode
         if logger.isEnabledFor(logging.DEBUG):
             is_batch = getattr(request.node, 'batch', False)
@@ -282,5 +368,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 batch_info = output.value if hasattr(output, 'value') else {}
                 total = batch_info.get('total_items', 0)
                 successful = batch_info.get('successful', 0)
+        
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
 
         return output

@@ -1,21 +1,20 @@
 
-from typing import TYPE_CHECKING, Any, Optional
-from pathlib import Path
 import json
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.generated_nodes import EndpointNode, NodeType
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
-    from dipeo.domain.execution.execution_context import ExecutionContext
-    from dipeo.domain.base.storage_port import FileSystemPort
+    pass
 
 
 @register_handler
@@ -57,9 +56,9 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
     @property
     def description(self) -> str:
-        return "Endpoint node – pass through data and optionally save to file"
+        return "Endpoint node - pass through data and optionally save to file"
 
-    async def pre_execute(self, request: ExecutionRequest[EndpointNode]) -> Optional[Envelope]:
+    async def pre_execute(self, request: ExecutionRequest[EndpointNode]) -> Envelope | None:
         """Pre-execution validation and setup."""
         node = request.node
         services = request.services
@@ -104,11 +103,10 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         # Return None to proceed with normal execution
         return None
 
-    def validate(self, request: ExecutionRequest[EndpointNode]) -> Optional[str]:
+    def validate(self, request: ExecutionRequest[EndpointNode]) -> str | None:
         node = request.node
-        if node.save_to_file:
-            if not request.get_service(FILESYSTEM_ADAPTER):
-                return "Filesystem adapter is required when save_to_file is enabled"
+        if node.save_to_file and not request.get_service(FILESYSTEM_ADAPTER):
+            return "Filesystem adapter is required when save_to_file is enabled"
         
         return None
     
@@ -118,9 +116,16 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
         """Convert envelope inputs to data."""
+        # Consume tokens from incoming edges
+        context = request.context
+        token_inputs = context.consume_inbound(request.node.id)
+        
+        # Use token inputs if available, fall back to regular inputs
+        envelope_inputs = token_inputs if token_inputs else inputs
+        
         # Convert envelope inputs to data
         result_data = {}
-        for key, envelope in inputs.items():
+        for key, envelope in envelope_inputs.items():
             try:
                 # Try to parse as JSON first
                 result_data[key] = envelope.as_json()
@@ -140,8 +145,6 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         request: ExecutionRequest[EndpointNode]
     ) -> Any:
         """Execute endpoint logic."""
-        node = request.node
-        
         # Get data from prepared inputs
         result_data = inputs.get("data", {})
         
@@ -173,7 +176,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                     }
                 except Exception as exc:
                     # Return error when save fails
-                    raise Exception(f"Failed to save to file {file_name}: {str(exc)}")
+                    raise Exception(f"Failed to save to file {file_name}: {exc!s}") from exc
 
         # Return data for pass-through case
         return {

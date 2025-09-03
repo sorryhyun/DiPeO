@@ -46,5 +46,8 @@ export enum EventType {
   
   // Logging and updates
   EXECUTION_UPDATE = 'EXECUTION_UPDATE',
-  EXECUTION_LOG = 'EXECUTION_LOG'
+  EXECUTION_LOG = 'EXECUTION_LOG',
+  
+  // WebSocket maintenance
+  KEEPALIVE = 'KEEPALIVE'
 }

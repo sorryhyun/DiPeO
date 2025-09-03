@@ -10,7 +10,7 @@ from dipeo.diagram_generated import (
     Status,
     NodeID,
     NodeState,
-    TokenUsage,
+    LLMUsage,
 )
 
 if TYPE_CHECKING:
@@ -61,13 +61,13 @@ class ExecutionStatePersistence:
         tracker: "ExecutionTracker"
     ) -> ExecutionState:
         """Convert runtime state to ExecutionState for persistence."""
-        # Calculate aggregate token usage
+        # Calculate aggregate LLM usage
         total_input = 0
         total_output = 0
         for state in node_states.values():
-            if state.token_usage:
-                total_input += state.token_usage.input
-                total_output += state.token_usage.output
+            if state.llm_usage:
+                total_input += state.llm_usage.input
+                total_output += state.llm_usage.output
         
         # Determine overall status
         has_failed = any(s.status == Status.FAILED for s in node_states.values())
@@ -82,7 +82,8 @@ class ExecutionStatePersistence:
         
         # Serialize protocol outputs for storage
         serialized_outputs = {}
-        for node in diagram.nodes:
+        all_nodes = diagram.get_nodes_by_type(None) or diagram.nodes
+        for node in all_nodes:
             protocol_output = tracker.get_last_output(node.id)
             if protocol_output:
                 serialized_outputs[str(node.id)] = serialize_protocol(protocol_output)
@@ -97,7 +98,7 @@ class ExecutionStatePersistence:
             started_at=datetime.now().isoformat(),
             node_states={str(k): v for k, v in node_states.items()},
             node_outputs=serialized_outputs,
-            token_usage=TokenUsage(input=total_input, output=total_output),
+            llm_usage=LLMUsage(input=total_input, output=total_output),
             is_active=has_running,
             exec_counts={
                 str(node_id): tracker.get_execution_count(node_id) 

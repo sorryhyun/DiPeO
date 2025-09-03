@@ -1,6 +1,7 @@
 """Factory for creating LLM adapters."""
 
 from typing import Union
+from dipeo.config.services import LLMServiceName, normalize_service_name
 from .base import BaseLLMAdapter
 from ..core.types import AdapterConfig, ProviderType
 
@@ -21,10 +22,10 @@ def create_adapter(
     Returns:
         An LLM adapter instance (sync or async based on async_mode)
     """
-    provider = provider.lower()
+    provider = normalize_service_name(provider)
 
     # Use new refactored providers when available
-    if provider in ["anthropic", "claude"]:
+    if provider == LLMServiceName.ANTHROPIC.value:
         # Use new refactored Anthropic provider
         from ..providers.anthropic import AnthropicAdapter
         config = AdapterConfig(
@@ -37,7 +38,7 @@ def create_adapter(
         adapter.model = model_name
         return adapter
     
-    if provider == "claude-code":
+    if provider == LLMServiceName.CLAUDE_CODE.value:
         # Use new separated Claude Code provider
         from ..providers.claude_code import ClaudeCodeAdapter
         config = AdapterConfig(
@@ -50,7 +51,7 @@ def create_adapter(
         adapter.model = model_name
         return adapter
     
-    if provider in ["openai", "chatgpt"]:
+    if provider == LLMServiceName.OPENAI.value:
         # Use new refactored OpenAI provider
         from ..providers.openai import OpenAIAdapter
         config = AdapterConfig(
@@ -63,7 +64,7 @@ def create_adapter(
         adapter.model = model_name
         return adapter
     
-    if provider in ["google", "gemini"]:
+    if provider in [LLMServiceName.GOOGLE.value, LLMServiceName.GEMINI.value]:
         # Use new refactored Google provider
         from ..providers.google import GoogleAdapter
         config = AdapterConfig(
@@ -76,7 +77,7 @@ def create_adapter(
         adapter.model = model_name
         return adapter
     
-    if provider == "ollama":
+    if provider == LLMServiceName.OLLAMA.value:
         # Use new refactored Ollama provider
         from ..providers.ollama import OllamaAdapter
         config = AdapterConfig(

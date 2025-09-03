@@ -42,7 +42,7 @@ from .domain_models import (
     NodeState,
     ExecutionState,
     ExecutionOptions,
-    TokenUsage,
+    LLMUsage,
 
     # Configuration models
     PersonLLMConfig,
@@ -115,7 +115,7 @@ __all__ = [
     "NodeState",
     "ExecutionState",
     "ExecutionOptions",
-    "TokenUsage",
+    "LLMUsage",
     "SerializedNodeOutput",
 
     # Configuration models

@@ -60,6 +60,7 @@ class ExecutableEdgeV2:
     # Runtime behavior hints
     is_conditional: bool = False
     requires_first_execution: bool = False
+    execution_priority: int = 0  # Higher priority edges execute first (default: 0)
     
     # Additional metadata
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -102,48 +103,6 @@ class NodeOutputProtocolV2(Protocol):
         """Check if a named output exists."""
         ...
 
-
-@dataclass
-class StandardNodeOutput:
-    """Standard implementation of NodeOutputProtocolV2."""
-    
-    value: Any
-    outputs: dict[str, Any] = field(default_factory=dict)
-    metadata: dict[str, Any] = field(default_factory=dict)
-    
-    def get_output(self, name: str = "default") -> Any:
-        """Get a specific named output or default value."""
-        if name == "default":
-            return self.outputs.get(name, self.value)
-        return self.outputs.get(name)
-    
-    def has_output(self, name: str) -> bool:
-        """Check if a named output exists."""
-        if name == "default":
-            return True  # Always has default
-        return name in self.outputs
-    
-    @classmethod
-    def from_value(cls, value: Any) -> "StandardNodeOutput":
-        """Create from a simple value."""
-        return cls(value=value, outputs={"default": value})
-    
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "StandardNodeOutput":
-        """Create from a dictionary representation."""
-        if "value" in data:
-            return cls(
-                value=data["value"],
-                outputs=data.get("outputs", {"default": data["value"]}),
-                metadata=data.get("metadata", {})
-            )
-        else:
-            # Treat entire dict as outputs
-            return cls(
-                value=data.get("default", data),
-                outputs=data,
-                metadata={}
-            )
 
 
 class ExecutableDiagram:

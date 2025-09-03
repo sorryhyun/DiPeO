@@ -6,11 +6,14 @@ handling loops, conditionals, and dynamic dependencies.
 
 from typing import Any, Optional
 from collections import defaultdict
+import logging
 
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from .execution_context import ExecutionContext
 from dipeo.diagram_generated import NodeID, NodeState, Status, NodeType
 from dipeo.diagram_generated.generated_nodes import ConditionNode
+
+logger = logging.getLogger(__name__)
 
 
 class DomainDynamicOrderCalculator:
@@ -24,6 +27,53 @@ class DomainDynamicOrderCalculator:
     - Context-specific rules
     """
     
+    def __init__(self):
+        """Initialize the dynamic order calculator with a reachability cache."""
+        self._reachability_cache: dict[tuple[int, str, str], bool] = {}
+    
+    def _has_path(self, diagram: ExecutableDiagram, src_id: str, dst_id: str) -> bool:
+        """Check if there's a path from src_id to dst_id in the diagram.
+        
+        Uses BFS to detect if dst_id is reachable from src_id.
+        Results are cached for performance.
+        
+        Args:
+            diagram: The executable diagram
+            src_id: Source node ID
+            dst_id: Destination node ID
+            
+        Returns:
+            True if there's a path from src to dst, False otherwise
+        """
+        # Use object id for caching to avoid needing diagram.id
+        key = (id(diagram), src_id, dst_id)
+        if key in self._reachability_cache:
+            return self._reachability_cache[key]
+        
+        # Build adjacency list
+        adj = defaultdict(list)
+        for node in diagram.nodes:
+            for edge in diagram.get_outgoing_edges(node.id):
+                adj[edge.source_node_id].append(edge.target_node_id)
+        
+        # BFS to find path
+        seen = set()
+        stack = [src_id]
+        found = False
+        
+        while stack:
+            node = stack.pop()
+            if node == dst_id:
+                found = True
+                break
+            if node in seen:
+                continue
+            seen.add(node)
+            stack.extend(adj.get(node, []))
+        
+        self._reachability_cache[key] = found
+        return found
+    
     def _get_node_states_from_context(
         self,
         diagram: ExecutableDiagram,
@@ -32,7 +82,7 @@ class DomainDynamicOrderCalculator:
         """Extract node states from execution context."""
         # Use the new get_all_node_states method for clean access
         if hasattr(context, 'get_all_node_states'):
-            all_states = context.get_all_node_states()
+            all_states = context.state.get_all_node_states()
             node_states = {}
             for node in diagram.nodes:
                 node_states[node.id] = all_states.get(node.id, NodeState(status=Status.PENDING))
@@ -41,7 +91,7 @@ class DomainDynamicOrderCalculator:
         # Fallback for individual state queries (should not be needed with updated protocol)
         node_states = {}
         for node in diagram.nodes:
-            state = context.get_node_state(node.id)
+            state = context.state.get_node_state(node.id)
             if state:
                 node_states[node.id] = state
             else:
@@ -69,19 +119,20 @@ class DomainDynamicOrderCalculator:
         diagram: ExecutableDiagram,
         context: ExecutionContext
     ) -> list[tuple[NodeID, str]]:
-        """Get nodes that are blocked from execution."""
+        """Get nodes that are blocked from execution.
+        
+        Phase 6: A node is blocked if it hasn't completed but isn't ready (no tokens).
+        """
         node_states = self._get_node_states_from_context(diagram, context)
         blocked = []
         
         for node in diagram.nodes:
             node_state = node_states.get(node.id)
-            if not node_state:
-                continue
-                
-            # Node is blocked if it's pending but not ready
-            if node_state.status == Status.PENDING:
+            
+            # Phase 6: Check if node hasn't completed and isn't ready
+            if not node_state or node_state.status not in [Status.COMPLETED, Status.FAILED, Status.SKIPPED, Status.MAXITER_REACHED]:
                 if not self._is_node_ready(node, diagram, node_states, context):
-                    blocked.append((node.id, "Failed dependencies"))
+                    blocked.append((node.id, "Waiting for tokens"))
         
         return blocked
     
@@ -137,7 +188,7 @@ class DomainDynamicOrderCalculator:
         """Handle special logic for loop nodes."""
         # Check if this is a PersonJob node (which can loop)
         if node.type == NodeType.PERSON_JOB:
-            exec_count = context.get_node_execution_count(node.id)
+            exec_count = context.state.get_node_execution_count(node.id)
             max_iter = getattr(node, 'max_iteration', 1)
             
             # Allow execution if under max iterations
@@ -155,13 +206,13 @@ class DomainDynamicOrderCalculator:
         node_states = self._get_node_states_from_context(diagram, context)
         
         # Get incoming edges for this node
-        incoming_edges = [e for e in diagram.edges if e.target_node_id == node.id]
+        incoming_edges = diagram.get_incoming_edges(node.id)
         
         # Check if all conditional dependencies are satisfied
         for edge in incoming_edges:
             # If edge is from a condition node, check if branch is active
             if edge.source_output in ["condtrue", "condfalse"]:
-                if not self._is_dependency_satisfied(edge, node_states, context):
+                if not self._is_dependency_satisfied(edge, node_states, context, diagram):
                     return False
         
         return True
@@ -183,7 +234,7 @@ class DomainDynamicOrderCalculator:
                 continue
             
             # Get the condition result
-            output = context.get_node_output(node.id)
+            output = context.state.get_node_output(node.id)
             if not output:
                 continue
             
@@ -223,159 +274,153 @@ class DomainDynamicOrderCalculator:
         node_states: dict[NodeID, NodeState],
         context: ExecutionContext
     ) -> bool:
-        """Check if a node is ready for execution."""
-        node_state = node_states.get(node.id)
-        if not node_state:
-            return False
+        """Check if a node is ready for execution - Phase 6 token-driven version.
         
-        # Skip if not pending
-        if node_state.status != Status.PENDING:
-            return False
+        Tokens are the primary scheduling mechanism. Status is kept for UI only.
+        A node is ready when it has new token inputs and dependencies are satisfied.
+        """
+        # START nodes should only execute once per epoch
+        if node.type == NodeType.START and not diagram.get_incoming_edges(node.id):
+            # Run once per epoch; rely on execution count (tracker), not UI status
+            return context.state.get_node_execution_count(node.id) == 0
         
-        # Check loop constraints
-        if not self.handle_loop_node(node, diagram, context):
-            return False
+        # Token-based readiness check (Phase 6 - tokens are primary)
+        if hasattr(context, 'has_new_inputs') and hasattr(context, 'current_epoch'):
+            epoch = context.current_epoch()
+            
+            # Check if node has tokens from dependencies
+            incoming_edges = diagram.get_incoming_edges(node.id)
+            if not incoming_edges:
+                # Source nodes are always ready
+                return True
+                
+            # Separate conditional and non-conditional edges
+            conditional_edges = []
+            non_conditional_edges = []
+            for edge in incoming_edges:
+                if edge.source_output in ["condtrue", "condfalse"]:
+                    conditional_edges.append(edge)
+                else:
+                    non_conditional_edges.append(edge)
+            
+            # has_new_inputs already handles skippable conditions correctly
+            # by excluding them from join policy requirements
+            has_tokens = context.has_new_inputs(node.id, epoch)
+            
+            # Standard readiness check
+            if has_tokens:
+                # Node has tokens - check other constraints
+                if not self.handle_loop_node(node, diagram, context):
+                    return False
+                if self._has_pending_higher_priority_siblings(node, diagram, node_states):
+                    return False
+                return True
+            else:
+                # No tokens = not ready
+                return False
         
-        # Get incoming edges
-        incoming_edges = [e for e in diagram.edges if e.target_node_id == node.id]
-        
-        # No dependencies - node is ready
-        if not incoming_edges:
-            return True
-        
-        # Check dependency satisfaction
-        return self._check_dependencies(node, incoming_edges, node_states, context)
+        # Fallback for systems without token support (should not happen in Phase 6)
+        logger.warning(f"Node {node.id} readiness check without token context - this should not happen in Phase 6")
+        return False
     
     def _check_dependencies(
         self,
         node: ExecutableNode,
         incoming_edges: list[Any],
         node_states: dict[NodeID, NodeState],
-        context: ExecutionContext
+        context: ExecutionContext,
+        diagram: ExecutableDiagram
     ) -> bool:
-        """Check if node dependencies are satisfied."""
-        # For nodes with multiple inputs (potential loops)
-        if len(incoming_edges) > 1:
-            # Check if any source nodes haven't executed yet
-            unexecuted_edges = []
-            executed_edges = []
-            conditional_edges = []
-            
-            for edge in incoming_edges:
-                source_state = node_states.get(edge.source_node_id)
-                # Check if source has never executed (no state or still pending with no executions)
-                source_exec_count = context.get_node_execution_count(edge.source_node_id) if context else 0
-                
-                # Separate conditional edges (from condition nodes)
-                if edge.source_output in ["condtrue", "condfalse"]:
-                    conditional_edges.append(edge)
-                elif source_exec_count == 0 and (not source_state or source_state.status == Status.PENDING):
-                    unexecuted_edges.append(edge)
-                else:
-                    executed_edges.append(edge)
-            
-            # Get target node's execution count
-            target_exec_count = context.get_node_execution_count(node.id) if context else 0
-            
-            # Special handling for condition nodes that might be in loops
-            # A condition node is in a loop if it has multiple inputs where one might be a loop-back
-            # Check if this looks like a loop structure based on the edges
-            is_potential_loop = (
-                node.type == NodeType.CONDITION and 
-                len(incoming_edges) > 1 and
-                not conditional_edges  # The condition node itself doesn't receive from other conditions
-            )
-            
-            if is_potential_loop:
-                if target_exec_count == 0:
-                    # First execution: need all initial dependencies (non-loop edges)
-                    # Identify which edges are loop-backs by checking execution status
-                    initial_edges = []
-                    
-                    for edge in incoming_edges:
-                        source_state = node_states.get(edge.source_node_id)
-                        source_exec_count = context.get_node_execution_count(edge.source_node_id) if context else 0
-                        
-                        # An edge is initial if its source has completed or is running
-                        # Loop-back edges come from nodes that haven't executed yet
-                        if source_state and source_state.status in [Status.COMPLETED, Status.RUNNING, Status.MAXITER_REACHED]:
-                            initial_edges.append(edge)
-                        elif source_exec_count > 0:
-                            initial_edges.append(edge)
-                    
-                    # On first execution, require all initial edges
-                    if initial_edges:
-                        return all(
-                            self._is_dependency_satisfied(edge, node_states, context)
-                            for edge in initial_edges
-                        )
-                    # If no initial edges ready yet, wait
-                    return False
-                else:
-                    # Subsequent executions: any satisfied dependency triggers execution
-                    return any(
-                        self._is_dependency_satisfied(edge, node_states, context)
-                        for edge in incoming_edges
-                    )
-            
-            # If we have conditional edges, this might be a loop scenario
-            if conditional_edges:
-                if target_exec_count == 0:
-                    # First execution: require all non-conditional edges to be satisfied
-                    # This allows nodes to start when their initial inputs are ready,
-                    # without waiting for loop conditions that haven't been evaluated yet
-                    non_conditional_edges = [
-                        edge for edge in incoming_edges 
-                        if edge.source_output not in ["condtrue", "condfalse"]
-                    ]
-                    if non_conditional_edges:
-                        return all(
-                            self._is_dependency_satisfied(edge, node_states, context)
-                            for edge in non_conditional_edges
-                        )
-                else:
-                    # Subsequent executions: require at least one dependency (loop logic)
-                    return any(
-                        self._is_dependency_satisfied(edge, node_states, context)
-                        for edge in incoming_edges
-                    )
-            
-            # If we have both executed and unexecuted edges but no conditionals,
-            # and node has already executed (not first time), treat as regular dependencies
-            if executed_edges and unexecuted_edges and not conditional_edges and target_exec_count > 0:
-                return False  # Wait for all dependencies to complete
+        """Check if node dependencies are satisfied.
         
-        # For single input or non-loop cases, require all dependencies
-        return all(
-            self._is_dependency_satisfied(edge, node_states, context)
-            for edge in incoming_edges
-        )
+        Rules:
+        1. Condition nodes: Execute when ANY dependency is satisfied
+        2. Other nodes: Execute when ALL active dependencies are satisfied
+        """
+        # Rule 1: Condition nodes execute when ANY dependency is satisfied
+        if node.type == NodeType.CONDITION:
+            return any(
+                self._is_dependency_satisfied(edge, node_states, context, diagram)
+                for edge in incoming_edges
+            )
+        
+        # Rule 2: Other nodes need ALL active dependencies satisfied
+        # Separate edges into conditional and non-conditional
+        conditional_edges = []
+        non_conditional_edges = []
+        
+        for edge in incoming_edges:
+            if edge.source_output in ["condtrue", "condfalse"]:
+                conditional_edges.append(edge)
+            else:
+                non_conditional_edges.append(edge)
+        
+        # Check non-conditional dependencies - ALL must be satisfied
+        for edge in non_conditional_edges:
+            if not self._is_dependency_satisfied(edge, node_states, context, diagram):
+                return False
+        
+        # For conditional edges
+        if conditional_edges:
+            # Group by source condition node
+            edges_by_condition = defaultdict(list)
+            for edge in conditional_edges:
+                edges_by_condition[edge.source_node_id].append(edge)
+            
+            for condition_node_id, edges in edges_by_condition.items():
+                # Check if condition is skippable (only if node has alternative paths)
+                source_node = next((n for n in diagram.nodes if n.id == condition_node_id), None)
+                is_skippable = (source_node and source_node.type == NodeType.CONDITION and
+                              getattr(source_node, 'skippable', False))
+                
+                # If condition hasn't executed yet (check execution count instead of status)
+                if context.state.get_node_execution_count(condition_node_id) == 0:
+                    # Skippable only helps if there are other satisfied dependencies
+                    if is_skippable and non_conditional_edges:
+                        continue  # Can skip this pending condition
+                    else:
+                        return False  # Must wait for condition
+                
+                # Condition has executed - check if we're on the active branch
+                if not any(self._is_dependency_satisfied(edge, node_states, context, diagram)
+                          for edge in edges):
+                    return False
+        
+        return True
     
-    def _is_loop_edge(
+    def _check_dependencies_fallback(
         self,
-        edge: Any,
-        target_node: ExecutableNode,
+        node: ExecutableNode,
+        conditional_edges: list[Any],
         node_states: dict[NodeID, NodeState],
         context: ExecutionContext
     ) -> bool:
-        """Check if an edge is part of a loop."""
-        # An edge is a loop edge if:
-        # 1. It comes from a condition node
-        # 2. The target has already executed
-        source_state = node_states.get(edge.source_node_id)
-        target_exec_count = context.get_node_execution_count(target_node.id) if context else 0
+        """Fallback dependency checking when diagram is not available."""
+        # Use the original logic when we can't determine loop-backs
+        edges_by_condition = {}
+        for edge in conditional_edges:
+            if edge.source_node_id not in edges_by_condition:
+                edges_by_condition[edge.source_node_id] = []
+            edges_by_condition[edge.source_node_id].append(edge)
         
-        # Edge is a loop edge if it's from a condition node and target has executed
-        if edge.source_output in ["condtrue", "condfalse"]:
-            return target_exec_count > 0
+        for condition_node_id, edges in edges_by_condition.items():
+            source_state = node_states.get(condition_node_id)
+            
+            if not source_state or source_state.status == Status.PENDING:
+                return False
+            
+            if not any(self._is_dependency_satisfied(edge, node_states, context, None) 
+                      for edge in edges):
+                return False
         
-        return False
+        return True
     
     def _is_dependency_satisfied(
         self,
         edge: Any,
         node_states: dict[NodeID, NodeState],
-        context: ExecutionContext = None
+        context: ExecutionContext = None,
+        diagram: ExecutableDiagram = None
     ) -> bool:
         """Check if a dependency edge is satisfied."""
         source_state = node_states.get(edge.source_node_id)
@@ -386,37 +431,74 @@ class DomainDynamicOrderCalculator:
         if source_state.status not in [Status.COMPLETED, Status.MAXITER_REACHED]:
             return False
         
-        # For edges from condition nodes, check if the branch is active
+        # For conditional edges, check which branch is active
         if edge.source_output in ["condtrue", "condfalse"]:
-            if context:
-                # (A) Preferred: read from global variables
-                active_branch = None
-                if hasattr(context, "get_variable"):
-                    active_branch = context.get_variable(f"branch[{edge.source_node_id}]")
-                
-                # (B) Fallback: check the output envelope
-                if not active_branch:
-                    output = context.get_node_output(edge.source_node_id)
-                    from dipeo.domain.execution.envelope import Envelope
-                    if isinstance(output, Envelope):
-                        # Check the body for result
-                        if isinstance(output.body, dict) and "result" in output.body:
-                            active_branch = "condtrue" if bool(output.body["result"]) else "condfalse"
-                    elif hasattr(output, 'value') and isinstance(output.value, bool):
-                        # Handle boolean outputs
-                        active_branch = "condtrue" if output.value else "condfalse"
-                
-                if not active_branch:
-                    # Default safe branch
-                    active_branch = "condfalse"
-                
-                # Only satisfied if this edge is on the active branch
-                return edge.source_output == active_branch
-            # If no context, can't verify branch - consider not satisfied
-            return False
+            if not context:
+                return False  # Can't verify branch without context
+            
+            # Get the active branch
+            active_branch = None
+            if hasattr(context, "get_variable"):
+                active_branch = context.get_variable(f"branch[{edge.source_node_id}]")
+            
+            if not active_branch:
+                # Try to determine from output
+                output = context.state.get_node_output(edge.source_node_id)
+                from dipeo.domain.execution.envelope import Envelope
+                if isinstance(output, Envelope):
+                    if isinstance(output.body, dict) and "result" in output.body:
+                        active_branch = "condtrue" if bool(output.body["result"]) else "condfalse"
+                elif hasattr(output, 'value') and isinstance(output.value, bool):
+                    active_branch = "condtrue" if output.value else "condfalse"
+            
+            if not active_branch:
+                return False  # Branch not determined
+            
+            # Only satisfied if this edge is on the active branch
+            return edge.source_output == active_branch
         
         # For non-condition edges, source completion is enough
         return True
+    
+    def _has_pending_higher_priority_siblings(
+        self,
+        node: ExecutableNode,
+        diagram: ExecutableDiagram,
+        node_states: dict[NodeID, NodeState]
+    ) -> bool:
+        """Check if node has higher priority siblings that haven't executed yet.
+        
+        Phase 6: Uses completion status rather than PENDING to determine if siblings have run.
+        Returns True if this node should wait for higher priority siblings to complete.
+        """
+        # Find all edges pointing to this node
+        incoming_edges = diagram.get_incoming_edges(node.id)
+        if not incoming_edges:
+            return False
+        
+        # For each incoming edge, check siblings from the same source
+        for incoming_edge in incoming_edges:
+            source_node_id = incoming_edge.source_node_id
+            my_priority = getattr(incoming_edge, 'execution_priority', 0)
+            
+            # Find all sibling edges (edges from same source)
+            sibling_edges = diagram.get_outgoing_edges(source_node_id)
+            
+            # Check if any higher priority siblings haven't completed yet
+            for sibling_edge in sibling_edges:
+                if sibling_edge.target_node_id == node.id:
+                    continue  # Skip self
+                
+                sibling_priority = getattr(sibling_edge, 'execution_priority', 0)
+                
+                # If sibling has higher priority and hasn't completed, we must wait
+                if sibling_priority > my_priority:
+                    sibling_state = node_states.get(sibling_edge.target_node_id)
+                    # Phase 6: Check if sibling has NOT completed (rather than checking PENDING)
+                    if not sibling_state or sibling_state.status not in [Status.COMPLETED, Status.FAILED, Status.SKIPPED, Status.MAXITER_REACHED]:
+                        return True
+        
+        return False
     
     def _prioritize_nodes(
         self,
@@ -460,10 +542,7 @@ class DomainDynamicOrderCalculator:
     ) -> None:
         """Mark conditional branches based on condition result."""
         # Get outgoing edges from condition node
-        outgoing_edges = [
-            e for e in diagram.edges 
-            if e.source_node_id == condition_node.id
-        ]
+        outgoing_edges = diagram.get_outgoing_edges(condition_node.id)
         
         # Determine which branch to take
         condition_result = output.value if hasattr(output, 'value') else output

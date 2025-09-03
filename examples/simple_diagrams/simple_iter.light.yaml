@@ -18,6 +18,7 @@ nodes:
   position: {x: 620, y: 425}
   props:
     condition_type: detect_max_iterations
+    skippable: true
     flipped: [true, true]
 - label: endpoint
   type: endpoint

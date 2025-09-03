@@ -2,16 +2,34 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/ConditionNodeData",
   "definitions": {
+    "PersonID": {
+      "additionalProperties": false,
+      "properties": {
+        "__brand": {
+          "const": "PersonID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__brand"
+      ],
+      "type": "object"
+    },
     "ConditionNodeData": {
       "additionalProperties": false,
       "description": "Configuration data for Condition nodes that handle conditional branching",
       "properties": {
+        "at_most": {
+          "description": "Max messages to keep in memory",
+          "type": "number"
+        },
         "condition_type": {
-          "description": "Condition type: detect_max_iterations, nodes_executed, or custom",
+          "description": "Condition type: detect_max_iterations, nodes_executed, custom, or llm_decision",
           "enum": [
             "check_nodes_executed",
             "custom",
-            "detect_max_iterations"
+            "detect_max_iterations",
+            "llm_decision"
           ],
           "type": "string"
         },
@@ -26,7 +44,19 @@
         "flipped": {
           "type": "boolean"
         },
+        "judge_by": {
+          "description": "The prompt/criteria for LLM to judge",
+          "type": "string"
+        },
+        "judge_by_file": {
+          "description": "External prompt file in {subdirectory}/prompts/",
+          "type": "string"
+        },
         "label": {
+          "type": "string"
+        },
+        "memorize_to": {
+          "description": "Memory control (e.g., \"GOLDFISH\" for fresh evaluation)",
           "type": "string"
         },
         "node_indices": {
@@ -35,6 +65,14 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "person": {
+          "$ref": "#/definitions/PersonID",
+          "description": "AI agent to use (when condition_type is LLM_DECISION)"
+        },
+        "skippable": {
+          "description": "When true, downstream nodes can execute even if this condition hasn't been evaluated yet",
+          "type": "boolean"
         }
       },
       "required": [

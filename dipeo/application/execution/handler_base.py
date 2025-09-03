@@ -17,13 +17,74 @@ T = TypeVar('T', bound=ExecutableNode)
 TNode = TypeVar('TNode')
 
 
-class TypedNodeHandler(Generic[T], ABC):
+class TokenHandlerMixin:
+    """Mixin for handlers to support token-based execution.
+    
+    Phase 5: Provides common token consumption and emission logic for gradual migration.
+    Handlers can override these methods for custom behavior.
+    """
+    
+    def consume_token_inputs(
+        self,
+        request: "ExecutionRequest",
+        fallback_inputs: dict[str, Envelope]
+    ) -> dict[str, Envelope]:
+        """Consume tokens from incoming edges or fall back to regular inputs.
+        
+        Args:
+            request: The execution request
+            fallback_inputs: Regular inputs to use if no tokens available
+            
+        Returns:
+            Dict of port name to envelope
+        """
+        context = request.context
+        node_id = request.node.id
+        
+        # Try to consume tokens from incoming edges
+        token_inputs = context.consume_inbound(node_id)
+        
+        # Use token inputs if available, otherwise fall back
+        if token_inputs:
+            logger.debug(f"[TOKEN] Handler {node_id} consumed {len(token_inputs)} token inputs")
+            return token_inputs
+        else:
+            logger.debug(f"[TOKEN] Handler {node_id} using fallback inputs (no tokens available)")
+            return fallback_inputs
+    
+    def emit_token_outputs(
+        self,
+        request: "ExecutionRequest",
+        output: Envelope,
+        port: str = "default"
+    ) -> None:
+        """Emit output envelope as tokens on outgoing edges.
+        
+        Args:
+            request: The execution request
+            output: The output envelope to emit
+            port: The output port name (default: "default")
+        """
+        context = request.context
+        node_id = request.node.id
+        
+        # Wrap output in dict for emit_outputs_as_tokens
+        outputs = {port: output}
+        
+        # Emit as tokens on all outgoing edges
+        context.emit_outputs_as_tokens(node_id, outputs)
+        logger.debug(f"[TOKEN] Handler {node_id} emitted output as tokens on port '{port}'")
+
+
+class TypedNodeHandler(Generic[T], TokenHandlerMixin, ABC):
     """Base handler for type-safe node execution with envelope communication.
     
     Uses Template Method Pattern to reduce duplication:
     - execute_with_envelopes provides the template
     - Handlers override prepare_inputs, run, and serialize_output as needed
     - Default implementations handle common cases
+    
+    Includes TokenHandlerMixin for token-based execution support (Phase 5).
     """
     
     # Class variable to avoid instantiation at registration
@@ -220,10 +281,11 @@ class TypedNodeHandler(Generic[T], ABC):
             
             # Step 4: Emit completion event if context supports it
             if hasattr(request.context, 'emit_node_completed'):
+                exec_count = request.context.state.get_node_execution_count(request.node.id)
                 await request.context.emit_node_completed(
-                    request.node.id,
+                    request.node,
                     envelope,
-                    request.execution_id
+                    exec_count
                 )
             
             return envelope

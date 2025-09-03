@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from dipeo.application.registry.service_registry import ServiceRegistry, ServiceKey
+from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, PREPARE_DIAGRAM_USE_CASE
 
 if TYPE_CHECKING:
     from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
@@ -14,9 +15,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Define service keys for execution context
-EXECUTION_ORCHESTRATOR = ServiceKey["ExecutionOrchestrator"]("execution.orchestrator")
 EXECUTE_DIAGRAM_USE_CASE = ServiceKey["ExecuteDiagramUseCase"]("execution.use_case.execute_diagram")
-PREPARE_DIAGRAM_USE_CASE = ServiceKey["PrepareDiagramForExecutionUseCase"]("execution.use_case.prepare_diagram")
 CLI_SESSION_USE_CASE = ServiceKey["CliSessionService"]("execution.use_case.cli_session")
 
 
@@ -36,21 +35,49 @@ def wire_execution(registry: ServiceRegistry) -> None:
     
     # Wire execution orchestrator
     from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
+    from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
+    from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
     from dipeo.application.registry.keys import (
         CONVERSATION_REPOSITORY,
         PERSON_REPOSITORY,
+        LLM_SERVICE,
+        FILESYSTEM_ADAPTER,
+        PROMPT_LOADING_SERVICE,
+        MEMORY_SELECTOR,
     )
     
     def create_execution_orchestrator() -> ExecutionOrchestrator:
-        """Factory for execution orchestrator."""
+        """Factory for execution orchestrator with all dependencies."""
         person_repo = registry.resolve(PERSON_REPOSITORY)
         conversation_repo = registry.resolve(CONVERSATION_REPOSITORY)
-        return ExecutionOrchestrator(
+        
+        # Create PromptLoadingUseCase
+        filesystem_adapter = registry.resolve(FILESYSTEM_ADAPTER)
+        prompt_loading = PromptLoadingUseCase(filesystem_adapter)
+        registry.register(PROMPT_LOADING_SERVICE, prompt_loading)
+        
+        # Get LLM service
+        llm_service = registry.resolve(LLM_SERVICE)
+        
+        # Create orchestrator with all dependencies
+        orchestrator = ExecutionOrchestrator(
             person_repository=person_repo,
-            conversation_repository=conversation_repo
+            conversation_repository=conversation_repo,
+            prompt_loading_use_case=prompt_loading,
+            memory_selector=None,  # Will be set after creation
+            llm_service=llm_service
         )
+        
+        # Create LLMMemorySelectionAdapter with orchestrator
+        memory_selector = LLMMemorySelectionAdapter(orchestrator)
+        registry.register(MEMORY_SELECTOR, memory_selector)
+        
+        # Update orchestrator with memory_selector
+        orchestrator._memory_selector = memory_selector
+        
+        return orchestrator
     
-    registry.register(EXECUTION_ORCHESTRATOR, create_execution_orchestrator)
+    registry.register(EXECUTION_ORCHESTRATOR, lambda: create_execution_orchestrator())
     
     # Wire execute diagram use case
     from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
@@ -64,11 +91,15 @@ def wire_execution(registry: ServiceRegistry) -> None:
     
     # Wire prepare diagram use case
     from dipeo.application.execution.use_cases.prepare_diagram import PrepareDiagramForExecutionUseCase
+    from dipeo.application.registry.keys import API_KEY_SERVICE
     
     def create_prepare_diagram() -> PrepareDiagramForExecutionUseCase:
         """Factory for prepare diagram use case."""
-        # PrepareDiagramForExecutionUseCase also uses service_registry
-        return PrepareDiagramForExecutionUseCase(service_registry=registry)
+        api_key_service = registry.resolve(API_KEY_SERVICE)
+        return PrepareDiagramForExecutionUseCase(
+            api_key_service=api_key_service,
+            service_registry=registry
+        )
     
     registry.register(PREPARE_DIAGRAM_USE_CASE, create_prepare_diagram)
     

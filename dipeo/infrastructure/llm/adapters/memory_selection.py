@@ -5,6 +5,7 @@ import logging
 import re
 from typing import Any, Optional, Sequence, TYPE_CHECKING
 
+from dipeo.config.services import LLMServiceName, normalize_service_name
 from dipeo.diagram_generated.domain_models import Message, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
 from dipeo.domain.conversation.brain import MemorySelectionConfig
@@ -15,10 +16,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class LLMMemorySelector:
-    """LLM-based implementation of memory selection.
+class LLMMemorySelectionAdapter:
+    """LLM-based adapter for memory selection.
     
-    This implementation uses an LLM to intelligently select relevant memories
+    This adapter uses an LLM to intelligently select relevant memories
     based on natural language criteria.
     
     Implements the MemorySelectionPort protocol.
@@ -29,14 +30,31 @@ class LLMMemorySelector:
         self._facet_cache: dict[str, Person] = {}
         self._config = config or MemorySelectionConfig()
 
-    def _selector_id(self, person_id: PersonID) -> PersonID:
-        return PersonID(f"{str(person_id)}.__selector")
+    def _selector_id(self, person_id: PersonID, service: str | None = None) -> PersonID:
+        svc = normalize_service_name(service) if service else ""
+        suffix = f"::{svc}" if svc else ""
+        return PersonID(f"{str(person_id)}.__selector{suffix}")
     
-    def _selector_system_prompt(self, base_prompt: Optional[str]) -> str:
+    def _selector_system_prompt(self, base_prompt: Optional[str], person_name: Optional[str] = None, llm_service: Optional[str] = None) -> str:
         base = (base_prompt or "").strip()
-        # Keep the base persona context, then switch into "selector mode"
+        
+        # Claude Code adapter provides its own MEMORY_SELECTION_PROMPT when execution_phase="memory_selection"
+        # The MEMORY_SELECTION_PROMPT already includes YOUR NAME placeholder that will be formatted
+        if llm_service and normalize_service_name(llm_service) == LLMServiceName.CLAUDE_CODE.value:
+            # Pass the person name in a special format that the adapter will recognize
+            # The adapter will extract this and format it into the MEMORY_SELECTION_PROMPT
+            if person_name:
+                # Use a marker that won't be duplicated in the final prompt
+                return f"YOUR NAME: {person_name}\n\n{base}" if base else f"YOUR NAME: {person_name}"
+            return base
+        
+        # For other adapters (OpenAI, Anthropic, Google, etc.), we need to provide instructions
+        # Start with YOUR NAME if provided
+        name_prefix = f"YOUR NAME: {person_name}\n\n" if person_name else ""
+        
         return (
-            (base + "\n\n" if base else "")
+            name_prefix
+            + (base + "\n\n" if base else "")
             + "You are in MEMORY SELECTION MODE.\n"
               "- Input: a candidate list of prior messages with their IDs, "
               "the upcoming task preview, and a natural-language selection criteria.\n"
@@ -51,21 +69,35 @@ class LLMMemorySelector:
               "- If uncertain, return an empty array."
         )
     
-    def _get_or_create_selector_facet(self, person_id: PersonID) -> Person:
-        sid = self._selector_id(person_id)
+    def _get_or_create_selector_facet(self, person_id: PersonID, llm_service: Optional[str] = None) -> Person:
+        # Use the provided llm_service or fall back; normalize service name
+        base_person = self._orchestrator.get_person(person_id)
+        llm = base_person.llm_config
+        
+        # Handle case where llm_service is an object (LLMInfraService) instead of string
+        if llm_service and isinstance(llm_service, str):
+            raw_service = llm_service
+        else:
+            # Fall back to the person's configured service
+            # Use .value to get the enum value, not str() which returns the full representation
+            raw_service = llm.service.value if hasattr(llm.service, 'value') else str(llm.service)
+        
+        service_str = normalize_service_name(raw_service)
+        
+        sid = self._selector_id(person_id, service_str)
         persons = self._orchestrator.get_all_persons()
         if sid in persons:
             return persons[sid]
         
-        # Get the base person to derive LLM config
+        # Get person name for system prompt
         base_person = self._orchestrator.get_person(person_id)
-        llm = base_person.llm_config
+        person_name = base_person.name or str(person_id)
         
         facet_cfg = PersonLLMConfig(
-            service=llm.service,
+            service=service_str,
             model=llm.model,
             api_key_id=llm.api_key_id,
-            system_prompt=self._selector_system_prompt(llm.system_prompt),
+            system_prompt=self._selector_system_prompt(llm.system_prompt, person_name, service_str),
             prompt_file=None,
         )
         facet = self._orchestrator.get_or_create_person(
@@ -108,7 +140,7 @@ class LLMMemorySelector:
         llm_service = kwargs.get('llm_service')
         preprocessed = kwargs.get('preprocessed', False)
         
-        facet = self._get_or_create_selector_facet(person_id)
+        facet = self._get_or_create_selector_facet(person_id, llm_service)
         
         # Build a compact selection prompt
         preview = (task_preview or "")[:1200]
@@ -152,7 +184,6 @@ class LLMMemorySelector:
             constraint_text = f"\nCONSTRAINT: Select at most {at_most} messages that best match the criteria.\n"
         
         prompt = (
-            f"YOUR NAME: {base_person.name or str(person_id)}\n"
             "CANDIDATE MESSAGES (id (sender): snippet):\n"
             f"{listing}\n\n===\n\n"
             f"TASK PREVIEW:\n===\n\n{preview}\n\n===\n\n"
@@ -164,14 +195,18 @@ class LLMMemorySelector:
 
         # Execute using person's complete method directly
         # Pass empty messages list since selector gets all info in the prompt
-        result, incoming_msg, response_msg = await facet.complete(
-            prompt=prompt,
-            all_messages=[],  # Empty list - selector doesn't need conversation context
-            llm_service=llm_service,
-            temperature=0,
-            max_tokens=8000,
-            execution_phase="memory_selection",  # Explicitly set phase for Claude Code adapter
-        )
+        complete_kwargs = {
+            "prompt": prompt,
+            "all_messages": [],  # Empty list - selector doesn't need conversation context
+            "llm_service": llm_service,
+            "temperature": 0,
+            "max_tokens": 8000,
+        }
+        
+        # Always pass phase; adapters that care will use it
+        complete_kwargs["execution_phase"] = "memory_selection"
+        
+        result, incoming_msg, response_msg = await facet.complete(**complete_kwargs)
         
         # Add messages to conversation if orchestrator supports it
         if hasattr(self._orchestrator, 'add_message'):
@@ -179,7 +214,7 @@ class LLMMemorySelector:
             self._orchestrator.add_message(response_msg, "memory_selection", "memory_selector")
 
         # Robust parse with multiple fallback strategies
-        text = getattr(result, "text", "") or ""
+        text = getattr(result, "content", getattr(result, "text", "")) or ""
         
         try:
             # Try 1: Direct JSON parsing

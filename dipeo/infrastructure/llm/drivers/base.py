@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from dipeo.diagram_generated import ChatResult, LLMRequestOptions, TokenUsage
+from dipeo.diagram_generated import ChatResult, LLMRequestOptions, LLMUsage
 
 
 class BaseLLMAdapter(ABC):
@@ -91,7 +91,7 @@ class BaseLLMAdapter(ABC):
         input_field: str | list[str],
         output_field: str | list[str],
         usage_attr: str = "usage"
-    ) -> TokenUsage | None:
+    ) -> LLMUsage | None:
         usage_obj = getattr(response, usage_attr, None)
         if not usage_obj:
             return None
@@ -118,7 +118,7 @@ class BaseLLMAdapter(ABC):
         if input_tokens is not None and output_tokens is not None:
             total = input_tokens + output_tokens
         
-        return TokenUsage(
+        return LLMUsage(
             input=input_tokens or 0,
             output=output_tokens or 0,
             total=total

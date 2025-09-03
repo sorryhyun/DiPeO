@@ -1,25 +1,46 @@
 """
-Handler module initialization with auto-registration.
+Handler module initialization with explicit imports.
 
-This module automatically imports all handler classes using the auto_register system,
-eliminating the need for manual imports when adding new handlers.
+This module explicitly imports all handler classes for better traceability
+and maintainability.
 """
 
 import logging
 
 logger = logging.getLogger(__name__)
 
-from .auto_register import auto_register_handlers, get_handler_exports
+# Explicitly import all handler classes
+from .start import StartNodeHandler
+from .person_job import PersonJobNodeHandler
+from .code_job import CodeJobNodeHandler
+from .condition import ConditionNodeHandler
+from .api_job import ApiJobNodeHandler
+from .endpoint import EndpointNodeHandler
+from .db import DBTypedNodeHandler
+from .user_response import UserResponseNodeHandler
+from .hook import HookNodeHandler
+from .template_job import TemplateJobNodeHandler
+from .json_schema_validator import JsonSchemaValidatorNodeHandler
+from .typescript_ast import TypescriptAstNodeHandler
+from .sub_diagram import SubDiagramNodeHandler
+from .integrated_api import IntegratedApiNodeHandler
 
-# Auto-register all handlers
-logger.info("🔄 Auto-registering handlers...")
-registered_handlers = auto_register_handlers()
-logger.info(f"✅ Registered {len(registered_handlers)} handlers: {[h.__name__ for h in registered_handlers]}")
+# Export all handler classes
+__all__ = [
+    "StartNodeHandler",
+    "PersonJobNodeHandler",
+    "CodeJobNodeHandler",
+    "ConditionNodeHandler",
+    "ApiJobNodeHandler",
+    "EndpointNodeHandler",
+    "DBTypedNodeHandler",
+    "UserResponseNodeHandler",
+    "HookNodeHandler",
+    "TemplateJobNodeHandler",
+    "JsonSchemaValidatorNodeHandler",
+    "TypescriptAstNodeHandler",
+    "SubDiagramNodeHandler",
+    "IntegratedApiNodeHandler",
+]
 
-# Create a dynamic __all__ list
-__all__ = get_handler_exports()
-
-# Make handler classes available as module attributes
-# This maintains backward compatibility with existing imports
-for handler in registered_handlers:
-    globals()[handler.__name__] = handler
+logger.info(f"✅ Loaded {len(__all__)} handlers")

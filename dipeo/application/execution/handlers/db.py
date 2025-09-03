@@ -204,12 +204,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         # This handles nested structures and makes node outputs available
         from dipeo.application.utils import PromptBuilder
         prompt_builder = PromptBuilder(template_processor)
-        template_values = prompt_builder.prepare_template_values(inputs)
+        prepared_inputs = prompt_builder.prepare_template_values(inputs)
         
-        # Merge with global variables from context
-        if hasattr(context, 'get_variables'):
-            variables = context.get_variables()
-            template_values = {**variables, **template_values}
+        # Use centralized context builder to merge globals properly
+        template_values = context.build_template_context(inputs=prepared_inputs, globals_win=True)
         
         processed_paths = []
         for file_path in file_paths:
@@ -335,64 +333,178 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
             logger.exception("DB operation failed: %s", exc)
             raise  # Let base class handle error
     
+    def _format_as_table(self, query_result: Any) -> str:
+        """Format query result as a simple text table."""
+        if isinstance(query_result, dict):
+            # For dict, format as key-value pairs
+            lines = []
+            for key, value in query_result.items():
+                lines.append(f"{key}: {value}")
+            return "\n".join(lines)
+        elif isinstance(query_result, list):
+            # For list, format as numbered items
+            lines = []
+            for i, item in enumerate(query_result):
+                lines.append(f"{i+1}. {item}")
+            return "\n".join(lines)
+        else:
+            return str(query_result)
+    
+    def _build_node_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[DBNode]
+    ) -> dict[str, Any]:
+        """Build multi-representation output for database operations."""
+        node = request.node
+        operation = node.operation
+        
+        # Handle multiple files result
+        if isinstance(result, dict) and 'multiple_files' in result:
+            file_count = result['file_count']
+            results = result['results']
+            
+            representations = {
+                "text": f"Read {file_count} files",
+                "object": results,
+                "metadata": {
+                    "affected_rows": file_count,
+                    "operation": operation,
+                    "file_count": file_count,
+                    "format": result.get('format'),
+                    "glob": result.get('glob', False)
+                }
+            }
+            
+            return {
+                "primary": results,
+                "representations": representations,
+                "meta": {
+                    "multiple_files": True,
+                    "file_count": file_count,
+                    "format": result.get('format'),
+                    "serialize_json": result.get('serialize_json', False),
+                    "glob": result.get('glob', False)
+                }
+            }
+        
+        # Handle single file result
+        if isinstance(result, dict) and 'value' in result:
+            output_value = result['value']
+            
+            # Build representations
+            representations = {
+                "text": self._format_as_table(output_value) if isinstance(output_value, (dict, list)) else str(output_value),
+                "object": output_value,
+                "metadata": {
+                    "affected_rows": 1 if operation == "write" else len(output_value) if isinstance(output_value, (list, dict)) else 1,
+                    "operation": operation,
+                    "format": result.get('format')
+                }
+            }
+            
+            # Determine primary value based on type
+            if isinstance(output_value, (dict, list)):
+                if result.get('serialize_json', False) and not result.get('format'):
+                    # Serialize to text if requested
+                    primary = json.dumps(output_value)
+                    primary_type = "text"
+                else:
+                    # Keep as structured data
+                    primary = output_value if isinstance(output_value, dict) else {"default": output_value}
+                    primary_type = "json"
+            else:
+                primary = str(output_value)
+                primary_type = "text"
+            
+            return {
+                "primary": primary,
+                "primary_type": primary_type,
+                "representations": representations,
+                "meta": {
+                    "operation": operation,
+                    "format": result.get('format'),
+                    "serialize_json": result.get('serialize_json', False)
+                }
+            }
+        
+        # Fallback for unexpected result format
+        return {
+            "primary": result,
+            "primary_type": "text",
+            "representations": {
+                "text": str(result),
+                "object": result,
+                "metadata": {"operation": operation}
+            },
+            "meta": {"operation": operation}
+        }
+    
     def serialize_output(
         self,
         result: Any,
         request: ExecutionRequest[DBNode]
     ) -> Envelope:
-        """Custom serialization for DB results."""
+        """Custom serialization for DB results with multi-representation."""
         node = request.node
         trace_id = request.execution_id or ""
         factory = get_envelope_factory()
         
-        # Handle multiple files result
-        if isinstance(result, dict) and 'multiple_files' in result:
-            return factory.json(
-                result['results'],
+        # Build multi-representation output
+        output = self._build_node_output(result, request)
+        
+        # Create envelope based on primary type
+        primary = output["primary"]
+        primary_type = output.get("primary_type", "text")
+        
+        if primary_type == "json":
+            envelope = factory.json(
+                primary,
                 produced_by=node.id,
                 trace_id=trace_id
-            ).with_meta(
-                multiple_files=result['multiple_files'],
-                file_count=result['file_count'],
-                format=result.get('format'),
-                serialize_json=result.get('serialize_json', False),
-                glob=result.get('glob', False)
+            )
+        else:
+            envelope = factory.text(
+                str(primary),
+                produced_by=node.id,
+                trace_id=trace_id
             )
         
-        # Handle single file result
-        if isinstance(result, dict) and 'value' in result:
-            output_value = result['value']
-            serialize_json = result.get('serialize_json', False)
-            format_type = result.get('format')
-            
-            if isinstance(output_value, (dict, list)):
-                if serialize_json and not format_type:
-                    # Serialize to text if requested
-                    return factory.text(
-                        json.dumps(output_value),
-                        produced_by=node.id,
-                        trace_id=trace_id
-                    ).with_meta(
-                        serialized=True,
-                        original_type=type(output_value).__name__,
-                        format=format_type
-                    )
-                else:
-                    # Return as JSON envelope
-                    return factory.json(
-                        output_value if isinstance(output_value, dict) else {"default": output_value},
-                        produced_by=node.id,
-                        trace_id=trace_id
-                    ).with_meta(
-                        wrapped_list=isinstance(output_value, list)
-                    )
-            else:
-                # Return as text envelope
-                return factory.text(
-                    str(output_value),
-                    produced_by=node.id,
-                    trace_id=trace_id
-                )
+        # Add representations
+        if "representations" in output:
+            envelope = envelope.with_representations(output["representations"])
         
-        # Fall back to base class serialization
-        return super().serialize_output(result, request)
+        # Add metadata
+        if "meta" in output:
+            envelope = envelope.with_meta(**output["meta"])
+        
+        return envelope
+    
+    async def prepare_inputs(
+        self,
+        request: ExecutionRequest[DBNode],
+        inputs: dict[str, Envelope]
+    ) -> dict[str, Any]:
+        """Prepare inputs with token consumption.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
+        
+        # Call parent prepare_inputs for default envelope conversion
+        return await super().prepare_inputs(request, envelope_inputs)
+    
+    def post_execute(
+        self,
+        request: ExecutionRequest[DBNode],
+        output: Envelope
+    ) -> Envelope:
+        """Post-execution hook to emit tokens.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
+        
+        return output

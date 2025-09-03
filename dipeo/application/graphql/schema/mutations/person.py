@@ -6,7 +6,7 @@ from uuid import uuid4
 import strawberry
 
 from dipeo.application.registry import ServiceRegistry
-from dipeo.application.registry.keys import PERSON_MANAGER
+from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR
 from dipeo.diagram_generated import DomainPerson
 from dipeo.diagram_generated.domain_models import PersonLLMConfig, PersonID, LLMService, ApiKeyID
 
@@ -24,7 +24,7 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
         @strawberry.mutation
         async def create_person(self, input: CreatePersonInput) -> PersonResult:
             try:
-                person_manager = registry.resolve(PERSON_MANAGER)
+                execution_orchestrator = registry.resolve(EXECUTION_ORCHESTRATOR)
                 
                 # Create LLM config from input
                 llm_config = PersonLLMConfig(
@@ -38,7 +38,7 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                 person_id = PersonID(f"person_{uuid4().hex[:8]}")
                 
                 # Use get_or_create_person to create the person
-                person_manager.get_or_create_person(
+                execution_orchestrator.get_or_create_person(
                     person_id=person_id,
                     name=input.label,
                     llm_config=llm_config
@@ -71,11 +71,11 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
         ) -> PersonResult:
             try:
                 person_id = PersonID(str(id))
-                person_manager = registry.resolve(PERSON_MANAGER)
+                execution_orchestrator = registry.resolve(EXECUTION_ORCHESTRATOR)
                 
                 # Try to get existing person
                 try:
-                    existing_person = person_manager.get_person(person_id)
+                    existing_person = execution_orchestrator.get_person(person_id)
                     existing_label = existing_person.name
                     existing_llm_config = existing_person.llm_config
                 except (KeyError, Exception):
@@ -107,7 +107,7 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                 # For updates, we'll use register_person for backward compatibility
                 if existing_person:
                     # Update using register_person (backward compatibility method)
-                    person_manager.register_person(
+                    execution_orchestrator.register_person(
                         person_id=str(person_id),
                         config={
                             'name': updated_label,
@@ -118,7 +118,7 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                     )
                 else:
                     # Create new person
-                    person_manager.get_or_create_person(
+                    execution_orchestrator.get_or_create_person(
                         person_id=person_id,
                         name=updated_label,
                         llm_config=updated_llm_config

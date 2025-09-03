@@ -40,7 +40,8 @@ export enum HookTriggerMode {
 export enum ConditionType {
   DETECT_MAX_ITERATIONS = 'detect_max_iterations',
   CHECK_NODES_EXECUTED = 'check_nodes_executed',
-  CUSTOM = 'custom'
+  CUSTOM = 'custom',
+  LLM_DECISION = 'llm_decision'
 }
 
 export enum TemplateEngine {

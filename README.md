@@ -1,6 +1,6 @@
 # DiPeO, Diagrammed People (agents) & Organizations (agent system)
 
-> Start with `dipeo ask "the command you want to ask" --and-run`
+> Start with `dipeo ask --to "the command you want to ask" --and-run`
 
 ![Watch Demo](./docs/pics/ad.webp)
 
@@ -76,13 +76,11 @@
 
 ### How can I start?
 
-* Install windows package if you're Windows user, or,
-
 ```bash
-# clone github project first
-make install
-make graphql-schema  # Generate GraphQL types
-make dev-all
+# Clone the repository first
+make install          # Install all dependencies (installs uv if needed)
+make graphql-schema   # Generate GraphQL types
+make dev-all          # Start both frontend and backend servers
 ```
 
 ### Ok. So is there a rule for diagram? Or, would you explain more detail?
@@ -109,17 +107,19 @@ For motivations, guide, details in Korean, read [Korean docs](docs/index.md)
 If you need to modify the codebase or add new features:
 
 ```bash
-# After modifying TypeScript specifications
-cd dipeo/models && pnpm build  # Build TypeScript models
-make parse-typescript
-dipeo run codegen/diagrams/generate_all --light --debug --timeout=90  # Generate code
-make apply-syntax-only  # Apply staged changes
-make graphql-schema  # Update GraphQL types
+# After modifying TypeScript specifications in /dipeo/models/src/
+cd dipeo/models && pnpm build     # Build TypeScript models
+make codegen                      # Generate code (includes parse-typescript)
+make diff-staged                  # Review changes
+make apply-syntax-only            # Apply staged changes
+make graphql-schema              # Update GraphQL types
 ```
 
-## Claude code & ollama supports
+## Major Features
 
-- Now we support Claude code SDK. All you have to do is adding random api key to the file and write the diagram as:
+### 1. Claude Code Integration
+
+DiPeO features built-in support for Anthropic's Claude Code SDK, enabling seamless integration with Claude's advanced AI capabilities. Simply configure your diagram with Claude Code agents:
 
 ```yaml
 persons:
@@ -128,32 +128,80 @@ persons:
     model: claude-code
     api_key_id: APIKEY_CLAUDE
     system_prompt: |
-      You are an expert React/TypeScript engineer. 
+        You are an expert React/TypeScript engineer.
+        Generate clean, production-ready code.
 ```
 
-- We also support ollama.
+**Key Benefits:**
+- Streaming-first architecture for real-time responses
+- Built-in conversation management
+- Automatic retry logic with exponential backoff
+- Context manager pattern for efficient resource usage
+
+For detailed setup and usage, see [Claude Code Integration Guide](docs/integrations/claude-code.md).
+
+### 2. Frontend Auto - Rapid Application Generation
+
+Generate complete, production-ready React applications in 30 minutes with Frontend Auto. This streamlined system creates fully deployable frontends with modern tech stack:
+
+```bash
+# Generate a complete chat application
+dipeo run projects/frontend_auto/consolidated_generator --light --debug --timeout=120
+
+# Generate with specific variant (e.g., e-commerce, analytics, banking)
+dipeo run projects/frontend_auto/consolidated_generator --light --debug --timeout=120 \
+  --input-data '{"config_file": "variants/ecommerce_config.json"}'
+```
+
+**Generated Features:**
+- React 18 + TypeScript + Vite
+- Tailwind CSS styling
+- TanStack Query for data fetching
+- React Router v6 navigation
+- Complete component architecture (atoms/molecules/organisms)
+- Mock API with real-time features
+- Vercel-ready deployment configuration
+
+**Available Variants:** Chat applications, e-commerce stores, analytics dashboards, banking portals, CMS systems, healthcare portals, learning platforms, project management tools, and more.
+
+For comprehensive details, see the Frontend Auto project files in `projects/frontend_auto/`.
+
+### 3. Multi-LLM Support
+
+Beyond Claude Code, DiPeO supports multiple LLM providers:
+
+**Ollama (Local Models):**
 ```yaml
 persons:
-  person 1:
+  Frontend Generator:
     service: ollama
     model: gpt-oss:20b
-    api_key_id: APIKEY_21A814
+    api_key_id: APIKEY_OLLAMA
+    system_prompt: |
+        You are an expert React/TypeScript engineer.
+        Generate clean, production-ready code.
 ```
-read [example](examples/simple_diagrams/simple_iter_ollama.light.yaml)
 
-- We support Notion, custom LLM with curl, ... etc, any API services
-- Since we use schema-driven integrations, it's quite easy to add new external API feature.
-  - read `integrations/`
+**Custom APIs and Services:**
+- Notion integration
+- Custom LLM endpoints via cURL
+- Any RESTful API service
+
+Thanks to our schema-driven integration system, adding new external API features is straightforward. See `integrations/` directory for examples.
+
+For local model examples, see [Ollama example](examples/simple_diagrams/simple_iter_ollama.light.yaml).
 
 
 ### `dipeo` - Run Diagrams with CLI
 
 #### Run existing diagrams
 ```bash
-# run diagram with automatically running server
-dipeo run examples/simple_iter --debug --light --timeout=10
-# or, feed actual directory
-dipeo run examples/simple_iter.light.yaml --light --debug
+# Run diagram with automatic server startup
+dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=25
+# Run with specific diagram file
+dipeo run examples/simple_diagrams/simple_iter.light.yaml --light --debug
+# Run with input data
+dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
 ```
 
 #### Generate diagrams from natural language
@@ -165,15 +213,13 @@ dipeo ask --to "create csv preprocessor" --timeout=90
 dipeo ask --to "create csv preprocessor" --and-run --timeout=90
 
 # With additional options
-dipeo ask --to "build data pipeline" --and-run --debug --timeout=120 --run-timeout=300
+dipeo ask --to "build data pipeline" --and-run --timeout=120
 ```
 
-**Note**: The `dipeo ask` command uses AI to generate DiPeO diagrams from your natural language description. Generation typically takes 150-250 seconds due to multiple LLM calls, even if it's using gpt-5-nano. Use `--timeout 120` for complex requests.
+**Note**: The `dipeo ask` command uses AI to generate DiPeO diagrams from your natural language description. Generation typically takes 150-250 seconds due to multiple LLM calls.
 
 ## Requirements
-- Node.js 22+ with pnpm 10+
-- Python 3.13+
-
-### Release Notes
-* **0.4.4:** Semantic memory selection by 'memorize_to' is in development
-* **0.4.2:** Claude code support
+- **Python 3.13+** (required for uv support)
+- **Node.js 22+** with **pnpm 10+** (not npm/yarn)
+- **uv** package manager (auto-installed via `make install`)
+- Default LLM: `gpt-5-nano-2025-08-07`

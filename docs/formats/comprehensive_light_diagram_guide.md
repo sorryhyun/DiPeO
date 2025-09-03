@@ -3,6 +3,7 @@
 > **Last Updated**: January 2025
 > 
 > **Recent Updates**:
+> - Added `llm_decision` condition type for AI-powered binary decisions
 > - Added missing node types: `HOOK`, `INTEGRATED_API`, `JSON_SCHEMA_VALIDATOR`, `TYPESCRIPT_AST`, `PERSON_BATCH_JOB`
 > - Documented `CUSTOM` memory profile for person_job nodes
 > - Clarified field mapping for backward compatibility (`source_details` ⟷ `file`, `language` ⟷ `code_type`)
@@ -278,7 +279,7 @@ def validate_data(raw_data, **kwargs):
 
 ### 4. CONDITION Node
 
-Controls flow based on boolean expressions or built-in conditions.
+Controls flow based on boolean expressions, built-in conditions, or LLM-based decisions.
 
 ```yaml
 # Built-in condition
@@ -296,12 +297,51 @@ Controls flow based on boolean expressions or built-in conditions.
   props:
     condition_type: custom
     expression: score >= 70 and len(errors) == 0
+
+# LLM-based decision (NEW)
+- label: Check Output Quality
+  type: condition
+  position: {x: 600, y: 400}
+  props:
+    condition_type: llm_decision
+    person: Validator  # Reference to persons section
+    memorize_to: "GOLDFISH"  # Fresh evaluation each time
+    judge_by: |
+      Review this output and determine if it meets quality standards:
+      {{generated_output}}
+      
+      Respond with only YES or NO:
+      - YES if the output is acceptable
+      - NO if the output has critical issues
 ```
 
 **Built-in Conditions:**
 - `detect_max_iterations`: True when all person_job nodes reached max_iteration
 - `nodes_executed`: Check if specific nodes have executed
 - `custom`: Evaluate Python expression with access to all variables
+- `llm_decision`: Use LLM to make binary decisions based on prompts
+
+**LLM Decision Properties:**
+- `person`: Reference to the AI agent defined in the persons section (required)
+- `judge_by`: Inline prompt asking the LLM to make a judgment (required unless judge_by_file is used)
+  - Supports Handlebars-style templates: `{{variable}}`, `{{nested.property}}`
+  - All upstream variables are accessible via connection labels
+- `judge_by_file`: Path to external prompt file in /files/prompts/ (alternative to judge_by)
+  - Files must be located in `/files/prompts/` directory
+  - Use only the filename (e.g., `quality_check.txt`, not the full path)
+  - Useful for reusing complex evaluation criteria across diagrams
+- `memorize_to`: Memory profile for context (default: "GOLDFISH" for unbiased evaluation)
+  - `GOLDFISH`: No memory - fresh evaluation each time (recommended for objective decisions)
+  - `MINIMAL`: Last 5 messages
+  - `FOCUSED`: Last 20 conversation pairs
+  - `FULL`: Complete conversation history
+- `at_most`: Maximum messages to keep in context (optional, used with CUSTOM memory profile)
+
+**LLM Decision Response Parsing:**
+The evaluator intelligently parses LLM responses to extract boolean decisions:
+- Looks for affirmative keywords: yes, true, valid, approved, accept, correct, pass
+- Looks for negative keywords: no, false, invalid, rejected, deny, fail
+- Defaults to false if response is ambiguous
 
 **Connection Handles:**
 - `NodeLabel_condtrue`: When condition evaluates to true
@@ -764,7 +804,79 @@ nodes:
       memory_profile: FULL
 ```
 
-### 3. Error Handling and Retry Logic
+### 3. LLM-Based Quality Control
+
+Using `llm_decision` for automated quality checks in code generation:
+
+```yaml
+persons:
+  QualityChecker:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_OPENAI
+    system_prompt: You are a code quality evaluator
+
+nodes:
+  - label: Generate Code
+    type: person_job
+    props:
+      person: CodeGenerator
+      default_prompt: |
+        Generate a Python function to {{task_description}}
+      max_iteration: 1
+  
+  - label: Quality Gate
+    type: condition
+    position: {x: 600, y: 200}
+    props:
+      condition_type: llm_decision
+      person: QualityChecker
+      memorize_to: "GOLDFISH"  # Unbiased evaluation
+      judge_by: |
+        Evaluate this generated code for production readiness:
+        
+        ```python
+        {{generated_code}}
+        ```
+        
+        Check for:
+        - Actual code implementation (not explanatory text)
+        - Proper error handling
+        - Clear function signatures
+        - No obvious bugs or syntax errors
+        
+        Respond with YES if production-ready, NO if needs revision.
+  
+  - label: Deploy Code
+    type: endpoint
+    position: {x: 800, y: 100}
+    props:
+      file_path: generated/production_code.py
+  
+  - label: Request Revision
+    type: person_job
+    position: {x: 800, y: 300}
+    props:
+      person: CodeGenerator
+      default_prompt: |
+        The code needs revision. Previous attempt:
+        {{generated_code}}
+        
+        Please fix issues and regenerate.
+
+connections:
+  - from: Generate Code
+    to: Quality Gate
+    label: generated_code
+  - from: Quality Gate_condtrue
+    to: Deploy Code
+  - from: Quality Gate_condfalse
+    to: Request Revision
+```
+
+This pattern ensures generated code meets quality standards before deployment, using AI to evaluate code quality objectively.
+
+### 4. Error Handling and Retry Logic
 
 ```yaml
 nodes:

@@ -5,6 +5,7 @@ import uuid
 import yaml
 from typing import TYPE_CHECKING, Any
 
+
 if TYPE_CHECKING:
     from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 
@@ -21,6 +22,9 @@ class BaseSubDiagramExecutor:
         self._message_router = None
         self._diagram_service = None
         self._prepare_use_case = None
+        # Use case for diagram loading (will be resolved from registry)
+        self._load_diagram_use_case = None
+        self._service_registry = None
     
     def set_services(self, **kwargs):
         """Set services for the executor to use.
@@ -31,6 +35,15 @@ class BaseSubDiagramExecutor:
         self._message_router = kwargs.get('message_router')
         self._diagram_service = kwargs.get('diagram_service')
         self._prepare_use_case = kwargs.get('prepare_use_case')
+        self._service_registry = kwargs.get('service_registry')
+        
+        # Resolve LoadDiagramUseCase from registry if available
+        if self._service_registry and not self._load_diagram_use_case:
+            from dipeo.application.registry.keys import LOAD_DIAGRAM_USE_CASE
+            try:
+                self._load_diagram_use_case = self._service_registry.resolve(LOAD_DIAGRAM_USE_CASE)
+            except Exception:
+                logger.warning("LoadDiagramUseCase not found in registry, diagram loading may fail")
     
     def _construct_diagram_path(self, node: "SubDiagramNode") -> str:
         """Construct the file path for a diagram.
@@ -41,27 +54,21 @@ class BaseSubDiagramExecutor:
         Returns:
             The constructed file path for the diagram
         """
-        diagram_name = node.diagram_name
-        
-        # Determine format suffix
-        format_suffix = ".light.yaml"  # Default format
-        if node.diagram_format:
+        if not self._load_diagram_use_case:
+            # Fallback to simple path construction if use case not available
             format_map = {
                 'light': '.light.yaml',
                 'native': '.native.json',
                 'readable': '.readable.yaml'
             }
-            format_suffix = format_map.get(node.diagram_format, '.light.yaml')
+            format_suffix = format_map.get(node.diagram_format or 'light', '.light.yaml')
+            return f"examples/{node.diagram_name}{format_suffix}"
         
-        # Construct full file path
-        if diagram_name.startswith('projects/'):
-            return f"{diagram_name}{format_suffix}"
-        elif diagram_name.startswith('codegen/'):
-            return f"files/{diagram_name}{format_suffix}"
-        elif diagram_name.startswith('examples/'):
-            return f"{diagram_name}{format_suffix}"
-        else:
-            return f"examples/{diagram_name}{format_suffix}"
+        # Use LoadDiagramUseCase's construct_diagram_path method
+        return self._load_diagram_use_case.construct_diagram_path(
+            node.diagram_name,
+            node.diagram_format
+        )
     
     def _process_output_mapping(self, node: "SubDiagramNode", execution_results: dict[str, Any]) -> Any:
         """Process output mapping from sub-diagram results.
@@ -75,21 +82,22 @@ class BaseSubDiagramExecutor:
         Returns:
             The processed output value
         """
-        if not execution_results:
-            return {}
-        
-        # Find endpoint outputs
+        # First check for endpoint outputs
         endpoint_outputs = self._find_endpoint_outputs(execution_results)
         
         if endpoint_outputs:
-            # If there's one endpoint, return its value directly
+            # If there's exactly one endpoint, return its value
             if len(endpoint_outputs) == 1:
                 return list(endpoint_outputs.values())[0]
-            # Multiple endpoints, return all
+            # Otherwise return all endpoint outputs
             return endpoint_outputs
         
-        # No endpoints, return the last output
-        return list(execution_results.values())[-1] if execution_results else {}
+        # Fall back to last output
+        if execution_results:
+            last_key = max(execution_results.keys())
+            return execution_results.get(last_key)
+        
+        return None
     
     def _find_endpoint_outputs(self, execution_results: dict[str, Any]) -> dict[str, Any]:
         """Find endpoint node outputs in execution results.
@@ -101,7 +109,7 @@ class BaseSubDiagramExecutor:
             A dictionary of endpoint outputs
         """
         return {
-            k: v for k, v in execution_results.items() 
+            k: v for k, v in execution_results.items()
             if k.startswith("endpoint") or k.startswith("end")
         }
     
@@ -114,53 +122,15 @@ class BaseSubDiagramExecutor:
         Returns:
             The loaded DomainDiagram
         """
-        # If diagram_data is provided directly, convert it to DomainDiagram
-        if node.diagram_data:
-            return await self._load_diagram_from_data(node.diagram_data)
+        if not self._load_diagram_use_case:
+            raise ValueError("LoadDiagramUseCase not available")
         
-        # Otherwise, load by name from storage
-        if not node.diagram_name:
-            raise ValueError("No diagram specified for execution")
-        
-        return await self._load_diagram_from_file(node)
+        return await self._load_diagram_use_case.load_diagram(
+            diagram_name=node.diagram_name if not node.diagram_data else None,
+            diagram_format=node.diagram_format,
+            diagram_data=node.diagram_data
+        )
     
-    async def _load_diagram_from_data(self, diagram_data: dict[str, Any]) -> Any:
-        """Load diagram from inline data.
-        
-        Args:
-            diagram_data: The inline diagram data
-            
-        Returns:
-            The loaded DomainDiagram
-        """
-        if not self._diagram_service:
-            raise ValueError("Diagram service not available for conversion")
-        
-        yaml_content = yaml.dump(diagram_data, default_flow_style=False, sort_keys=False)
-        return self._diagram_service.load_diagram(yaml_content)
-    
-    async def _load_diagram_from_file(self, node: "SubDiagramNode") -> Any:
-        """Load diagram from file.
-        
-        Args:
-            node: The SubDiagramNode containing diagram information
-            
-        Returns:
-            The loaded DomainDiagram
-        """
-        if not self._diagram_service:
-            raise ValueError("Diagram service not available")
-        
-        # Construct file path based on diagram name and format
-        file_path = self._construct_diagram_path(node)
-        
-        try:
-            # Use diagram service to load the diagram - returns DomainDiagram
-            diagram = await self._diagram_service.load_from_file(file_path)
-            return diagram
-        except Exception as e:
-            logger.error(f"Error loading diagram from '{file_path}': {e!s}")
-            raise ValueError(f"Failed to load diagram '{node.diagram_name}': {e!s}")
     
     def _create_execution_id(self, parent_execution_id: str, suffix: str = "sub") -> str:
         """Create a unique execution ID for sub-diagram.

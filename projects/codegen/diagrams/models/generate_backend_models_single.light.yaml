@@ -16,23 +16,9 @@ nodes:
     props:
       language: python
       code: |
-        # In batch mode, input comes directly as node_spec_path
-        # It can be a string or in a dict under 'node_spec_path' key
-        if 'node_spec_path' in locals():
-            node_type = node_spec_path
-        elif 'default' in locals():
-            # Sometimes wrapped in default
-            if isinstance(default, dict):
-                node_type = default.get('node_spec_path', 'unknown')
-            else:
-                node_type = default
-        else:
-            # Try to find it in all available variables
-            all_vars = {**globals(), **locals()}
-            node_type = all_vars.get('node_spec_path', 'unknown')
-        
         # node_type is like "api-job", "person-job", etc.
-        result = node_type
+        # Extract just the string value for template substitution
+        result = default['default']['node_spec_path']
   
   # Load cached AST data for this node spec
   - label: Load Cached AST
@@ -91,6 +77,10 @@ nodes:
             spec_data = spec_result
         
         # Clean up nodeType by removing "NodeType." prefix and convert to lowercase
+        # Ensure spec_data is a dictionary
+        if not isinstance(spec_data, dict):
+            raise ValueError(f"spec_data is not a dictionary: {type(spec_data)} - {spec_data}")
+        
         cleaned_spec_data = dict(spec_data)
         if 'nodeType' in cleaned_spec_data:
             node_type_raw = cleaned_spec_data['nodeType']
@@ -110,16 +100,24 @@ nodes:
         node_name = ''.join(word.title() for word in node_type_snake.split('_'))
         
         # Build the context with everything needed for templates
-        context = {
-            **cleaned_spec_data,  # All spec fields with cleaned nodeType
-            'mappings': mappings,  # Type mappings for python_type_with_context filter
-            'node_type': node_type_snake,  # For file names (api_job)
-            'node_name': node_name,  # For class names (ApiJob)
-            'node_naming': {  # Keep for backward compatibility with templates
-                'node_type': node_type_snake,
-                'node_name': node_name
+        try:
+            context = {
+                **cleaned_spec_data,  # All spec fields with cleaned nodeType
+                'mappings': mappings,  # Type mappings for python_type_with_context filter
+                'node_type': node_type_snake,  # For file names (api_job)
+                'node_name': node_name,  # For class names (ApiJob)
+                'node_naming': {  # Keep for backward compatibility with templates
+                    'node_type': node_type_snake,
+                    'node_name': node_name
+                }
             }
-        }
+        except Exception as e:
+            raise ValueError(
+                f"Failed to build context for node {node_type_str}. "
+                f"cleaned_spec_data type: {type(cleaned_spec_data)}, "
+                f"mappings type: {type(mappings)}. "
+                f"Error: {str(e)}"
+            )
         
         result = context
 
@@ -142,14 +140,14 @@ nodes:
 
 connections:
   # Parse input first
-  - {from: Start, to: Parse Node Type}
+  - {from: Start, to: Parse Node Type, content_type: object}
     
-  # Load resources in parallel
-  - {from: Parse Node Type, to: Load Cached AST, label: node_type, content_type: object}
+  # Load resources in parallel (node_type passed as text for template substitution)
+  - {from: Parse Node Type, to: Load Cached AST, label: node_type}
   - {from: Parse Node Type, to: Load Codegen Mappings}
     
-  # Extract specification from AST
-  - {from: Load Cached AST, to: Extract Specification, label: ast_data}
+  # Extract specification from AST  
+  - {from: Load Cached AST, to: Extract Specification, label: ast_data, content_type: object}
   - {from: Parse Node Type, to: Extract Specification, label: node_type}
     
   # Extract mappings

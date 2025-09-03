@@ -12,7 +12,7 @@ class CoreFile(BaseModel):
     model_config = ConfigDict(extra='forbid')
     
     file_path: str = Field(
-        description="File path relative to src/ (e.g., 'core/contracts.ts', 'app/config.ts')"
+        description="File path relative to src/ (e.g., 'src/core/contracts.ts', 'src/app/config.ts')"
     )
     purpose: str = Field(
         description="Brief description of what this file provides to the application"
@@ -49,7 +49,7 @@ EXAMPLE_RESPONSE = CoreKernelResponse(
     overview="Core kernel provides shared contracts, dependency injection, event bus, and configuration that all sections import from @/core/*. This ensures consistency and eliminates guesswork about types and patterns.",
     files=[
         CoreFile(
-            file_path="core/contracts.ts",
+            file_path="src/core/contracts.ts",
             purpose="Domain types and API contracts used throughout the application",
             exports=["User", "Patient", "Appointment", "ApiResult", "ApiError"],
             content="""Define the following TypeScript interfaces and types:
@@ -86,7 +86,7 @@ EXAMPLE_RESPONSE = CoreKernelResponse(
 Use strict TypeScript with no 'any' types. Export all as named exports."""
         ),
         CoreFile(
-            file_path="core/hooks.ts",
+            file_path="src/core/hooks.ts",
             purpose="Hook registry for extension points throughout the app",
             exports=["HookPoint", "HookContext", "HookRegistry", "hooks"],
             content="""Create a flexible hook system for extension points:

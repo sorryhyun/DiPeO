@@ -56,7 +56,9 @@ class Error:
 SimpleJsonValue = Union[str, int, float, bool, None]
 
 # Level 2: Dict/List containing simple values
-JsonDict = Dict[str, Union[SimpleJsonValue, List[SimpleJsonValue], Dict[str, SimpleJsonValue]]]
+# NOTE: Using Any for values to support complex nested structures in execution state
+# This is a temporary solution until we have better recursive type support
+JsonDict = Dict[str, Any]  # Allow any nested structure for now
 JsonList = List[Union[SimpleJsonValue, Dict[str, SimpleJsonValue]]]
 
 # Top level: Can be any of the above

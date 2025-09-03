@@ -8,7 +8,7 @@ import logging
 import yaml
 from dataclasses import dataclass
 
-from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
+from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
 
 
 @dataclass
@@ -56,13 +56,13 @@ class CliSessionService:
             elif diagram_data and diagram_format == "light":
                 # Only convert if it's actually in light format (not already converted)
                 try:
-                    # Create converter service
-                    converter = DiagramConverterService()
-                    await converter.initialize()
+                    # Create serializer adapter
+                    serializer = UnifiedSerializerAdapter()
+                    await serializer.initialize()
                     
                     # Convert to YAML string then deserialize to DomainDiagram
                     yaml_content = yaml.dump(diagram_data, default_flow_style=False)
-                    domain_diagram = converter.deserialize_from_storage(yaml_content, format="light")
+                    domain_diagram = serializer.deserialize_from_storage(yaml_content, format="light")
                     
                     # Convert to frontend-compatible format (arrays, not objects)
                     converted_data = {

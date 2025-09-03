@@ -36,12 +36,13 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         """Initialize executor."""
         super().__init__()
     
-    def set_services(self, state_store, message_router, diagram_service):
+    def set_services(self, state_store, message_router, diagram_service, service_registry=None):
         """Set services for the executor to use."""
         super().set_services(
             state_store=state_store,
             message_router=message_router,
-            diagram_service=diagram_service
+            diagram_service=diagram_service,
+            service_registry=service_registry
         )
     
     def _get_batch_configuration(self, node: SubDiagramNode) -> dict[str, Any]:

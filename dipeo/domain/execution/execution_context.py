@@ -1,137 +1,83 @@
 """Protocol for managing execution context during diagram runtime."""
 
 from abc import abstractmethod
-from typing import Any, Optional, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Protocol
 
-from dipeo.diagram_generated import NodeID, NodeState
-from dipeo.domain.execution.envelope import Envelope
+from dipeo.diagram_generated import NodeID
+
+if TYPE_CHECKING:
+    from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
+    from dipeo.domain.execution.state_tracker import StateTracker
+    from dipeo.domain.execution.token_manager import TokenManager
 
 
 class ExecutionContext(Protocol):
-    """Manages runtime execution state, dependencies, and node coordination.
+    """Manages runtime execution state with token-based flow control.
     
-    This protocol defines the contract for managing execution state during
-    diagram runtime, including node states, results, and execution flow.
+    This protocol defines the minimal contract for execution contexts,
+    using specialized managers for state and token operations.
     """
     
-    # Node State Queries
+    # Core References
+    diagram: "ExecutableDiagram"
+    execution_id: str
+    
+    # Manager Components
+    state: "StateTracker"
+    tokens: "TokenManager"
+    
+    # ========== Epoch Management ==========
     
     @abstractmethod
-    def get_node_state(self, node_id: NodeID) -> NodeState | None:
-        """Get the current state of a node."""
+    def current_epoch(self) -> int:
+        """Get the current execution epoch."""
+        ...
+    
+    # ========== Variables (For Expressions and Loop Indices) ==========
+    
+    @abstractmethod
+    def get_variable(self, name: str) -> Any:
+        """Get a variable value (for conditions and expressions)."""
         ...
     
     @abstractmethod
-    def get_node_result(self, node_id: NodeID) -> dict[str, Any] | None:
-        """Get the execution result of a completed node."""
+    def set_variable(self, name: str, value: Any) -> None:
+        """Set a variable value (for loop indices and branch tracking)."""
         ...
     
     @abstractmethod
-    def get_node_output(self, node_id: NodeID) -> Envelope | None:
-        """Get the typed output of a completed node."""
+    def get_variables(self) -> dict[str, Any]:
+        """Get all variables (for expression evaluation)."""
         ...
     
-    # Execution Status Queries
+    # ========== Token Operations (Phase 5) ==========
     
     @abstractmethod
-    def get_completed_nodes(self) -> list[NodeID]:
-        """Get all nodes that have completed execution."""
-        ...
-    
-    @abstractmethod
-    def get_running_nodes(self) -> list[NodeID]:
-        """Get nodes currently in execution."""
-        ...
-    
-    @abstractmethod
-    def get_failed_nodes(self) -> list[NodeID]:
-        """Get nodes that failed during execution."""
-        ...
-    
-    @abstractmethod
-    def get_node_execution_count(self, node_id: NodeID) -> int:
-        """Get the number of times a node has been executed."""
-        ...
-    
-    # State Transitions
-    
-    @abstractmethod
-    def transition_node_to_running(self, node_id: NodeID) -> int:
-        """Transition a node to running state. Returns execution count."""
+    def consume_inbound(self, node_id: NodeID) -> dict[str, "Envelope"]:
+        """Consume inbound tokens for a node.
+        
+        Delegates to TokenManager to atomically consume available tokens
+        from incoming edges for the specified node.
+        
+        Args:
+            node_id: The node consuming tokens
+            
+        Returns:
+            Dict of port name to envelope
+        """
         ...
     
     @abstractmethod
-    def transition_node_to_completed(self, node_id: NodeID, output: Any = None, token_usage: dict[str, int] | None = None) -> None:
-        """Transition a node to completed state with output."""
-        ...
-    
-    @abstractmethod
-    def transition_node_to_failed(self, node_id: NodeID, error: str) -> None:
-        """Transition a node to failed state with error message."""
-        ...
-    
-    @abstractmethod
-    def transition_node_to_maxiter(self, node_id: NodeID, output: Optional[Envelope] = None) -> None:
-        """Transition a node to max iterations state."""
-        ...
-    
-    @abstractmethod
-    def transition_node_to_skipped(self, node_id: NodeID) -> None:
-        """Transition a node to skipped state."""
-        ...
-    
-    @abstractmethod
-    def reset_node(self, node_id: NodeID) -> None:
-        """Reset a node to initial state."""
-        ...
-    
-    @abstractmethod
-    def get_all_node_states(self) -> dict[NodeID, NodeState]:
-        """Get all node states in the execution context."""
-        ...
-    
-    # Runtime Context
-    
-    @abstractmethod
-    def get_execution_metadata(self) -> dict[str, Any]:
-        """Get global execution metadata."""
-        ...
-    
-    @abstractmethod
-    def set_execution_metadata(self, key: str, value: Any) -> None:
-        """Set a value in global execution metadata."""
-        ...
-    
-    @abstractmethod
-    def get_node_metadata(self, node_id: NodeID) -> dict[str, Any]:
-        """Get metadata for a specific node."""
-        ...
-    
-    @abstractmethod
-    def set_node_metadata(self, node_id: NodeID, key: str, value: Any) -> None:
-        """Set metadata for a specific node."""
-        ...
-    
-    # Dynamic Control Flow
-    
-    @abstractmethod
-    def mark_branch_taken(self, node_id: NodeID, branch: str) -> None:
-        """Mark which branch was taken from a conditional node."""
-        ...
-    
-    @abstractmethod
-    def get_branch_taken(self, node_id: NodeID) -> str | None:
-        """Get which branch was taken from a conditional node."""
-        ...
-    
-    @abstractmethod
-    def is_loop_active(self, node_id: NodeID) -> bool:
-        """Check if a loop node should continue iterating."""
-        ...
-    
-    @abstractmethod
-    def update_loop_state(self, node_id: NodeID, should_continue: bool) -> None:
-        """Update the iteration state of a loop node."""
+    def emit_outputs_as_tokens(self, node_id: NodeID, outputs: dict[str, "Envelope"]) -> None:
+        """Emit node outputs as tokens on outgoing edges.
+        
+        Delegates to TokenManager to publish tokens on all outgoing edges
+        from the specified node.
+        
+        Args:
+            node_id: The node emitting outputs
+            outputs: Map of output port to envelope
+        """
         ...
 
 

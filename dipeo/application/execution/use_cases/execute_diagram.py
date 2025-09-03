@@ -13,7 +13,7 @@ from dipeo.application.registry import (
     MESSAGE_ROUTER,
     DIAGRAM_PORT,
     API_KEY_SERVICE,
-    CONVERSATION_MANAGER,
+    EXECUTION_ORCHESTRATOR,
     PREPARE_DIAGRAM_USE_CASE,
 )
 
@@ -89,32 +89,6 @@ class ExecuteDiagramUseCase(BaseService):
         from dipeo.application.registry.keys import EVENT_BUS, DOMAIN_EVENT_BUS, AST_PARSER
         from dipeo.domain.execution.resolution import resolve_inputs
 
-        # Create a minimal runtime resolver that directly uses domain resolution
-        class DirectDomainResolver:
-            def resolve_node_inputs(self, node, incoming_edges, context):
-                """Resolve inputs using domain resolution directly."""
-                from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-                
-                # Create minimal diagram for resolution
-                diagram = ExecutableDiagram(
-                    id="temp",
-                    nodes=[node],
-                    edges=incoming_edges,
-                    metadata={}
-                )
-                
-                # Use domain resolution (synchronous)
-                envelopes = resolve_inputs(node, diagram, context)
-                
-                # Extract raw values from envelopes
-                return {key: env.body for key, env in envelopes.items()}
-            
-            async def resolve_as_envelopes(self, node, context, diagram):
-                """Resolve as envelopes - just wraps synchronous call."""
-                return resolve_inputs(node, diagram, context)
-        
-        runtime_resolver = DirectDomainResolver()
-        
         # Get event bus from registry if available
         # Use DOMAIN_EVENT_BUS (which has MessageRouter subscribed) if available,
         # otherwise fall back to EVENT_BUS for backward compatibility
@@ -127,7 +101,6 @@ class ExecuteDiagramUseCase(BaseService):
         # Create engine with event bus only (observers are deprecated)
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
-            runtime_resolver=runtime_resolver,
             event_bus=event_bus,
         )
 
@@ -344,12 +317,14 @@ class ExecuteDiagramUseCase(BaseService):
         conversation_service = None
         if hasattr(self.service_registry, 'resolve'):
             # Use the consolidated conversation manager service
-            conversation_service = self.service_registry.resolve(CONVERSATION_MANAGER)
+            conversation_service = self.service_registry.resolve(EXECUTION_ORCHESTRATOR)
         
         if conversation_service:
             # Extract person configs from typed nodes
+            from dipeo.diagram_generated.generated_nodes import NodeType
             person_configs = {}
-            for node in typed_diagram.nodes:
+            person_job_nodes = typed_diagram.get_nodes_by_type(NodeType.PERSON_JOB)
+            for node in person_job_nodes:
                 if isinstance(node, PersonJobNode) and node.person:
                     # Use the actual person_id from the node, not the node ID
                     person_id = str(node.person)
@@ -408,7 +383,7 @@ class ExecuteDiagramUseCase(BaseService):
         """Initialize execution state for typed diagram."""
         from datetime import datetime
 
-        from dipeo.diagram_generated import ExecutionState, Status, TokenUsage
+        from dipeo.diagram_generated import ExecutionState, Status, LLMUsage
         
         # Create initial execution state
         initial_state = ExecutionState(
@@ -420,7 +395,7 @@ class ExecuteDiagramUseCase(BaseService):
             node_outputs={},
             variables=options.get("variables", {}),
             is_active=True,
-            token_usage=TokenUsage(input=0, output=0),
+            llm_usage=LLMUsage(input=0, output=0),
             exec_counts={},
             executed_nodes=[],
         )

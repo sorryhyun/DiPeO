@@ -29,10 +29,16 @@ class ConditionNode:
     type: NodeType = field(default=NodeType.CONDITION, init=False)
     
     # Optional node-specific fields
-    condition_type: Literal["detect_max_iterations", "check_nodes_executed", "custom"] = None
+    condition_type: Literal["detect_max_iterations", "check_nodes_executed", "custom", "llm_decision"] = None
     expression: str = ""
     node_indices: List[Any] = field(default_factory=list)
+    person: str = ""
+    judge_by: str = ""
+    judge_by_file: str = ""
+    memorize_to: str = ""
+    at_most: float = 0
     expose_index_as: str = ""
+    skippable: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -50,5 +56,11 @@ class ConditionNode:
         data["condition_type"] = self.condition_type
         data["expression"] = self.expression
         data["node_indices"] = self.node_indices
+        data["person"] = self.person
+        data["judge_by"] = self.judge_by
+        data["judge_by_file"] = self.judge_by_file
+        data["memorize_to"] = self.memorize_to
+        data["at_most"] = self.at_most
         data["expose_index_as"] = self.expose_index_as
+        data["skippable"] = self.skippable
         return data

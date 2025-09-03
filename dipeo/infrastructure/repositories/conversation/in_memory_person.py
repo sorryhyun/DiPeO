@@ -62,10 +62,10 @@ class InMemoryPersonRepository(PersonRepository):
         # Wire up brain component if orchestrator is available
         if self._orchestrator:
             from dipeo.domain.conversation.brain import CognitiveBrain
-            from dipeo.infrastructure.memory import LLMMemorySelector
+            from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
             
             # Create memory selector implementation
-            memory_selector = LLMMemorySelector(self._orchestrator)
+            memory_selector = LLMMemorySelectionAdapter(self._orchestrator)
             
             # Wire brain with memory selector
             person.brain = CognitiveBrain(memory_selector=memory_selector)
@@ -118,10 +118,11 @@ class InMemoryPersonRepository(PersonRepository):
         
         # Create with defaults if not provided
         if not llm_config:
+            # Default to APIKEY_52609F which is the most common API key in diagrams
             llm_config = PersonLLMConfig(
                 service=LLMService("openai"),
                 model="gpt-5-nano-2025-08-07",
-                api_key_id=ApiKeyID("default")
+                api_key_id=ApiKeyID("APIKEY_52609F")
             )
         
         return self.create(
@@ -142,7 +143,8 @@ class InMemoryPersonRepository(PersonRepository):
         person_id_obj = PersonID(person_id)
         
         if not self.exists(person_id_obj):
-            api_key_id_value = config.get('api_key_id', 'default')
+            # Default to APIKEY_52609F which is the most common API key in diagrams
+            api_key_id_value = config.get('api_key_id', 'APIKEY_52609F')
             llm_config = PersonLLMConfig(
                 service=LLMService(config.get('service', 'openai')),
                 model=config.get('model', 'gpt-5-nano-2025-08-07'),

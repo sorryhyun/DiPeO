@@ -98,10 +98,10 @@ connections:
   
   # Pass AST data and original input to prepare
   - {from: Load AST, to: Prepare Extractor Inputs, label: ast_data, content_type: object}
-  - {from: Start, to: Prepare Extractor Inputs}
+  - {from: Start, to: Prepare Extractor Inputs, content_type: object}
 
   # Extract all data
-  - {from: Prepare Extractor Inputs, to: Extract Frontend Data}
+  - {from: Prepare Extractor Inputs, to: Extract Frontend Data, content_type: object}
   
   # Pass extracted data directly to template jobs (no label = auto unwrap)
   - {from: Extract Frontend Data, to: Generate TypeScript Model, content_type: object}

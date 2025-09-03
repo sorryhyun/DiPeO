@@ -6,12 +6,14 @@
  */
 
 import { useEffect, useRef, useContext } from 'react';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, useLazyQuery, gql } from '@apollo/client';
 import { toast } from 'sonner';
 import { useExecution } from './useExecution';
 import { useDiagramLoader } from '@/domain/diagram/hooks/useDiagramLoader';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { useUIState, useUIOperations } from '@/infrastructure/store/hooks';
+import { nodeId } from '@/infrastructure/types';
+import { Status } from '@dipeo/models';
 
 const ACTIVE_CLI_SESSION_QUERY = gql`
   query ActiveCliSession {
@@ -23,6 +25,19 @@ const ACTIVE_CLI_SESSION_QUERY = gql`
       started_at
       is_active
       diagram_data
+    }
+  }
+`;
+
+const GET_EXECUTION_STATE_QUERY = gql`
+  query GetExecutionState($id: ID!) {
+    execution(id: $id) {
+      id
+      status
+      started_at
+      ended_at
+      node_states
+      node_outputs
     }
   }
 `;
@@ -50,15 +65,23 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   const { isMonitorMode: isMonitorModeFromStore } = useUIState();
   const { setActiveCanvas } = useUIOperations();
   
+  // Lazy query to fetch execution state on demand
+  const [fetchExecutionState] = useLazyQuery(GET_EXECUTION_STATE_QUERY, {
+    fetchPolicy: 'network-only',
+  });
+  
   // Check if we're in monitor mode (from store)
   const isMonitorMode = () => {
     return isMonitorModeFromStore;
   };
   
+  // Track if we're in initial connection phase for faster polling
+  const initialConnectionRef = useRef(true);
+  
   // Poll for active CLI session when in monitor mode
   const { data: cliSessionData, loading: cliSessionLoading, error: cliSessionError } = useQuery(ACTIVE_CLI_SESSION_QUERY, {
     skip: !isMonitorMode() || !pollCliSessions,
-    pollInterval: 500, // Poll every 500ms for faster response
+    pollInterval: initialConnectionRef.current ? 100 : 200, // Fast polling initially, then slower
     fetchPolicy: 'network-only',
   });
   
@@ -100,7 +123,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
         
         // Add a small delay to ensure React Flow has time to initialize nodes/handles
         // This prevents the "Couldn't create edge" error
-        setTimeout(() => {
+        setTimeout(async () => {
           // Connect to the CLI execution directly (no URL params needed)
           const nodeCount = activeSession.diagram_data ? 
             JSON.parse(activeSession.diagram_data).nodes?.length || 0 : 
@@ -109,13 +132,62 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
           // console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
           execution.connectToExecution(activeSession.execution_id, nodeCount);
           hasStartedRef.current = true;
-        }, 100); // 100ms delay for React Flow to initialize
+          
+          // Immediately fetch current execution state to pre-populate node states
+          try {
+            const { data } = await fetchExecutionState({
+              variables: { id: activeSession.execution_id }
+            });
+            
+            if (data?.execution?.node_states) {
+              // Pre-populate node states for immediate highlighting
+              const nodeStates = data.execution.node_states;
+              if (nodeStates && typeof nodeStates === 'object') {
+                // Access the store directly to update node states
+                const store = useUnifiedStore.getState();
+                
+                // Process each node state and update the store
+                Object.entries(nodeStates).forEach(([nodeIdStr, state]: [string, any]) => {
+                  if (state?.status) {
+                    // Map status to the appropriate action
+                    if (state.status === 'RUNNING') {
+                      store.updateNodeExecution(nodeId(nodeIdStr), {
+                        status: Status.RUNNING,
+                        timestamp: Date.now()
+                      });
+                    } else if (state.status === 'COMPLETED') {
+                      store.updateNodeExecution(nodeId(nodeIdStr), {
+                        status: Status.COMPLETED,
+                        timestamp: Date.now()
+                      });
+                    } else if (state.status === 'FAILED') {
+                      store.updateNodeExecution(nodeId(nodeIdStr), {
+                        status: Status.FAILED,
+                        timestamp: Date.now(),
+                        error: state.error
+                      });
+                    }
+                  }
+                });
+                // console.log('[Monitor] Pre-populated node states:', Object.keys(nodeStates).length);
+              }
+            }
+            
+            // Slow down polling after initial connection
+            setTimeout(() => {
+              initialConnectionRef.current = false;
+            }, 1000); // Keep fast polling for 1 second
+          } catch (error) {
+            console.error('[Monitor] Failed to fetch initial execution state:', error);
+          }
+        }, 50); // 50ms delay for React Flow to initialize
       }
     } else if (lastSessionIdRef.current) {
       // CLI session ended
       // console.log('[Monitor] CLI session ended');
       lastSessionIdRef.current = null;
       hasStartedRef.current = false;
+      initialConnectionRef.current = true; // Reset for next connection
       
       // Clear diagram after a delay, but only if no new session starts
       clearTimeoutRef.current = setTimeout(() => {
@@ -130,7 +202,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
         clearTimeoutRef.current = null;
       }, 3000); // 3 seconds delay to avoid race conditions
     }
-  }, [cliSessionData, cliSessionLoading, cliSessionError, isMonitorMode, pollCliSessions, setActiveCanvas, loadDiagramFromData, execution]);
+  }, [cliSessionData, cliSessionLoading, cliSessionError, isMonitorMode, pollCliSessions, setActiveCanvas, loadDiagramFromData, execution, fetchExecutionState]);
   
   // Monitor execution completion to properly clear status
   useEffect(() => {

@@ -50,6 +50,7 @@ For kernel files (core/contracts.ts, app/config.ts, core/events.ts), use kernel_
 - Include error handling
 - Keep functions focused and single-purpose
 - Handle edge cases within file scope
+- **IMPORTANT**: Use `import.meta.env` for environment variables (NOT `process.env`) as this is a Vite-based browser application
 
 ## Self-Check Comments
 Append as comments at file bottom:

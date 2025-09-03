@@ -24,7 +24,7 @@ from dipeo.diagram_generated import (
     ExecutionState,
     Status,
     NodeState,
-    TokenUsage,
+    LLMUsage,
 )
 
 from .execution_state_cache import ExecutionStateCache
@@ -132,7 +132,7 @@ class AsyncQueueStateStore(StateStorePort):
             ended_at TEXT,
             node_states TEXT NOT NULL,
             node_outputs TEXT NOT NULL,
-            token_usage TEXT NOT NULL,
+            llm_usage TEXT NOT NULL,
             error TEXT,
             variables TEXT NOT NULL,
             exec_counts TEXT NOT NULL DEFAULT '{}',
@@ -236,7 +236,7 @@ class AsyncQueueStateStore(StateStorePort):
             ended_at=None,
             node_states={},
             node_outputs={},
-            token_usage=TokenUsage(input=0, output=0, cached=None, total=0),
+            llm_usage=LLMUsage(input=0, output=0, cached=None, total=0),
             error=None,
             variables=variables or {},
             is_active=True,
@@ -264,7 +264,7 @@ class AsyncQueueStateStore(StateStorePort):
             """
             INSERT OR REPLACE INTO execution_states
             (execution_id, status, diagram_id, started_at, ended_at,
-             node_states, node_outputs, token_usage, error, variables,
+             node_states, node_outputs, llm_usage, error, variables,
              exec_counts, executed_nodes, metrics)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
@@ -276,7 +276,7 @@ class AsyncQueueStateStore(StateStorePort):
                 state.ended_at,
                 json.dumps(state_dict["node_states"]),
                 json.dumps(state_dict["node_outputs"]),
-                json.dumps(state_dict["token_usage"]),
+                json.dumps(state_dict["llm_usage"]),
                 state.error,
                 json.dumps(state_dict["variables"]),
                 json.dumps(state_dict["exec_counts"]),
@@ -317,7 +317,7 @@ class AsyncQueueStateStore(StateStorePort):
         cursor = await self._conn.execute(
             """
             SELECT execution_id, status, diagram_id, started_at, ended_at,
-                   node_states, node_outputs, token_usage, error, variables,
+                   node_states, node_outputs, llm_usage, error, variables,
                    exec_counts, executed_nodes, metrics
             FROM execution_states
             WHERE execution_id = ?
@@ -355,7 +355,7 @@ class AsyncQueueStateStore(StateStorePort):
             "ended_at": row[4],
             "node_states": json.loads(row[5]) if row[5] else {},
             "node_outputs": node_outputs,
-            "token_usage": json.loads(row[7])
+            "llm_usage": json.loads(row[7])
             if row[7]
             else {"input": 0, "output": 0, "cached": None, "total": 0},
             "error": row[8],
@@ -389,7 +389,7 @@ class AsyncQueueStateStore(StateStorePort):
         node_id: str,
         output: Any,
         is_exception: bool = False,
-        token_usage: TokenUsage | dict | None = None,
+        llm_usage: LLMUsage | dict | None = None,
     ) -> None:
         """Update node output."""
         # Get from cache for fast update
@@ -429,9 +429,9 @@ class AsyncQueueStateStore(StateStorePort):
         # Update state
         state.node_outputs[node_id] = serialized_output
         
-        # Update token usage if provided
-        if token_usage:
-            await self.add_token_usage(execution_id, token_usage)
+        # Update LLM usage if provided
+        if llm_usage:
+            await self.add_llm_usage(execution_id, llm_usage)
         
         # Persist to DB
         await self.save_state(state)
@@ -455,13 +455,17 @@ class AsyncQueueStateStore(StateStorePort):
         
         now = datetime.now().isoformat()
         
+        # Add node to executed_nodes list when it starts executing
+        if status == Status.RUNNING and node_id not in state.executed_nodes:
+            state.executed_nodes.append(node_id)
+        
         if node_id not in state.node_states:
             state.node_states[node_id] = NodeState(
                 status=status,
                 started_at=now if status == Status.RUNNING else None,
                 ended_at=None,
                 error=None,
-                token_usage=None,
+                llm_usage=None,
             )
         else:
             state.node_states[node_id].status = status
@@ -518,34 +522,34 @@ class AsyncQueueStateStore(StateStorePort):
         state.metrics = metrics
         await self.save_state(state)
     
-    async def add_token_usage(self, execution_id: str, tokens: TokenUsage | dict):
-        """Add token usage."""
-        # Convert dict to TokenUsage if needed
-        if isinstance(tokens, dict):
-            tokens = TokenUsage(
-                input=tokens.get('input', 0),
-                output=tokens.get('output', 0),
-                cached=tokens.get('cached'),
-                total=tokens.get('total', 0)
+    async def add_llm_usage(self, execution_id: str, usage: LLMUsage | dict):
+        """Add LLM usage."""
+        # Convert dict to LLMUsage if needed
+        if isinstance(usage, dict):
+            usage = LLMUsage(
+                input=usage.get('input', 0),
+                output=usage.get('output', 0),
+                cached=usage.get('cached'),
+                total=usage.get('total', 0)
             )
         
         cache = await self._execution_cache.get_cache(execution_id)
-        await cache.add_token_usage(tokens)
+        await cache.add_llm_usage(usage)
         
         state = await self.get_state(execution_id)
         if not state:
             raise ValueError(f"Execution {execution_id} not found")
         
-        if state.token_usage:
-            state.token_usage.input += tokens.input
-            state.token_usage.output += tokens.output
-            if tokens.cached:
-                state.token_usage.cached = (
-                    state.token_usage.cached or 0
-                ) + tokens.cached
-            state.token_usage.total = state.token_usage.input + state.token_usage.output
+        if state.llm_usage:
+            state.llm_usage.input += usage.input
+            state.llm_usage.output += usage.output
+            if usage.cached:
+                state.llm_usage.cached = (
+                    state.llm_usage.cached or 0
+                ) + usage.cached
+            state.llm_usage.total = state.llm_usage.input + state.llm_usage.output
         else:
-            state.token_usage = tokens
+            state.llm_usage = usage
         
         await self.save_state(state)
     
@@ -563,7 +567,7 @@ class AsyncQueueStateStore(StateStorePort):
         offset: int = 0,
     ) -> list[ExecutionState]:
         """List executions."""
-        query = "SELECT execution_id, status, diagram_id, started_at, ended_at, node_states, node_outputs, token_usage, error, variables, exec_counts, executed_nodes, metrics FROM execution_states"
+        query = "SELECT execution_id, status, diagram_id, started_at, ended_at, node_states, node_outputs, llm_usage, error, variables, exec_counts, executed_nodes, metrics FROM execution_states"
         conditions = []
         params = []
         
@@ -611,7 +615,7 @@ class AsyncQueueStateStore(StateStorePort):
                 "ended_at": row[4],
                 "node_states": json.loads(row[5]) if row[5] else {},
                 "node_outputs": node_outputs,
-                "token_usage": json.loads(row[7])
+                "llm_usage": json.loads(row[7])
                 if row[7]
                 else {"input": 0, "output": 0, "cached": None, "total": 0},
                 "error": row[8],

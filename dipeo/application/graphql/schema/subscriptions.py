@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import time
 from datetime import datetime
 from typing import AsyncGenerator, Optional, Any
 
@@ -10,6 +11,7 @@ import strawberry
 
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import MESSAGE_ROUTER, STATE_STORE
+from dipeo.config.settings import get_settings
 from dipeo.domain.events.ports import MessageBus as MessageRouterPort
 from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
 from strawberry.scalars import JSON as JSONScalar
@@ -119,6 +121,11 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                 await message_router.register_connection(connection_id, event_handler)
                 await message_router.subscribe_connection_to_execution(connection_id, str(exec_id))
                 
+                # Get keepalive settings
+                settings = get_settings()
+                keepalive_interval = settings.messaging.ws_keepalive_sec
+                last_keepalive = time.time()
+                
                 try:
                     # Yield events from queue
                     while True:
@@ -174,7 +181,21 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                                 data=serialize_for_json(data),
                                 timestamp=str(timestamp),
                             )
+                            # Update last keepalive time after sending an event
+                            last_keepalive = time.time()
                         except asyncio.TimeoutError:
+                            # Send keepalive if configured and interval has passed
+                            current_time = time.time()
+                            if keepalive_interval > 0 and (current_time - last_keepalive) >= keepalive_interval:
+                                yield ExecutionUpdate(
+                                    execution_id=str(exec_id),
+                                    event_type=EventType.KEEPALIVE.value,
+                                    data={"type": "keepalive"},
+                                    timestamp=datetime.now().isoformat(),
+                                )
+                                last_keepalive = current_time
+                                logger.debug(f"Sent keepalive for execution {exec_id}")
+                            
                             # Check if execution still exists periodically
                             if state_store:
                                 execution = await state_store.get_state(str(exec_id))
@@ -232,6 +253,11 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                 await message_router.register_connection(connection_id, event_handler)
                 await message_router.subscribe_connection_to_execution(connection_id, str(exec_id))
                 
+                # Get keepalive settings
+                settings = get_settings()
+                keepalive_interval = settings.messaging.ws_keepalive_sec
+                last_keepalive = time.time()
+                
                 try:
                     # Yield node update events from queue
                     while True:
@@ -246,7 +272,17 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                                     continue
                                 # Yield the data in the format expected by the frontend
                                 yield serialize_for_json(data)
+                                last_keepalive = time.time()
                         except asyncio.TimeoutError:
+                            # Send keepalive if configured and interval has passed
+                            current_time = time.time()
+                            if keepalive_interval > 0 and (current_time - last_keepalive) >= keepalive_interval:
+                                yield serialize_for_json({
+                                    "type": "keepalive",
+                                    "timestamp": datetime.now().isoformat()
+                                })
+                                last_keepalive = current_time
+                                logger.debug(f"Sent keepalive for node updates {exec_id}")
                             # Continue waiting for events
                             continue
                 finally:
@@ -289,6 +325,11 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                 await message_router.register_connection(connection_id, event_handler)
                 await message_router.subscribe_connection_to_execution(connection_id, str(exec_id))
                 
+                # Get keepalive settings
+                settings = get_settings()
+                keepalive_interval = settings.messaging.ws_keepalive_sec
+                last_keepalive = time.time()
+                
                 try:
                     # Yield interactive prompt events from queue
                     while True:
@@ -298,7 +339,17 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                             # Filter for interactive prompts
                             if event.get("type") == EventType.INTERACTIVE_PROMPT.value:
                                 yield serialize_for_json(event.get("data", {}))
+                                last_keepalive = time.time()
                         except asyncio.TimeoutError:
+                            # Send keepalive if configured and interval has passed
+                            current_time = time.time()
+                            if keepalive_interval > 0 and (current_time - last_keepalive) >= keepalive_interval:
+                                yield serialize_for_json({
+                                    "type": "keepalive",
+                                    "timestamp": datetime.now().isoformat()
+                                })
+                                last_keepalive = current_time
+                                logger.debug(f"Sent keepalive for interactive prompts {exec_id}")
                             # Continue waiting for events
                             continue
                 finally:
@@ -341,6 +392,11 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                 await message_router.register_connection(connection_id, event_handler)
                 await message_router.subscribe_connection_to_execution(connection_id, str(exec_id))
                 
+                # Get keepalive settings
+                settings = get_settings()
+                keepalive_interval = settings.messaging.ws_keepalive_sec
+                last_keepalive = time.time()
+                
                 try:
                     # Yield log events from queue
                     while True:
@@ -350,7 +406,17 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                             # Filter for execution logs
                             if event.get("type") == EventType.EXECUTION_LOG.value:
                                 yield serialize_for_json(event.get("data", {}))
+                                last_keepalive = time.time()
                         except asyncio.TimeoutError:
+                            # Send keepalive if configured and interval has passed
+                            current_time = time.time()
+                            if keepalive_interval > 0 and (current_time - last_keepalive) >= keepalive_interval:
+                                yield serialize_for_json({
+                                    "type": "keepalive",
+                                    "timestamp": datetime.now().isoformat()
+                                })
+                                last_keepalive = current_time
+                                logger.debug(f"Sent keepalive for execution logs {exec_id}")
                             # Continue waiting for events
                             continue
                 finally:

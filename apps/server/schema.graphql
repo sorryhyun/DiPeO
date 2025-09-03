@@ -255,7 +255,7 @@ type ExecutionStateType {
   diagram_id: String
   started_at: String!
   ended_at: String
-  token_usage: TokenUsageType!
+  llm_usage: LLMUsageType!
   error: String
   duration_seconds: Float
   is_active: Boolean
@@ -321,6 +321,13 @@ enum LLMService {
   VERTEX
   DEEPSEEK
   OLLAMA
+}
+
+type LLMUsageType {
+  input: Int!
+  output: Int!
+  cached: Int
+  total: Int
 }
 
 type Mutation {
@@ -524,13 +531,6 @@ type TestApiKeyResult {
   message: String
   error: String
   model_info: JSON
-}
-
-type TokenUsageType {
-  input: Int!
-  output: Int!
-  cached: Int
-  total: Int
 }
 
 input UnregisterCliSessionInput {

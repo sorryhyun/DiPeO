@@ -1,0 +1,170 @@
+# Example: File Processing with MCP Filesystem Tools
+# This diagram demonstrates using MCP filesystem tools for data processing
+
+version: light
+
+persons:
+  Data Processor:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    system_prompt: You are a data processing expert who analyzes and transforms file content.
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    props:
+      trigger_mode: manual
+      custom_data:
+        source_dir: "files/input"
+        output_dir: "files/output"
+        file_pattern: "*.txt"
+
+  # List files in the source directory
+  - label: List Source Files
+    type: integrated_api
+    position: {x: 250, y: 200}
+    props:
+      provider: mcp_filesystem
+      operation: directory_list
+      config:
+        path: "{{source_dir}}"
+        pattern: "{{file_pattern}}"
+        recursive: false
+        sort_by: "name"
+
+  # Process the file list
+  - label: Process File List
+    type: code_job
+    position: {x: 450, y: 200}
+    props:
+      language: python
+      code: |
+        # Extract file paths from directory listing
+        files_to_process = []
+        
+        if file_list and "files" in file_list:
+            for file_info in file_list["files"]:
+                file_path = f"{source_dir}/{file_info}"
+                files_to_process.append({
+                    "path": file_path,
+                    "name": file_info
+                })
+        
+        result = {
+            "files": files_to_process,
+            "count": len(files_to_process)
+        }
+
+  # Read first file (example - would use sub_diagram for batch)
+  - label: Read File Content
+    type: integrated_api
+    position: {x: 650, y: 200}
+    props:
+      provider: mcp_filesystem
+      operation: file_read
+      config:
+        path: "{{processed_list.files[0].path}}"
+        encoding: "utf-8"
+
+  # Analyze file content
+  - label: Analyze Content
+    type: person_job
+    position: {x: 850, y: 200}
+    props:
+      person: Data Processor
+      default_prompt: |
+        Analyze this file content and provide:
+        1. Summary of the content
+        2. Key topics or themes
+        3. Word count and statistics
+        4. Suggested improvements or corrections
+        
+        File: {{processed_list.files[0].name}}
+        Content: {{file_content.content}}
+        
+        Format your response as JSON.
+      max_iteration: 1
+      memory_profile: MINIMAL
+
+  # Create output directory if needed
+  - label: Ensure Output Directory
+    type: integrated_api
+    position: {x: 1050, y: 200}
+    props:
+      provider: mcp_filesystem
+      operation: directory_create
+      config:
+        path: "{{output_dir}}/analysis"
+        recursive: true
+
+  # Write analysis results
+  - label: Save Analysis
+    type: integrated_api
+    position: {x: 1250, y: 200}
+    props:
+      provider: mcp_filesystem
+      operation: file_write
+      config:
+        path: "{{output_dir}}/analysis/{{processed_list.files[0].name}}.analysis.json"
+        content: "{{analysis}}"
+        mode: "overwrite"
+        create_dirs: false
+
+  # Check if file was created
+  - label: Verify Output
+    type: integrated_api
+    position: {x: 1450, y: 200}
+    props:
+      provider: mcp_filesystem
+      operation: file_info
+      config:
+        path: "{{output_dir}}/analysis/{{processed_list.files[0].name}}.analysis.json"
+        include_content_preview: true
+
+  - label: Complete
+    type: endpoint
+    position: {x: 1650, y: 200}
+    props:
+      file_format: json
+      save_to_file: true
+      file_path: files/results/file_processing_summary.json
+
+connections:
+  - from: Start
+    to: List Source Files
+    content_type: raw_text
+    
+  - from: List Source Files
+    to: Process File List
+    content_type: raw_text
+    label: file_list
+    
+  - from: Process File List
+    to: Read File Content
+    content_type: raw_text
+    label: processed_list
+    
+  - from: Read File Content
+    to: Analyze Content
+    content_type: raw_text
+    label: file_content
+    
+  - from: Analyze Content
+    to: Ensure Output Directory
+    content_type: raw_text
+    label: analysis
+    
+  - from: Ensure Output Directory
+    to: Save Analysis
+    content_type: raw_text
+    
+  - from: Save Analysis
+    to: Verify Output
+    content_type: raw_text
+    label: save_result
+    
+  - from: Verify Output
+    to: Complete
+    content_type: raw_text
+    label: verification

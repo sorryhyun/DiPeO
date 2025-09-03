@@ -63,8 +63,13 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             self._prompt_compiler = PromptFileCompiler()
 
     # ---- New typed deserialization ---------------------------------------- #
-    def deserialize_to_domain(self, content: str) -> DomainDiagram:
-        """Deserialize light format content to DomainDiagram using typed models."""
+    def deserialize_to_domain(self, content: str, diagram_path: str | None = None) -> DomainDiagram:
+        """Deserialize light format content to DomainDiagram using typed models.
+        
+        Args:
+            content: The YAML content to deserialize
+            diagram_path: Optional path to the diagram file for prompt resolution
+        """
         # Parse YAML to dict
         data = self.parse(content)
         data = self._clean_graphql_fields(data)
@@ -73,7 +78,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         light_diagram = self._parse_to_light_diagram(data)
         
         # Convert to intermediate dict format with all transformations
-        diagram_dict = self._light_diagram_to_dict(light_diagram, data)
+        diagram_dict = self._light_diagram_to_dict(light_diagram, data, diagram_path)
         
         # Apply format-specific transformations
         diagram_dict = self._apply_format_transformations(diagram_dict, data)
@@ -149,7 +154,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             metadata=data.get("metadata")
         )
     
-    def _light_diagram_to_dict(self, light_diagram: LightDiagram, original_data: dict[str, Any]) -> dict[str, Any]:
+    def _light_diagram_to_dict(self, light_diagram: LightDiagram, original_data: dict[str, Any], diagram_path: str | None = None) -> dict[str, Any]:
         """Convert LightDiagram to intermediate dict format with all complex logic."""
         # Process nodes
         nodes_list = []
@@ -174,9 +179,10 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         
         # Apply prompt compilation if enabled
         if self._prompt_compiler and self._enable_prompt_compilation:
-            # Get diagram path from metadata if available
-            diagram_path = original_data.get('metadata', {}).get('diagram_id')
-            nodes_list = self._prompt_compiler.resolve_prompt_files(nodes_list, diagram_path)
+            # Use the diagram_path parameter passed to this method,
+            # or fall back to metadata diagram_id if available
+            effective_path = diagram_path or original_data.get('metadata', {}).get('diagram_id')
+            nodes_list = self._prompt_compiler.resolve_prompt_files(nodes_list, effective_path)
         
         # Build nodes dict
         nodes_dict = self._build_nodes_dict(nodes_list)
@@ -268,8 +274,11 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 arrow_data_copy["requires_first_execution"] = True
             
             # Add branch data if this is from a condition handle and not already present
-            if src_handle in ["condtrue", "condfalse"] and "branch" not in arrow_data_copy:
-                arrow_data_copy["branch"] = "true" if src_handle == "condtrue" else "false"
+            if src_handle in ["condtrue", "condfalse"]:
+                if "branch" not in arrow_data_copy:
+                    arrow_data_copy["branch"] = "true" if src_handle == "condtrue" else "false"
+                # Mark edges from condition nodes as conditional for proper scheduler handling
+                arrow_data_copy["is_conditional"] = True
             
             # Create proper handle IDs
             source_handle_id, target_handle_id = HandleParser.create_handle_ids(

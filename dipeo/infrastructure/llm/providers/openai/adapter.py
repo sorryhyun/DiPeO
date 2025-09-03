@@ -144,8 +144,8 @@ class OpenAIAdapter(UnifiedAdapter):
         # Prepare structured output
         # For OpenAI, pass Pydantic models directly to leverage parse() API
         api_response_format = None
-        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-            # Memory selection needs special JSON schema format
+        if execution_phase in [ExecutionPhase.MEMORY_SELECTION, ExecutionPhase.DECISION_EVALUATION]:
+            # These phases need special structured output
             api_response_format = self.structured_output_handler.prepare_structured_output(
                 None, execution_phase
             )
@@ -181,7 +181,7 @@ class OpenAIAdapter(UnifiedAdapter):
         response = self.response_processor.process_response(raw_response, self.model)
         
         # Process phase-specific response
-        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+        if execution_phase in [ExecutionPhase.MEMORY_SELECTION, ExecutionPhase.DECISION_EVALUATION]:
             response.structured_output = self.phase_handler.process_phase_response(
                 raw_response, execution_phase
             )
@@ -224,8 +224,8 @@ class OpenAIAdapter(UnifiedAdapter):
         # Prepare structured output
         # For OpenAI, pass Pydantic models directly to leverage parse() API
         api_response_format = None
-        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-            # Memory selection needs special JSON schema format
+        if execution_phase in [ExecutionPhase.MEMORY_SELECTION, ExecutionPhase.DECISION_EVALUATION]:
+            # These phases need special structured output
             api_response_format = self.structured_output_handler.prepare_structured_output(
                 None, execution_phase
             )
@@ -263,7 +263,7 @@ class OpenAIAdapter(UnifiedAdapter):
         response = self.response_processor.process_response(raw_response, self.model)
         
         # Process phase-specific response
-        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+        if execution_phase in [ExecutionPhase.MEMORY_SELECTION, ExecutionPhase.DECISION_EVALUATION]:
             response.structured_output = self.phase_handler.process_phase_response(
                 raw_response, execution_phase
             )

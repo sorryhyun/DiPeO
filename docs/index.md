@@ -25,12 +25,18 @@
 ### Korean Translations
 - [Light 다이어그램 가이드](formats/korean/comprehensive_light_diagram_guide.md)
 
+## Integration Guides
+> External tool and service integrations
+
+- [Claude Code Integration](integrations/claude-code.md) - Integration with Anthropic's Claude Code SDK
+
 ## Project Guides
 > Specific workflows and feature implementation guides
 
 - [Code Generation Guide](projects/code-generation-guide.md) - Complete codegen pipeline and adding new features
 - [DiPeO AI Diagram Generation](projects/dipeodipeo-guide.md) - AI-powered diagram generation from natural language
-- [Frontend Enhance Guide](projects/frontend-enhance-guide.md) - Iterative AI refinement for production React apps
+- [Frontend Auto Guide](projects/frontend_auto/README.md) - Rapid AI-powered frontend generation for standard web applications
+- [Frontend Enhance Guide](projects/frontend-enhance-guide.md) - Advanced version with intelligent memory selection for complex applications
 
 ### Korean Translations
 - [코드 생성 가이드](projects/korean/code-generation-guide.md)

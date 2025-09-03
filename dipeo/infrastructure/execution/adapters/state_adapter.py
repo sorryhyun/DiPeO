@@ -8,7 +8,7 @@ from dipeo.diagram_generated import (
     ExecutionID,
     ExecutionState,
     Status,
-    TokenUsage,
+    LLMUsage,
 )
 from dipeo.domain.execution.state import (
     ExecutionCachePort,
@@ -68,10 +68,10 @@ class StateRepositoryAdapter(ExecutionStateRepository):
         node_id: str,
         output: Any,
         is_exception: bool = False,
-        token_usage: Optional[TokenUsage] = None,
+        llm_usage: Optional[LLMUsage] = None,
     ) -> None:
         await self._store.update_node_output(
-            execution_id, node_id, output, is_exception, token_usage
+            execution_id, node_id, output, is_exception, llm_usage
         )
 
     async def update_node_status(
@@ -117,15 +117,15 @@ class StateRepositoryAdapter(ExecutionStateRepository):
         if hasattr(self._store, 'update_variables'):
             await self._store.update_variables(execution_id, variables)
     
-    async def update_token_usage(self, execution_id: str, tokens: TokenUsage) -> None:
-        """Update token usage (replaces existing)."""
-        if hasattr(self._store, 'update_token_usage'):
-            await self._store.update_token_usage(execution_id, tokens)
+    async def update_llm_usage(self, execution_id: str, usage: LLMUsage) -> None:
+        """Update LLM usage (replaces existing)."""
+        if hasattr(self._store, 'update_llm_usage'):
+            await self._store.update_llm_usage(execution_id, usage)
     
-    async def add_token_usage(self, execution_id: str, tokens: TokenUsage) -> None:
-        """Add to token usage (increments existing)."""
-        if hasattr(self._store, 'add_token_usage'):
-            await self._store.add_token_usage(execution_id, tokens)
+    async def add_llm_usage(self, execution_id: str, usage: LLMUsage) -> None:
+        """Add to LLM usage (increments existing)."""
+        if hasattr(self._store, 'add_llm_usage'):
+            await self._store.add_llm_usage(execution_id, usage)
     
     async def get_state_from_cache(self, execution_id: str) -> Optional[ExecutionState]:
         """Get state from cache only (no DB lookup)."""
@@ -188,29 +188,29 @@ class StateServiceAdapter(ExecutionStateService):
         output: Any,
         status: Status,
         is_exception: bool = False,
-        token_usage: Optional[TokenUsage] = None,
+        llm_usage: Optional[LLMUsage] = None,
         error: Optional[str] = None,
     ) -> None:
         await self._repository.update_node_output(
-            execution_id, node_id, output, is_exception, token_usage
+            execution_id, node_id, output, is_exception, llm_usage
         )
         await self._repository.update_node_status(execution_id, node_id, status, error)
 
-    async def append_token_usage(
-        self, execution_id: str, tokens: TokenUsage
+    async def append_llm_usage(
+        self, execution_id: str, usage: LLMUsage
     ) -> None:
-        # Use the store's add_token_usage directly
+        # Use the store's add_llm_usage directly
         if hasattr(self._repository, '_store'):
-            await self._repository._store.add_token_usage(execution_id, tokens)
+            await self._repository._store.add_llm_usage(execution_id, usage)
         else:
             # Fallback: fetch state, update, save
             state = await self._repository.get_execution(execution_id)
-            if state and state.token_usage:
-                state.token_usage.input += tokens.input
-                state.token_usage.output += tokens.output
-                if tokens.cached:
-                    state.token_usage.cached = (state.token_usage.cached or 0) + tokens.cached
-                state.token_usage.total = state.token_usage.input + state.token_usage.output
+            if state and state.llm_usage:
+                state.llm_usage.input += usage.input
+                state.llm_usage.output += usage.output
+                if usage.cached:
+                    state.llm_usage.cached = (state.llm_usage.cached or 0) + usage.cached
+                state.llm_usage.total = state.llm_usage.input + state.llm_usage.output
                 await self._repository.save_execution(state)
 
     async def get_execution_state(self, execution_id: str) -> Optional[ExecutionState]:

@@ -137,10 +137,16 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         request: ExecutionRequest[HookNode],
         inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelope inputs to legacy format for hook execution."""
+        """Convert envelope inputs to legacy format for hook execution.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
+        
         # Convert envelope inputs to legacy format
         prepared_inputs = {}
-        for key, envelope in inputs.items():
+        for key, envelope in envelope_inputs.items():
             try:
                 # Try to parse as JSON first
                 prepared_inputs[key] = envelope.as_json()
@@ -169,25 +175,118 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             if hasattr(self, '_temp_filesystem_adapter'):
                 delattr(self, '_temp_filesystem_adapter')
     
+    def _build_node_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[HookNode]
+    ) -> dict[str, Any]:
+        """Build multi-representation output for hook execution."""
+        node = request.node
+        hook_type = str(node.hook_type)
+        
+        # Extract status info if available
+        success = True
+        exit_code = 0
+        if isinstance(result, dict):
+            if "status" in result:
+                success = result["status"] != "timeout" and result["status"] != "error"
+            if "returncode" in result:
+                exit_code = result["returncode"]
+        
+        # Build representations
+        representations = {
+            "text": str(result) if not isinstance(result, dict) else json.dumps(result, indent=2),
+            "object": result,
+            "status": {
+                "success": success,
+                "exit_code": exit_code,
+                "hook_type": hook_type
+            }
+        }
+        
+        # Add hook-specific representations based on type
+        if node.hook_type == HookType.SHELL:
+            if isinstance(result, dict):
+                representations["output"] = result.get("stdout", result.get("output", ""))
+                representations["stderr"] = result.get("stderr", "")
+        elif node.hook_type == HookType.WEBHOOK:
+            if isinstance(result, dict):
+                representations["response"] = result
+                representations["provider"] = result.get("provider")
+        elif node.hook_type == HookType.FILE:
+            if isinstance(result, dict):
+                representations["file_path"] = result.get("file", "")
+        
+        # Determine primary body
+        if isinstance(result, dict):
+            primary = result
+            primary_type = "json"
+        else:
+            primary = str(result)
+            primary_type = "text"
+        
+        return {
+            "primary": primary,
+            "primary_type": primary_type,
+            "representations": representations,
+            "meta": {
+                "hook_type": hook_type,
+                "success": success
+            }
+        }
+    
     def serialize_output(
         self,
         result: Any,
         request: ExecutionRequest[HookNode]
     ) -> Envelope:
-        """Serialize hook result to envelope."""
+        """Serialize hook result to multi-representation envelope."""
         node = request.node
         trace_id = request.execution_id or ""
         
-        # Create output envelope
-        output_envelope = EnvelopeFactory.text(
-            str(result) if not isinstance(result, dict) else json.dumps(result),
-            produced_by=node.id,
-            trace_id=trace_id
-        ).with_meta(
-            hook_type=str(node.hook_type)
-        )
+        # Build multi-representation output
+        output = self._build_node_output(result, request)
+        
+        # Create envelope based on primary type
+        primary = output["primary"]
+        primary_type = output.get("primary_type", "text")
+        
+        if primary_type == "json" and isinstance(primary, dict):
+            output_envelope = EnvelopeFactory.json(
+                primary,
+                produced_by=node.id,
+                trace_id=trace_id
+            )
+        else:
+            output_envelope = EnvelopeFactory.text(
+                str(primary) if not isinstance(primary, dict) else json.dumps(primary),
+                produced_by=node.id,
+                trace_id=trace_id
+            )
+        
+        # Add representations
+        if "representations" in output:
+            output_envelope = output_envelope.with_representations(output["representations"])
+        
+        # Add metadata
+        if "meta" in output:
+            output_envelope = output_envelope.with_meta(**output["meta"])
         
         return output_envelope
+    
+    def post_execute(
+        self,
+        request: ExecutionRequest[HookNode],
+        output: Envelope
+    ) -> Envelope:
+        """Post-execution hook to emit tokens.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
+        
+        return output
     
     async def _execute_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
         # Hook type already validated in pre_execute

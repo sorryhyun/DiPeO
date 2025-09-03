@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.registry import DIAGRAM
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.condition_model import ConditionNodeData
@@ -21,6 +20,7 @@ from .evaluators import (
     MaxIterationsEvaluator,
     NodesExecutedEvaluator,
 )
+from .evaluators.llm_decision_evaluator import LLMDecisionEvaluator
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -40,10 +40,10 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             "detect_max_iterations": MaxIterationsEvaluator(),
             "check_nodes_executed": NodesExecutedEvaluator(),
             "custom": CustomExpressionEvaluator(),
+            "llm_decision": LLMDecisionEvaluator(),
         }
         # Instance variables for passing data between methods
         self._current_evaluator = None
-        self._current_diagram = None
 
     @property
     def node_class(self) -> type[ConditionNode]:
@@ -59,15 +59,18 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["diagram"]
+        return [
+            "execution_orchestrator",
+            "prompt_builder"
+        ]
 
     @property
     def description(self) -> str:
         return "Evaluates conditions using specialized evaluators for different condition types"
     
     def validate(self, request: ExecutionRequest[ConditionNode]) -> Optional[str]:
-        if not request.get_service(DIAGRAM.name):
-            return "Diagram service not available"
+        if not request.context or not hasattr(request.context, 'diagram'):
+            return "Executable diagram not available in context"
         
         node = request.node
         condition_type = node.condition_type
@@ -81,6 +84,12 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         
         if condition_type == "check_nodes_executed" and not node.node_indices:
             return "check_nodes_executed requires node_indices"
+        
+        if condition_type == "llm_decision":
+            if not hasattr(node, 'person') or not node.person:
+                return "llm_decision requires a person to be specified"
+            if not hasattr(node, 'judge_by') and not hasattr(node, 'judge_by_file'):
+                return "llm_decision requires either judge_by or judge_by_file"
             
         return None
     
@@ -93,11 +102,11 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         node = request.node
         condition_type = node.condition_type
         
-        # Validate diagram service is available
-        diagram = request.get_service(DIAGRAM.name)
-        if not diagram:
+        # Get the currently executing diagram from the context
+        diagram = request.context.diagram if request.context else None
+        if diagram is None:
             return EnvelopeFactory.error(
-                "Diagram service not available",
+                "Executable diagram not available in context",
                 error_type="ValueError",
                 produced_by=node.id,
                 trace_id=request.execution_id or ""
@@ -114,12 +123,42 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 trace_id=request.execution_id or ""
             )
         
-        # Store evaluator and diagram in instance variables for execute_request
+        # Store evaluator in instance variable for execute_request
         self._current_evaluator = evaluator
-        self._current_diagram = diagram
         
         # No early return - proceed to execute_request
         return None
+    
+    async def prepare_inputs(
+        self,
+        request: ExecutionRequest[ConditionNode],
+        inputs: dict[str, Envelope]
+    ) -> dict[str, Any]:
+        """Prepare inputs with token consumption.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
+        from dipeo.diagram_generated.enums import ContentType
+        
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
+        
+        # Convert envelopes to appropriate format based on content type
+        legacy_inputs = {}
+        for key, envelope in envelope_inputs.items():
+            if envelope.content_type == ContentType.CONVERSATION_STATE:
+                # Handle conversation state specifically
+                legacy_inputs[key] = envelope.as_conversation()
+            else:
+                # Use parent's default conversion for other types
+                try:
+                    # Try to parse as JSON first
+                    legacy_inputs[key] = envelope.as_json()
+                except ValueError:
+                    # Fall back to text
+                    legacy_inputs[key] = envelope.as_text()
+        
+        return legacy_inputs
     
     async def run(
         self,
@@ -131,30 +170,73 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         context = request.context
         legacy_inputs = inputs
         
-        # Use evaluator and diagram from instance variables (set in pre_execute)
+        # Use evaluator from instance variable (set in pre_execute)
         evaluator = self._current_evaluator
-        diagram = self._current_diagram
+        
+        # For LLM decision evaluator, pass required services
+        if node.condition_type == "llm_decision" and hasattr(evaluator, 'set_services'):
+            evaluator.set_services(
+                orchestrator=request.get_service("execution_orchestrator"),
+                prompt_builder=request.get_service("prompt_builder")
+            )
         
         # Track and expose loop index if configured
         if hasattr(node, 'expose_index_as') and node.expose_index_as:
-            # Get execution count for loop index (0-based)
-            execution_count = context.get_node_execution_count(node.id)
-            loop_index = execution_count - 1  # Convert to 0-based index
+            # Use the exposed variable directly - it persists across executions
+            # and only gets incremented when we complete a full loop iteration
+            current_loop_index = context.get_variable(node.expose_index_as)
             
-            # Store in variables for downstream nodes to access (persisted across executions)
-            context.set_variable(node.expose_index_as, loop_index)
+            # Initialize on first execution
+            if current_loop_index is None:
+                current_loop_index = 0
+                context.set_variable(node.expose_index_as, current_loop_index)
             
             logger.debug(
-                f"ConditionNode {node.id}: Exposing loop index as '{node.expose_index_as}' = {loop_index}"
+                f"ConditionNode {node.id}: Exposing loop index as '{node.expose_index_as}' = {current_loop_index}"
             )
         
         # Execute evaluation with pre-selected evaluator
-        eval_result = await evaluator.evaluate(node, context, diagram, legacy_inputs)
+        eval_result = await evaluator.evaluate(node, context, legacy_inputs)
         result = eval_result["result"]
         output_value = eval_result["output_data"] or {}
         
         # Store evaluation metadata in instance variable for later use
         self._current_evaluation_metadata = eval_result["metadata"]
+        
+        # Increment loop index when condition is FALSE and we have a loop-back edge
+        # This happens when we're continuing the loop to the next iteration
+        if hasattr(node, 'expose_index_as') and node.expose_index_as and not result:
+            # Check if the false branch loops back (has edges going to earlier nodes)
+            has_loop_back = False
+            outgoing_edges = context.diagram.get_outgoing_edges(node.id)
+            for edge in outgoing_edges:
+                # Check if this is the false branch edge
+                if str(getattr(edge, 'source_output', '')).lower() == 'condfalse':
+                    target_node = context.diagram.get_node(edge.target_node_id)
+                    # If target has been executed before, it's likely a loop-back
+                    if target_node and context.state.get_node_execution_count(edge.target_node_id) > 0:
+                        has_loop_back = True
+                        break
+            
+            # Only increment if we're actually looping back AND we haven't already incremented
+            # for this execution count (prevents duplicate increments on resets)
+            if has_loop_back:
+                current_loop_index = context.get_variable(node.expose_index_as)
+                last_increment_at = context.get_variable(f"{node.expose_index_as}_last_increment_at")
+                current_exec_count = context.state.get_node_execution_count(node.id)
+                
+                # Only increment if we haven't already incremented at this execution count
+                if last_increment_at != current_exec_count:
+                    new_index = current_loop_index + 1
+                    context.set_variable(node.expose_index_as, new_index)
+                    context.set_variable(f"{node.expose_index_as}_last_increment_at", current_exec_count)
+                    logger.debug(
+                        f"ConditionNode {node.id}: Incremented loop index to {new_index} (loop continuation)"
+                    )
+                else:
+                    logger.debug(
+                        f"ConditionNode {node.id}: Skipping increment - already incremented at execution count {current_exec_count}"
+                    )
         
         # Return only the active branch data
         active_branch = "condtrue" if result else "condfalse"
@@ -175,7 +257,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         result: Any,
         request: ExecutionRequest[ConditionNode]
     ) -> Envelope:
-        """Serialize condition result to envelope with active branch data in body."""
+        """Serialize condition result to envelope with branch data."""
         node = request.node
         context = request.context
         
@@ -183,10 +265,11 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         branch_data = result.get("branch_data", {})
         active_branch = result.get("active_branch", "condfalse")
         
-        # 1) Publish globals for any downstream node/template
+        # Store branch decision for downstream nodes that need it
         context.set_variable(f"branch[{node.id}]", active_branch)  # e.g., "condtrue" | "condfalse"
         
-        # 2) Return a normal envelope (no special content_type)
+        # Return envelope with just the branch data
+        # The actual branch routing is handled by emitting on the correct port
         if isinstance(branch_data, dict):
             output = EnvelopeFactory.json(
                 branch_data,
@@ -200,6 +283,9 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 trace_id=request.execution_id or ""
             )
         
+        # Store the branch decision for post_execute to use
+        self._active_branch = active_branch
+        
         return output
     
     def post_execute(
@@ -207,10 +293,25 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         request: ExecutionRequest[ConditionNode],
         output: Envelope
     ) -> Envelope:
-        # Debug logging without using request.metadata
+        """Post-execution hook to emit tokens on the correct branch.
+        
+        Emits the output on either "condtrue" or "condfalse" port.
+        TokenManager will match these ports to edges with matching source_output.
+        """
+        # Use the branch decision from serialize_output
+        active_branch = getattr(self, '_active_branch', 'condfalse')
+        
+        # Emit output on the specific branch port
+        # Edges with source_output="condtrue" will only get tokens from "condtrue" port
+        context = request.context
+        node_id = request.node.id
+        outputs = {active_branch: output}
+        context.emit_outputs_as_tokens(node_id, outputs)
+        
+        # Debug logging
         condition_type = request.node.condition_type
-        result = output.value if hasattr(output, 'value') else None
-        print(f"[ConditionNode] Evaluated {condition_type} condition - Result: {result}")
+        result = (active_branch == "condtrue")
+        print(f"[ConditionNode] Evaluated {condition_type} condition - Result: {result}, Branch: {active_branch}")
         
         if self._current_evaluation_metadata:
             print(f"[ConditionNode] Evaluation details: {self._current_evaluation_metadata}")

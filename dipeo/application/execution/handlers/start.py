@@ -1,15 +1,14 @@
-import json
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.diagram_generated.generated_nodes import StartNode, NodeType
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.diagram_generated.models.start_model import StartNodeData, HookTriggerMode
 from dipeo.application.registry import STATE_STORE
+from dipeo.diagram_generated.generated_nodes import NodeType, StartNode
+from dipeo.diagram_generated.models.start_model import HookTriggerMode, StartNodeData
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -46,17 +45,16 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
     def requires_services(self) -> list[str]:
         return ["state_store"]
 
-    def validate(self, request: ExecutionRequest[StartNode]) -> Optional[str]:
+    def validate(self, request: ExecutionRequest[StartNode]) -> str | None:
         """Static validation - structural checks only"""
         node = request.node
         
-        if node.trigger_mode == HookTriggerMode.HOOK:
-            if not node.hook_event:
-                return "Hook event must be specified when using hook trigger mode"
+        if node.trigger_mode == HookTriggerMode.HOOK and not node.hook_event:
+            return "Hook event must be specified when using hook trigger mode"
         
         return None
     
-    async def pre_execute(self, request: ExecutionRequest[StartNode]) -> Optional[Envelope]:
+    async def pre_execute(self, request: ExecutionRequest[StartNode]) -> Envelope | None:
         """Runtime validation and setup"""
         node = request.node
         
@@ -109,6 +107,9 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         """Execute start node logic."""
         node = request.node
         context = request.context
+        
+        # Don't start a new epoch here - epoch 0 is the initial epoch
+        # context.begin_epoch()  # REMOVED - this was causing epoch mismatch
         
         # Merge with input variables
         combined_data = {**self._current_input_variables, **inputs}
@@ -191,5 +192,10 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         # Debug logging without using request.metadata
         if self._current_trigger_mode:
             print(f"[StartNode] Executed with trigger mode: {self._current_trigger_mode}")
+        
+        # Emit output as tokens to trigger downstream nodes
+        context = request.context
+        outputs = {"default": output}
+        context.emit_outputs_as_tokens(request.node.id, outputs)
         
         return output

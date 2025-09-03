@@ -1,0 +1,357 @@
+# MCP File System Tool Manifest
+# This manifest defines file system operation tools for DiPeO
+
+name: mcp_filesystem
+type: mcp
+version: 1.0.0
+description: MCP File system operations and management tools
+category: filesystem
+
+# Tool definitions
+tools:
+  file_read:
+    description: Read contents of a file
+    type: filesystem
+    parameters:
+      path:
+        type: string
+        required: true
+        description: Path to the file to read
+      encoding:
+        type: string
+        required: false
+        description: File encoding (utf-8, ascii, etc.)
+        default: utf-8
+      lines:
+        type: object
+        required: false
+        description: Read specific lines from the file
+        properties:
+          start:
+            type: number
+            description: Starting line number (1-indexed)
+          end:
+            type: number
+            description: Ending line number (inclusive)
+    returns:
+      type: object
+      properties:
+        content: string
+        path: string
+        size: number
+        lines_read: number
+
+  file_write:
+    description: Write content to a file
+    type: filesystem
+    parameters:
+      path:
+        type: string
+        required: true
+        description: Path to the file to write
+      content:
+        type: string
+        required: true
+        description: Content to write to the file
+      mode:
+        type: string
+        required: false
+        description: Write mode (overwrite, append)
+        default: overwrite
+        enum: [overwrite, append]
+      encoding:
+        type: string
+        required: false
+        description: File encoding
+        default: utf-8
+      create_dirs:
+        type: boolean
+        required: false
+        description: Create parent directories if they don't exist
+        default: false
+    returns:
+      type: object
+      properties:
+        path: string
+        bytes_written: number
+        created: boolean
+
+  file_delete:
+    description: Delete a file
+    type: filesystem
+    parameters:
+      path:
+        type: string
+        required: true
+        description: Path to the file to delete
+      confirm:
+        type: boolean
+        required: false
+        description: Require confirmation for deletion
+        default: true
+    returns:
+      type: object
+      properties:
+        deleted: boolean
+        path: string
+
+  file_move:
+    description: Move or rename a file
+    type: filesystem
+    parameters:
+      source:
+        type: string
+        required: true
+        description: Source file path
+      destination:
+        type: string
+        required: true
+        description: Destination file path
+      overwrite:
+        type: boolean
+        required: false
+        description: Overwrite if destination exists
+        default: false
+    returns:
+      type: object
+      properties:
+        moved: boolean
+        source: string
+        destination: string
+
+  file_copy:
+    description: Copy a file
+    type: filesystem
+    parameters:
+      source:
+        type: string
+        required: true
+        description: Source file path
+      destination:
+        type: string
+        required: true
+        description: Destination file path
+      overwrite:
+        type: boolean
+        required: false
+        description: Overwrite if destination exists
+        default: false
+    returns:
+      type: object
+      properties:
+        copied: boolean
+        source: string
+        destination: string
+        size: number
+
+  file_exists:
+    description: Check if a file exists
+    type: filesystem
+    parameters:
+      path:
+        type: string
+        required: true
+        description: Path to check
+    returns:
+      type: object
+      properties:
+        exists: boolean
+        path: string
+        is_file: boolean
+        is_directory: boolean
+
+  file_info:
+    description: Get detailed information about a file
+    type: filesystem
+    parameters:
+      path:
+        type: string
+        required: true
+        description: Path to the file
+      include_content_preview:
+        type: boolean
+        required: false
+        description: Include first few lines of content
+        default: false
+    returns:
+      type: object
+      properties:
+        path: string
+        name: string
+        extension: string
+        size: number
+        created_at: string
+        modified_at: string
+        is_readable: boolean
+        is_writable: boolean
+        content_preview: string
+
+  directory_list:
+    description: List contents of a directory
+    type: filesystem
+    parameters:
+      path:
+        type: string
+        required: true
+        description: Directory path to list
+      pattern:
+        type: string
+        required: false
+        description: Glob pattern to filter files (e.g., *.txt)
+      recursive:
+        type: boolean
+        required: false
+        description: List recursively
+        default: false
+      include_hidden:
+        type: boolean
+        required: false
+        description: Include hidden files
+        default: false
+      sort_by:
+        type: string
+        required: false
+        description: Sort results by (name, size, modified)
+        default: name
+        enum: [name, size, modified]
+    returns:
+      type: object
+      properties:
+        path: string
+        files: array
+        directories: array
+        total_count: number
+
+  directory_create:
+    description: Create a new directory
+    type: filesystem
+    parameters:
+      path:
+        type: string
+        required: true
+        description: Directory path to create
+      recursive:
+        type: boolean
+        required: false
+        description: Create parent directories if needed
+        default: true
+    returns:
+      type: object
+      properties:
+        created: boolean
+        path: string
+
+  directory_delete:
+    description: Delete a directory
+    type: filesystem
+    parameters:
+      path:
+        type: string
+        required: true
+        description: Directory path to delete
+      recursive:
+        type: boolean
+        required: false
+        description: Delete recursively (including contents)
+        default: false
+      confirm:
+        type: boolean
+        required: false
+        description: Require confirmation for deletion
+        default: true
+    returns:
+      type: object
+      properties:
+        deleted: boolean
+        path: string
+        files_deleted: number
+
+  file_search:
+    description: Search for files matching criteria
+    type: filesystem
+    parameters:
+      root_path:
+        type: string
+        required: true
+        description: Root directory to search from
+      pattern:
+        type: string
+        required: false
+        description: File name pattern (glob or regex)
+      content_pattern:
+        type: string
+        required: false
+        description: Search for pattern within file contents
+      max_results:
+        type: number
+        required: false
+        description: Maximum number of results
+        default: 100
+      file_types:
+        type: array
+        required: false
+        description: Filter by file extensions
+        items:
+          type: string
+    returns:
+      type: object
+      properties:
+        matches: array
+        total_found: number
+        search_completed: boolean
+
+  file_watch:
+    description: Watch a file or directory for changes
+    type: filesystem
+    parameters:
+      path:
+        type: string
+        required: true
+        description: Path to watch
+      events:
+        type: array
+        required: false
+        description: Events to watch for
+        default: [created, modified, deleted]
+        items:
+          type: string
+          enum: [created, modified, deleted, renamed]
+      recursive:
+        type: boolean
+        required: false
+        description: Watch recursively for directories
+        default: false
+      duration:
+        type: number
+        required: false
+        description: Duration to watch in seconds (0 for indefinite)
+        default: 0
+    returns:
+      type: object
+      properties:
+        watching: boolean
+        path: string
+        events_detected: array
+
+# Configuration
+config:
+  base_path: "."  # Base path for relative file operations
+  max_file_size: 104857600  # Maximum file size in bytes (100MB)
+  allowed_extensions:  # Optional: restrict file operations to certain extensions
+    - "*"  # Allow all by default
+  forbidden_paths:  # Paths that should never be accessed
+    - "/etc"
+    - "/sys"
+    - "/proc"
+  encoding_default: utf-8
+
+# Metadata
+metadata:
+  author: DiPeO Team
+  documentation_url: https://dipeo.io/docs/mcp/filesystem
+  tags:
+    - mcp
+    - filesystem
+    - file-operations
+    - directory
+    - io

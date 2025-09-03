@@ -25,7 +25,7 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
     }
 
     # ---- Typed deserialization ------------------------------------------------ #
-    def deserialize_to_domain(self, content: str) -> DomainDiagram:
+    def deserialize_to_domain(self, content: str, diagram_path: str | None = None) -> DomainDiagram:
         """Deserialize native format JSON to DomainDiagram."""
         # Parse JSON
         data = self.parse(content)

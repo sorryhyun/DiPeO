@@ -17,7 +17,6 @@ from dipeo.application.registry.keys import (
     LLM_SERVICE,
     MESSAGE_ROUTER,
     NODE_REGISTRY,
-    PERSON_MANAGER,
     PERSON_REPOSITORY,
     PROMPT_BUILDER,
     STATE_STORE,

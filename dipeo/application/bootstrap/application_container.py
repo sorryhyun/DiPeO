@@ -8,7 +8,6 @@ from dipeo.application.registry.keys import (
     AST_PARSER,
     BLOB_STORE,
     CLI_SESSION_SERVICE,
-    CONVERSATION_MANAGER,
     DB_OPERATIONS_SERVICE,
     DIAGRAM_CONVERTER,
     DIAGRAM_PORT,
@@ -19,7 +18,6 @@ from dipeo.application.registry.keys import (
     LLM_SERVICE,
     MESSAGE_ROUTER,
     NODE_REGISTRY,
-    PERSON_MANAGER,
     PREPARE_DIAGRAM_USE_CASE,
     PROMPT_BUILDER,
     STATE_STORE,
@@ -101,31 +99,7 @@ class ApplicationContainer:
 
 
         # Setup repositories - now handled by InfrastructureContainer
-        from dipeo.application.execution.orchestrators import ExecutionOrchestrator
-        from dipeo.application.registry.keys import (
-            CONVERSATION_REPOSITORY,
-            PERSON_REPOSITORY,
-        )
-        
-        # Get repositories from registry (registered by InfrastructureContainer)
-        conversation_repository = self.registry.resolve(CONVERSATION_REPOSITORY)
-        person_repository = self.registry.resolve(PERSON_REPOSITORY)
-        
-        # Create orchestrator that coordinates between repositories
-        orchestrator = ExecutionOrchestrator(
-            person_repository=person_repository,
-            conversation_repository=conversation_repository
-        )
-        
-        # Register the orchestrator as both conversation manager and person manager
-        # for backward compatibility during migration
-        self.registry.register(CONVERSATION_MANAGER, orchestrator)
-        # Register as CONVERSATION_MANAGER (CONVERSATION_SERVICE removed)
-        # Already registered as CONVERSATION_MANAGER above
-        
-        # For now, we'll keep PERSON_MANAGER pointing to the orchestrator
-        # This maintains compatibility while we migrate
-        self.registry.register(PERSON_MANAGER, orchestrator)
+        # ExecutionOrchestrator is now registered by wire_execution() in _wire_bounded_contexts()
         
         from dipeo.application.execution.use_cases import CliSessionService
         self.registry.register(CLI_SESSION_SERVICE, CliSessionService())
@@ -136,7 +110,7 @@ class ApplicationContainer:
         diagram_service = self.registry.resolve(DIAGRAM_PORT)
         if diagram_service:
             self.registry.register(DIAGRAM_PORT, diagram_service)
-        from dipeo.application.execution.use_cases import ExecuteDiagramUseCase, PrepareDiagramForExecutionUseCase
+        from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
         self.registry.register(
             EXECUTION_SERVICE,
             lambda: ExecuteDiagramUseCase(
@@ -146,12 +120,4 @@ class ApplicationContainer:
                 diagram_service=self.registry.resolve(DIAGRAM_PORT),
             )
         )
-        self.registry.register(
-            PREPARE_DIAGRAM_USE_CASE,
-            lambda: PrepareDiagramForExecutionUseCase(
-                diagram_service=self.registry.resolve(DIAGRAM_PORT),
-                validator=self.registry.resolve(DIAGRAM_VALIDATOR),
-                api_key_service=self.registry.resolve(API_KEY_SERVICE),
-                service_registry=self.registry,
-            )
-        )
+        # PrepareDiagramForExecutionUseCase is now registered by wire_execution() in _wire_bounded_contexts()

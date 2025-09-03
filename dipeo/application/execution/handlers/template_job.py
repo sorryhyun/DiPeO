@@ -208,8 +208,14 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         request: ExecutionRequest[TemplateJobNode],
         inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Prepare template variables from envelopes and node configuration."""
+        """Prepare template variables from envelopes and node configuration.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
         from datetime import datetime
+        
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
         
         node = request.node
         template_vars = {}
@@ -222,9 +228,9 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             template_vars.update(node.variables)
 
         # Add inputs from connected nodes - convert from envelopes
-        if inputs:
+        if envelope_inputs:
             # Process envelope inputs
-            for key, envelope in inputs.items():
+            for key, envelope in envelope_inputs.items():
                 try:
                     # Try to parse as JSON first
                     value = envelope.as_json()
@@ -248,7 +254,11 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     ) -> Any:
         """Execute template rendering with support for foreach and preprocessor."""
         node = request.node
-        template_vars = inputs
+        # Use centralized context builder to include globals
+        template_vars = request.context.build_template_context(inputs=inputs, globals_win=True)
+        
+        # Store template variables for building representations
+        self._template_vars = template_vars.copy()
 
         # Use services from instance variables (set in pre_execute)
         filesystem_adapter = self._current_filesystem_adapter
@@ -362,8 +372,21 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             # Render template for each item
             written_files = []
             for idx, item in enumerate(items):
-                # Create local context with item
-                local_context = {**template_vars, var_name: item, 'index': idx}
+                # Create local context with item using centralized context builder
+                # Note: foreach locals like 'this', '@index' should be provided as locals_
+                foreach_locals = {
+                    var_name: item,
+                    'this': item,  # Alias for consistency with other template systems
+                    '@index': idx,
+                    '@first': idx == 0,
+                    '@last': idx == len(items) - 1,
+                    'index': idx  # Keep for backward compatibility
+                }
+                local_context = request.context.build_template_context(
+                    inputs=inputs,  # Original inputs, not template_vars
+                    locals_=foreach_locals,
+                    globals_win=True
+                )
                 
                 # Render and write file
                 output_file = await render_to_path(output_path_template, local_context)
@@ -421,24 +444,86 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             
             return rendered
 
+    def _build_node_output(
+        self,
+        result: Any,
+        request: ExecutionRequest[TemplateJobNode]
+    ) -> dict[str, Any]:
+        """Build multi-representation output for template rendering."""
+        node = request.node
+        template_vars = getattr(self, '_template_vars', {})
+        
+        # Handle foreach mode results
+        if isinstance(result, dict) and 'written' in result:
+            # Foreach mode - multiple files written
+            rendered_text = f"Written {result['count']} files: {', '.join(result['written'])}"
+            primary = rendered_text
+        else:
+            # Single file mode
+            rendered_text = result if isinstance(result, str) else str(result)
+            primary = rendered_text
+        
+        # Build representations
+        representations = {
+            "text": rendered_text,
+            "object": {
+                "rendered": rendered_text,
+                "variables": template_vars
+            },
+            "metadata": {
+                "engine": self._current_engine,
+                "template_path": node.template_path,
+                "output_path": str(self._current_output_path) if hasattr(self, '_current_output_path') and self._current_output_path else None,
+                "foreach": node.foreach is not None
+            }
+        }
+        
+        # Add file write info if available
+        if isinstance(result, dict) and 'written' in result:
+            representations["files"] = result['written']
+            representations["file_count"] = result['count']
+        elif hasattr(self, '_current_output_path') and self._current_output_path:
+            representations["files"] = [str(self._current_output_path)]
+            representations["file_count"] = 1
+        
+        return {
+            "primary": primary,
+            "representations": representations,
+            "meta": {
+                "engine": self._current_engine,
+                "template_path": node.template_path,
+                "output_path": str(self._current_output_path) if hasattr(self, '_current_output_path') and self._current_output_path else None
+            }
+        }
+    
     def serialize_output(
         self,
         result: Any,
         request: ExecutionRequest[TemplateJobNode]
     ) -> Envelope:
-        """Serialize rendered template to text envelope."""
+        """Serialize rendered template to multi-representation envelope."""
         node = request.node
         trace_id = request.execution_id or ""
         
-        return EnvelopeFactory.text(
-            result,
+        # Build multi-representation output
+        output = self._build_node_output(result, request)
+        
+        # Create envelope with primary body for backward compatibility
+        envelope = EnvelopeFactory.text(
+            output["primary"],
             produced_by=node.id,
             trace_id=trace_id
-        ).with_meta(
-            engine=self._current_engine,
-            template_path=node.template_path,
-            output_path=str(self._current_output_path) if hasattr(self, '_current_output_path') and self._current_output_path else None
         )
+        
+        # Add representations to envelope
+        if "representations" in output:
+            envelope = envelope.with_representations(output["representations"])
+        
+        # Add metadata
+        if "meta" in output:
+            envelope = envelope.with_meta(**output["meta"])
+        
+        return envelope
     
     async def _render_jinja2(self, template: str, variables: dict[str, Any]) -> str:
         """Render template using Jinja2 with custom filters."""
@@ -449,7 +534,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             env = Environment()
             
             # Add custom filters from the registry
-            from dipeo.infrastructure.shared.template.drivers.jinja_template.filters import create_filter_registry
+            from dipeo.infrastructure.codegen.templates.filters import create_filter_registry
             registry = create_filter_registry()
             for name, func in registry.get_all_filters().items():
                 env.filters[name] = func
@@ -466,7 +551,13 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         request: ExecutionRequest[TemplateJobNode],
         output: Envelope
     ) -> Envelope:
-        """Post-execution hook to log template execution details."""
+        """Post-execution hook to log template execution details and emit tokens.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
+        
         # Post-execution logging can use instance variables if needed
         # No need for metadata access
         return output

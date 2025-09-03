@@ -42,10 +42,17 @@ class Envelope:
     # Metadata
     meta: dict[str, Any] = field(default_factory=dict)
     
+    # Multiple representations
+    representations: dict[str, Any] = field(default_factory=dict)
+    
     def with_meta(self, **kwargs) -> Envelope:
         """Create new envelope with updated metadata"""
         new_meta = {**self.meta, **kwargs}
         return replace(self, meta=new_meta)
+    
+    def with_representations(self, representations: dict[str, Any]) -> Envelope:
+        """Create new envelope with representations"""
+        return replace(self, representations=representations)
     
     def with_iteration(self, iteration: int) -> Envelope:
         """Tag with iteration number"""
@@ -524,7 +531,8 @@ def serialize_protocol(output: Envelope) -> dict[str, Any]:
         "schema_id": output.schema_id,
         "serialization_format": output.serialization_format,
         "body": output.body,
-        "meta": output.meta
+        "meta": output.meta,
+        "representations": output.representations  # NEW: Add representations field
     }
 
 
@@ -559,5 +567,6 @@ def deserialize_protocol(data: dict[str, Any]) -> Envelope:
         schema_id=data.get("schema_id"),
         serialization_format=data.get("serialization_format"),
         body=data.get("body"),
-        meta=data.get("meta", {})
+        meta=data.get("meta", {}),
+        representations=data.get("representations", {})  # NEW: Add representations field
     )

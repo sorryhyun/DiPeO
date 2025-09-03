@@ -143,7 +143,7 @@ class Person:
             to_person_id=from_person_id,  # type: ignore[arg-type]
             content=result.text,
             message_type="person_to_person" if from_person_id != "system" else "person_to_system",
-            token_count=result.token_usage.total if result.token_usage else None
+            token_count=result.llm_usage.total if result.llm_usage else None
         )
         
         return result, incoming, response_message
@@ -358,6 +358,77 @@ class Person:
                 current_time=current_time
             )
         return 0.0
+    
+    async def complete_with_memory(
+        self,
+        prompt: str,
+        all_messages: list[Message],
+        llm_service: "LLMServicePort",
+        from_person_id: PersonID | str = "system",
+        memorize_to: Optional[str] = None,
+        at_most: Optional[int] = None,
+        prompt_preview: Optional[str] = None,
+        **llm_options: Any
+    ) -> tuple[ChatResult, Message, Message, Optional[list[Message]]]:
+        """Complete prompt with intelligent memory selection.
+        
+        This method consolidates memory selection and completion into a single call,
+        using the brain's cognitive capabilities to filter messages before completion.
+        
+        Args:
+            prompt: The prompt to complete
+            all_messages: The complete conversation history
+            llm_service: The LLM service to use
+            from_person_id: The ID of the person sending the prompt
+            memorize_to: Optional memory selection criteria (e.g., "recent", "important", "GOLDFISH")
+            at_most: Optional maximum number of messages to select
+            prompt_preview: Optional preview of the task for better memory selection
+            **llm_options: Additional options for the LLM
+            
+        Returns:
+            Tuple of (ChatResult, incoming_message, response_message, selected_messages)
+            The selected_messages can be None if no selection criteria was provided
+        """
+        # Determine which messages to use for completion
+        selected_messages = None
+        messages_for_completion = all_messages
+        
+        # Apply memory selection if criteria provided
+        if memorize_to and self.brain:
+            # Use prompt_preview if provided, otherwise use the actual prompt
+            preview = prompt_preview or prompt
+            
+            # Perform memory selection through brain
+            selected_messages = await self.brain.select_memories(
+                person=self,
+                candidate_messages=all_messages,
+                prompt_preview=preview,
+                memorize_to=memorize_to,
+                at_most=at_most,
+                llm_service=llm_service
+            )
+            
+            # Use selected messages if selection was performed
+            if selected_messages is not None:
+                messages_for_completion = selected_messages
+            else:
+                # Fallback to default filtering if brain couldn't select
+                messages_for_completion = self.get_messages(all_messages)
+        else:
+            # No memory criteria - use default person filtering
+            messages_for_completion = self.get_messages(all_messages)
+        
+        # Now complete with the filtered messages
+        result, incoming, response = await self.complete(
+            prompt=prompt,
+            all_messages=messages_for_completion,
+            llm_service=llm_service,
+            from_person_id=from_person_id,
+            **llm_options
+        )
+        
+        # Return everything including the selected messages for transparency
+        return result, incoming, response, selected_messages
 
     
     def __repr__(self) -> str:

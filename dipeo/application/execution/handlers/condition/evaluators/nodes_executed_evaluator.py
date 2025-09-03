@@ -6,7 +6,6 @@ from typing import Any
 
 from .expression_evaluator import ConditionEvaluator as EvaluationService
 from dipeo.domain.execution.execution_context import ExecutionContext
-from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode
 
 from .base import BaseConditionEvaluator, EvaluationResult
@@ -24,7 +23,6 @@ class NodesExecutedEvaluator(BaseConditionEvaluator):
         self,
         node: ConditionNode,
         context: ExecutionContext,
-        diagram: ExecutableDiagram,
         inputs: dict[str, Any]
     ) -> EvaluationResult:
         """Check if target nodes have been executed."""
@@ -38,7 +36,7 @@ class NodesExecutedEvaluator(BaseConditionEvaluator):
             )
         
         # Build node_outputs dict from context
-        node_outputs = self.extract_node_outputs(context, diagram)
+        node_outputs = self.extract_node_outputs(context)
         
         # Check if nodes have been executed
         result = self._evaluation_service.check_nodes_executed(
@@ -48,6 +46,13 @@ class NodesExecutedEvaluator(BaseConditionEvaluator):
         
         # Pass through inputs directly without wrapping
         output_data = inputs if inputs else {}
+        
+        # Include exposed loop index in output data
+        if hasattr(node, 'expose_index_as') and node.expose_index_as:
+            if hasattr(context, 'get_variable'):
+                loop_value = context.get_variable(node.expose_index_as)
+                if loop_value is not None:
+                    output_data[node.expose_index_as] = loop_value
         
         logger.debug(
             f"NodesExecutedEvaluator: target_nodes={target_nodes}, "

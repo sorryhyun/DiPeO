@@ -55,12 +55,13 @@ class DiagramStorageSerializer(ABC):
         pass
 
     @abstractmethod
-    def deserialize_from_storage(self, content: str, format: str | None = None) -> "DomainDiagram":
+    def deserialize_from_storage(self, content: str, format: str | None = None, diagram_path: str | None = None) -> "DomainDiagram":
         """Deserialize file content to DomainDiagram.
         
         Args:
             content: String content from file
             format: Optional format hint, will auto-detect if not provided
+            diagram_path: Optional path to the diagram file for context (e.g., prompt resolution)
             
         Returns:
             DomainDiagram instance
@@ -97,8 +98,13 @@ class FormatStrategy(ABC):
         pass
 
     @abstractmethod
-    def deserialize_to_domain(self, content: str) -> "DomainDiagram":
-        """Deserialize format-specific string to domain diagram."""
+    def deserialize_to_domain(self, content: str, diagram_path: str | None = None) -> "DomainDiagram":
+        """Deserialize format-specific string to domain diagram.
+        
+        Args:
+            content: String content to deserialize
+            diagram_path: Optional path to the diagram file for context
+        """
         pass
 
     @abstractmethod

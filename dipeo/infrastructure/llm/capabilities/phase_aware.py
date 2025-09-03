@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from dipeo.config.llm import MEMORY_SELECTION_TEMPERATURE, MEMORY_SELECTION_MAX_TOKENS
 from dipeo.diagram_generated import Message
 
-from ..core.types import ExecutionPhase, MemorySelectionOutput, ProviderType
+from ..core.types import ExecutionPhase, MemorySelectionOutput, DecisionOutput, ProviderType
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,8 @@ class PhaseHandler:
             return self._prepare_memory_selection_messages(messages)
         elif phase == ExecutionPhase.DIRECT_EXECUTION:
             return self._prepare_direct_execution_messages(messages)
+        elif phase == ExecutionPhase.DECISION_EVALUATION:
+            return self._prepare_decision_evaluation_messages(messages)
         else:
             return messages
     
@@ -67,6 +69,27 @@ class PhaseHandler:
     def _prepare_direct_execution_messages(self, messages: List[Message]) -> List[Message]:
         """Prepare messages for direct execution phase."""
         # Direct execution uses messages as-is
+        return messages
+    
+    def _prepare_decision_evaluation_messages(self, messages: List[Message]) -> List[Message]:
+        """Prepare messages for decision evaluation phase."""
+        # Add instructions for decision evaluation
+        system_prompt = (
+            "You are evaluating a condition to make a binary decision.\n"
+            "Provide a clear YES/NO decision based on the context.\n"
+            "If structured output is supported, use the decision field (true/false)."
+        )
+        
+        # Prepend system message if needed
+        if messages and messages[0].role == "system":
+            messages[0].content = f"{messages[0].content}\n\n{system_prompt}"
+        else:
+            system_msg = Message(
+                role="system",
+                content=system_prompt
+            )
+            messages = [system_msg] + messages
+        
         return messages
     
     def get_phase_specific_params(
@@ -123,6 +146,14 @@ class PhaseHandler:
         elif phase == ExecutionPhase.DIRECT_EXECUTION:
             # Direct execution uses standard parameters
             pass
+        elif phase == ExecutionPhase.DECISION_EVALUATION:
+            # Decision evaluation needs structured output for binary decisions
+            params['temperature'] = 0  # Deterministic decisions
+            params['max_tokens'] = 8000  # Decisions should be concise
+            
+            if self.provider == ProviderType.OPENAI:
+                # OpenAI will use DecisionOutput model via structured_output.py
+                pass
         
         return params
     
@@ -134,6 +165,8 @@ class PhaseHandler:
         """Process response based on execution phase."""
         if phase == ExecutionPhase.MEMORY_SELECTION:
             return self._process_memory_selection_response(response)
+        elif phase == ExecutionPhase.DECISION_EVALUATION:
+            return self._process_decision_evaluation_response(response)
         else:
             return response
     
@@ -143,7 +176,20 @@ class PhaseHandler:
         message_ids = []
         
         if self.provider == ProviderType.OPENAI:
-            if hasattr(response, 'choices') and response.choices:
+            # OpenAI structured output from parse() API
+            if hasattr(response, 'output_parsed') and response.output_parsed:
+                # output_parsed is already a MemorySelectionOutput instance
+                if isinstance(response.output_parsed, MemorySelectionOutput):
+                    return response.output_parsed
+                # If it's a dict, convert to MemorySelectionOutput
+                elif isinstance(response.output_parsed, dict):
+                    message_ids = response.output_parsed.get('message_ids', [])
+                    return MemorySelectionOutput(message_ids=message_ids)
+                # If it's another Pydantic model with message_ids field
+                elif hasattr(response.output_parsed, 'message_ids'):
+                    return MemorySelectionOutput(message_ids=response.output_parsed.message_ids)
+            # Fallback to old format for compatibility
+            elif hasattr(response, 'choices') and response.choices:
                 content = response.choices[0].message.content
                 if content:
                     import json
@@ -162,6 +208,83 @@ class PhaseHandler:
         
         return MemorySelectionOutput(message_ids=message_ids)
     
+    def _process_decision_evaluation_response(self, response: Any) -> DecisionOutput:
+        """Process decision evaluation phase response."""
+        # Extract decision from response
+        decision = False
+        reasoning = None
+        
+        if self.provider == ProviderType.OPENAI:
+            # OpenAI structured output from parse() API
+            if hasattr(response, 'output_parsed') and response.output_parsed:
+                # output_parsed is already a DecisionOutput instance
+                if isinstance(response.output_parsed, DecisionOutput):
+                    return response.output_parsed
+                # If it's a dict, convert to DecisionOutput
+                elif isinstance(response.output_parsed, dict):
+                    return DecisionOutput(
+                        decision=response.output_parsed.get('decision', False),
+                        reasoning=response.output_parsed.get('reasoning')
+                    )
+                # If it's another Pydantic model with decision field
+                elif hasattr(response.output_parsed, 'decision'):
+                    return DecisionOutput(
+                        decision=response.output_parsed.decision,
+                        reasoning=getattr(response.output_parsed, 'reasoning', None)
+                    )
+            # Fallback to old format for compatibility
+            elif hasattr(response, 'parsed') and response.parsed:
+                return DecisionOutput(
+                    decision=response.parsed.get('decision', False),
+                    reasoning=response.parsed.get('reasoning')
+                )
+            # Handle new OpenAI response format
+            elif hasattr(response, 'output') and isinstance(response.output, list):
+                # Extract text from new format response
+                for message in response.output:
+                    if hasattr(message, 'content') and isinstance(message.content, list):
+                        text_parts = []
+                        for content_block in message.content:
+                            if hasattr(content_block, 'text'):
+                                text_parts.append(content_block.text)
+                        if text_parts:
+                            content = ''.join(text_parts)
+                            content_lower = content.lower().strip()
+                            if content_lower.startswith('yes'):
+                                decision = True
+                            elif content_lower.startswith('no'):
+                                decision = False
+                            return DecisionOutput(decision=decision, reasoning=content[:200])
+        
+        # Fallback: parse from text
+        content = None
+        if hasattr(response, 'content') and isinstance(response.content, str):
+            content = response.content
+        elif hasattr(response, 'text') and isinstance(response.text, str):
+            content = response.text
+        elif hasattr(response, '__class__') and 'ResponseTextConfig' in response.__class__.__name__:
+            # This is a config object, not a response - log error and return false
+            import logging
+            logging.error(f"Received ResponseTextConfig instead of actual response in decision evaluation")
+            return DecisionOutput(decision=False, reasoning="Error: Invalid response object")
+        
+        # Only convert to string if we don't have content yet and it's not a config object
+        if content is None:
+            content = str(response)
+        
+        # Simple YES/NO detection
+        if isinstance(content, str):
+            content_lower = content.lower().strip()
+            if content_lower.startswith('yes'):
+                decision = True
+            elif content_lower.startswith('no'):
+                decision = False
+            reasoning_text = content[:200] if content else None
+        else:
+            reasoning_text = "Unable to parse response"
+        
+        return DecisionOutput(decision=decision, reasoning=reasoning_text)
+    
     def validate_phase_transition(
         self,
         from_phase: ExecutionPhase,
@@ -172,7 +295,8 @@ class PhaseHandler:
         valid_transitions = {
             ExecutionPhase.DEFAULT: [
                 ExecutionPhase.MEMORY_SELECTION,
-                ExecutionPhase.DIRECT_EXECUTION
+                ExecutionPhase.DIRECT_EXECUTION,
+                ExecutionPhase.DECISION_EVALUATION
             ],
             ExecutionPhase.MEMORY_SELECTION: [
                 ExecutionPhase.DIRECT_EXECUTION,
@@ -181,6 +305,9 @@ class PhaseHandler:
             ExecutionPhase.DIRECT_EXECUTION: [
                 ExecutionPhase.DEFAULT,
                 ExecutionPhase.MEMORY_SELECTION
+            ],
+            ExecutionPhase.DECISION_EVALUATION: [
+                ExecutionPhase.DEFAULT
             ]
         }
         

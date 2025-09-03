@@ -9,19 +9,19 @@ from dipeo.application.registry.service_registry import ServiceRegistry, Service
 from dipeo.application.registry.keys import (
     DIAGRAM_COMPILER,
     DIAGRAM_SERIALIZER,
-    RUNTIME_RESOLVER,
     TRANSFORMATION_ENGINE,
     DIAGRAM_PORT,
+    COMPILE_DIAGRAM_USE_CASE,
+    VALIDATE_DIAGRAM_USE_CASE,
+    SERIALIZE_DIAGRAM_USE_CASE,
+    LOAD_DIAGRAM_USE_CASE,
 )
 
 if TYPE_CHECKING:
     from dipeo.domain.diagram.compilation import DiagramCompiler
     from dipeo.domain.diagram.ports import DiagramStorageSerializer
     from dipeo.domain.diagram.compilation import CompileTimeResolver
-    from dipeo.domain.execution.resolution import (
-        RuntimeInputResolver,
-        TransformationEngine,
-    )
+    from dipeo.domain.execution.resolution import TransformationEngine
     from dipeo.application.diagram.use_cases import (
         CompileDiagramUseCase,
         ValidateDiagramUseCase,
@@ -30,10 +30,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Define service keys for diagram context
-COMPILE_DIAGRAM_USE_CASE = ServiceKey["CompileDiagramUseCase"]("diagram.use_case.compile")
-VALIDATE_DIAGRAM_USE_CASE = ServiceKey["ValidateDiagramUseCase"]("diagram.use_case.validate")
-SERIALIZE_DIAGRAM_USE_CASE = ServiceKey["SerializeDiagramUseCase"]("diagram.use_case.serialize")
+# Define service keys for diagram context (only internal keys)
 DIAGRAM_RESOLVER_KEY = ServiceKey["DiagramResolver"]("diagram.resolver")
 
 
@@ -63,14 +60,11 @@ def wire_diagram(registry: ServiceRegistry) -> None:
 
 def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
     """Wire diagram-specific use cases."""
-    from dipeo.application.registry.keys import (
-        DIAGRAM_COMPILER,
-        DIAGRAM_SERIALIZER,
-    )
     from dipeo.application.diagram.use_cases import (
         CompileDiagramUseCase,
         ValidateDiagramUseCase, 
         SerializeDiagramUseCase,
+        LoadDiagramUseCase,
     )
     
     # Wire compile diagram use case
@@ -96,6 +90,14 @@ def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
         return SerializeDiagramUseCase(diagram_serializer=serializer)
     
     registry.register(SERIALIZE_DIAGRAM_USE_CASE, create_serialize_diagram)
+    
+    # Wire load diagram use case
+    def create_load_diagram() -> LoadDiagramUseCase:
+        """Factory for load diagram use case."""
+        diagram_service = registry.resolve(DIAGRAM_PORT)
+        return LoadDiagramUseCase(diagram_service=diagram_service)
+    
+    registry.register(LOAD_DIAGRAM_USE_CASE, create_load_diagram)
 
 
 def wire_diagram_resolvers(registry: ServiceRegistry) -> None:
@@ -121,15 +123,13 @@ def wire_diagram_compiler(registry: ServiceRegistry) -> None:
         ValidatingCompilerAdapter,
     )
     
-    # Determine which compiler variant to use
-    use_interface_based = os.getenv("DIAGRAM_USE_INTERFACE_COMPILER", "1") == "1"
-    enable_caching = os.getenv("DIAGRAM_COMPILER_CACHE", "1") == "1"
+    # Create base compiler - always use interface-based
+    compiler = StandardCompilerAdapter(use_interface_based=True)
+    
+    # Apply decorators if configured
     enable_validation = os.getenv("DIAGRAM_COMPILER_VALIDATE", "1") == "1"
+    enable_caching = os.getenv("DIAGRAM_COMPILER_CACHE", "1") == "1"
     
-    # Create base compiler
-    compiler = StandardCompilerAdapter(use_interface_based=use_interface_based)
-    
-    # Apply decorators
     if enable_validation:
         compiler = ValidatingCompilerAdapter(compiler)
 
@@ -148,19 +148,14 @@ def wire_diagram_serializer(registry: ServiceRegistry) -> None:
     """
     from dipeo.infrastructure.diagram.adapters import (
         UnifiedSerializerAdapter,
-        FormatStrategyAdapter,
         CachingSerializerAdapter,
     )
     
-    # Determine which serializer to use
-    use_strategy_based = os.getenv("DIAGRAM_USE_STRATEGY_SERIALIZER", "0") == "1"
-    enable_caching = os.getenv("DIAGRAM_SERIALIZER_CACHE", "1") == "1"
+    # Always use unified serializer
+    serializer = UnifiedSerializerAdapter()
     
-    if use_strategy_based:
-        serializer = FormatStrategyAdapter()
-    else:
-        serializer = UnifiedSerializerAdapter()
-
+    # Apply caching if configured
+    enable_caching = os.getenv("DIAGRAM_SERIALIZER_CACHE", "1") == "1"
     if enable_caching:
         cache_size = int(os.getenv("DIAGRAM_SERIALIZER_CACHE_SIZE", "50"))
         serializer = CachingSerializerAdapter(serializer, cache_size=cache_size)
@@ -176,26 +171,10 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
     """
     from dipeo.domain.execution.resolution import StandardTransformationEngine
     
-    # For now, we'll use a simple runtime resolver placeholder
-    # The actual runtime resolution is handled by domain logic
-    # in dipeo.domain.execution.resolution.api.resolve_inputs
-    class SimpleRuntimeResolver:
-        """Placeholder runtime resolver.
-        
-        The actual resolution logic is in domain.execution.resolution.api.resolve_inputs
-        which is called directly by handlers.
-        """
-        async def resolve_input_value(self, *args, **kwargs):
-            # This is not actually used - resolution happens in domain layer
-            raise NotImplementedError("Use domain.execution.resolution.api.resolve_inputs")
-    
-    runtime_resolver = SimpleRuntimeResolver()
-    
     # Create transformation engine
     transform_engine = StandardTransformationEngine()
     
-    # Register all resolution services
-    registry.register(RUNTIME_RESOLVER, runtime_resolver)
+    # Register transformation engine
     registry.register(TRANSFORMATION_ENGINE, transform_engine)
 
 

@@ -6,7 +6,6 @@ from typing import Any
 
 from .expression_evaluator import ConditionEvaluator as ExpressionEvaluator
 from dipeo.domain.execution.execution_context import ExecutionContext
-from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode
 
 from .base import BaseConditionEvaluator, EvaluationResult
@@ -24,7 +23,6 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
         self,
         node: ConditionNode,
         context: ExecutionContext,
-        diagram: ExecutableDiagram,
         inputs: dict[str, Any]
     ) -> EvaluationResult:
         expression = node.expression or ""
@@ -50,8 +48,13 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
             context_values=eval_context
         )
         
-        # Pass through inputs directly without wrapping
+        # Pass through inputs and include exposed variables for downstream nodes
         output_data = inputs if inputs else {}
+        
+        # Include the exposed loop index and other critical variables in output
+        # This ensures downstream nodes have access to loop control variables
+        if hasattr(node, 'expose_index_as') and node.expose_index_as and node.expose_index_as in eval_context:
+            output_data[node.expose_index_as] = eval_context[node.expose_index_as]
 
         return EvaluationResult(
             result=result,

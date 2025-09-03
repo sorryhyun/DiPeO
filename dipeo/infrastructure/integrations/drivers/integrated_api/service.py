@@ -40,6 +40,9 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
 
         # Load providers from entry points
         await self._load_entrypoint_providers()
+        
+        # Load MCP providers
+        await self._load_mcp_providers()
 
         self._initialized = True
 
@@ -64,6 +67,59 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
             await self.provider_registry.load_entrypoints("dipeo.integrations")
         except Exception as e:
             logger.debug(f"No entry point providers found: {e}")
+    
+    async def _load_mcp_providers(self) -> None:
+        """Load MCP (Model Context Protocol) providers."""
+        try:
+            from .mcp_registry import get_mcp_registry
+            
+            logger.info("Loading MCP providers")
+            
+            # Get the MCP registry and initialize it
+            mcp_registry = await get_mcp_registry()
+            
+            # Create an MCP provider with all registered tools
+            mcp_provider = mcp_registry.create_provider("mcp")
+            
+            # Register the MCP provider with the main registry
+            await self.provider_registry.register(
+                "mcp",
+                mcp_provider,
+                metadata={
+                    "type": "mcp",
+                    "description": "MCP Tool Provider",
+                    "tools_count": len(mcp_provider.supported_operations)
+                }
+            )
+            
+            # Also register individual MCP tool providers if they exist
+            # This allows using specific tool sets like mcp_browser, mcp_filesystem
+            for category in ["browser", "filesystem"]:
+                category_tools = mcp_registry.get_tools_by_category(category)
+                if category_tools:
+                    from .providers.mcp_provider import MCPProvider
+                    category_provider = MCPProvider(
+                        provider_name=f"mcp_{category}",
+                        tools=category_tools
+                    )
+                    await category_provider.initialize()
+                    await self.provider_registry.register(
+                        f"mcp_{category}",
+                        category_provider,
+                        metadata={
+                            "type": "mcp",
+                            "category": category,
+                            "description": f"MCP {category.title()} Tools",
+                            "tools_count": len(category_tools)
+                        }
+                    )
+            
+            logger.info(f"Loaded MCP providers with {len(mcp_provider.supported_operations)} tools")
+            
+        except ImportError as e:
+            logger.debug(f"MCP providers not available: {e}")
+        except Exception as e:
+            logger.error(f"Error loading MCP providers: {e}")
 
     async def register_provider(self, provider_name: str, provider_instance: ApiProviderPort) -> None:
         """Register a new API provider.

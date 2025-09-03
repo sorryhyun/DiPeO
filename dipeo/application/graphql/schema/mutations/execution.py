@@ -56,17 +56,17 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                         # Fallback: get dict and convert
                         diagram_dict = await integrated_service.get_diagram(input.diagram_id)
                         # Convert dict to DomainDiagram
-                        from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
-                        converter = DiagramConverterService()
-                        await converter.initialize()
+                        from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
+                        serializer = UnifiedSerializerAdapter()
+                        await serializer.initialize()
                         import json
                         json_content = json.dumps(diagram_dict)
-                        domain_diagram = converter.deserialize_from_storage(json_content, "native")
+                        domain_diagram = serializer.deserialize_from_storage(json_content, "native")
                 elif input.diagram_data:
                     # Direct dict provided - need to convert to DomainDiagram
-                    from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
-                    converter = DiagramConverterService()
-                    await converter.initialize()
+                    from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
+                    serializer = UnifiedSerializerAdapter()
+                    await serializer.initialize()
                     
                     # Detect format from the dict
                     format_hint = input.diagram_data.get("version") or input.diagram_data.get("format")
@@ -74,12 +74,12 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                         # Light or readable format - convert to YAML
                         import yaml
                         content = yaml.dump(input.diagram_data, default_flow_style=False, sort_keys=False)
-                        domain_diagram = converter.deserialize_from_storage(content, format_hint)
+                        domain_diagram = serializer.deserialize_from_storage(content, format_hint)
                     else:
                         # Native format - convert to JSON
                         import json
                         json_content = json.dumps(input.diagram_data)
-                        domain_diagram = converter.deserialize_from_storage(json_content, "native")
+                        domain_diagram = serializer.deserialize_from_storage(json_content, "native")
                 else:
                     raise ValueError("Either diagram_id or diagram_data must be provided")
                 

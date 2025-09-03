@@ -32,10 +32,7 @@ if TYPE_CHECKING:
     from dipeo.domain.diagram.ports import TemplateProcessorPort
     from dipeo.domain.events import EventEmitter
     from dipeo.domain.diagram.compilation import CompileTimeResolver
-    from dipeo.domain.execution.resolution import (
-        RuntimeInputResolver,
-        TransformationEngine,
-    )
+    from dipeo.domain.execution.resolution import TransformationEngine
     from dipeo.application.utils import PromptBuilder
     from dipeo.application.execution.handlers.condition.evaluators.expression_evaluator import ConditionEvaluator
     from dipeo.infrastructure.shared.adapters import (
@@ -49,6 +46,15 @@ if TYPE_CHECKING:
     from dipeo.application.execution.use_cases import CliSessionService
     from dipeo.application.execution.use_cases import PrepareDiagramForExecutionUseCase
     from dipeo.application.execution.handler_factory import HandlerRegistry
+    from dipeo.application.execution.orchestrators import ExecutionOrchestrator
+    from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
+    from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
+    from dipeo.application.diagram.use_cases import (
+        CompileDiagramUseCase,
+        ValidateDiagramUseCase,
+        SerializeDiagramUseCase,
+    )
+    from dipeo.application.diagram.use_cases.load_diagram import LoadDiagramUseCase
     from typing import Any, Dict
 
 
@@ -78,10 +84,11 @@ BLOB_STORE = ServiceKey["BlobStoreAdapter"]("blob_store")
 FILESYSTEM_ADAPTER = ServiceKey["FileSystemPort"]("filesystem_adapter")
 
 # Application Services
-CONVERSATION_MANAGER = ServiceKey["ConversationManagerImpl"]("conversation_manager")
+EXECUTION_ORCHESTRATOR = ServiceKey["ExecutionOrchestrator"]("execution_orchestrator")
 PROMPT_BUILDER = ServiceKey["PromptBuilder"]("prompt_builder")
-PERSON_MANAGER = ServiceKey["PersonManagerImpl"]("person_manager")
 TEMPLATE_PROCESSOR = ServiceKey["TemplateProcessorPort"]("template_processor")
+PROMPT_LOADING_SERVICE = ServiceKey["PromptLoadingUseCase"]("prompt_loading_service")
+MEMORY_SELECTOR = ServiceKey["LLMMemorySelectionAdapter"]("memory_selector")
 
 # Domain Services
 DB_OPERATIONS_SERVICE = ServiceKey["DBOperationsDomainService"]("db_operations_service")
@@ -100,7 +107,6 @@ API_INVOKER = ServiceKey["ApiInvoker"]("api_invoker")  # From registry_tokens.py
 AST_PARSER = ServiceKey["ASTParserPort"]("ast_parser")
 
 # Resolution Services (from registry_tokens.py)
-RUNTIME_RESOLVER = ServiceKey["RuntimeInputResolver"]("runtime_resolver")
 TRANSFORMATION_ENGINE = ServiceKey["TransformationEngine"]("transformation_engine")
 
 # Execution Context Services
@@ -113,6 +119,12 @@ NODE_EXEC_COUNTS = ServiceKey["Dict[str, int]"]("node_exec_counts")
 EXECUTION_SERVICE = ServiceKey["ExecutionService"]("execution_service")
 COMPILATION_SERVICE = ServiceKey["CompilationService"]("compilation_service")
 PREPARE_DIAGRAM_USE_CASE = ServiceKey["PrepareDiagramForExecutionUseCase"]("prepare_diagram_use_case")
+
+# Diagram Use Cases
+COMPILE_DIAGRAM_USE_CASE = ServiceKey["CompileDiagramUseCase"]("diagram.use_case.compile")
+VALIDATE_DIAGRAM_USE_CASE = ServiceKey["ValidateDiagramUseCase"]("diagram.use_case.validate")
+SERIALIZE_DIAGRAM_USE_CASE = ServiceKey["SerializeDiagramUseCase"]("diagram.use_case.serialize")
+LOAD_DIAGRAM_USE_CASE = ServiceKey["LoadDiagramUseCase"]("diagram.use_case.load")
 
 # Infrastructure Adapters
 DATABASE = ServiceKey["DatabasePort"]("database")
@@ -181,10 +193,11 @@ __all__ = [
     "FILESYSTEM_ADAPTER",
     
     # Application
-    "CONVERSATION_MANAGER",
+    "EXECUTION_ORCHESTRATOR",
     "PROMPT_BUILDER",
-    "PERSON_MANAGER",
     "TEMPLATE_PROCESSOR",
+    "PROMPT_LOADING_SERVICE",
+    "MEMORY_SELECTOR",
     
     # Domain
     "DB_OPERATIONS_SERVICE",
@@ -203,7 +216,6 @@ __all__ = [
     "AST_PARSER",
     
     # Resolution Services
-    "RUNTIME_RESOLVER",
     "TRANSFORMATION_ENGINE",
     
     # Execution Context

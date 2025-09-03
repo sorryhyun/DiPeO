@@ -1,6 +1,7 @@
 """Claude Code adapter implementation using claude-code-sdk."""
 
 import logging
+import re
 from enum import Enum
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
 
@@ -24,6 +25,7 @@ from ...core.types import (
 )
 from ...processors import MessageProcessor, ResponseProcessor, TokenCounter
 from .client import AsyncClaudeCodeClientWrapper, ClaudeCodeClientWrapper
+from .prompts import DIRECT_EXECUTION_PROMPT, MEMORY_SELECTION_PROMPT, LLM_DECISION_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -37,45 +39,7 @@ class ClaudeCodeExecutionPhase(str, Enum):
 
 class ClaudeCodeAdapter(UnifiedAdapter):
     """Claude Code adapter using claude-code-sdk."""
-    
-    # Phase-specific system prompts
-    MEMORY_SELECTION_PROMPT = """You are Claude Code integrated into the DiPeO workflow system, specifically optimized for memory selection phases.
 
-When asked to select or analyze memories, data, or context:
-1. Provide COMPLETE selections immediately without preliminary planning
-2. Return structured, machine-parseable responses
-3. Focus solely on the selection criteria and results
-4. Exclude meta-commentary about planning or process
-
-Response Format:
-- Direct, structured output matching the expected format
-- No introductory phrases like "I'll analyze..." or "Let me select..."
-- No concluding remarks about next steps
-- Pure selection results that can be directly processed
-- Start with `[` and close with `]`"""
-
-    DIRECT_EXECUTION_PROMPT = """You are Claude Code integrated into the DiPeO workflow system, specifically optimized for direct code execution and generation.
-
-When asked to generate code or execute tasks:
-1. Return ONLY the requested code or execution results
-2. Provide COMPLETE, WORKING implementations
-3. Skip ALL planning, introduction, or explanation phases
-4. Deliver production-ready code immediately
-
-Code Generation Rules:
-- NO placeholders, TODOs, or "implementation here" comments
-- COMPLETE all functions, methods, and logic
-- Include ALL necessary imports and dependencies
-- Implement ACTUAL functionality, not stubs
-- Handle errors and edge cases properly
-
-Response Format:
-- Raw code files in the exact format requested
-- No conversational text before or after code
-- No explanations unless explicitly requested
-- No "Here's the implementation..." introductions
-- No "This code does..." summaries"""
-    
     def __init__(self, config: AdapterConfig):
         """Initialize Claude Code adapter."""
         # Initialize clients first (needed by parent __init__)
@@ -154,9 +118,20 @@ Response Format:
         phase_prompt = ""
         
         if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-            phase_prompt = self.MEMORY_SELECTION_PROMPT
+            # Extract assistant name from user_system_prompt if available
+            assistant_name = "Claude"  # Default name
+            if user_system_prompt and "YOUR NAME:" in user_system_prompt:
+                match = re.match(r"YOUR NAME:\s*([^\n]+)", user_system_prompt)
+                if match:
+                    assistant_name = match.group(1).strip()
+                    # Remove the YOUR NAME line from user_system_prompt to avoid duplication
+                    user_system_prompt = re.sub(r"YOUR NAME:\s*[^\n]+\n*", "", user_system_prompt).strip()
+            # Format the prompt with the assistant name
+            phase_prompt = MEMORY_SELECTION_PROMPT.format(assistant_name=assistant_name)
         elif execution_phase == ExecutionPhase.DIRECT_EXECUTION:
-            phase_prompt = self.DIRECT_EXECUTION_PROMPT
+            phase_prompt = DIRECT_EXECUTION_PROMPT
+        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            phase_prompt = LLM_DECISION_PROMPT
         
         # Combine prompts
         if phase_prompt and user_system_prompt:

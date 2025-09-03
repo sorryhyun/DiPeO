@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.diagram_generated import ExecutionID, ExecutionState, NodeState, Status, TokenUsage
+from dipeo.diagram_generated import ExecutionID, ExecutionState, NodeState, Status, LLMUsage
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 from dipeo.infrastructure.execution.messaging import NullEventBus
 
@@ -38,11 +38,12 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         # Track if fail_fast is enabled
         self._fail_fast = os.getenv("DIPEO_FAIL_FAST", "false").lower() == "true"
     
-    def set_services(self, prepare_use_case, diagram_service):
+    def set_services(self, prepare_use_case, diagram_service, service_registry=None):
         """Set services for the executor to use."""
         super().set_services(
             prepare_use_case=prepare_use_case,
-            diagram_service=diagram_service
+            diagram_service=diagram_service,
+            service_registry=service_registry
         )
     
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope:
@@ -64,7 +65,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             # Create minimal in-memory execution state with isolated service registry
             execution_state = self._create_in_memory_state(
                 diagram=executable_diagram,
-                inputs=request.inputs or {}
+                inputs=request.inputs
             )
             
             # Run the engine without observers or state persistence
@@ -113,8 +114,15 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         if self._prepare_use_case:
             # Use the prepare use case for loading and compilation
             diagram_input = await self._get_diagram_input(node)
+            
+            # Get the diagram path for source path tracking
+            diagram_id = None
+            if node.diagram_name:
+                diagram_id = self._construct_diagram_path(node)
+            
             return await self._prepare_use_case.prepare_for_execution(
                 diagram=diagram_input,
+                diagram_id=diagram_id,  # Pass the path for metadata tracking
                 validate=False  # Skip validation for lightweight execution
             )
         else:
@@ -206,14 +214,15 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         """Create a minimal in-memory execution state."""
         # Create node states for all nodes
         node_states = {}
-        for node in diagram.nodes:
+        all_nodes = diagram.get_nodes_by_type(None) or diagram.nodes
+        for node in all_nodes:
             node_state = NodeState(
                 status=Status.PENDING,
                 started_at=None,
                 ended_at=None,
                 output=None,
                 error=None,
-                token_usage=None
+                llm_usage=None
             )
             node_states[str(node.id)] = node_state
         
@@ -236,7 +245,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             started_at=datetime.now(UTC).isoformat(),
             node_states=node_states,
             node_outputs={},  # Initialize empty
-            token_usage=TokenUsage(input=0, output=0, total=0),
+            llm_usage=LLMUsage(input=0, output=0, total=0),
             exec_counts={},  # Initialize empty
             executed_nodes=[],  # Initialize empty
             variables=variables  # Use the properly formatted variables
@@ -260,40 +269,16 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         from dipeo.domain.execution.resolution import resolve_inputs
         from dipeo.domain.execution.envelope import Envelope
         
-        # Create a minimal runtime resolver that directly uses domain resolution
-        class MinimalResolver:
-            def resolve_node_inputs(self, node, incoming_edges, context):
-                """Resolve inputs using domain resolution directly."""
-                from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-                
-                # Create minimal diagram for resolution
-                diagram = ExecutableDiagram(
-                    id="temp",
-                    nodes=[node],
-                    edges=incoming_edges,
-                    metadata={}
-                )
-                
-                # Use domain resolution (synchronous)
-                envelopes = resolve_inputs(node, diagram, context)
-                
-                # Extract raw values from envelopes
-                return {key: env.body for key, env in envelopes.items()}
-            
-            async def resolve_as_envelopes(self, node, context, diagram):
-                """Resolve as envelopes - just wraps synchronous call."""
-                return resolve_inputs(node, diagram, context)
-        
-        runtime_resolver = MinimalResolver()
-        
         # Create isolated service registry (copy from parent but independent)
         parent_registry = request.parent_registry or request.services
         isolated_registry = self._create_isolated_registry(parent_registry)
         
+        # Register persons from the diagram in the orchestrator/conversation manager
+        await self._register_diagram_persons(diagram, isolated_registry)
+        
         # Create engine with null event bus (no events emitted)
         engine = TypedExecutionEngine(
             service_registry=isolated_registry,
-            runtime_resolver=runtime_resolver,
             event_bus=NullEventBus()  # No event emission
         )
         
@@ -460,7 +445,63 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
                 # Directly assign to internal dict since keys are already strings
                 isolated_registry._services[key_str] = service
         
+        # Also try to copy services using the resolve method for compatibility
+        # This ensures we get all services even if they're stored differently
+        if hasattr(parent_registry, 'resolve'):
+            from dipeo.application.registry import (
+                FILESYSTEM_ADAPTER,
+                LLM_SERVICE,
+                EXECUTION_ORCHESTRATOR,
+                PROMPT_BUILDER,
+            )
+            
+            # Critical services that person_job needs
+            critical_services = [
+                (FILESYSTEM_ADAPTER, 'filesystem_adapter'),
+                (LLM_SERVICE, 'llm_service'),
+                (EXECUTION_ORCHESTRATOR, 'execution_orchestrator'),
+                (PROMPT_BUILDER, 'prompt_builder'),
+            ]
+            
+            for service_key, key_str in critical_services:
+                try:
+                    service = parent_registry.resolve(service_key)
+                    if service and key_str not in isolated_registry._services:
+                        isolated_registry._services[key_str] = service
+                except:
+                    # Service might not be available, continue
+                    pass
+        
         return isolated_registry
+    
+    async def _register_diagram_persons(self, diagram: "ExecutableDiagram", service_registry) -> None:
+        """Register persons from the diagram in the conversation manager.
+        
+        This ensures that persons defined in the sub_diagram are available
+        when person_job nodes try to get or create them.
+        """
+        # Get the orchestrator from the service registry
+        from dipeo.application.registry import ServiceKey
+        from dipeo.application.execution.wiring import EXECUTION_ORCHESTRATOR
+        
+        orchestrator = None
+        
+        try:
+            orchestrator = service_registry.resolve(EXECUTION_ORCHESTRATOR)
+        except (KeyError, AttributeError):
+            # Try alternative key with correct string
+            orchestrator_key = ServiceKey("execution.orchestrator")
+            try:
+                orchestrator = service_registry.resolve(orchestrator_key)
+            except:
+                pass
+        
+        if not orchestrator:
+            logger.debug("No execution orchestrator found, skipping person registration")
+            return
+        
+        # Use the orchestrator to register all persons
+        orchestrator.register_diagram_persons(diagram)
     
     def _create_error_envelope(
         self,

@@ -1,0 +1,287 @@
+# MCP Browser Control Tool Manifest
+# This manifest defines browser automation tools for DiPeO
+
+name: mcp_browser
+type: mcp
+version: 1.0.0
+description: MCP Browser automation and control tools
+category: browser
+
+# Tool definitions
+tools:
+  browser_navigate:
+    description: Navigate to a specified URL
+    type: browser
+    parameters:
+      url:
+        type: string
+        required: true
+        description: The URL to navigate to
+      wait_until:
+        type: string
+        required: false
+        description: Wait condition (load, domcontentloaded, networkidle)
+        default: load
+    returns:
+      type: object
+      properties:
+        url: string
+        title: string
+        status: string
+
+  browser_click:
+    description: Click an element on the page
+    type: browser
+    parameters:
+      selector:
+        type: string
+        required: true
+        description: CSS selector or XPath of the element to click
+      wait_for_selector:
+        type: boolean
+        required: false
+        description: Wait for selector to be present before clicking
+        default: true
+      timeout:
+        type: number
+        required: false
+        description: Timeout in seconds for waiting
+        default: 5
+    returns:
+      type: object
+      properties:
+        clicked: boolean
+        element_found: boolean
+        error: string
+
+  browser_type:
+    description: Type text into an input field
+    type: browser
+    parameters:
+      selector:
+        type: string
+        required: true
+        description: CSS selector or XPath of the input element
+      text:
+        type: string
+        required: true
+        description: Text to type into the field
+      clear_first:
+        type: boolean
+        required: false
+        description: Clear the field before typing
+        default: false
+      delay:
+        type: number
+        required: false
+        description: Delay between keystrokes in milliseconds
+        default: 0
+    returns:
+      type: object
+      properties:
+        typed: boolean
+        element_found: boolean
+        final_value: string
+
+  browser_wait:
+    description: Wait for a condition or element
+    type: browser
+    parameters:
+      wait_type:
+        type: string
+        required: true
+        description: Type of wait (selector, navigation, timeout)
+        enum: [selector, navigation, timeout]
+      selector:
+        type: string
+        required: false
+        description: CSS selector to wait for (if wait_type is selector)
+      timeout:
+        type: number
+        required: false
+        description: Maximum wait time in seconds
+        default: 30
+    returns:
+      type: object
+      properties:
+        success: boolean
+        waited_ms: number
+        error: string
+
+  browser_go_back:
+    description: Navigate back in browser history
+    type: browser
+    parameters: {}
+    returns:
+      type: object
+      properties:
+        success: boolean
+        url: string
+
+  browser_go_forward:
+    description: Navigate forward in browser history
+    type: browser
+    parameters: {}
+    returns:
+      type: object
+      properties:
+        success: boolean
+        url: string
+
+  browser_snapshot:
+    description: Take a snapshot of the current page state
+    type: browser
+    parameters:
+      include_html:
+        type: boolean
+        required: false
+        description: Include page HTML in snapshot
+        default: true
+      include_screenshot:
+        type: boolean
+        required: false
+        description: Include screenshot in snapshot
+        default: false
+    returns:
+      type: object
+      properties:
+        url: string
+        title: string
+        html: string
+        screenshot_base64: string
+        timestamp: string
+
+  browser_select_option:
+    description: Select an option from a dropdown
+    type: browser
+    parameters:
+      selector:
+        type: string
+        required: true
+        description: CSS selector of the select element
+      value:
+        type: string
+        required: false
+        description: Value of the option to select
+      label:
+        type: string
+        required: false
+        description: Label text of the option to select
+      index:
+        type: number
+        required: false
+        description: Index of the option to select
+    returns:
+      type: object
+      properties:
+        selected: boolean
+        selected_value: string
+        selected_label: string
+
+  browser_hover:
+    description: Hover over an element
+    type: browser
+    parameters:
+      selector:
+        type: string
+        required: true
+        description: CSS selector of the element to hover over
+      duration:
+        type: number
+        required: false
+        description: Duration to hold the hover in milliseconds
+        default: 0
+    returns:
+      type: object
+      properties:
+        hovered: boolean
+        element_found: boolean
+
+  browser_press_key:
+    description: Press a keyboard key or key combination
+    type: browser
+    parameters:
+      key:
+        type: string
+        required: true
+        description: Key to press (e.g., Enter, Escape, Control+A)
+      selector:
+        type: string
+        required: false
+        description: Optional selector to focus before pressing key
+    returns:
+      type: object
+      properties:
+        pressed: boolean
+        key: string
+
+  browser_get_console_logs:
+    description: Get browser console logs
+    type: browser
+    parameters:
+      level:
+        type: string
+        required: false
+        description: Filter by log level (all, error, warning, info)
+        default: all
+        enum: [all, error, warning, info]
+      clear_after:
+        type: boolean
+        required: false
+        description: Clear console logs after retrieving
+        default: false
+    returns:
+      type: object
+      properties:
+        logs: array
+        count: number
+
+  browser_screenshot:
+    description: Take a screenshot of the page or element
+    type: browser
+    parameters:
+      selector:
+        type: string
+        required: false
+        description: CSS selector of element to screenshot (full page if omitted)
+      full_page:
+        type: boolean
+        required: false
+        description: Capture full scrollable page
+        default: false
+      format:
+        type: string
+        required: false
+        description: Image format (png, jpeg)
+        default: png
+        enum: [png, jpeg]
+    returns:
+      type: object
+      properties:
+        screenshot_base64: string
+        format: string
+        dimensions:
+          type: object
+          properties:
+            width: number
+            height: number
+
+# Configuration for the browser provider
+config:
+  browser_type: chromium  # chromium, firefox, webkit
+  headless: true
+  default_timeout: 30000
+  viewport:
+    width: 1280
+    height: 720
+  
+# Metadata
+metadata:
+  author: DiPeO Team
+  documentation_url: https://dipeo.io/docs/mcp/browser
+  tags:
+    - mcp
+    - browser
+    - automation
+    - web-scraping
+    - testing

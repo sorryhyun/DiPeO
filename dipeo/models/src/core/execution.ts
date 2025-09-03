@@ -13,7 +13,7 @@ export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
 
 export { Status, EventType };
 
-export interface TokenUsage {
+export interface LLMUsage {
   input: number;
   output: number;
   cached?: number | null;
@@ -25,7 +25,7 @@ export interface NodeState {
   started_at?: string | null;
   ended_at?: string | null;
   error?: string | null;
-  token_usage?: TokenUsage | null;
+  llm_usage?: LLMUsage | null;
   output?: Record<string, any> | null;
 }
 
@@ -36,7 +36,7 @@ export interface NodeMetrics {
   end_time?: number | null;
   duration_ms?: number | null;
   memory_usage?: number | null;
-  token_usage?: TokenUsage | null;
+  llm_usage?: LLMUsage | null;
   error?: string | null;
   dependencies?: string[];
 }
@@ -63,7 +63,7 @@ export interface ExecutionMetrics {
 // Envelope metadata structure
 export interface EnvelopeMeta {
   node_id?: string;
-  token_usage?: TokenUsage;
+  llm_usage?: LLMUsage;
   execution_time?: number;
   retry_count?: number;
   error?: string;
@@ -84,6 +84,7 @@ export interface SerializedEnvelope {
   serialization_format?: string;
   body: any;
   meta: EnvelopeMeta;
+  representations?: Record<string, any>;  // Multiple representations of the output
 }
 
 // SerializedNodeOutput is now just SerializedEnvelope
@@ -98,7 +99,7 @@ export interface ExecutionState {
   ended_at?: string | null;
   node_states: Record<string, NodeState>;
   node_outputs: Record<string, SerializedNodeOutput>;
-  token_usage: TokenUsage;
+  llm_usage: LLMUsage;
   error?: string | null;
   variables?: JsonDict;
   metadata?: JsonDict;
@@ -157,7 +158,7 @@ export interface NodeDefinition {
 }
 
 
-export function createTokenUsage(input: number, output: number, cached?: number): TokenUsage {
+export function createLLMUsage(input: number, output: number, cached?: number): LLMUsage {
   return {
     input,
     output,
@@ -176,7 +177,7 @@ export function createEmptyExecutionState(executionId: ExecutionID, diagramId?: 
     ended_at: null,
     node_states: {},
     node_outputs: {},
-    token_usage: { input: 0, output: 0, cached: null, total: 0 },
+    llm_usage: { input: 0, output: 0, cached: null, total: 0 },
     error: null,
     variables: {},
     metadata: {},

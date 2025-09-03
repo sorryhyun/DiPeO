@@ -26,7 +26,7 @@ def incoming_edges(diagram: ExecutableDiagram, node: ExecutableNode) -> list[Exe
     Returns:
         List of edges targeting the node
     """
-    return [e for e in diagram.edges if e.target_node_id == node.id]
+    return diagram.get_incoming_edges(node.id)
 
 
 def select_incoming_edges(
@@ -66,7 +66,7 @@ def select_incoming_edges(
             continue
         
         # Check iteration/branch context if envelope available
-        source_output = ctx.get_node_output(edge.source_node_id)
+        source_output = ctx.state.get_node_output(edge.source_node_id)
         if isinstance(source_output, Envelope):
             if not edge_matches_iteration_context(edge, ctx, source_output):
                 continue

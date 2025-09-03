@@ -210,7 +210,7 @@ class AsyncStateManager(EventConsumer):
             'node_id': node_id,
             'state': getattr(payload, 'state', None) if payload else None,
             'output': getattr(payload, 'output', None) if payload else None,
-            'metrics': {'token_usage': getattr(payload, 'token_usage', None)} if payload and hasattr(payload, 'token_usage') else {},
+            'metrics': {'llm_usage': getattr(payload, 'llm_usage', None)} if payload and hasattr(payload, 'llm_usage') else {},
         }
         if not node_id:
             return
@@ -223,12 +223,12 @@ class AsyncStateManager(EventConsumer):
         if output is not None:
             await cache.set_node_output(node_id, output)
             
-            token_usage = data.get("metrics", {}).get("token_usage")
+            llm_usage = data.get("metrics", {}).get("llm_usage")
             await self.state_store.update_node_output(
                 execution_id=execution_id,
                 node_id=node_id,
                 output=output,
-                token_usage=token_usage
+                llm_usage=llm_usage
             )
         
         # Update node status in cache

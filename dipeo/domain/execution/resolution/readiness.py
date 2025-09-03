@@ -31,7 +31,7 @@ def edge_is_ready(
     """
     # Check if source node has completed successfully
     src_id = edge.source_node_id
-    src_state = ctx.get_node_state(src_id)
+    src_state = ctx.state.get_node_state(src_id)
     
     if not src_state:
         return False
@@ -72,7 +72,7 @@ def edge_matches_iteration_context(
     # Check iteration match
     if 'iteration' in envelope.meta:
         # Get current iteration for target node
-        target_state = ctx.get_node_state(edge.target_node_id)
+        target_state = ctx.state.get_node_state(edge.target_node_id)
         if target_state and hasattr(target_state, 'iteration_count'):
             current_iteration = target_state.iteration_count
             if envelope.meta['iteration'] != current_iteration:
@@ -82,7 +82,7 @@ def edge_matches_iteration_context(
     if 'branch_id' in envelope.meta:
         # Check if target node is in a conditional branch
         # and if the branch matches
-        target_state = ctx.get_node_state(edge.target_node_id)
+        target_state = ctx.state.get_node_state(edge.target_node_id)
         if target_state and hasattr(target_state, 'active_branch'):
             active_branch = target_state.active_branch
             if envelope.meta['branch_id'] != active_branch:

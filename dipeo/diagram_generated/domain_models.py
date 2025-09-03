@@ -69,6 +69,7 @@ class DomainArrow(BaseModel):
     content_type: Optional[ContentType] = Field(default=None)
     label: Optional[str] = Field(default=None)
     packing: Optional[Literal["pack", "spread"]] = Field(default=None)
+    execution_priority: Optional[float] = Field(default=None)
     data: Optional[Dict[str, Any]] = Field(default=None)
 
 
@@ -129,8 +130,8 @@ class DomainDiagram(BaseModel):
     metadata: Optional[DiagramMetadata] = Field(default=None)
 
 
-class TokenUsage(BaseModel):
-    """TokenUsage model"""
+class LLMUsage(BaseModel):
+    """LLMUsage model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     input: int
@@ -147,7 +148,7 @@ class NodeState(BaseModel):
     started_at: Optional[str] = Field(default=None)
     ended_at: Optional[str] = Field(default=None)
     error: Optional[str] = Field(default=None)
-    token_usage: Optional[TokenUsage] = Field(default=None)
+    llm_usage: Optional[LLMUsage] = Field(default=None)
     output: Optional[Dict[str, Any]] = Field(default=None)
 
 
@@ -161,7 +162,7 @@ class NodeMetrics(BaseModel):
     end_time: Optional[float] = Field(default=None)
     duration_ms: Optional[float] = Field(default=None)
     memory_usage: Optional[float] = Field(default=None)
-    token_usage: Optional[TokenUsage] = Field(default=None)
+    llm_usage: Optional[LLMUsage] = Field(default=None)
     error: Optional[str] = Field(default=None)
     dependencies: Optional[List[str]] = Field(default=None)
 
@@ -195,7 +196,7 @@ class EnvelopeMeta(BaseModel):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     node_id: Optional[str] = Field(default=None)
-    token_usage: Optional[TokenUsage] = Field(default=None)
+    llm_usage: Optional[LLMUsage] = Field(default=None)
     execution_time: Optional[float] = Field(default=None)
     retry_count: Optional[float] = Field(default=None)
     error: Optional[str] = Field(default=None)
@@ -216,6 +217,7 @@ class SerializedEnvelope(BaseModel):
     serialization_format: Optional[str] = Field(default=None)
     body: Any
     meta: EnvelopeMeta
+    representations: Optional[Dict[str, Any]] = Field(default=None)
 
 
 class ExecutionState(BaseModel):
@@ -229,7 +231,7 @@ class ExecutionState(BaseModel):
     ended_at: Optional[str] = Field(default=None)
     node_states: Dict[str, NodeState]
     node_outputs: Dict[str, SerializedNodeOutput]
-    token_usage: TokenUsage
+    llm_usage: LLMUsage
     error: Optional[str] = Field(default=None)
     variables: Optional[JsonDict] = Field(default=None)
     metadata: Optional[JsonDict] = Field(default=None)
@@ -374,7 +376,7 @@ class ChatResult(BaseModel):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     text: str
-    token_usage: Optional[TokenUsage] = Field(default=None)
+    llm_usage: Optional[LLMUsage] = Field(default=None)
     raw_response: Optional[Any] = Field(default=None)
     tool_outputs: Optional[List[ToolOutput]] = Field(default=None)
 
@@ -428,10 +430,16 @@ class ConditionNodeData(BaseNodeData):
     """Configuration data for Condition nodes that handle conditional branching"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
-    condition_type: Optional[ConditionType] = Field(default=None, description="Condition type: detect_max_iterations, nodes_executed, or custom")
+    condition_type: Optional[ConditionType] = Field(default=None, description="Condition type: detect_max_iterations, nodes_executed, custom, or llm_decision")
     expression: Optional[str] = Field(default=None, description="Python expression for custom type (access to all variables)")
     node_indices: Optional[List[str]] = Field(default=None, description="List of node indices for nodes_executed condition type")
     expose_index_as: Optional[str] = Field(default=None, description="Variable name to expose the condition node\u0027s execution count (0-based index) to downstream nodes")
+    skippable: Optional[bool] = Field(default=None, description="When true, downstream nodes can execute even if this condition hasn\u0027t been evaluated yet")
+    person: Optional[PersonID] = Field(default=None, description="AI agent to use (when condition_type is LLM_DECISION)")
+    judge_by: Optional[str] = Field(default=None, description="The prompt/criteria for LLM to judge")
+    judge_by_file: Optional[str] = Field(default=None, description="External prompt file in {subdirectory}/prompts/")
+    memorize_to: Optional[str] = Field(default=None, description="Memory control (e.g., \"GOLDFISH\" for fresh evaluation)")
+    at_most: Optional[float] = Field(default=None, description="Max messages to keep in memory")
 
 
 class DBNodeData(BaseNodeData):
@@ -642,9 +650,9 @@ def is_diagram_metadata(obj: Any) -> bool:
 def is_domain_diagram(obj: Any) -> bool:
     """Check if object is a DomainDiagram."""
     return isinstance(obj, DomainDiagram)
-def is_token_usage(obj: Any) -> bool:
-    """Check if object is a TokenUsage."""
-    return isinstance(obj, TokenUsage)
+def is_llm_usage(obj: Any) -> bool:
+    """Check if object is a LLMUsage."""
+    return isinstance(obj, LLMUsage)
 def is_node_state(obj: Any) -> bool:
     """Check if object is a NodeState."""
     return isinstance(obj, NodeState)

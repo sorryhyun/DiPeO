@@ -13,7 +13,7 @@ You are a Core Kernel Architect. Generate specifications for foundational contra
 
 ## Required Specifications
 
-### 1. Core Contracts (core/contracts.ts)
+### 1. Core Contracts (src/core/contracts.ts)
 TypeScript interfaces for:
 - User types (User, Patient, Doctor, Nurse based on roles in config)
 - Healthcare domain models (Appointment, MedicalRecord, Prescription, LabResult, etc.)
@@ -21,34 +21,35 @@ TypeScript interfaces for:
 - WebSocket event types if not disabled in config
 - Common UI state types (LoadingState, FormState, etc.)
 
-### 2. Configuration (app/config.ts)
+### 2. Configuration (src/app/config.ts)
 Materialize JSON config into TypeScript:
 - Export typed config object with all settings
 - Computed flags (isDevelopment, shouldUseMockData, etc.)
 - Feature toggles based on config.features array
 - Mock user data if development_mode.enable_mock_data is true
+- **IMPORTANT**: Use `import.meta.env` for environment variables (NOT `process.env`) as this is a Vite-based browser application
 
-### 3. Event Bus (core/events.ts)
+### 3. Event Bus (src/core/events.ts)
 Typed event system:
 - EventBus class with on/off/emit methods
 - Typed event map for domain events
 - Export singleton instance
 - Support for sync and async handlers
 
-### 4. Hook Registry (core/hooks.ts)
+### 4. Hook Registry (src/core/hooks.ts)
 Extension points:
 - HookPoint union type for all hook names
 - HookRegistry class with register/run methods
 - Standard hooks: beforeApiRequest, afterApiResponse, onLogin, onLogout, onRouteChange
 - Context object passed to all hooks
 
-### 5. Dependency Injection (core/di.ts)
+### 5. Dependency Injection (src/core/di.ts)
 Service container:
 - Token definitions for ApiClient, AuthService, StorageService, WebSocketService
 - Container class with register/resolve methods
 - Type-safe token resolution
 
-### 6. Common Utilities (core/utils.ts) - Optional
+### 6. Common Utilities (src/core/utils.ts) - Optional
 If needed:
 - Date formatting functions
 - Validation helpers

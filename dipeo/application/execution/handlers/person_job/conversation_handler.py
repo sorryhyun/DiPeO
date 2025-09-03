@@ -132,15 +132,22 @@ class ConversationHandler:
         Returns:
             True if any edge from this node expects conversation output
         """
-        if not diagram or not hasattr(diagram, 'edges'):
+        from dipeo.diagram_generated.enums import ContentType
+        
+        if not diagram or not hasattr(diagram, 'get_outgoing_edges'):
             return False
         
-        for edge in diagram.edges:
-            if str(edge.source_node_id) == node_id:
+        outgoing_edges = diagram.get_outgoing_edges(node_id)
+        for edge in outgoing_edges:
                 # Check for explicit conversation output
                 if edge.source_output == "conversation":
                     return True
-                # Check data_transform for content_type = conversation_state
+                
+                # NEW: Check edge content_type
+                if hasattr(edge, 'content_type') and edge.content_type == ContentType.CONVERSATION_STATE:
+                    return True
+                
+                # Check data_transform for content_type = conversation_state (backward compatibility)
                 if hasattr(edge, 'data_transform') and edge.data_transform:
                     if edge.data_transform.get('content_type') == 'conversation_state':
                         return True

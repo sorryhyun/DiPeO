@@ -314,3 +314,32 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         
         # Fall back to base class serialization
         return super().serialize_output(result, request)
+    
+    async def prepare_inputs(
+        self,
+        request: ExecutionRequest[TypescriptAstNode],
+        inputs: dict[str, Envelope]
+    ) -> dict[str, Any]:
+        """Prepare inputs with token consumption.
+        
+        Phase 5: Now consumes tokens from incoming edges when available.
+        """
+        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
+        envelope_inputs = self.consume_token_inputs(request, inputs)
+        
+        # Call parent prepare_inputs for default envelope conversion
+        return await super().prepare_inputs(request, envelope_inputs)
+    
+    def post_execute(
+        self,
+        request: ExecutionRequest[TypescriptAstNode],
+        output: Envelope
+    ) -> Envelope:
+        """Post-execution hook to emit tokens.
+        
+        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        """
+        # Phase 5: Emit output as tokens to trigger downstream nodes
+        self.emit_token_outputs(request, output)
+        
+        return output

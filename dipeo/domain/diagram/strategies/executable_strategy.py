@@ -168,7 +168,7 @@ class ExecutableJsonStrategy(_JsonMixin, BaseConversionStrategy):
         }
 
     # Standard strategy interface (for compatibility)
-    def deserialize_to_domain(self, content: str) -> DomainDiagram:
+    def deserialize_to_domain(self, content: str, diagram_path: str | None = None) -> DomainDiagram:
         """Convert executable format back to domain format.
         
         This is mainly for compatibility with the existing system.

@@ -16,25 +16,35 @@ logger = logging.getLogger(__name__)
 
 
 class UnifiedSerializerAdapter(DiagramStorageSerializer):
-    """Adapter that wraps the existing UnifiedDiagramConverter.
+    """Adapter that uses format strategies directly for serialization.
     
-    This adapter provides backward compatibility with the existing
-    converter implementation while implementing the new domain port.
+    This adapter provides a unified interface for diagram serialization
+    using the domain format strategies.
     """
     
     def __init__(self):
         """Initialize the serializer adapter."""
-        self._converter = None
+        self._strategies = {}
         self._initialized = False
         self._initialize_converter()
     
     def _initialize_converter(self):
-        """Initialize the underlying converter implementation."""
-        from dipeo.infrastructure.diagram.drivers.converter_service import DiagramConverterService
-        self._converter = DiagramConverterService()
-        # Synchronously initialize the converter strategies
-        self._converter._register_default_strategies()
-        self._converter._initialized = True
+        """Initialize the format strategies."""
+        from dipeo.domain.diagram.strategies import (
+            LightYamlStrategy,
+            NativeJsonStrategy,
+            ReadableYamlStrategy,
+            ExecutableJsonStrategy,
+        )
+        
+        # Create a simple strategy holder
+        self._strategies = {
+            "native": NativeJsonStrategy(),
+            "json": NativeJsonStrategy(),  # Alias
+            "light": LightYamlStrategy(),
+            "readable": ReadableYamlStrategy(),
+            "executable": ExecutableJsonStrategy(),
+        }
 
     async def initialize(self):
         """Initialize the adapter and underlying converter."""
@@ -55,28 +65,85 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
         Returns:
             String representation for file storage
         """
-        if not self._converter:
-            raise RuntimeError("Converter not initialized")
+        # Map format aliases
+        format = format.lower() if format else "native"
+        if format in ["yaml", "yml"]:
+            format = "light"  # Default YAML to light
         
-        # Note: The converter will check its own initialization state
-        # Use the converter's serialize_for_storage method
-        return self._converter.serialize_for_storage(diagram, format)
+        # Get the appropriate strategy
+        strategy = self._strategies.get(format)
+        if not strategy:
+            raise ValueError(f"Unknown format: {format}")
+        
+        # Serialize using the strategy
+        return strategy.serialize_from_domain(diagram)
     
-    def deserialize_from_storage(self, content: str, format: str | None = None) -> "DomainDiagram":
+    def deserialize_from_storage(self, content: str, format: str | None = None, diagram_path: str | None = None) -> "DomainDiagram":
         """Deserialize file content to DomainDiagram.
         
         Args:
             content: String content from file
             format: Optional format hint, will auto-detect if not provided
+            diagram_path: Optional path to the diagram file for context
             
         Returns:
             DomainDiagram instance
         """
-        if not self._converter:
-            raise RuntimeError("Converter not initialized")
-
-        # Let the converter auto-detect if no format specified
-        return self._converter.deserialize_from_storage(content, format)
+        # If no format specified, try to detect from content
+        if not format:
+            format = self._detect_format(content)
+        
+        # Map format aliases
+        format = format.lower() if format else "native"
+        if format in ["yaml", "yml"]:
+            # Try to detect specific YAML format from content
+            if "version: light" in content or "format: light" in content:
+                format = "light"
+            elif "version: readable" in content:
+                format = "readable"
+            else:
+                format = "light"  # Default YAML format
+        
+        # Get the appropriate strategy
+        strategy = self._strategies.get(format)
+        if not strategy:
+            raise ValueError(f"Unknown format: {format}")
+        
+        # Deserialize using the strategy
+        return strategy.deserialize_to_domain(content, diagram_path)
+    
+    def _detect_format(self, content: str) -> str:
+        """Detect format from content."""
+        import json
+        import yaml
+        
+        # Try JSON first
+        try:
+            data = json.loads(content)
+            if isinstance(data, dict):
+                if "nodes" in data and "arrows" in data:
+                    return "native"
+                elif "executable" in data:
+                    return "executable"
+        except json.JSONDecodeError:
+            pass
+        
+        # Try YAML
+        try:
+            data = yaml.safe_load(content)
+            if isinstance(data, dict):
+                if "version" in data:
+                    if data["version"] == "light":
+                        return "light"
+                    elif data["version"] == "readable":
+                        return "readable"
+                elif "format" in data and data["format"] == "light":
+                    return "light"
+        except yaml.YAMLError:
+            pass
+        
+        # Default to native
+        return "native"
 
 
 class FormatStrategyAdapter(DiagramStorageSerializer):
@@ -93,7 +160,19 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
     
     def _initialize_strategies(self):
         """Initialize format strategies."""
-        # Use the converter service for now as strategies don't exist yet
+        from dipeo.domain.diagram.strategies import (
+            LightYamlStrategy,
+            NativeJsonStrategy,
+            ReadableYamlStrategy,
+            ExecutableJsonStrategy,
+        )
+        
+        # Register all default strategies
+        self._strategies["native"] = NativeJsonStrategy()
+        self._strategies["json"] = NativeJsonStrategy()  # Alias
+        self._strategies["light"] = LightYamlStrategy()
+        self._strategies["readable"] = ReadableYamlStrategy()
+        self._strategies["executable"] = ExecutableJsonStrategy()
 
     def register_strategy(self, format_id: str, strategy: FormatStrategy):
         """Register a new format strategy.
@@ -120,12 +199,13 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
         
         return strategy.serialize_from_domain(diagram)
     
-    def deserialize_from_storage(self, content: str, format: str | None = None) -> "DomainDiagram":
+    def deserialize_from_storage(self, content: str, format: str | None = None, diagram_path: str | None = None) -> "DomainDiagram":
         """Deserialize using the appropriate format strategy.
         
         Args:
             content: String content from file
             format: Optional format hint
+            diagram_path: Optional path to the diagram file for context
             
         Returns:
             DomainDiagram instance
@@ -135,7 +215,7 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
             strategy = self._strategies.get(format)
             if not strategy:
                 raise ValueError(f"No strategy registered for format: {format}")
-            return strategy.deserialize_to_domain(content)
+            return strategy.deserialize_to_domain(content, diagram_path)
         
         # Auto-detect format
         # Try to parse as JSON/YAML first to get structure
@@ -167,14 +247,14 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
             
             if best_strategy and best_confidence > 0.5:
                 logger.info(f"Auto-detected format with confidence {best_confidence}")
-                return best_strategy.deserialize_to_domain(content)
+                return best_strategy.deserialize_to_domain(content, diagram_path)
         
         # Fallback: try each strategy
         for format_id, strategy in self._strategies.items():
             try:
                 if strategy.quick_match(content):
                     logger.info(f"Format matched by quick check: {format_id}")
-                    return strategy.deserialize_to_domain(content)
+                    return strategy.deserialize_to_domain(content, diagram_path)
             except Exception:
                 continue
         
@@ -228,14 +308,14 @@ class CachingSerializerAdapter(DiagramStorageSerializer):
         self._serialize_cache[cache_key] = result
         return result
     
-    def deserialize_from_storage(self, content: str, format: str | None = None) -> "DomainDiagram":
+    def deserialize_from_storage(self, content: str, format: str | None = None, diagram_path: str | None = None) -> "DomainDiagram":
         """Deserialize with caching."""
         cache_key = self._get_deserialize_key(content, format)
         
         if cache_key in self._deserialize_cache:
             return self._deserialize_cache[cache_key]
         
-        result = self.base_serializer.deserialize_from_storage(content, format)
+        result = self.base_serializer.deserialize_from_storage(content, format, diagram_path)
         
         # Cache with size limit
         if len(self._deserialize_cache) >= self.cache_size:

@@ -139,6 +139,8 @@ class EventType(str, Enum):
     
     EXECUTION_LOG = "EXECUTION_LOG"
     
+    KEEPALIVE = "KEEPALIVE"
+    
 
 
 class LLMService(str, Enum):
@@ -297,6 +299,8 @@ class ConditionType(str, Enum):
     CHECK_NODES_EXECUTED = "check_nodes_executed"
     
     CUSTOM = "custom"
+    
+    LLM_DECISION = "llm_decision"
     
 
 

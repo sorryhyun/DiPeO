@@ -5,7 +5,6 @@ import logging
 from typing import Any
 
 from dipeo.domain.execution.execution_context import ExecutionContext
-from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
 from dipeo.diagram_generated.enums import Status
 
@@ -25,15 +24,11 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
         self,
         node: ConditionNode,
         context: ExecutionContext,
-        diagram: ExecutableDiagram,
         inputs: dict[str, Any]
     ) -> EvaluationResult:
         """Check if all executed person_job nodes have reached max iterations."""
         # Find all person_job nodes
-        person_job_nodes = [
-            n for n in diagram.nodes 
-            if n.type == NodeType.PERSON_JOB.value
-        ]
+        person_job_nodes = context.diagram.get_nodes_by_type(NodeType.PERSON_JOB)
         
         if not person_job_nodes:
             return EvaluationResult(
@@ -48,12 +43,12 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
         
         for node in person_job_nodes:
             # Check if this node has been executed at least once
-            exec_count = context.get_node_execution_count(node.id)
+            exec_count = context.state.get_node_execution_count(node.id)
             if exec_count > 0:
                 found_executed = True
                 
                 # Check if execution count has reached max_iteration
-                node_state = context.get_node_state(node.id)
+                node_state = context.state.get_node_state(node.id)
                 logger.debug(
                     f"PersonJobNode {node.id}: exec_count={exec_count}, "
                     f"max_iteration={node.max_iteration}, "
@@ -71,11 +66,11 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
         # Prepare output data based on result
         if result:
             # Aggregate all conversation states when max iterations reached
-            aggregated = self._aggregator.aggregate_conversations(context, diagram)
+            aggregated = self._aggregator.aggregate_conversations(context, context.diagram)
             output_data = aggregated if aggregated else inputs
         else:
             # Get latest conversation state for false branch
-            latest_conversation = self._aggregator.get_latest_conversation(context, diagram)
+            latest_conversation = self._aggregator.get_latest_conversation(context, context.diagram)
             output_data = latest_conversation if latest_conversation else inputs
         
         # Log evaluation details
@@ -83,6 +78,17 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
             f"MaxIterationsEvaluator: found_executed={found_executed}, "
             f"all_reached_max={all_reached_max}, result={result}"
         )
+        
+        # Include exposed loop index in output data
+        if hasattr(node, 'expose_index_as') and node.expose_index_as:
+            if hasattr(context, 'get_variable'):
+                loop_value = context.get_variable(node.expose_index_as)
+                if loop_value is not None:
+                    if isinstance(output_data, dict):
+                        output_data[node.expose_index_as] = loop_value
+                    else:
+                        # If output_data is not a dict, wrap it
+                        output_data = {"data": output_data, node.expose_index_as: loop_value}
         
         return EvaluationResult(
             result=result,

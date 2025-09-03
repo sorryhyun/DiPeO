@@ -1,0 +1,401 @@
+# ArXiv Provider Manifest
+# ArXiv API integration for searching and retrieving scientific papers
+
+name: arxiv
+version: 1.0.0
+description: ArXiv API integration for searching and retrieving scientific papers and preprints
+base_url: http://export.arxiv.org/api
+
+# Authentication
+# ArXiv API doesn't require authentication
+auth:
+  strategy: none
+
+# Retry policy
+retry_policy:
+  strategy: exponential_backoff
+  max_retries: 3
+  base_delay_ms: 1000
+  max_delay_ms: 10000
+  retry_on_status: [429, 500, 502, 503, 504]
+
+# Rate limiting (ArXiv requests: max 1 request per 3 seconds for automated downloads)
+rate_limit:
+  algorithm: token_bucket
+  capacity: 10
+  refill_per_sec: 0.33  # ~1 request per 3 seconds
+
+# Default configuration
+default_timeout: 45.0
+default_headers:
+  User-Agent: DiPeO/1.0 (https://github.com/dipeo/dipeo; contact@dipeo.io)
+
+# Operations
+operations:
+  search:
+    method: GET
+    path: "/query"
+    description: Search for papers on ArXiv
+    request:
+      query_params_template:
+        search_query: "{{config.query}}"
+        start: "{{config.start | default(0)}}"
+        max_results: "{{config.max_results | default(10)}}"
+        sortBy: "{{config.sort_by | default('relevance')}}"
+        sortOrder: "{{config.sort_order | default('descending')}}"
+    response:
+      success_codes: [200]
+      content_type: application/atom+xml
+      transform: xml_to_json
+      json_pointer: "/feed/entry"
+      error_handling:
+        empty_results_ok: true
+
+  search_by_author:
+    method: GET
+    path: "/query"
+    description: Search papers by author name
+    request:
+      query_params_template:
+        search_query: "au:{{config.author}}"
+        start: "{{config.start | default(0)}}"
+        max_results: "{{config.max_results | default(10)}}"
+        sortBy: "{{config.sort_by | default('submittedDate')}}"
+        sortOrder: "{{config.sort_order | default('descending')}}"
+    response:
+      success_codes: [200]
+      content_type: application/atom+xml
+      transform: xml_to_json
+      json_pointer: "/feed/entry"
+
+  search_by_category:
+    method: GET
+    path: "/query"
+    description: Search papers by subject category
+    request:
+      query_params_template:
+        search_query: "cat:{{config.category}}"
+        start: "{{config.start | default(0)}}"
+        max_results: "{{config.max_results | default(10)}}"
+        sortBy: "{{config.sort_by | default('submittedDate')}}"
+        sortOrder: "{{config.sort_order | default('descending')}}"
+    response:
+      success_codes: [200]
+      content_type: application/atom+xml
+      transform: xml_to_json
+      json_pointer: "/feed/entry"
+
+  search_by_title:
+    method: GET
+    path: "/query"
+    description: Search papers by title
+    request:
+      query_params_template:
+        search_query: "ti:{{config.title}}"
+        start: "{{config.start | default(0)}}"
+        max_results: "{{config.max_results | default(10)}}"
+        sortBy: "{{config.sort_by | default('relevance')}}"
+        sortOrder: "{{config.sort_order | default('descending')}}"
+    response:
+      success_codes: [200]
+      content_type: application/atom+xml
+      transform: xml_to_json
+      json_pointer: "/feed/entry"
+
+  search_by_abstract:
+    method: GET
+    path: "/query"
+    description: Search papers by abstract content
+    request:
+      query_params_template:
+        search_query: "abs:{{config.abstract_query}}"
+        start: "{{config.start | default(0)}}"
+        max_results: "{{config.max_results | default(10)}}"
+        sortBy: "{{config.sort_by | default('relevance')}}"
+        sortOrder: "{{config.sort_order | default('descending')}}"
+    response:
+      success_codes: [200]
+      content_type: application/atom+xml
+      transform: xml_to_json
+      json_pointer: "/feed/entry"
+
+  search_by_id:
+    method: GET
+    path: "/query"
+    description: Get paper by ArXiv ID
+    request:
+      query_params_template:
+        id_list: "{{config.arxiv_id}}"
+    response:
+      success_codes: [200]
+      content_type: application/atom+xml
+      transform: xml_to_json
+      json_pointer: "/feed/entry"
+
+  search_by_ids:
+    method: GET
+    path: "/query"
+    description: Get multiple papers by ArXiv IDs
+    request:
+      query_params_template:
+        id_list: "{{config.arxiv_ids | join(',')}}"
+        max_results: "{{config.arxiv_ids | length}}"
+    response:
+      success_codes: [200]
+      content_type: application/atom+xml
+      transform: xml_to_json
+      json_pointer: "/feed/entry"
+
+  advanced_search:
+    method: GET
+    path: "/query"
+    description: Advanced search with multiple criteria
+    request:
+      query_params_template:
+        search_query: |
+          {%- set queries = [] -%}
+          {%- if config.author -%}
+            {%- set _ = queries.append('au:' + config.author) -%}
+          {%- endif -%}
+          {%- if config.title -%}
+            {%- set _ = queries.append('ti:' + config.title) -%}
+          {%- endif -%}
+          {%- if config.abstract -%}
+            {%- set _ = queries.append('abs:' + config.abstract) -%}
+          {%- endif -%}
+          {%- if config.category -%}
+            {%- set _ = queries.append('cat:' + config.category) -%}
+          {%- endif -%}
+          {%- if config.journal_ref -%}
+            {%- set _ = queries.append('jr:' + config.journal_ref) -%}
+          {%- endif -%}
+          {%- if config.comment -%}
+            {%- set _ = queries.append('co:' + config.comment) -%}
+          {%- endif -%}
+          {{- queries | join(' ' + (config.operator | default('AND')) + ' ') -}}
+        start: "{{config.start | default(0)}}"
+        max_results: "{{config.max_results | default(10)}}"
+        sortBy: "{{config.sort_by | default('relevance')}}"
+        sortOrder: "{{config.sort_order | default('descending')}}"
+    response:
+      success_codes: [200]
+      content_type: application/atom+xml
+      transform: xml_to_json
+      json_pointer: "/feed/entry"
+
+  search_date_range:
+    method: GET
+    path: "/query"
+    description: Search papers within a date range
+    request:
+      query_params_template:
+        search_query: |
+          {%- if config.query -%}
+            {{config.query}}
+          {%- else -%}
+            all:*
+          {%- endif -%}
+          {%- if config.from_date or config.to_date -%}
+            {%- set date_query = [] -%}
+            {%- if config.from_date -%}
+              {%- set _ = date_query.append(config.from_date) -%}
+            {%- else -%}
+              {%- set _ = date_query.append('*') -%}
+            {%- endif -%}
+            {%- if config.to_date -%}
+              {%- set _ = date_query.append(config.to_date) -%}
+            {%- else -%}
+              {%- set _ = date_query.append('*') -%}
+            {%- endif -%}
+            +AND+submittedDate:[{{date_query | join('+TO+')}}]
+          {%- endif -%}
+        start: "{{config.start | default(0)}}"
+        max_results: "{{config.max_results | default(10)}}"
+        sortBy: "{{config.sort_by | default('submittedDate')}}"
+        sortOrder: "{{config.sort_order | default('descending')}}"
+    response:
+      success_codes: [200]
+      content_type: application/atom+xml
+      transform: xml_to_json
+      json_pointer: "/feed/entry"
+
+  get_pdf_url:
+    method: GET
+    path: ""
+    description: Get PDF download URL for a paper
+    request:
+      base_url_override: ""
+      path_override: ""
+      custom_logic: |
+        # This is a utility operation that constructs the PDF URL
+        # The actual download should be handled separately
+        return {
+          "pdf_url": f"https://arxiv.org/pdf/{config['arxiv_id']}.pdf",
+          "pdf_url_versioned": f"https://arxiv.org/pdf/{config['arxiv_id']}v{config.get('version', 1)}.pdf"
+        }
+    response:
+      success_codes: [200]
+
+  get_abstract_url:
+    method: GET
+    path: ""
+    description: Get abstract page URL for a paper
+    request:
+      base_url_override: ""
+      path_override: ""
+      custom_logic: |
+        # This is a utility operation that constructs the abstract URL
+        return {
+          "abstract_url": f"https://arxiv.org/abs/{config['arxiv_id']}",
+          "abstract_url_versioned": f"https://arxiv.org/abs/{config['arxiv_id']}v{config.get('version', 1)}"
+        }
+    response:
+      success_codes: [200]
+
+# Category mappings for reference
+categories:
+  physics:
+    - "astro-ph": "Astrophysics"
+    - "cond-mat": "Condensed Matter"
+    - "gr-qc": "General Relativity and Quantum Cosmology"
+    - "hep-ex": "High Energy Physics - Experiment"
+    - "hep-lat": "High Energy Physics - Lattice"
+    - "hep-ph": "High Energy Physics - Phenomenology"
+    - "hep-th": "High Energy Physics - Theory"
+    - "math-ph": "Mathematical Physics"
+    - "nlin": "Nonlinear Sciences"
+    - "nucl-ex": "Nuclear Experiment"
+    - "nucl-th": "Nuclear Theory"
+    - "physics": "Physics"
+    - "quant-ph": "Quantum Physics"
+  mathematics:
+    - "math.AG": "Algebraic Geometry"
+    - "math.AT": "Algebraic Topology"
+    - "math.AP": "Analysis of PDEs"
+    - "math.CT": "Category Theory"
+    - "math.CA": "Classical Analysis and ODEs"
+    - "math.CO": "Combinatorics"
+    - "math.AC": "Commutative Algebra"
+    - "math.CV": "Complex Variables"
+    - "math.DG": "Differential Geometry"
+    - "math.DS": "Dynamical Systems"
+    - "math.FA": "Functional Analysis"
+    - "math.GM": "General Mathematics"
+    - "math.GN": "General Topology"
+    - "math.GT": "Geometric Topology"
+    - "math.GR": "Group Theory"
+    - "math.HO": "History and Overview"
+    - "math.IT": "Information Theory"
+    - "math.KT": "K-Theory and Homology"
+    - "math.LO": "Logic"
+    - "math.MP": "Mathematical Physics"
+    - "math.MG": "Metric Geometry"
+    - "math.NT": "Number Theory"
+    - "math.NA": "Numerical Analysis"
+    - "math.OA": "Operator Algebras"
+    - "math.OC": "Optimization and Control"
+    - "math.PR": "Probability"
+    - "math.QA": "Quantum Algebra"
+    - "math.RT": "Representation Theory"
+    - "math.RA": "Rings and Algebras"
+    - "math.SP": "Spectral Theory"
+    - "math.ST": "Statistics Theory"
+    - "math.SG": "Symplectic Geometry"
+  computer_science:
+    - "cs.AI": "Artificial Intelligence"
+    - "cs.CL": "Computation and Language"
+    - "cs.CC": "Computational Complexity"
+    - "cs.CE": "Computational Engineering, Finance, and Science"
+    - "cs.CG": "Computational Geometry"
+    - "cs.GT": "Computer Science and Game Theory"
+    - "cs.CV": "Computer Vision and Pattern Recognition"
+    - "cs.CY": "Computers and Society"
+    - "cs.CR": "Cryptography and Security"
+    - "cs.DS": "Data Structures and Algorithms"
+    - "cs.DB": "Databases"
+    - "cs.DL": "Digital Libraries"
+    - "cs.DM": "Discrete Mathematics"
+    - "cs.DC": "Distributed, Parallel, and Cluster Computing"
+    - "cs.ET": "Emerging Technologies"
+    - "cs.FL": "Formal Languages and Automata Theory"
+    - "cs.GL": "General Literature"
+    - "cs.GR": "Graphics"
+    - "cs.AR": "Hardware Architecture"
+    - "cs.HC": "Human-Computer Interaction"
+    - "cs.IR": "Information Retrieval"
+    - "cs.IT": "Information Theory"
+    - "cs.LG": "Machine Learning"
+    - "cs.LO": "Logic in Computer Science"
+    - "cs.MS": "Mathematical Software"
+    - "cs.MA": "Multiagent Systems"
+    - "cs.MM": "Multimedia"
+    - "cs.NI": "Networking and Internet Architecture"
+    - "cs.NE": "Neural and Evolutionary Computing"
+    - "cs.NA": "Numerical Analysis"
+    - "cs.OS": "Operating Systems"
+    - "cs.OH": "Other Computer Science"
+    - "cs.PF": "Performance"
+    - "cs.PL": "Programming Languages"
+    - "cs.RO": "Robotics"
+    - "cs.SI": "Social and Information Networks"
+    - "cs.SE": "Software Engineering"
+    - "cs.SD": "Sound"
+    - "cs.SC": "Symbolic Computation"
+    - "cs.SY": "Systems and Control"
+  quantitative_biology:
+    - "q-bio.BM": "Biomolecules"
+    - "q-bio.CB": "Cell Behavior"
+    - "q-bio.GN": "Genomics"
+    - "q-bio.MN": "Molecular Networks"
+    - "q-bio.NC": "Neurons and Cognition"
+    - "q-bio.OT": "Other Quantitative Biology"
+    - "q-bio.PE": "Populations and Evolution"
+    - "q-bio.QM": "Quantitative Methods"
+    - "q-bio.SC": "Subcellular Processes"
+    - "q-bio.TO": "Tissues and Organs"
+  quantitative_finance:
+    - "q-fin.CP": "Computational Finance"
+    - "q-fin.EC": "Economics"
+    - "q-fin.GN": "General Finance"
+    - "q-fin.MF": "Mathematical Finance"
+    - "q-fin.PM": "Portfolio Management"
+    - "q-fin.PR": "Pricing of Securities"
+    - "q-fin.RM": "Risk Management"
+    - "q-fin.ST": "Statistical Finance"
+    - "q-fin.TR": "Trading and Market Microstructure"
+  statistics:
+    - "stat.AP": "Applications"
+    - "stat.CO": "Computation"
+    - "stat.ML": "Machine Learning"
+    - "stat.ME": "Methodology"
+    - "stat.OT": "Other Statistics"
+    - "stat.TH": "Statistics Theory"
+  electrical_engineering_and_systems_science:
+    - "eess.AS": "Audio and Speech Processing"
+    - "eess.IV": "Image and Video Processing"
+    - "eess.SP": "Signal Processing"
+    - "eess.SY": "Systems and Control"
+  economics:
+    - "econ.EM": "Econometrics"
+    - "econ.GN": "General Economics"
+    - "econ.TH": "Theoretical Economics"
+
+# Additional metadata
+metadata:
+  documentation_url: https://arxiv.org/help/api
+  support_url: https://arxiv.org/help/contact
+  tags:
+    - research
+    - academic
+    - scientific-papers
+    - preprints
+    - open-access
+  notes: |
+    This provider supports the ArXiv API for searching and retrieving scientific papers.
+    No authentication is required.
+    Please be respectful of ArXiv's resources and follow their API guidelines:
+    - Make requests no faster than 1 per 3 seconds when downloading bulk content
+    - Include a descriptive User-Agent header
+    - The API returns results in Atom/XML format
+    - Paper IDs can be in the format: 1234.5678 or category/1234567
+    - Categories include: cs (Computer Science), math (Mathematics), physics, q-bio (Quantitative Biology), etc.

@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from dipeo.diagram_generated import NodeType
 from dipeo.diagram_generated.generated_nodes import (
     ConditionNode,
     ExecutableNode,
@@ -32,6 +33,13 @@ class NodeFactory:
                     label=node.data.get("label", "") if node.data else "",
                     data=node.data or {}
                 )
+                
+                # Set join policy at compile time based on node type and properties
+                # Condition nodes always use "any" policy
+                if typed_node.type == NodeType.CONDITION:
+                    # Use object.__setattr__ to set attribute on frozen dataclass
+                    # This is a hack but necessary since we're adding runtime attributes
+                    object.__setattr__(typed_node, 'join_policy', "any")
                 
                 # Additional type-specific validation
                 self._validate_typed_node(typed_node)

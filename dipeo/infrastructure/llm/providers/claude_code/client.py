@@ -61,6 +61,46 @@ class ClaudeCodeClientWrapper(BaseClientWrapper):
             logger.error(f"Error in chat_completion: {e}")
             raise
     
+    def _format_messages_as_jsonl_sync(self, messages: List[Dict[str, Any]]) -> str:
+        """Format messages in JSON Lines format for sync methods."""
+        import json
+        jsonl_lines = []
+        
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            
+            # Handle content that might already be structured
+            if isinstance(content, list):
+                content_blocks = content
+            else:
+                # Convert string content to content block format
+                content_blocks = [{"type": "text", "text": str(content)}]
+            
+            # Create JSON Line entry
+            # Map 'system' role to 'user' type with system indicator in content
+            if role == "system":
+                json_entry = {
+                    "type": "user",
+                    "message": {
+                        "role": "user",
+                        "content": [{"type": "text", "text": f"[SYSTEM]: {content_blocks[0]['text']}"}]
+                    }
+                }
+            else:
+                json_entry = {
+                    "type": role,
+                    "message": {
+                        "role": role,
+                        "content": content_blocks
+                    }
+                }
+            
+            jsonl_lines.append(json.dumps(json_entry, ensure_ascii=False))
+        
+        # Join with newlines to create JSON Lines format
+        return "\n".join(jsonl_lines)
+    
     async def _async_chat_completion(
         self,
         messages: List[Dict[str, Any]],
@@ -79,11 +119,18 @@ class ClaudeCodeClientWrapper(BaseClientWrapper):
             logger.error("claude-code-sdk not installed. Install with: pip install claude-code-sdk")
             raise ImportError("claude-code-sdk is required for Claude Code support") from e
         
-        # Prepare query from messages
-        query = "\n\n".join([
-            msg.get("content", "") for msg in messages 
-            if msg.get("role") != "system"
-        ])
+        # Prepare query in JSON Lines format
+        use_jsonl = kwargs.get("use_jsonl_format", True)  # Default to new format
+        
+        if use_jsonl:
+            # Use structured JSON Lines format
+            query = self._format_messages_as_jsonl_sync(messages)
+        else:
+            # Fallback to old concatenation method
+            query = "\n\n".join([
+                msg.get("content", "") for msg in messages 
+                if msg.get("role") != "system"
+            ])
         
         # Prepare options
         options_dict = {}
@@ -191,6 +238,52 @@ class AsyncClaudeCodeClientWrapper(AsyncBaseClientWrapper):
         async with ClaudeSDKClient(options=options) as client:
             yield client
     
+    def _format_messages_as_jsonl(self, messages: List[Dict[str, Any]]) -> str:
+        """Format messages in JSON Lines format similar to Claude CLI.
+        
+        Each message becomes a JSON object with structure:
+        {"type":"<role>","message":{"role":"<role>","content":[{"type":"text","text":"<content>"}]}}
+        
+        System messages are included as user messages with [SYSTEM] prefix.
+        """
+        import json
+        jsonl_lines = []
+        
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            
+            # Handle content that might already be structured
+            if isinstance(content, list):
+                content_blocks = content
+            else:
+                # Convert string content to content block format
+                content_blocks = [{"type": "text", "text": str(content)}]
+            
+            # Create JSON Line entry
+            # Map 'system' role to 'user' type with system indicator in content
+            if role == "system":
+                json_entry = {
+                    "type": "user",
+                    "message": {
+                        "role": "user",
+                        "content": [{"type": "text", "text": f"[SYSTEM]: {content_blocks[0]['text']}"}]
+                    }
+                }
+            else:
+                json_entry = {
+                    "type": role,
+                    "message": {
+                        "role": role,
+                        "content": content_blocks
+                    }
+                }
+            
+            jsonl_lines.append(json.dumps(json_entry, ensure_ascii=False))
+        
+        # Join with newlines to create JSON Lines format
+        return "\n".join(jsonl_lines)
+    
     async def chat_completion(
         self,
         messages: List[Dict[str, Any]],
@@ -203,11 +296,18 @@ class AsyncClaudeCodeClientWrapper(AsyncBaseClientWrapper):
         **kwargs
     ) -> Any:
         """Execute async chat completion request."""
-        # Prepare query from messages
-        query = "\n\n".join([
-            msg.get("content", "") for msg in messages 
-            if msg.get("role") != "system"
-        ])
+        # Prepare query in JSON Lines format
+        use_jsonl = kwargs.get("use_jsonl_format", True)  # Default to new format
+        
+        if use_jsonl:
+            # Use structured JSON Lines format
+            query = self._format_messages_as_jsonl(messages)
+        else:
+            # Fallback to old concatenation method
+            query = "\n\n".join([
+                msg.get("content", "") for msg in messages 
+                if msg.get("role") != "system"
+            ])
         
         if not query:
             return {
@@ -287,11 +387,18 @@ class AsyncClaudeCodeClientWrapper(AsyncBaseClientWrapper):
         **kwargs
     ) -> AsyncIterator[Any]:
         """Stream async chat completion response."""
-        # Prepare query
-        query = "\n\n".join([
-            msg.get("content", "") for msg in messages 
-            if msg.get("role") != "system"
-        ])
+        # Prepare query in JSON Lines format
+        use_jsonl = kwargs.get("use_jsonl_format", True)  # Default to new format
+        
+        if use_jsonl:
+            # Use structured JSON Lines format
+            query = self._format_messages_as_jsonl(messages)
+        else:
+            # Fallback to old concatenation method
+            query = "\n\n".join([
+                msg.get("content", "") for msg in messages 
+                if msg.get("role") != "system"
+            ])
         
         if not query:
             return
