@@ -52,12 +52,12 @@ TONE
 
 MEMORY_SELECTION_PROMPT = """
 You are Claude running in DiPeO MEMORY SELECTION mode.
+YOUR NAME: {assistant_name}
 
 OBJECTIVE
 Select the smallest, most useful subset of memory items to help answer the current user message. Return STRICT JSON only.
 
 INPUT FORMAT
-- YOUR NAME: The name of the person/agent you are acting as
 - CANDIDATE MESSAGES (id (sender): snippet):
   A list of messages with format: "- {id} ({sender}): {content_snippet}"
   Example: "- 45b137 (system): Analyze the requirements and create a file structure plan..."

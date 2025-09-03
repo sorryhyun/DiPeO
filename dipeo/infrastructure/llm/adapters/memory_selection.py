@@ -35,17 +35,26 @@ class LLMMemorySelectionAdapter:
         suffix = f"::{svc}" if svc else ""
         return PersonID(f"{str(person_id)}.__selector{suffix}")
     
-    def _selector_system_prompt(self, base_prompt: Optional[str], llm_service: Optional[str] = None) -> str:
+    def _selector_system_prompt(self, base_prompt: Optional[str], person_name: Optional[str] = None, llm_service: Optional[str] = None) -> str:
         base = (base_prompt or "").strip()
         
         # Claude Code adapter provides its own MEMORY_SELECTION_PROMPT when execution_phase="memory_selection"
-        # So we skip adding instructions for claude-code to avoid duplication
+        # The MEMORY_SELECTION_PROMPT already includes YOUR NAME placeholder that will be formatted
         if llm_service and normalize_service_name(llm_service) == LLMServiceName.CLAUDE_CODE.value:
+            # Pass the person name in a special format that the adapter will recognize
+            # The adapter will extract this and format it into the MEMORY_SELECTION_PROMPT
+            if person_name:
+                # Use a marker that won't be duplicated in the final prompt
+                return f"YOUR NAME: {person_name}\n\n{base}" if base else f"YOUR NAME: {person_name}"
             return base
         
         # For other adapters (OpenAI, Anthropic, Google, etc.), we need to provide instructions
+        # Start with YOUR NAME if provided
+        name_prefix = f"YOUR NAME: {person_name}\n\n" if person_name else ""
+        
         return (
-            (base + "\n\n" if base else "")
+            name_prefix
+            + (base + "\n\n" if base else "")
             + "You are in MEMORY SELECTION MODE.\n"
               "- Input: a candidate list of prior messages with their IDs, "
               "the upcoming task preview, and a natural-language selection criteria.\n"
@@ -80,11 +89,15 @@ class LLMMemorySelectionAdapter:
         if sid in persons:
             return persons[sid]
         
+        # Get person name for system prompt
+        base_person = self._orchestrator.get_person(person_id)
+        person_name = base_person.name or str(person_id)
+        
         facet_cfg = PersonLLMConfig(
             service=service_str,
             model=llm.model,
             api_key_id=llm.api_key_id,
-            system_prompt=self._selector_system_prompt(llm.system_prompt, service_str),
+            system_prompt=self._selector_system_prompt(llm.system_prompt, person_name, service_str),
             prompt_file=None,
         )
         facet = self._orchestrator.get_or_create_person(
@@ -171,7 +184,6 @@ class LLMMemorySelectionAdapter:
             constraint_text = f"\nCONSTRAINT: Select at most {at_most} messages that best match the criteria.\n"
         
         prompt = (
-            f"YOUR NAME: {base_person.name or str(person_id)}\n"
             "CANDIDATE MESSAGES (id (sender): snippet):\n"
             f"{listing}\n\n===\n\n"
             f"TASK PREVIEW:\n===\n\n{preview}\n\n===\n\n"

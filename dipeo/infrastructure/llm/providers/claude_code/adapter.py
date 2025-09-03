@@ -1,6 +1,7 @@
 """Claude Code adapter implementation using claude-code-sdk."""
 
 import logging
+import re
 from enum import Enum
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
 
@@ -117,7 +118,16 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         phase_prompt = ""
         
         if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-            phase_prompt = MEMORY_SELECTION_PROMPT
+            # Extract assistant name from user_system_prompt if available
+            assistant_name = "Claude"  # Default name
+            if user_system_prompt and "YOUR NAME:" in user_system_prompt:
+                match = re.match(r"YOUR NAME:\s*([^\n]+)", user_system_prompt)
+                if match:
+                    assistant_name = match.group(1).strip()
+                    # Remove the YOUR NAME line from user_system_prompt to avoid duplication
+                    user_system_prompt = re.sub(r"YOUR NAME:\s*[^\n]+\n*", "", user_system_prompt).strip()
+            # Format the prompt with the assistant name
+            phase_prompt = MEMORY_SELECTION_PROMPT.format(assistant_name=assistant_name)
         elif execution_phase == ExecutionPhase.DIRECT_EXECUTION:
             phase_prompt = DIRECT_EXECUTION_PROMPT
         elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
