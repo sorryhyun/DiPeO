@@ -178,6 +178,10 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         exec_context['inputs'] = exec_context.copy()
         exec_context['node_id'] = node.id
         
+        # Expose global variables from context to user code
+        if hasattr(request.context, "get_variables"):
+            exec_context['globals'] = request.context.get_variables()
+        
         return exec_context
 
     async def run(

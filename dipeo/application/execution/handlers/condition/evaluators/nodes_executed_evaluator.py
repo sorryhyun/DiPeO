@@ -47,6 +47,13 @@ class NodesExecutedEvaluator(BaseConditionEvaluator):
         # Pass through inputs directly without wrapping
         output_data = inputs if inputs else {}
         
+        # Include exposed loop index in output data
+        if hasattr(node, 'expose_index_as') and node.expose_index_as:
+            if hasattr(context, 'get_variable'):
+                loop_value = context.get_variable(node.expose_index_as)
+                if loop_value is not None:
+                    output_data[node.expose_index_as] = loop_value
+        
         logger.debug(
             f"NodesExecutedEvaluator: target_nodes={target_nodes}, "
             f"executed_nodes={list(node_outputs.keys())}, result={result}"

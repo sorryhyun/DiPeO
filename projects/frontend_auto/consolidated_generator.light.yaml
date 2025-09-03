@@ -241,7 +241,7 @@ nodes:
 
   - label: Check Output Quality
     type: condition
-    position: {x: 2400, y: 240}
+    position: {x: 2800, y: 240}
     props:
       condition_type: llm_decision
       person: Frontend Verdict
@@ -260,7 +260,7 @@ nodes:
 
   - label: Revise Frontend Code
     type: person_job
-    position: {x: 2800, y: 400}
+    position: {x: 3200, y: 400}
     props:
       person: Frontend Generator
       memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
@@ -284,7 +284,7 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 2400, y: 800}
+    position: {x: 3200, y: 800}
     props:
       operation: write
       sub_type: file
@@ -341,7 +341,7 @@ connections:
   - {from: Rename Files, to: End, content_type: object}
 
   # From Generate to Condition
-  - { from: load Data again, to: Generate Frontend Code, content_type: object }
+  - {from: load Data again, to: Generate Frontend Code, content_type: object }
   - {from: Generate Frontend Code, to: Check Output Quality, content_type: object}
   - {from: Generate Frontend Code, to: Write Section Result, content_type: raw_text}
   - {from: Check Output Quality_condtrue, to: Check Continue, content_type: object}
@@ -349,4 +349,4 @@ connections:
   - {from: Check Output Quality_condfalse, to: Revise Frontend Code, label: generated_output, content_type: object}
   - {from: load Data for revise, to: Revise Frontend Code, content_type: object}
   - {from: Revise Frontend Code, to: Write revised Result, content_type: object}
-  - {from: Revise Frontend Code, to: Check Continue, content_type: object}
+  - {from: Write revised Result, to: Check Continue, content_type: object}

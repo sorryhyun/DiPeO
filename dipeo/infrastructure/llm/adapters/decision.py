@@ -136,13 +136,53 @@ class LLMDecisionAdapter:
         # GOLDFISH means no conversation history, but we still need to include the current input
         complete_prompt = prompt
         if memory_profile == "GOLDFISH" and template_values:
-            # Format all template values as content to evaluate
-            import json
-            content_to_evaluate = json.dumps(template_values, indent=2)
+            # Extract the actual content to evaluate (prioritize 'default' key)
+            content_to_evaluate = None
             
-            # Append the content to the prompt for evaluation
-            if content_to_evaluate:
-                complete_prompt = f"{prompt}\n\n--- Content to Evaluate ---\n{content_to_evaluate}\n--- End of Content ---"
+            # Priority 1: Use 'default' key as the primary evaluation target
+            if 'default' in template_values:
+                content_to_evaluate = template_values['default']
+                logger.debug("Using 'default' key as evaluation content")
+            # Priority 2: Use 'generated_output' if present
+            elif 'generated_output' in template_values:
+                content_to_evaluate = template_values['generated_output']
+                logger.debug("Using 'generated_output' key as evaluation content")
+            else:
+                # Priority 3: Filter out execution context variables
+                # Exclude known context variables that shouldn't be evaluated
+                context_keys = {
+                    'current_index', 'last_index', 'iteration_count',
+                    'loop_index', 'execution_count', 'node_execution_count'
+                }
+                # Also exclude branch state variables (e.g., branch[node_123])
+                filtered = {}
+                for k, v in template_values.items():
+                    if not k.startswith('branch[') and not k.endswith('_last_increment_at') and k not in context_keys:
+                        filtered[k] = v
+                
+                if filtered:
+                    content_to_evaluate = filtered
+                    logger.debug(f"Using filtered content with {len(filtered)} keys")
+                else:
+                    # Fallback: use all values if nothing else matches
+                    content_to_evaluate = template_values
+                    logger.debug("Using all template values as fallback")
+            
+            # Format the content appropriately
+            if content_to_evaluate is not None:
+                import json
+                
+                # If content is already a string, use it directly
+                if isinstance(content_to_evaluate, str):
+                    complete_prompt = f"{prompt}\n\n--- Content to Evaluate ---\n{content_to_evaluate}\n--- End of Content ---"
+                else:
+                    # JSON serialize for structured data
+                    try:
+                        content_json = json.dumps(content_to_evaluate, indent=2)
+                        complete_prompt = f"{prompt}\n\n--- Content to Evaluate ---\n{content_json}\n--- End of Content ---"
+                    except (TypeError, ValueError) as e:
+                        logger.warning(f"Failed to serialize content to JSON: {e}. Using string representation.")
+                        complete_prompt = f"{prompt}\n\n--- Content to Evaluate ---\n{str(content_to_evaluate)}\n--- End of Content ---"
         
         # Execute decision using person's complete method
         complete_kwargs = {

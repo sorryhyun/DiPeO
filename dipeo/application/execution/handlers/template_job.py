@@ -18,6 +18,7 @@ from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.infrastructure.codegen.templates.drivers.factory import get_enhanced_template_service
+from dipeo.application.execution.context_vars import build_template_context
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -248,7 +249,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     ) -> Any:
         """Execute template rendering with support for foreach and preprocessor."""
         node = request.node
-        template_vars = inputs
+        # Use centralized context builder to include globals
+        template_vars = build_template_context(request.context, inputs=inputs, globals_win=True)
         
         # Store template variables for building representations
         self._template_vars = template_vars.copy()
@@ -365,8 +367,22 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             # Render template for each item
             written_files = []
             for idx, item in enumerate(items):
-                # Create local context with item
-                local_context = {**template_vars, var_name: item, 'index': idx}
+                # Create local context with item using centralized context builder
+                # Note: foreach locals like 'this', '@index' should be provided as locals_
+                foreach_locals = {
+                    var_name: item,
+                    'this': item,  # Alias for consistency with other template systems
+                    '@index': idx,
+                    '@first': idx == 0,
+                    '@last': idx == len(items) - 1,
+                    'index': idx  # Keep for backward compatibility
+                }
+                local_context = build_template_context(
+                    request.context,
+                    inputs=inputs,  # Original inputs, not template_vars
+                    locals_=foreach_locals,
+                    globals_win=True
+                )
                 
                 # Render and write file
                 output_file = await render_to_path(output_path_template, local_context)

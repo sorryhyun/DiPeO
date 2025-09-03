@@ -12,8 +12,7 @@ from dipeo.domain.execution.execution_context import ExecutionContext
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.domain.diagram.models.executable_diagram import (
     ExecutableDiagram,
-    ExecutableNode,
-    StandardNodeOutput
+    ExecutableNode
 )
 from dipeo.domain.execution.transform_rules import DataTransformRules
 from dipeo.diagram_generated import ContentType
@@ -182,8 +181,7 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
     Priority order:
     1. Envelope representations (if content_type specified)
     2. Envelope body based on content_type
-    3. StandardNodeOutput (deprecated, with warning)
-    4. Raw dict/value (backward compatibility)
+    3. Raw dict/value (backward compatibility)
     
     Args:
         source_output: The output from the source node
@@ -230,40 +228,6 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
             # Unknown content type - return body as-is
             return source_output.body
     
-    # Handle StandardNodeOutput format (DEPRECATED)
-    if isinstance(source_output, StandardNodeOutput):
-        logger.debug(
-            f"Edge {edge.source_node_id} -> {edge.target_node_id} using deprecated "
-            f"StandardNodeOutput. Consider migrating to Envelope with representations."
-        )
-        
-        output_key = edge.source_output or "default"
-        
-        # Check if this is structured output
-        is_structured = source_output.metadata.get("is_structured", False)
-        
-        # Extract the actual value
-        if not isinstance(source_output.value, dict):
-            # Non-dict values are wrapped
-            output_dict = {"default": source_output.value}
-        else:
-            output_dict = source_output.value
-        
-        if output_key in output_dict:
-            return output_dict[output_key]
-        elif output_key == "default":
-            # Special handling for default output
-            if is_structured:
-                # Preserve full structure
-                return source_output.value
-            elif "default" in output_dict:
-                return output_dict["default"]
-            else:
-                # Return entire dict for single-key dicts
-                return output_dict
-        else:
-            # No matching output
-            return None
     
     # Handle dict format (backward compatibility)
     if isinstance(source_output, dict):

@@ -17,6 +17,7 @@ from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
 from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
 from dipeo.domain.diagram.ports import TemplateProcessorPort
+from dipeo.application.execution.context_vars import build_template_context
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -204,12 +205,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         # This handles nested structures and makes node outputs available
         from dipeo.application.utils import PromptBuilder
         prompt_builder = PromptBuilder(template_processor)
-        template_values = prompt_builder.prepare_template_values(inputs)
+        prepared_inputs = prompt_builder.prepare_template_values(inputs)
         
-        # Merge with global variables from context
-        if hasattr(context, 'get_variables'):
-            variables = context.get_variables()
-            template_values = {**variables, **template_values}
+        # Use centralized context builder to merge globals properly
+        template_values = build_template_context(context, inputs=prepared_inputs, globals_win=True)
         
         processed_paths = []
         for file_path in file_paths:
