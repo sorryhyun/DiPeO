@@ -1,8 +1,10 @@
-"""Scheduler for managing node execution order with indegree and token-based tracking.
+"""Scheduler for managing node execution order with token-based tracking.
 
-This module implements a dedicated scheduler that tracks node dependencies 
-and maintains a ready queue for efficient execution ordering, with support 
-for token-based scheduling while maintaining status for UI compatibility.
+Phase 6: This module implements a token-driven scheduler where:
+- Tokens are the primary scheduling mechanism
+- Status (PENDING/RUNNING/COMPLETED) is maintained for UI visualization only
+- Indegree is used solely for initial cold start ordering (e.g., Start nodes first)
+- Nodes re-run automatically when new tokens arrive, no manual resets needed
 """
 
 import asyncio
@@ -77,7 +79,11 @@ class NodeScheduler:
         return str(getattr(edge, "source_output", "")).lower() in ("condtrue", "condfalse")
     
     def _initialize_dependencies(self) -> None:
-        """Initialize indegree counts and dependency mappings."""
+        """Initialize indegree counts for initial cold start ordering.
+        
+        Phase 6: Indegree is used ONLY for initial queue seeding (e.g., Start nodes first).
+        After that, token flow drives all scheduling decisions.
+        """
         # Initialize all nodes with 0 indegree
         all_nodes = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
         for node in all_nodes:
@@ -117,10 +123,11 @@ class NodeScheduler:
                         # Lower priority target must wait for higher priority target
                         self._priority_dependencies[lower_edge.target_node_id].add(higher_edge.target_node_id)
         
-        # Initial ready queue: nodes with indegree 0 AND not waiting for conditional branches
+        # Phase 6: Initial cold start queue - nodes with indegree 0 (typically Start nodes)
+        # This is ONLY for initial seeding; after that, tokens drive everything
         for node_id, count in self._indegree.items():
             if count == 0:
-                # Otherwise, it's truly ready (no dependencies or has non-conditional deps satisfied)
+                # Seed the initial queue with nodes that have no dependencies
                 self._ready_queue.put_nowait(node_id)
     
     def _initialize_policies(self) -> None:
@@ -269,7 +276,7 @@ class NodeScheduler:
     def _arm_and_enqueue(self, node_id: NodeID, epoch: int) -> None:
         """Arm a node and add it to the ready queue.
         
-        Sets the node status to PENDING for UI compatibility and adds to queue.
+        Phase 6: Sets status for UI visualization only, not for scheduling logic.
         
         Args:
             node_id: The node to arm
@@ -280,15 +287,14 @@ class NodeScheduler:
         # Mark as armed to prevent duplicate enqueuing
         self._armed_nodes[key] = True
         
-        # Set status to PENDING for UI compatibility if context available
+        # Phase 6: Set status to PENDING for UI visualization only
+        # Status is not used for scheduling decisions
         if self.context:
             from dipeo.diagram_generated import NodeState, Status
-            # Only update to PENDING if not already in a terminal state
+            # Update status for UI - this does not affect scheduling
             current_state = self.context._node_states.get(node_id)
-            if current_state and current_state.status in [Status.COMPLETED, Status.FAILED]:
-                # Reset for re-execution
-                self.context._node_states[node_id] = NodeState(status=Status.PENDING)
-            elif not current_state or current_state.status not in [Status.PENDING, Status.RUNNING]:
+            if not current_state or current_state.status not in [Status.RUNNING]:
+                # Set to PENDING for UI to show node is queued
                 self.context._node_states[node_id] = NodeState(status=Status.PENDING)
         
         # Add to epoch-specific ready queue
@@ -371,6 +377,19 @@ class NodeScheduler:
             
             def get_node_state(self, node_id: str | NodeID) -> Any:
                 return self._context.get_node_state(node_id)
+            
+            # Phase 6: Expose token-related methods for token-driven scheduling
+            def has_new_inputs(self, node_id: NodeID, epoch: int) -> bool:
+                """Check if node has new token inputs."""
+                if hasattr(self._context, 'has_new_inputs'):
+                    return self._context.has_new_inputs(node_id, epoch)
+                return False
+            
+            def current_epoch(self) -> int:
+                """Get the current execution epoch."""
+                if hasattr(self._context, 'current_epoch'):
+                    return self._context.current_epoch()
+                return 0
             
             @property
             def current_node_id(self) -> NodeID | None:

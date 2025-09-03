@@ -357,8 +357,12 @@ class TypedExecutionContext(ExecutionContextProtocol):
             epoch = self._epoch
             
         # Check if this is a condition node emitting branches
+        from dipeo.diagram_generated import NodeType
         node = self.diagram.get_node(node_id) if self.diagram else None
-        is_condition = node and hasattr(node, 'type') and str(node.type).lower() == 'condition'
+        is_condition = node and hasattr(node, 'type') and node.type == NodeType.CONDITION
+        
+        if node:
+            logger.debug(f"[TOKEN] emit_outputs_as_tokens for {node_id}: type={node.type}, is_condition={is_condition}")
         
         # Determine active branch if this is a condition node
         active_branch = None
@@ -380,8 +384,9 @@ class TypedExecutionContext(ExecutionContextProtocol):
         for edge in self._out_edges.get(node_id, []):
             # Phase 3.1: Filter non-selected branches for condition nodes
             if is_condition and active_branch:
-                # Only emit on the active branch
-                if edge.source_output not in [active_branch, None, "default"]:
+                logger.debug(f"[TOKEN] Condition {node_id}: active_branch={active_branch}, edge.source_output={edge.source_output}")
+                # Only emit on the active branch - edge.source_output should match active_branch exactly
+                if edge.source_output != active_branch:
                     logger.debug(f"[TOKEN] Skipping inactive branch {edge.source_output} from {node_id}")
                     continue
             
@@ -477,9 +482,6 @@ class TypedExecutionContext(ExecutionContextProtocol):
                 output=output,
                 token_usage=token_usage
             )
-        
-        # Handle downstream resets for loops (only for successful completion)
-        self._reset_downstream_nodes_if_needed(node_id)
     
     def transition_node_to_failed(self, node_id: NodeID, error: str) -> None:
         """Transition a node to failed state with error message."""
@@ -522,114 +524,15 @@ class TypedExecutionContext(ExecutionContextProtocol):
             # The tracker maintains cumulative execution count across resets
             logger.debug(f"Reset node {node_id} to PENDING, execution_count remains {self._tracker.get_execution_count(node_id)}")
     
-    def _reset_downstream_nodes_if_needed(self, node_id: NodeID, initiating_node_id: NodeID = None) -> None:
-        """Reset downstream nodes if they're part of a loop.
-        
-        Args:
-            node_id: The node that just completed
-            initiating_node_id: The original node that started the reset chain (to prevent circular resets)
-        """
-        from dipeo.diagram_generated.generated_nodes import (
-            ConditionNode,
-            EndpointNode,
-            PersonJobNode,
-            StartNode,
-        )
-
-        # Track the initiating node to prevent circular resets
-        if initiating_node_id is None:
-            initiating_node_id = node_id
-
-        # Get the node that just completed
-        completed_node = self.diagram.get_node(node_id)
-
-        # Special handling for ConditionNode - only reset nodes on the active branch
-        if isinstance(completed_node, ConditionNode):
-            # (A) Preferred: read from global variables
-            active_branch = None
-            if hasattr(self, "get_variable"):
-                active_branch = self.get_variable(f"branch[{node_id}]")
-            
-            # (B) Fallback: infer from legacy patterns if needed
-            if not active_branch:
-                output = self._tracker.get_last_output(node_id)
-                from dipeo.domain.execution.envelope import Envelope
-                if isinstance(output, Envelope) and output and isinstance(output.body, dict) and "result" in output.body:
-                    active_branch = "condtrue" if bool(output.body["result"]) else "condfalse"
-            
-            if not active_branch:
-                # Default safe branch
-                active_branch = "condfalse"
-
-            # Only process edges on the active branch
-            all_outgoing = self.diagram.get_outgoing_edges(node_id)
-            outgoing_edges = [
-                e for e in all_outgoing
-                if e.source_output == active_branch
-            ]
-        else:
-            # For non-condition nodes, process all outgoing edges as before
-            outgoing_edges = self.diagram.get_outgoing_edges(node_id)
-        
-        nodes_to_reset = []
-        
-        for edge in outgoing_edges:
-            target_node = self.diagram.get_node(edge.target_node_id)
-            if not target_node:
-                continue
-            
-            # Skip if this would cause a circular reset
-            if target_node.id == initiating_node_id:
-                logger.debug(f"Skipping reset of {target_node.id} to prevent circular reset")
-                continue
-            
-            # Check if target was already executed
-            target_state = self._node_states.get(target_node.id)
-            if not target_state or target_state.status != Status.COMPLETED:
-                continue
-            
-            # Check if we can reset this node
-            can_reset = True
-            
-            # Don't reset one-time nodes
-            if isinstance(target_node, (StartNode, EndpointNode)):
-                can_reset = False
-            
-            # For condition nodes, allow reset if they're part of a loop
-            # Check if any of its outgoing edges point back to an already-executed node
-            if isinstance(target_node, ConditionNode):
-                cond_outgoing = self.diagram.get_outgoing_edges(target_node.id)
-                # Check if this condition has a loop back (at least one edge points to an executed node)
-                has_loop_back = False
-                for edge in cond_outgoing:
-                    loop_target = self.diagram.get_node(edge.target_node_id)
-                    if loop_target and self._tracker.get_execution_count(edge.target_node_id) > 0:
-                        has_loop_back = True
-                        break
-                can_reset = has_loop_back
-            
-            # For PersonJobNodes, check max_iteration
-            if isinstance(target_node, PersonJobNode):
-                exec_count = self._tracker.get_execution_count(target_node.id)
-                if exec_count >= target_node.max_iteration:
-                    can_reset = False
-            
-            if can_reset:
-                nodes_to_reset.append(target_node.id)
-
-        # Reset nodes and cascade, passing the initiating node to prevent circular resets
-        for node_id_to_reset in nodes_to_reset:
-            self.reset_node(node_id_to_reset)
-            # Cascade resets but prevent circular resets by tracking the initiator
-            self._reset_downstream_nodes_if_needed(node_id_to_reset, initiating_node_id)
     
     # ========== Epoch and Path Reset ==========
     
     def begin_epoch(self, start_node_id: NodeID, endpoints: list[NodeID] | None = None) -> list[NodeID]:
         """Start a new flow epoch and reset reachable nodes on the start→endpoint path."""
         from dipeo.diagram_generated import Status
-        self._epoch += 1
-
+        # Don't increment epoch here - we're resetting nodes for the CURRENT epoch
+        # The epoch is managed by the execution engine, not by individual nodes
+        
         path_nodes = self._compute_reachable_nodes(start_node_id, endpoints)
 
         with self._state_lock:

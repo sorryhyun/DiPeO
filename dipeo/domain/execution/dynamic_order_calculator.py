@@ -119,19 +119,20 @@ class DomainDynamicOrderCalculator:
         diagram: ExecutableDiagram,
         context: ExecutionContext
     ) -> list[tuple[NodeID, str]]:
-        """Get nodes that are blocked from execution."""
+        """Get nodes that are blocked from execution.
+        
+        Phase 6: A node is blocked if it hasn't completed but isn't ready (no tokens).
+        """
         node_states = self._get_node_states_from_context(diagram, context)
         blocked = []
         
         for node in diagram.nodes:
             node_state = node_states.get(node.id)
-            if not node_state:
-                continue
-                
-            # Node is blocked if it's pending but not ready
-            if node_state.status == Status.PENDING:
+            
+            # Phase 6: Check if node hasn't completed and isn't ready
+            if not node_state or node_state.status not in [Status.COMPLETED, Status.FAILED, Status.SKIPPED, Status.MAXITER_REACHED]:
                 if not self._is_node_ready(node, diagram, node_states, context):
-                    blocked.append((node.id, "Failed dependencies"))
+                    blocked.append((node.id, "Waiting for tokens"))
         
         return blocked
     
@@ -273,20 +274,28 @@ class DomainDynamicOrderCalculator:
         node_states: dict[NodeID, NodeState],
         context: ExecutionContext
     ) -> bool:
-        """Check if a node is ready for execution - Phase 2.3 token-aware version.
+        """Check if a node is ready for execution - Phase 6 token-driven version.
         
-        For dual mode operation: Accept PENDING nodes with no tokens (deprecation warning)
-        OR nodes with new token inputs regardless of status.
+        Tokens are the primary scheduling mechanism. Status is kept for UI only.
+        A node is ready when it has new token inputs and dependencies are satisfied.
         """
-        node_state = node_states.get(node.id)
+        # START nodes should only execute once at the beginning
+        if node.type == NodeType.START:
+            node_state = node_states.get(node.id)
+            # Only ready if it hasn't been executed yet
+            if node_state and node_state.status != Status.PENDING:
+                return False
+            # For START nodes, if they're PENDING and have no incoming edges, they're ready
+            if not diagram.get_incoming_edges(node.id):
+                return True
         
-        # Token-based readiness check (Phase 2.3)
+        # Token-based readiness check (Phase 6 - tokens are primary)
         if hasattr(context, 'has_new_inputs') and hasattr(context, 'current_epoch'):
             epoch = context.current_epoch()
             has_tokens = context.has_new_inputs(node.id, epoch)
             
             if has_tokens:
-                # Node has new tokens - it's ready regardless of status
+                # Node has new tokens - check other constraints
                 # Check loop constraints first
                 if not self.handle_loop_node(node, diagram, context):
                     return False
@@ -303,37 +312,13 @@ class DomainDynamicOrderCalculator:
                     return False
                     
                 return True
+            else:
+                # No tokens = not ready (Phase 6 - strict token requirement)
+                return False
         
-        # Fallback to status-based for backward compatibility
-        if not node_state or node_state.status != Status.PENDING:
-            return False
-            
-        # Legacy path - log deprecation warning for PENDING without tokens
-        if hasattr(context, 'has_new_inputs') and hasattr(context, 'current_epoch'):
-            epoch = context.current_epoch()
-            if not context.has_new_inputs(node.id, epoch):
-                logger.warning(f"[DEPRECATION] Node {node.id} is PENDING but has no tokens. "
-                             f"This will not trigger execution in future versions.")
-        
-        # Check loop constraints
-        if not self.handle_loop_node(node, diagram, context):
-            return False
-        
-        # Get incoming edges
-        incoming_edges = diagram.get_incoming_edges(node.id)
-        
-        # No dependencies - node is ready
-        if not incoming_edges:
-            return True
-        
-        # Check dependency satisfaction
-        result = self._check_dependencies(node, incoming_edges, node_states, context, diagram)
-        
-        # Check for higher priority siblings
-        if result and self._has_pending_higher_priority_siblings(node, diagram, node_states):
-            return False
-        
-        return result
+        # Fallback for systems without token support (should not happen in Phase 6)
+        logger.warning(f"Node {node.id} readiness check without token context - this should not happen in Phase 6")
+        return False
     
     def _check_dependencies(
         self,
@@ -480,8 +465,9 @@ class DomainDynamicOrderCalculator:
         diagram: ExecutableDiagram,
         node_states: dict[NodeID, NodeState]
     ) -> bool:
-        """Check if node has higher priority siblings that are still pending.
+        """Check if node has higher priority siblings that haven't executed yet.
         
+        Phase 6: Uses completion status rather than PENDING to determine if siblings have run.
         Returns True if this node should wait for higher priority siblings to complete.
         """
         # Find all edges pointing to this node
@@ -497,17 +483,18 @@ class DomainDynamicOrderCalculator:
             # Find all sibling edges (edges from same source)
             sibling_edges = diagram.get_outgoing_edges(source_node_id)
             
-            # Check if any higher priority siblings are still pending
+            # Check if any higher priority siblings haven't completed yet
             for sibling_edge in sibling_edges:
                 if sibling_edge.target_node_id == node.id:
                     continue  # Skip self
                 
                 sibling_priority = getattr(sibling_edge, 'execution_priority', 0)
                 
-                # If sibling has higher priority and is still pending, we must wait
+                # If sibling has higher priority and hasn't completed, we must wait
                 if sibling_priority > my_priority:
                     sibling_state = node_states.get(sibling_edge.target_node_id)
-                    if sibling_state and sibling_state.status == Status.PENDING:
+                    # Phase 6: Check if sibling has NOT completed (rather than checking PENDING)
+                    if not sibling_state or sibling_state.status not in [Status.COMPLETED, Status.FAILED, Status.SKIPPED, Status.MAXITER_REACHED]:
                         return True
         
         return False

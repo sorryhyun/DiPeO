@@ -280,10 +280,13 @@ class TypedExecutionEngine:
             output = await self._execute_node_handler(node, context)
             
             # Emit outputs as tokens (Phase 2.2)
-            # Convert single output to dict for compatibility
-            if output:
-                outputs = {"default": output} if not isinstance(output, dict) else output
-                context.emit_outputs_as_tokens(node_id, outputs, epoch)
+            # Condition nodes handle their own token emission with branch filtering
+            from dipeo.diagram_generated import NodeType
+            if node.type != NodeType.CONDITION:
+                # Convert single output to dict for compatibility
+                if output:
+                    outputs = {"default": output} if not isinstance(output, dict) else output
+                    context.emit_outputs_as_tokens(node_id, outputs, epoch)
             
             # Process completion
             duration_ms = (time.time() - start_time) * 1000
