@@ -143,7 +143,7 @@ class Person:
             to_person_id=from_person_id,  # type: ignore[arg-type]
             content=result.text,
             message_type="person_to_person" if from_person_id != "system" else "person_to_system",
-            token_count=result.token_usage.total if result.token_usage else None
+            token_count=result.llm_usage.total if result.llm_usage else None
         )
         
         return result, incoming, response_message

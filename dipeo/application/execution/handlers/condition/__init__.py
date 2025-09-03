@@ -138,11 +138,27 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         
         Phase 5: Now consumes tokens from incoming edges when available.
         """
+        from dipeo.diagram_generated.enums import ContentType
+        
         # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
         envelope_inputs = self.consume_token_inputs(request, inputs)
         
-        # Call parent prepare_inputs for default envelope conversion
-        return await super().prepare_inputs(request, envelope_inputs)
+        # Convert envelopes to appropriate format based on content type
+        legacy_inputs = {}
+        for key, envelope in envelope_inputs.items():
+            if envelope.content_type == ContentType.CONVERSATION_STATE:
+                # Handle conversation state specifically
+                legacy_inputs[key] = envelope.as_conversation()
+            else:
+                # Use parent's default conversion for other types
+                try:
+                    # Try to parse as JSON first
+                    legacy_inputs[key] = envelope.as_json()
+                except ValueError:
+                    # Fall back to text
+                    legacy_inputs[key] = envelope.as_text()
+        
+        return legacy_inputs
     
     async def run(
         self,
