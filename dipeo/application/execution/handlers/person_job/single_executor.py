@@ -10,7 +10,6 @@ from dipeo.diagram_generated.generated_nodes import PersonJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.domain_models import PersonID
 from dipeo.application.execution.use_cases import PromptLoadingUseCase
-from dipeo.application.execution.context_vars import build_template_context
 
 from .text_format_handler import TextFormatHandler
 from .conversation_handler import ConversationHandler
@@ -149,7 +148,7 @@ class SinglePersonJobExecutor:
         
         # Combine input values with conversation context using centralized context builder
         base = {**input_values, **conversation_context}
-        template_values = build_template_context(context, inputs=base, globals_win=True)
+        template_values = context.build_template_context(inputs=base, globals_win=True)
         
         
         # Build prompt with template substitution (prompts already loaded earlier)

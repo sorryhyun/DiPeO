@@ -17,7 +17,6 @@ from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
 from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
 from dipeo.domain.diagram.ports import TemplateProcessorPort
-from dipeo.application.execution.context_vars import build_template_context
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -208,7 +207,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         prepared_inputs = prompt_builder.prepare_template_values(inputs)
         
         # Use centralized context builder to merge globals properly
-        template_values = build_template_context(context, inputs=prepared_inputs, globals_win=True)
+        template_values = context.build_template_context(inputs=prepared_inputs, globals_win=True)
         
         processed_paths = []
         for file_path in file_paths:

@@ -105,13 +105,21 @@ class NodeScheduler:
         # Process all edges for indegree calculation
         for edge in all_edges:
             # Check if this edge is from a skippable condition node
-            # If so, skip ALL edges from it (including condtrue/condfalse branches)
             source_node = next((n for n in all_nodes if n.id == edge.source_node_id), None)
             if source_node and hasattr(source_node, 'type') and source_node.type == NodeType.CONDITION:
                 if getattr(source_node, 'skippable', False):
-                    # Skip ALL edges from skippable conditions (even conditional branches)
-                    logger.debug(f"Skipping edge from skippable condition {edge.source_node_id} -> {edge.target_node_id}")
-                    continue
+                    # Only skip edges from skippable conditions if the target has alternative paths
+                    # (more than 1 incoming edge from different sources)
+                    target_incoming_edges = incoming_by_target.get(edge.target_node_id, [])
+                    unique_sources = set(e.source_node_id for e in target_incoming_edges)
+                    
+                    if len(unique_sources) > 1:
+                        # Target has multiple sources - can skip this skippable condition edge
+                        logger.debug(f"Skipping edge from skippable condition {edge.source_node_id} -> {edge.target_node_id} (target has {len(unique_sources)} sources)")
+                        continue
+                    else:
+                        # Target only has this source - cannot skip even if skippable
+                        logger.debug(f"Not skipping edge from skippable condition {edge.source_node_id} -> {edge.target_node_id} (only source)")
             
             # For non-skippable conditions, still skip conditional edges
             if self._is_conditional_edge(edge):
@@ -255,6 +263,10 @@ class NodeScheduler:
             True if the node can be armed (not already running/armed)
         """
         key = (node_id, epoch)
+        
+        # Check if already armed (pending execution)
+        if self._armed_nodes.get(key, False):
+            return False  # Already armed, waiting to execute
         
         # Check concurrency policy
         policy = self._concurrency_policies.get(node_id, ConcurrencyPolicy(mode="singleton"))

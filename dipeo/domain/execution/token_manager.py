@@ -256,12 +256,19 @@ class TokenManager:
                     continue
             
             # Check if edge is from a skippable condition
-            # Note: skippable affects how downstream nodes treat the edge, not the condition itself
+            # Skippable conditions can only be skipped if the target has alternative paths
             if source_node and hasattr(source_node, 'type') and source_node.type == NodeType.CONDITION:
                 if getattr(source_node, 'skippable', False):
-                    # This edge is from a skippable condition - it's optional for downstream
-                    skippable_edges.append(edge)
-                    continue
+                    # Count unique sources for this node to determine if skippable
+                    unique_sources = set(e.source_node_id for e in edges)
+                    
+                    if len(unique_sources) > 1:
+                        # This node has multiple sources - condition edge can be skippable
+                        skippable_edges.append(edge)
+                        continue
+                    else:
+                        # This is the only source - cannot be skipped even if marked skippable
+                        logger.debug(f"[TOKEN] Node {node_id}: Treating skippable condition edge as required (only source)")
             
             active_edges.append(edge)
         

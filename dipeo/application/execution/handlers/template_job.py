@@ -18,7 +18,6 @@ from dipeo.diagram_generated.generated_nodes import TemplateJobNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 from dipeo.infrastructure.codegen.templates.drivers.factory import get_enhanced_template_service
-from dipeo.application.execution.context_vars import build_template_context
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
@@ -256,7 +255,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         """Execute template rendering with support for foreach and preprocessor."""
         node = request.node
         # Use centralized context builder to include globals
-        template_vars = build_template_context(request.context, inputs=inputs, globals_win=True)
+        template_vars = request.context.build_template_context(inputs=inputs, globals_win=True)
         
         # Store template variables for building representations
         self._template_vars = template_vars.copy()
@@ -383,8 +382,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                     '@last': idx == len(items) - 1,
                     'index': idx  # Keep for backward compatibility
                 }
-                local_context = build_template_context(
-                    request.context,
+                local_context = request.context.build_template_context(
                     inputs=inputs,  # Original inputs, not template_vars
                     locals_=foreach_locals,
                     globals_win=True
