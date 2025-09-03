@@ -281,7 +281,7 @@ class TypedNodeHandler(Generic[T], TokenHandlerMixin, ABC):
             
             # Step 4: Emit completion event if context supports it
             if hasattr(request.context, 'emit_node_completed'):
-                exec_count = request.context.get_node_execution_count(request.node.id)
+                exec_count = request.context.state.get_node_execution_count(request.node.id)
                 await request.context.emit_node_completed(
                     request.node,
                     envelope,

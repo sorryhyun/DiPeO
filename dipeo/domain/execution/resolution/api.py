@@ -99,7 +99,7 @@ def transform_edge_values(
     
     for edge in edges:
         # Get the output from source node
-        source_output = ctx.get_node_output(edge.source_node_id)
+        source_output = ctx.state.get_node_output(edge.source_node_id)
         
         if not source_output:
             continue

@@ -43,12 +43,12 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
         
         for node in person_job_nodes:
             # Check if this node has been executed at least once
-            exec_count = context.get_node_execution_count(node.id)
+            exec_count = context.state.get_node_execution_count(node.id)
             if exec_count > 0:
                 found_executed = True
                 
                 # Check if execution count has reached max_iteration
-                node_state = context.get_node_state(node.id)
+                node_state = context.state.get_node_state(node.id)
                 logger.debug(
                     f"PersonJobNode {node.id}: exec_count={exec_count}, "
                     f"max_iteration={node.max_iteration}, "

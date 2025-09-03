@@ -145,14 +145,16 @@ class NodeScheduler:
         from dipeo.diagram_generated import NodeType
         all_nodes = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
         for node in all_nodes:
-            # Extract join policy from node metadata or use default
-            if hasattr(node, 'join_policy'):
+            # First, check if node has a compiled join_policy field
+            if hasattr(node, 'join_policy') and node.join_policy is not None:
+                # Use the compiled policy from the node
                 if isinstance(node.join_policy, str):
                     self._join_policies[node.id] = JoinPolicy(policy_type=node.join_policy)
                 else:
                     self._join_policies[node.id] = node.join_policy
             else:
-                # Type-derived defaults: conditions are OR-joins, others are AND-joins
+                # Fallback: Type-derived defaults for backward compatibility
+                # Condition nodes are OR-joins ("any"), others are AND-joins ("all")
                 if hasattr(node, 'type') and node.type == NodeType.CONDITION:
                     self._join_policies[node.id] = JoinPolicy(policy_type="any")
                 else:
@@ -309,84 +311,18 @@ class NodeScheduler:
         self._armed_nodes.pop(key, None)
     
     def _create_calculator_context(self, context: "TypedExecutionContext") -> Any:
-        """Create a context wrapper for the order calculator.
+        """Return the execution context for the order calculator.
+        
+        The TypedExecutionContext already implements the ExecutionContext protocol
+        that the DomainDynamicOrderCalculator expects, so we can pass it directly.
         
         Args:
             context: The execution context
             
         Returns:
-            Context wrapper for order calculator
+            The execution context for order calculator
         """
-        node_outputs = {}
-        node_exec_counts = {}
-        
-        # Get outputs for completed nodes
-        for node_id in context.get_completed_nodes():
-            output = context.get_node_output(node_id)
-            if output:
-                node_outputs[str(node_id)] = output
-        
-        # Get execution counts for ALL nodes (including reset/pending ones)
-        # This is crucial for loop handling where nodes are reset but maintain their count
-        all_nodes_for_counts = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
-        for node in all_nodes_for_counts:
-            count = context.get_node_execution_count(node.id)
-            if count > 0:  # Only store non-zero counts for efficiency
-                node_exec_counts[str(node.id)] = count
-        
-        class OrderCalculatorContext:
-            """Minimal context wrapper for order calculator."""
-            
-            def __init__(self, ctx: "TypedExecutionContext", outputs: dict, counts: dict, diagram):
-                self._context = ctx
-                self._node_outputs = outputs
-                self._node_exec_counts = counts
-                self.diagram = diagram  # Add diagram for loop detection
-            
-            def get_metadata(self, key: str) -> Any:
-                return self._context.get_execution_metadata().get(key)
-            
-            def get_variable(self, name: str) -> Any:
-                return self._context.get_variable(name)
-            
-            def get_node_output(self, node_id: str | NodeID) -> Any:
-                return self._node_outputs.get(str(node_id))
-            
-            def get_node_execution_count(self, node_id: str | NodeID) -> int:
-                return self._node_exec_counts.get(str(node_id), 0)
-            
-            def is_first_execution(self, node_id: str | NodeID) -> bool:
-                return self.get_node_execution_count(node_id) <= 1
-            
-            def get_node_state(self, node_id: str | NodeID) -> Any:
-                return self._context.get_node_state(node_id)
-            
-            # Phase 6: Expose token-related methods for token-driven scheduling
-            def has_new_inputs(self, node_id: NodeID, epoch: int) -> bool:
-                """Check if node has new token inputs."""
-                if hasattr(self._context, 'has_new_inputs'):
-                    return self._context.has_new_inputs(node_id, epoch)
-                return False
-            
-            def current_epoch(self) -> int:
-                """Get the current execution epoch."""
-                if hasattr(self._context, 'current_epoch'):
-                    return self._context.current_epoch()
-                return 0
-            
-            @property
-            def current_node_id(self) -> NodeID | None:
-                return self._context.current_node_id
-            
-            @property
-            def execution_id(self) -> str:
-                return self._context.execution_id
-            
-            @property
-            def diagram_id(self) -> str:
-                return self._context.diagram_id
-        
-        return OrderCalculatorContext(context, node_outputs, node_exec_counts, self.diagram)
+        return context
     
     def get_execution_stats(self) -> dict[str, Any]:
         """Get statistics about the scheduling state.

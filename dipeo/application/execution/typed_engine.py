@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING, Any, Optional
 from dipeo.application.execution.scheduler import NodeScheduler
 from dipeo.application.execution.typed_execution_context import TypedExecutionContext
 from dipeo.domain.events import EventType, DomainEventBus, DomainEvent
-from dipeo.domain.execution.resolution import RuntimeInputResolver
 from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution import DomainDynamicOrderCalculator
@@ -41,12 +40,10 @@ class TypedExecutionEngine:
     def __init__(
         self, 
         service_registry: "ServiceRegistry",
-        runtime_resolver: RuntimeInputResolver,
         order_calculator: Any | None = None,
         event_bus: DomainEventBus | None = None
     ):
         self.service_registry = service_registry
-        self.runtime_resolver = runtime_resolver
         self.order_calculator = order_calculator or DomainDynamicOrderCalculator()
         self._settings = get_settings()
         self._managed_event_bus = False
@@ -89,24 +86,28 @@ class TypedExecutionEngine:
                 diagram_id=str(execution_state.diagram_id),
                 diagram=diagram,
                 service_registry=self.service_registry,
-                runtime_resolver=self.runtime_resolver,
                 event_bus=self.event_bus,
                 container=container
             )
             
             # Load persisted state
+            node_states = {}  # Temporary dict to load states into
+            tracker = context.get_tracker()
             ExecutionStatePersistence.load_from_state(
                 execution_state,
-                context._node_states,
-                context._tracker
+                node_states,
+                tracker
             )
             
+            # Apply loaded states to context
+            if node_states:
+                context._state_tracker._node_states = node_states
+            
             # Initialize remaining nodes
+            existing_states = context.state.get_all_node_states()
             for node in diagram.get_nodes_by_type(None) or diagram.nodes:
-                if node.id not in context._node_states:
-                    context._node_states[node.id] = NodeState(
-                        status=Status.PENDING
-                    )
+                if node.id not in existing_states:
+                    context._state_tracker.initialize_node(node.id)
             
             # Load variables (metadata is not persisted in ExecutionState)
             context.set_variables(execution_state.variables or {})
@@ -177,7 +178,7 @@ class TypedExecutionEngine:
                 }
             
             # Execution complete
-            execution_path = [str(node_id) for node_id in context.get_completed_nodes()]
+            execution_path = [str(node_id) for node_id in context.state.get_completed_nodes()]
             from dipeo.diagram_generated import Status
             
             await context.emit_execution_completed(
@@ -323,7 +324,7 @@ class TypedExecutionEngine:
         """Check if PersonJobNode has reached max iterations."""
         from dipeo.diagram_generated.generated_nodes import PersonJobNode
         if isinstance(node, PersonJobNode):
-            current_count = context.get_node_execution_count(node.id)
+            current_count = context.state.get_node_execution_count(node.id)
             return current_count >= node.max_iteration
         return False
     
@@ -337,7 +338,7 @@ class TypedExecutionEngine:
         from dipeo.diagram_generated.enums import Status
         
         node_id = node.id
-        current_count = context.get_node_execution_count(node_id)
+        current_count = context.state.get_node_execution_count(node_id)
         
         logger.info(
             f"PersonJobNode {node_id} has reached max_iteration "
@@ -352,7 +353,7 @@ class TypedExecutionEngine:
         )
         
         # Transition state
-        context.transition_node_to_maxiter(node_id, output)
+        context.state.transition_to_maxiter(node_id, output)
         
         # Emit completion event for maxiter
         await context.emit_node_completed(node, None, current_count)
@@ -366,7 +367,7 @@ class TypedExecutionEngine:
     ) -> Any:
         """Execute the node's handler."""
         with context.executing_node(node.id):
-            exec_count = context.transition_node_to_running(node.id)
+            exec_count = context.state.transition_to_running(node.id, context.current_epoch())
             
             # Get handler
             handler = self._get_handler(node.type)
@@ -453,7 +454,7 @@ class TypedExecutionEngine:
             if token_usage:
                 envelope.meta['token_usage'] = token_usage
         
-        exec_count = context.get_node_execution_count(node.id)
+        exec_count = context.state.get_node_execution_count(node.id)
         await context.emit_node_completed(node, envelope, exec_count)
     
     async def _handle_node_failure(
@@ -466,7 +467,7 @@ class TypedExecutionEngine:
         logger.error(f"Error executing node {node.id}: {error}", exc_info=True)
         
         # Transition to failed state
-        context.transition_node_to_failed(node.id, str(error))
+        context.state.transition_to_failed(node.id, str(error))
         
         # Emit node failed event
         await context.emit_node_error(node, error)
@@ -518,7 +519,7 @@ class TypedExecutionEngine:
     ) -> None:
         """Handle node completion and state transitions."""
         # All nodes complete normally - PersonJob max_iteration is handled in the handler
-        context.transition_node_to_completed(node.id, envelope)
+        context.state.transition_to_completed(node.id, envelope)
     
     # DEPRECATED: This method is no longer needed as envelopes handle their own serialization
     # It can be removed once all references are updated

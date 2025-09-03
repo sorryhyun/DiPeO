@@ -214,7 +214,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 if str(getattr(edge, 'source_output', '')).lower() == 'condfalse':
                     target_node = context.diagram.get_node(edge.target_node_id)
                     # If target has been executed before, it's likely a loop-back
-                    if target_node and context.get_node_execution_count(edge.target_node_id) > 0:
+                    if target_node and context.state.get_node_execution_count(edge.target_node_id) > 0:
                         has_loop_back = True
                         break
             
@@ -223,7 +223,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             if has_loop_back:
                 current_loop_index = context.get_variable(node.expose_index_as)
                 last_increment_at = context.get_variable(f"{node.expose_index_as}_last_increment_at")
-                current_exec_count = context.get_node_execution_count(node.id)
+                current_exec_count = context.state.get_node_execution_count(node.id)
                 
                 # Only increment if we haven't already incremented at this execution count
                 if last_increment_at != current_exec_count:
@@ -257,7 +257,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         result: Any,
         request: ExecutionRequest[ConditionNode]
     ) -> Envelope:
-        """Serialize condition result to envelope with active branch data in body."""
+        """Serialize condition result to envelope with branch data."""
         node = request.node
         context = request.context
         
@@ -265,10 +265,11 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         branch_data = result.get("branch_data", {})
         active_branch = result.get("active_branch", "condfalse")
         
-        # 1) Publish globals for any downstream node/template
+        # Store branch decision for downstream nodes that need it
         context.set_variable(f"branch[{node.id}]", active_branch)  # e.g., "condtrue" | "condfalse"
         
-        # 2) Return a normal envelope (no special content_type)
+        # Return envelope with just the branch data
+        # The actual branch routing is handled by emitting on the correct port
         if isinstance(branch_data, dict):
             output = EnvelopeFactory.json(
                 branch_data,
@@ -282,6 +283,9 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 trace_id=request.execution_id or ""
             )
         
+        # Store the branch decision for post_execute to use
+        self._active_branch = active_branch
+        
         return output
     
     def post_execute(
@@ -289,19 +293,25 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         request: ExecutionRequest[ConditionNode],
         output: Envelope
     ) -> Envelope:
-        """Post-execution hook to emit tokens with conditional filtering.
+        """Post-execution hook to emit tokens on the correct branch.
         
-        Phase 5: Now emits output as tokens to trigger downstream nodes.
-        Condition nodes use emit_outputs_as_tokens which handles conditional branch filtering.
+        Emits the output on either "condtrue" or "condfalse" port.
+        TokenManager will match these ports to edges with matching source_output.
         """
-        # Phase 5: Emit output as tokens to trigger downstream nodes
-        # emit_token_outputs will automatically handle conditional branch filtering
-        self.emit_token_outputs(request, output)
+        # Use the branch decision from serialize_output
+        active_branch = getattr(self, '_active_branch', 'condfalse')
         
-        # Debug logging without using request.metadata
+        # Emit output on the specific branch port
+        # Edges with source_output="condtrue" will only get tokens from "condtrue" port
+        context = request.context
+        node_id = request.node.id
+        outputs = {active_branch: output}
+        context.emit_outputs_as_tokens(node_id, outputs)
+        
+        # Debug logging
         condition_type = request.node.condition_type
-        result = output.value if hasattr(output, 'value') else None
-        print(f"[ConditionNode] Evaluated {condition_type} condition - Result: {result}")
+        result = (active_branch == "condtrue")
+        print(f"[ConditionNode] Evaluated {condition_type} condition - Result: {result}, Branch: {active_branch}")
         
         if self._current_evaluation_metadata:
             print(f"[ConditionNode] Evaluation details: {self._current_evaluation_metadata}")

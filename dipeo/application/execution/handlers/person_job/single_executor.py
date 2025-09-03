@@ -67,7 +67,7 @@ class SinglePersonJobExecutor:
 
         # Use pre-configured services (set by handler)
         llm_service = self._llm_service
-        execution_count = context.get_node_execution_count(node.id)
+        execution_count = context.state.get_node_execution_count(node.id)
 
         # Get or create person using the orchestrator directly
         if not self._execution_orchestrator:

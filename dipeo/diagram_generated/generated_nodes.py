@@ -36,6 +36,11 @@ class BaseExecutableNode:
             "id": self.id,
             "position": {"x": self.position.x, "y": self.position.y}
         }
+        # Include join policy if set (from subclasses)
+        if hasattr(self, 'join_policy') and self.join_policy is not None:
+            result["join_policy"] = self.join_policy
+        if hasattr(self, 'join_k') and self.join_k is not None:
+            result["join_k"] = self.join_k
         # Subclasses should extend this
         return result
 

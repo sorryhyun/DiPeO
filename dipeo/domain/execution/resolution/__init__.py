@@ -11,7 +11,6 @@ from .errors import (
     TransformationError,
     SpreadCollisionError,
 )
-from .runtime_resolver import RuntimeInputResolver
 from .transformation_engine import (
     TransformationEngine,
     StandardTransformationEngine,
@@ -41,8 +40,6 @@ __all__ = [
     "InputResolutionError",
     "TransformationError",
     "SpreadCollisionError",
-    # Runtime Resolution
-    "RuntimeInputResolver",
     # Transformation
     "TransformationEngine",
     "StandardTransformationEngine",

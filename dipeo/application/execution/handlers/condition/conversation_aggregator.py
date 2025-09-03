@@ -22,12 +22,12 @@ class ConversationAggregator:
         person_job_nodes = []
         all_person_jobs = diagram.get_nodes_by_type(NodeType.PERSON_JOB)
         for node in all_person_jobs:
-            node_result = context.get_node_result(node.id)
+            node_result = context.state.get_node_result(node.id)
             if node_result:
                 person_job_nodes.append(node)
 
         for node in person_job_nodes:
-            node_result = context.get_node_result(node.id)
+            node_result = context.state.get_node_result(node.id)
             if not node_result:
                 continue
                 
@@ -59,7 +59,7 @@ class ConversationAggregator:
         from dipeo.diagram_generated.generated_nodes import NodeType
         person_job_nodes = diagram.get_nodes_by_type(NodeType.PERSON_JOB)
         for node in person_job_nodes:
-            node_result = context.get_node_result(node.id)
+            node_result = context.state.get_node_result(node.id)
             if node_result:
                 value = node_result.get('value')
                 if isinstance(value, list) and len(value) > 0:

@@ -82,7 +82,7 @@ class DomainDynamicOrderCalculator:
         """Extract node states from execution context."""
         # Use the new get_all_node_states method for clean access
         if hasattr(context, 'get_all_node_states'):
-            all_states = context.get_all_node_states()
+            all_states = context.state.get_all_node_states()
             node_states = {}
             for node in diagram.nodes:
                 node_states[node.id] = all_states.get(node.id, NodeState(status=Status.PENDING))
@@ -91,7 +91,7 @@ class DomainDynamicOrderCalculator:
         # Fallback for individual state queries (should not be needed with updated protocol)
         node_states = {}
         for node in diagram.nodes:
-            state = context.get_node_state(node.id)
+            state = context.state.get_node_state(node.id)
             if state:
                 node_states[node.id] = state
             else:
@@ -188,7 +188,7 @@ class DomainDynamicOrderCalculator:
         """Handle special logic for loop nodes."""
         # Check if this is a PersonJob node (which can loop)
         if node.type == NodeType.PERSON_JOB:
-            exec_count = context.get_node_execution_count(node.id)
+            exec_count = context.state.get_node_execution_count(node.id)
             max_iter = getattr(node, 'max_iteration', 1)
             
             # Allow execution if under max iterations
@@ -234,7 +234,7 @@ class DomainDynamicOrderCalculator:
                 continue
             
             # Get the condition result
-            output = context.get_node_output(node.id)
+            output = context.state.get_node_output(node.id)
             if not output:
                 continue
             
@@ -282,7 +282,7 @@ class DomainDynamicOrderCalculator:
         # START nodes should only execute once per epoch
         if node.type == NodeType.START and not diagram.get_incoming_edges(node.id):
             # Run once per epoch; rely on execution count (tracker), not UI status
-            return context.get_node_execution_count(node.id) == 0
+            return context.state.get_node_execution_count(node.id) == 0
         
         # Token-based readiness check (Phase 6 - tokens are primary)
         if hasattr(context, 'has_new_inputs') and hasattr(context, 'current_epoch'):
@@ -374,7 +374,7 @@ class DomainDynamicOrderCalculator:
                               getattr(source_node, 'skippable', False))
                 
                 # If condition hasn't executed yet (check execution count instead of status)
-                if context.get_node_execution_count(condition_node_id) == 0:
+                if context.state.get_node_execution_count(condition_node_id) == 0:
                     # Skippable only helps if there are other satisfied dependencies
                     if is_skippable and non_conditional_edges:
                         continue  # Can skip this pending condition
@@ -443,7 +443,7 @@ class DomainDynamicOrderCalculator:
             
             if not active_branch:
                 # Try to determine from output
-                output = context.get_node_output(edge.source_node_id)
+                output = context.state.get_node_output(edge.source_node_id)
                 from dipeo.domain.execution.envelope import Envelope
                 if isinstance(output, Envelope):
                     if isinstance(output.body, dict) and "result" in output.body:

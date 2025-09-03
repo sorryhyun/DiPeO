@@ -32,10 +32,7 @@ if TYPE_CHECKING:
     from dipeo.domain.diagram.ports import TemplateProcessorPort
     from dipeo.domain.events import EventEmitter
     from dipeo.domain.diagram.compilation import CompileTimeResolver
-    from dipeo.domain.execution.resolution import (
-        RuntimeInputResolver,
-        TransformationEngine,
-    )
+    from dipeo.domain.execution.resolution import TransformationEngine
     from dipeo.application.utils import PromptBuilder
     from dipeo.application.execution.handlers.condition.evaluators.expression_evaluator import ConditionEvaluator
     from dipeo.infrastructure.shared.adapters import (
@@ -110,7 +107,6 @@ API_INVOKER = ServiceKey["ApiInvoker"]("api_invoker")  # From registry_tokens.py
 AST_PARSER = ServiceKey["ASTParserPort"]("ast_parser")
 
 # Resolution Services (from registry_tokens.py)
-RUNTIME_RESOLVER = ServiceKey["RuntimeInputResolver"]("runtime_resolver")
 TRANSFORMATION_ENGINE = ServiceKey["TransformationEngine"]("transformation_engine")
 
 # Execution Context Services
@@ -220,7 +216,6 @@ __all__ = [
     "AST_PARSER",
     
     # Resolution Services
-    "RUNTIME_RESOLVER",
     "TRANSFORMATION_ENGINE",
     
     # Execution Context

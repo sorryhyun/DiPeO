@@ -20,7 +20,7 @@ def get_execution_summary(context: "TypedExecutionContext") -> dict[str, Any]:
 def count_nodes_by_status(context: "TypedExecutionContext", statuses: list[str]) -> int:
     """Count nodes by status in the context."""
     status_enums = [Status[status] for status in statuses]
-    node_states = context.get_node_states()
+    node_states = context.state.get_all_node_states()
     return sum(
         1 for state in node_states.values()
         if state.status in status_enums
@@ -29,7 +29,7 @@ def count_nodes_by_status(context: "TypedExecutionContext", statuses: list[str])
 
 def calculate_progress(context: "TypedExecutionContext") -> dict[str, Any]:
     """Calculate execution progress from context state."""
-    node_states = context.get_node_states()
+    node_states = context.state.get_all_node_states()
     total = len(node_states)
     completed = sum(
         1 for state in node_states.values()
@@ -45,7 +45,7 @@ def calculate_progress(context: "TypedExecutionContext") -> dict[str, Any]:
 
 def get_completed_node_count(context: "TypedExecutionContext") -> int:
     """Get count of completed nodes."""
-    node_states = context.get_node_states()
+    node_states = context.state.get_all_node_states()
     return sum(
         1 for state in node_states.values()
         if state.status in [Status.COMPLETED, Status.MAXITER_REACHED]
@@ -54,7 +54,7 @@ def get_completed_node_count(context: "TypedExecutionContext") -> int:
 
 def get_failed_node_count(context: "TypedExecutionContext") -> int:
     """Get count of failed nodes."""
-    node_states = context.get_node_states()
+    node_states = context.state.get_all_node_states()
     return sum(
         1 for state in node_states.values()
         if state.status == Status.FAILED
@@ -63,7 +63,7 @@ def get_failed_node_count(context: "TypedExecutionContext") -> int:
 
 def get_execution_metrics(context: "TypedExecutionContext") -> dict[str, Any]:
     """Get comprehensive execution metrics."""
-    node_states = context.get_node_states()
+    node_states = context.state.get_all_node_states()
     
     # Count by status
     status_counts = {}

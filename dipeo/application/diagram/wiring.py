@@ -9,7 +9,6 @@ from dipeo.application.registry.service_registry import ServiceRegistry, Service
 from dipeo.application.registry.keys import (
     DIAGRAM_COMPILER,
     DIAGRAM_SERIALIZER,
-    RUNTIME_RESOLVER,
     TRANSFORMATION_ENGINE,
     DIAGRAM_PORT,
     COMPILE_DIAGRAM_USE_CASE,
@@ -22,10 +21,7 @@ if TYPE_CHECKING:
     from dipeo.domain.diagram.compilation import DiagramCompiler
     from dipeo.domain.diagram.ports import DiagramStorageSerializer
     from dipeo.domain.diagram.compilation import CompileTimeResolver
-    from dipeo.domain.execution.resolution import (
-        RuntimeInputResolver,
-        TransformationEngine,
-    )
+    from dipeo.domain.execution.resolution import TransformationEngine
     from dipeo.application.diagram.use_cases import (
         CompileDiagramUseCase,
         ValidateDiagramUseCase,
@@ -175,26 +171,10 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
     """
     from dipeo.domain.execution.resolution import StandardTransformationEngine
     
-    # For now, we'll use a simple runtime resolver placeholder
-    # The actual runtime resolution is handled by domain logic
-    # in dipeo.domain.execution.resolution.api.resolve_inputs
-    class SimpleRuntimeResolver:
-        """Placeholder runtime resolver.
-        
-        The actual resolution logic is in domain.execution.resolution.api.resolve_inputs
-        which is called directly by handlers.
-        """
-        async def resolve_input_value(self, *args, **kwargs):
-            # This is not actually used - resolution happens in domain layer
-            raise NotImplementedError("Use domain.execution.resolution.api.resolve_inputs")
-    
-    runtime_resolver = SimpleRuntimeResolver()
-    
     # Create transformation engine
     transform_engine = StandardTransformationEngine()
     
-    # Register all resolution services
-    registry.register(RUNTIME_RESOLVER, runtime_resolver)
+    # Register transformation engine
     registry.register(TRANSFORMATION_ENGINE, transform_engine)
 
 

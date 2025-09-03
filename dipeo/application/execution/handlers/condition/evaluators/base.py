@@ -45,7 +45,7 @@ class BaseConditionEvaluator(ABC):
         # Access diagram through context
         all_nodes = context.diagram.get_nodes_by_type(None) or context.diagram.nodes
         for node in all_nodes:
-            node_result = context.get_node_result(node.id)
+            node_result = context.state.get_node_result(node.id)
             if node_result and 'value' in node_result:
                 node_outputs[str(node.id)] = {
                     'node_id': node.id,

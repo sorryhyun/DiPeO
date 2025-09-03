@@ -26,13 +26,15 @@ class TokenManager:
     - Join policy evaluation
     """
     
-    def __init__(self, diagram: ExecutableDiagram):
+    def __init__(self, diagram: ExecutableDiagram, execution_tracker=None):
         """Initialize token manager with diagram structure.
         
         Args:
             diagram: The executable diagram to manage tokens for
+            execution_tracker: Optional tracker to check node execution counts
         """
         self.diagram = diagram
+        self._execution_tracker = execution_tracker
         
         # Current epoch
         self._epoch: int = 0
@@ -128,7 +130,8 @@ class TokenManager:
     def emit_outputs(self, node_id: NodeID, outputs: dict[str, Envelope], epoch: int | None = None) -> None:
         """Emit node outputs as tokens on outgoing edges.
         
-        Handles conditional branch filtering automatically.
+        Matches output ports to edge source_output for routing.
+        For condition nodes, outputs should be on "condtrue" or "condfalse" ports.
         
         Args:
             node_id: The node emitting outputs
@@ -138,31 +141,28 @@ class TokenManager:
         if epoch is None:
             epoch = self._epoch
         
-        # Check if this is a condition node
+        # Check if this is a condition node and track branch decision
         node = self.diagram.get_node(node_id)
         is_condition = node and hasattr(node, 'type') and node.type == NodeType.CONDITION
         
-        # Determine active branch for condition nodes
-        active_branch = None
-        if is_condition and "default" in outputs:
-            active_branch = self._extract_branch_decision(outputs["default"])
-            if active_branch:
-                self._branch_decisions[node_id] = active_branch
-                logger.debug(f"[TOKEN] Condition {node_id} selected branch: {active_branch}")
+        if is_condition:
+            # Track which branch was taken based on available outputs
+            if "condtrue" in outputs:
+                self._branch_decisions[node_id] = "condtrue"
+                logger.debug(f"[TOKEN] Condition {node_id} selected branch: condtrue")
+            elif "condfalse" in outputs:
+                self._branch_decisions[node_id] = "condfalse"
+                logger.debug(f"[TOKEN] Condition {node_id} selected branch: condfalse")
         
         # Emit tokens on outgoing edges
         for edge in self._out_edges.get(node_id, []):
-            # Filter non-selected branches for condition nodes
-            if is_condition and active_branch:
-                if edge.source_output != active_branch:
-                    logger.debug(f"[TOKEN] Skipping inactive branch {edge.source_output} from {node_id}")
-                    continue
-            
-            # Match output port or use default
+            # Match output port to edge source_output
+            # For edges from condition nodes, source_output will be "condtrue" or "condfalse"
             out_key = edge.source_output or "default"
-            payload = outputs.get(out_key) or outputs.get("default")
+            payload = outputs.get(out_key)
             
             if payload is None:
+                # No output for this port - edge won't get a token
                 logger.debug(f"[TOKEN] No output for port {out_key} on edge from {node_id}")
                 continue
             
@@ -234,20 +234,53 @@ class TokenManager:
             # Source nodes are always ready
             return True
         
-        # Separate edges by type
-        required_edges = []
+        # Check if this node has already executed (for handling START edges)
+        node_exec_count = 0
+        if self._execution_tracker:
+            node_exec_count = self._execution_tracker.get_node_execution_count(node_id)
+        
+        # Categorize edges
+        active_edges = []
+        skippable_edges = []
+        
         for edge in edges:
-            # Check if this is from a skippable condition
             source_node = self.diagram.get_node(edge.source_node_id)
-            if source_node and hasattr(source_node, 'type') and source_node.type == NodeType.CONDITION:
-                if getattr(source_node, 'skippable', False):
-                    # Skippable conditions are completely optional
+            
+            # Skip edges from START nodes only if THIS node has already executed
+            # (i.e., it already consumed the START token in a previous iteration)
+            if source_node and hasattr(source_node, 'type') and source_node.type == NodeType.START:
+                if node_exec_count > 0:
+                    # This node already executed, so it already consumed START's token
+                    # Don't require it again
+                    logger.debug(f"[TOKEN] Node {node_id}: Already executed, ignoring edge from START {edge.source_node_id}")
                     continue
             
-            # For conditional branches, only include active branch
+            # Check if edge is from a skippable condition
+            # Note: skippable affects how downstream nodes treat the edge, not the condition itself
+            if source_node and hasattr(source_node, 'type') and source_node.type == NodeType.CONDITION:
+                if getattr(source_node, 'skippable', False):
+                    # This edge is from a skippable condition - it's optional for downstream
+                    skippable_edges.append(edge)
+                    continue
+            
+            active_edges.append(edge)
+        
+        # If only skippable edges remain after filtering, they become required
+        # This prevents deadlock when skippable conditions are the only dependencies
+        if not active_edges and skippable_edges:
+            logger.debug(f"[TOKEN] Node {node_id}: Skippable edges becoming required (no other edges left)")
+            active_edges = skippable_edges
+            skippable_edges = []
+        
+        # Filter out inactive conditional branches
+        required_edges = []
+        for edge in active_edges:
+            # For conditional branches, only include the active branch
             if edge.source_output in ["condtrue", "condfalse"]:
                 branch_decision = self._branch_decisions.get(edge.source_node_id)
+                # If we know the branch decision, filter out the inactive branch
                 if branch_decision and branch_decision != edge.source_output:
+                    logger.debug(f"[TOKEN] Node {node_id}: Skipping inactive branch {edge.source_output} from {edge.source_node_id}")
                     continue
             
             required_edges.append(edge)

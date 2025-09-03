@@ -41,13 +41,13 @@ class ExecutionRequest(Generic[T]):
     @property
     def execution_count(self) -> int:
         if self.context:
-            return self.context.get_node_execution_count(self.node_id)
+            return self.context.state.get_node_execution_count(self.node_id)
         return 1
     
     @property
     def node_status(self) -> Optional[Status]:
         if self.context:
-            state = self.context.get_node_state(self.node_id)
+            state = self.context.state.get_node_state(self.node_id)
             return state.status if state else None
         return None
     

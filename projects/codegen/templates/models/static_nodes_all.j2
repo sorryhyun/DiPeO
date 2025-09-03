@@ -30,12 +30,21 @@ class BaseExecutableNode:
     id: NodeID
     position: Vec2
     
+    # Optional execution policy fields - can be set at compile time
+    join_policy: Optional[str] = None  # "all", "any", "k_of_n" - defaults to None for backward compatibility
+    join_k: Optional[int] = None  # For k_of_n policy
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
         result = {
             "id": self.id,
             "position": {"x": self.position.x, "y": self.position.y}
         }
+        # Include join policy if set
+        if self.join_policy is not None:
+            result["join_policy"] = self.join_policy
+        if self.join_k is not None:
+            result["join_k"] = self.join_k
         # Subclasses should extend this
         return result
 
