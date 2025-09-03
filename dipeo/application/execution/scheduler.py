@@ -12,7 +12,7 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Set, Optional
 
-from dipeo.diagram_generated import NodeID, Status
+from dipeo.diagram_generated import NodeID, Status, NodeType
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution.token_types import EdgeRef, JoinPolicy, ConcurrencyPolicy
 
@@ -104,9 +104,19 @@ class NodeScheduler:
         
         # Process all edges for indegree calculation
         for edge in all_edges:
-            # Skip conditional edges (like condition branches) - use defensive check
+            # Check if this edge is from a skippable condition node
+            # If so, skip ALL edges from it (including condtrue/condfalse branches)
+            source_node = next((n for n in all_nodes if n.id == edge.source_node_id), None)
+            if source_node and hasattr(source_node, 'type') and source_node.type == NodeType.CONDITION:
+                if getattr(source_node, 'skippable', False):
+                    # Skip ALL edges from skippable conditions (even conditional branches)
+                    logger.debug(f"Skipping edge from skippable condition {edge.source_node_id} -> {edge.target_node_id}")
+                    continue
+            
+            # For non-skippable conditions, still skip conditional edges
             if self._is_conditional_edge(edge):
                 continue
+            
             self._indegree[edge.target_node_id] += 1
             self._dependents[edge.source_node_id].add(edge.target_node_id)
             nodes_with_non_conditional_deps.add(edge.target_node_id)
@@ -142,13 +152,10 @@ class NodeScheduler:
                 else:
                     self._join_policies[node.id] = node.join_policy
             else:
-                # If condition node has skippable=true, use 'any' policy
-                # This allows it to execute as soon as ANY input arrives
-                if (hasattr(node, 'type') and node.type == NodeType.CONDITION and 
-                    getattr(node, 'skippable', False)):
+                # Type-derived defaults: conditions are OR-joins, others are AND-joins
+                if hasattr(node, 'type') and node.type == NodeType.CONDITION:
                     self._join_policies[node.id] = JoinPolicy(policy_type="any")
                 else:
-                    # Other nodes default to 'all' for backward compatibility
                     self._join_policies[node.id] = JoinPolicy(policy_type="all")
             
             # Extract concurrency policy from node metadata or use default

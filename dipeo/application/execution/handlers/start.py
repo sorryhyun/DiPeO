@@ -108,8 +108,8 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         node = request.node
         context = request.context
         
-        # Start a new token epoch; do not reset NodeState
-        context.begin_epoch()
+        # Don't start a new epoch here - epoch 0 is the initial epoch
+        # context.begin_epoch()  # REMOVED - this was causing epoch mismatch
         
         # Merge with input variables
         combined_data = {**self._current_input_variables, **inputs}
