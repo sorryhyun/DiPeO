@@ -345,7 +345,8 @@ connections:
   - {from: Generate Frontend Code, to: Write Section Result, content_type: raw_text}
   - {from: Check Output Quality_condtrue, to: Check Continue, content_type: object}
 
-  - {from: Check Output Quality_condfalse, to: load Data for revise, label: generated_output, content_type: object}
+  - {from: Check Output Quality_condfalse, to: load Data for revise, content_type: object}
   - {from: load Data for revise, to: Revise Frontend Code, content_type: object}
+  - {from: Generate Frontend Code, to: Revise Frontend Code, label: generated_output, content_type: object }
   - {from: Revise Frontend Code, to: Write revised Result, content_type: object}
   - {from: Write revised Result, to: Check Continue, content_type: object}

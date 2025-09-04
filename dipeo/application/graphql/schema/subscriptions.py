@@ -17,6 +17,7 @@ from dipeo.domain.execution.state.ports import ExecutionStateRepository as State
 from strawberry.scalars import JSON as JSONScalar
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import EventType
+from dipeo.diagram_generated import Status
 
 logger = logging.getLogger(__name__)
 
@@ -240,7 +241,7 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                                 if not execution:
                                     break
                                 # If execution is complete, yield one more update then break
-                                if not execution.is_active and execution.status in ["COMPLETED", "FAILED", "ABORTED", "MAXITER_REACHED"]:
+                                if not execution.is_active and execution.status in (Status.COMPLETED, Status.FAILED, Status.ABORTED, Status.MAXITER_REACHED):
                                     # Send final status update
                                     yield ExecutionUpdate(
                                         execution_id=str(exec_id),

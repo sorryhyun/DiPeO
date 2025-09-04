@@ -86,7 +86,6 @@ class TokenManager:
             The new epoch number
         """
         self._epoch += 1
-        logger.info(f"[TOKEN] Beginning new epoch: {self._epoch}")
         return self._epoch
     
     # ========== Token Publishing ==========
@@ -120,11 +119,6 @@ class TokenManager:
         # Store the envelope for later consumption
         self._edge_tokens[(edge, epoch, seq)] = payload
         
-        logger.debug(
-            f"[TOKEN] Published token on {edge.source_node_id}->{edge.target_node_id} "
-            f"(epoch={epoch}, seq={seq})"
-        )
-        
         return token
     
     def emit_outputs(self, node_id: NodeID, outputs: dict[str, Envelope], epoch: int | None = None) -> None:
@@ -152,9 +146,6 @@ class TokenManager:
             elif "condfalse" in outputs:
                 self._branch_decisions[node_id] = "condfalse"
 
-        # Debug logging
-        logger.debug(f"[TOKEN] emit_outputs: node_id={node_id}, outputs keys={list(outputs.keys())}")
-        
         # Emit tokens on outgoing edges
         for edge in self._out_edges.get(node_id, []):
             # Match output port to edge source_output
@@ -278,15 +269,10 @@ class TokenManager:
                         # This node has multiple sources - condition edge can be skippable
                         skippable_edges.append(edge)
                         continue
-                    else:
-                        # This is the only source - cannot be skipped even if marked skippable
-                        logger.debug(f"[TOKEN] Node {node_id}: Treating skippable condition edge as required (only source)")
-
             active_edges.append(edge)
         
         # If only skippable edges remain after filtering, they become required
         # This prevents deadlock when skippable conditions are the only dependencies
-        logger.debug(f"[TOKEN] Node {node_id}: active_edges={len(active_edges)}, skippable_edges={len(skippable_edges)}")
         if not active_edges and skippable_edges:
             active_edges = skippable_edges
             skippable_edges = []
@@ -303,21 +289,15 @@ class TokenManager:
                 # If we know the branch decision, filter out the inactive branch
                 if branch_decision and branch_decision != edge.source_output:
                     continue
-                else:
-                    logger.debug(f"[TOKEN] Node {node_id}: Including active/matching branch {edge.source_output} from {edge.source_node_id}")
-            
-            logger.debug(f"[TOKEN] Node {node_id}: Adding edge to required_edges")
             required_edges.append(edge)
         
         # Apply join policy
         if join_policy == "all":
             # ALL: Require new tokens on all required edges
-            logger.debug(f"[TOKEN] Node {node_id}: Checking {len(required_edges)} required edges with ALL policy")
             for edge in required_edges:
                 seq = self._edge_seq.get((edge, epoch), 0)
                 last_consumed = self._last_consumed.get((node_id, edge, epoch), 0)
                 if seq <= last_consumed:
-                    logger.debug(f"[TOKEN] RESULT: Node {node_id} has_new_inputs=False (missing token)")
                     return False
             result = len(required_edges) > 0
             return result

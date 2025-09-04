@@ -218,24 +218,24 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                         has_loop_back = True
                         break
             
-            # Only increment if we're actually looping back AND we haven't already incremented
-            # for this execution count (prevents duplicate increments on resets)
             if has_loop_back:
-                current_loop_index = context.get_variable(node.expose_index_as)
-                last_increment_at = context.get_variable(f"{node.expose_index_as}_last_increment_at")
-                current_exec_count = context.state.get_node_execution_count(node.id)
+                # Track loop state independently from execution counts
+                loop_started_key = f"{node.expose_index_as}_loop_started"
+                loop_started = context.get_variable(loop_started_key)
                 
-                # Only increment if we haven't already incremented at this execution count
-                if last_increment_at != current_exec_count:
+                if loop_started:
+                    # We've completed at least one iteration, so increment
+                    current_loop_index = context.get_variable(node.expose_index_as)
                     new_index = current_loop_index + 1
                     context.set_variable(node.expose_index_as, new_index)
-                    context.set_variable(f"{node.expose_index_as}_last_increment_at", current_exec_count)
                     logger.debug(
                         f"ConditionNode {node.id}: Incremented loop index to {new_index} (loop continuation)"
                     )
                 else:
+                    # First time through the loop, mark as started but don't increment
+                    context.set_variable(loop_started_key, True)
                     logger.debug(
-                        f"ConditionNode {node.id}: Skipping increment - already incremented at execution count {current_exec_count}"
+                        f"ConditionNode {node.id}: First loop iteration - marking loop as started, keeping index at 0"
                     )
         
         # Return only the active branch data

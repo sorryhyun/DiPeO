@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 
 from dipeo.application.execution.handlers.sub_diagram.base_executor import BaseSubDiagramExecutor
@@ -278,7 +279,7 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         
         if update_type == "NODE_STATUS_CHANGED":
             data = update.get("data", {})
-            if data.get("status") == "COMPLETED":
+            if data.get("status") == Status.COMPLETED.value:
                 node_id = data.get("node_id")
                 node_output = data.get("output")
                 if node_id and node_output:
@@ -291,9 +292,9 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         
         elif update_type == "EXECUTION_STATUS_CHANGED":
             data = update.get("data", {})
-            if data.get("status") == "COMPLETED":
+            if data.get("status") == Status.COMPLETED.value:
                 return None, None, True
-            elif data.get("status") == "FAILED":
+            elif data.get("status") == Status.FAILED.value:
                 error = data.get("error") or f"Execution failed (node_id: {data.get('node_id', 'unknown')})"
                 return None, error, True
         

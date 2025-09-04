@@ -11,9 +11,10 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.domain.execution.state_tracker import StateTracker
 from dipeo.domain.execution.token_manager import TokenManager
-from dipeo.diagram_generated import NodeID, NodeState, NodeType
-from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
-from dipeo.domain.events import DomainEvent, DomainEventBus, EventType
+from dipeo.domain.execution.event_manager import EventManager
+from dipeo.diagram_generated import NodeID, NodeType, Status
+from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
+from dipeo.domain.events import DomainEventBus
 from dipeo.domain.execution.envelope import Envelope
 from dipeo.domain.execution.execution_context import ExecutionContext as ExecutionContextProtocol
 
@@ -42,6 +43,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     # Component managers (private)
     _token_manager: TokenManager = field(init=False)
     _state_tracker: StateTracker = field(init=False)
+    _event_manager: EventManager = field(init=False)
     
     # Runtime data
     _variables: dict[str, Any] = field(default_factory=dict)
@@ -56,10 +58,16 @@ class TypedExecutionContext(ExecutionContextProtocol):
     event_bus: DomainEventBus | None = None
     
     def __post_init__(self):
-        """Initialize token and state managers."""
+        """Initialize domain managers."""
         # Initialize managers
         self._state_tracker = StateTracker()
         self._token_manager = TokenManager(self.diagram, execution_tracker=self._state_tracker)
+        self._event_manager = EventManager(
+            execution_id=self.execution_id,
+            diagram_id=self.diagram_id,
+            event_bus=self.event_bus,
+            state_tracker=self._state_tracker,
+        )
         
         # Configure join policies from diagram
         if self.scheduler and hasattr(self.scheduler, 'configure_join_policies'):
@@ -76,6 +84,11 @@ class TypedExecutionContext(ExecutionContextProtocol):
     def tokens(self) -> TokenManager:
         """Direct access to token manager for token operations."""
         return self._token_manager
+    
+    @property
+    def events(self) -> EventManager:
+        """Direct access to event manager for event operations."""
+        return self._event_manager
     
     # ========== Epoch Management ==========
     
@@ -107,17 +120,11 @@ class TypedExecutionContext(ExecutionContextProtocol):
         self._token_manager.emit_outputs(node_id, outputs, epoch)
         
         # Notify scheduler if available
-        logger.debug(f"[CONTEXT] emit_outputs_as_tokens: scheduler={self.scheduler is not None}, node_id={node_id}")
         if self.scheduler:
-            logger.debug(f"[CONTEXT] Scheduler available, has on_token_published: {hasattr(self.scheduler, 'on_token_published')}")
             if hasattr(self.scheduler, 'on_token_published'):
                 edges = self._token_manager._out_edges.get(node_id, [])
-                logger.debug(f"[CONTEXT] Found {len(edges)} outgoing edges from {node_id}")
                 for edge in edges:
-                    logger.debug(f"[CONTEXT] Notifying scheduler of token on edge {edge.source_node_id}->{edge.target_node_id}")
                     self.scheduler.on_token_published(edge, epoch or self.current_epoch())
-            else:
-                logger.debug("[CONTEXT] Scheduler does not have on_token_published method")
         else:
             logger.debug("[CONTEXT] No scheduler available")
     
@@ -131,8 +138,10 @@ class TypedExecutionContext(ExecutionContextProtocol):
         
         # First check if node has compiled join_policy
         node = self.diagram.get_node(node_id)
-        if node and hasattr(node, 'join_policy') and node.join_policy is not None:
-            join_policy = node.join_policy
+        if node and hasattr(node, 'join_policy'):
+            node_join_policy = getattr(node, 'join_policy', None)
+            if node_join_policy is not None:
+                join_policy = node_join_policy
         # Then check if scheduler has join policy configured
         elif self.scheduler and hasattr(self.scheduler, '_join_policies'):
             policy = self.scheduler._join_policies.get(node_id)
@@ -223,14 +232,14 @@ class TypedExecutionContext(ExecutionContextProtocol):
                 return False
             
             for state in all_states.values():
-                if state.status.value in ["pending", "running"]:
+                if state.status in (Status.PENDING, Status.RUNNING):
                     return False
             return True
         
         # Check if all endpoints are completed
         for endpoint in endpoint_nodes:
             state = self._state_tracker.get_node_state(endpoint.id)
-            if not state or state.status.value not in ["completed", "failed"]:
+            if not state or state.status not in (Status.COMPLETED, Status.FAILED):
                 return False
         return True
     
@@ -260,7 +269,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         Returns:
             Merged context with both namespaced and flat access patterns
         """
-        RESERVED_LOCAL_KEYS = {"this", "@index", "@first", "@last"}
+        reserved_local_keys = {"this", "@index", "@first", "@last"}
         
         inputs = inputs or {}
         locals_ = locals_ or {}
@@ -268,7 +277,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         
         # Namespaced copies to avoid collisions in templates if desired
         merged = {
-            "globals": {k: v for k, v in globals_.items() if k not in RESERVED_LOCAL_KEYS},
+            "globals": {k: v for k, v in globals_.items() if k not in reserved_local_keys},
             "inputs": inputs,
             "local": locals_,
         }
@@ -288,72 +297,3 @@ class TypedExecutionContext(ExecutionContextProtocol):
         """
         return self._state_tracker._tracker
     
-    # ========== Event Emission ==========
-    
-    async def emit_event(self, event_type: EventType, data: dict[str, Any] | None = None) -> None:
-        """Emit a domain event if event bus is available."""
-        if self.event_bus:
-            from dipeo.domain.events import EventScope
-            event = DomainEvent(
-                type=event_type,
-                scope=EventScope(execution_id=self.execution_id),
-                meta=data or {}
-            )
-            await self.event_bus.publish(event)
-    
-    async def emit_execution_started(self, diagram_name: str | None = None) -> None:
-        """Emit execution started event."""
-        await self.emit_event(EventType.EXECUTION_STARTED, {
-            "diagram_id": self.diagram_id,
-            "diagram_name": diagram_name or self.diagram_id,
-            "execution_id": self.execution_id
-        })
-    
-    async def emit_execution_completed(self, status: Any = None, total_steps: int = 0, execution_path: list[str] | None = None) -> None:
-        """Emit execution completed event."""
-        await self.emit_event(EventType.EXECUTION_COMPLETED, {
-            "diagram_id": self.diagram_id,
-            "execution_id": self.execution_id,
-            "status": status,
-            "total_steps": total_steps,
-            "execution_path": execution_path or []
-        })
-    
-    async def emit_execution_error(self, exc: Exception) -> None:
-        """Emit execution error event."""
-        await self.emit_event(EventType.EXECUTION_ERROR, {
-            "diagram_id": self.diagram_id,
-            "execution_id": self.execution_id,
-            "error": str(exc),
-            "error_type": exc.__class__.__name__
-        })
-    
-    async def emit_node_started(self, node: ExecutableNode) -> None:
-        """Emit node started event."""
-        await self.emit_event(EventType.NODE_STARTED, {
-            "diagram_id": self.diagram_id,
-            "execution_id": self.execution_id,
-            "node_id": str(node.id),
-            "node_type": node.type.value if node.type else "unknown"
-        })
-    
-    async def emit_node_completed(self, node: ExecutableNode, envelope: Envelope | None, exec_count: int) -> None:
-        """Emit node completed event."""
-        await self.emit_event(EventType.NODE_COMPLETED, {
-            "diagram_id": self.diagram_id,
-            "execution_id": self.execution_id,
-            "node_id": str(node.id),
-            "node_type": node.type.value if node.type else "unknown",
-            "execution_count": exec_count
-        })
-    
-    async def emit_node_error(self, node: ExecutableNode, exc: Exception) -> None:
-        """Emit node error event."""
-        await self.emit_event(EventType.NODE_ERROR, {
-            "diagram_id": self.diagram_id,
-            "execution_id": self.execution_id,
-            "node_id": str(node.id),
-            "node_type": node.type.value if node.type else "unknown",
-            "error": str(exc),
-            "error_type": exc.__class__.__name__
-        })
