@@ -188,7 +188,7 @@ class SimpleTemplateProcessor(TemplateProcessorPort):
                     index = int(index_expr)
                 else:
                     # Variable reference - resolve it from root context, not current object
-                    index_value = self._get_nested_value(root_context, index_expr)
+                    index_value = self._get_nested_value(root_context, index_expr, root_context)
                     if index_value is None or not isinstance(index_value, (int, str)):
                         return None
                     try:

@@ -185,32 +185,13 @@ class EdgeBuilder:
         target_node: DomainNode,
         arrow: DomainArrow
     ) -> int:
-        """Determine execution priority for an edge based on target node type.
+        """Determine execution priority for an edge.
         
-        Higher priority edges execute first. Default is 0.
-        
-        Priority Rules:
-        - Condition/validation nodes: priority 10 (execute first)
-        - DB write nodes: priority 0 (execute after validation)
-        - Default: priority 0
-        
-        Priority can be overridden by arrow data.
+        Always returns 0 (no priority) to ensure true parallel execution.
+        Parallel connections in the diagram will execute in parallel as intended.
         """
-        # Check for manual override in arrow data
-        if arrow.data and 'execution_priority' in arrow.data:
-            return int(arrow.data['execution_priority'])
-        
-        # Auto-assign based on target node type
-        if target_node.type == NodeType.CONDITION:
-            return 10  # High priority for validation/condition checks
-        elif target_node.type == NodeType.DB:
-            # Check if it's a write operation
-            if hasattr(target_node, 'data') and target_node.data:
-                operation = target_node.data.get('operation', '').lower()
-                if operation in ('write', 'update', 'delete'):
-                    return 0  # Low priority for write operations
-        
-        # Default priority
+        # TODO: In the future, we might allow explicit priority settings
+        # For now, all edges have equal priority to avoid confusion
         return 0
     
     def _determine_content_type(

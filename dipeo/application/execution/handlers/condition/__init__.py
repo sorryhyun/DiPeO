@@ -182,17 +182,15 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         
         # Track and expose loop index if configured
         if hasattr(node, 'expose_index_as') and node.expose_index_as:
-            # Use the exposed variable directly - it persists across executions
-            # and only gets incremented when we complete a full loop iteration
-            current_loop_index = context.get_variable(node.expose_index_as)
-            
-            # Initialize on first execution
-            if current_loop_index is None:
-                current_loop_index = 0
-                context.set_variable(node.expose_index_as, current_loop_index)
+            # Use the execution count directly as loop index (0-based)
+            # The execution count is incremented BEFORE run() is called,
+            # so we subtract 1 to get a 0-based index
+            execution_count = context.state.get_node_execution_count(node.id)
+            current_loop_index = max(0, execution_count - 1)  # 0-based index
+            context.set_variable(node.expose_index_as, current_loop_index)
             
             logger.debug(
-                f"ConditionNode {node.id}: Exposing loop index as '{node.expose_index_as}' = {current_loop_index}"
+                f"ConditionNode {node.id}: Exposing loop index as '{node.expose_index_as}' = {current_loop_index} (execution_count={execution_count})"
             )
         
         # Execute evaluation with pre-selected evaluator
@@ -202,41 +200,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         
         # Store evaluation metadata in instance variable for later use
         self._current_evaluation_metadata = eval_result["metadata"]
-        
-        # Increment loop index when condition is FALSE and we have a loop-back edge
-        # This happens when we're continuing the loop to the next iteration
-        if hasattr(node, 'expose_index_as') and node.expose_index_as and not result:
-            # Check if the false branch loops back (has edges going to earlier nodes)
-            has_loop_back = False
-            outgoing_edges = context.diagram.get_outgoing_edges(node.id)
-            for edge in outgoing_edges:
-                # Check if this is the false branch edge
-                if str(getattr(edge, 'source_output', '')).lower() == 'condfalse':
-                    target_node = context.diagram.get_node(edge.target_node_id)
-                    # If target has been executed before, it's likely a loop-back
-                    if target_node and context.state.get_node_execution_count(edge.target_node_id) > 0:
-                        has_loop_back = True
-                        break
-            
-            if has_loop_back:
-                # Track loop state independently from execution counts
-                loop_started_key = f"{node.expose_index_as}_loop_started"
-                loop_started = context.get_variable(loop_started_key)
-                
-                if loop_started:
-                    # We've completed at least one iteration, so increment
-                    current_loop_index = context.get_variable(node.expose_index_as)
-                    new_index = current_loop_index + 1
-                    context.set_variable(node.expose_index_as, new_index)
-                    logger.debug(
-                        f"ConditionNode {node.id}: Incremented loop index to {new_index} (loop continuation)"
-                    )
-                else:
-                    # First time through the loop, mark as started but don't increment
-                    context.set_variable(loop_started_key, True)
-                    logger.debug(
-                        f"ConditionNode {node.id}: First loop iteration - marking loop as started, keeping index at 0"
-                    )
         
         # Return only the active branch data
         active_branch = "condtrue" if result else "condfalse"

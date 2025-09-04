@@ -1,27 +1,28 @@
-// src/core/di.ts
+// FILE: src/core/di.ts
 
-// Minimal Dependency Injection container for Core Kernel
+import type { User } from '@/core/contracts'
 
-import type { User, Patient, Appointment, LoginPayload, AuthTokens } from '@/core/contracts'
-import type { EventBus } from '@/core/events'
+// Lightweight DI container for runtime registration and resolution of services.
+// This file is intentionally self-contained and avoids runtime side effects.
 
-// Section-local helper types (no runtime imports apart from above)
-
-// Generic token type for type-safe DI
+/**
+ * Token type used to strongly-type DI registrations.
+ * Each token carries a phantom type parameter for TS inference.
+ */
 export type Token<T> = symbol & { __type?: T }
 
-// Service shape definitions (kept local to avoid circular deps in runtime)
+// Service shape definitions (local to DI container to avoid circular deps)
 type ApiClientShape = {
   get<T>(path: string, opts?: any): Promise<T>
   post<T>(path: string, body?: any, opts?: any): Promise<T>
   put<T>(path: string, body?: any, opts?: any): Promise<T>
-  del<T>(path: string, opts?: any): Promise<T>
+  delete<T>(path: string, opts?: any): Promise<T>
 }
 
 type AuthServiceShape = {
-  login(payload: LoginPayload): Promise<{ user: User; tokens: AuthTokens }>
+  login(payload: { email: string; password: string; otp?: string }): Promise<{ user: User; tokens: any }>
   logout(): Promise<void>
-  refresh(): Promise<AuthTokens>
+  refresh(): Promise<any>
   getCurrentUser(): Promise<User | null>
 }
 
@@ -34,12 +35,14 @@ type StorageServiceShape = {
 type WebSocketServiceShape = {
   connect(): Promise<void>
   disconnect(): Promise<void>
-  // Keep payload generic to avoid coupling to specific event typings
-  send(evt: any): void
+  send(event: string, payload?: any): void
   on(event: string, handler: (payload: any) => void): () => void
 }
 
-// TOKENS registry
+// EventBus type (imported for typing if available)
+import type { EventBus } from '@/core/events'
+
+// Tokens registry (typed)
 export const TOKENS = {
   ApiClient: Symbol('ApiClient') as Token<ApiClientShape>,
   AuthService: Symbol('AuthService') as Token<AuthServiceShape>,
@@ -48,58 +51,60 @@ export const TOKENS = {
   EventBus: Symbol('EventBus') as Token<EventBus>,
 } as const
 
-// Lightweight DI container
-class Container {
-  private registry = new Map<symbol, any>()
-  private factories = new Map<symbol, (c: Container) => any>()
+// Internal container implementation
+export class Container {
+  private registry: Map<symbol, any> = new Map()
+  private factories: Map<symbol, (c: Container) => any> = new Map()
 
-  // Register a concrete instance for a token
   register<T>(token: Token<T>, value: T): void {
-    const key = token as unknown as symbol
+    const key = token as symbol
     this.registry.set(key, value)
   }
 
-  // Register a factory that will receive the container for lazy resolution
   registerFactory<T>(token: Token<T>, factory: (c: Container) => T): void {
-    const key = token as unknown as symbol
+    const key = token as symbol
     this.factories.set(key, factory)
   }
 
-  // Resolve a registered token (throws if missing)
   resolve<T>(token: Token<T>): T {
-    const key = token as unknown as symbol
+    const key = token as symbol
+
     if (this.registry.has(key)) {
-      return this.registry.get(key)
+      return this.registry.get(key) as T
     }
-    if (this.factories.has(key)) {
-      const value = this.factories.get(key)!(this)
-      // Cache the produced value for singleton-like behavior
+
+    const factory = this.factories.get(key)
+    if (factory) {
+      const value = factory(this)
+      // Cache the produced value for subsequent resolutions
       this.registry.set(key, value)
-      return value
+      this.factories.delete(key)
+      return value as T
     }
-    throw new Error(`DI: Unregistered token ${key.toString()}`)
+
+    throw new Error(`DI: No registration found for token ${String(key)}`)
   }
 
-  // Check registration existence
   has(token: Token<any>): boolean {
-    const key = token as unknown as symbol
+    const key = token as symbol
     return this.registry.has(key) || this.factories.has(key)
   }
 
-  // Reset registry (useful in tests)
   reset(): void {
     this.registry.clear()
     this.factories.clear()
   }
 }
 
-// Public singleton container + helpers
+// Public singleton container and helpers
 export const container = new Container()
-export const register = container.register.bind(container)
-export const resolve = container.resolve.bind(container)
+export const register = <T>(token: Token<T>, value: T): void => container.register(token, value)
+export const resolve = <T>(token: Token<T>): T => container.resolve(token)
 
-// Self-check comments (appended below as per project style)
-//
+// Optional: expose a tiny API for tests/examples
+export default Container
+
+// Self-check comments
 // [ ] Uses `@/` imports only
 // [ ] Uses providers/hooks (no direct DOM/localStorage side effects)
 // [ ] Reads config from `@/app/config`

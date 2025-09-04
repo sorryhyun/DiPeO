@@ -245,7 +245,7 @@ nodes:
       condition_type: llm_decision
       person: Frontend Verdict
       memorize_to: GOLDFISH
-      judge_by: Review this generated code output and determine if it's severely invalid or acceptable.
+      judge_by: Review this generated code output and determine if it's perfect or not.
       flipped: [false, false]  # only for UI, does not affect on logic
 
   - label: load Data for revise
@@ -257,6 +257,16 @@ nodes:
       format: json
       source_details: projects/frontend_auto/generated/sections_data.json
 
+  - label: load code for revise
+    type: db
+    position: { x: 2600, y: 800 }
+    props:
+      operation: read
+      sub_type: file
+      format: text
+      source_details: projects/frontend_auto/generated/temp_section_{current_index}.tsx
+
+
   - label: Revise Frontend Code
     type: person_job
     position: {x: 2800, y: 1000}
@@ -264,22 +274,7 @@ nodes:
       person: Frontend Generator
       memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
       at_most: 3
-      default_prompt: |
-        Check the generated output and fix if needed:
-        
-        Generated output:
-        {{generated_output}}
-        
-        If the output contains explanatory text like "let me analyze", "I'll help", "Here's the implementation", or any non-code content, then GENERATE THE ACTUAL CODE based on:
-        - File to implement: {{file_paths[current_index]}}
-        - Description: {{descriptions[current_index]}}
-        - Current section data: {{sections[current_index]}}
-        
-        Requirements:
-        - If output already contains valid code: return it as-is (removing only markdown backticks if present)
-        - If output is explanatory text: generate the ACTUAL implementation code
-        - Return ONLY raw code, no explanations or markdown
-        - Follow all conventions from the Core Kernel and prior sections
+      prompt_file: frontend_reviser.txt
 
   - label: Write Section Result
     type: db
@@ -346,7 +341,8 @@ connections:
   - {from: Check Output Quality_condtrue, to: Check Continue, content_type: object}
 
   - {from: Check Output Quality_condfalse, to: load Data for revise, content_type: object}
+  - { from: Check Output Quality_condfalse, to: load code for revise, content_type: object }
   - {from: load Data for revise, to: Revise Frontend Code, content_type: object}
-  - {from: Generate Frontend Code, to: Revise Frontend Code, label: generated_output, content_type: object }
-  - {from: Revise Frontend Code, to: Write revised Result, content_type: object}
+  - { from: load code for revise, to: Revise Frontend Code, content_type: object, label: generated_output}
+  - {from: Revise Frontend Code, to: Write revised Result, content_type: raw_text}
   - {from: Write revised Result, to: Check Continue, content_type: object}
