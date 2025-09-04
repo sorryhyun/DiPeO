@@ -573,7 +573,23 @@ def main(inputs: dict) -> dict:
     else:
         # Legacy format
         print("Processing as legacy format")
-        ast_data = inputs.get('default', {})
+        raw_data = inputs.get('default', {})
+        
+        # Handle wrapped AST format (when loaded from mappings.ts.json)
+        if isinstance(raw_data, dict) and 'ast' in raw_data:
+            # Extract the AST from the wrapper
+            ast_data = raw_data['ast']
+            print(f"Extracted AST from wrapped format, keys: {list(ast_data.keys()) if isinstance(ast_data, dict) else 'not a dict'}")
+        else:
+            # Use as-is if not wrapped
+            ast_data = raw_data
+            print(f"Using raw data as AST, type: {type(ast_data)}")
+        
+        # Validate that we have a dict before passing to extract_mappings
+        if not isinstance(ast_data, dict):
+            print(f"Warning: ast_data is not a dict, it's {type(ast_data)}. Converting to empty dict.")
+            ast_data = {}
+        
         mappings = extract_mappings(ast_data)
         return {
             'mappings': mappings,

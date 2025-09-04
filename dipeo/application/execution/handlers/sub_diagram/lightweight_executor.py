@@ -63,9 +63,11 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             executable_diagram = await self._prepare_diagram(node, request)
             
             # Create minimal in-memory execution state with isolated service registry
+            # Don't pass parent inputs to sub-diagram by default to avoid contamination
+            # Sub-diagrams should start with clean state unless explicitly configured
             execution_state = self._create_in_memory_state(
                 diagram=executable_diagram,
-                inputs=request.inputs
+                inputs={}  # Empty inputs by default
             )
             
             # Run the engine without observers or state persistence

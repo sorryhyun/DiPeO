@@ -60,7 +60,8 @@ class TokenManager:
             edge_ref = EdgeRef(
                 source_node_id=edge.source_node_id,
                 source_output=edge.source_output,
-                target_node_id=edge.target_node_id
+                target_node_id=edge.target_node_id,
+                target_input=edge.target_input
             )
             
             # Add to outgoing edges
@@ -201,8 +202,8 @@ class TokenManager:
             # Get the payload
             payload = self._edge_tokens.get((edge, epoch, seq))
             if payload is not None:
-                # Use source_output as the port key, default to "default"
-                key = edge.source_output or "default"
+                # Use target_input as the port key (this is where the edge label is stored), default to "default"
+                key = edge.target_input or "default"
                 inputs[key] = payload
         
         return inputs

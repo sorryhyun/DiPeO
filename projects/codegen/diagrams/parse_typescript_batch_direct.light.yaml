@@ -93,7 +93,6 @@ nodes:
       code: |
         import os
         import json
-        
         # Check if we skipped parsing
         gather_results = inputs.get('gather_results', {})
         if gather_results.get('_skip_parsing'):
@@ -101,48 +100,39 @@ nodes:
             result = {'cached_count': 0, 'skipped': True}
         else:
             # Get batch results - handle both wrapped and direct structures
-            batch_results = inputs.get('default', {})
-            
-            # Handle SEAC compatibility - check for wrapped structure
-            if isinstance(batch_results, dict) and 'results' in batch_results:
-                # Legacy wrapped structure from batch sub_diagram
-                batch_results = batch_results['results']
-            
-            if not isinstance(batch_results, dict):
-                print("Warning: No batch results to cache")
-                result = {'cached_count': 0}
-            else:
-                base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
-                models_dir = os.path.join(base_dir, 'dipeo/models/src')
-                cached_count = 0
-                for file_path, parse_result in batch_results.items():
-                    # Skip dummy entry
-                    if file_path == "_dummy":
-                        continue
-                    # Get relative path from models_dir
-                    if file_path.startswith(models_dir):
-                        relative_path = os.path.relpath(file_path, models_dir)
-                    else:
-                        # Fallback to basename if not in expected location
-                        relative_path = os.path.basename(file_path)
-                    
-                    # Create cache path preserving directory structure
-                    cache_path = os.path.join(base_dir, f'temp/{relative_path}.json')
-                    cache_dir = os.path.dirname(cache_path)
-                    
-                    # Ensure cache directory exists
-                    if cache_dir and cache_dir != 'temp':
-                        os.makedirs(cache_dir, exist_ok=True)
-                    
-                    # Save the parsed result to cache
-                    try:
-                        with open(cache_path, 'w', encoding='utf-8') as f:
-                            json.dump(parse_result['ast'], f, indent=2)
-                        cached_count += 1
-                    except Exception as e:
-                        print(f"Warning: Failed to cache {file_path}: {e}")
+            batch_results = inputs.get('parsed', {})
+
+            base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
+            models_dir = os.path.join(base_dir, 'dipeo/models/src')
+            cached_count = 0
+            for file_path, parse_result in batch_results.items():
+                # Skip dummy entry
+                if file_path == "_dummy":
+                    continue
+                # Get relative path from models_dir
+                if file_path.startswith(models_dir):
+                    relative_path = os.path.relpath(file_path, models_dir)
+                else:
+                    # Fallback to basename if not in expected location
+                    relative_path = os.path.basename(file_path)
                 
-                result = {'cached_count': cached_count}
+                # Create cache path preserving directory structure
+                cache_path = os.path.join(base_dir, f'temp/{relative_path}.json')
+                cache_dir = os.path.dirname(cache_path)
+                
+                # Ensure cache directory exists
+                if cache_dir and cache_dir != 'temp':
+                    os.makedirs(cache_dir, exist_ok=True)
+                
+                # Save the parsed result to cache
+                try:
+                    with open(cache_path, 'w', encoding='utf-8') as f:
+                        json.dump(parse_result['ast'], f, indent=2)
+                    cached_count += 1
+                except Exception as e:
+                    print(f"Warning: Failed to cache {file_path}: {e}")
+            
+            result = {'cached_count': cached_count}
       
   # End
   - label: End
@@ -154,6 +144,6 @@ nodes:
 connections:
   - {from: Start, to: Gather TypeScript Files}
   - {from: Gather TypeScript Files, to: Batch Parse TypeScript, content_type: object}
-  - {from: Batch Parse TypeScript, to: Save Cache Files, content_type: object}
+  - {from: Batch Parse TypeScript, to: Save Cache Files, label: parsed, content_type: object}
   - {from: Gather TypeScript Files, to: Save Cache Files, label: gather_results, content_type: object}
   - {from: Save Cache Files, to: End}

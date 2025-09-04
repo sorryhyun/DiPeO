@@ -57,23 +57,30 @@ class PromptBuilder:
         # Special handling for 'default' and 'first' inputs - flatten their properties to root context
         # This allows templates to access {{property}} instead of {{default.property}} or {{first.property}}
         for special_key in ['default', 'first']:
-            if special_key in inputs and isinstance(inputs[special_key], dict):
+            if special_key in inputs:
                 special_value = inputs[special_key]
                 
-                # Handle double/triple nesting: recursively unwrap if default contains only a 'default' key
-                # This handles cases where data passes through multiple unlabeled edges
-                while (isinstance(special_value, dict) and 
-                       len(special_value) == 1 and 
-                       'default' in special_value):
-                    logger.debug(f"[PromptBuilder] Unwrapping nested 'default' in {special_key}")
-                    special_value = special_value['default']
-                
-                # Add all properties from the special input to the root context
+                # Only unwrap and flatten if it's a dict
                 if isinstance(special_value, dict):
-                    for prop_key, prop_value in special_value.items():
-                        if prop_key not in template_values:  # Don't overwrite existing values
-                            template_values[prop_key] = prop_value
-                # Also keep the special object itself for backward compatibility
+                    # Handle double/triple nesting: recursively unwrap if default contains only a 'default' key
+                    # This handles cases where data passes through multiple unlabeled edges
+                    while (isinstance(special_value, dict) and 
+                           len(special_value) == 1 and 
+                           'default' in special_value):
+                        logger.debug(f"[PromptBuilder] Unwrapping nested 'default' in {special_key}")
+                        special_value = special_value['default']
+                    
+                    # Add all properties from the special input to the root context
+                    if isinstance(special_value, dict):
+                        for prop_key, prop_value in special_value.items():
+                            if prop_key not in template_values:  # Don't overwrite existing values
+                                template_values[prop_key] = prop_value
+                            else:
+                                # Log collision for debugging
+                                logger.debug(f"[PromptBuilder] Collision detected: '{prop_key}' already exists in template_values, skipping from {special_key}")
+                
+                # Always keep the special key itself (whether dict or scalar) for backward compatibility
+                # This ensures {{default}} and {{first}} are always accessible in templates
                 template_values[special_key] = special_value
         
         # Process remaining inputs (skip already processed special keys)

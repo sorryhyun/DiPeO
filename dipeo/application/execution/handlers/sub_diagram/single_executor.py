@@ -51,8 +51,10 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
             domain_diagram = await self._load_diagram(node)
             
             # Prepare execution options
+            # Don't pass parent inputs to sub-diagram by default to avoid contamination
+            # Sub-diagrams should start with clean state unless explicitly configured
             options = {
-                "variables": request.inputs or {},
+                "variables": {},  # Empty variables by default
                 "parent_execution_id": request.execution_id,
                 "is_sub_diagram": True,
                 "metadata": {
