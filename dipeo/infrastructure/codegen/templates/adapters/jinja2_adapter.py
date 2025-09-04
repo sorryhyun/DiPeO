@@ -3,7 +3,7 @@
 import asyncio
 from pathlib import Path
 from typing import Any, Dict, Callable, Optional, List
-from jinja2 import Environment, FileSystemLoader, Template, ChoiceLoader, DictLoader
+from jinja2 import Environment, FileSystemLoader, Template, ChoiceLoader, DictLoader, StrictUndefined
 
 from .base_adapter import TemplateEngineAdapter
 
@@ -57,6 +57,7 @@ class Jinja2Adapter(TemplateEngineAdapter):
             loader=loader,
             trim_blocks=False,
             lstrip_blocks=False,
+            undefined=StrictUndefined,
             keep_trailing_newline=True,
         )
         
@@ -82,7 +83,8 @@ class Jinja2Adapter(TemplateEngineAdapter):
         
         # Render in executor to avoid blocking
         loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(None, template.render, context)
+        # IMPORTANT: pass context as kwargs, not a single positional dict
+        result = await loop.run_in_executor(None, lambda: template.render(**context))
         return result
     
     async def render_string(self, template_str: str, context: Dict[str, Any]) -> str:
@@ -108,7 +110,8 @@ class Jinja2Adapter(TemplateEngineAdapter):
         
         # Render in executor to avoid blocking
         loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(None, template.render, context)
+        # Keep per-render isolation; no env.globals updates per request
+        result = await loop.run_in_executor(None, lambda: template.render(**context))
         return result
     
     def register_filter(self, name: str, filter_func: Callable) -> None:

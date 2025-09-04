@@ -67,7 +67,6 @@ class PromptBuilder:
                     while (isinstance(special_value, dict) and 
                            len(special_value) == 1 and 
                            'default' in special_value):
-                        logger.debug(f"[PromptBuilder] Unwrapping nested 'default' in {special_key}")
                         special_value = special_value['default']
                     
                     # Add all properties from the special input to the root context

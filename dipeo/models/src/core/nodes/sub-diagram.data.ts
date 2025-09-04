@@ -13,6 +13,8 @@ export interface SubDiagramNodeData extends BaseNodeData {
   diagram_format?: DiagramFormat;
   /** Pass all current variables to sub-diagram */
   diagram_data?: JsonDict;
+  /** Whether to pass input data from parent to sub-diagram (default: false) */
+  passInputData?: boolean;
   /** Enable batch processing for arrays */
   batch?: boolean;
   /** Array variable name for batch processing */

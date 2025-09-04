@@ -1,4 +1,5 @@
 """Generate static nodes from parsed TypeScript data."""
+import ast
 import json
 from datetime import datetime
 from typing import Any, Dict, List
@@ -13,6 +14,19 @@ from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map
 def extract_specs_from_combined_data(node_data_input: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     """Extract specs data from the combined input that includes both data and spec files."""
     specs_by_node_type = {}
+    
+    # Handle string input (Python dict format from glob)
+    if isinstance(node_data_input, str):
+        try:
+            # Try ast.literal_eval first (for Python dict format)
+            node_data_input = ast.literal_eval(node_data_input)
+        except (ValueError, SyntaxError):
+            # If that fails, try JSON
+            try:
+                node_data_input = json.loads(node_data_input)
+            except json.JSONDecodeError:
+                # If both fail, return empty dict
+                return {}
     
     # Handle wrapped inputs
     if 'default' in node_data_input and isinstance(node_data_input['default'], dict):
@@ -298,6 +312,19 @@ def generate_static_nodes(inputs: Dict[str, Any]) -> Dict[str, Any]:
     mappings = inputs.get('mappings', {})
     node_data_input = inputs.get('node_data', {})
     base_data = inputs.get('base_data', {})
+
+    # Handle string input for node_data (Python dict format from glob)
+    if isinstance(node_data_input, str):
+        try:
+            # Try ast.literal_eval first (for Python dict format)
+            node_data_input = ast.literal_eval(node_data_input)
+        except (ValueError, SyntaxError):
+            # If that fails, try JSON
+            try:
+                node_data_input = json.loads(node_data_input)
+            except json.JSONDecodeError:
+                # If both fail, treat as empty dict
+                node_data_input = {}
 
     # Extract base interface
     base_interface = base_data.get('base_interface')

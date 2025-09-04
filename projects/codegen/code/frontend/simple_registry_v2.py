@@ -1,6 +1,8 @@
 """Simple generator for frontend node registry imports - Version 2.
 Handles glob results directly without intermediate extraction.
 """
+import ast
+import json
 from typing import Dict, Any, List
 from dipeo.infrastructure.codegen.templates.filters.base_filters import BaseFilters
 
@@ -80,10 +82,24 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Entry point for code_job node - handles glob results directly."""
     
     # Handle wrapped inputs (db node may wrap in 'default')
-    if 'default' in inputs and isinstance(inputs['default'], dict):
-        glob_results = inputs['default']
+    if 'default' in inputs:
+        raw_results = inputs['default']
     else:
-        glob_results = inputs
+        raw_results = inputs
+    
+    # Parse string to dict if needed (DiPeO returns Python dict strings)
+    if isinstance(raw_results, str):
+        try:
+            # Try ast.literal_eval first (for Python dict format with single quotes)
+            glob_results = ast.literal_eval(raw_results)
+        except (ValueError, SyntaxError):
+            # If that fails, try JSON
+            try:
+                glob_results = json.loads(raw_results)
+            except json.JSONDecodeError:
+                glob_results = {}
+    else:
+        glob_results = raw_results if isinstance(raw_results, dict) else {}
     
     # Extract node types directly from glob results
     node_types = extract_node_types_from_glob(glob_results)

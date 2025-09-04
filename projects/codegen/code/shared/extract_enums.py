@@ -1,5 +1,7 @@
 """Extract enum definitions from TypeScript AST."""
 
+import ast
+import json
 from typing import Dict, Any, List
 
 
@@ -91,6 +93,19 @@ def main(inputs: dict) -> List[dict]:
     """Main entry point for enum extraction."""
     ast_data = inputs.get('default', {})
     all_enums = []
+    
+    # Handle string input (Python dict format from glob)
+    if isinstance(ast_data, str):
+        try:
+            # Try ast.literal_eval first (for Python dict format)
+            ast_data = ast.literal_eval(ast_data)
+        except (ValueError, SyntaxError):
+            # If that fails, try JSON
+            try:
+                ast_data = json.loads(ast_data)
+            except json.JSONDecodeError:
+                # If both fail, return empty list
+                return []
     
     # SEAC compliant: Handle direct structures only
     if isinstance(ast_data, dict):

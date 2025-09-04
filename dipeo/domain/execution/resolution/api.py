@@ -204,10 +204,6 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
                 
                 repr_key = repr_mapping.get(edge.content_type)
                 if repr_key and repr_key in source_output.representations:
-                    logger.debug(
-                        f"Using '{repr_key}' representation for edge "
-                        f"{edge.source_node_id} -> {edge.target_node_id}"
-                    )
                     return source_output.representations[repr_key]
                 elif repr_key:
                     # Log warning for missing expected representation

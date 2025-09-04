@@ -1,4 +1,5 @@
 """Prepare init context from dynamically loaded spec files."""
+import ast
 import json
 from typing import Any, Dict, List
 
@@ -17,8 +18,22 @@ def prepare_init_context_from_specs(inputs: Dict[str, Any]) -> Dict[str, Any]:
     node_types = []
     
     # Handle case where db node passes data as 'default'
-    if 'default' in inputs and len(inputs) == 1:
-        inputs = inputs['default']
+    if 'default' in inputs:
+        default_value = inputs['default']
+        if isinstance(default_value, str):
+            # Parse the Python dict string to get the actual glob results
+            try:
+                # Try ast.literal_eval first (for Python dict format)
+                inputs = ast.literal_eval(default_value)
+            except (ValueError, SyntaxError):
+                # If that fails, try JSON
+                try:
+                    inputs = json.loads(default_value)
+                except json.JSONDecodeError:
+                    # If both fail, treat as empty
+                    inputs = {}
+        elif isinstance(default_value, dict):
+            inputs = default_value
     
     # Process each spec file
     for filename, ast_data in inputs.items():
