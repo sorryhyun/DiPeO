@@ -1,9 +1,8 @@
 """State management adapters bridging to domain ports."""
 
-from .state_adapter import StateRepositoryAdapter, StateServiceAdapter, StateCacheAdapter
+from .state_adapter import StateCacheAdapter, StateServiceAdapter
 
 __all__ = [
-    "StateRepositoryAdapter",
-    "StateServiceAdapter",
     "StateCacheAdapter",
+    "StateServiceAdapter",
 ]

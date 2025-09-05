@@ -1,3 +1,3 @@
 """Execution monitoring infrastructure."""
 
-__all__ = []
+__all__: list[str] = []

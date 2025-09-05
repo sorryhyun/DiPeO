@@ -611,11 +611,11 @@ def parse_handle_id(handle_id: str) -> tuple[NodeID, str, str]:
     parts = handle_id.split('_')
     if len(parts) < 3:
         raise ValueError(f"Invalid handle ID format: {handle_id}")
-    
+
     node_id = parts[0]
     direction = parts[-1]
     label = '_'.join(parts[1:-1])
-    
+
     return NodeID(node_id), label, direction
 
 def create_handle_id(node_id: NodeID, label: str, direction: str) -> HandleID:
