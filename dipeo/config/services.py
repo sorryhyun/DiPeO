@@ -1,22 +1,12 @@
 """Service configuration and utilities for DiPeO."""
 
-from enum import Enum
-from typing import Set
 from dipeo.diagram_generated import APIServiceType, LLMService
 
-
-class LLMServiceName(str, Enum):
-    """Canonical LLM service names used throughout DiPeO."""
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    CLAUDE_CODE = "claude-code"
-    GEMINI = "gemini"
-    GOOGLE = "google"
-    OLLAMA = "ollama"
-
+# Compatibility alias for LLMServiceName
+LLMServiceName = LLMService
 
 # Valid LLM service names (for backward compatibility)
-VALID_LLM_SERVICES: Set[str] = {item.value for item in LLMServiceName}
+VALID_LLM_SERVICES: set[str] = {item.value for item in LLMService}
 
 # Set of APIServiceType values that are LLM services
 LLM_SERVICE_TYPES: set[APIServiceType] = {
@@ -32,33 +22,33 @@ LLM_SERVICE_TYPES: set[APIServiceType] = {
 
 def normalize_service_name(service: str) -> str:
     """Normalize service name to canonical form.
-    
+
     Args:
         service: Service name to normalize
-        
+
     Returns:
         Normalized service name (LLMServiceName value)
     """
     normalized = service.lower().strip().replace("_", "-")
 
-    # Service aliases mapping to LLMServiceName values
+    # Service aliases mapping to LLMService values
     aliases = {
-        "claude": LLMServiceName.ANTHROPIC.value,
-        "claude-sdk": LLMServiceName.CLAUDE_CODE.value,
-        "claude-code": LLMServiceName.CLAUDE_CODE.value,
-        "chatgpt": LLMServiceName.OPENAI.value,
-        "gpt": LLMServiceName.OPENAI.value,
-        "gpt-4": LLMServiceName.OPENAI.value,
-        "gpt-3.5": LLMServiceName.OPENAI.value,
-        "google": LLMServiceName.GEMINI.value,
-        "gemini": LLMServiceName.GEMINI.value,
-        "llama": LLMServiceName.OLLAMA.value,
-        "mistral": LLMServiceName.OLLAMA.value,
-        "gemma": LLMServiceName.OLLAMA.value,
-        "phi": LLMServiceName.OLLAMA.value,
-        "openai": LLMServiceName.OPENAI.value,
-        "anthropic": LLMServiceName.ANTHROPIC.value,
-        "ollama": LLMServiceName.OLLAMA.value,
+        "claude": LLMService.ANTHROPIC.value,
+        "claude-sdk": LLMService.CLAUDE_CODE.value,
+        "claude-code": LLMService.CLAUDE_CODE.value,
+        "chatgpt": LLMService.OPENAI.value,
+        "gpt": LLMService.OPENAI.value,
+        "gpt-4": LLMService.OPENAI.value,
+        "gpt-3.5": LLMService.OPENAI.value,
+        "google": LLMService.GEMINI.value,
+        "gemini": LLMService.GEMINI.value,
+        "llama": LLMService.OLLAMA.value,
+        "mistral": LLMService.OLLAMA.value,
+        "gemma": LLMService.OLLAMA.value,
+        "phi": LLMService.OLLAMA.value,
+        "openai": LLMService.OPENAI.value,
+        "anthropic": LLMService.ANTHROPIC.value,
+        "ollama": LLMService.OLLAMA.value,
     }
 
     return aliases.get(normalized, normalized)
@@ -71,17 +61,17 @@ def is_llm_service(service: APIServiceType) -> bool:
 
 def api_service_type_to_llm_service(service: APIServiceType) -> LLMService:
     """Convert APIServiceType to LLMService.
-    
+
     Raises:
         ValueError: If the APIServiceType is not an LLM service
     """
     if not is_llm_service(service):
         raise ValueError(f'APIServiceType "{service.value}" is not an LLM service')
-    
+
     # Handle special cases
     if service == APIServiceType.GEMINI:
         return LLMService.GOOGLE
-    
+
     # Direct mapping for others
     return LLMService(service.value)
 

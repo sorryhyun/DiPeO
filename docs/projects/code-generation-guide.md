@@ -195,10 +195,19 @@ The staging directory (`diagram_generated_staged`) serves critical purposes:
    ```python
    # /dipeo/application/execution/handlers/my_node.py
    from dipeo.diagram_generated.models.my_node import MyNodeData
+   from dipeo.application.execution.handlers.base import TypedNodeHandler
+   from dipeo.domain.base.mixins import LoggingMixin, ValidationMixin
    
-   class MyNodeHandler(BaseNodeHandler[MyNodeData]):
-       async def execute(self, data: MyNodeData, context: ExecutionContext):
-           # Implementation
+   @register_handler
+   class MyNodeHandler(TypedNodeHandler[MyNodeData], LoggingMixin, ValidationMixin):
+       def prepare_inputs(self, inputs: dict, request: ExecutionRequest) -> dict:
+           # Transform raw inputs
+       
+       async def run(self, inputs: dict, request: ExecutionRequest) -> Any:
+           # Implementation using mixins for logging/validation
+       
+       def serialize_output(self, result: Any, request: ExecutionRequest) -> Envelope:
+           # Convert to Envelope
    ```
 
 3. **Run code generation**:
@@ -225,10 +234,11 @@ The staging directory (`diagram_generated_staged`) serves critical purposes:
    ```python
    # /projects/codegen/code/frontend/generators/query_generator_dipeo.py
    # In generate_diagram_queries() or similar method
+   # Note: Uses snake_case internally with Pydantic aliases for GraphQL compatibility
    
    queries.append("""query MyNewQuery($id: ID!) {
      diagram(id: $id) {
-       # Add fields
+       # Add fields (camelCase in GraphQL, snake_case in Python)
      }
    }""")
    ```
@@ -334,6 +344,16 @@ DiPeO uses Jinja2 templates with custom filters:
 - `Makefile` - Orchestrates the generation pipeline
 
 ## Architecture Notes
+
+### v1.0 Refactoring Completed
+
+The system has completed major architectural improvements:
+- **Mixin-based Services**: Optional composition instead of monolithic inheritance
+- **Unified EventBus**: Consolidated event protocols into single interface
+- **Direct Protocol Implementation**: Eliminated unnecessary adapter layers
+- **Enhanced Type Safety**: Improved Result types and JSON definitions
+- **Snake_case Naming**: Python follows conventions with Pydantic aliases for compatibility
+- **Generated Enums**: All enums now generated from TypeScript specifications
 
 ### Why Make Commands Over Master Diagrams
 

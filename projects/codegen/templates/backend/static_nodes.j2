@@ -17,31 +17,31 @@ class {{ nodeType | pascal_case }}Node:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
 {%- for field in fields %}
 {%- if field.required %}
-    {{ field.name }}: {{ field | python_type_with_context(nodeType) }}
+    {{ field.name | snake_case }}: {{ field | python_type_with_context(nodeType) }}
 {%- endif %}
 {%- endfor %}
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.{{ nodeType | replace('-', '_') | upper }}, init=False)
-    
+
     # Optional node-specific fields
 {%- for field in fields %}
 {%- if not field.required %}
 {%- if field.type in ['object', 'dict', 'json'] %}
-    {{ field.name }}: {{ field | python_type_with_context(nodeType) }} = field(default_factory=dict)
+    {{ field.name | snake_case }}: {{ field | python_type_with_context(nodeType) }} = field(default_factory=dict)
 {%- elif field.type in ['array', 'list'] %}
-    {{ field.name }}: {{ field | python_type_with_context(nodeType) }} = field(default_factory=list)
+    {{ field.name | snake_case }}: {{ field | python_type_with_context(nodeType) }} = field(default_factory=list)
 {%- else %}
-    {{ field.name }}: {{ field | python_type_with_context(nodeType) }} = {{ field | python_default }}
+    {{ field.name | snake_case }}: {{ field | python_type_with_context(nodeType) }} = {{ field | python_default }}
 {%- endif %}
 {%- endif %}
 {%- endfor %}
@@ -57,13 +57,13 @@ class {{ nodeType | pascal_case }}Node:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
 {%- for field in fields %}
 {%- if field.name == 'person' %}
         data["person"] = self.person
 {%- else %}
-        data["{{ field.name }}"] = self.{{ field.name }}
+        data["{{ field.name }}"] = self.{{ field.name | snake_case }}
 {%- endif %}
 {%- endfor %}
         return data

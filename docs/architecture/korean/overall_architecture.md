@@ -38,11 +38,25 @@ Top-level Container
 └── ApplicationContainer     # 오케스트레이터 & 유스케이스
 ```
 
-* **CoreContainer** – 밸리데이터, 프롬프트 빌더, 템플릿 엔진
-* **InfrastructureContainer** – 스토리지 어댑터, LLM 어댑터(도메인 LLM 서비스를 감쌈, API-키 서비스에서 키 소싱), 선택적 Notion / AST 어댑터(기본값 `None`)
+* **CoreContainer** – 밸리데이터, 프롬프트 빌더, 템플릿 엔진, 공통 기능용 믹스인
+* **InfrastructureContainer** – 스토리지 어댑터, LLM 어댑터, 통합 EventBus, 직접 서비스 구현
 * **ApplicationContainer** – 컴파일 파이프라인, 다이어그램 컨버터, 대화 & 사람 매니저, **`ExecuteDiagramUseCase`**
 
 세 컨테이너 모두 단일 **ServiceRegistry**를 공유하여 서비스 해석을 명시적이고 테스트 가능하게 만듭니다.
+
+### 서비스 아키텍처 패턴
+
+**믹스인 기반 서비스**: 서비스는 이제 단일 상속 대신 선택적 믹스인을 사용:
+- `LoggingMixin` - 데코레이터를 사용한 구조화된 로깅
+- `ValidationMixin` - 필드 및 타입 검증
+- `ConfigurationMixin` - 설정 관리
+- `CachingMixin` - TTL이 있는 인메모리 캐싱
+- `InitializationMixin` - 초기화 추적
+
+**직접 프로토콜 구현**: 불필요한 어댑터 레이어 제거:
+- `EventBasedStateStore`가 상태 프로토콜을 직접 구현
+- `PersonFactory`가 객체 생성 처리
+- `CleanInMemoryPersonRepository`는 순수 지속성에 집중
 
 ---
 
@@ -235,11 +249,12 @@ make dev-all
 
 시스템은 실행과 모니터링을 위해 완전한 이벤트 기반 아키텍처를 사용합니다:
 
-* **AsyncEventBus** – 발사 후 망각(fire-and-forget) 패턴의 중앙 이벤트 분배
-* **EventBasedStateStore** – 실행별 캐시를 가진 락-프리 상태 영속화
+* **통합 EventBus 프로토콜** – DomainEventBus, EventEmitter, EventConsumer, MessageBus를 단일 인터페이스로 통합
+* **EventBasedStateStore** – 실행별 캐시를 가진 락-프리 상태 영속화, 프로토콜을 직접 구현(어댑터 레이어 없음)
 * **GraphQL Subscriptions** – UI에 실시간 업데이트(SSE 대체)
 * **글로벌 락 없음** – 실행별 격리로 진정한 병렬 실행
-* **이벤트 타입** – 표준화된 이벤트(EXECUTION\_STARTED, NODE\_COMPLETED, 등)
+* **이벤트 타입** – TypeScript 사양에서 생성된 표준화된 이벤트
+* **하위 호환성** – 마이그레이션 중 래퍼 클래스를 통한 레거시 인터페이스 지원
 
 이 아키텍처는 다음을 가능케 합니다:
 
@@ -247,3 +262,4 @@ make dev-all
 * 경합 없는 진정한 병렬 실행
 * 이벤트 디커플링을 통한 관심사 명확 분리
 * 비동기 상태 영속화
+* 통합 프로토콜을 통한 단순화된 서비스 등록

@@ -30,12 +30,12 @@ class TypescriptAstNode:
     type: NodeType = field(default=NodeType.TYPESCRIPT_AST, init=False)
     
     # Optional node-specific fields
-    extractPatterns: List[Any] = field(default_factory=list)
-    includeJSDoc: bool = False
-    parseMode: Literal["module", "script"] = None
-    transformEnums: bool = False
-    flattenOutput: bool = False
-    outputFormat: Literal["standard", "for_codegen", "for_analysis"] = None
+    extract_patterns: List[Any] = field(default_factory=list)
+    include_js_doc: bool = False
+    parse_mode: Literal["module", "script"] = None
+    transform_enums: bool = False
+    flatten_output: bool = False
+    output_format: Literal["standard", "for_codegen", "for_analysis"] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -51,10 +51,10 @@ class TypescriptAstNode:
             
         # Add node-specific fields
         data["source"] = self.source
-        data["extractPatterns"] = self.extractPatterns
-        data["includeJSDoc"] = self.includeJSDoc
-        data["parseMode"] = self.parseMode
-        data["transformEnums"] = self.transformEnums
-        data["flattenOutput"] = self.flattenOutput
-        data["outputFormat"] = self.outputFormat
+        data["extractPatterns"] = self.extract_patterns
+        data["includeJSDoc"] = self.include_js_doc
+        data["parseMode"] = self.parse_mode
+        data["transformEnums"] = self.transform_enums
+        data["flattenOutput"] = self.flatten_output
+        data["outputFormat"] = self.output_format
         return data

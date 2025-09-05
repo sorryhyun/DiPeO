@@ -17,11 +17,11 @@ export enum SupportedLanguage {
 }
 
 export enum HttpMethod {
-  GET = 'GET',
-  POST = 'POST',
-  PUT = 'PUT',
-  DELETE = 'DELETE',
-  PATCH = 'PATCH'
+  GET = 'get',
+  POST = 'post',
+  PUT = 'put',
+  DELETE = 'delete',
+  PATCH = 'patch'
 }
 
 export enum HookType {

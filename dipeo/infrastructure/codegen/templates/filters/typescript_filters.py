@@ -418,14 +418,14 @@ class TypeScriptToPythonFilters:
             
             return 'string'  # Fallback if no values specified
         
-        return type_map.get(field_type.lower(), field_type)
+        return str(type_map.get(field_type.lower(), field_type))
     
     @classmethod
     def ui_field_type(cls, field: Dict[str, Any]) -> str:
         """Get UI field type from field definition."""
         ui_config = field.get('uiConfig', {})
         if 'inputType' in ui_config:
-            return ui_config['inputType']
+            return str(ui_config['inputType'])
         
         # Map field type to UI type
         field_type = field.get('type', 'string')
@@ -544,7 +544,7 @@ class TypeScriptToPythonFilters:
         return schema
     
     @classmethod
-    def escape_js(cls, value: str) -> str:
+    def escape_js(cls, value: Any) -> str:
         """Escape string for use in JavaScript."""
         if not isinstance(value, str):
             value = str(value)

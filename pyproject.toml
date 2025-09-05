@@ -115,10 +115,10 @@ dev = [
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.2",
     "pytest-cov",
-    
+
     # Type checking
     "mypy>=1.14.1",
-    
+
     # Code formatting and linting
     "ruff>=0.8.0",
     "black",
@@ -173,21 +173,100 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
-ignore = ["E501", "B008", "RUF012"]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "RUF", # Ruff-specific rules
+    "C90", # mccabe complexity
+    "PTH", # flake8-use-pathlib
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "RUF012", # Mutable class attributes should be annotated
+]
+
+[tool.ruff.lint.pep8-naming]
+# Enforce Python naming conventions
+classmethod-decorators = ["classmethod", "pydantic.validator", "pydantic.field_validator"]
+staticmethod-decorators = ["staticmethod"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+# Allow camelCase in generated files temporarily
+"dipeo/diagram_generated/*" = ["N"]
+"dipeo/diagram_generated_staged/*" = ["N"]
+"__generated__/*" = ["N"]
+"**/migrations/*" = ["N"]
 
 [tool.mypy]
 python_version = "3.13"
+
+# Gradual typing settings
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
-ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+# Start permissive, gradually enable stricter checks
+disallow_untyped_defs = false  # Will enable gradually per module
+disallow_untyped_calls = false  # Will enable gradually
+disallow_incomplete_defs = true
+disallow_untyped_decorators = false
+check_untyped_defs = true
+
+# Type checking behavior
+strict_optional = true
+strict_equality = true
+no_implicit_optional = true
+no_implicit_reexport = true
+
+# Error reporting
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+
+# Import handling
+ignore_missing_imports = true  # Gradually reduce
+follow_imports = "normal"
+namespace_packages = true
+
 exclude = [
     "__generated__",
     "generated",
     "dipeo/diagram_generated/",
     "dipeo/diagram_generated_staged/",
+    "projects/frontend_auto/generated/",
+    "projects/frontend_enhance/generated/",
+    "projects/.*/generated/",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
 ]
+
+# Per-module overrides for gradual adoption
+[[tool.mypy.overrides]]
+module = "dipeo.domain.*"
+disallow_untyped_defs = true
+disallow_untyped_calls = true
+
+[[tool.mypy.overrides]]
+module = "dipeo.application.registry.*"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
 
 [tool.black]
 line-length = 88
