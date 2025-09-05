@@ -4,6 +4,7 @@ This module loads parsed TypeScript AST data and transforms it into a format
 suitable for the Jinja2 template that generates GraphQL queries.
 """
 
+import ast
 import json
 from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
@@ -351,7 +352,21 @@ def prepare_query_data_for_template(inputs: Any) -> Dict[str, Any]:
         Dictionary with 'queries' list ready for template rendering
     """
     # Get the loaded data - connection is labeled 'ast_files' in diagram
-    loaded_data = inputs.get('ast_files', inputs.get('default', {})) if isinstance(inputs, dict) else inputs
+    raw_data = inputs.get('ast_files', inputs.get('default', {})) if isinstance(inputs, dict) else inputs
+    
+    # Parse string to dict if needed (DiPeO returns Python dict strings)
+    if isinstance(raw_data, str):
+        try:
+            # Try ast.literal_eval first (for Python dict format with single quotes)
+            loaded_data = ast.literal_eval(raw_data)
+        except (ValueError, SyntaxError):
+            # If that fails, try JSON
+            try:
+                loaded_data = json.loads(raw_data)
+            except json.JSONDecodeError:
+                loaded_data = {}
+    else:
+        loaded_data = raw_data if isinstance(raw_data, dict) else {}
     
     # Build ast_cache from loaded JSON files
     ast_cache = {}

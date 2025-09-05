@@ -4,6 +4,7 @@ Consolidates all field config generation logic into a single module.
 Handles glob inputs directly and generates field configurations for UI.
 """
 
+import ast
 import json
 import traceback
 from datetime import datetime
@@ -207,14 +208,40 @@ def extract_field_configs_core(ast_data: dict, mappings: dict) -> dict:
 def extract_field_configs(inputs: dict) -> dict:
     """Main entry point for the field config extractor - handles glob inputs directly"""
     # The diagram passes glob results as 'ast_files' and mappings as 'mappings'
-    glob_results = inputs.get('ast_files', {})
+    raw_glob = inputs.get('ast_files', {})
+    
+    # Parse string to dict if needed (DiPeO returns Python dict strings from glob)
+    if isinstance(raw_glob, str):
+        try:
+            # Try ast.literal_eval first (for Python dict format with single quotes)
+            glob_results = ast.literal_eval(raw_glob)
+        except (ValueError, SyntaxError):
+            # If that fails, try JSON
+            try:
+                glob_results = json.loads(raw_glob)
+            except json.JSONDecodeError:
+                glob_results = {}
+    else:
+        glob_results = raw_glob if isinstance(raw_glob, dict) else {}
     
     # Handle wrapped inputs (runtime resolver may wrap in 'default')
     if 'default' in glob_results and isinstance(glob_results['default'], dict):
         glob_results = glob_results['default']
     
     # Get mappings if provided
-    mappings = inputs.get('mappings', {})
+    raw_mappings = inputs.get('mappings', {})
+    
+    # Parse mappings if it's a string
+    if isinstance(raw_mappings, str):
+        try:
+            mappings = ast.literal_eval(raw_mappings)
+        except (ValueError, SyntaxError):
+            try:
+                mappings = json.loads(raw_mappings)
+            except json.JSONDecodeError:
+                mappings = {}
+    else:
+        mappings = raw_mappings if isinstance(raw_mappings, dict) else {}
     
     # Handle case where mappings might be wrapped in 'default'
     if 'default' in mappings and isinstance(mappings['default'], dict):

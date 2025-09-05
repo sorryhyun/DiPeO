@@ -62,10 +62,25 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             # Load and compile the diagram
             executable_diagram = await self._prepare_diagram(node, request)
             
-            # Create minimal in-memory execution state with isolated service registry
+            # Prepare inputs based on passInputData flag
+            sub_diagram_inputs = {}
+            if getattr(node, 'passInputData', False):
+                # Pass inputs from parent to sub-diagram when explicitly requested
+                sub_diagram_inputs = request.inputs if hasattr(request, 'inputs') else {}
+            
+            # Handle input_mapping if specified
+            if getattr(node, 'input_mapping', None):
+                # Apply input mapping to transform parent inputs
+                mapped_inputs = {}
+                for target_key, source_key in node.input_mapping.items():
+                    if source_key in (request.inputs if hasattr(request, 'inputs') else {}):
+                        mapped_inputs[target_key] = request.inputs[source_key]
+                sub_diagram_inputs = mapped_inputs
+            
+            # Create minimal in-memory execution state with prepared inputs
             execution_state = self._create_in_memory_state(
                 diagram=executable_diagram,
-                inputs=request.inputs
+                inputs=sub_diagram_inputs  # Use prepared inputs
             )
             
             # Run the engine without observers or state persistence
@@ -227,16 +242,16 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             node_states[str(node.id)] = node_state
         
         # Create execution state with proper variable handling
-        # Ensure variables is either None or a proper dict that matches the expected schema
-        variables = None
+        # Always isolate child scope: deep-copy so the child can't mutate parent vars
+        variables = {}
         if inputs:
             # If inputs has a 'default' key with nested dict, flatten it
             if 'default' in inputs and isinstance(inputs['default'], dict):
-                # Use the nested dict directly as variables
-                variables = inputs['default']
+                # Deep-copy the nested dict to isolate from parent
+                variables = copy.deepcopy(inputs['default'])
             elif inputs:
-                # Use inputs as-is if it's already a proper dict
-                variables = inputs
+                # Deep-copy inputs to isolate from parent
+                variables = copy.deepcopy(inputs)
         
         execution_state = ExecutionState(
             id=ExecutionID(f"lightweight_{uuid.uuid4().hex[:8]}"),

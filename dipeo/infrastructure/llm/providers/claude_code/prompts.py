@@ -59,7 +59,7 @@ Select the smallest, most useful subset of memory items to help answer the curre
 
 INPUT FORMAT
 - CANDIDATE MESSAGES (id (sender): snippet):
-  A list of messages with format: "- {id} ({sender}): {content_snippet}"
+  A list of messages with format: "- {{id}} ({{sender}}): {{content_snippet}}"
   Example: "- 45b137 (system): Analyze the requirements and create a file structure plan..."
 - TASK PREVIEW: 
   A preview of the upcoming task/prompt that will be executed

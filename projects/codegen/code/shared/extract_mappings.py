@@ -142,7 +142,13 @@ def extract_mappings(ast_data: dict) -> dict:
                     cleaned_value = {}
                     for k, v in value.items():
                         # Remove surrounding quotes from key (they're part of the string)
-                        clean_key = k.strip().strip("'\"")
+                        # Handle keys like "'start'" where quotes are embedded
+                        if k.startswith("'") and k.endswith("'"):
+                            clean_key = k[1:-1]  # Remove surrounding single quotes
+                        elif k.startswith('"') and k.endswith('"'):
+                            clean_key = k[1:-1]  # Remove surrounding double quotes
+                        else:
+                            clean_key = k.strip().strip("'\"")
                         # Also clean the value if it's a string with quotes
                         clean_value = v.strip().strip("'\"") if isinstance(v, str) else v
                         cleaned_value[clean_key] = clean_value
@@ -480,6 +486,14 @@ def extract_field_configs(interfaces: List[Dict], enums: List[Dict], mappings: D
 def main(inputs: dict) -> dict:
     """Main entry point for unified mappings and Zod schemas extraction."""
     from datetime import datetime
+    import json
+    
+    # First, handle if 'default' is a string (JSON) and parse it
+    if 'default' in inputs and isinstance(inputs['default'], str):
+        try:
+            inputs['default'] = json.loads(inputs['default'])
+        except json.JSONDecodeError:
+            print(f"Failed to parse JSON from 'default' input")
     
     # Check if we have multi-file input (new format)
     if 'default' in inputs and isinstance(inputs['default'], dict):
@@ -512,7 +526,13 @@ def main(inputs: dict) -> dict:
                             # Clean up the values - remove extra quotes from keys AND values
                             for k, v in value.items():
                                 # Remove surrounding quotes from key (they're part of the string)
-                                clean_key = k.strip().strip("'\"")
+                                # Handle keys like "'start'" where quotes are embedded
+                                if k.startswith("'") and k.endswith("'"):
+                                    clean_key = k[1:-1]  # Remove surrounding single quotes
+                                elif k.startswith('"') and k.endswith('"'):
+                                    clean_key = k[1:-1]  # Remove surrounding double quotes
+                                else:
+                                    clean_key = k.strip().strip("'\"")
                                 # Also clean the value if it's a string with quotes
                                 clean_value = v.strip().strip("'\"") if isinstance(v, str) else v
                                 node_interface_map[clean_key] = clean_value
@@ -573,7 +593,23 @@ def main(inputs: dict) -> dict:
     else:
         # Legacy format
         print("Processing as legacy format")
-        ast_data = inputs.get('default', {})
+        raw_data = inputs.get('default', {})
+        
+        # Handle wrapped AST format (when loaded from mappings.ts.json)
+        if isinstance(raw_data, dict) and 'ast' in raw_data:
+            # Extract the AST from the wrapper
+            ast_data = raw_data['ast']
+            print(f"Extracted AST from wrapped format, keys: {list(ast_data.keys()) if isinstance(ast_data, dict) else 'not a dict'}")
+        else:
+            # Use as-is if not wrapped
+            ast_data = raw_data
+            print(f"Using raw data as AST, type: {type(ast_data)}")
+        
+        # Validate that we have a dict before passing to extract_mappings
+        if not isinstance(ast_data, dict):
+            print(f"Warning: ast_data is not a dict, it's {type(ast_data)}. Converting to empty dict.")
+            ast_data = {}
+        
         mappings = extract_mappings(ast_data)
         return {
             'mappings': mappings,

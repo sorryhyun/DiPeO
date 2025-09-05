@@ -30,21 +30,12 @@ class BaseExecutableNode:
     id: NodeID
     position: Vec2
     
-    # Optional execution policy fields - can be set at compile time
-    join_policy: Optional[str] = None  # "all", "any", "k_of_n" - defaults to None for backward compatibility
-    join_k: Optional[int] = None  # For k_of_n policy
-    
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
         result = {
             "id": self.id,
             "position": {"x": self.position.x, "y": self.position.y}
         }
-        # Include join policy if set
-        if self.join_policy is not None:
-            result["join_policy"] = self.join_policy
-        if self.join_k is not None:
-            result["join_k"] = self.join_k
         # Subclasses should extend this
         return result
 
@@ -73,7 +64,7 @@ class {{ node_class.class_name }}(BaseExecutableNode):
 {%- if required_fields %}
     # Required node-specific fields
 {%- for field in required_fields %}
-    {{ field.py_name }}: {{ field.py_type }} = field()
+    {{ field.py_name }}: {{ field.py_type }}
 {%- endfor %}
 {%- endif %}
     # Type field with default
@@ -82,6 +73,9 @@ class {{ node_class.class_name }}(BaseExecutableNode):
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
+    # Optional execution policy fields
+    join_policy: Optional[str] = None  # "all", "any", "k_of_n"
+    join_k: Optional[int] = None  # For k_of_n policy
 {%- if optional_fields %}
     # Optional node-specific fields
 {%- for field in optional_fields %}
@@ -101,6 +95,11 @@ class {{ node_class.class_name }}(BaseExecutableNode):
         data["flipped"] = self.flipped
         if self.metadata:
             data["metadata"] = self.metadata
+        # Include join policy if set
+        if self.join_policy is not None:
+            data["join_policy"] = self.join_policy
+        if self.join_k is not None:
+            data["join_k"] = self.join_k
 {%- for field in node_class.fields %}
 {%- set field_name = field.py_name %}
 {%- set ts_name = field.ts_name %}
@@ -158,6 +157,8 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
+            join_policy=data.get("join_policy"),
+            join_k=data.get("join_k"),
 {%- for field in node_class.fields %}
 {%- set field_name = field.py_name %}
 {%- set ts_name = field.ts_name %}
@@ -185,6 +186,8 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
+            join_policy=data.get("join_policy"),
+            join_k=data.get("join_k"),
 {%- set person_job_node = classes | selectattr("node_type", "equalto", "person_job") | first %}
 {%- if person_job_node %}
 {%- for field in person_job_node.fields %}

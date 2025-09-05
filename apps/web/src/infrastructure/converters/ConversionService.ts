@@ -27,7 +27,7 @@ import {
   type NodeType,
   type ExecutionState,
   type NodeState,
-  type TokenUsage,
+  type LLMUsage,
   type ExecutionUpdate,
   type ContentType,
   Status,
@@ -421,7 +421,7 @@ export class Converters {
             started_at: nodeState.started_at,
             ended_at: nodeState.ended_at,
             error: nodeState.error,
-            token_usage: nodeState.token_usage as TokenUsage | null
+            llm_usage: nodeState.llm_usage as LLMUsage | null
           };
         }
       });
@@ -436,7 +436,7 @@ export class Converters {
       node_states: nodeStates,
       node_outputs: execution.node_outputs || {},
       variables: execution.variables || {},
-      token_usage: execution.token_usage as TokenUsage,
+      llm_usage: execution.llm_usage as LLMUsage,
       error: execution.error || null,
       exec_counts: {},
       executed_nodes: []

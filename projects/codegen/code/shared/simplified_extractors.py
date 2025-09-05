@@ -3,10 +3,30 @@ Simplified extractors that work directly with DB glob results.
 Eliminates intermediate extraction steps.
 """
 
+import ast
 import json
 import os
 from typing import Any, Dict, List
 from datetime import datetime
+
+
+def parse_string_to_dict(value: Any) -> Dict[str, Any]:
+    """
+    Parse a string value to dictionary if needed.
+    Handles both Python dict format (single quotes) and JSON format.
+    """
+    if isinstance(value, str):
+        try:
+            # Try ast.literal_eval first (for Python dict format)
+            return ast.literal_eval(value)
+        except (ValueError, SyntaxError):
+            # If that fails, try JSON
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                # If both fail, return empty dict
+                return {}
+    return value if isinstance(value, dict) else {}
 
 
 def extract_node_specs_from_glob(inputs: Dict[str, Any]) -> Dict[str, Any]:
@@ -20,8 +40,8 @@ def extract_node_specs_from_glob(inputs: Dict[str, Any]) -> Dict[str, Any]:
         Dictionary with 'node_specs' key containing list of specs
     """
     # Handle wrapped inputs (db node may wrap in 'default')
-    if 'default' in inputs and isinstance(inputs['default'], dict):
-        glob_results = inputs['default']
+    if 'default' in inputs:
+        glob_results = parse_string_to_dict(inputs['default'])
     else:
         glob_results = inputs
     
@@ -73,8 +93,8 @@ def extract_node_data_from_glob(inputs: Dict[str, Any]) -> Dict[str, Any]:
         Dictionary with 'node_data' organized by node type and the full glob results
     """
     # Handle wrapped inputs
-    if 'default' in inputs and isinstance(inputs['default'], dict):
-        glob_results = inputs['default']
+    if 'default' in inputs:
+        glob_results = parse_string_to_dict(inputs['default'])
     else:
         glob_results = inputs
     
@@ -222,8 +242,8 @@ def extract_models_from_glob(inputs: Dict[str, Any]) -> Dict[str, Any]:
         Dictionary with extracted model data for template processing
     """
     # Handle wrapped inputs
-    if 'default' in inputs and isinstance(inputs['default'], dict):
-        glob_results = inputs['default']
+    if 'default' in inputs:
+        glob_results = parse_string_to_dict(inputs['default'])
     else:
         glob_results = inputs
     
@@ -297,8 +317,8 @@ def prepare_graphql_schema_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
         Dictionary with GraphQL types ready for template processing
     """
     # Handle wrapped inputs
-    if 'default' in inputs and isinstance(inputs['default'], dict):
-        glob_results = inputs['default']
+    if 'default' in inputs:
+        glob_results = parse_string_to_dict(inputs['default'])
     else:
         glob_results = inputs
     
@@ -435,8 +455,8 @@ def prepare_zod_schemas_data(inputs: Dict[str, Any]) -> Dict[str, Any]:
         Dictionary with Zod schemas ready for template processing
     """
     # Handle wrapped inputs
-    if 'default' in inputs and isinstance(inputs['default'], dict):
-        glob_results = inputs['default']
+    if 'default' in inputs:
+        glob_results = parse_string_to_dict(inputs['default'])
     else:
         glob_results = inputs
     
@@ -498,14 +518,14 @@ def prepare_node_list_for_batch(inputs: Dict[str, Any]) -> List[Dict[str, str]]:
     Prepare node list for batch processing from glob-loaded spec files.
     
     Args:
-        inputs: Dict with file paths as keys from DB glob operation
+        inputs: Dict containing the glob results from DB operation
         
     Returns:
         List of dictionaries with node_spec_path for batch processing
     """
-    # Handle wrapped inputs
-    if 'default' in inputs and isinstance(inputs['default'], dict):
-        glob_results = inputs['default']
+    # The DB node with glob returns results as a Python dict string in 'default'
+    if 'default' in inputs:
+        glob_results = parse_string_to_dict(inputs['default'])
     else:
         glob_results = inputs
     
@@ -513,7 +533,7 @@ def prepare_node_list_for_batch(inputs: Dict[str, Any]) -> List[Dict[str, str]]:
     
     for filepath, ast_data in glob_results.items():
         # Skip special keys
-        if filepath in ['default', 'inputs', 'node_id']:
+        if filepath in ['default', 'inputs', 'node_id', 'globals']:
             continue
         
         # Check if this is a spec file (not index.ts.json)

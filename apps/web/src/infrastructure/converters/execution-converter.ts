@@ -12,7 +12,7 @@ import {
   type ExecutionState,
   type NodeState,
   type ExecutionUpdate,
-  type TokenUsage,
+  type LLMUsage,
   type SerializedNodeOutput,
   Status,
   EventType
@@ -57,7 +57,7 @@ export class ExecutionConverter {
             started_at: nodeState.started_at,
             ended_at: nodeState.ended_at,
             error: nodeState.error,
-            token_usage: nodeState.token_usage as TokenUsage | null
+            llm_usage: nodeState.llm_usage as LLMUsage | null
           };
         }
       });
@@ -72,7 +72,7 @@ export class ExecutionConverter {
       node_states: nodeStates,
       node_outputs: graphqlExecution.node_outputs || {},
       variables: graphqlExecution.variables || {},
-      token_usage: graphqlExecution.token_usage as TokenUsage,
+      llm_usage: graphqlExecution.llm_usage as LLMUsage,
       error: graphqlExecution.error,
       exec_counts: {},
       executed_nodes: []
@@ -141,7 +141,7 @@ export class ExecutionConverter {
           ? timestamp.toISOString() 
           : null,
         error: state.error || null,
-        token_usage: null
+        llm_usage: null
       };
       
       if (state.status === Status.FAILED) {
@@ -169,7 +169,7 @@ export class ExecutionConverter {
       node_states: nodeStates,
       node_outputs: {} as Record<string, SerializedNodeOutput>,
       variables: {},
-      token_usage: { input: 0, output: 0, cached: null, total: 0 },
+      llm_usage: { input: 0, output: 0, cached: null, total: 0 },
       error: null,
       exec_counts: {},
       executed_nodes: Array.from(storeExecution.nodeStates.keys())

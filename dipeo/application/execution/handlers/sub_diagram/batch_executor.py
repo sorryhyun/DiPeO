@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 
 from .base_executor import BaseSubDiagramExecutor
@@ -457,7 +458,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
             # Only process node completions and execution status
             if update_type == "NODE_STATUS_CHANGED":
                 data = update.get("data", {})
-                if data.get("status") == "COMPLETED":
+                if data.get("status") == Status.COMPLETED.value:
                     node_id = data.get("node_id")
                     node_output = data.get("output")
                     if node_id and node_output:
@@ -469,9 +470,9 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
             
             elif update_type == "EXECUTION_STATUS_CHANGED":
                 data = update.get("data", {})
-                if data.get("status") == "COMPLETED":
+                if data.get("status") == Status.COMPLETED.value:
                     break
-                elif data.get("status") == "FAILED":
+                elif data.get("status") == Status.FAILED.value:
                     execution_error = data.get("error")
                     if not execution_error:
                         # Try to get more context from the data

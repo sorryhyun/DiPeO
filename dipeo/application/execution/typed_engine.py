@@ -135,7 +135,7 @@ class TypedExecutionEngine:
                 context.set_execution_metadata(key, value)
             
             # Emit execution started event
-            await context.emit_execution_started()
+            await context.events.emit_execution_started()
             
             # Store interactive handler in service registry for handlers to access
             from dipeo.application.registry import ServiceKey
@@ -181,7 +181,7 @@ class TypedExecutionEngine:
             execution_path = [str(node_id) for node_id in context.state.get_completed_nodes()]
             from dipeo.diagram_generated import Status
             
-            await context.emit_execution_completed(
+            await context.events.emit_execution_completed(
                 status=Status.COMPLETED,
                 total_steps=step_count,
                 execution_path=execution_path
@@ -198,7 +198,7 @@ class TypedExecutionEngine:
             from dipeo.diagram_generated import Status
             
             if context:
-                await context.emit_execution_error(e)
+                await context.events.emit_execution_error(e)
             
             yield {
                 "type": "execution_error",
@@ -355,8 +355,12 @@ class TypedExecutionEngine:
         # Transition state
         context.state.transition_to_maxiter(node_id, output)
         
+        # Emit status changed event for UI (maxiter is treated as completed)
+        from dipeo.diagram_generated import Status
+        await context.events.emit_node_status_changed(node_id, Status.COMPLETED)
+        
         # Emit completion event for maxiter
-        await context.emit_node_completed(node, None, current_count)
+        await context.events.emit_node_completed(node, None, current_count)
         
         return {"value": "", "status": "MAXITER_REACHED"}
     
@@ -368,6 +372,10 @@ class TypedExecutionEngine:
         """Execute the node's handler."""
         with context.executing_node(node.id):
             exec_count = context.state.transition_to_running(node.id, context.current_epoch())
+            
+            # Emit status changed event for UI
+            from dipeo.diagram_generated import Status
+            await context.events.emit_node_status_changed(node.id, Status.RUNNING)
             
             # Get handler
             handler = self._get_handler(node.type)
@@ -389,6 +397,10 @@ class TypedExecutionEngine:
             output = await handler.pre_execute(request)
             if output is None:
                 output = await handler.execute_with_envelopes(request, inputs)
+            
+            # Call post_execute hook if handler defines it
+            if hasattr(handler, 'post_execute'):
+                output = handler.post_execute(request, output)
             
             return output
     
@@ -436,7 +448,7 @@ class TypedExecutionEngine:
         node: ExecutableNode
     ) -> None:
         """Emit node started event."""
-        await context.emit_node_started(node)
+        await context.events.emit_node_started(node)
     
     async def _emit_node_completed(
         self,
@@ -455,7 +467,7 @@ class TypedExecutionEngine:
                 envelope.meta['token_usage'] = token_usage
         
         exec_count = context.state.get_node_execution_count(node.id)
-        await context.emit_node_completed(node, envelope, exec_count)
+        await context.events.emit_node_completed(node, envelope, exec_count)
     
     async def _handle_node_failure(
         self,
@@ -469,8 +481,12 @@ class TypedExecutionEngine:
         # Transition to failed state
         context.state.transition_to_failed(node.id, str(error))
         
+        # Emit status changed event for UI
+        from dipeo.diagram_generated import Status
+        await context.events.emit_node_status_changed(node.id, Status.FAILED)
+        
         # Emit node failed event
-        await context.emit_node_error(node, error)
+        await context.events.emit_node_error(node, error)
     
     def _format_node_result(self, envelope: Any) -> dict[str, Any]:
         """Format envelope output for return."""
@@ -520,6 +536,10 @@ class TypedExecutionEngine:
         """Handle node completion and state transitions."""
         # All nodes complete normally - PersonJob max_iteration is handled in the handler
         context.state.transition_to_completed(node.id, envelope)
+        
+        # Emit status changed event for UI
+        from dipeo.diagram_generated import Status
+        await context.events.emit_node_status_changed(node.id, Status.COMPLETED)
     
     # DEPRECATED: This method is no longer needed as envelopes handle their own serialization
     # It can be removed once all references are updated

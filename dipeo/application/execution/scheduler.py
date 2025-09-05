@@ -247,9 +247,12 @@ class NodeScheduler:
             return  # Skip if not in token mode
         
         target = edge.target_node_id
-        
+
         # Check if the node has new inputs and can be armed
-        if self.context.has_new_inputs(target, epoch) and self._can_arm(target, epoch):
+        has_inputs = self.context.has_new_inputs(target, epoch)
+        can_arm = self._can_arm(target, epoch)
+
+        if has_inputs and can_arm:
             self._arm_and_enqueue(target, epoch)
     
     def _can_arm(self, node_id: NodeID, epoch: int) -> bool:

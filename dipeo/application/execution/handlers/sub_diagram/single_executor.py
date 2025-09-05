@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.generated_nodes import SubDiagramNode
 
 from dipeo.application.execution.handlers.sub_diagram.base_executor import BaseSubDiagramExecutor
@@ -50,8 +51,10 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
             domain_diagram = await self._load_diagram(node)
             
             # Prepare execution options
+            # Don't pass parent inputs to sub-diagram by default to avoid contamination
+            # Sub-diagrams should start with clean state unless explicitly configured
             options = {
-                "variables": request.inputs or {},
+                "variables": {},  # Empty variables by default
                 "parent_execution_id": request.execution_id,
                 "is_sub_diagram": True,
                 "metadata": {
@@ -278,7 +281,7 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         
         if update_type == "NODE_STATUS_CHANGED":
             data = update.get("data", {})
-            if data.get("status") == "COMPLETED":
+            if data.get("status") == Status.COMPLETED.value:
                 node_id = data.get("node_id")
                 node_output = data.get("output")
                 if node_id and node_output:
@@ -291,9 +294,9 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         
         elif update_type == "EXECUTION_STATUS_CHANGED":
             data = update.get("data", {})
-            if data.get("status") == "COMPLETED":
+            if data.get("status") == Status.COMPLETED.value:
                 return None, None, True
-            elif data.get("status") == "FAILED":
+            elif data.get("status") == Status.FAILED.value:
                 error = data.get("error") or f"Execution failed (node_id: {data.get('node_id', 'unknown')})"
                 return None, error, True
         

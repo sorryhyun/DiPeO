@@ -79,6 +79,18 @@ class SinglePersonJobExecutor:
         
         # Use inputs directly
         transformed_inputs = inputs
+        logger.debug(f"[PersonJob {node.label or node.id}] Raw inputs keys: {list(inputs.keys())}")
+        
+        # Extract values from Envelope objects for template processing
+        # The execution engine passes Envelope objects, but PromptBuilder expects plain values
+        extracted_inputs = {}
+        for key, value in transformed_inputs.items():
+            if hasattr(value, 'body'):  # It's an Envelope
+                extracted_inputs[key] = value.body
+            else:
+                extracted_inputs[key] = value
+        transformed_inputs = extracted_inputs
+        logger.debug(f"[PersonJob {node.label or node.id}] Extracted inputs keys: {list(extracted_inputs.keys())}")
         
         # Handle conversation inputs
         has_conversation_input = self._conversation_handler.has_conversation_input(transformed_inputs)

@@ -142,14 +142,29 @@ def extract_zod_schemas(ast_data: dict, mappings: dict) -> dict:
 
 def main(inputs: dict) -> dict:
     """Main entry point for Zod schemas extraction"""
+    import ast
     import json
     from pathlib import Path
     from datetime import datetime
     
     # Check if we have the new format (single input with multiple files)
-    if 'ast_files' in inputs and isinstance(inputs['ast_files'], dict):
-        # New format: dictionary where keys are file paths and values are file contents
-        file_dict = inputs['ast_files']
+    if 'ast_files' in inputs:
+        # Get the raw data
+        raw_files = inputs['ast_files']
+        
+        # Parse string to dict if needed (DiPeO returns Python dict strings from glob)
+        if isinstance(raw_files, str):
+            try:
+                # Try ast.literal_eval first (for Python dict format with single quotes)
+                file_dict = ast.literal_eval(raw_files)
+            except (ValueError, SyntaxError):
+                # If that fails, try JSON
+                try:
+                    file_dict = json.loads(raw_files)
+                except json.JSONDecodeError:
+                    file_dict = {}
+        else:
+            file_dict = raw_files if isinstance(raw_files, dict) else {}
         
         # Handle wrapped inputs (runtime resolver may wrap in 'default')
         if 'default' in file_dict and isinstance(file_dict['default'], dict):
@@ -178,11 +193,33 @@ def main(inputs: dict) -> dict:
         
         # Get mappings - the extract_mappings output comes through 'default' key
         # (because the connection from extract_mappings has label 'mappings' but arrives as 'default')
-        mappings = inputs.get('default', {})
+        raw_mappings = inputs.get('default', {})
+        
+        # Parse mappings if it's a string
+        if isinstance(raw_mappings, str):
+            try:
+                mappings = ast.literal_eval(raw_mappings)
+            except (ValueError, SyntaxError):
+                try:
+                    mappings = json.loads(raw_mappings)
+                except json.JSONDecodeError:
+                    mappings = {}
+        else:
+            mappings = raw_mappings if isinstance(raw_mappings, dict) else {}
         
         # If not found, check other possible locations
         if not mappings:
-            mappings = inputs.get('mappings', {})
+            raw_mappings = inputs.get('mappings', {})
+            if isinstance(raw_mappings, str):
+                try:
+                    mappings = ast.literal_eval(raw_mappings)
+                except (ValueError, SyntaxError):
+                    try:
+                        mappings = json.loads(raw_mappings)
+                    except json.JSONDecodeError:
+                        mappings = {}
+            else:
+                mappings = raw_mappings if isinstance(raw_mappings, dict) else {}
         
         # If still not found and we have 'inputs' dict, check there
         if not mappings and 'inputs' in inputs and isinstance(inputs['inputs'], dict):

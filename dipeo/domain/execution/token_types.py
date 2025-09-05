@@ -15,9 +15,10 @@ class EdgeRef:
     source_node_id: NodeID
     source_output: str | None
     target_node_id: NodeID
+    target_input: str | None = None  # Port name for the input (e.g., from connection label)
 
     def __hash__(self):
-        return hash((self.source_node_id, self.source_output, self.target_node_id))
+        return hash((self.source_node_id, self.source_output, self.target_node_id, self.target_input))
 
 
 @dataclass(frozen=True)

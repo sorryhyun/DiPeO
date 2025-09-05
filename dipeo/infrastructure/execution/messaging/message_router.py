@@ -522,6 +522,21 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                 }
                 await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
                 
+            elif event.type == EventType.NODE_STATUS_CHANGED:
+                # Handle NODE_STATUS_CHANGED events directly
+                ui_payload = {
+                    "type": "NODE_STATUS_CHANGED",
+                    "event_type": "NODE_STATUS_CHANGED",
+                    "execution_id": str(event.scope.execution_id),
+                    "data": {
+                        "node_id": event.scope.node_id,
+                        "status": event.meta.get("status") if event.meta else "UNKNOWN",
+                        "timestamp": event.occurred_at.isoformat()
+                    },
+                    "timestamp": event.occurred_at.isoformat()
+                }
+                await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
+                
             elif event.type in [EventType.NODE_STARTED, EventType.NODE_COMPLETED, EventType.NODE_ERROR]:
                 # Also emit NODE_STATUS_CHANGED for UI consistency
                 node_status = "RUNNING" if event.type == EventType.NODE_STARTED else \

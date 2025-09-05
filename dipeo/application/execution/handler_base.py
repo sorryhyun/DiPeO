@@ -46,10 +46,8 @@ class TokenHandlerMixin:
         
         # Use token inputs if available, otherwise fall back
         if token_inputs:
-            logger.debug(f"[TOKEN] Handler {node_id} consumed {len(token_inputs)} token inputs")
             return token_inputs
         else:
-            logger.debug(f"[TOKEN] Handler {node_id} using fallback inputs (no tokens available)")
             return fallback_inputs
     
     def emit_token_outputs(
@@ -73,7 +71,6 @@ class TokenHandlerMixin:
         
         # Emit as tokens on all outgoing edges
         context.emit_outputs_as_tokens(node_id, outputs)
-        logger.debug(f"[TOKEN] Handler {node_id} emitted output as tokens on port '{port}'")
 
 
 class TypedNodeHandler(Generic[T], TokenHandlerMixin, ABC):
@@ -279,10 +276,13 @@ class TypedNodeHandler(Generic[T], TokenHandlerMixin, ABC):
             # Step 3: Serialize output
             envelope = self.serialize_output(result, request)
             
-            # Step 4: Emit completion event if context supports it
-            if hasattr(request.context, 'emit_node_completed'):
+            # Step 4: Call post_execute hook
+            envelope = self.post_execute(request, envelope)
+            
+            # Step 5: Emit completion event if context supports it
+            if hasattr(request.context, 'events'):
                 exec_count = request.context.state.get_node_execution_count(request.node.id)
-                await request.context.emit_node_completed(
+                await request.context.events.emit_node_completed(
                     request.node,
                     envelope,
                     exec_count

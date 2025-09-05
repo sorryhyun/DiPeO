@@ -122,11 +122,7 @@ class LoadDiagramUseCase:
         else:
             # Default to examples directory
             file_path = f"examples/{diagram_name}{format_suffix}"
-        
-        logger.debug(
-            f"Constructed path: {file_path} "
-            f"for diagram: {diagram_name}, format: {diagram_format}"
-        )
+
         
         return file_path
     
