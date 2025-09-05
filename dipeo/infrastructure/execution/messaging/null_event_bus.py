@@ -1,14 +1,15 @@
 """Null event bus implementation for cases where event emission is not needed."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
-from dipeo.domain.events import DomainEventBus
+from dipeo.domain.events import EventBus
 from dipeo.domain.events.contracts import DomainEvent
 
 
-class NullEventBus(DomainEventBus):
+class NullEventBus(EventBus):
     """A no-op event bus that discards all events.
-    
+
     Used in scenarios where event emission is not needed,
     such as sub-diagram execution in isolation.
     """
@@ -35,16 +36,4 @@ class NullEventBus(DomainEventBus):
         self, event_type: type[DomainEvent], handler: Callable[[Any], None]
     ) -> None:
         """Ignore unsubscription requests."""
-        pass
-
-    async def emit(self, event: Any) -> None:
-        """Discard any event."""
-        pass
-
-    async def start(self) -> None:
-        """No-op start."""
-        pass
-
-    async def stop(self) -> None:
-        """No-op stop."""
         pass

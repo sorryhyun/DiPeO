@@ -32,9 +32,6 @@ from .filters import (
     NodeScopeFilter,
     SubDiagramFilter,
 )
-
-# Backward compatibility imports
-from .ports import DomainEventBus, EventConsumer, EventEmitter, MessageBus
 from .publisher import EventPublisher
 from .types import EventPriority, EventType, EventVersion
 from .unified_ports import EventBus, EventFilter, EventHandler, EventStore, EventSubscription
@@ -44,12 +41,8 @@ __all__ = [
     "CompositeFilter",
     # Core contracts
     "DomainEvent",
-    # Legacy Ports (deprecated - use EventBus)
-    "DomainEventBus",
     # Unified Ports
     "EventBus",
-    "EventConsumer",
-    "EventEmitter",
     "EventFilter",
     "EventHandler",
     "EventPayload",
@@ -70,7 +63,6 @@ __all__ = [
     "ExecutionScopeFilter",
     # Payloads
     "ExecutionStartedPayload",
-    "MessageBus",
     "MetricsCollectedPayload",
     "NodeCompletedPayload",
     "NodeErrorPayload",

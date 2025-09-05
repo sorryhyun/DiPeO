@@ -1,6 +1,6 @@
 """Event bus adapters for different infrastructure scenarios.
 
-This module provides concrete implementations of the DomainEventBus port:
+This module provides concrete implementations of the EventBus port:
 - InMemoryEventBus: For single-process applications
 - RedisEventBus: For distributed multi-worker deployments (TODO)
 """

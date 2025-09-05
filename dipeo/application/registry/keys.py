@@ -27,9 +27,6 @@ STATE_REPOSITORY = ServiceKey["ExecutionStateRepository"]("execution_state_repos
 STATE_SERVICE = ServiceKey["ExecutionStateService"]("execution_state_service")
 STATE_CACHE = ServiceKey["ExecutionCachePort"]("execution_state_cache")
 
-# LLM Services (from registry_tokens.py)
-# LLM_CLIENT = ServiceKey["LLMClient"]("llm_client")  # Removed - no longer needed
-# LLM_REGISTRY = ServiceKey["dict[str, LLMClient]"]("llm_registry")  # Removed - no longer needed
 MEMORY_SERVICE = ServiceKey["MemoryService"]("memory_service")
 
 # Storage Services
@@ -92,8 +89,6 @@ NOTION_CLIENT = ServiceKey["NotionClientPort"]("notion_client")
 # Validator Services
 DIAGRAM_VALIDATOR = ServiceKey["DiagramValidator"]("diagram_validator")  # Active
 
-# Deprecated validators removed in Phase 2 refactoring
-
 # Business Logic Services
 API_BUSINESS_LOGIC = ServiceKey["APIBusinessLogic"]("api_business_logic")
 FILE_BUSINESS_LOGIC = ServiceKey["FileBusinessLogic"]("file_business_logic")
@@ -114,18 +109,9 @@ PERSON_REPOSITORY = ServiceKey["PersonRepository"]("person_repository")
 
 # Registry Services
 NODE_REGISTRY = ServiceKey["HandlerRegistry"]("node_registry")
-# DOMAIN_SERVICE_REGISTRY removed - unused
-# API_KEY_STORAGE removed - unused
 
 
 __all__ = [
-    # Deprecated - to be removed
-    # "API_VALIDATOR",
-    # "FILE_VALIDATOR",
-    # "DATA_VALIDATOR",
-    # "EXECUTION_VALIDATOR",
-    # "NOTION_VALIDATOR",
-    # "LLM_VALIDATOR",
     # Business Logic
     "API_BUSINESS_LOGIC",
     "API_INVOKER",
@@ -173,9 +159,6 @@ __all__ = [
     # Core Infrastructure
     "LLM_SERVICE",
     "MEMORY_SELECTOR",
-    # LLM Services
-    # "LLM_CLIENT",  # Removed - no longer needed
-    # "LLM_REGISTRY",  # Removed - no longer needed
     "MEMORY_SERVICE",
     # Messaging Services
     "MESSAGE_BUS",
@@ -184,7 +167,6 @@ __all__ = [
     # Registry Services
     "NODE_REGISTRY",
     "NOTION_CLIENT",
-    # "NODE_OUTPUT_REPOSITORY",  # Removed - migrated to Envelope pattern
     "PERSON_REPOSITORY",
     "PREPARE_DIAGRAM_USE_CASE",
     "PROMPT_BUILDER",
@@ -198,6 +180,4 @@ __all__ = [
     "TEMPLATE_PROCESSOR",
     # Resolution Services
     "TRANSFORMATION_ENGINE",
-    # "DOMAIN_SERVICE_REGISTRY",  # Removed - unused
-    # "API_KEY_STORAGE",  # Removed - unused
 ]
