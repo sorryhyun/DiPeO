@@ -1,85 +1,90 @@
 """Domain events for execution lifecycle and monitoring."""
 
 from .contracts import (
+    PAYLOAD_BY_TYPE,
     DomainEvent,
+    EventPayload,
     EventScope,
-    # Payloads
-    ExecutionStartedPayload,
     ExecutionCompletedPayload,
     ExecutionErrorPayload,
-    NodeStartedPayload,
+    ExecutionLogPayload,
+    # Payloads
+    ExecutionStartedPayload,
+    MetricsCollectedPayload,
     NodeCompletedPayload,
     NodeErrorPayload,
     NodeOutputPayload,
-    MetricsCollectedPayload,
+    NodeStartedPayload,
     OptimizationSuggestedPayload,
     WebhookReceivedPayload,
-    ExecutionLogPayload,
-    EventPayload,
-    PAYLOAD_BY_TYPE,
-    # Factory functions
-    execution_started,
     execution_completed,
     execution_error,
-    node_started,
+    # Factory functions
+    execution_started,
     node_completed,
     node_error,
+    node_started,
 )
-
-from .ports import DomainEventBus, EventHandler, EventSubscription, EventEmitter, EventConsumer, MessageBus, EventFilter
-from .types import EventType, EventPriority, EventVersion
-from .publisher import EventPublisher
 from .filters import (
+    CompositeFilter,
+    EventTypeFilter,
     ExecutionScopeFilter,
     NodeScopeFilter,
-    EventTypeFilter,
-    CompositeFilter,
     SubDiagramFilter,
 )
 
+# Backward compatibility imports
+from .ports import DomainEventBus, EventConsumer, EventEmitter, MessageBus
+from .publisher import EventPublisher
+from .types import EventPriority, EventType, EventVersion
+from .unified_ports import EventBus, EventFilter, EventHandler, EventStore, EventSubscription
+
 __all__ = [
+    "PAYLOAD_BY_TYPE",
+    "CompositeFilter",
     # Core contracts
     "DomainEvent",
+    # Legacy Ports (deprecated - use EventBus)
+    "DomainEventBus",
+    # Unified Ports
+    "EventBus",
+    "EventConsumer",
+    "EventEmitter",
+    "EventFilter",
+    "EventHandler",
+    "EventPayload",
+    "EventPriority",
+    # Publisher
+    "EventPublisher",
     "EventScope",
-    # Payloads
-    "ExecutionStartedPayload",
+    "EventStore",
+    "EventSubscription",
+    # Types
+    "EventType",
+    "EventTypeFilter",
+    "EventVersion",
     "ExecutionCompletedPayload",
     "ExecutionErrorPayload",
-    "NodeStartedPayload",
+    "ExecutionLogPayload",
+    # Filters
+    "ExecutionScopeFilter",
+    # Payloads
+    "ExecutionStartedPayload",
+    "MessageBus",
+    "MetricsCollectedPayload",
     "NodeCompletedPayload",
     "NodeErrorPayload",
     "NodeOutputPayload",
-    "MetricsCollectedPayload",
+    "NodeScopeFilter",
+    "NodeStartedPayload",
     "OptimizationSuggestedPayload",
+    "SubDiagramFilter",
     "WebhookReceivedPayload",
-    "ExecutionLogPayload",
-    "EventPayload",
-    "PAYLOAD_BY_TYPE",
-    # Factory functions
-    "execution_started",
     "execution_completed",
     "execution_error",
-    "node_started",
+    # Factory functions
+    "execution_started",
     "node_completed",
     "node_error",
-    # Ports
-    "DomainEventBus",
-    "EventHandler",
-    "EventSubscription",
-    "EventEmitter",
-    "EventConsumer",
-    "MessageBus",
-    "EventFilter",
-    # Types
-    "EventType",
-    "EventPriority",
-    "EventVersion",
-    # Publisher
-    "EventPublisher",
-    # Filters
-    "ExecutionScopeFilter",
-    "NodeScopeFilter",
-    "EventTypeFilter",
-    "CompositeFilter",
-    "SubDiagramFilter",
+    "node_started",
 ]

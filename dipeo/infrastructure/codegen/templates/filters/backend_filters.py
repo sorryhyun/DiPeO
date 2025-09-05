@@ -85,7 +85,7 @@ class BackendFilters:
     @staticmethod
     def needs_field_alias(field: Dict[str, Any]) -> bool:
         """Check if field needs an alias due to name transformation."""
-        original = field.get('name', '')
+        original = str(field.get('name', ''))
         pythonized = BackendFilters.pythonize_name(original)
         return original != pythonized
     
@@ -340,7 +340,7 @@ class BackendFilters:
         
         # Check if type exists in provided mappings
         if mappings and 'ts_to_py_type' in mappings and field_type in mappings['ts_to_py_type']:
-            return mappings['ts_to_py_type'][field_type]
+            return str(mappings['ts_to_py_type'][field_type])
         
         # Special handling for PersonJob fields
         if node_type == 'person_job':

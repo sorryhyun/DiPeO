@@ -18,14 +18,16 @@ from ..integrations import *
 class {{ node_type_pascal }}NodeData(BaseModel):
     """Data model for {{ spec.displayName | default(node_type) }} node."""
 {%- if interface and interface.properties %}
-{%- for prop in interface.properties %}
-    {%- set prop_type = ts_to_python(prop.type, prop.name) %}
+{% for prop in interface.properties %}
+    {% set prop_type = ts_to_python(prop.type, prop.name) %}
+    {% set python_field_name = prop.name | snake_case -%}
+    {% set needs_alias = python_field_name != prop.name -%}
     {%- if prop.optional %}
-    {{ prop.name }}: Optional[{{ prop_type }}] = Field(default=None{% if prop.description %}, description="{{ prop.description }}"{% endif %})
+    {{ python_field_name }}: Optional[{{ prop_type }}] = Field({% if needs_alias %}alias="{{ prop.name }}", {% endif %}default=None{% if prop.description %}, description="{{ prop.description }}"{% endif %})
     {%- else %}
-    {{ prop.name }}: {{ prop_type }}{% if prop.description %} = Field(description="{{ prop.description }}"){% endif %}
+    {{ python_field_name }}: {{ prop_type }}{% if needs_alias %} = Field(alias="{{ prop.name }}"{% if prop.description %}, description="{{ prop.description }}"{% endif %}){% elif prop.description %} = Field(description="{{ prop.description }}"){% endif %}
     {%- endif %}
-{%- endfor %}
+{% endfor %}
 {%- else %}
     # No properties found for interface {{ interface_name }}
     pass

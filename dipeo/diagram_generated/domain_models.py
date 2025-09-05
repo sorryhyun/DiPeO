@@ -420,9 +420,9 @@ class CodeJobNodeData(BaseNodeData):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     language: SupportedLanguage = Field(description="Programming language: python, typescript, bash, or shell")
-    filePath: Optional[str] = Field(default=None, description="External code file path (e.g., \u0027files/code/processor.py\u0027)")
+    file_path: Optional[str] = Field(alias='filePath', default=None, description="External code file path (e.g., \u0027files/code/processor.py\u0027)")
     code: Optional[str] = Field(default=None, description="Inline code or path to external file")
-    functionName: Optional[str] = Field(default=None, description="Function to call in external file (required with filePath)")
+    function_name: Optional[str] = Field(alias='functionName', default=None, description="Function to call in external file (required with filePath)")
     timeout: Optional[int] = Field(default=None, description="Execution timeout in seconds (default: 60)")
 
 
@@ -548,10 +548,11 @@ class SubDiagramNodeData(BaseNodeData):
     diagram_name: Optional[str] = Field(default=None, description="Path to sub-diagram file")
     diagram_format: Optional[DiagramFormat] = Field(default=None, description="Diagram format: light or native (default: light)")
     diagram_data: Optional[JsonDict] = Field(default=None, description="Pass all current variables to sub-diagram")
+    pass_input_data: Optional[bool] = Field(alias='passInputData', default=None, description="Whether to pass input data from parent to sub-diagram (default: false)")
     batch: Optional[bool] = Field(default=None, description="Enable batch processing for arrays")
     batch_input_key: Optional[str] = Field(default=None, description="Array variable name for batch processing")
     batch_parallel: Optional[bool] = Field(default=None, description="Execute batch items in parallel")
-    ignoreIfSub: Optional[bool] = Field(default=None, description="Skip if already running as sub-diagram")
+    ignore_if_sub: Optional[bool] = Field(alias='ignoreIfSub', default=None, description="Skip if already running as sub-diagram")
 
 
 class TemplatePreprocessor(BaseModel):
@@ -581,12 +582,12 @@ class TypescriptAstNodeData(BaseNodeData):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
     
     source: Optional[str] = Field(default=None)
-    extractPatterns: Optional[List[str]] = Field(default=None)
-    includeJSDoc: Optional[bool] = Field(default=None)
-    parseMode: Optional[Literal["module", "script"]] = Field(default=None)
+    extract_patterns: Optional[List[str]] = Field(alias='extractPatterns', default=None)
+    include_js_doc: Optional[bool] = Field(alias='includeJSDoc', default=None)
+    parse_mode: Optional[Literal["module", "script"]] = Field(alias='parseMode', default=None)
     batch: Optional[bool] = Field(default=None)
     sources: Optional[Dict[str, str]] = Field(default=None)
-    batchInputKey: Optional[str] = Field(default=None)
+    batch_input_key: Optional[str] = Field(alias='batchInputKey', default=None)
 
 
 class UserResponseNodeData(BaseNodeData):
@@ -610,11 +611,11 @@ def parse_handle_id(handle_id: str) -> tuple[NodeID, str, str]:
     parts = handle_id.split('_')
     if len(parts) < 3:
         raise ValueError(f"Invalid handle ID format: {handle_id}")
-    
+
     node_id = parts[0]
     direction = parts[-1]
     label = '_'.join(parts[1:-1])
-    
+
     return NodeID(node_id), label, direction
 
 def create_handle_id(node_id: NodeID, label: str, direction: str) -> HandleID:

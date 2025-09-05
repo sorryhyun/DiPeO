@@ -12,9 +12,11 @@ from ..integrations import *
 
 class {{ nodeType | pascal_case }}NodeData(BaseModel):
     """Data model for {{ displayName | default(nodeType) }} node."""
-{%- for field in fields %}
-    {{ field.name }}: {% if field.required %}{{ field | python_type_with_context(nodeType) }}{% else %}Optional[{{ field | python_type_with_context(nodeType) }}]{% endif %}{% if field.description %} = Field(description="{{ field.description }}"){% elif not field.required %} = None{% endif %}
-{%- endfor %}
+{% for field in fields %}
+    {% set python_field_name = field.name | snake_case -%}
+    {% set needs_alias = python_field_name != field.name -%}
+    {{ python_field_name }}: {% if field.required %}{{ field | python_type_with_context(nodeType) }}{% else %}Optional[{{ field | python_type_with_context(nodeType) }}]{% endif %}{% if field.description or needs_alias %} = Field({% if needs_alias %}alias="{{ field.name }}"{% if field.description %}, {% endif %}{% endif %}{% if field.description %}description="{{ field.description }}"{% endif %}){% elif not field.required %} = None{% endif %}
+{% endfor %}
 
     class Config:
         extra = "forbid"

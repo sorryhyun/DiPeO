@@ -67,15 +67,17 @@ class {{ model_name }}({{ base_class }}):
     {%- set is_optional = prop.optional or (ts_type | is_optional_ts) -%}
     {%- set py_type = ts_type | ts_to_python(field_name, {'model': model_name, 'all_fields': interface.properties}) %}
     {%- set has_underscore = field_name.startswith('_') -%}
-    {%- set python_field_name = field_name[1:] if has_underscore else field_name -%}
+    {%- set python_field_name_raw = field_name[1:] if has_underscore else field_name -%}
+    {%- set python_field_name = python_field_name_raw | snake_case -%}
+    {%- set needs_alias = (python_field_name != field_name) or has_underscore -%}
     {%- if is_optional %}
     {%- if not py_type.startswith('Optional[') %}
-    {{ python_field_name }}: Optional[{{ py_type }}] = Field({% if has_underscore %}alias='{{ field_name }}', {% endif %}default=None{% if prop.description %}, description={{ prop.description | tojson }}{% endif %})
+    {{ python_field_name }}: Optional[{{ py_type }}] = Field({% if needs_alias %}alias='{{ field_name }}', {% endif %}default=None{% if prop.description %}, description={{ prop.description | tojson }}{% endif %})
     {%- else %}
-    {{ python_field_name }}: {{ py_type }} = Field({% if has_underscore %}alias='{{ field_name }}', {% endif %}default=None{% if prop.description %}, description={{ prop.description | tojson }}{% endif %})
+    {{ python_field_name }}: {{ py_type }} = Field({% if needs_alias %}alias='{{ field_name }}', {% endif %}default=None{% if prop.description %}, description={{ prop.description | tojson }}{% endif %})
     {%- endif -%}
     {%- else %}
-    {{ python_field_name }}: {{ py_type }}{% if prop.description or has_underscore %} = Field({% if has_underscore %}alias='{{ field_name }}'{% if prop.description %}, {% endif %}{% endif %}{% if prop.description %}description={{ prop.description | tojson }}{% endif %}){% endif %}
+    {{ python_field_name }}: {{ py_type }}{% if prop.description or needs_alias %} = Field({% if needs_alias %}alias='{{ field_name }}'{% if prop.description %}, {% endif %}{% endif %}{% if prop.description %}description={{ prop.description | tojson }}{% endif %}){% endif %}
     {%- endif -%}
     {%- endfor -%}
     {%- else %}
@@ -110,11 +112,11 @@ def parse_handle_id(handle_id: str) -> tuple[NodeID, str, str]:
     parts = handle_id.split('_')
     if len(parts) < 3:
         raise ValueError(f"Invalid handle ID format: {handle_id}")
-    
+
     node_id = parts[0]
     direction = parts[-1]
     label = '_'.join(parts[1:-1])
-    
+
     return NodeID(node_id), label, direction
 
 def create_handle_id(node_id: NodeID, label: str, direction: str) -> HandleID:

@@ -45,7 +45,7 @@ export enum ToolType {
 
 export enum ToolSelection {
   NONE = 'none',
-  IMAGE = 'image', 
+  IMAGE = 'image',
   WEBSEARCH = 'websearch'
 }
 
@@ -54,4 +54,16 @@ export enum AuthType {
   BEARER = 'bearer',
   BASIC = 'basic',
   API_KEY = 'api_key'
+}
+
+export enum RetryStrategy {
+  NONE = 'none',
+  LINEAR = 'linear',
+  EXPONENTIAL = 'exponential',
+  FIBONACCI = 'fibonacci',
+  CONSTANT = 'constant',
+  // Infrastructure-specific variants
+  EXPONENTIAL_BACKOFF = 'exponential_backoff',
+  LINEAR_BACKOFF = 'linear_backoff',
+  FIXED_DELAY = 'fixed_delay'
 }

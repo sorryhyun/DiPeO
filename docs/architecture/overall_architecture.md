@@ -38,11 +38,25 @@ Top-level Container
 └── ApplicationContainer     # Orchestrators & use-cases
 ```
 
-* **CoreContainer** – validator, prompt builder, template engine
-* **InfrastructureContainer** – storage adapter, LLM adapter (wraps domain LLM service, sources keys from the API-key service), optional Notion / AST adapters (default `None`)
+* **CoreContainer** – validator, prompt builder, template engine, mixins for common functionality
+* **InfrastructureContainer** – storage adapter, LLM adapter, unified EventBus, direct service implementations
 * **ApplicationContainer** – compilation pipeline, diagram converter, conversation & person managers, **`ExecuteDiagramUseCase`**
 
 All three share a single **ServiceRegistry**, making service resolution explicit and testable.
+
+### Service Architecture Patterns
+
+**Mixin-based Services**: Services now use optional mixins instead of monolithic inheritance:
+- `LoggingMixin` - structured logging with decorators
+- `ValidationMixin` - field and type validation
+- `ConfigurationMixin` - configuration management
+- `CachingMixin` - in-memory caching with TTL
+- `InitializationMixin` - initialization tracking
+
+**Direct Protocol Implementation**: Eliminated unnecessary adapter layers:
+- `EventBasedStateStore` directly implements state protocols
+- `PersonFactory` handles object construction
+- `CleanInMemoryPersonRepository` focuses purely on persistence
 
 ---
 
@@ -144,6 +158,7 @@ Envelopes are typed data containers that flow between nodes:
 - **Content Types**: `raw_text`, `object` (JSON), `conversation_state`, `error`
 - **Purpose**: Type-safe data passing with provenance tracking
 - **Factory**: `EnvelopeFactory.text()`, `.json()`, `.error()`, `.conversation()`
+- **Migration Complete**: All NodeOutput references migrated to Envelope pattern (`SerializedNodeOutput` is now an alias for `SerializedEnvelope`)
 
 ### Key Handler Examples
 
@@ -192,11 +207,12 @@ sequenceDiagram
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Languages**    | TypeScript 5 (pnpm + Vite) • Python 3.13                                                                                   |
 | **Front-end**    | React 19, @xyflow/react, Apollo Client, GraphQL-WS, TRPC, TanStack Query, Zustand, TailwindCSS, Zod                        |
-| **Back-end**     | FastAPI, Strawberry GraphQL, Hypercorn, Pydantic v2, Tenacity (retry), AsyncEventBus, Redis (optional for multi-worker)   |
-| **DI / IoC**     | Custom service-registry pattern (core / infra / app containers)                                                            |
+| **Back-end**     | FastAPI, Strawberry GraphQL, Hypercorn, Pydantic v2, Tenacity (retry), Unified EventBus, Redis (optional for multi-worker)   |
+| **DI / IoC**     | Custom service-registry pattern with mixin-based services and direct protocol implementations                                                            |
 | **LLM adapters** | OpenAI, Anthropic, Gemini (extensible)                                                                                     |
-| **Tooling**      | Ruff, Mypy, Makefile helpers                                                                                               |
-| **CI / tests**   | Pytest, Vitest, GitHub Actions (lint, type-check, e2e)                                                                     |
+| **Tooling**      | Ruff, Mypy, Makefile helpers, Pre-commit hooks                                                                                               |
+| **CI / tests**   | Pytest, Vitest, GitHub Actions (lint, type-check, e2e), Enhanced type safety with gradual mypy adoption                                                                     |
+| **Code Gen**     | TypeScript-to-Python generation with snake_case naming and Pydantic aliases for compatibility                                     |
 
 ---
 
@@ -230,14 +246,16 @@ For standalone Windows installations, use PyInstaller to create `.exe` files fro
 
 The system uses a fully event-driven architecture for execution and monitoring:
 
-* **AsyncEventBus** – Central event distribution with fire-and-forget pattern
-* **EventBasedStateStore** – Lock-free state persistence with per-execution caches
+* **Unified EventBus Protocol** – Consolidates DomainEventBus, EventEmitter, EventConsumer, and MessageBus into a single interface
+* **EventBasedStateStore** – Lock-free state persistence with per-execution caches, implements protocol directly (no adapter layer)
 * **GraphQL Subscriptions** – Real-time updates to UI (replaced SSE)
 * **No Global Locks** – Per-execution isolation enables true parallel execution
-* **Event Types** – Standardized events (EXECUTION_STARTED, NODE_COMPLETED, etc.)
+* **Event Types** – Standardized events generated from TypeScript specifications
+* **Backward Compatibility** – Legacy interfaces available through wrapper classes during migration
 
 This architecture enables:
 - Zero-impact monitoring (fire-and-forget events)
 - True parallel execution without contention
 - Clean separation of concerns via event decoupling
 - Asynchronous state persistence
+- Simplified service registration with unified protocols

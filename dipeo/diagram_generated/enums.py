@@ -84,62 +84,101 @@ class DiagramFormat(str, Enum):
 class Status(str, Enum):
     """Execution and event-related enumerations"""
     
-    PENDING = "PENDING"
+    PENDING = "pending"
     
-    RUNNING = "RUNNING"
+    RUNNING = "running"
     
-    PAUSED = "PAUSED"
+    PAUSED = "paused"
     
-    COMPLETED = "COMPLETED"
+    COMPLETED = "completed"
     
-    FAILED = "FAILED"
+    FAILED = "failed"
     
-    ABORTED = "ABORTED"
+    ABORTED = "aborted"
     
-    SKIPPED = "SKIPPED"
+    SKIPPED = "skipped"
     
-    MAXITER_REACHED = "MAXITER_REACHED"
+    MAXITER_REACHED = "maxiter_reached"
+    
+
+
+class FlowStatus(str, Enum):
+    """Flow control status for node execution"""
+    
+    WAITING = "waiting"
+    
+    READY = "ready"
+    
+    RUNNING = "running"
+    
+    BLOCKED = "blocked"
+    
+
+
+class CompletionStatus(str, Enum):
+    """Node execution completion status"""
+    
+    SUCCESS = "success"
+    
+    FAILED = "failed"
+    
+    SKIPPED = "skipped"
+    
+    MAX_ITER = "max_iter"
+    
+
+
+class ExecutionPhase(str, Enum):
+    """Execution phases for LLM and workflow operations"""
+    
+    MEMORY_SELECTION = "memory_selection"
+    
+    DIRECT_EXECUTION = "direct_execution"
+    
+    DECISION_EVALUATION = "decision_evaluation"
+    
+    DEFAULT = "default"
     
 
 
 class EventType(str, Enum):
     """EventType enum values"""
     
-    EXECUTION_STARTED = "EXECUTION_STARTED"
+    EXECUTION_STARTED = "execution_started"
     
-    EXECUTION_COMPLETED = "EXECUTION_COMPLETED"
+    EXECUTION_COMPLETED = "execution_completed"
     
-    EXECUTION_ERROR = "EXECUTION_ERROR"
+    EXECUTION_ERROR = "execution_error"
     
-    EXECUTION_STATUS_CHANGED = "EXECUTION_STATUS_CHANGED"
+    EXECUTION_STATUS_CHANGED = "execution_status_changed"
     
-    NODE_STARTED = "NODE_STARTED"
+    NODE_STARTED = "node_started"
     
-    NODE_COMPLETED = "NODE_COMPLETED"
+    NODE_COMPLETED = "node_completed"
     
-    NODE_ERROR = "NODE_ERROR"
+    NODE_ERROR = "node_error"
     
-    NODE_OUTPUT = "NODE_OUTPUT"
+    NODE_OUTPUT = "node_output"
     
-    NODE_STATUS_CHANGED = "NODE_STATUS_CHANGED"
+    NODE_STATUS_CHANGED = "node_status_changed"
     
-    NODE_PROGRESS = "NODE_PROGRESS"
+    NODE_PROGRESS = "node_progress"
     
-    METRICS_COLLECTED = "METRICS_COLLECTED"
+    METRICS_COLLECTED = "metrics_collected"
     
-    OPTIMIZATION_SUGGESTED = "OPTIMIZATION_SUGGESTED"
+    OPTIMIZATION_SUGGESTED = "optimization_suggested"
     
-    WEBHOOK_RECEIVED = "WEBHOOK_RECEIVED"
+    WEBHOOK_RECEIVED = "webhook_received"
     
-    INTERACTIVE_PROMPT = "INTERACTIVE_PROMPT"
+    INTERACTIVE_PROMPT = "interactive_prompt"
     
-    INTERACTIVE_RESPONSE = "INTERACTIVE_RESPONSE"
+    INTERACTIVE_RESPONSE = "interactive_response"
     
-    EXECUTION_UPDATE = "EXECUTION_UPDATE"
+    EXECUTION_UPDATE = "execution_update"
     
-    EXECUTION_LOG = "EXECUTION_LOG"
+    EXECUTION_LOG = "execution_log"
     
-    KEEPALIVE = "KEEPALIVE"
+    KEEPALIVE = "keepalive"
     
 
 
@@ -226,6 +265,27 @@ class AuthType(str, Enum):
     
 
 
+class RetryStrategy(str, Enum):
+    """RetryStrategy enum values"""
+    
+    NONE = "none"
+    
+    LINEAR = "linear"
+    
+    EXPONENTIAL = "exponential"
+    
+    FIBONACCI = "fibonacci"
+    
+    CONSTANT = "constant"
+    
+    EXPONENTIAL_BACKOFF = "exponential_backoff"
+    
+    LINEAR_BACKOFF = "linear_backoff"
+    
+    FIXED_DELAY = "fixed_delay"
+    
+
+
 class DBBlockSubType(str, Enum):
     """Node-specific enumerations"""
     
@@ -255,15 +315,15 @@ class SupportedLanguage(str, Enum):
 class HttpMethod(str, Enum):
     """HttpMethod enum values"""
     
-    GET = "GET"
+    GET = "get"
     
-    POST = "POST"
+    POST = "post"
     
-    PUT = "PUT"
+    PUT = "put"
     
-    DELETE = "DELETE"
+    DELETE = "delete"
     
-    PATCH = "PATCH"
+    PATCH = "patch"
     
 
 
@@ -348,6 +408,30 @@ class NodeType(str, Enum):
     
 
 
+class Severity(str, Enum):
+    """Validation and priority-related enumerations"""
+    
+    ERROR = "error"
+    
+    WARNING = "warning"
+    
+    INFO = "info"
+    
+
+
+class EventPriority(str, Enum):
+    """Event processing priority levels"""
+    
+    LOW = "low"
+    
+    NORMAL = "normal"
+    
+    HIGH = "high"
+    
+    CRITICAL = "critical"
+    
+
+
 
 # Export all enums
 __all__ = [
@@ -364,6 +448,12 @@ __all__ = [
     
     "Status",
     
+    "FlowStatus",
+    
+    "CompletionStatus",
+    
+    "ExecutionPhase",
+    
     "EventType",
     
     "LLMService",
@@ -375,6 +465,8 @@ __all__ = [
     "ToolSelection",
     
     "AuthType",
+    
+    "RetryStrategy",
     
     "DBBlockSubType",
     
@@ -391,5 +483,9 @@ __all__ = [
     "TemplateEngine",
     
     "NodeType",
+    
+    "Severity",
+    
+    "EventPriority",
     
 ]
