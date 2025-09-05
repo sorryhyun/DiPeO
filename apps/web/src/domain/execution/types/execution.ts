@@ -7,7 +7,7 @@ import {
 // Re-export canonical types that don't need adaptation
 export type { 
   PersonMemoryMessage,
-  TokenUsage,
+  LLMUsage,
 } from '@dipeo/models';
 
 // Export the already imported enums and types

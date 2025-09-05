@@ -23,7 +23,7 @@ export function toDomainNodeState(nodeState: StoreNodeState): DomainNodeState {
     started_at: new Date(nodeState.timestamp).toISOString(),
     ended_at: null,
     error: nodeState.error || null,
-    token_usage: null,
+    llm_usage: null,
   };
 }
 

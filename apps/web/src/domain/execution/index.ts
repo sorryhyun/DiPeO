@@ -87,7 +87,7 @@ export {
   Status
 } from './types/execution';
 export type {
-  TokenUsage,
+  LLMUsage,
   InteractivePromptData
 } from './types/execution';
 

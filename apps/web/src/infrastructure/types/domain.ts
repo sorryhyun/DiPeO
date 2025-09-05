@@ -76,7 +76,7 @@ export type {
 
 // Execution Types
 export type {
-  TokenUsage,
+  LLMUsage,
   NodeState,
   ExecutionState,
   ExecutionOptions,
