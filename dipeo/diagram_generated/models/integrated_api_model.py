@@ -1,8 +1,8 @@
 # Auto-generated Pydantic model for integrated_api node
 
 from typing import *
-from pydantic import *
 
+from pydantic import *
 
 from ..enums import *
 from ..integrations import *

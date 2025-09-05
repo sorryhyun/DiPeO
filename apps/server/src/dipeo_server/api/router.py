@@ -36,7 +36,7 @@ def setup_routes(app: FastAPI):
 
     graphql_router = create_graphql_router(context_getter=get_request_context)
     app.include_router(graphql_router, prefix="")
-    
+
     # Include webhook router
     app.include_router(webhook_router)
 

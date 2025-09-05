@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
@@ -38,28 +37,28 @@ class SubDiagramNodeData(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    batch: Optional[bool] = Field(
+    batch: bool | None = Field(
         None, description='Enable batch processing for arrays'
     )
-    batch_input_key: Optional[str] = Field(
+    batch_input_key: str | None = Field(
         None, description='Array variable name for batch processing'
     )
-    batch_parallel: Optional[bool] = Field(
+    batch_parallel: bool | None = Field(
         None, description='Execute batch items in parallel'
     )
-    diagram_data: Optional[JsonDict] = Field(
+    diagram_data: JsonDict | None = Field(
         None, description='Pass all current variables to sub-diagram'
     )
-    diagram_format: Optional[DiagramFormat] = Field(
+    diagram_format: DiagramFormat | None = Field(
         None, description='Diagram format: light or native (default: light)'
     )
-    diagram_name: Optional[str] = Field(None, description='Path to sub-diagram file')
-    flipped: Optional[bool] = None
-    ignoreIfSub: Optional[bool] = Field(
+    diagram_name: str | None = Field(None, description='Path to sub-diagram file')
+    flipped: bool | None = None
+    ignoreIfSub: bool | None = Field(
         None, description='Skip if already running as sub-diagram'
     )
     label: str
-    passInputData: Optional[bool] = Field(
+    passInputData: bool | None = Field(
         None,
         description='Whether to pass input data from parent to sub-diagram (default: false)',
     )

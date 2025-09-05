@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from dipeo.config import FILES_DIR, PROJECTS_DIR, EXAMPLES_DIR
+from dipeo.config import EXAMPLES_DIR, FILES_DIR, PROJECTS_DIR
 
 
 class DiagramLoader:
@@ -14,7 +14,7 @@ class DiagramLoader:
     @staticmethod
     def resolve_diagram_path(diagram: str, format_type: str | None = None) -> str:
         """Resolve diagram path based on format type.
-        
+
         Search order:
         1. Check as-is (for absolute paths or direct references)
         2. Check in projects/ directory (new default)
@@ -31,22 +31,22 @@ class DiagramLoader:
             # Check if it exists as-is
             if Path(diagram).exists():
                 return diagram
-            
+
             # Try with projects/ prefix first
             path_with_projects = PROJECTS_DIR / diagram
             if path_with_projects.exists():
                 return str(path_with_projects)
-            
+
             # Try with examples/ prefix
             path_with_examples = EXAMPLES_DIR / diagram
             if path_with_examples.exists():
                 return str(path_with_examples)
-            
+
             # Try with files/ prefix for backward compatibility
             path_with_files = FILES_DIR / diagram
             if path_with_files.exists():
                 return str(path_with_files)
-            
+
             # If it starts with files/, projects/, or examples/, also try resolving from project root
             if diagram.startswith(("files/", "projects/", "examples/")):
                 return str(FILES_DIR.parent / diagram)
@@ -63,7 +63,11 @@ class DiagramLoader:
             search_dirs = [EXAMPLES_DIR]  # Only search in examples/
         else:
             diagram_path = diagram
-            search_dirs = [PROJECTS_DIR, EXAMPLES_DIR, FILES_DIR]  # Search all, projects first
+            search_dirs = [
+                PROJECTS_DIR,
+                EXAMPLES_DIR,
+                FILES_DIR,
+            ]  # Search all, projects first
 
         if not format_type:
             # Try to find the diagram with known extensions
@@ -93,7 +97,7 @@ class DiagramLoader:
             path = search_dir / f"{diagram_path}{ext}"
             if path.exists():
                 return str(path)
-        
+
         # If not found, return the path in the first search directory
         # (for creating new diagrams)
         return str(search_dirs[0] / f"{diagram_path}{ext}")

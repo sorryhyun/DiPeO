@@ -1,38 +1,35 @@
-
-import json
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.handler_base import TypedNodeHandler
+from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import EXECUTION_CONTEXT
-from dipeo.diagram_generated.generated_nodes import UserResponseNode, NodeType
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.diagram_generated.generated_nodes import NodeType, UserResponseNode
 from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
-    from dipeo.domain.execution.execution_context import ExecutionContext
+    pass
 
 
 @register_handler
 class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     """Handler for interactive user input.
-    
+
     Now uses envelope-based communication for clean input/output interfaces.
     """
+
     NODE_TYPE = NodeType.USER_RESPONSE
-    
-    
+
     def __init__(self):
         super().__init__()
-
 
     @property
     def node_class(self) -> type[UserResponseNode]:
         return UserResponseNode
-    
+
     @property
     def node_type(self) -> str:
         return NodeType.USER_RESPONSE.value
@@ -40,29 +37,26 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     @property
     def schema(self) -> type[BaseModel]:
         return UserResponseNodeData
-    
 
     @property
     def description(self) -> str:
         return "Interactive node that prompts for user input"
 
     async def prepare_inputs(
-        self,
-        request: ExecutionRequest[UserResponseNode],
-        inputs: dict[str, Envelope]
+        self, request: ExecutionRequest[UserResponseNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
         """Convert envelope inputs to context for user prompt.
-        
+
         Phase 5: Now consumes tokens from incoming edges when available.
         """
         # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
         envelope_inputs = self.consume_token_inputs(request, inputs)
-        
+
         # Convert envelope inputs to text for context
         input_context = None
         if envelope_inputs:
             # Check for default input first
-            if default_envelope := self.get_optional_input(envelope_inputs, 'default'):
+            if default_envelope := self.get_optional_input(envelope_inputs, "default"):
                 try:
                     input_context = default_envelope.as_json()
                 except ValueError:
@@ -76,21 +70,17 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
                     except ValueError:
                         input_data[key] = envelope.as_text()
                 input_context = input_data
-        
+
         return {"input_context": input_context}
-    
-    async def run(
-        self,
-        inputs: dict[str, Any],
-        request: ExecutionRequest[UserResponseNode]
-    ) -> Any:
+
+    async def run(self, inputs: dict[str, Any], request: ExecutionRequest[UserResponseNode]) -> Any:
         """Execute user response interaction."""
         node = request.node
         context = request.context
-        
+
         # Get input context from prepared inputs
         input_context = inputs.get("input_context")
-        
+
         # Get execution context from ServiceRegistry
         exec_context = request.services.resolve(EXECUTION_CONTEXT)
         if (
@@ -106,61 +96,48 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
             response = await exec_context.interactive_handler(
                 {
                     "type": "user_input_required",
-                    "node_id": getattr(context, 'current_node_id', 'unknown'),
+                    "node_id": getattr(context, "current_node_id", "unknown"),
                     "prompt": message,
                     "timeout": node.timeout,
                 }
             )
 
             return {"response": response, "has_handler": True}
-        
+
         # Return empty response when no handler available
         return {"response": "", "has_handler": False}
-    
+
     def serialize_output(
-        self,
-        result: Any,
-        request: ExecutionRequest[UserResponseNode]
+        self, result: Any, request: ExecutionRequest[UserResponseNode]
     ) -> Envelope:
         """Serialize user response to envelope."""
         node = request.node
         trace_id = request.execution_id or ""
-        
+
         response = result.get("response", "")
         has_handler = result.get("has_handler", False)
-        
+
         if has_handler:
             # Create output envelope with response
             output_envelope = EnvelopeFactory.text(
-                response,
-                produced_by=node.id,
-                trace_id=trace_id
-            ).with_meta(
-                user_response=response
-            )
+                response, produced_by=node.id, trace_id=trace_id
+            ).with_meta(user_response=response)
         else:
             # Return empty response when no handler available
             output_envelope = EnvelopeFactory.text(
-                "",
-                produced_by=node.id,
-                trace_id=trace_id
-            ).with_meta(
-                warning="No interactive handler available",
-                user_response=""
-            )
-        
+                "", produced_by=node.id, trace_id=trace_id
+            ).with_meta(warning="No interactive handler available", user_response="")
+
         return output_envelope
-    
+
     def post_execute(
-        self,
-        request: ExecutionRequest[UserResponseNode],
-        output: Envelope
+        self, request: ExecutionRequest[UserResponseNode], output: Envelope
     ) -> Envelope:
         """Post-execution hook to emit tokens.
-        
+
         Phase 5: Now emits output as tokens to trigger downstream nodes.
         """
         # Phase 5: Emit output as tokens to trigger downstream nodes
         self.emit_token_outputs(request, output)
-        
+
         return output

@@ -5,7 +5,6 @@ import logging
 from typing import Any
 
 import aiohttp
-
 from dipeo.domain.base.exceptions import ServiceError
 from dipeo.domain.base.storage_port import BlobStorePort as FileServicePort
 from dipeo.domain.integrations.api_services import APIBusinessLogic
@@ -14,11 +13,8 @@ log = logging.getLogger(__name__)
 
 
 class APIService:
-
     def __init__(
-        self, 
-        business_logic: APIBusinessLogic,
-        file_service: FileServicePort | None = None
+        self, business_logic: APIBusinessLogic, file_service: FileServicePort | None = None
     ):
         self.business_logic = business_logic
         self.file_service = file_service
@@ -40,12 +36,12 @@ class APIService:
         data: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
         timeout: float = 30.0,
-        auth: dict[str, str] | None = None
+        auth: dict[str, str] | None = None,
     ) -> tuple[int, dict[str, Any], dict[str, str]]:
         """Execute single HTTP request.
-        
+
         This is the core I/O operation that performs the actual HTTP call.
-        
+
         Args:
             method: HTTP method (GET, POST, etc.)
             url: Target URL
@@ -53,28 +49,23 @@ class APIService:
             headers: Request headers
             timeout: Request timeout in seconds
             auth: Authentication credentials
-            
+
         Returns:
             Tuple of (status_code, response_data, response_headers)
-            
+
         Raises:
             ServiceError: On request failures
         """
         session = await self._ensure_session()
-        
+
         config = self.business_logic.build_request_config(
-            method=method,
-            url=url,
-            data=data,
-            headers=headers,
-            timeout=timeout,
-            auth=auth
+            method=method, url=url, data=data, headers=headers, timeout=timeout, auth=auth
         )
-        
+
         auth_obj = None
         if "auth" in config:
             auth_obj = aiohttp.BasicAuth(config["auth"][0], config["auth"][1])
-        
+
         try:
             async with session.request(
                 method=config["method"],
@@ -82,16 +73,16 @@ class APIService:
                 json=config.get("json"),
                 headers=config.get("headers"),
                 timeout=aiohttp.ClientTimeout(total=config["timeout"]),
-                auth=auth_obj
+                auth=auth_obj,
             ) as response:
                 try:
                     response_data = await response.json()
                 except Exception:
                     response_data = {"text": await response.text()}
-                    
+
                 response_headers = dict(response.headers)
                 return response.status, response_data, response_headers
-                
+
         except TimeoutError:
             raise ServiceError(f"Request timed out after {timeout}s")
         except aiohttp.ClientError as e:
@@ -109,12 +100,12 @@ class APIService:
         retry_delay: float = 1.0,
         timeout: float = 30.0,
         auth: dict[str, str] | None = None,
-        expected_status_codes: list[int] | None = None
+        expected_status_codes: list[int] | None = None,
     ) -> dict[str, Any]:
         """Execute API call with retry logic.
-        
+
         Uses domain service to determine retry strategy and delays.
-        
+
         Args:
             url: Target URL
             method: HTTP method
@@ -125,48 +116,43 @@ class APIService:
             timeout: Request timeout
             auth: Authentication credentials
             expected_status_codes: List of acceptable status codes
-            
+
         Returns:
             Response data dictionary
-            
+
         Raises:
             ServiceError: After all retries exhausted
         """
         for attempt in range(max_retries):
             try:
                 status, response_data, response_headers = await self.execute_request(
-                    method=method,
-                    url=url,
-                    data=data,
-                    headers=headers,
-                    timeout=timeout,
-                    auth=auth
+                    method=method, url=url, data=data, headers=headers, timeout=timeout, auth=auth
                 )
-                
+
                 try:
                     self.business_logic.validate_api_response(
                         status_code=status,
                         response_data=response_data,
-                        expected_status_codes=expected_status_codes
+                        expected_status_codes=expected_status_codes,
                     )
                     return response_data
                 except ServiceError:
                     if not self.business_logic.should_retry(status, attempt, max_retries):
                         raise
-                    
+
                 rate_limit_info = self.business_logic.extract_rate_limit_info(response_headers)
                 delay = self.business_logic.calculate_retry_delay(
                     attempt=attempt,
                     base_delay=retry_delay,
-                    retry_after=rate_limit_info.get("retry_after")
+                    retry_after=rate_limit_info.get("retry_after"),
                 )
-                
+
                 log.warning(
                     f"Request failed with status {status}, "
                     f"retrying in {delay}s (attempt {attempt + 1}/{max_retries})"
                 )
                 await asyncio.sleep(delay)
-                
+
             except ServiceError:
                 raise
             except Exception as e:
@@ -179,43 +165,41 @@ class APIService:
                     await asyncio.sleep(delay)
                     continue
                 raise ServiceError(f"Request failed after {max_retries} attempts: {e}")
-                
+
         raise ServiceError(f"Request failed after {max_retries} attempts")
 
     async def execute_workflow(
-        self,
-        workflow: dict[str, Any],
-        initial_context: dict[str, Any] | None = None
+        self, workflow: dict[str, Any], initial_context: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Execute multi-step API workflow.
-        
+
         Executes a series of API calls with variable substitution and
         conditional logic between steps.
-        
+
         Args:
             workflow: Workflow definition with steps
             initial_context: Initial variable context
-            
+
         Returns:
             Dictionary of step results
-            
+
         Raises:
             ServiceError: On workflow failures
         """
         results = {}
         context = initial_context or {}
-        
+
         for step in workflow.get("steps", []):
             self.business_logic.validate_workflow_step(step)
-            
+
             step_name = step["name"]
-            
+
             try:
                 url = self.business_logic.substitute_variables(step["url"], context)
                 step_data = None
                 if step.get("data"):
                     step_data = self.business_logic.substitute_variables(step["data"], context)
-                    
+
                 result = await self.execute_with_retry(
                     url=url,
                     method=step.get("method", "GET"),
@@ -223,20 +207,18 @@ class APIService:
                     headers=step.get("headers"),
                     max_retries=step.get("max_retries", 3),
                     timeout=step.get("timeout", 30.0),
-                    auth=step.get("auth")
+                    auth=step.get("auth"),
                 )
-                
+
                 if success_condition := step.get("success_condition"):
                     if not self.business_logic.evaluate_condition(success_condition, result):
                         raise ServiceError(
                             f"Step '{step_name}' failed success condition: {success_condition}"
                         )
-                        
-                results = self.business_logic.merge_workflow_results(
-                    results, step_name, result
-                )
+
+                results = self.business_logic.merge_workflow_results(results, step_name, result)
                 context[step_name] = result
-                
+
             except Exception as e:
                 if step.get("continue_on_error", False):
                     log.error(f"Step '{step_name}' failed but continuing: {e}")
@@ -245,7 +227,7 @@ class APIService:
                     )
                 else:
                     raise ServiceError(f"Workflow failed at step '{step_name}': {e}")
-                    
+
         return results
 
     async def save_response(
@@ -253,34 +235,33 @@ class APIService:
         response_data: dict[str, Any],
         file_path: str,
         format: str = "json",
-        include_metadata: bool = True
+        include_metadata: bool = True,
     ) -> None:
         """Save API response to file.
-        
+
         Uses the injected file service to persist responses.
-        
+
         Args:
             response_data: Response data to save
             file_path: Target file path
             format: Output format (json, yaml, etc.)
             include_metadata: Whether to include metadata
-            
+
         Raises:
             ServiceError: If file service not available
         """
         if not self.file_service:
             raise ServiceError("File service required for saving responses")
-            
+
         formatted_content = self.business_logic.format_api_response(
             response_data=response_data,
             format=format,
             include_metadata=include_metadata,
-            metadata={
-                "saved_at": asyncio.get_event_loop().time(),
-                "format": format
-            } if include_metadata else None
+            metadata={"saved_at": asyncio.get_event_loop().time(), "format": format}
+            if include_metadata
+            else None,
         )
-        
+
         await self.file_service.write(file_path, formatted_content)
 
     async def __aenter__(self):

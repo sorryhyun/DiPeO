@@ -1,9 +1,10 @@
 """Adapters that bridge existing API infrastructure to new domain ports."""
 
-from typing import Any, Optional
+from datetime import datetime
+from typing import Any
 
-from dipeo.domain.integrations.ports import ApiInvoker as IntegratedApiServicePort
 from dipeo.domain.integrations import ApiInvoker, ApiProvider, ApiProviderRegistry
+from dipeo.domain.integrations.ports import ApiInvoker as IntegratedApiServicePort
 from dipeo.infrastructure.integrations.drivers.integrated_api.service import IntegratedApiService
 
 
@@ -16,43 +17,43 @@ class ApiProviderRegistryAdapter(ApiProviderRegistry):
 
     async def initialize(self) -> None:
         """Initialize the service."""
-        if hasattr(self._service, 'initialize'):
+        if hasattr(self._service, "initialize"):
             await self._service.initialize()
 
     async def register_provider(self, provider_name: str, provider_instance: ApiProvider) -> None:
         """Register a new API provider."""
         self._providers[provider_name] = provider_instance
-        
+
         # Also register with underlying service if it supports it
-        if hasattr(self._service, 'register_provider'):
+        if hasattr(self._service, "register_provider"):
             await self._service.register_provider(provider_name, provider_instance)
 
     async def unregister_provider(self, provider_name: str) -> None:
         """Unregister an API provider."""
         self._providers.pop(provider_name, None)
-        
-        if hasattr(self._service, 'unregister_provider'):
+
+        if hasattr(self._service, "unregister_provider"):
             await self._service.unregister_provider(provider_name)
 
-    def get_provider(self, provider_name: str) -> Optional[ApiProvider]:
+    def get_provider(self, provider_name: str) -> ApiProvider | None:
         """Get a registered provider by name."""
         return self._providers.get(provider_name)
 
     def list_providers(self) -> list[str]:
         """List all registered provider names."""
         # Get from underlying service if available
-        if hasattr(self._service, 'list_providers'):
+        if hasattr(self._service, "list_providers"):
             return self._service.list_providers()
         return list(self._providers.keys())
 
-    def get_provider_manifest(self, provider_name: str) -> Optional[dict]:
+    def get_provider_manifest(self, provider_name: str) -> dict | None:
         """Get provider manifest with capabilities and schemas."""
         provider = self._providers.get(provider_name)
         if provider:
             return provider.manifest
-        
+
         # Try underlying service
-        if hasattr(self._service, 'get_provider_manifest'):
+        if hasattr(self._service, "get_provider_manifest"):
             return self._service.get_provider_manifest(provider_name)
         return None
 
@@ -67,9 +68,9 @@ class ApiInvokerAdapter(ApiInvoker):
         self,
         provider: str,
         operation: str,
-        config: Optional[dict[str, Any]] = None,
-        resource_id: Optional[str] = None,
-        api_key_id: Optional[str] = None,
+        config: dict[str, Any] | None = None,
+        resource_id: str | None = None,
+        api_key_id: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 3,
     ) -> dict[str, Any]:
@@ -87,15 +88,15 @@ class ApiInvokerAdapter(ApiInvoker):
         self,
         provider: str,
         operation: str,
-        config: Optional[dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
     ) -> bool:
         """Validate if an operation can be executed."""
         try:
             # Try to get the provider and check if operation is supported
-            if hasattr(self._service, 'get_provider_capabilities'):
+            if hasattr(self._service, "get_provider_capabilities"):
                 capabilities = await self._service.get_provider_capabilities(provider)
                 return operation in capabilities.get("operations", [])
-            
+
             # Fallback: try to prepare the request and see if it succeeds
             await self.prepare_request(provider, operation, config)
             return True
@@ -106,8 +107,8 @@ class ApiInvokerAdapter(ApiInvoker):
         self,
         provider: str,
         operation: str,
-        config: Optional[dict[str, Any]] = None,
-        api_key_id: Optional[str] = None,
+        config: dict[str, Any] | None = None,
+        api_key_id: str | None = None,
     ) -> dict[str, Any]:
         """Prepare request with auth headers and transformed config."""
         # This would typically transform the config and add auth headers
@@ -117,15 +118,15 @@ class ApiInvokerAdapter(ApiInvoker):
             "config": config or {},
             "headers": {},
         }
-        
+
         # Add auth if available
-        if api_key_id and hasattr(self._service, 'api_key_service'):
+        if api_key_id and hasattr(self._service, "api_key_service"):
             try:
                 api_key = self._service.api_key_service.get_api_key(api_key_id)
                 prepared["headers"]["Authorization"] = f"Bearer {api_key['key']}"
             except Exception:
                 pass
-        
+
         return prepared
 
     async def map_response(
@@ -138,7 +139,7 @@ class ApiInvokerAdapter(ApiInvoker):
         # Standard response mapping
         if isinstance(response, dict):
             return response
-        
+
         return {
             "success": True,
             "data": response,
@@ -182,15 +183,15 @@ class SimpleApiProvider(ApiProvider):
     async def execute(
         self,
         operation: str,
-        config: Optional[dict[str, Any]] = None,
-        resource_id: Optional[str] = None,
-        headers: Optional[dict[str, str]] = None,
+        config: dict[str, Any] | None = None,
+        resource_id: str | None = None,
+        headers: dict[str, str] | None = None,
         timeout: float = 30.0,
     ) -> Any:
         """Execute an operation."""
         if operation not in self.supported_operations:
             raise ValueError(f"Operation {operation} not supported")
-        
+
         # Simple echo implementation
         if operation == "echo":
             return config or {"echo": "response"}
@@ -198,21 +199,15 @@ class SimpleApiProvider(ApiProvider):
             return {"status": "pong", "timestamp": str(datetime.now())}
         elif operation == "test":
             return {"success": True, "data": config}
-        
+
         return {"operation": operation, "config": config}
 
-    async def validate_config(
-        self, operation: str, config: Optional[dict[str, Any]] = None
-    ) -> bool:
+    async def validate_config(self, operation: str, config: dict[str, Any] | None = None) -> bool:
         """Validate operation configuration."""
         return operation in self.supported_operations
 
-    def get_operation_schema(self, operation: str) -> Optional[dict]:
+    def get_operation_schema(self, operation: str) -> dict | None:
         """Get JSON schema for operation configuration."""
         if operation in self.supported_operations:
             return self.manifest["schemas"].get(operation)
         return None
-
-
-# Import datetime for the provider
-from datetime import datetime

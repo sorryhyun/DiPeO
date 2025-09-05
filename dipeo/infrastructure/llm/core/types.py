@@ -115,7 +115,7 @@ class DecisionOutput(BaseModel):
     """Structured output model for decision evaluation phase."""
 
     decision: bool
-    reasoning: str | None = None
+    # reasoning: str | None = None
 
 
 @dataclass

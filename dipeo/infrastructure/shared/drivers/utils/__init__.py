@@ -9,9 +9,9 @@ from .file_lock import (
 from .single_flight_cache import SingleFlightCache
 
 __all__ = [
-    "SingleFlightCache",
-    "FileLock",
     "AsyncFileLock",
     "CacheFileLock",
+    "FileLock",
+    "SingleFlightCache",
     "get_cache_lock_manager",
 ]

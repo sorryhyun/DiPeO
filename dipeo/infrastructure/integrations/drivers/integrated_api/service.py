@@ -1,16 +1,15 @@
 """Integrated API service implementation."""
 
 import logging
-from typing import Any, Optional
-from pathlib import Path
+from typing import Any
 
 from dipeo.domain.base import BaseService, ServiceError
 from dipeo.domain.integrations.ports import ApiInvoker as IntegratedApiServicePort
-from dipeo.domain.integrations.ports import ApiProvider as ApiProviderPort
 from dipeo.domain.integrations.ports import APIKeyPort
+from dipeo.domain.integrations.ports import ApiProvider as ApiProviderPort
 
-from .registry import ProviderRegistry
 from .generic_provider import GenericHTTPProvider
+from .registry import ProviderRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 class IntegratedApiService(BaseService, IntegratedApiServicePort):
     """Service that manages multiple API providers through a unified interface."""
 
-    def __init__(self, api_service=None, api_key_port: Optional[APIKeyPort] = None):
+    def __init__(self, api_service=None, api_key_port: APIKeyPort | None = None):
         super().__init__()
         self._api_service = api_service  # For providers that need APIService
         self._api_key_port = api_key_port  # For resolving API keys
@@ -40,7 +39,7 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
 
         # Load providers from entry points
         await self._load_entrypoint_providers()
-        
+
         # Load MCP providers
         await self._load_mcp_providers()
 
@@ -54,33 +53,33 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
             "integrations/**/provider.yml",
             "integrations/**/provider.json",
         ]
-        
+
         for pattern in manifest_locations:
             try:
                 await self.provider_registry.load_manifests(pattern)
             except Exception as e:
                 logger.debug(f"No manifests found at {pattern}: {e}")
-    
+
     async def _load_entrypoint_providers(self) -> None:
         """Load providers from Python package entry points."""
         try:
             await self.provider_registry.load_entrypoints("dipeo.integrations")
         except Exception as e:
             logger.debug(f"No entry point providers found: {e}")
-    
+
     async def _load_mcp_providers(self) -> None:
         """Load MCP (Model Context Protocol) providers."""
         try:
             from .mcp_registry import get_mcp_registry
-            
+
             logger.info("Loading MCP providers")
-            
+
             # Get the MCP registry and initialize it
             mcp_registry = await get_mcp_registry()
-            
+
             # Create an MCP provider with all registered tools
             mcp_provider = mcp_registry.create_provider("mcp")
-            
+
             # Register the MCP provider with the main registry
             await self.provider_registry.register(
                 "mcp",
@@ -88,19 +87,19 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
                 metadata={
                     "type": "mcp",
                     "description": "MCP Tool Provider",
-                    "tools_count": len(mcp_provider.supported_operations)
-                }
+                    "tools_count": len(mcp_provider.supported_operations),
+                },
             )
-            
+
             # Also register individual MCP tool providers if they exist
             # This allows using specific tool sets like mcp_browser, mcp_filesystem
             for category in ["browser", "filesystem"]:
                 category_tools = mcp_registry.get_tools_by_category(category)
                 if category_tools:
                     from .providers.mcp_provider import MCPProvider
+
                     category_provider = MCPProvider(
-                        provider_name=f"mcp_{category}",
-                        tools=category_tools
+                        provider_name=f"mcp_{category}", tools=category_tools
                     )
                     await category_provider.initialize()
                     await self.provider_registry.register(
@@ -110,20 +109,22 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
                             "type": "mcp",
                             "category": category,
                             "description": f"MCP {category.title()} Tools",
-                            "tools_count": len(category_tools)
-                        }
+                            "tools_count": len(category_tools),
+                        },
                     )
-            
+
             logger.info(f"Loaded MCP providers with {len(mcp_provider.supported_operations)} tools")
-            
+
         except ImportError as e:
             logger.debug(f"MCP providers not available: {e}")
         except Exception as e:
             logger.error(f"Error loading MCP providers: {e}")
 
-    async def register_provider(self, provider_name: str, provider_instance: ApiProviderPort) -> None:
+    async def register_provider(
+        self, provider_name: str, provider_instance: ApiProviderPort
+    ) -> None:
         """Register a new API provider.
-        
+
         This method is kept for backward compatibility.
         New code should use provider_registry.register() directly.
         """
@@ -137,7 +138,7 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
         resource_id: str | None = None,
         api_key: str | None = None,
         timeout: float = 30.0,
-        max_retries: int = 3
+        max_retries: int = 3,
     ) -> dict[str, Any]:
         """Execute an operation on a specific provider."""
         # Ensure service is initialized
@@ -177,7 +178,7 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
                     config=config,
                     resource_id=resource_id,
                     api_key=api_key,
-                    timeout=timeout
+                    timeout=timeout,
                 )
             except ServiceError:
                 # Don't retry on service errors (usually validation issues)
@@ -185,9 +186,7 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
             except Exception as e:
                 last_error = e
                 if attempt < max_retries - 1:
-                    logger.warning(
-                        f"Operation failed (attempt {attempt + 1}/{max_retries}): {e}"
-                    )
+                    logger.warning(f"Operation failed (attempt {attempt + 1}/{max_retries}): {e}")
                     # Simple exponential backoff could be added here
                     continue
 
@@ -210,10 +209,7 @@ class IntegratedApiService(BaseService, IntegratedApiServicePort):
         return provider_instance.supported_operations
 
     async def validate_operation(
-        self,
-        provider: str,
-        operation: str,
-        config: dict[str, Any] | None = None
+        self, provider: str, operation: str, config: dict[str, Any] | None = None
     ) -> bool:
         """Validate if an operation is supported and properly configured."""
         # Check if provider exists

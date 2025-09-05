@@ -52,8 +52,8 @@ def determine_field_type(field: dict[str, Any], interface_name: str) -> dict[str
             field_info["type"] = "JSONScalar"
     # Check for LLM usage
     elif "LLMUsage" in type_str:
-        field_info["type"] = "LLMUsageType" if field_info["is_optional"] else "LLMUsageType"
-        field_info["is_auto"] = False if field_info["is_optional"] else True
+        field_info["type"] = "LLMUsageType"
+        field_info["is_auto"] = not field_info["is_optional"]
     # Check for timestamp fields (can be string or number)
     elif field["name"] == "timestamp":
         field_info["is_json"] = True

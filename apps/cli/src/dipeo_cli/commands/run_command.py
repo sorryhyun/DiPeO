@@ -2,7 +2,6 @@
 
 import json
 import time
-import webbrowser
 from pathlib import Path
 from typing import Any
 
@@ -37,9 +36,9 @@ class RunCommand:
                 log_level="DEBUG",
                 log_to_file=True,
                 log_dir=".logs",
-                console_output=False  # Avoid duplicate console output
+                console_output=False,  # Avoid duplicate console output
             )
-        
+
         # Resolve diagram path
         diagram_path = self.loader.resolve_diagram_path(diagram, format_type)
         print(f"📄 Loading diagram: {diagram_path}")
@@ -62,7 +61,7 @@ class RunCommand:
         print("🔄 Executing diagram...")
         if input_variables:
             print(f"📥 With input variables: {json.dumps(input_variables, indent=2)}")
-        
+
         execution_id = None
         try:
             result = self.server.execute_diagram(
@@ -87,6 +86,7 @@ class RunCommand:
             print(f"❌ Error during execution: {e}")
             if debug:
                 import traceback
+
                 traceback.print_exc()
             return False
         finally:
@@ -94,11 +94,13 @@ class RunCommand:
             # Unregister CLI session if we have an execution_id
             if execution_id:
                 self.server.unregister_cli_session(execution_id)
-            
+
             # Stop the server
             self.server.stop()
 
-    def _wait_for_completion(self, execution_id: str, timeout: int, debug: bool) -> bool:
+    def _wait_for_completion(
+        self, execution_id: str, timeout: int, debug: bool
+    ) -> bool:
         """Poll for execution completion."""
         print(f"\n⏳ Waiting for execution to complete (timeout: {timeout}s)...")
         start_time = time.time()

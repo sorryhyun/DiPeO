@@ -5,6 +5,6 @@ from .null_event_bus import NullEventBus
 
 __all__ = [
     "MessageRouter",
-    "message_router",
     "NullEventBus",
+    "message_router",
 ]

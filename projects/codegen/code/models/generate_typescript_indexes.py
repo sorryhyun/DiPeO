@@ -1,7 +1,7 @@
 """Generate both core/nodes/index.ts and specifications/nodes/index.ts files."""
 import os
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 def camel_to_snake(name: str) -> str:
@@ -35,20 +35,20 @@ def get_registry_key_from_filename(filename: str) -> str:
     return base_name.replace('-', '_')
 
 
-def generate_node_data_index(base_dir: Path) -> Dict[str, Any]:
+def generate_node_data_index(base_dir: Path) -> dict[str, Any]:
     """Generate the core/nodes/index.ts file."""
     node_data_dir = base_dir / 'dipeo' / 'models' / 'src' / 'core' / 'nodes'
     output_path = node_data_dir / 'index.ts'
-    
+
     # Find all .data.ts files
     data_files = sorted([
         f.name for f in node_data_dir.glob('*.data.ts')
         if f.name != 'index.ts'
     ])
-    
+
     if not data_files:
         return {'error': 'No data files found', 'output_path': str(output_path)}
-    
+
     # Generate export statements
     exports = [
         "// Auto-generated file. Do not edit manually.",
@@ -56,18 +56,18 @@ def generate_node_data_index(base_dir: Path) -> Dict[str, Any]:
         "",
         "export * from './base.js';"
     ]
-    
+
     for data_file in data_files:
         import_path = f"./{data_file.replace('.ts', '.js')}"
         exports.append(f"export * from '{import_path}';")
-    
+
     # Combine all parts
     content = '\n'.join(exports)
-    
+
     # Write the file
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(content)
-    
+
     return {
         'data_output_path': str(output_path),
         'data_count': len(data_files),
@@ -75,20 +75,20 @@ def generate_node_data_index(base_dir: Path) -> Dict[str, Any]:
     }
 
 
-def generate_node_specs_index(base_dir: Path) -> Dict[str, Any]:
+def generate_node_specs_index(base_dir: Path) -> dict[str, Any]:
     """Generate the specifications/nodes/index.ts file."""
     node_specs_dir = base_dir / 'dipeo' / 'models' / 'src' / 'specifications' / 'nodes'
     output_path = node_specs_dir / 'index.ts'
-    
+
     # Find all .spec.ts files
     spec_files = sorted([
         f.name for f in node_specs_dir.glob('*.spec.ts')
         if f.name not in ['index.ts', 'node-specifications.ts']
     ])
-    
+
     if not spec_files:
         return {'error': 'No spec files found', 'output_path': str(output_path)}
-    
+
     # Generate import statements
     imports = [
         "// Auto-generated file. Do not edit manually.",
@@ -96,52 +96,52 @@ def generate_node_specs_index(base_dir: Path) -> Dict[str, Any]:
         "",
         "import { NodeSpecificationRegistry } from '../types.js';"
     ]
-    
-    spec_names: List[Tuple[str, str, str]] = []
-    
+
+    spec_names: list[tuple[str, str, str]] = []
+
     for spec_file in spec_files:
         spec_name = get_spec_name_from_filename(spec_file)
         registry_key = get_registry_key_from_filename(spec_file)
         import_path = f"./{spec_file.replace('.ts', '.js')}"
-        
+
         imports.append(f"import {{ {spec_name} }} from '{import_path}';")
         spec_names.append((spec_name, registry_key, spec_file))
-    
+
     # Generate exports
     exports = [
         "",
         "export { "
     ]
-    
+
     for i, (spec_name, _, _) in enumerate(spec_names):
         if i == len(spec_names) - 1:
             exports.append(f"  {spec_name}")
         else:
             exports.append(f"  {spec_name},")
-    
+
     exports.append("};")
-    
+
     # Generate registry
     registry = [
         "",
         "export const nodeSpecificationRegistry: NodeSpecificationRegistry = {"
     ]
-    
+
     for i, (spec_name, registry_key, _) in enumerate(spec_names):
         if i == len(spec_names) - 1:
             registry.append(f"  {registry_key}: {spec_name}")
         else:
             registry.append(f"  {registry_key}: {spec_name},")
-    
+
     registry.append("};")
-    
+
     # Combine all parts
     content = '\n'.join(imports + exports + registry)
-    
+
     # Write the file
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(content)
-    
+
     return {
         'specs_output_path': str(output_path),
         'spec_count': len(spec_files),
@@ -149,14 +149,14 @@ def generate_node_specs_index(base_dir: Path) -> Dict[str, Any]:
     }
 
 
-def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
+def main(inputs: dict[str, Any]) -> dict[str, Any]:
     """Generate both TypeScript index files."""
     base_dir = Path(os.getenv('DIPEO_BASE_DIR', os.getcwd()))
-    
+
     # Generate both index files
     data_results = generate_node_data_index(base_dir)
     specs_results = generate_node_specs_index(base_dir)
-    
+
     # Combine results
     results = {**data_results, **specs_results}
 

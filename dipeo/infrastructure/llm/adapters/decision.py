@@ -2,74 +2,77 @@
 
 import logging
 import re
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from dipeo.diagram_generated.domain_models import PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
-from dipeo.infrastructure.llm.core.types import ExecutionPhase, DecisionOutput
+from dipeo.infrastructure.llm.core.types import DecisionOutput, ExecutionPhase
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
+    from dipeo.application.execution.orchestrators.execution_orchestrator import (
+        ExecutionOrchestrator,
+    )
 
 logger = logging.getLogger(__name__)
 
 
 class LLMDecisionAdapter:
     """LLM-based adapter for binary decision making.
-    
+
     This adapter uses an LLM to make binary decisions based on
     natural language prompts and context.
     """
-    
+
     def __init__(self, orchestrator: "ExecutionOrchestrator"):
         """Initialize the LLM decision adapter.
-        
+
         Args:
             orchestrator: The execution orchestrator for LLM operations
         """
         self._orchestrator = orchestrator
         self._facet_cache: dict[str, Person] = {}
-    
+
     def _decision_facet_id(self, person_id: PersonID) -> PersonID:
         """Generate a unique ID for the decision facet.
-        
+
         Args:
             person_id: Base person ID
-            
+
         Returns:
             PersonID for the decision facet
         """
-        return PersonID(f"{str(person_id)}.__decision")
-    
-    def _decision_system_prompt(self, base_prompt: Optional[str]) -> str:
+        return PersonID(f"{person_id!s}.__decision")
+
+    def _decision_system_prompt(self, base_prompt: str | None) -> str:
         """Create system prompt for decision making.
-        
+
         Args:
             base_prompt: Optional base system prompt from the person
-            
+
         Returns:
             Complete system prompt for decision making
         """
         base = (base_prompt or "").strip()
         return (
-            (base + "\n\n" if base else "")
-            + "You are in DECISION MODE.\n"
-              "- Evaluate the provided context and make a binary decision.\n"
-              "- If the system supports structured output, provide:\n"
-              "  - decision: true for YES/affirmative/valid/approved\n"
-              "  - decision: false for NO/negative/invalid/rejected\n"
-              "  - reasoning: brief explanation (optional)\n"
-              "- Otherwise, respond with YES or NO at the start, followed by optional explanation.\n"
-              "- Be decisive and clear in your judgment."
+            (base + "\n\n" if base else "") + "You are in DECISION MODE.\n"
+            "- Evaluate the provided context and make a binary decision.\n"
+            "- If the system supports structured output, provide:\n"
+            "  - decision: true for YES/affirmative/valid/approved\n"
+            "  - decision: false for NO/negative/invalid/rejected\n"
+            "  - reasoning: brief explanation (optional)\n"
+            "- Otherwise, respond with YES or NO at the start, followed by optional explanation.\n"
+            "- Be decisive and clear in your judgment."
         )
-    
-    def _get_or_create_decision_facet(self, person_id: PersonID, diagram: Optional[Any] = None) -> Person:
+
+    def _get_or_create_decision_facet(
+        self, person_id: PersonID, diagram: Any | None = None
+    ) -> Person:
         """Get or create a decision facet for the person.
-        
+
         Args:
             person_id: The person ID to create a facet for
             diagram: Optional diagram for person creation from diagram
-            
+
         Returns:
             Person instance configured for decision making
         """
@@ -77,11 +80,11 @@ class LLMDecisionAdapter:
         persons = self._orchestrator.get_all_persons()
         if facet_id in persons:
             return persons[facet_id]
-        
+
         # Get the base person to derive LLM config (create if doesn't exist)
         base_person = self._orchestrator.get_or_create_person(person_id, diagram=diagram)
         llm = base_person.llm_config
-        
+
         facet_cfg = PersonLLMConfig(
             service=llm.service,
             model=llm.model,
@@ -89,77 +92,83 @@ class LLMDecisionAdapter:
             system_prompt=self._decision_system_prompt(llm.system_prompt),
             prompt_file=None,
         )
-        
+
         facet = self._orchestrator.get_or_create_person(
-            person_id=facet_id,
-            name=f"{base_person.name} (Decision)",
-            llm_config=facet_cfg
+            person_id=facet_id, name=f"{base_person.name} (Decision)", llm_config=facet_cfg
         )
-        
+
         self._facet_cache[str(facet_id)] = facet
         return facet
-    
+
     async def make_decision(
         self,
         person_id: PersonID,
         prompt: str,
-        template_values: Optional[dict[str, Any]] = None,
+        template_values: dict[str, Any] | None = None,
         memory_profile: str = "GOLDFISH",
-        diagram: Optional[Any] = None
+        diagram: Any | None = None,
     ) -> tuple[bool, dict[str, Any]]:
         """Make a binary decision using LLM.
-        
+
         Args:
             person_id: The person to use for decision making
             prompt: The decision prompt
             template_values: Optional template values for the prompt
             memory_profile: Memory profile to use (default: GOLDFISH for unbiased decisions)
             diagram: Optional diagram for person creation from diagram
-            
+
         Returns:
             Tuple of (decision: bool, metadata: dict with response details)
         """
         if not prompt or not prompt.strip():
             logger.error("Empty prompt provided for decision")
             return False, {"error": "Empty prompt"}
-        
+
         # Get or create decision facet
         facet = self._get_or_create_decision_facet(person_id, diagram=diagram)
-        
+
         # Get LLM service from orchestrator
         llm_service = self._orchestrator.get_llm_service()
         if not llm_service:
             logger.error("LLM service not available from orchestrator")
             return False, {"error": "LLM service not available"}
-        
+
         # Build the complete prompt with input data for GOLDFISH mode
         # GOLDFISH means no conversation history, but we still need to include the current input
         complete_prompt = prompt
         if memory_profile == "GOLDFISH" and template_values:
             # Extract the actual content to evaluate (prioritize 'default' key)
             content_to_evaluate = None
-            
+
             # Priority 1: Use 'default' key as the primary evaluation target
-            if 'default' in template_values:
-                content_to_evaluate = template_values['default']
+            if "default" in template_values:
+                content_to_evaluate = template_values["default"]
                 logger.debug("Using 'default' key as evaluation content")
             # Priority 2: Use 'generated_output' if present
-            elif 'generated_output' in template_values:
-                content_to_evaluate = template_values['generated_output']
+            elif "generated_output" in template_values:
+                content_to_evaluate = template_values["generated_output"]
                 logger.debug("Using 'generated_output' key as evaluation content")
             else:
                 # Priority 3: Filter out execution context variables
                 # Exclude known context variables that shouldn't be evaluated
                 context_keys = {
-                    'current_index', 'last_index', 'iteration_count',
-                    'loop_index', 'execution_count', 'node_execution_count'
+                    "current_index",
+                    "last_index",
+                    "iteration_count",
+                    "loop_index",
+                    "execution_count",
+                    "node_execution_count",
                 }
                 # Also exclude branch state variables (e.g., branch[node_123])
                 filtered = {}
                 for k, v in template_values.items():
-                    if not k.startswith('branch[') and not k.endswith('_last_increment_at') and k not in context_keys:
+                    if (
+                        not k.startswith("branch[")
+                        and not k.endswith("_last_increment_at")
+                        and k not in context_keys
+                    ):
                         filtered[k] = v
-                
+
                 if filtered:
                     content_to_evaluate = filtered
                     logger.debug(f"Using filtered content with {len(filtered)} keys")
@@ -167,11 +176,11 @@ class LLMDecisionAdapter:
                     # Fallback: use all values if nothing else matches
                     content_to_evaluate = template_values
                     logger.debug("Using all template values as fallback")
-            
+
             # Format the content appropriately
             if content_to_evaluate is not None:
                 import json
-                
+
                 # If content is already a string, use it directly
                 if isinstance(content_to_evaluate, str):
                     complete_prompt = f"{prompt}\n\n--- Content to Evaluate ---\n{content_to_evaluate}\n--- End of Content ---"
@@ -181,9 +190,11 @@ class LLMDecisionAdapter:
                         content_json = json.dumps(content_to_evaluate, indent=2)
                         complete_prompt = f"{prompt}\n\n--- Content to Evaluate ---\n{content_json}\n--- End of Content ---"
                     except (TypeError, ValueError) as e:
-                        logger.warning(f"Failed to serialize content to JSON: {e}. Using string representation.")
-                        complete_prompt = f"{prompt}\n\n--- Content to Evaluate ---\n{str(content_to_evaluate)}\n--- End of Content ---"
-        
+                        logger.warning(
+                            f"Failed to serialize content to JSON: {e}. Using string representation."
+                        )
+                        complete_prompt = f"{prompt}\n\n--- Content to Evaluate ---\n{content_to_evaluate!s}\n--- End of Content ---"
+
         # Execute decision using person's complete method
         complete_kwargs = {
             "prompt": complete_prompt,
@@ -193,134 +204,167 @@ class LLMDecisionAdapter:
             "max_tokens": 8000,  # Decisions should be concise
             "execution_phase": ExecutionPhase.DECISION_EVALUATION,
         }
-        
+
         # If text_format is in template_values, use it for structured output
         # This allows passing a Pydantic model for structured decision responses
-        if template_values and 'text_format' in template_values:
-            text_format = template_values.pop('text_format')  # Remove from template_values
+        if template_values and "text_format" in template_values:
+            text_format = template_values.pop("text_format")  # Remove from template_values
             # Only pass it if it's a valid Pydantic model class
-            if isinstance(text_format, type) and hasattr(text_format, '__mro__'):
-                complete_kwargs['text_format'] = text_format
-        
+            if isinstance(text_format, type) and hasattr(text_format, "__mro__"):
+                complete_kwargs["text_format"] = text_format
+
         try:
             result, incoming_msg, response_msg = await facet.complete(**complete_kwargs)
             # Add messages to conversation if orchestrator supports it
-            if hasattr(self._orchestrator, 'add_message'):
+            if hasattr(self._orchestrator, "add_message"):
                 self._orchestrator.add_message(incoming_msg, "decision", "decision_maker")
                 self._orchestrator.add_message(response_msg, "decision", "decision_maker")
-            
+
             # Extract response text once
             response_text = getattr(result, "content", getattr(result, "text", "")) or ""
-            
+
             # Initialize decision and reasoning
             decision = False
             reasoning = None
-            
+
             # Check for structured output first
-            llm_response = result.raw_response if hasattr(result, 'raw_response') else result
-            
-            if hasattr(llm_response, 'structured_output') and llm_response.structured_output:
+            llm_response = result.raw_response if hasattr(result, "raw_response") else result
+
+            if hasattr(llm_response, "structured_output") and llm_response.structured_output:
                 structured = llm_response.structured_output
-                
+
                 # Check if structured output has a decision field
                 if isinstance(structured, DecisionOutput):
                     decision = structured.decision
                     reasoning = structured.reasoning
-                elif hasattr(structured, 'decision'):
+                elif hasattr(structured, "decision"):
                     # Custom Pydantic model with decision field
                     decision = bool(structured.decision)
-                    reasoning = getattr(structured, 'reasoning', None)
+                    reasoning = getattr(structured, "reasoning", None)
                 else:
                     # No decision field in structured output, parse text instead
                     decision = self._parse_text_decision(response_text)
             else:
                 # No structured output, parse from text response
                 decision = self._parse_text_decision(response_text)
-            
+
             # Single concise debug log
-            logger.debug(f"LLM Decision: {decision} (reasoning: {reasoning[:50] + '...' if reasoning and len(reasoning) > 50 else reasoning})")
-            
+            logger.debug(
+                f"LLM Decision: {decision} (reasoning: {reasoning[:50] + '...' if reasoning and len(reasoning) > 50 else reasoning})"
+            )
+
             metadata = {
                 "response": response_text,
                 "response_preview": response_text[:200],
                 "decision": decision,
                 "person": str(person_id),
-                "memory_profile": memory_profile
+                "memory_profile": memory_profile,
             }
-            
+
             if reasoning:
                 metadata["reasoning"] = reasoning
-            
+
             return decision, metadata
-            
+
         except Exception as e:
             logger.error(f"LLM decision failed: {e}")
             return False, {"error": str(e)}
-    
+
     def _parse_text_decision(self, response_text: str) -> bool:
         """Parse text response to extract boolean decision.
-        
+
         Looks for affirmative/negative keywords to determine decision.
-        
+
         Args:
             response_text: The text response from LLM
-            
+
         Returns:
             Boolean decision
         """
         if not response_text:
             return False
-        
+
         # First, try to parse as JSON if it looks like JSON
         response_stripped = response_text.strip()
-        if response_stripped.startswith('{') and response_stripped.endswith('}'):
+        if response_stripped.startswith("{") and response_stripped.endswith("}"):
             try:
                 import json
+
                 json_data = json.loads(response_stripped)
-                if 'decision' in json_data:
-                    return bool(json_data['decision'])
+                if "decision" in json_data:
+                    return bool(json_data["decision"])
             except (json.JSONDecodeError, ValueError):
                 # Not valid JSON, continue with text parsing
                 pass
-        
+
         # Convert to lowercase for keyword matching
         response_lower = response_text.lower().strip()
-        
+
         # Remove any markdown or formatting
-        response_lower = re.sub(r'[*_`#\[\]()]', '', response_lower)
-        
+        response_lower = re.sub(r"[*_`#\[\]()]", "", response_lower)
+
         # Check for explicit YES/NO at the start
-        if response_lower.startswith('yes'):
+        if response_lower.startswith("yes"):
             return True
-        if response_lower.startswith('no'):
+        if response_lower.startswith("no"):
             return False
-        
+
         # Affirmative indicators
         affirmative_keywords = [
-            'yes', 'true', 'valid', 'approved', 'approve', 
-            'accept', 'accepted', 'correct', 'pass', 'passed',
-            'good', 'ok', 'okay', 'proceed', 'continue',
-            'affirmative', 'positive', 'success', 'successful'
+            "yes",
+            "true",
+            "valid",
+            "approved",
+            "approve",
+            "accept",
+            "accepted",
+            "correct",
+            "pass",
+            "passed",
+            "good",
+            "ok",
+            "okay",
+            "proceed",
+            "continue",
+            "affirmative",
+            "positive",
+            "success",
+            "successful",
         ]
-        
+
         # Negative indicators
         negative_keywords = [
-            'no', 'false', 'invalid', 'rejected', 'reject',
-            'deny', 'denied', 'incorrect', 'fail', 'failed',
-            'bad', 'not ok', 'not okay', 'stop', 'halt',
-            'negative', 'unsuccessful', 'error', 'wrong'
+            "no",
+            "false",
+            "invalid",
+            "rejected",
+            "reject",
+            "deny",
+            "denied",
+            "incorrect",
+            "fail",
+            "failed",
+            "bad",
+            "not ok",
+            "not okay",
+            "stop",
+            "halt",
+            "negative",
+            "unsuccessful",
+            "error",
+            "wrong",
         ]
-        
+
         # Count occurrences
         affirmative_count = sum(1 for keyword in affirmative_keywords if keyword in response_lower)
         negative_count = sum(1 for keyword in negative_keywords if keyword in response_lower)
-        
+
         # Decision based on which has more weight
         if affirmative_count > negative_count:
             return True
         elif negative_count > affirmative_count:
             return False
-        
+
         # Default to False if ambiguous
         logger.warning(f"Ambiguous LLM response for decision: {response_text[:100]}...")
         return False

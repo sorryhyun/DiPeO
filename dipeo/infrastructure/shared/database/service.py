@@ -5,7 +5,6 @@ from typing import Any
 from dipeo.domain.base.storage_port import FileSystemPort
 from dipeo.domain.integrations.db_services import DBOperationsDomainService as DomainDBService
 from dipeo.domain.integrations.validators import DataValidator
-
 from dipeo.infrastructure.integrations.adapters import DBOperationsAdapter
 
 
@@ -17,14 +16,12 @@ class DBOperationsDomainService:
 
     ALLOWED_OPERATIONS = ["prompt", "read", "write", "append"]
 
-    def __init__(
-        self, file_system: FileSystemPort, validation_service: DataValidator
-    ):
+    def __init__(self, file_system: FileSystemPort, validation_service: DataValidator):
         self.domain_service = DomainDBService()
         self.adapter = DBOperationsAdapter(
             file_system=file_system,
             domain_service=self.domain_service,
-            validation_service=validation_service
+            validation_service=validation_service,
         )
         self.file_system = file_system
         self.validation_service = validation_service

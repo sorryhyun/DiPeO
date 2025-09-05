@@ -6,42 +6,41 @@ suitable for the Jinja2 template that generates GraphQL queries.
 
 import ast
 import json
-from typing import Any, Dict, List, Optional, Union
-from pathlib import Path
+import os
 
 # Import type transformer from infrastructure
 import sys
-import os
+from pathlib import Path
+from typing import Any, Optional, Union
+
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
 from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python
 
 
-def load_query_definitions(ast_cache: Dict[str, Any]) -> List[Dict[str, Any]]:
+def load_query_definitions(ast_cache: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Load query definitions from parsed TypeScript AST cache.
-    
+
     Args:
         ast_cache: Parsed TypeScript AST data containing query definitions
-        
+
     Returns:
         List of query definition objects
     """
     query_definitions = []
-    
+
     # Dynamically find all query definition files in the AST cache
     query_definition_keys = []
-    
-    for key in ast_cache.keys():
+
+    for key in ast_cache:
         # Look for keys that match query definition patterns
-        if 'query-definitions/' in key and key.endswith('.ts'):
+        if ('query-definitions/' in key and key.endswith('.ts')) or ('query-definitions/' in key and key.endswith('.ts.json')):
             query_definition_keys.append(key)
-        elif 'query-definitions/' in key and key.endswith('.ts.json'):
-            query_definition_keys.append(key)
-    
+
     # Process each found query definition file
     for key in query_definition_keys:
         file_data = ast_cache[key]
-        
+
         if file_data:
             # Extract constants that contain query definitions
             if 'constants' in file_data:
@@ -54,29 +53,29 @@ def load_query_definitions(ast_cache: Dict[str, Any]) -> List[Dict[str, Any]]:
                             query_def = transform_query_from_ast(query, const_value.get('entity'))
                             if query_def:
                                 query_definitions.append(query_def)
-    
+
     return query_definitions
 
 
-def load_query_enums(ast_cache: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
+def load_query_enums(ast_cache: dict[str, Any]) -> dict[str, dict[str, str]]:
     """
     Load enum values from the query-enums.ts file.
-    
+
     Args:
         ast_cache: Parsed TypeScript AST data
-        
+
     Returns:
         Dictionary mapping enum names to their values
     """
     enums = {}
-    
+
     # Look for query-enums file dynamically
     enum_file_key = None
-    for key in ast_cache.keys():
+    for key in ast_cache:
         if 'query-enums.ts' in key:
             enum_file_key = key
             break
-    
+
     if enum_file_key and enum_file_key in ast_cache:
         file_data = ast_cache[enum_file_key]
         if 'enums' in file_data:
@@ -88,24 +87,24 @@ def load_query_enums(ast_cache: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
                     value = member.get('value', key)
                     enum_values[key] = value
                 enums[enum_name] = enum_values
-    
+
     return enums
 
 
-def transform_query_from_ast(query_data: Dict[str, Any], entity: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def transform_query_from_ast(query_data: dict[str, Any], entity: str | None = None) -> dict[str, Any] | None:
     """
     Transform a query from TypeScript AST into template-ready format.
-    
+
     Args:
         query_data: Parsed query from TypeScript AST
         entity: Entity name from the parent constant
-        
+
     Returns:
         Transformed query definition or None if not valid
     """
     if not isinstance(query_data, dict):
         return None
-    
+
     # Extract query specification
     query_spec = {
         'name': query_data.get('name', 'unknown'),
@@ -118,24 +117,24 @@ def transform_query_from_ast(query_data: Dict[str, Any], entity: Optional[str] =
         'responseType': query_data.get('responseType'),
         'description': query_data.get('description', '')
     }
-    
+
     return query_spec
 
 
-def extract_operation_type(query_def: Dict[str, Any]) -> str:
+def extract_operation_type(query_def: dict[str, Any]) -> str:
     """
     Extract the GraphQL operation type (query, mutation, subscription).
     """
     # Check for 'type' field first (from AST), then 'operationType'
     op_type = query_def.get('type', query_def.get('operationType', 'QUERY'))
-    
+
     # Handle enum references like "QueryOperationType.QUERY"
     if isinstance(op_type, str) and '.' in op_type:
         op_type = op_type.split('.')[-1]
-    
+
     # Convert to lowercase and handle common patterns
     op_type = op_type.lower()
-    
+
     # Map to standard GraphQL operation types
     if 'mutation' in op_type:
         return 'mutation'
@@ -145,7 +144,7 @@ def extract_operation_type(query_def: Dict[str, Any]) -> str:
         return 'query'
 
 
-def extract_entity(query_def: Dict[str, Any]) -> str:
+def extract_entity(query_def: dict[str, Any]) -> str:
     """
     Extract the entity type from the query definition.
     """
@@ -156,7 +155,7 @@ def extract_entity(query_def: Dict[str, Any]) -> str:
     return entity.lower()
 
 
-def extract_operation(query_def: Dict[str, Any]) -> str:
+def extract_operation(query_def: dict[str, Any]) -> str:
     """
     Extract the CRUD operation from the query definition.
     """
@@ -170,13 +169,13 @@ def extract_operation(query_def: Dict[str, Any]) -> str:
 def graphql_to_typescript_type(graphql_type: str) -> str:
     """
     Convert GraphQL type to TypeScript type.
-    
+
     Note: GraphQL to TypeScript is the reverse of our usual flow,
     so we need a dedicated mapping for this specific case.
     """
     # Remove array and non-null markers for base type mapping
     base_type = graphql_type.replace('[', '').replace(']', '').replace('!', '').strip()
-    
+
     # GraphQL to TypeScript scalar mappings
     # This is specific to GraphQL->TS conversion and can't reuse the TS->Python transformer
     graphql_to_ts_map = {
@@ -191,25 +190,25 @@ def graphql_to_typescript_type(graphql_type: str) -> str:
         'Date': 'string',
         'Void': 'void'
     }
-    
+
     # Check if it's a known scalar
     ts_type = graphql_to_ts_map.get(base_type, base_type)
-    
+
     # Handle arrays
     if '[' in graphql_type:
         ts_type = f'{ts_type}[]'
-    
+
     return ts_type
 
 
-def transform_variables(variables: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def transform_variables(variables: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Transform variable definitions into template-ready format.
     """
     transformed = []
     for var in variables:
         graphql_type = var.get('graphqlType', var.get('type', 'String'))
-        
+
         transformed_var = {
             'name': var.get('name', ''),
             'type': graphql_type,
@@ -221,11 +220,11 @@ def transform_variables(variables: List[Dict[str, Any]]) -> List[Dict[str, Any]]
         if 'defaultValue' in var:
             transformed_var['defaultValue'] = var['defaultValue']
         transformed.append(transformed_var)
-    
+
     return transformed
 
 
-def transform_fields(fields: Union[List, Dict, str]) -> List[Dict[str, Any]]:
+def transform_fields(fields: list | dict | str) -> list[dict[str, Any]]:
     """
     Transform field selection into template-ready format.
     Handles various field selection formats.
@@ -233,7 +232,7 @@ def transform_fields(fields: Union[List, Dict, str]) -> List[Dict[str, Any]]:
     if isinstance(fields, str):
         # Simple field name
         return [{'name': fields}]
-    
+
     if isinstance(fields, list):
         transformed = []
         for field in fields:
@@ -247,7 +246,7 @@ def transform_fields(fields: Union[List, Dict, str]) -> List[Dict[str, Any]]:
                 }
                 transformed.append(field_def)
         return transformed
-    
+
     if isinstance(fields, dict):
         # Object with nested fields
         transformed = []
@@ -255,18 +254,18 @@ def transform_fields(fields: Union[List, Dict, str]) -> List[Dict[str, Any]]:
             if value is True:
                 # Simple boolean selection
                 transformed.append({'name': key})
-            elif isinstance(value, (dict, list)):
+            elif isinstance(value, dict | list):
                 # Nested selection
                 transformed.append({
                     'name': key,
                     'fields': transform_fields(value)
                 })
         return transformed
-    
+
     return []
 
 
-def transform_field_args(args: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def transform_field_args(args: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Transform field arguments into template-ready format.
     """
@@ -278,22 +277,22 @@ def transform_field_args(args: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             'isVariable': arg.get('isVariable', False)
         }
         transformed.append(transformed_arg)
-    
+
     return transformed
 
 
-def collect_input_types(query_definitions: List[Dict[str, Any]]) -> List[str]:
+def collect_input_types(query_definitions: list[dict[str, Any]]) -> list[str]:
     """
     Collect all unique input types used in query variables.
-    
+
     Args:
         query_definitions: List of query definitions
-        
+
     Returns:
         List of unique input type names to import
     """
     input_types = set()
-    
+
     # Common input types that we know are defined in @dipeo/models
     known_input_types = {
         'ExecutionControlInput',
@@ -313,22 +312,22 @@ def collect_input_types(query_definitions: List[Dict[str, Any]]) -> List[str]:
         'ExecutionFilterInput',
         'Scalars'
     }
-    
+
     for query in query_definitions:
         # Check variables for input types
         for var in query.get('variables', []):
             var_type = var.get('type', '')
             # Remove array brackets and non-null markers
             base_type = var_type.replace('[', '').replace(']', '').replace('!', '').strip()
-            
+
             # Check if it's a known input type
             if base_type in known_input_types:
                 input_types.add(base_type)
-            
+
             # Special case for Upload which requires Scalars
             if base_type == 'Upload':
                 input_types.add('Scalars')
-    
+
     # Always include Scalars if we have any input types that might need it
     if input_types and 'Scalars' not in input_types:
         # Check if any queries use Upload type
@@ -337,23 +336,23 @@ def collect_input_types(query_definitions: List[Dict[str, Any]]) -> List[str]:
                 if 'Upload' in var.get('type', ''):
                     input_types.add('Scalars')
                     break
-    
+
     return sorted(list(input_types))
 
 
-def prepare_query_data_for_template(inputs: Any) -> Dict[str, Any]:
+def prepare_query_data_for_template(inputs: Any) -> dict[str, Any]:
     """
     Main entry point for preparing query data for the template.
-    
+
     Args:
         inputs: Contains loaded JSON files from temp/ directory
-        
+
     Returns:
         Dictionary with 'queries' list ready for template rendering
     """
     # Get the loaded data - connection is labeled 'ast_files' in diagram
     raw_data = inputs.get('ast_files', inputs.get('default', {})) if isinstance(inputs, dict) else inputs
-    
+
     # Parse string to dict if needed (DiPeO returns Python dict strings)
     if isinstance(raw_data, str):
         try:
@@ -367,10 +366,10 @@ def prepare_query_data_for_template(inputs: Any) -> Dict[str, Any]:
                 loaded_data = {}
     else:
         loaded_data = raw_data if isinstance(raw_data, dict) else {}
-    
+
     # Build ast_cache from loaded JSON files
     ast_cache = {}
-    
+
     # When db node uses glob=true, it returns {filepath: content, ...}
     if isinstance(loaded_data, dict):
         # Process the files directly
@@ -378,7 +377,7 @@ def prepare_query_data_for_template(inputs: Any) -> Dict[str, Any]:
             # Skip non-dict entries
             if not isinstance(value, dict):
                 continue
-            
+
             # Extract the relative path from temp/
             if key.startswith('temp/'):
                 # Use a simpler key - just remove 'temp/' and '.json'
@@ -389,19 +388,19 @@ def prepare_query_data_for_template(inputs: Any) -> Dict[str, Any]:
                 ast_cache[key] = value
     else:
         return {'queries': [], 'enums': {}, 'metadata': {}, 'input_types': []}
-    
+
     # Load query definitions
     query_definitions = load_query_definitions(ast_cache)
-    
+
     # Load enum values for reference
     enums = load_query_enums(ast_cache)
-    
+
     # Collect input types for imports
     input_types = collect_input_types(query_definitions)
-    
+
     # Sort queries by operation type and name for consistent output
     query_definitions.sort(key=lambda q: (q['operationType'], q['name']))
-    
+
     return {
         'queries': query_definitions,
         'enums': enums,
@@ -414,19 +413,19 @@ def prepare_query_data_for_template(inputs: Any) -> Dict[str, Any]:
     }
 
 
-def validate_query_data(query_data: Dict[str, Any]) -> bool:
+def validate_query_data(query_data: dict[str, Any]) -> bool:
     """
     Validate that the query data is properly formatted.
-    
+
     Args:
         query_data: Query data to validate
-        
+
     Returns:
         True if valid, raises ValueError if not
     """
     if 'queries' not in query_data:
         raise ValueError("Query data must contain 'queries' key")
-    
+
     for query in query_data['queries']:
         if 'name' not in query:
             raise ValueError(f"Query missing 'name': {query}")
@@ -434,5 +433,5 @@ def validate_query_data(query_data: Dict[str, Any]) -> bool:
             raise ValueError(f"Query missing 'operationType': {query['name']}")
         if query['operationType'] not in ['query', 'mutation', 'subscription']:
             raise ValueError(f"Invalid operationType: {query['operationType']}")
-    
+
     return True

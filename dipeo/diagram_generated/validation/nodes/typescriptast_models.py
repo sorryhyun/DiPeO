@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, RootModel
 
@@ -29,15 +28,15 @@ class TypescriptAstNodeData(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    batch: Optional[bool] = None
-    batchInputKey: Optional[str] = None
-    extractPatterns: Optional[List[str]] = None
-    flipped: Optional[bool] = None
-    includeJSDoc: Optional[bool] = None
+    batch: bool | None = None
+    batchInputKey: str | None = None
+    extractPatterns: list[str] | None = None
+    flipped: bool | None = None
+    includeJSDoc: bool | None = None
     label: str
-    parseMode: Optional[ParseMode] = None
-    source: Optional[str] = None
-    sources: Optional[RecordStringString] = None
+    parseMode: ParseMode | None = None
+    source: str | None = None
+    sources: RecordStringString | None = None
 
 
 class Model(RootModel[TypescriptAstNodeData]):

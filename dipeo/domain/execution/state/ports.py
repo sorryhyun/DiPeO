@@ -20,7 +20,7 @@ class ExecutionStateRepository(Protocol):
         self,
         execution_id: "ExecutionID",
         diagram_id: Optional["DiagramID"] = None,
-        variables: Optional[dict[str, Any]] = None,
+        variables: dict[str, Any] | None = None,
     ) -> "ExecutionState":
         """Create a new execution state."""
         ...
@@ -34,14 +34,12 @@ class ExecutionStateRepository(Protocol):
         ...
 
     async def update_status(
-        self, execution_id: str, status: "Status", error: Optional[str] = None
+        self, execution_id: str, status: "Status", error: str | None = None
     ) -> None:
         """Update execution status."""
         ...
 
-    async def get_node_output(
-        self, execution_id: str, node_id: str
-    ) -> Optional[dict[str, Any]]:
+    async def get_node_output(self, execution_id: str, node_id: str) -> dict[str, Any] | None:
         """Get output for a specific node."""
         ...
 
@@ -61,7 +59,7 @@ class ExecutionStateRepository(Protocol):
         execution_id: str,
         node_id: str,
         status: "Status",
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> None:
         """Update status for a specific node."""
         ...
@@ -89,7 +87,7 @@ class ExecutionStateService(Protocol):
         self,
         execution_id: "ExecutionID",
         diagram_id: Optional["DiagramID"] = None,
-        variables: Optional[dict[str, Any]] = None,
+        variables: dict[str, Any] | None = None,
     ) -> "ExecutionState":
         """Start a new execution."""
         ...
@@ -98,7 +96,7 @@ class ExecutionStateService(Protocol):
         self,
         execution_id: str,
         status: "Status",
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> None:
         """Finish an execution with final status."""
         ...
@@ -111,14 +109,12 @@ class ExecutionStateService(Protocol):
         status: "Status",
         is_exception: bool = False,
         token_usage: Optional["TokenUsage"] = None,
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> None:
         """Atomically update node execution state."""
         ...
 
-    async def append_token_usage(
-        self, execution_id: str, tokens: "TokenUsage"
-    ) -> None:
+    async def append_token_usage(self, execution_id: str, tokens: "TokenUsage") -> None:
         """Append to cumulative token usage."""
         ...
 
@@ -139,7 +135,7 @@ class ExecutionCachePort(Protocol):
         self,
         execution_id: "ExecutionID",
         diagram_id: Optional["DiagramID"] = None,
-        variables: Optional[dict[str, Any]] = None,
+        variables: dict[str, Any] | None = None,
     ) -> "ExecutionState":
         """Create execution in cache only."""
         ...

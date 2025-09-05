@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, RootModel
 
 
@@ -16,7 +14,7 @@ class UserResponseNodeData(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    flipped: Optional[bool] = None
+    flipped: bool | None = None
     label: str
     prompt: str
     timeout: float

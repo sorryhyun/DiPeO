@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
@@ -26,15 +25,15 @@ class Foreach(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    as_: Optional[str] = Field(
+    as_: str | None = Field(
         None,
         alias='as',
         description='Variable name to expose each item under in the template (default: "item")',
     )
-    items: Union[List, str] = Field(
+    items: list | str = Field(
         ..., description='Array or dotted-path string to an array in inputs'
     )
-    limit: Optional[float] = Field(
+    limit: float | None = Field(
         None, description='Optional: limit, parallel write hint (ignored in v1)'
     )
     output_path: str = Field(
@@ -58,7 +57,7 @@ class TemplatePreprocessor(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    args: Optional[JsonDict] = Field(
+    args: JsonDict | None = Field(
         None, description='Optional arguments passed as kwargs to the function'
     )
     function: str = Field(
@@ -74,22 +73,22 @@ class TemplateJobNodeData(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    engine: Optional[Engine] = None
-    flipped: Optional[bool] = None
-    foreach: Optional[Foreach] = Field(
+    engine: Engine | None = None
+    flipped: bool | None = None
+    foreach: Foreach | None = Field(
         None, description='Render a template for each item and write many files'
     )
     label: str
-    output_path: Optional[str] = Field(
+    output_path: str | None = Field(
         None, description='Single-file path; can contain template expressions'
     )
-    preprocessor: Optional[TemplatePreprocessor] = Field(
+    preprocessor: TemplatePreprocessor | None = Field(
         None,
         description='Optional Python preprocessor that returns extra context for the template',
     )
-    template_content: Optional[str] = None
-    template_path: Optional[str] = None
-    variables: Optional[JsonDict] = Field(
+    template_content: str | None = None
+    template_path: str | None = None
+    variables: JsonDict | None = Field(
         None,
         description='Simple key→value map passed to template; string values are resolved',
     )

@@ -4,9 +4,8 @@ Temporary file to register domain types used by node data models.
 """
 
 import strawberry
-from dipeo.diagram_generated.domain_models import ToolConfig, TemplatePreprocessor
-from dipeo.diagram_generated.enums import ToolType
 
+from dipeo.diagram_generated.domain_models import TemplatePreprocessor, ToolConfig
 
 
 @strawberry.experimental.pydantic.type(ToolConfig, all_fields=True)

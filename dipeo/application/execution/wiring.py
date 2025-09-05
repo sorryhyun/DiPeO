@@ -3,14 +3,11 @@
 import logging
 from typing import TYPE_CHECKING
 
-from dipeo.application.registry.service_registry import ServiceRegistry, ServiceKey
 from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, PREPARE_DIAGRAM_USE_CASE
+from dipeo.application.registry.service_registry import ServiceKey, ServiceRegistry
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
-    from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
-    from dipeo.application.execution.use_cases.prepare_diagram import PrepareDiagramForExecutionUseCase
-    from dipeo.application.execution.use_cases.cli_session import CliSessionService
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +18,7 @@ CLI_SESSION_USE_CASE = ServiceKey["CliSessionService"]("execution.use_case.cli_s
 
 def wire_execution(registry: ServiceRegistry) -> None:
     """Wire execution bounded context services and use cases.
-    
+
     This includes:
     - Execution orchestrator
     - Execute diagram use case
@@ -31,83 +28,86 @@ def wire_execution(registry: ServiceRegistry) -> None:
     """
     # Ensure handlers are auto-registered
     # This import triggers the auto-registration in handlers/__init__.py
-    import dipeo.application.execution.handlers  # noqa: F401
-    
+    import dipeo.application.execution.handlers
+
     # Wire execution orchestrator
-    from dipeo.application.execution.orchestrators.execution_orchestrator import ExecutionOrchestrator
+    from dipeo.application.execution.orchestrators.execution_orchestrator import (
+        ExecutionOrchestrator,
+    )
     from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
-    from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
     from dipeo.application.registry.keys import (
         CONVERSATION_REPOSITORY,
-        PERSON_REPOSITORY,
-        LLM_SERVICE,
         FILESYSTEM_ADAPTER,
-        PROMPT_LOADING_SERVICE,
+        LLM_SERVICE,
         MEMORY_SELECTOR,
+        PERSON_REPOSITORY,
+        PROMPT_LOADING_SERVICE,
     )
-    
+    from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
+
     def create_execution_orchestrator() -> ExecutionOrchestrator:
         """Factory for execution orchestrator with all dependencies."""
         person_repo = registry.resolve(PERSON_REPOSITORY)
         conversation_repo = registry.resolve(CONVERSATION_REPOSITORY)
-        
+
         # Create PromptLoadingUseCase
         filesystem_adapter = registry.resolve(FILESYSTEM_ADAPTER)
         prompt_loading = PromptLoadingUseCase(filesystem_adapter)
         registry.register(PROMPT_LOADING_SERVICE, prompt_loading)
-        
+
         # Get LLM service
         llm_service = registry.resolve(LLM_SERVICE)
-        
+
         # Create orchestrator with all dependencies
         orchestrator = ExecutionOrchestrator(
             person_repository=person_repo,
             conversation_repository=conversation_repo,
             prompt_loading_use_case=prompt_loading,
             memory_selector=None,  # Will be set after creation
-            llm_service=llm_service
+            llm_service=llm_service,
         )
-        
+
         # Create LLMMemorySelectionAdapter with orchestrator
         memory_selector = LLMMemorySelectionAdapter(orchestrator)
         registry.register(MEMORY_SELECTOR, memory_selector)
-        
+
         # Update orchestrator with memory_selector
         orchestrator._memory_selector = memory_selector
-        
+
         return orchestrator
-    
+
     registry.register(EXECUTION_ORCHESTRATOR, lambda: create_execution_orchestrator())
-    
+
     # Wire execute diagram use case
     from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
-    
+
     def create_execute_diagram() -> ExecuteDiagramUseCase:
         """Factory for execute diagram use case."""
         # ExecuteDiagramUseCase has a different constructor signature
         return ExecuteDiagramUseCase(service_registry=registry)
-    
+
     registry.register(EXECUTE_DIAGRAM_USE_CASE, create_execute_diagram)
-    
+
     # Wire prepare diagram use case
-    from dipeo.application.execution.use_cases.prepare_diagram import PrepareDiagramForExecutionUseCase
+    from dipeo.application.execution.use_cases.prepare_diagram import (
+        PrepareDiagramForExecutionUseCase,
+    )
     from dipeo.application.registry.keys import API_KEY_SERVICE
-    
+
     def create_prepare_diagram() -> PrepareDiagramForExecutionUseCase:
         """Factory for prepare diagram use case."""
         api_key_service = registry.resolve(API_KEY_SERVICE)
         return PrepareDiagramForExecutionUseCase(
-            api_key_service=api_key_service,
-            service_registry=registry
+            api_key_service=api_key_service, service_registry=registry
         )
-    
+
     registry.register(PREPARE_DIAGRAM_USE_CASE, create_prepare_diagram)
-    
+
     # Wire CLI session service
     from dipeo.application.execution.use_cases.cli_session import CliSessionService
-    
+
     def create_cli_session_service() -> CliSessionService:
         """Factory for CLI session service."""
         return CliSessionService()
-    
+
     registry.register(CLI_SESSION_USE_CASE, create_cli_session_service)

@@ -1,11 +1,10 @@
 # Auto-generated Pydantic model for person_job node
 
 from typing import *
+
 from pydantic import *
 
-
 from ..domain_models import *
-
 from ..enums import *
 from ..integrations import *
 

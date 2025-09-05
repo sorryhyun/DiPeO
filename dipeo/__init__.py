@@ -24,19 +24,19 @@ _imported_modules = ["domain", "models"]
 
 # For convenience, re-export commonly used items from domain base
 try:
-    from .domain.base.service import BaseService
     from .domain.base.exceptions import (
         DiPeOError,
         NodeExecutionError,
         ValidationError,
     )
-    from .domain.type_defs import Result, Error
-    _imported_modules.extend([
-        "BaseService", "Result", "Error",
-        "DiPeOError", "ValidationError", "NodeExecutionError"
-    ])
+    from .domain.base.service import BaseService
+    from .domain.type_defs import Error, Result
+
+    _imported_modules.extend(
+        ["BaseService", "Result", "Error", "DiPeOError", "ValidationError", "NodeExecutionError"]
+    )
 except ImportError as e:
-    warnings.warn(f"Could not import some domain base items: {e}", ImportWarning)
+    warnings.warn(f"Could not import some domain base items: {e}", ImportWarning, stacklevel=2)
 
 
 # For convenience, re-export commonly used models from domain
@@ -54,30 +54,38 @@ try:
         NodeArrow,
         NodeType,
     )
+
     # Create aliases for cleaner API
     Person = DomainPerson
     Diagram = DomainDiagram
-    
-    _imported_modules.extend([
-        "DomainPerson", "Person", "DomainDiagram", "Diagram", 
-        "NodeType", "Arrow", "Edge", "NodeArrow", 
-        "HandleReference", "create_handle_id", "parse_handle_id"
-    ])
+
+    _imported_modules.extend(
+        [
+            "DomainPerson",
+            "Person",
+            "DomainDiagram",
+            "Diagram",
+            "NodeType",
+            "Arrow",
+            "Edge",
+            "NodeArrow",
+            "HandleReference",
+            "create_handle_id",
+            "parse_handle_id",
+        ]
+    )
 except ImportError as e:
-    warnings.warn(f"Could not import some domain items: {e}", ImportWarning)
+    warnings.warn(f"Could not import some domain items: {e}", ImportWarning, stacklevel=2)
 
 # For convenience, re-export commonly used items from diagram ports
 try:
-    from .domain.diagram.ports import DiagramStorageSerializer as DiagramConverter, FormatStrategy
-    
-    _imported_modules.extend([
-        "DiagramConverter", "FormatStrategy"
-    ])
+    from .domain.diagram.ports import DiagramStorageSerializer as DiagramConverter
+    from .domain.diagram.ports import FormatStrategy
+
+    _imported_modules.extend(["DiagramConverter", "FormatStrategy"])
 except ImportError as e:
-    warnings.warn(f"Could not import some diagram items: {e}", ImportWarning)
-
-
+    warnings.warn(f"Could not import some diagram items: {e}", ImportWarning, stacklevel=2)
 
 
 # Define __all__ based on what we successfully imported
-__all__ = ["__version__"] + _imported_modules
+__all__ = ["__version__", *_imported_modules]

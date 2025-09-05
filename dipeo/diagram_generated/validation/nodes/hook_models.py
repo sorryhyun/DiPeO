@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, RootModel
 
@@ -45,23 +44,23 @@ class HookNodeData(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    args: Optional[List[str]] = None
-    command: Optional[str] = None
-    cwd: Optional[str] = None
-    env: Optional[RecordStringString] = None
-    file_path: Optional[str] = None
-    flipped: Optional[bool] = None
-    format: Optional[Format] = None
-    function_name: Optional[str] = None
-    headers: Optional[RecordStringString] = None
+    args: list[str] | None = None
+    command: str | None = None
+    cwd: str | None = None
+    env: RecordStringString | None = None
+    file_path: str | None = None
+    flipped: bool | None = None
+    format: Format | None = None
+    function_name: str | None = None
+    headers: RecordStringString | None = None
     hook_type: HookType
     label: str
-    method: Optional[Method] = None
-    retry_count: Optional[float] = None
-    retry_delay: Optional[float] = None
-    script: Optional[str] = None
-    timeout: Optional[float] = None
-    url: Optional[str] = None
+    method: Method | None = None
+    retry_count: float | None = None
+    retry_delay: float | None = None
+    script: str | None = None
+    timeout: float | None = None
+    url: str | None = None
 
 
 class Model(RootModel[HookNodeData]):

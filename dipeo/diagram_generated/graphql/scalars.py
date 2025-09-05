@@ -5,9 +5,8 @@ Auto-generated from TypeScript branded types.
 Generated at: 2025-09-05T19:32:17.691392
 """
 
+
 import strawberry
-from typing import Any, NewType
-from strawberry.scalars import ID
 
 # Import the base domain types
 from dipeo.diagram_generated.domain_models import (
@@ -19,7 +18,6 @@ from dipeo.diagram_generated.domain_models import (
     NodeID,
     PersonID,
 )
-
 
 # Generate Strawberry scalar types for branded IDs
 

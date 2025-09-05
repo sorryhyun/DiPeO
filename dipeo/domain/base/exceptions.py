@@ -4,7 +4,6 @@ from typing import Any
 
 
 class DiPeOError(Exception):
-
     def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(message)
         self.message = message
@@ -34,7 +33,6 @@ class ExecutionError(DiPeOError):
 
 
 class NodeExecutionError(ExecutionError):
-
     error_code = "NODE_EXECUTION_ERROR"
 
     def __init__(
@@ -50,7 +48,6 @@ class NodeExecutionError(ExecutionError):
 
 
 class DependencyError(ExecutionError):
-
     error_code = "DEPENDENCY_ERROR"
 
     def __init__(
@@ -68,7 +65,6 @@ class DependencyError(ExecutionError):
 
 
 class MaxIterationsError(ExecutionError):
-
     error_code = "MAX_ITERATIONS_ERROR"
 
     def __init__(
@@ -79,13 +75,10 @@ class MaxIterationsError(ExecutionError):
     ):
         self.node_id = node_id
         self.max_iterations = max_iterations
-        super().__init__(
-            f"Node {node_id} exceeded maximum iterations ({max_iterations})", details
-        )
+        super().__init__(f"Node {node_id} exceeded maximum iterations ({max_iterations})", details)
 
 
 class TimeoutError(ExecutionError):
-
     error_code = "TIMEOUT_ERROR"
 
     def __init__(
@@ -101,12 +94,10 @@ class TimeoutError(ExecutionError):
 
 
 class APIKeyError(ServiceError):
-
     error_code = "API_KEY_ERROR"
 
 
 class APIKeyNotFoundError(APIKeyError):
-
     error_code = "API_KEY_NOT_FOUND"
 
     def __init__(self, key_id: str, details: dict[str, Any] | None = None):
@@ -115,7 +106,6 @@ class APIKeyNotFoundError(APIKeyError):
 
 
 class LLMServiceError(ServiceError):
-
     error_code = "LLM_SERVICE_ERROR"
 
     def __init__(
@@ -135,7 +125,6 @@ class LLMServiceError(ServiceError):
 
 
 class FileOperationError(DiPeOError):
-
     error_code = "FILE_OPERATION_ERROR"
 
     def __init__(
@@ -151,7 +140,6 @@ class FileOperationError(DiPeOError):
 
 
 class StorageError(ServiceError):
-
     error_code = "STORAGE_ERROR"
 
     def __init__(
@@ -161,7 +149,7 @@ class StorageError(ServiceError):
         details: dict[str, Any] | None = None,
     ):
         self.operation = operation
-        full_message = f"Storage operation"
+        full_message = "Storage operation"
         if operation:
             full_message += f" ({operation})"
         full_message += f" failed: {message}"
@@ -169,12 +157,10 @@ class StorageError(ServiceError):
 
 
 class DiagramError(ValidationError):
-
     error_code = "DIAGRAM_ERROR"
 
 
 class DiagramNotFoundError(DiagramError):
-
     error_code = "DIAGRAM_NOT_FOUND"
 
     def __init__(self, diagram_id: str, details: dict[str, Any] | None = None):
@@ -183,7 +169,6 @@ class DiagramNotFoundError(DiagramError):
 
 
 class InvalidDiagramError(DiagramError):
-
     error_code = "INVALID_DIAGRAM"
 
     def __init__(

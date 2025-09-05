@@ -1,5 +1,5 @@
 # Combined node validators for GraphQL v2
-from typing import Dict, Type
+
 from pydantic import BaseModel
 
 # Import all node models
@@ -19,7 +19,7 @@ from .typescriptast_models import Model as TypescriptastNodeData
 from .userresponse_models import Model as UserresponseNodeData
 
 # Validator mapping
-NODE_VALIDATORS: Dict[str, Type[BaseModel]] = {
+NODE_VALIDATORS: dict[str, type[BaseModel]] = {
     "apijob": ApijobNodeData,
     "codejob": CodejobNodeData,
     "condition": ConditionNodeData,

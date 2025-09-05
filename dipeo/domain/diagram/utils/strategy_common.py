@@ -6,13 +6,14 @@ import logging
 from typing import Any
 
 from dipeo.diagram_generated import (
+    ContentType,
+    DataType,
     HandleDirection,
     HandleLabel,
     NodeID,
-    DataType,
-    ContentType,
     NodeType,
 )
+
 from .handle_utils import create_handle_id
 
 log = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ log = logging.getLogger(__name__)
 
 class NodeFieldMapper:
     """Maps node fields between different formats and node types."""
-    
+
     @staticmethod
     def map_import_fields(node_type: str, props: dict[str, Any]) -> dict[str, Any]:
         """Map fields during import based on node type."""
@@ -52,32 +53,30 @@ class NodeFieldMapper:
             # Remove deprecated memory fields
             if "memory_config" in props:
                 props.pop("memory_config")
-            
+
             # Convert legacy memory_profile to memorize_to if present
             if "memory_profile" in props:
                 profile_str = props.pop("memory_profile")
-                
+
                 # Map legacy profiles to new memorize_to values
                 profile_to_memorize = {
                     "FULL": "ALL_MESSAGES",
-                    "FOCUSED": "CONVERSATION_PAIRS", 
+                    "FOCUSED": "CONVERSATION_PAIRS",
                     "MINIMAL": "SYSTEM_AND_ME",
                     "GOLDFISH": "GOLDFISH",
                     "ONLY_ME": "SENT_TO_ME",
-                    "ONLY_I_SENT": "SENT_BY_ME"
+                    "ONLY_I_SENT": "SENT_BY_ME",
                 }
-                
-                if profile_str in profile_to_memorize:
-                    # Only set memorize_to if not already set
-                    if "memorize_to" not in props:
-                        props["memorize_to"] = profile_to_memorize[profile_str]
-            
+
+                if profile_str in profile_to_memorize and "memorize_to" not in props:
+                    props["memorize_to"] = profile_to_memorize[profile_str]
+
             # Remove memory_settings if present (no longer used)
             if "memory_settings" in props:
                 props.pop("memory_settings")
 
         return props
-    
+
     @staticmethod
     def map_export_fields(node_type: str, props: dict[str, Any]) -> dict[str, Any]:
         """Map fields during export based on node type."""
@@ -102,28 +101,27 @@ class NodeFieldMapper:
             if "memory_settings" in props:
                 props.pop("memory_settings")
             # Keep memorize_to and at_most as is - they're the new approach
-        
+
         return props
 
 
 class HandleParser:
     """Parses and creates handle references."""
-    
+
     @staticmethod
     def parse_label_with_handle(
-        label_raw: str, 
-        label2id: dict[str, str]
+        label_raw: str, label2id: dict[str, str]
     ) -> tuple[str | None, str | None, str]:
         """Parse a label that may contain a handle suffix.
-        
+
         Returns: (node_id, handle_name, node_label)
         """
         label = label_raw
         handle_from_split = None
-        
+
         if label_raw not in label2id and "_" in label_raw:
             parts = label_raw.split("_")
-            
+
             # Check for labels with spaces by replacing underscores
             for i in range(len(parts) - 1, 0, -1):
                 # Try with underscores
@@ -132,23 +130,23 @@ class HandleParser:
                     label = potential_label
                     handle_from_split = "_".join(parts[i:])
                     break
-                
+
                 # Try with spaces instead of underscores
                 potential_label_with_spaces = " ".join(parts[:i])
                 if potential_label_with_spaces in label2id:
                     label = potential_label_with_spaces
                     handle_from_split = "_".join(parts[i:])
                     break
-        
+
         node_id = label2id.get(label)
         return node_id, handle_from_split, label
-    
+
     @staticmethod
     def determine_handle_name(
         handle_from_split: str | None,
         arrow_data: dict[str, Any] | None = None,
         is_source: bool = True,
-        default: str = "default"
+        default: str = "default",
     ) -> str:
         """Determine the handle name from split or arrow data."""
         if handle_from_split:
@@ -161,62 +159,60 @@ class HandleParser:
             # For condition nodes, use branch data
             branch_value = arrow_data.get("branch")
             return (
-                "condtrue" if branch_value == "true"
-                else "condfalse" if branch_value == "false"
+                "condtrue"
+                if branch_value == "true"
+                else "condfalse"
+                if branch_value == "false"
                 else default
             )
         else:
             return default
-    
+
     @staticmethod
     def create_handle_ids(
         source_node_id: str,
         target_node_id: str,
         source_handle: str = "default",
-        target_handle: str = "default"
+        target_handle: str = "default",
     ) -> tuple[str, str]:
         """Create proper handle IDs for source and target."""
         try:
             src_handle_enum = HandleLabel(source_handle)
         except ValueError:
             src_handle_enum = HandleLabel.DEFAULT
-            
+
         try:
             dst_handle_enum = HandleLabel(target_handle)
         except ValueError:
             dst_handle_enum = HandleLabel.DEFAULT
-            
+
         source_handle_id = create_handle_id(
-            NodeID(source_node_id), 
-            src_handle_enum, 
-            HandleDirection.OUTPUT
+            NodeID(source_node_id), src_handle_enum, HandleDirection.OUTPUT
         )
         target_handle_id = create_handle_id(
-            NodeID(target_node_id), 
-            dst_handle_enum, 
-            HandleDirection.INPUT
+            NodeID(target_node_id), dst_handle_enum, HandleDirection.INPUT
         )
-        
+
         return source_handle_id, target_handle_id
-    
+
     @staticmethod
     def ensure_handle_exists(
         handle_ref: str,
         direction: HandleDirection,
         nodes_dict: dict[str, Any],
         handles_dict: dict[str, Any],
-        arrow: dict[str, Any]
+        arrow: dict[str, Any],
     ) -> None:
         """Ensure a handle exists, creating it if necessary."""
         # Check if it's already a full handle ID
         parts = handle_ref.split("_")
         if len(parts) >= 3 and parts[-1] in ["input", "output"]:
             return
-        
+
         # Parse light format handle reference
         node_id = None
         handle_name = "default"
-        
+
         # Try to match against node labels
         for nid, node in nodes_dict.items():
             node_label = node.get("data", {}).get("label", nid) if "data" in node else nid
@@ -227,37 +223,39 @@ class HandleParser:
                     break
             if node_id:
                 break
-        
+
         # Fall back to simple split
         if not node_id:
             parts = handle_ref.rsplit("_", 1)
             if len(parts) == 2:
                 node_label_or_id, handle_name = parts
                 node_id = next(
-                    (nid for nid, node in nodes_dict.items() 
-                     if nid == node_label_or_id or 
-                     ("data" in node and node["data"].get("label") == node_label_or_id)),
-                    node_label_or_id
+                    (
+                        nid
+                        for nid, node in nodes_dict.items()
+                        if nid == node_label_or_id
+                        or ("data" in node and node["data"].get("label") == node_label_or_id)
+                    ),
+                    node_label_or_id,
                 )
             else:
                 node_id = handle_ref
                 handle_name = "default"
-        
+
         # Validate and create handle if needed
         if handle_name in ["input", "output"]:
             handle_name = "default"
-        
+
         try:
             handle_label = HandleLabel(handle_name)
         except ValueError:
             handle_label = handle_name
-        
+
         # Find actual node ID (case-insensitive)
         actual_node_id = next(
-            (n_id for n_id in nodes_dict if n_id.lower() == node_id.lower()), 
-            node_id
+            (n_id for n_id in nodes_dict if n_id.lower() == node_id.lower()), node_id
         )
-        
+
         # Ensure handle_label is a HandleLabel enum
         if not isinstance(handle_label, HandleLabel):
             try:
@@ -265,10 +263,12 @@ class HandleParser:
             except ValueError:
                 handle_label = HandleLabel.DEFAULT
         expected_handle_id = create_handle_id(NodeID(actual_node_id), handle_label, direction)
-        
+
         if expected_handle_id not in handles_dict:
             # Create the handle
-            log.debug(f"Creating handle: handle_ref={handle_ref}, handle_name={handle_name}, handle_label={handle_label}, type={type(handle_label)}")
+            log.debug(
+                f"Creating handle: handle_ref={handle_ref}, handle_name={handle_name}, handle_label={handle_label}, type={type(handle_label)}"
+            )
             handles_dict[expected_handle_id] = {
                 "id": expected_handle_id,
                 "node_id": actual_node_id,
@@ -277,7 +277,7 @@ class HandleParser:
                 "data_type": DataType.ANY.value,
                 "position": "right" if direction == HandleDirection.OUTPUT else "left",
             }
-        
+
         # Update arrow to use the correct handle ID
         if direction == HandleDirection.OUTPUT:
             arrow["source"] = expected_handle_id
@@ -287,12 +287,14 @@ class HandleParser:
 
 class PersonExtractor:
     """Extracts person data from different formats."""
-    
+
     @staticmethod
-    def extract_from_dict(persons_data: dict[str, Any], is_light_format: bool = False) -> dict[str, Any]:
+    def extract_from_dict(
+        persons_data: dict[str, Any], is_light_format: bool = False
+    ) -> dict[str, Any]:
         """Extract persons from dictionary format."""
         persons_dict = {}
-        
+
         for person_key, person_config in persons_data.items():
             llm_config = {
                 "service": person_config.get("service", "openai"),
@@ -303,7 +305,7 @@ class PersonExtractor:
                 llm_config["system_prompt"] = person_config["system_prompt"]
             if "prompt_file" in person_config:
                 llm_config["prompt_file"] = person_config["prompt_file"]
-            
+
             if is_light_format:
                 # In light format, the key is the label
                 # Use the label directly as the person_id (no prefix needed)
@@ -323,16 +325,16 @@ class PersonExtractor:
                     "type": "person",
                     "llm_config": llm_config,
                 }
-            
+
             persons_dict[person_id] = person_dict
-        
+
         return persons_dict
-    
+
     @staticmethod
     def extract_from_list(persons_data: list[Any]) -> dict[str, Any]:
         """Extract persons from list format (readable or native array)."""
         persons_dict = {}
-        
+
         for person_item in persons_data:
             if isinstance(person_item, dict):
                 # Check if it's a flat person object (from frontend)
@@ -352,10 +354,10 @@ class PersonExtractor:
                             llm_config["system_prompt"] = person_config["system_prompt"]
                         if "prompt_file" in person_config:
                             llm_config["prompt_file"] = person_config["prompt_file"]
-                        
+
                         # Generate a consistent person ID
                         person_id = f"person_{person_name}"
-                        
+
                         person_dict = {
                             "id": person_id,
                             "label": person_name,
@@ -363,13 +365,13 @@ class PersonExtractor:
                             "llm_config": llm_config,
                         }
                         persons_dict[person_id] = person_dict
-        
+
         return persons_dict
 
 
 class ArrowDataProcessor:
     """Processes arrow data for import/export."""
-    
+
     @staticmethod
     def build_arrow_dict(
         arrow_id: str,
@@ -377,7 +379,7 @@ class ArrowDataProcessor:
         target_handle_id: str,
         arrow_data: dict[str, Any] | None = None,
         content_type: str | None = None,
-        label: str | None = None
+        label: str | None = None,
     ) -> dict[str, Any]:
         """Build a standard arrow dictionary."""
         arrow_dict = {
@@ -385,38 +387,35 @@ class ArrowDataProcessor:
             "source": source_handle_id,
             "target": target_handle_id,
         }
-        
+
         if arrow_data:
             arrow_dict["data"] = arrow_data
-        
+
         if content_type:
             arrow_dict["content_type"] = content_type
-        
+
         if label:
             arrow_dict["label"] = label
-        
+
         # Set default content type if not specified
         if "content_type" not in arrow_dict and arrow_dict.get("content_type") is None:
             arrow_dict["content_type"] = ContentType.RAW_TEXT.value
-        
+
         return arrow_dict
-    
+
     @staticmethod
     def should_include_branch_data(source_handle: str, arrow_data: dict[str, Any]) -> bool:
         """Determine if branch data should be included in arrow data."""
         # Skip 'branch' if the handle name already contains the branch info
-        return (
-            "branch" in arrow_data and 
-            source_handle not in ["condtrue", "condfalse"]
-        )
+        return "branch" in arrow_data and source_handle not in ["condtrue", "condfalse"]
 
 
 def process_dotted_keys(props: dict[str, Any]) -> dict[str, Any]:
     """Convert dot notation keys to nested dictionaries."""
-    dotted_keys = [k for k in props if '.' in k]
+    dotted_keys = [k for k in props if "." in k]
     for key in dotted_keys:
         value = props.pop(key)
-        parts = key.split('.')
+        parts = key.split(".")
         current = props
         for part in parts[:-1]:
             if part not in current:

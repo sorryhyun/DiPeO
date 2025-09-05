@@ -5,46 +5,38 @@ Auto-generated from TypeScript interfaces.
 Generated at: 2025-09-05T19:32:17.693469
 """
 
+
 import strawberry
-from typing import Optional, Dict, Any, List
+
+# Note: HookIDScalar and TaskIDScalar are not branded types yet
+# TODO: Add these as branded types in TypeScript models
+from strawberry.scalars import ID
 from strawberry.scalars import JSON as JSONScalar
 
 # Import the Pydantic domain models
 from dipeo.diagram_generated.domain_models import (
-    Vec2,
-    PersonLLMConfig,
+    DiagramMetadata,
+    DomainApiKey,
+    DomainArrow,
+    DomainDiagram,
     DomainHandle,
     DomainNode,
-    DomainArrow,
     DomainPerson,
-    DomainApiKey,
-    DiagramMetadata,
-    DomainDiagram,
-    LLMUsage,
-    NodeState,
     EnvelopeMeta,
-    SerializedEnvelope,
     ExecutionOptions,
     ExecutionState,
+    LLMUsage,
+    NodeState,
+    PersonLLMConfig,
+    SerializedEnvelope,
+    Vec2,
 )
 
 # Import the Status enum for GraphQL type resolution
 from dipeo.diagram_generated.enums import Status
 
 # Import scalar types
-from dipeo.diagram_generated.graphql.scalars import (
-    ApiKeyIDScalar,
-    ArrowIDScalar,
-    DiagramIDScalar,
-    ExecutionIDScalar,
-    HandleIDScalar,
-    NodeIDScalar,
-    PersonIDScalar,
-)
 
-# Note: HookIDScalar and TaskIDScalar are not branded types yet
-# TODO: Add these as branded types in TypeScript models
-from strawberry.scalars import ID
 HookIDScalar = ID  # Temporary fallback
 TaskIDScalar = ID  # Temporary fallback
 
@@ -52,6 +44,7 @@ TaskIDScalar = ID  # Temporary fallback
 from dipeo.diagram_generated.graphql.strawberry_domain import (
     ToolConfigType,
 )
+
 
 # Create Strawberry types from Pydantic models
 # Order matters - define types that are referenced by others first
@@ -84,7 +77,7 @@ class DomainArrowType:
     content_type: strawberry.auto
     label: strawberry.auto
     @strawberry.field
-    def data(self) -> Optional[JSONScalar]:
+    def data(self) -> JSONScalar | None:
         """Optional arrow data"""
         return self.data if hasattr(self, 'data') else None
 @strawberry.experimental.pydantic.type(DomainPerson)
@@ -123,18 +116,18 @@ class NodeStateType:
     error: strawberry.auto
     llm_usage: strawberry.auto
     @strawberry.field
-    def output(self) -> Optional[JSONScalar]:
+    def output(self) -> JSONScalar | None:
         """Node output data"""
         return self.output if hasattr(self, 'output') else None
 @strawberry.experimental.pydantic.type(EnvelopeMeta)
 class EnvelopeMetaType:
-    node_id: Optional[Optional[str]] = None
-    llm_usage: Optional[Optional[LLMUsageType]] = None
-    execution_time: Optional[Optional[float]] = None
-    retry_count: Optional[Optional[int]] = None
-    error: Optional[Optional[str]] = None
-    error_type: Optional[Optional[str]] = None
-    timestamp: Optional[Optional[JSONScalar]] = None
+    node_id: str | None = None
+    llm_usage: LLMUsageType | None = None
+    execution_time: float | None = None
+    retry_count: int | None = None
+    error: str | None = None
+    error_type: str | None = None
+    timestamp: JSONScalar | None = None
 @strawberry.experimental.pydantic.type(SerializedEnvelope)
 class SerializedEnvelopeType:
     envelope_format: strawberry.auto
@@ -144,7 +137,7 @@ class SerializedEnvelopeType:
     content_type: strawberry.auto
     schema_id: strawberry.auto
     serialization_format: strawberry.auto
-    body: Optional[Optional[JSONScalar]] = None
+    body: JSONScalar | None = None
     meta: strawberry.auto
 @strawberry.experimental.pydantic.type(ExecutionOptions)
 class ExecutionOptionsType:
@@ -188,7 +181,7 @@ class ExecutionStateType:
             return result
         return {}
     @strawberry.field
-    def variables(self) -> Optional[JSONScalar]:
+    def variables(self) -> JSONScalar | None:
         """Execution variables"""
         return self.variables if hasattr(self, 'variables') else None
     @strawberry.field
@@ -196,7 +189,7 @@ class ExecutionStateType:
         """Node execution counts"""
         return self.exec_counts if hasattr(self, 'exec_counts') else {}
     @strawberry.field
-    def metrics(self) -> Optional[JSONScalar]:
+    def metrics(self) -> JSONScalar | None:
         """Execution metrics"""
         return self.metrics if hasattr(self, 'metrics') else None
 
@@ -205,21 +198,21 @@ SerializedNodeOutputType = SerializedEnvelopeType
 
 # Export all types
 __all__ = [
-    'Vec2Type',
-    'PersonLLMConfigType',
+    'DiagramMetadataType',
+    'DomainApiKeyType',
+    'DomainArrowType',
+    'DomainDiagramType',
     'DomainHandleType',
     'DomainNodeType',
-    'DomainArrowType',
     'DomainPersonType',
-    'DomainApiKeyType',
-    'DiagramMetadataType',
-    'DomainDiagramType',
-    'LLMUsageType',
-    'NodeStateType',
     'EnvelopeMetaType',
-    'SerializedEnvelopeType',
     'ExecutionOptionsType',
     'ExecutionStateType',
+    'LLMUsageType',
+    'NodeStateType',
+    'PersonLLMConfigType',
+    'SerializedEnvelopeType',
     'SerializedNodeOutputType',  # Alias
     'ToolConfigType',  # Re-exported from generated code
+    'Vec2Type',
 ]

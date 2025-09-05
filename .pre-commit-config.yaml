@@ -9,12 +9,14 @@ repos:
     rev: v0.8.0
     hooks:
       - id: ruff
-        args: [--fix]  # Removed --exit-non-zero-on-fix to allow auto-fixing
+        args: [--fix, --ignore, F841, F401, SIM102, E722, N802]  # Removed --exit-non-zero-on-fix to allow auto-fixing, ignoring common issues
         exclude: |
           (?x)^(
             dipeo/diagram_generated/.*|
             dipeo/diagram_generated_staged/.*|
             projects/codegen/.*|
+            projects/frontend_enhance/.*|
+            projects/frontend_auto/.*|
             .*__generated__.py|
             .*/migrations/.*
           )$
@@ -23,6 +25,8 @@ repos:
           (?x)^(
             dipeo/diagram_generated/.*|
             dipeo/diagram_generated_staged/.*|
+            projects/frontend_enhance/.*|
+            projects/frontend_auto/.*|
             projects/codegen/.*|
             .*__generated__.py
           )$

@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
@@ -39,16 +39,16 @@ class PersonJobNodeData(BaseModel):
         extra='forbid',
     )
     at_most: float
-    batch: Optional[bool] = Field(
+    batch: bool | None = Field(
         None, description='Enable batch processing for arrays'
     )
-    batch_input_key: Optional[str] = Field(
+    batch_input_key: str | None = Field(
         None, description='Array variable name for batch processing'
     )
-    batch_parallel: Optional[bool] = Field(
+    batch_parallel: bool | None = Field(
         None, description='Execute batch items in parallel'
     )
-    default_prompt: Optional[str] = Field(
+    default_prompt: str | None = Field(
         None,
         description='Prompt template using {{variable}} syntax for subsequent iterations',
     )
@@ -56,34 +56,34 @@ class PersonJobNodeData(BaseModel):
         ...,
         description='Special prompt for first iteration only, supports {{variable}} syntax',
     )
-    first_prompt_file: Optional[str] = Field(
+    first_prompt_file: str | None = Field(
         None,
         description='External prompt file for first iteration only (overrides first_only_prompt)',
     )
-    flipped: Optional[bool] = None
+    flipped: bool | None = None
     label: str
-    max_concurrent: Optional[float] = Field(
+    max_concurrent: float | None = Field(
         None, description='Maximum concurrent batch executions'
     )
     max_iteration: float = Field(
         ..., description='Maximum conversation turns (default: 1)'
     )
     memorize_to: str
-    person: Optional[PersonID] = Field(
+    person: PersonID | None = Field(
         None, description="Reference to agent defined in 'persons' section"
     )
-    prompt_file: Optional[str] = Field(
+    prompt_file: str | None = Field(
         None,
         description='External prompt file in files/prompts/ (overrides inline prompts)',
     )
-    text_format: Optional[str] = Field(
+    text_format: str | None = Field(
         None, description='Pydantic model name for structured output'
     )
-    text_format_file: Optional[str] = Field(
+    text_format_file: str | None = Field(
         None,
         description='External Python file with Pydantic models (overrides text_format)',
     )
-    tools: Optional[Tools] = Field(
+    tools: Tools | None = Field(
         None, description='LLM tools to enable (web_search_preview, etc.)'
     )
 

@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, RootModel
 
@@ -44,12 +43,12 @@ class StartNodeData(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    custom_data: Optional[RecordStringStringNumberBoolean] = None
-    flipped: Optional[bool] = None
-    hook_event: Optional[str] = None
-    hook_filters: Optional[JsonDict] = None
+    custom_data: RecordStringStringNumberBoolean | None = None
+    flipped: bool | None = None
+    hook_event: str | None = None
+    hook_filters: JsonDict | None = None
     label: str
-    output_data_structure: Optional[RecordStringString] = None
+    output_data_structure: RecordStringString | None = None
     trigger_mode: HookTriggerMode
 
 

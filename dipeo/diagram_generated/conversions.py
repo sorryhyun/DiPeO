@@ -4,6 +4,7 @@ Auto-generated. Source of truth: `conversions.ts`
 """
 
 from typing import *
+
 from .enums import *
 
 # ---------------------------------------------------------------------------
@@ -52,7 +53,7 @@ def domain_type_to_node_kind(node_type: NodeType) -> str:
 # Handle helpers – kept trivial and logic-aligned with TypeScript.
 # ---------------------------------------------------------------------------
 
-def normalize_node_id(node_id: str) -> NodeID:  # noqa: D401
+def normalize_node_id(node_id: str) -> NodeID:
     """Return the node ID unchanged (placeholder for future logic)."""
     return node_id  # type: ignore[return-value]
 
@@ -111,11 +112,11 @@ def diagram_maps_to_arrays(diagram: dict[str, Any]) -> dict[str, Any]:
 __all__ = [
     "NODE_TYPE_MAP",
     "NODE_TYPE_REVERSE_MAP",
-    "node_kind_to_domain_type",
-    "domain_type_to_node_kind",
-    "normalize_node_id",
     "create_handle_id",
-    "parse_handle_id",
     "diagram_arrays_to_maps",
     "diagram_maps_to_arrays",
+    "domain_type_to_node_kind",
+    "node_kind_to_domain_type",
+    "normalize_node_id",
+    "parse_handle_id",
 ]

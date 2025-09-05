@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
@@ -28,21 +27,21 @@ class CodeJobNodeData(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    code: Optional[str] = Field(
+    code: str | None = Field(
         None, description='Inline code or path to external file'
     )
-    filePath: Optional[str] = Field(
+    filePath: str | None = Field(
         None, description="External code file path (e.g., 'files/code/processor.py')"
     )
-    flipped: Optional[bool] = None
-    functionName: Optional[str] = Field(
+    flipped: bool | None = None
+    functionName: str | None = Field(
         None, description='Function to call in external file (required with filePath)'
     )
     label: str
     language: SupportedLanguage = Field(
         ..., description='Programming language: python, typescript, bash, or shell'
     )
-    timeout: Optional[float] = Field(
+    timeout: float | None = Field(
         None, description='Execution timeout in seconds (default: 60)'
     )
 

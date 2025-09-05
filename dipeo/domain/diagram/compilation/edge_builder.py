@@ -3,16 +3,17 @@
 from dataclasses import dataclass
 from typing import Any
 
-from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2
 from dipeo.diagram_generated import ContentType, DomainArrow, DomainNode, NodeID, NodeType
+from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2
 
 
 @dataclass
 class TransformationMetadata:
     """Metadata describing how data should be transformed between nodes."""
+
     content_type: ContentType
     transformation_rules: dict[str, Any] = None
-    
+
     def __post_init__(self):
         if self.transformation_rules is None:
             self.transformation_rules = {}
@@ -21,6 +22,7 @@ class TransformationMetadata:
 @dataclass
 class ResolvedConnection:
     """Represents a resolved connection between nodes."""
+
     arrow_id: str
     source_node_id: NodeID
     target_node_id: NodeID
@@ -30,26 +32,26 @@ class ResolvedConnection:
 
 class EdgeBuilder:
     """Builds executable edges from domain arrows with transformation rules.
-    
+
     This is pure domain logic that transforms arrows into executable edges
     with data flow rules, without any application dependencies.
     """
-    
+
     def __init__(self):
         self._errors: list[str] = []
-    
+
     def build_edges(
         self,
         arrows: list[DomainArrow],
         resolved_connections: list[ResolvedConnection],
-        nodes: dict[NodeID, DomainNode]
+        nodes: dict[NodeID, DomainNode],
     ) -> tuple[list[ExecutableEdgeV2], list[str]]:
         """Build executable edges from arrows and resolved connections."""
         self._errors = []
-        
+
         # Create arrow lookup
         arrow_map = {arrow.id: arrow for arrow in arrows}
-        
+
         # Transform each resolved connection
         edges = []
         for connection in resolved_connections:
@@ -57,97 +59,100 @@ class EdgeBuilder:
             if not arrow:
                 self._errors.append(f"Arrow {connection.arrow_id} not found")
                 continue
-            
+
             edge = self._build_edge(connection, arrow, nodes)
             if edge:
                 edges.append(edge)
-        
+
         return edges, self._errors
-    
+
     def _build_edge(
-        self,
-        connection: ResolvedConnection,
-        arrow: DomainArrow,
-        nodes: dict[NodeID, DomainNode]
+        self, connection: ResolvedConnection, arrow: DomainArrow, nodes: dict[NodeID, DomainNode]
     ) -> ExecutableEdgeV2 | None:
         """Build a single executable edge from a connection."""
         # Get source and target nodes
         source_node = nodes.get(connection.source_node_id)
         target_node = nodes.get(connection.target_node_id)
-        
+
         if not source_node or not target_node:
             self._errors.append(
                 f"Missing nodes for arrow {arrow.id}: "
                 f"source={connection.source_node_id}, target={connection.target_node_id}"
             )
             return None
-        
+
         # Determine data transformation rules
         transform_metadata = self._create_transformation_metadata(
-            source_node, 
-            target_node, 
-            arrow,
-            connection
+            source_node, target_node, arrow, connection
         )
-        
+
         # Create the executable edge
         edge_metadata = {
             "arrow_data": arrow.data or {},
             "source_type": source_node.type.value,
             "target_type": target_node.type.value,
-            "label": getattr(arrow, 'label', None)
+            "label": getattr(arrow, "label", None),
         }
-        
+
         # Check if arrow data indicates this is for first execution only
         # This is set by the light strategy when it detects a _first suffix
         is_first_execution = False
-        if arrow.data and arrow.data.get('requires_first_execution'):
+        if arrow.data and arrow.data.get("requires_first_execution"):
             is_first_execution = True
-            edge_metadata['is_first_execution'] = True
-        
+            edge_metadata["is_first_execution"] = True
+
         # Check if this is a conditional edge (from condition node branches)
         is_conditional = False
-        if arrow.data and arrow.data.get('is_conditional'):
+        if arrow.data and arrow.data.get("is_conditional"):
             is_conditional = True
-        
+
         # Also check if source output indicates a condition branch
         # This handles cases where the arrow data doesn't explicitly mark it
-        if connection.source_handle_label and str(connection.source_handle_label) in ["condtrue", "condfalse"]:
+        if connection.source_handle_label and str(connection.source_handle_label) in [
+            "condtrue",
+            "condfalse",
+        ]:
             is_conditional = True
-        
+
         # Get handle label values - handle both enum and string cases
         source_output = None
         if connection.source_handle_label:
             # If it's an enum, get its value; otherwise use it as string
-            source_output = (connection.source_handle_label.value 
-                           if hasattr(connection.source_handle_label, 'value') 
-                           else str(connection.source_handle_label))
-        
+            source_output = (
+                connection.source_handle_label.value
+                if hasattr(connection.source_handle_label, "value")
+                else str(connection.source_handle_label)
+            )
+
         target_input = None
         if connection.target_handle_label:
             # If it's an enum, get its value; otherwise use it as string
-            target_input = (connection.target_handle_label.value 
-                          if hasattr(connection.target_handle_label, 'value') 
-                          else str(connection.target_handle_label))
-        
+            target_input = (
+                connection.target_handle_label.value
+                if hasattr(connection.target_handle_label, "value")
+                else str(connection.target_handle_label)
+            )
+
         # Ensure condition branches are always flagged conditional
         # This check comes after source_output is determined
-        if source_node.type == NodeType.CONDITION and str(source_output) in ("condtrue", "condfalse"):
+        if source_node.type == NodeType.CONDITION and str(source_output) in (
+            "condtrue",
+            "condfalse",
+        ):
             is_conditional = True
-        
+
         # Arrow label sets the target_input for labeled connections
         # This allows the receiving node to get the input with the label as the key
         # But we also preserve the original handle in metadata for special handling
         if arrow.label:
             # Store the original handle before overriding
             edge_metadata = edge_metadata or {}
-            edge_metadata['original_target_handle'] = target_input
+            edge_metadata["original_target_handle"] = target_input
             target_input = arrow.label
-        
-        
+
         # Auto-assign execution priority based on target node type
         execution_priority = self._determine_execution_priority(target_node, arrow)
-        
+
         return ExecutableEdgeV2(
             id=arrow.id,
             source_node_id=connection.source_node_id,
@@ -158,52 +163,41 @@ class EdgeBuilder:
             transform_rules=transform_metadata.transformation_rules,
             is_conditional=is_conditional,
             execution_priority=execution_priority,
-            metadata=edge_metadata
+            metadata=edge_metadata,
         )
-    
+
     def _create_transformation_metadata(
         self,
         source_node: DomainNode,
         target_node: DomainNode,
         arrow: DomainArrow,
-        connection: ResolvedConnection
+        connection: ResolvedConnection,
     ) -> TransformationMetadata:
         """Create transformation metadata for an edge."""
         # Default content type based on source node
         content_type = self._determine_content_type(source_node, arrow)
-        
+
         # Custom transformation rules
         rules = self._extract_transformation_rules(arrow, source_node, target_node)
-        
-        return TransformationMetadata(
-            content_type=content_type,
-            transformation_rules=rules
-        )
-    
-    def _determine_execution_priority(
-        self,
-        target_node: DomainNode,
-        arrow: DomainArrow
-    ) -> int:
+
+        return TransformationMetadata(content_type=content_type, transformation_rules=rules)
+
+    def _determine_execution_priority(self, target_node: DomainNode, arrow: DomainArrow) -> int:
         """Determine execution priority for an edge.
-        
+
         Always returns 0 (no priority) to ensure true parallel execution.
         Parallel connections in the diagram will execute in parallel as intended.
         """
         # TODO: In the future, we might allow explicit priority settings
         # For now, all edges have equal priority to avoid confusion
         return 0
-    
-    def _determine_content_type(
-        self, 
-        source_node: DomainNode,
-        arrow: DomainArrow
-    ) -> ContentType:
+
+    def _determine_content_type(self, source_node: DomainNode, arrow: DomainArrow) -> ContentType:
         """Determine the content type for data flowing through an edge."""
         # Check for explicit content type in arrow field
         if arrow.content_type:
             return arrow.content_type
-        
+
         # Check for explicit content type in arrow data (legacy)
         if arrow.data and "contentType" in arrow.data:
             try:
@@ -212,7 +206,7 @@ class EdgeBuilder:
                 self._errors.append(
                     f"Invalid content type in arrow {arrow.id}: {arrow.data['contentType']}"
                 )
-        
+
         # Default based on node type
         if source_node.type == NodeType.PERSON_JOB:
             return ContentType.CONVERSATION_STATE
@@ -224,38 +218,37 @@ class EdgeBuilder:
             return ContentType.OBJECT
         else:
             return ContentType.RAW_TEXT
-    
+
     def _extract_transformation_rules(
-        self,
-        arrow: DomainArrow,
-        source_node: DomainNode,
-        target_node: DomainNode
+        self, arrow: DomainArrow, source_node: DomainNode, target_node: DomainNode
     ) -> dict[str, Any]:
         """Extract transformation rules from arrow and node types."""
         rules = {}
-        
+
         # Add content_type to transformation rules for the transformation engine
         content_type = self._determine_content_type(source_node, arrow)
         if content_type:
-            rules["content_type"] = content_type.value if hasattr(content_type, 'value') else content_type
-        
+            rules["content_type"] = (
+                content_type.value if hasattr(content_type, "value") else content_type
+            )
+
         # Extract from arrow data
         if arrow.data:
             # Variable extraction rules
             if "extractVariable" in arrow.data:
                 rules["extract_variable"] = arrow.data["extractVariable"]
-            
+
             # Format conversion rules
             if "format" in arrow.data:
                 rules["format"] = arrow.data["format"]
-            
+
             # Custom transformations
             if "transform" in arrow.data:
                 rules["custom_transform"] = arrow.data["transform"]
-        
+
         # Add node-type specific rules
         if source_node.type == NodeType.DB and target_node.type == NodeType.PERSON_JOB:
             # Database to person needs formatting
             rules["format_for_conversation"] = True
-        
+
         return rules

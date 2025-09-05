@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from pydantic import BaseModel, ConfigDict, RootModel
 
@@ -47,31 +47,29 @@ class Model(RootModel[ApiJobNodeData]):
 
 
 class JsonValue(
-    RootModel[Union[JsonObject, List[JsonValue], Optional[Union[str, float, bool]]]]
+    RootModel[Union[JsonObject, list[JsonValue], str | float | bool | None]]
 ):
-    root: Union[JsonObject, List[JsonValue], Optional[Union[str, float, bool]]]
+    root: JsonObject | list[JsonValue] | str | float | bool | None
 
 
 class ApiJobNodeData(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    auth_config: Optional[RecordStringString] = None
-    auth_type: Optional[AuthType] = None
-    body: Optional[
-        Union[JsonObject, List[JsonValue], Optional[Union[str, float, bool]]]
-    ] = None
-    flipped: Optional[bool] = None
-    headers: Optional[RecordStringString] = None
+    auth_config: RecordStringString | None = None
+    auth_type: AuthType | None = None
+    body: JsonObject | list[JsonValue] | str | float | bool | None | None = None
+    flipped: bool | None = None
+    headers: RecordStringString | None = None
     label: str
     method: HttpMethod
-    params: Optional[JsonDict] = None
-    timeout: Optional[float] = None
+    params: JsonDict | None = None
+    timeout: float | None = None
     url: str
 
 
-class JsonObject(RootModel[Optional[Dict[str, JsonValue]]]):
-    root: Optional[Dict[str, JsonValue]] = None
+class JsonObject(RootModel[Optional[dict[str, JsonValue]]]):
+    root: dict[str, JsonValue] | None = None
 
 
 Model.model_rebuild()

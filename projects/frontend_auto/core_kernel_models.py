@@ -3,21 +3,21 @@ Pydantic models for Core Kernel specifications.
 Defines structured output for Core Kernel Architect to generate specifications for foundational contracts.
 """
 
-from typing import List, Dict, Optional, Any
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CoreFile(BaseModel):
     """Specification for a single core kernel file."""
-    model_config = ConfigDict(extra='forbid')
-    
+
+    model_config = ConfigDict(extra="forbid")
+
     file_path: str = Field(
         description="File path relative to src/ (e.g., 'src/core/contracts.ts', 'src/app/config.ts')"
     )
     purpose: str = Field(
         description="Brief description of what this file provides to the application"
     )
-    exports: List[str] = Field(
+    exports: list[str] = Field(
         description="List of key exports from this file (types, functions, classes, constants)"
     )
     content: str = Field(
@@ -27,20 +27,21 @@ class CoreFile(BaseModel):
 
 class CoreKernelResponse(BaseModel):
     """Response containing specifications for all core kernel files."""
-    model_config = ConfigDict(extra='forbid')
-    
+
+    model_config = ConfigDict(extra="forbid")
+
     overview: str = Field(
         description="Brief explanation of how the core kernel provides foundation for all sections"
     )
-    files: List[CoreFile] = Field(
+    files: list[CoreFile] = Field(
         min_items=1,
         max_items=8,
-        description="Specifications for core kernel files that establish shared contracts and utilities"
+        description="Specifications for core kernel files that establish shared contracts and utilities",
     )
-    usage_guidelines: List[str] = Field(
+    usage_guidelines: list[str] = Field(
         min_items=1,
         max_items=10,
-        description="Key guidelines for sections using the core kernel (e.g., 'Import types from @/core/contracts', 'Use hooks.register() for extensions')"
+        description="Key guidelines for sections using the core kernel (e.g., 'Import types from @/core/contracts', 'Use hooks.register() for extensions')",
     )
 
 
@@ -57,7 +58,7 @@ EXAMPLE_RESPONSE = CoreKernelResponse(
 1. User interface with:
    - id: string (unique identifier)
    - email: string
-   - role: union type of 'patient' | 'doctor' | 'nurse' 
+   - role: union type of 'patient' | 'doctor' | 'nurse'
    - name: string
    - avatar?: optional string URL
 
@@ -83,7 +84,7 @@ EXAMPLE_RESPONSE = CoreKernelResponse(
 
 6. ApiError interface with code, message, and optional details
 
-Use strict TypeScript with no 'any' types. Export all as named exports."""
+Use strict TypeScript with no 'any' types. Export all as named exports.""",
         ),
         CoreFile(
             file_path="src/core/hooks.ts",
@@ -93,7 +94,7 @@ Use strict TypeScript with no 'any' types. Export all as named exports."""
 
 1. HookPoint union type with these hook names:
    - 'beforeApiRequest', 'afterApiResponse'
-   - 'onLogin', 'onLogout'  
+   - 'onLogin', 'onLogout'
    - 'onRouteChange'
 
 2. HookContext interface containing:
@@ -111,7 +112,7 @@ Use strict TypeScript with no 'any' types. Export all as named exports."""
 
 5. Export singleton 'hooks' instance
 
-Pattern: Allow any part of app to register hooks and run them at key points."""
+Pattern: Allow any part of app to register hooks and run them at key points.""",
         ),
         CoreFile(
             file_path="app/config.ts",
@@ -135,16 +136,16 @@ Pattern: Allow any part of app to register hooks and run them at key points."""
    - mockUsers array from config
    - Any other mock data specified
 
-Make all exports strongly typed. Config should be the source of truth for app settings."""
-        )
+Make all exports strongly typed. Config should be the source of truth for app settings.""",
+        ),
     ],
     usage_guidelines=[
         "Import all domain types from @/core/contracts instead of defining locally",
         "Use hooks.register() to add custom behavior at extension points",
         "Reference config from @/app/config for feature flags and settings",
         "Never import from relative paths when a @/core/* export exists",
-        "Use the event bus for decoupled communication between features"
-    ]
+        "Use the event bus for decoupled communication between features",
+    ],
 )
 
 
@@ -152,7 +153,7 @@ if __name__ == "__main__":
     # Rebuild models to ensure proper schema generation
     CoreFile.model_rebuild()
     CoreKernelResponse.model_rebuild()
-    
+
     # Print example for reference
     print("Example Core Kernel Response:")
     print(EXAMPLE_RESPONSE.model_dump_json(indent=2))

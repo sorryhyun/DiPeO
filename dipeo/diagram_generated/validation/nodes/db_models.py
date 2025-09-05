@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
@@ -39,28 +38,28 @@ class DBNodeData(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    collection: Optional[str] = Field(
+    collection: str | None = Field(
         None, description='Database collection name (for database operations)'
     )
-    data: Optional[JsonDict] = Field(
+    data: JsonDict | None = Field(
         None, description='Data to write (for write operations)'
     )
-    file: Optional[Union[List[str], str]] = Field(
+    file: list[str] | str | None = Field(
         None, description='File path(s) - single string or list for multiple files'
     )
-    flipped: Optional[bool] = None
-    format: Optional[str] = Field(
+    flipped: bool | None = None
+    format: str | None = Field(
         None, description='Data format: json, yaml, csv, text, etc.'
     )
-    glob: Optional[bool] = Field(
+    glob: bool | None = Field(
         None, description='Enable glob pattern expansion for paths (default: false)'
     )
     label: str
     operation: str = Field(..., description='Operation type: read or write')
-    query: Optional[str] = Field(
+    query: str | None = Field(
         None, description='Database query (for database operations)'
     )
-    serialize_json: Optional[bool] = Field(
+    serialize_json: bool | None = Field(
         None, description='Auto-parse JSON files when reading (default: false)'
     )
     sub_type: DBBlockSubType = Field(..., description='Storage type: file or database')

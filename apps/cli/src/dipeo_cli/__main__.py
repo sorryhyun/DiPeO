@@ -22,7 +22,14 @@ if sys.platform == "win32":
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
 
-from .commands import AskCommand, ConvertCommand, IntegrationsCommand, MetricsCommand, RunCommand, UtilsCommand
+from .commands import (
+    AskCommand,
+    ConvertCommand,
+    IntegrationsCommand,
+    MetricsCommand,
+    RunCommand,
+    UtilsCommand,
+)
 from .commands.base import DiagramLoader
 from .server_manager import ServerManager
 
@@ -151,7 +158,9 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     # Ask command
-    ask_parser = subparsers.add_parser("ask", help="Generate diagram from natural language")
+    ask_parser = subparsers.add_parser(
+        "ask", help="Generate diagram from natural language"
+    )
     ask_parser.add_argument(
         "--to",
         type=str,
@@ -258,56 +267,68 @@ def main():
     metrics_parser.add_argument(
         "execution_id",
         nargs="?",
-        help="Execution ID to show metrics for (shows latest if not specified)"
+        help="Execution ID to show metrics for (shows latest if not specified)",
     )
     metrics_parser.add_argument(
-        "--diagram",
-        type=str,
-        help="Show metrics history for specific diagram"
+        "--diagram", type=str, help="Show metrics history for specific diagram"
     )
     metrics_parser.add_argument(
-        "--bottlenecks",
-        action="store_true",
-        help="Show only bottleneck analysis"
+        "--bottlenecks", action="store_true", help="Show only bottleneck analysis"
     )
     metrics_parser.add_argument(
-        "--optimizations",
-        action="store_true",
-        help="Show optimization suggestions"
+        "--optimizations", action="store_true", help="Show optimization suggestions"
     )
-    metrics_parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output as JSON"
-    )
+    metrics_parser.add_argument("--json", action="store_true", help="Output as JSON")
 
     # Integrations command
-    integrations_parser = subparsers.add_parser("integrations", help="Manage API integrations")
-    integrations_subparsers = integrations_parser.add_subparsers(dest="integrations_action", help="Integration commands")
-    
+    integrations_parser = subparsers.add_parser(
+        "integrations", help="Manage API integrations"
+    )
+    integrations_subparsers = integrations_parser.add_subparsers(
+        dest="integrations_action", help="Integration commands"
+    )
+
     # Init subcommand
-    init_parser = integrations_subparsers.add_parser("init", help="Initialize integrations workspace")
-    init_parser.add_argument("--path", type=str, help="Path to initialize (default: ./integrations)")
-    
+    init_parser = integrations_subparsers.add_parser(
+        "init", help="Initialize integrations workspace"
+    )
+    init_parser.add_argument(
+        "--path", type=str, help="Path to initialize (default: ./integrations)"
+    )
+
     # Validate subcommand
-    validate_parser = integrations_subparsers.add_parser("validate", help="Validate provider manifests")
-    validate_parser.add_argument("--path", type=str, help="Path to integrations directory")
-    validate_parser.add_argument("--provider", type=str, help="Validate specific provider only")
-    
+    validate_parser = integrations_subparsers.add_parser(
+        "validate", help="Validate provider manifests"
+    )
+    validate_parser.add_argument(
+        "--path", type=str, help="Path to integrations directory"
+    )
+    validate_parser.add_argument(
+        "--provider", type=str, help="Validate specific provider only"
+    )
+
     # OpenAPI import subcommand
-    openapi_parser = integrations_subparsers.add_parser("openapi-import", help="Import OpenAPI specification")
+    openapi_parser = integrations_subparsers.add_parser(
+        "openapi-import", help="Import OpenAPI specification"
+    )
     openapi_parser.add_argument("openapi_path", help="Path to OpenAPI spec file")
     openapi_parser.add_argument("--name", required=True, help="Provider name")
     openapi_parser.add_argument("--output", type=str, help="Output directory")
     openapi_parser.add_argument("--base-url", type=str, help="Override base URL")
-    
+
     # Test subcommand
-    test_parser = integrations_subparsers.add_parser("test", help="Test integration provider")
+    test_parser = integrations_subparsers.add_parser(
+        "test", help="Test integration provider"
+    )
     test_parser.add_argument("provider", help="Provider name to test")
     test_parser.add_argument("--operation", type=str, help="Specific operation to test")
     test_parser.add_argument("--config", type=str, help="Test configuration JSON")
-    test_parser.add_argument("--record", action="store_true", help="Record test for replay")
-    test_parser.add_argument("--replay", action="store_true", help="Replay recorded test")
+    test_parser.add_argument(
+        "--record", action="store_true", help="Record test for replay"
+    )
+    test_parser.add_argument(
+        "--replay", action="store_true", help="Replay recorded test"
+    )
 
     args = parser.parse_args()
 
@@ -392,13 +413,13 @@ def main():
                 diagram_id=args.diagram,
                 bottlenecks_only=args.bottlenecks,
                 optimizations_only=args.optimizations,
-                output_json=args.json
+                output_json=args.json,
             )
         elif args.command == "integrations":
             if not args.integrations_action:
                 integrations_parser.print_help()
                 sys.exit(0)
-            
+
             # Build kwargs based on action
             kwargs = {}
             if args.integrations_action == "init":
@@ -417,7 +438,7 @@ def main():
                 kwargs["config"] = getattr(args, "config", None)
                 kwargs["record"] = getattr(args, "record", False)
                 kwargs["replay"] = getattr(args, "replay", False)
-            
+
             success = cli.integrations(args.integrations_action, **kwargs)
             sys.exit(0 if success else 1)
 

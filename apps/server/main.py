@@ -1,4 +1,3 @@
-import logging
 import os
 import warnings
 from contextlib import asynccontextmanager
@@ -16,10 +15,20 @@ from dipeo_server.app_context import initialize_container_async
 load_dotenv()
 
 # Suppress non-critical warnings
-warnings.filterwarnings("ignore", message="_type_definition is deprecated", category=UserWarning)
-warnings.filterwarnings("ignore", message="The config `workers` has no affect when using serve", category=Warning)
-warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
-warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
+warnings.filterwarnings(
+    "ignore", message="_type_definition is deprecated", category=UserWarning
+)
+warnings.filterwarnings(
+    "ignore",
+    message="The config `workers` has no affect when using serve",
+    category=Warning,
+)
+warnings.filterwarnings(
+    "ignore", message="Pydantic serializer warnings", category=UserWarning
+)
+warnings.filterwarnings(
+    "ignore", message="Field name.*shadows an attribute", category=UserWarning
+)
 
 # Setup logging with file output to .logs/
 log_level = os.environ.get("LOG_LEVEL", "INFO")
@@ -28,7 +37,7 @@ logger = setup_logging(
     log_level=log_level,
     log_to_file=True,
     log_dir=".logs",
-    console_output=True
+    console_output=True,
 )
 
 
@@ -100,7 +109,7 @@ def start():
 
     # Configure logging
     config.accesslog = None  # Disable access logs
-    config.errorlog = "-"   # Log errors to stdout
+    config.errorlog = "-"  # Log errors to stdout
 
     config.keep_alive_timeout = 75.0
 

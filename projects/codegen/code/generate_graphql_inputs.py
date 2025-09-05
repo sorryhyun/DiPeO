@@ -5,7 +5,8 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
+
 
 @dataclass
 class InputField:
@@ -13,17 +14,17 @@ class InputField:
     name: str
     type_str: str
     optional: bool
-    default_value: Optional[str] = None
-    description: Optional[str] = None
+    default_value: str | None = None
+    description: str | None = None
 
 @dataclass
 class InputTypeData:
     """Data for a GraphQL input type."""
     name: str
-    fields: List[InputField]
-    description: Optional[str] = None
+    fields: list[InputField]
+    description: str | None = None
 
-def extract_input_types_from_ast(ast_cache: Dict[str, Any]) -> List[InputTypeData]:
+def extract_input_types_from_ast(ast_cache: dict[str, Any]) -> list[InputTypeData]:
     """Extract GraphQL input types from TypeScript AST cache."""
 
     input_types = []
@@ -68,7 +69,7 @@ def extract_input_types_from_ast(ast_cache: Dict[str, Any]) -> List[InputTypeDat
 
     return input_types
 
-def parse_input_type(type_name: str, type_data: Dict[str, Any]) -> Optional[InputTypeData]:
+def parse_input_type(type_name: str, type_data: dict[str, Any]) -> InputTypeData | None:
     """Parse a TypeScript type alias into an input type."""
 
     # Check if it's an object type literal
@@ -87,7 +88,7 @@ def parse_input_type(type_name: str, type_data: Dict[str, Any]) -> Optional[Inpu
         description=type_data.get('description')
     )
 
-def parse_input_field(field_name: str, field_data: Any) -> Optional[InputField]:
+def parse_input_field(field_name: str, field_data: Any) -> InputField | None:
     """Parse a field from a TypeScript type."""
 
     # Convert TypeScript field name to Python (snake_case)
@@ -168,7 +169,116 @@ def resolve_typescript_type_to_python(type_data: Any) -> str:
 
     return type_map.get(type_str, type_str)
 
-def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
+
+def _process_default_input_for_graphql(data, logger) -> dict[str, Any]:
+    """Process data from 'default' key in inputs for GraphQL input generation."""
+    ast_cache = {}
+
+    # Handle string input - parse it first
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except (json.JSONDecodeError, ValueError):
+            try:
+                data = ast.literal_eval(data)
+            except (ValueError, SyntaxError):
+                logger.debug("Could not parse string input")
+                data = {}
+
+    # Now data could be either:
+    # 1. A dict of file paths to AST content (from glob)
+    # 2. A single AST file content (from single file load)
+    if isinstance(data, dict):
+        # Check if this looks like glob results (has .json file paths as keys)
+        has_json_keys = any(k.endswith('.json') for k in data if isinstance(k, str))
+
+        # Check if this looks like AST content (has 'interfaces', 'types', etc.)
+        looks_like_ast = 'interfaces' in data or 'types' in data or 'enums' in data
+
+        if has_json_keys:
+            # This is the glob result - keys are file paths, values are AST data
+            ast_cache = data  # Use it directly as the cache
+        elif looks_like_ast:
+            # This is a single AST file content - add it to cache with a dummy key
+            ast_cache['temp/frontend/graphql-inputs.ts.json'] = data
+        else:
+            # Some other dict format, try to process entries
+            for filepath, ast_content in data.items():
+                # Skip special keys
+                if filepath in ['inputs', 'node_id', 'globals']:
+                    continue
+
+                # Parse AST content if it's a string
+                if isinstance(ast_content, str):
+                    try:
+                        ast_content = json.loads(ast_content)
+                    except (json.JSONDecodeError, ValueError):
+                        logger.debug(f"Could not parse AST content for {filepath}")
+                        continue
+
+                # Add to cache - especially look for graphql-inputs file
+                if isinstance(ast_content, dict):
+                    ast_cache[filepath] = ast_content
+    elif isinstance(data, list):
+        # Convert list to cache dict
+        for i, item in enumerate(data):
+            if isinstance(item, dict):
+                ast_cache[f"item_{i}"] = item
+
+    return ast_cache
+
+
+def _build_ast_cache_for_inputs(inputs: dict[str, Any], logger) -> dict[str, Any]:
+    """Build AST cache for GraphQL input generation."""
+    # Check if we have file paths as keys (glob result format)
+    has_json_files = any(key.endswith('.json') for key in inputs)
+
+    if has_json_files:
+        # Direct glob results - process them
+        ast_cache = {}
+        for filepath, ast_content in inputs.items():
+            # Skip special keys
+            if filepath in ['inputs', 'node_id', 'globals', 'default']:
+                continue
+
+            # Parse AST content if it's a string
+            if isinstance(ast_content, str):
+                try:
+                    ast_content = json.loads(ast_content)
+                except (json.JSONDecodeError, ValueError):
+                    logger.debug(f"Could not parse AST content for {filepath}")
+                    continue
+
+            # Add to cache
+            if isinstance(ast_content, dict):
+                ast_cache[filepath] = ast_content
+
+        return ast_cache
+
+    # Check for 'default' key (DB node might wrap glob results in default)
+    elif "default" in inputs:
+        return _process_default_input_for_graphql(inputs["default"], logger)
+
+    return {}
+
+
+def _try_direct_file_parsing(logger) -> list:
+    """Fallback to direct file parsing for better accuracy."""
+    logger.debug("No input types from AST, using direct file parsing")
+    base_dir = Path(os.getenv("DIPEO_BASE_DIR", str(Path.cwd())))
+    inputs_file = base_dir / "dipeo/models/src/frontend/graphql-inputs.ts"
+
+    if inputs_file.exists():
+        logger.debug(f"Parsing file directly: {inputs_file}")
+        input_types = parse_inputs_file_directly(inputs_file)
+        logger.debug(f"Direct parsing returned {len(input_types)} input types")
+        return input_types
+    else:
+        logger.debug(f"File does not exist: {inputs_file}")
+        return []
+
+
+def main(inputs: dict[str, Any]) -> dict[str, Any]:
     """Main entry point for GraphQL input type generation.
 
     Reads TypeScript AST files and generates GraphQL input types.
@@ -189,86 +299,8 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         else:
             logger.debug(f"Default is type: {type(default_val)}")
 
-    # Try to extract from AST first
-    ast_cache = {}
-
-    # The DB node with glob=true and content_type: object passes files directly
-    # Check if we have file paths as keys (glob result format)
-    has_json_files = any(key.endswith('.json') for key in inputs.keys())
-
-    if has_json_files:
-        # Direct glob results - process them
-        for filepath, ast_content in inputs.items():
-            # Skip special keys
-            if filepath in ['inputs', 'node_id', 'globals', 'default']:
-                continue
-
-            # Parse AST content if it's a string
-            if isinstance(ast_content, str):
-                try:
-                    ast_content = json.loads(ast_content)
-                except (json.JSONDecodeError, ValueError):
-                    logger.debug(f"Could not parse AST content for {filepath}")
-                    continue
-
-            # Add to cache
-            if isinstance(ast_content, dict):
-                ast_cache[filepath] = ast_content
-
-    # Check for 'default' key (DB node might wrap glob results in default)
-    elif "default" in inputs:
-        data = inputs["default"]
-
-        # Handle string input - parse it first
-        if isinstance(data, str):
-            try:
-                data = json.loads(data)
-            except (json.JSONDecodeError, ValueError):
-                try:
-                    data = ast.literal_eval(data)
-                except (ValueError, SyntaxError):
-                    logger.debug(f"Could not parse string input")
-                    data = {}
-
-        # Now data could be either:
-        # 1. A dict of file paths to AST content (from glob)
-        # 2. A single AST file content (from single file load)
-        if isinstance(data, dict):
-            # Check if this looks like glob results (has .json file paths as keys)
-            has_json_keys = any(k.endswith('.json') for k in data.keys() if isinstance(k, str))
-
-            # Check if this looks like AST content (has 'interfaces', 'types', etc.)
-            looks_like_ast = 'interfaces' in data or 'types' in data or 'enums' in data
-
-            if has_json_keys:
-                # This is the glob result - keys are file paths, values are AST data
-                ast_cache = data  # Use it directly as the cache
-            elif looks_like_ast:
-                # This is a single AST file content - add it to cache with a dummy key
-                ast_cache['temp/frontend/graphql-inputs.ts.json'] = data
-            else:
-                # Some other dict format, try to process entries
-                for filepath, ast_content in data.items():
-                    # Skip special keys
-                    if filepath in ['inputs', 'node_id', 'globals']:
-                        continue
-
-                    # Parse AST content if it's a string
-                    if isinstance(ast_content, str):
-                        try:
-                            ast_content = json.loads(ast_content)
-                        except (json.JSONDecodeError, ValueError):
-                            logger.debug(f"Could not parse AST content for {filepath}")
-                            continue
-
-                    # Add to cache - especially look for graphql-inputs file
-                    if isinstance(ast_content, dict):
-                        ast_cache[filepath] = ast_content
-        elif isinstance(data, list):
-            # Convert list to cache dict
-            for i, item in enumerate(data):
-                if isinstance(item, dict):
-                    ast_cache[f"item_{i}"] = item
+    # Build AST cache from inputs
+    ast_cache = _build_ast_cache_for_inputs(inputs, logger)
 
     # Extract input types from AST
     input_types = extract_input_types_from_ast(ast_cache)
@@ -280,15 +312,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
 
     # Fallback to direct file parsing for better accuracy
     if not input_types:
-        logger.debug("No input types from AST, using direct file parsing")
-        base_dir = Path(os.getenv("DIPEO_BASE_DIR", os.getcwd()))
-        inputs_file = base_dir / "dipeo/models/src/frontend/graphql-inputs.ts"
-        if inputs_file.exists():
-            logger.debug(f"Parsing file directly: {inputs_file}")
-            input_types = parse_inputs_file_directly(inputs_file)
-            logger.debug(f"Direct parsing returned {len(input_types)} input types")
-        else:
-            logger.debug(f"File does not exist: {inputs_file}")
+        input_types = _try_direct_file_parsing(logger)
 
     return {
         'input_types': input_types,
@@ -296,7 +320,7 @@ def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
         'total_count': len(input_types),
     }
 
-def parse_inputs_file_directly(file_path: Path) -> List[InputTypeData]:
+def parse_inputs_file_directly(file_path: Path) -> list[InputTypeData]:
     """Parse the graphql-inputs.ts file directly for more accurate extraction."""
 
     content = file_path.read_text()

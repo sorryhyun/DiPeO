@@ -5,9 +5,9 @@ additional GraphQL-specific types needed for the schema.
 """
 
 # Re-export all generated domain types
-from dipeo.diagram_generated.domain_models import *  # noqa: F403
-from dipeo.diagram_generated.enums import *  # noqa: F403
-from dipeo.diagram_generated.graphql import *  # noqa: F403
+from dipeo.diagram_generated.domain_models import *
+from dipeo.diagram_generated.enums import *
+from dipeo.diagram_generated.graphql import *
 
 # Import Strawberry domain types from generated code
 from dipeo.diagram_generated.graphql.domain_types import (
@@ -30,8 +30,11 @@ from dipeo.diagram_generated.graphql.domain_types import (
     Vec2Type,
 )
 
+# Import GraphQL-specific types
+from dipeo.diagram_generated.graphql.inputs import *
+
 # Import generated scalars instead of manual ones
-from dipeo.diagram_generated.graphql.scalars import *  # noqa: F403
+from dipeo.diagram_generated.graphql.scalars import *
 from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData
 from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData
 from dipeo.diagram_generated.models.condition_model import ConditionNodeData
@@ -49,9 +52,7 @@ from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeDat
 from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
 
-# Import GraphQL-specific types
-from .inputs import *  # noqa: F403
-from .results import *  # noqa: F403
+from .results import *
 
 __all__ = [
     "ApiJobNodeData",

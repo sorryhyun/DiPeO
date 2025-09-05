@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, RootModel
 
 
@@ -16,8 +14,8 @@ class EndpointNodeData(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    file_name: Optional[str] = None
-    flipped: Optional[bool] = None
+    file_name: str | None = None
+    flipped: bool | None = None
     label: str
     save_to_file: bool
 

@@ -7,40 +7,39 @@ and maintainability.
 
 import logging
 
-logger = logging.getLogger(__name__)
-
 # Explicitly import all handler classes
-from .start import StartNodeHandler
-from .person_job import PersonJobNodeHandler
+from .api_job import ApiJobNodeHandler
 from .code_job import CodeJobNodeHandler
 from .condition import ConditionNodeHandler
-from .api_job import ApiJobNodeHandler
-from .endpoint import EndpointNodeHandler
 from .db import DBTypedNodeHandler
-from .user_response import UserResponseNodeHandler
+from .endpoint import EndpointNodeHandler
 from .hook import HookNodeHandler
-from .template_job import TemplateJobNodeHandler
-from .json_schema_validator import JsonSchemaValidatorNodeHandler
-from .typescript_ast import TypescriptAstNodeHandler
-from .sub_diagram import SubDiagramNodeHandler
 from .integrated_api import IntegratedApiNodeHandler
+from .json_schema_validator import JsonSchemaValidatorNodeHandler
+from .person_job import PersonJobNodeHandler
+from .start import StartNodeHandler
+from .sub_diagram import SubDiagramNodeHandler
+from .template_job import TemplateJobNodeHandler
+from .typescript_ast import TypescriptAstNodeHandler
+from .user_response import UserResponseNodeHandler
 
 # Export all handler classes
 __all__ = [
-    "StartNodeHandler",
-    "PersonJobNodeHandler",
+    "ApiJobNodeHandler",
     "CodeJobNodeHandler",
     "ConditionNodeHandler",
-    "ApiJobNodeHandler",
-    "EndpointNodeHandler",
     "DBTypedNodeHandler",
-    "UserResponseNodeHandler",
+    "EndpointNodeHandler",
     "HookNodeHandler",
-    "TemplateJobNodeHandler",
-    "JsonSchemaValidatorNodeHandler",
-    "TypescriptAstNodeHandler",
-    "SubDiagramNodeHandler",
     "IntegratedApiNodeHandler",
+    "JsonSchemaValidatorNodeHandler",
+    "PersonJobNodeHandler",
+    "StartNodeHandler",
+    "SubDiagramNodeHandler",
+    "TemplateJobNodeHandler",
+    "TypescriptAstNodeHandler",
+    "UserResponseNodeHandler",
 ]
 
+logger = logging.getLogger(__name__)
 logger.info(f"✅ Loaded {len(__all__)} handlers")

@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
@@ -39,36 +39,36 @@ class ConditionNodeData(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    at_most: Optional[float] = Field(None, description='Max messages to keep in memory')
-    condition_type: Optional[ConditionType] = Field(
+    at_most: float | None = Field(None, description='Max messages to keep in memory')
+    condition_type: ConditionType | None = Field(
         None,
         description='Condition type: detect_max_iterations, nodes_executed, custom, or llm_decision',
     )
-    expose_index_as: Optional[str] = Field(
+    expose_index_as: str | None = Field(
         None,
         description="Variable name to expose the condition node's execution count (0-based index) to downstream nodes",
     )
-    expression: Optional[str] = Field(
+    expression: str | None = Field(
         None, description='Python expression for custom type (access to all variables)'
     )
-    flipped: Optional[bool] = None
-    judge_by: Optional[str] = Field(
+    flipped: bool | None = None
+    judge_by: str | None = Field(
         None, description='The prompt/criteria for LLM to judge'
     )
-    judge_by_file: Optional[str] = Field(
+    judge_by_file: str | None = Field(
         None, description='External prompt file in {subdirectory}/prompts/'
     )
     label: str
-    memorize_to: Optional[str] = Field(
+    memorize_to: str | None = Field(
         None, description='Memory control (e.g., "GOLDFISH" for fresh evaluation)'
     )
-    node_indices: Optional[List[str]] = Field(
+    node_indices: list[str] | None = Field(
         None, description='List of node indices for nodes_executed condition type'
     )
-    person: Optional[PersonID] = Field(
+    person: PersonID | None = Field(
         None, description='AI agent to use (when condition_type is LLM_DECISION)'
     )
-    skippable: Optional[bool] = Field(
+    skippable: bool | None = Field(
         None,
         description="When true, downstream nodes can execute even if this condition hasn't been evaluated yet",
     )
