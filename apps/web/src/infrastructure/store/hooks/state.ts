@@ -30,7 +30,7 @@ export const useUIState = () => useUnifiedStore(
  * Check if a specific entity is selected
  */
 export const useIsSelected = (entityId: string | null, entityType: 'node' | 'arrow' | 'person') =>
-  useUnifiedStore(state => 
+  useUnifiedStore(state =>
     state.selectedId === entityId && state.selectedType === entityType
   );
 
@@ -48,8 +48,8 @@ export const useIsNodeExecuting = (nodeId: string | null) =>
 export const useExecutionProgress = () => useUnifiedStore(state => {
   const totalNodes = state.nodesArray.length;
   const completedNodes = Array.from(state.execution.nodeStates.values())
-    .filter(node => node.status === 'COMPLETED').length;
-  
+    .filter(node => node.status === 'completed').length;
+
   return {
     isRunning: state.execution.isRunning,
     progress: totalNodes > 0 ? (completedNodes / totalNodes) * 100 : 0,
@@ -93,7 +93,7 @@ export const useHasUnsavedChanges = () => useUnifiedStore(_state => {
  */
 export const usePersonsByService = () => useUnifiedStore(state => {
   const grouped = new Map<string, typeof state.personsArray>();
-  
+
   state.personsArray.forEach(person => {
     const service = person.llm_config?.service || 'unknown';
     if (!grouped.has(service)) {
@@ -101,7 +101,7 @@ export const usePersonsByService = () => useUnifiedStore(state => {
     }
     grouped.get(service)!.push(person);
   });
-  
+
   return grouped;
 });
 
@@ -109,7 +109,7 @@ export const usePersonsByService = () => useUnifiedStore(state => {
  * Check if a specific API key is in use
  */
 export const useIsApiKeyInUse = (apiKeyId: string | null) =>
-  useUnifiedStore(state => 
+  useUnifiedStore(state =>
     apiKeyId ? state.personsArray.some(p => p.llm_config?.api_key_id === apiKeyId) : false
   );
 
@@ -121,31 +121,31 @@ export const useIsApiKeyInUse = (apiKeyId: string | null) =>
 export const useDiagramValidation = () => useUnifiedStore(state => {
   const errors: string[] = [];
   const warnings: string[] = [];
-  
+
   // Check for disconnected nodes
   const connectedNodes = new Set<string>();
   state.arrowsArray.forEach(arrow => {
     connectedNodes.add(arrow.source);
     connectedNodes.add(arrow.target);
   });
-  
+
   const disconnectedNodes = state.nodesArray.filter(
     node => !connectedNodes.has(node.id)
   );
-  
+
   if (disconnectedNodes.length > 0) {
     warnings.push(`${disconnectedNodes.length} disconnected node(s)`);
   }
-  
+
   // Check for nodes without persons
   const nodesWithoutPersons = state.nodesArray.filter(
     node => node.type === NodeType.PERSON_JOB && !node.data.person
   );
-  
+
   if (nodesWithoutPersons.length > 0) {
     errors.push(`${nodesWithoutPersons.length} person node(s) without assigned persons`);
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,

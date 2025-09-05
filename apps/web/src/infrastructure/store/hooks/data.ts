@@ -21,49 +21,49 @@ export const useDiagramData = () => useUnifiedStore(
 /**
  * Get node data by ID
  */
-export const useNodeData = (nodeId: NodeID | null) => 
+export const useNodeData = (nodeId: NodeID | null) =>
   useUnifiedStore(state => nodeId ? state.nodes.get(nodeId) : null);
 
 /**
  * Get all nodes as array
  */
-export const useNodesData = () => 
+export const useNodesData = () =>
   useUnifiedStore(state => state.nodesArray);
 
 /**
  * Get arrow data by ID
  */
-export const useArrowData = (arrowId: ArrowID | null) => 
+export const useArrowData = (arrowId: ArrowID | null) =>
   useUnifiedStore(state => arrowId ? state.arrows.get(arrowId) : null);
 
 /**
  * Get all arrows as array
  */
-export const useArrowsData = () => 
+export const useArrowsData = () =>
   useUnifiedStore(state => state.arrowsArray);
 
 /**
  * Get person data by ID
  */
-export const usePersonData = (personId: PersonID | null) => 
+export const usePersonData = (personId: PersonID | null) =>
   useUnifiedStore(state => personId ? state.persons.get(personId) : null);
 
 /**
  * Get all persons as array
  */
-export const usePersonsData = () => 
+export const usePersonsData = () =>
   useUnifiedStore(state => state.personsArray);
 
 /**
  * Get handle data by ID
  */
-export const useHandleData = (handleId: HandleID | null) => 
+export const useHandleData = (handleId: HandleID | null) =>
   useUnifiedStore(state => handleId ? state.handles.get(handleId) : null);
 
 /**
  * Get handles for a specific node
  */
-export const useNodeHandlesData = (nodeId: NodeID | null) => 
+export const useNodeHandlesData = (nodeId: NodeID | null) =>
   useUnifiedStore(state => {
     if (!nodeId) return [];
     const handles = state.handleIndex.get(nodeId) || [];
@@ -164,8 +164,8 @@ export const useHistoryData = () => useUnifiedStore(
 export const useRunningNodesComputed = () => {
   const nodes = useUnifiedStore(state => state.nodesArray);
   const runningNodeIds = useUnifiedStore(state => state.execution.runningNodes);
-  
-  return useMemo(() => 
+
+  return useMemo(() =>
     nodes.filter(node => runningNodeIds.has(node.id)),
     [nodes, runningNodeIds]
   );
@@ -177,11 +177,11 @@ export const useRunningNodesComputed = () => {
 export const useCompletedNodesComputed = () => {
   const nodes = useUnifiedStore(state => state.nodesArray);
   const nodeStates = useUnifiedStore(state => state.execution.nodeStates);
-  
-  return useMemo(() => 
+
+  return useMemo(() =>
     nodes.filter(node => {
       const nodeState = nodeStates.get(node.id);
-      return nodeState?.status === 'COMPLETED';
+      return nodeState?.status === 'completed';
     }),
     [nodes, nodeStates]
   );
@@ -193,11 +193,11 @@ export const useCompletedNodesComputed = () => {
 export const useFailedNodesComputed = () => {
   const nodes = useUnifiedStore(state => state.nodesArray);
   const nodeStates = useUnifiedStore(state => state.execution.nodeStates);
-  
-  return useMemo(() => 
+
+  return useMemo(() =>
     nodes.filter(node => {
       const nodeState = nodeStates.get(node.id);
-      return nodeState?.status === 'FAILED';
+      return nodeState?.status === 'failed';
     }),
     [nodes, nodeStates]
   );
@@ -209,15 +209,15 @@ export const useFailedNodesComputed = () => {
 export const useExecutionProgressComputed = () => {
   const totalNodes = useUnifiedStore(state => state.nodes.size);
   const nodeStates = useUnifiedStore(state => state.execution.nodeStates);
-  
+
   return useMemo(() => {
     const completed = Array.from(nodeStates.values())
-      .filter(nodeState => 
-        nodeState.status === 'COMPLETED' || 
-        nodeState.status === 'SKIPPED' ||
-        nodeState.status === 'FAILED'
+      .filter(nodeState =>
+        nodeState.status === 'completed' ||
+        nodeState.status === 'skipped' ||
+        nodeState.status === 'failed'
       ).length;
-    
+
     return {
       completed,
       total: totalNodes,

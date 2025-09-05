@@ -55,10 +55,10 @@ class EventBus(Protocol):
     """Unified event bus protocol for all domain event operations.
 
     This protocol consolidates the functionality of:
-    - DomainEventBus: Core event publishing and subscription
-    - EventEmitter: Simple event emission
-    - EventConsumer: Event consumption
-    - MessageBus: Execution-specific messaging
+    - Core event publishing and subscription
+    - Simple event emission
+    - Event consumption
+    - Execution-specific messaging
 
     Infrastructure implementations can provide:
     - In-memory event bus for single-process applications
@@ -134,7 +134,7 @@ class EventBus(Protocol):
         """
         ...
 
-    # Execution-Specific Operations (formerly MessageBus)
+    # Execution-Specific Operations
     async def register_connection(self, connection_id: str, handler: Callable) -> None:
         """Register a connection handler for execution updates.
 
@@ -221,10 +221,3 @@ class EventStore(Protocol):
     ) -> list[DomainEvent]:
         """Replay events within a time range."""
         ...
-
-
-# Backward Compatibility Aliases (to be removed in v1.0)
-DomainEventBus = EventBus
-MessageBus = EventBus
-EventEmitter = EventBus
-EventConsumer = EventBus

@@ -3,7 +3,7 @@
 import asyncio
 from datetime import datetime, timedelta
 
-from dipeo.diagram_generated import ExecutionState, TokenUsage
+from dipeo.diagram_generated import ExecutionState, LLMUsage
 
 
 class ExecutionCache:
@@ -25,7 +25,7 @@ class ExecutionCache:
             self._cache[execution_id] = state
             self._last_access[execution_id] = datetime.now()
 
-    async def update_token_usage(self, execution_id: str, tokens: TokenUsage):
+    async def update_token_usage(self, execution_id: str, tokens: LLMUsage):
         async with self._lock:
             if execution_id in self._cache:
                 self._cache[execution_id].token_usage = tokens

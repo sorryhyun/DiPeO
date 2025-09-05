@@ -11,7 +11,7 @@ from dipeo.diagram_generated import NodeID, NodeState, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.domain.events import (
     DomainEvent,
-    DomainEventBus,
+    EventBus,
     EventScope,
     EventType,
     execution_completed,
@@ -31,26 +31,26 @@ logger = logging.getLogger(__name__)
 
 class EventManager:
     """Manages event emission for execution context.
-    
+
     Responsibilities:
     - Execution lifecycle events
     - Node execution events
     - Status change notifications
     - Event bus integration
-    
+
     This is a domain component that encapsulates event emission logic,
     using typed domain events instead of ad-hoc dictionaries.
     """
-    
+
     def __init__(
         self,
         execution_id: str,
         diagram_id: str,
-        event_bus: Optional[DomainEventBus] = None,
+        event_bus: EventBus | None = None,
         state_tracker: Optional["StateTracker"] = None,
     ):
         """Initialize the event manager.
-        
+
         Args:
             execution_id: The execution identifier
             diagram_id: The diagram identifier
@@ -61,19 +61,19 @@ class EventManager:
         self.diagram_id = diagram_id
         self.event_bus = event_bus
         self.state_tracker = state_tracker
-    
+
     async def _publish(self, event: DomainEvent) -> None:
         """Publish an event if event bus is available."""
         if self.event_bus:
             await self.event_bus.publish(event)
-    
+
     # === Execution-level Events ===
-    
+
     async def emit_execution_started(
         self,
-        diagram_name: Optional[str] = None,
-        variables: Optional[dict[str, Any]] = None,
-        initiated_by: Optional[str] = None,
+        diagram_name: str | None = None,
+        variables: dict[str, Any] | None = None,
+        initiated_by: str | None = None,
     ) -> None:
         """Emit execution started event."""
         event = execution_started(
@@ -83,14 +83,14 @@ class EventManager:
             initiated_by=initiated_by,
         )
         await self._publish(event)
-    
+
     async def emit_execution_completed(
         self,
         status: Status = Status.COMPLETED,
         total_steps: int = 0,
-        execution_path: Optional[list[str]] = None,
-        total_duration_ms: Optional[int] = None,
-        total_tokens_used: Optional[int] = None,
+        execution_path: list[str] | None = None,
+        total_duration_ms: int | None = None,
+        total_tokens_used: int | None = None,
     ) -> None:
         """Emit execution completed event."""
         event = execution_completed(
@@ -109,7 +109,7 @@ class EventManager:
                 meta={"execution_path": execution_path},
             )
         await self._publish(event)
-    
+
     async def emit_execution_error(self, exc: Exception) -> None:
         """Emit execution error event."""
         event = execution_error(
@@ -125,21 +125,21 @@ class EventManager:
             meta={"diagram_id": self.diagram_id},
         )
         await self._publish(event)
-    
+
     # === Node-level Events ===
-    
+
     async def emit_node_started(
         self,
         node: ExecutableNode,
-        inputs: Optional[dict[str, Any]] = None,
-        iteration: Optional[int] = None,
+        inputs: dict[str, Any] | None = None,
+        iteration: int | None = None,
     ) -> None:
         """Emit node started event."""
         # Get current node state from tracker if available
         node_state = None
         if self.state_tracker:
             node_state = self.state_tracker.get_node_state(node.id)
-        
+
         if not node_state:
             # Create default state if not tracked yet
             node_state = NodeState(
@@ -147,7 +147,7 @@ class EventManager:
                 status=Status.RUNNING,
                 execution_count=0,
             )
-        
+
         event = node_started(
             execution_id=self.execution_id,
             node_id=str(node.id),
@@ -157,20 +157,20 @@ class EventManager:
             iteration=iteration,
         )
         await self._publish(event)
-    
+
     async def emit_node_completed(
         self,
         node: ExecutableNode,
-        envelope: Optional[Envelope],
+        envelope: Envelope | None,
         exec_count: int,
-        duration_ms: Optional[int] = None,
+        duration_ms: int | None = None,
     ) -> None:
         """Emit node completed event."""
         # Get current node state if available
         node_state = None
         if self.state_tracker:
             node_state = self.state_tracker.get_node_state(node.id)
-        
+
         if not node_state:
             # Create state if not tracked
             node_state = NodeState(
@@ -178,7 +178,7 @@ class EventManager:
                 status=Status.COMPLETED,
                 execution_count=exec_count,
             )
-        
+
         # Extract output for event
         output = None
         output_summary = None
@@ -191,7 +191,7 @@ class EventManager:
                 output_summary = f"Object with {len(output)} keys"
             elif isinstance(output, list):
                 output_summary = f"Array with {len(output)} items"
-        
+
         event = node_completed(
             execution_id=self.execution_id,
             node_id=str(node.id),
@@ -201,7 +201,7 @@ class EventManager:
             output_summary=output_summary,
         )
         await self._publish(event)
-    
+
     async def emit_node_error(
         self,
         node: ExecutableNode,
@@ -214,7 +214,7 @@ class EventManager:
         node_state = None
         if self.state_tracker:
             node_state = self.state_tracker.get_node_state(node.id)
-        
+
         if not node_state:
             # Create error state if not tracked
             node_state = NodeState(
@@ -223,7 +223,7 @@ class EventManager:
                 execution_count=0,
                 error=str(exc),
             )
-        
+
         event = node_error(
             execution_id=self.execution_id,
             node_id=str(node.id),
@@ -234,14 +234,14 @@ class EventManager:
             retry_count=retry_count,
         )
         await self._publish(event)
-    
+
     async def emit_node_status_changed(
         self,
         node_id: NodeID,
         status: Status,
     ) -> None:
         """Emit node status changed event.
-        
+
         This is a generic status change event for UI updates.
         Uses the meta field for backward compatibility.
         """
@@ -259,16 +259,15 @@ class EventManager:
                 },
             )
             await self._publish(event)
-    
+
     # === Legacy Support ===
-    
-    async def emit_event(self, event_type: EventType, data: Optional[dict[str, Any]] = None) -> None:
+
+    async def emit_event(self, event_type: EventType, data: dict[str, Any] | None = None) -> None:
         """Emit a generic domain event (legacy method for backward compatibility)."""
         if self.event_bus:
             from dipeo.domain.events import EventScope
+
             event = DomainEvent(
-                type=event_type,
-                scope=EventScope(execution_id=self.execution_id),
-                meta=data or {}
+                type=event_type, scope=EventScope(execution_id=self.execution_id), meta=data or {}
             )
             await self._publish(event)

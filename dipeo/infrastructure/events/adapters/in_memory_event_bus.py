@@ -1,4 +1,4 @@
-"""In-memory implementation of DomainEventBus for single-process applications."""
+"""In-memory implementation of EventBus for single-process applications."""
 
 import asyncio
 import contextlib
@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from dipeo.domain.events import (
     DomainEvent,
-    DomainEventBus,
+    EventBus,
     EventFilter,
     EventHandler,
     EventPriority,
@@ -20,7 +20,7 @@ from dipeo.domain.events import (
 logger = logging.getLogger(__name__)
 
 
-class InMemoryEventBus(DomainEventBus):
+class InMemoryEventBus(EventBus):
     """In-memory event bus for single-process applications.
 
     Features:
@@ -45,15 +45,6 @@ class InMemoryEventBus(DomainEventBus):
         self._enable_event_store = enable_event_store
         self._event_store: list[DomainEvent] = []
         self._running = False
-
-    async def emit(self, event: Any) -> None:
-        """Emit an event (alias for publish for compatibility)."""
-        if isinstance(event, DomainEvent):
-            await self.publish(event)
-        else:
-            # Handle non-DomainEvent types (like ExecutionEvent)
-            # Convert to DomainEvent if needed
-            await self._handle_legacy_event(event)
 
     async def _handle_legacy_event(self, event: Any) -> None:
         """Handle legacy event types."""
