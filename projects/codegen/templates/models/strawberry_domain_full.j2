@@ -1,0 +1,131 @@
+"""
+Strawberry GraphQL domain types for DiPeO.
+Auto-generated from TypeScript interfaces.
+
+Generated at: {{ generated_at }}
+"""
+
+import strawberry
+from typing import Optional, Dict, Any, List
+from strawberry.scalars import JSON as JSONScalar
+
+# Import the Pydantic domain models
+from dipeo.diagram_generated.domain_models import (
+{%- for type in domain_types %}
+    {{ type.name }},
+{%- endfor %}
+)
+
+# Import the Status enum for GraphQL type resolution
+from dipeo.diagram_generated.enums import Status
+
+# Import scalar types
+from dipeo.diagram_generated.graphql.scalars import (
+{%- for scalar in scalar_types %}
+    {{ scalar }}Scalar,
+{%- endfor %}
+)
+
+# Note: HookIDScalar and TaskIDScalar are not branded types yet
+# TODO: Add these as branded types in TypeScript models
+from strawberry.scalars import ID
+HookIDScalar = ID  # Temporary fallback
+TaskIDScalar = ID  # Temporary fallback
+
+# Import generated types that already exist
+from dipeo.diagram_generated.graphql.strawberry_domain import (
+    ToolConfigType,
+)
+
+# Create Strawberry types from Pydantic models
+# Order matters - define types that are referenced by others first
+
+{%- for type in domain_types %}
+
+{%- if type.has_simple_fields %}
+@strawberry.experimental.pydantic.type({{ type.name }}, all_fields=True)
+class {{ type.name }}Type:
+    pass
+{%- else %}
+@strawberry.experimental.pydantic.type({{ type.name }}{% if type.has_custom_fields %}){% else %}, all_fields=True){% endif %}
+class {{ type.name }}Type:
+{%- if type.has_custom_fields %}
+{%- for field in type.custom_fields %}
+{%- if field.is_auto %}
+    {{ field.name }}: strawberry.auto
+{%- elif field.is_enum %}
+    {{ field.name }}: {{ field.type }}  # Explicitly specify the enum type
+{%- elif field.is_optional %}
+    {{ field.name }}: Optional[{{ field.type }}] = {{ field.default }}
+{%- else %}
+    {{ field.name }}: {{ field.type }}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+
+{%- for method in type.field_methods %}
+    @strawberry.field
+    def {{ method.name }}(self) -> {{ method.return_type }}:
+        """{{ method.description }}"""
+{%- if method.name == "type" and type.name == "DomainNode" %}
+        return self.type.value if hasattr(self, 'type') else ''
+{%- elif method.name == "type" and type.name == "DomainPerson" %}
+        return "person"
+{%- elif method.name == "data" %}
+{%- if method.is_optional %}
+        return self.data if hasattr(self, 'data') else None
+{%- else %}
+        return self.data if hasattr(self, 'data') else {}
+{%- endif %}
+{%- elif method.name == "output" %}
+        return self.output if hasattr(self, 'output') else None
+{%- elif method.name == "variables" %}
+{%- if method.is_optional %}
+        return self.variables if hasattr(self, 'variables') else None
+{%- else %}
+        return self.variables if hasattr(self, 'variables') else {}
+{%- endif %}
+{%- elif method.name == "node_states" %}
+        if hasattr(self, 'node_states') and self.node_states:
+            # Convert NodeState objects to dicts
+            return {k: v.model_dump() if hasattr(v, 'model_dump') else v
+                    for k, v in self.node_states.items()}
+        return {}
+{%- elif method.name == "node_outputs" %}
+        if hasattr(self, 'node_outputs') and self.node_outputs:
+            # Convert SerializedNodeOutput objects to dicts for GraphQL
+            result = {}
+            for key, output in self.node_outputs.items():
+                if hasattr(output, 'model_dump'):
+                    result[key] = output.model_dump()
+                else:
+                    result[key] = output
+            return result
+        return {}
+{%- elif method.name == "exec_counts" %}
+        return self.exec_counts if hasattr(self, 'exec_counts') else {}
+{%- elif method.name == "metrics" %}
+        return self.metrics if hasattr(self, 'metrics') else None
+{%- elif method.name == "nodeCount" %}
+        return len(self.nodes) if hasattr(self, 'nodes') else 0
+{%- elif method.name == "arrowCount" %}
+        return len(self.arrows) if hasattr(self, 'arrows') else 0
+{%- endif %}
+{%- endfor %}
+{%- if not type.has_custom_fields and not type.field_methods %}
+    pass
+{%- endif %}
+{%- endif %}
+{%- endfor %}
+
+# Alias for backward compatibility
+SerializedNodeOutputType = SerializedEnvelopeType
+
+# Export all types
+__all__ = [
+{%- for type in domain_types %}
+    '{{ type.name }}Type',
+{%- endfor %}
+    'SerializedNodeOutputType',  # Alias
+    'ToolConfigType',  # Re-exported from generated code
+]

@@ -1,0 +1,232 @@
+"""Generate GraphQL enum definitions from TypeScript enum definitions."""
+
+import ast
+import json
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List
+
+@dataclass
+class EnumValue:
+    """Represents a single enum value."""
+    name: str
+    value: str
+
+@dataclass
+class EnumData:
+    """Data for a GraphQL enum type."""
+    name: str
+    values: List[EnumValue]
+    description: str = ""
+
+def generate_graphql_enums(ast_cache: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate GraphQL enums from TypeScript enum definitions."""
+
+    enums_data = []
+
+    # Look for enum definitions in the AST cache
+    for file_path, ast_data in ast_cache.items():
+        # Skip non-dict entries
+        if not isinstance(ast_data, dict):
+            continue
+
+        # Check if enums is a list (new format) or dict (old format)
+        enums_raw = ast_data.get('enums', [])
+        enums = {}
+
+        if isinstance(enums_raw, list):
+            # New format: array of enum objects with name and members
+            for enum_obj in enums_raw:
+                if isinstance(enum_obj, dict) and 'name' in enum_obj:
+                    enums[enum_obj['name']] = enum_obj.get('members', [])
+        elif isinstance(enums_raw, dict):
+            # Old format: dict mapping enum names to values
+            enums = enums_raw
+
+        for enum_name, enum_values in enums.items():
+            # Skip certain enums that don't need GraphQL versions
+            if enum_name in ['EnvelopeFormat', 'SerializationFormat']:
+                continue
+
+            enum_data = EnumData(
+                name=enum_name,
+                description=f"{enum_name} enum values",
+                values=[]
+            )
+
+            # Process enum values
+            if isinstance(enum_values, dict):
+                for value_name, value in enum_values.items():
+                    # Handle different enum value formats
+                    if isinstance(value, str):
+                        enum_data.values.append(EnumValue(
+                            name=value_name.upper().replace('-', '_'),
+                            value=value
+                        ))
+                    else:
+                        # Default to using the key as the value
+                        enum_data.values.append(EnumValue(
+                            name=value_name.upper().replace('-', '_'),
+                            value=value_name.lower()
+                        ))
+            elif isinstance(enum_values, list):
+                for value in enum_values:
+                    # Handle string enum members
+                    if isinstance(value, str):
+                        enum_data.values.append(EnumValue(
+                            name=value.upper().replace('-', '_'),
+                            value=value.lower()
+                        ))
+                    elif isinstance(value, dict) and 'name' in value:
+                        enum_data.values.append(EnumValue(
+                            name=value['name'].upper().replace('-', '_'),
+                            value=value.get('value', value['name'].lower())
+                        ))
+
+            if enum_data.values:
+                enums_data.append(enum_data)
+
+    # Add descriptions for known enums
+    descriptions = {
+        'NodeType': 'All available node types in DiPeO diagrams',
+        'Status': 'Execution and event-related status enumerations',
+        'DiagramFormat': 'Diagram format enumeration',
+        'LLMService': 'Available LLM service providers',
+        'APIServiceType': 'API service types for external integrations',
+        'DataType': 'Data type and structure enumerations',
+        'ContentType': 'Content type enumerations for data handling',
+        'HandleDirection': 'Direction of connection handles',
+        'HandleLabel': 'Label types for connection handles',
+        'MemoryView': 'Memory view types for conversation memory',
+        'ExecutionMode': 'Execution mode for diagram execution',
+    }
+
+    for enum_data in enums_data:
+        if enum_data.name in descriptions:
+            enum_data.description = descriptions[enum_data.name]
+
+    return {
+        'enums_data': enums_data
+    }
+
+def main(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """Main entry point for GraphQL enum generation.
+
+    Reads TypeScript AST files and generates GraphQL enum definitions.
+    """
+    import logging
+    from datetime import datetime
+
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Received inputs keys: {list(inputs.keys())}")
+    logger.debug(f"Inputs type: {type(inputs)}")
+
+    # Log the structure to understand what we're getting
+    if "default" in inputs:
+        default_value = inputs["default"]
+        if isinstance(default_value, dict):
+            logger.debug(f"default is dict with keys: {list(default_value.keys())[:10]}")
+        elif isinstance(default_value, str):
+            logger.debug(f"default is string of length {len(default_value)}, starts with: {default_value[:100]}")
+        else:
+            logger.debug(f"default is type: {type(default_value)}")
+
+    ast_cache = {}
+
+    # The DB node with glob=true and content_type: object passes files directly
+    # Check if we have file paths as keys (glob result format)
+    has_json_files = any(key.endswith('.json') for key in inputs.keys())
+
+    if has_json_files:
+        # Direct glob results - process them
+        for filepath, ast_content in inputs.items():
+            # Skip special keys
+            if filepath in ['inputs', 'node_id', 'globals', 'default']:
+                continue
+
+            # Parse AST content if it's a string
+            if isinstance(ast_content, str):
+                try:
+                    ast_content = json.loads(ast_content)
+                except (json.JSONDecodeError, ValueError):
+                    logger.debug(f"Could not parse AST content for {filepath}")
+                    continue
+
+            # Add to cache
+            if isinstance(ast_content, dict):
+                ast_cache[filepath] = ast_content
+
+    # Try multiple input formats as fallback
+    # Check for 'default' key (DB node might wrap glob results in default)
+    elif "default" in inputs:
+        data = inputs["default"]
+
+        # Handle string input - parse it first
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except (json.JSONDecodeError, ValueError):
+                try:
+                    data = ast.literal_eval(data)
+                except (ValueError, SyntaxError):
+                    logger.debug(f"Could not parse string input")
+                    data = {}
+
+        # Now data should be a dict of file paths to AST content (from glob)
+        if isinstance(data, dict):
+            # Check if this looks like glob results (has .json file paths as keys)
+            has_json_keys = any(k.endswith('.json') for k in data.keys() if isinstance(k, str))
+
+            if has_json_keys:
+                # This is the glob result - keys are file paths, values are AST data
+                ast_cache = data  # Use it directly as the cache
+            else:
+                # Some other dict format, try to process entries
+                for filepath, ast_content in data.items():
+                    # Skip special keys
+                    if filepath in ['inputs', 'node_id', 'globals']:
+                        continue
+
+                    # Parse AST content if it's a string
+                    if isinstance(ast_content, str):
+                        try:
+                            ast_content = json.loads(ast_content)
+                        except (json.JSONDecodeError, ValueError):
+                            logger.debug(f"Could not parse AST content for {filepath}")
+                            continue
+
+                    # Add to cache
+                    if isinstance(ast_content, dict):
+                        ast_cache[filepath] = ast_content
+        elif isinstance(data, list):
+            # Build cache from list
+            for i, item in enumerate(data):
+                if isinstance(item, dict):
+                    ast_cache[f"file_{i}"] = item
+
+    # Direct list input
+    elif isinstance(inputs, list):
+        for i, item in enumerate(inputs):
+            if isinstance(item, dict):
+                ast_cache[f"file_{i}"] = item
+
+    # Fallback to filesystem if no data
+    if not ast_cache:
+        logger.debug("No enum data from inputs, trying filesystem fallback")
+        base_dir = Path(os.getenv("DIPEO_BASE_DIR", os.getcwd()))
+        temp_dir = base_dir / "temp" / "core" / "enums"
+
+        if temp_dir.exists():
+            for ast_file in temp_dir.glob("*.ts.json"):
+                with open(ast_file) as f:
+                    ast_cache[str(ast_file)] = json.load(f)
+
+    # Generate enums
+    result = generate_graphql_enums(ast_cache)
+
+    # Add metadata
+    result['generation_time'] = datetime.now().isoformat()
+    result['total_count'] = len(result.get('enums_data', []))
+
+    return result

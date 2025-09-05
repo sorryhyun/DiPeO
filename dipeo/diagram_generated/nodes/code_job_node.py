@@ -17,18 +17,18 @@ class CodeJobNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
     language: SupportedLanguage
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.CODE_JOB, init=False)
-    
+
     # Optional node-specific fields
     file_path: str = ""
     code: str = ""
@@ -46,7 +46,7 @@ class CodeJobNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["language"] = self.language
         data["filePath"] = self.file_path

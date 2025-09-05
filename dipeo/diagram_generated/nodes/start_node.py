@@ -17,18 +17,18 @@ class StartNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
     trigger_mode: HookTriggerMode
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.START, init=False)
-    
+
     # Optional node-specific fields
     custom_data: str = ""
     output_data_structure: Dict[str, Any] = field(default_factory=dict)
@@ -46,7 +46,7 @@ class StartNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["trigger_mode"] = self.trigger_mode
         data["custom_data"] = self.custom_data

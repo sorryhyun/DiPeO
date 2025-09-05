@@ -17,19 +17,19 @@ class PersonJobNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
     first_only_prompt: str
     max_iteration: int
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.PERSON_JOB, init=False)
-    
+
     # Optional node-specific fields
     person: str = ""
     first_prompt_file: str = ""
@@ -53,7 +53,7 @@ class PersonJobNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["person"] = self.person
         data["first_only_prompt"] = self.first_only_prompt

@@ -6,14 +6,14 @@ while the server remains a thin HTTP adapter.
 """
 
 import strawberry
+from strawberry.scalars import JSON
 from strawberry.schema.config import StrawberryConfig
 
 from dipeo.application.registry import ServiceRegistry
 
-from .schema.queries import create_query_type
 from .schema.mutation_factory import create_mutation_type
+from .schema.queries import create_query_type
 from .schema.subscriptions import create_subscription_type
-from .types.scalars import JSONScalar
 
 # Import generated types
 # TODO: Fix Dict field handling in generated types
@@ -43,42 +43,42 @@ from .types.scalars import JSONScalar
 
 def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
     """Create a complete GraphQL schema with injected service registry.
-    
+
     Args:
         registry: The service registry containing all application services
-        
+
     Returns:
         A Strawberry GraphQL schema ready to be served
     """
     # Import scalar types
     from .types.scalars import (
-        NodeIDScalar,
-        HandleIDScalar,
-        ArrowIDScalar,
-        PersonIDScalar,
         ApiKeyIDScalar,
+        ArrowIDScalar,
         DiagramIDScalar,
         ExecutionIDScalar,
+        HandleIDScalar,
         HookIDScalar,
+        NodeIDScalar,
+        PersonIDScalar,
         TaskIDScalar,
     )
-    
+
     # Create schema components with injected registry
-    Query = create_query_type(registry)
-    Mutation = create_mutation_type(registry)
-    Subscription = create_subscription_type(registry)
-    
+    query = create_query_type(registry)
+    mutation = create_mutation_type(registry)
+    subscription = create_subscription_type(registry)
+
     # Create the schema with configuration
     schema = strawberry.Schema(
-        query=Query,
-        mutation=Mutation,
-        subscription=Subscription,
+        query=query,
+        mutation=mutation,
+        subscription=subscription,
         extensions=[],
         # Disable auto camelCase conversion to keep snake_case field names
         config=StrawberryConfig(auto_camel_case=False),
         scalar_overrides={
             # Register JSON scalar type
-            dict: JSONScalar
+            dict: JSON
         },
         # Register all scalar and generated types
         types=[
@@ -112,7 +112,7 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
             # Domain types (need to be regenerated)
             # MemorySettingsType,
             # ToolConfigType,
-        ]
+        ],
     )
-    
+
     return schema

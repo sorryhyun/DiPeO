@@ -25,10 +25,6 @@
       ],
       "type": "object"
     },
-    "JsonDict": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "TemplateJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -102,6 +98,10 @@
       "required": [
         "label"
       ],
+      "type": "object"
+    },
+    "JsonDict": {
+      "additionalProperties": false,
       "type": "object"
     }
   }

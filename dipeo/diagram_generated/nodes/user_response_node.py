@@ -17,18 +17,18 @@ class UserResponseNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
     prompt: str
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.USER_RESPONSE, init=False)
-    
+
     # Optional node-specific fields
     timeout: int = 0
 
@@ -43,7 +43,7 @@ class UserResponseNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["prompt"] = self.prompt
         data["timeout"] = self.timeout

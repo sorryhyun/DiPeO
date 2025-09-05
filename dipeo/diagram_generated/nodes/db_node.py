@@ -17,19 +17,19 @@ class DbNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
     sub_type: DBBlockSubType
     operation: str
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.DB, init=False)
-    
+
     # Optional node-specific fields
     file: str = ""
     collection: str = ""
@@ -49,7 +49,7 @@ class DbNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["file"] = self.file
         data["collection"] = self.collection

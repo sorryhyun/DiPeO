@@ -17,17 +17,17 @@ class TemplateJobNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.TEMPLATE_JOB, init=False)
-    
+
     # Optional node-specific fields
     template_path: str = ""
     template_content: str = ""
@@ -46,7 +46,7 @@ class TemplateJobNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["template_path"] = self.template_path
         data["template_content"] = self.template_content

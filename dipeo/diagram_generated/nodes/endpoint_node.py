@@ -17,18 +17,18 @@ class EndpointNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
     save_to_file: bool
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.ENDPOINT, init=False)
-    
+
     # Optional node-specific fields
     file_name: str = ""
 
@@ -43,7 +43,7 @@ class EndpointNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["save_to_file"] = self.save_to_file
         data["file_name"] = self.file_name

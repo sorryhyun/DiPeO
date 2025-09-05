@@ -17,18 +17,18 @@ class HookNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
     hook_type: HookType
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.HOOK, init=False)
-    
+
     # Optional node-specific fields
     command: str = ""
     url: str = ""
@@ -46,7 +46,7 @@ class HookNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["hook_type"] = self.hook_type
         data["command"] = self.command

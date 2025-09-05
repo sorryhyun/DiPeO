@@ -13,7 +13,7 @@ from strawberry.types import *
 from .strawberry_nodes import *
 
 # Import base types
-from dipeo.application.graphql.types.domain_types import *
+from dipeo.diagram_generated.graphql.domain_types import *
 from dipeo.application.graphql.types.inputs import *
 
 # Import services and keys
@@ -32,7 +32,7 @@ class Create{{ type_info.class_name }}Input:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class Update{{ type_info.class_name }}Input:
     """Input for updating a {{ type_info.display_name }} node"""
     # TODO: Add node-specific fields from spec
@@ -46,7 +46,7 @@ class Update{{ type_info.class_name }}Input:
 @strawberry.type
 class NodeMutations:
     """Type-safe mutations for node operations"""
-    
+
 {% for mutation in mutations.mutations %}
     @strawberry.mutation
     async def {{ mutation.name }}(
@@ -56,7 +56,7 @@ class NodeMutations:
     ) -> {{ mutation.return_type }}:
         """{{ mutation.operation.capitalize() }} a {{ mutation.node_type.replace('_', ' ').title() }} node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         {% if mutation.operation == 'create' %}
         # Prepare node data
         node_data = {
@@ -64,10 +64,10 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
@@ -76,7 +76,7 @@ class NodeMutations:
         {% else %}
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -84,7 +84,7 @@ class NodeMutations:
             data=input.data
         )
         {% endif %}
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(

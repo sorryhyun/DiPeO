@@ -1,16 +1,21 @@
-"""GraphQL input types for DiPeO mutations."""
+"""
+GraphQL input types for DiPeO mutations.
+Auto-generated from TypeScript definitions.
+
+Generated at: 2025-09-05T19:32:17.696642
+"""
 
 from datetime import datetime
+from typing import Optional
 
 import strawberry
 
-# Import DiagramFormat with proper GraphQL mapping
-from dipeo.application.graphql.enums import DiagramFormat
-
 # Import enums from generated modules
-from dipeo.diagram_generated.enums import APIServiceType, LLMService, NodeType, Status
+from dipeo.diagram_generated.enums import APIServiceType, DiagramFormat, LLMService, NodeType, Status
 
 # Import scalars to ensure they're registered
+from dipeo.diagram_generated.graphql.scalars import *
+
 
 
 @strawberry.input
@@ -130,7 +135,7 @@ class ExecutionFilterInput:
 @strawberry.input
 class ExecutionControlInput:
     execution_id: strawberry.ID
-    action: str  # "pause", "resume", "cancel"
+    action: str
     reason: str | None = None
 
 
@@ -148,9 +153,33 @@ class RegisterCliSessionInput:
     diagram_name: str
     diagram_format: str
     diagram_data: strawberry.scalars.JSON | None = None
-    diagram_path: str | None = None  # Full path to diagram file
+    diagram_path: str | None = None
 
 
 @strawberry.input
 class UnregisterCliSessionInput:
     execution_id: str
+
+
+# Export all input types
+__all__ = [
+    'Vec2Input',
+    'CreateNodeInput',
+    'UpdateNodeInput',
+    'CreateArrowInput',
+    'CreateDiagramInput',
+    'UpdateDiagramInput',
+    'PersonLLMConfigInput',
+    'CreatePersonInput',
+    'UpdatePersonInput',
+    'CreateApiKeyInput',
+    'ExecuteDiagramInput',
+    'FileOperationInput',
+    'UpdateNodeStateInput',
+    'DiagramFilterInput',
+    'ExecutionFilterInput',
+    'ExecutionControlInput',
+    'InteractiveResponseInput',
+    'RegisterCliSessionInput',
+    'UnregisterCliSessionInput',
+]

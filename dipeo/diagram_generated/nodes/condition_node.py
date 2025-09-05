@@ -17,17 +17,17 @@ class ConditionNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.CONDITION, init=False)
-    
+
     # Optional node-specific fields
     condition_type: Literal["detect_max_iterations", "check_nodes_executed", "custom", "llm_decision"] = None
     expression: str = ""
@@ -51,7 +51,7 @@ class ConditionNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["condition_type"] = self.condition_type
         data["expression"] = self.expression

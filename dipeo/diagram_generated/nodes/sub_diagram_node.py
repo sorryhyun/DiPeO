@@ -17,17 +17,17 @@ class SubDiagramNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.SUB_DIAGRAM, init=False)
-    
+
     # Optional node-specific fields
     diagram_name: str = ""
     diagram_data: Dict[str, Any] = field(default_factory=dict)
@@ -53,7 +53,7 @@ class SubDiagramNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["diagram_name"] = self.diagram_name
         data["diagram_data"] = self.diagram_data

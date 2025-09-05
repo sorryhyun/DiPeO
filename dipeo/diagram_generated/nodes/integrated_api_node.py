@@ -17,19 +17,19 @@ class IntegratedApiNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
     provider: str
     operation: str
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.INTEGRATED_API, init=False)
-    
+
     # Optional node-specific fields
     resource_id: str = ""
     config: Dict[str, Any] = field(default_factory=dict)
@@ -47,7 +47,7 @@ class IntegratedApiNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["provider"] = self.provider
         data["operation"] = self.operation

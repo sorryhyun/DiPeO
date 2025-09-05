@@ -14,6 +14,7 @@ repos:
           (?x)^(
             dipeo/diagram_generated/.*|
             dipeo/diagram_generated_staged/.*|
+            projects/codegen/.*|
             .*__generated__.py|
             .*/migrations/.*
           )$
@@ -22,6 +23,7 @@ repos:
           (?x)^(
             dipeo/diagram_generated/.*|
             dipeo/diagram_generated_staged/.*|
+            projects/codegen/.*|
             .*__generated__.py
           )$
 

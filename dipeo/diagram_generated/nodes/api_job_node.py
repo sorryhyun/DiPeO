@@ -17,19 +17,19 @@ class ApiJobNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
     url: str
     method: HttpMethod
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.API_JOB, init=False)
-    
+
     # Optional node-specific fields
     headers: Dict[str, Any] = field(default_factory=dict)
     params: Dict[str, Any] = field(default_factory=dict)
@@ -49,7 +49,7 @@ class ApiJobNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["url"] = self.url
         data["method"] = self.method

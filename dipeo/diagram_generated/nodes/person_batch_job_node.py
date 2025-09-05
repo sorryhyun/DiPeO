@@ -17,19 +17,19 @@ class PersonBatchJobNode:
     # Required base fields first
     id: NodeID
     position: Vec2
-    
+
     # Required node-specific fields
     batch_key: str
     prompt: str
-    
+
     # Optional base fields
     label: str = ""
     flipped: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.PERSON_BATCH_JOB, init=False)
-    
+
     # Optional node-specific fields
     person: str = ""
 
@@ -44,7 +44,7 @@ class PersonBatchJobNode:
         }
         if self.metadata:
             data["metadata"] = self.metadata
-            
+
         # Add node-specific fields
         data["person"] = self.person
         data["batch_key"] = self.batch_key
