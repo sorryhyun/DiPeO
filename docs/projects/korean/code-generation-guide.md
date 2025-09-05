@@ -203,10 +203,19 @@ DiPeO의 코드 생성은 “도그푸딩”의 전형입니다. 즉, DiPeO 다�
    ```python
    # /dipeo/application/execution/handlers/my_node.py
    from dipeo.diagram_generated.models.my_node import MyNodeData
+   from dipeo.application.execution.handlers.base import TypedNodeHandler
+   from dipeo.domain.base.mixins import LoggingMixin, ValidationMixin
 
-   class MyNodeHandler(BaseNodeHandler[MyNodeData]):
-       async def execute(self, data: MyNodeData, context: ExecutionContext):
-           # 구현
+   @register_handler
+   class MyNodeHandler(TypedNodeHandler[MyNodeData], LoggingMixin, ValidationMixin):
+       def prepare_inputs(self, inputs: dict, request: ExecutionRequest) -> dict:
+           # 원시 입력 변환
+
+       async def run(self, inputs: dict, request: ExecutionRequest) -> Any:
+           # 로깅/검증 믹스인을 사용한 구현
+
+       def serialize_output(self, result: Any, request: ExecutionRequest) -> Envelope:
+           # Envelope로 변환
    ```
 
 3. **코드 생성 실행**:
@@ -436,4 +445,3 @@ make graphql-schema                                      # 스키마 업데이�
 ## 결론
 
 DiPeO의 코드 생성 시스템은 도그푸딩 접근을 통해 플랫폼의 성숙도를 입증합니다. DiPeO 다이어그램으로 DiPeO의 코드를 오케스트레이션함으로써, TypeScript 명세에서 Python 모델과 GraphQL 오퍼레이션까지 타입 안전성을 유지한 채 복잡한 메타 프로그래밍 과제를 시각적 프로그래밍으로 처리할 수 있음을 보여줍니다. 스테이징 디렉터리, 외부 코드 구성, 병렬 배치 처리로 구성된 v2 아키텍처는 견고함과 유연성을 동시에 제공합니다.
-

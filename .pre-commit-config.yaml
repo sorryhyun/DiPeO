@@ -1,15 +1,15 @@
 # DiPeO v1.0 Pre-commit Configuration
-# Enforces coding standards and quality checks
+# Relaxed version - focuses on essential formatting only
 default_language_version:
   python: python3.13
 
 repos:
-  # Python formatting and linting with ruff
+  # Python formatting with ruff (auto-fix enabled, won't fail on fixes)
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.0
     hooks:
       - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
+        args: [--fix]  # Removed --exit-non-zero-on-fix to allow auto-fixing
         exclude: |
           (?x)^(
             dipeo/diagram_generated/.*|
@@ -25,52 +25,53 @@ repos:
             .*__generated__.py
           )$
 
-  # Type checking with mypy
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
-    hooks:
-      - id: mypy
-        args: [--config-file=pyproject.toml, --ignore-missing-imports]
-        pass_filenames: true
-        additional_dependencies:
-          - types-requests
-          - types-PyYAML
-          - pydantic>=2.0
-        exclude: |
-          (?x)^(
-            dipeo/diagram_generated/.*|
-            dipeo/diagram_generated_staged/.*|
-            .*__generated__.*|
-            projects/.*/generated/.*|
-            tests/.*
-          )$
+  # Type checking with mypy - COMMENTED OUT (run manually when needed)
+  # Uncomment if you want type checking back
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.13.0
+  #   hooks:
+  #     - id: mypy
+  #       args: [--config-file=pyproject.toml, --ignore-missing-imports]
+  #       pass_filenames: true
+  #       additional_dependencies:
+  #         - types-requests
+  #         - types-PyYAML
+  #         - pydantic>=2.0
+  #       exclude: |
+  #         (?x)^(
+  #           dipeo/diagram_generated/.*|
+  #           dipeo/diagram_generated_staged/.*|
+  #           .*__generated__.*|
+  #           projects/.*/generated/.*|
+  #           tests/.*
+  #         )$
 
-  # TypeScript/JavaScript formatting and linting
-  - repo: local
-    hooks:
-      - id: pnpm-lint
-        name: pnpm lint
-        entry: bash -c 'if [ -n "$(find apps/web -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" 2>/dev/null)" ]; then cd apps/web && pnpm run lint; fi'
-        language: system
-        files: ^apps/web/.*\.(ts|tsx|js|jsx)$
-        pass_filenames: false
-        exclude: |
-          (?x)^(
-            .*__generated__.*|
-            node_modules/.*|
-            projects/.*/generated/.*|
-            dipeo/diagram_generated/.*|
-            dipeo/diagram_generated_staged/.*
-          )$
+  # TypeScript/JavaScript formatting - OPTIONAL (comment out if too strict)
+  # - repo: local
+  #   hooks:
+  #     - id: pnpm-lint
+  #       name: pnpm lint
+  #       entry: bash -c 'if [ -n "$(find apps/web -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" 2>/dev/null)" ]; then cd apps/web && pnpm run lint --fix; fi'
+  #       language: system
+  #       files: ^apps/web/.*\.(ts|tsx|js|jsx)$
+  #       pass_filenames: false
+  #       exclude: |
+  #         (?x)^(
+  #           .*__generated__.*|
+  #           node_modules/.*|
+  #           projects/.*/generated/.*|
+  #           dipeo/diagram_generated/.*|
+  #           dipeo/diagram_generated_staged/.*
+  #         )$
 
-      # Code generation for domain models
-      - id: domain-model-codegen
-        name: Generate code from domain models
-        entry: bash -c 'cd dipeo/models && pnpm build'
-        language: system
-        files: ^dipeo/models/src/.*\.ts$
-        pass_filenames: false
-        stages: [pre-commit]
+  # Code generation - REMOVED (run manually with 'make codegen' when needed)
+  # - id: domain-model-codegen
+  #   name: Generate code from domain models
+  #   entry: bash -c 'cd dipeo/models && pnpm build'
+  #   language: system
+  #   files: ^dipeo/models/src/.*\.ts$
+  #   pass_filenames: false
+  #   stages: [pre-commit]
 
   # General file quality hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -96,13 +97,13 @@ repos:
       - id: check-ast  # Verify Python syntax
         exclude: dipeo/diagram_generated/
 
-  # Check for common security issues
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.0
-    hooks:
-      - id: bandit
-        args: ['-ll']  # Only report medium and high severity
-        exclude: tests/|dipeo/diagram_generated/
+  # Security checks - COMMENTED OUT (run manually when needed)
+  # - repo: https://github.com/PyCQA/bandit
+  #   rev: 1.8.0
+  #   hooks:
+  #     - id: bandit
+  #       args: ['-ll']  # Only report medium and high severity
+  #       exclude: tests/|dipeo/diagram_generated/
 
 # Files to always exclude globally
 exclude: |

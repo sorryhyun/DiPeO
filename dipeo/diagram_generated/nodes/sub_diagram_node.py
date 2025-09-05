@@ -36,7 +36,7 @@ class SubDiagramNode:
     timeout: int = 0
     wait_for_completion: bool = False
     isolate_conversation: bool = False
-    ignoreIfSub: bool = False
+    ignore_if_sub: bool = False
     diagram_format: DiagramFormat = None
     batch: bool = False
     batch_input_key: str = ""
@@ -62,7 +62,7 @@ class SubDiagramNode:
         data["timeout"] = self.timeout
         data["wait_for_completion"] = self.wait_for_completion
         data["isolate_conversation"] = self.isolate_conversation
-        data["ignoreIfSub"] = self.ignoreIfSub
+        data["ignoreIfSub"] = self.ignore_if_sub
         data["diagram_format"] = self.diagram_format
         data["batch"] = self.batch
         data["batch_input_key"] = self.batch_input_key

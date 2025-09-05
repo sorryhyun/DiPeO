@@ -30,9 +30,9 @@ class CodeJobNode:
     type: NodeType = field(default=NodeType.CODE_JOB, init=False)
     
     # Optional node-specific fields
-    filePath: str = ""
+    file_path: str = ""
     code: str = ""
-    functionName: str = ""
+    function_name: str = ""
     timeout: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
@@ -49,8 +49,8 @@ class CodeJobNode:
             
         # Add node-specific fields
         data["language"] = self.language
-        data["filePath"] = self.filePath
+        data["filePath"] = self.file_path
         data["code"] = self.code
-        data["functionName"] = self.functionName
+        data["functionName"] = self.function_name
         data["timeout"] = self.timeout
         return data

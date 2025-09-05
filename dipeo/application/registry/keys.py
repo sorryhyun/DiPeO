@@ -14,16 +14,18 @@ LLM_SERVICE = ServiceKey["LLMServicePort"]("llm_service")
 STATE_STORE = ServiceKey["StateStorePort"]("state_store")
 FILE_SERVICE = ServiceKey["FileServicePort"]("file_service")
 MESSAGE_ROUTER = ServiceKey["MessageRouterPort"]("message_router")
-EVENT_BUS = ServiceKey["EventEmitter"]("event_bus")
+
+# Unified Event Bus - replaces EVENT_BUS, MESSAGE_BUS, and DOMAIN_EVENT_BUS
+EVENT_BUS = ServiceKey["EventBus"]("event_bus")
+
+# Legacy aliases for backward compatibility (will be removed in v1.0)
+MESSAGE_BUS = EVENT_BUS  # Now uses unified EventBus
+DOMAIN_EVENT_BUS = EVENT_BUS  # Now uses unified EventBus
 
 # Execution State Services (from registry_tokens.py)
 STATE_REPOSITORY = ServiceKey["ExecutionStateRepository"]("execution_state_repository")
 STATE_SERVICE = ServiceKey["ExecutionStateService"]("execution_state_service")
 STATE_CACHE = ServiceKey["ExecutionCachePort"]("execution_state_cache")
-
-# Messaging Services (from registry_tokens.py)
-MESSAGE_BUS = ServiceKey["MessageBus"]("message_bus")
-DOMAIN_EVENT_BUS = ServiceKey["DomainEventBus"]("domain_event_bus")
 
 # LLM Services (from registry_tokens.py)
 # LLM_CLIENT = ServiceKey["LLMClient"]("llm_client")  # Removed - no longer needed

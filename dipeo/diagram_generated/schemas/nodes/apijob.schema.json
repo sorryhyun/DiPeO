@@ -2,6 +2,41 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/ApiJobNodeData",
   "definitions": {
+    "HttpMethod": {
+      "enum": [
+        "get",
+        "post",
+        "put",
+        "delete",
+        "patch"
+      ],
+      "type": "string"
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/JsonObject"
+        },
+        {
+          "items": {
+            "$ref": "#/definitions/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "type": [
+            "null",
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "ApiJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -65,41 +100,6 @@
         "method",
         "url"
       ],
-      "type": "object"
-    },
-    "HttpMethod": {
-      "enum": [
-        "get",
-        "post",
-        "put",
-        "delete",
-        "patch"
-      ],
-      "type": "string"
-    },
-    "JsonValue": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/JsonObject"
-        },
-        {
-          "items": {
-            "$ref": "#/definitions/JsonValue"
-          },
-          "type": "array"
-        },
-        {
-          "type": [
-            "null",
-            "string",
-            "number",
-            "boolean"
-          ]
-        }
-      ]
-    },
-    "JsonDict": {
-      "additionalProperties": false,
       "type": "object"
     },
     "JsonObject": {
