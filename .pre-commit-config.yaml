@@ -1,18 +1,47 @@
+# DiPeO v1.0 Pre-commit Configuration
+# Enforces coding standards and quality checks
+default_language_version:
+  python: python3.13
+
 repos:
-  # Python formatting and linting
+  # Python formatting and linting with ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.0
     hooks:
       - id: ruff
-        args: [--fix]
+        args: [--fix, --exit-non-zero-on-fix]
+        exclude: |
+          (?x)^(
+            dipeo/diagram_generated/.*|
+            dipeo/diagram_generated_staged/.*|
+            .*__generated__.py|
+            .*/migrations/.*
+          )$
       - id: ruff-format
+        exclude: |
+          (?x)^(
+            dipeo/diagram_generated/.*|
+            dipeo/diagram_generated_staged/.*|
+            .*__generated__.py
+          )$
 
+  # Type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.13.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-requests, types-PyYAML]
-        exclude: ^(dipeo/domain/|.*/__generated__/)
+        args: [--config-file=pyproject.toml]
+        additional_dependencies:
+          - types-requests
+          - types-PyYAML
+          - pydantic>=2.0
+        exclude: |
+          (?x)^(
+            dipeo/diagram_generated/.*|
+            dipeo/diagram_generated_staged/.*|
+            .*__generated__.py|
+            tests/.*
+          )$
 
   # TypeScript/JavaScript formatting and linting
   - repo: local
@@ -23,7 +52,8 @@ repos:
         language: system
         files: \.(ts|tsx|js|jsx)$
         pass_filenames: false
-      
+        exclude: __generated__|node_modules
+
       # Code generation for domain models
       - id: domain-model-codegen
         name: Generate code from domain models
@@ -33,15 +63,51 @@ repos:
         pass_filenames: false
         stages: [commit]
 
-  # General hooks
+  # General file quality hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: |
+          (?x)^(
+            .*\.md$|
+            dipeo/diagram_generated/.*
+          )$
       - id: end-of-file-fixer
+        exclude: dipeo/diagram_generated/
       - id: check-yaml
-      - id: check-added-large-files
+        exclude: \.light\.yaml$
       - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
       - id: check-merge-conflict
+      - id: check-case-conflict
       - id: mixed-line-ending
         args: [--fix=lf]
+      - id: check-ast  # Verify Python syntax
+        exclude: dipeo/diagram_generated/
+
+  # Check for common security issues
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.0
+    hooks:
+      - id: bandit
+        args: ['-ll']  # Only report medium and high severity
+        exclude: tests/|dipeo/diagram_generated/
+
+# Files to always exclude globally
+exclude: |
+  (?x)^(
+    \.git/|
+    \.venv/|
+    venv/|
+    __pycache__/|
+    \.mypy_cache/|
+    \.ruff_cache/|
+    node_modules/|
+    build/|
+    dist/|
+    \.logs/|
+    temp/|
+    projects/frontend_auto/generated/
+  )$

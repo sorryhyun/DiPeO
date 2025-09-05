@@ -6,6 +6,31 @@
       "additionalProperties": false,
       "type": "object"
     },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/JsonObject"
+        },
+        {
+          "items": {
+            "$ref": "#/definitions/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "type": [
+            "null",
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      ]
+    },
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
+    },
     "ApiJobNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -69,31 +94,6 @@
         "method",
         "url"
       ],
-      "type": "object"
-    },
-    "JsonValue": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/JsonObject"
-        },
-        {
-          "items": {
-            "$ref": "#/definitions/JsonValue"
-          },
-          "type": "array"
-        },
-        {
-          "type": [
-            "null",
-            "string",
-            "number",
-            "boolean"
-          ]
-        }
-      ]
-    },
-    "JsonDict": {
-      "additionalProperties": false,
       "type": "object"
     },
     "JsonObject": {

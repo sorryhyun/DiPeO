@@ -66,10 +66,6 @@
       ],
       "type": "object"
     },
-    "JsonDict": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "DBBlockSubType": {
       "description": "Node-specific enumerations",
       "enum": [
@@ -79,6 +75,10 @@
         "api_tool"
       ],
       "type": "string"
+    },
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
     }
   }
 }

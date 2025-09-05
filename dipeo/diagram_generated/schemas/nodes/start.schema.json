@@ -6,14 +6,6 @@
       "additionalProperties": false,
       "type": "object"
     },
-    "Record<string,string|number|boolean>": {
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "JsonDict": {
-      "additionalProperties": false,
-      "type": "object"
-    },
     "StartNodeData": {
       "additionalProperties": false,
       "properties": {
@@ -52,6 +44,14 @@
         "hook"
       ],
       "type": "string"
+    },
+    "Record<string,string|number|boolean>": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "JsonDict": {
+      "additionalProperties": false,
+      "type": "object"
     }
   }
 }
