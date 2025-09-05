@@ -34,6 +34,31 @@ nodes:
     - temp/core/nodes/base.ts.json
     # Dynamically discover all node data files
     - "temp/core/nodes/*.data.ts.json"
+- label: parse db output
+  type: code_job
+  position: {x: 380, y: 276}
+  props:
+    language: python
+    code: |
+      import json
+      import ast
+      
+      data = inputs.get('default', {})
+      
+      # If data is a string, parse it
+      if isinstance(data, str):
+          try:
+              # Try ast.literal_eval first (for Python dict format)
+              data = ast.literal_eval(data)
+          except (ValueError, SyntaxError):
+              try:
+                  # If that fails, try JSON
+                  data = json.loads(data)
+              except json.JSONDecodeError:
+                  print(f"ERROR: Failed to parse data string")
+                  data = {}
+      
+      return data
 - label: unified extractor
   type: code_job
   position: {x: 509, y: 276}
@@ -76,7 +101,8 @@ nodes:
 connections:
 - {from: start, to: parse typescript batch, content_type: raw_text}
 - {from: parse typescript batch, to: load all ast files, content_type: object}
-- {from: load all ast files, to: unified extractor, content_type: object}  # No label = default
+- {from: load all ast files, to: parse db output, content_type: object}
+- {from: parse db output, to: unified extractor, content_type: object}  # No label = default
 - {from: unified extractor, to: extract zod data, content_type: object}
 - {from: extract zod data, to: render zod schemas template, content_type: object}
 - {from: render zod schemas template, to: end, content_type: raw_text}

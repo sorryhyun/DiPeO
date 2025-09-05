@@ -1,6 +1,6 @@
-Check the generated output and fix if needed:
+Fix the problematic code below. The code has issues that need to be corrected:
 
-Generated output:
+Problematic output:
 {{generated_output}}
 
 If the output contains explanatory text like "let me analyze", "I'll help", "Here's the implementation", or any non-code content, then GENERATE THE ACTUAL CODE based on:

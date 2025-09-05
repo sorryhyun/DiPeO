@@ -51,6 +51,7 @@ nodes:
             'ast_data': ast_data,
             'node_type': node_type
         }
+        return result
   
   # Extract all frontend data in one step
   - label: Extract Frontend Data
