@@ -1,7 +1,7 @@
 """Shared type definitions used across the DiPeO system."""
 
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 E = TypeVar("E")

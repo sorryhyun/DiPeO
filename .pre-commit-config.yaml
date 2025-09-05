@@ -30,7 +30,8 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
-        args: [--config-file=pyproject.toml]
+        args: [--config-file=pyproject.toml, --ignore-missing-imports]
+        pass_filenames: true
         additional_dependencies:
           - types-requests
           - types-PyYAML
@@ -39,7 +40,8 @@ repos:
           (?x)^(
             dipeo/diagram_generated/.*|
             dipeo/diagram_generated_staged/.*|
-            .*__generated__.py|
+            .*__generated__.*|
+            projects/.*/generated/.*|
             tests/.*
           )$
 
@@ -48,11 +50,18 @@ repos:
     hooks:
       - id: pnpm-lint
         name: pnpm lint
-        entry: pnpm run lint
+        entry: bash -c 'if [ -n "$(find apps/web -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" 2>/dev/null)" ]; then cd apps/web && pnpm run lint; fi'
         language: system
-        files: \.(ts|tsx|js|jsx)$
+        files: ^apps/web/.*\.(ts|tsx|js|jsx)$
         pass_filenames: false
-        exclude: __generated__|node_modules
+        exclude: |
+          (?x)^(
+            .*__generated__.*|
+            node_modules/.*|
+            projects/.*/generated/.*|
+            dipeo/diagram_generated/.*|
+            dipeo/diagram_generated_staged/.*
+          )$
 
       # Code generation for domain models
       - id: domain-model-codegen
@@ -61,7 +70,7 @@ repos:
         language: system
         files: ^dipeo/models/src/.*\.ts$
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
 
   # General file quality hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -109,5 +118,7 @@ exclude: |
     dist/|
     \.logs/|
     temp/|
-    projects/frontend_auto/generated/
+    projects/.*/generated/|
+    dipeo/diagram_generated/|
+    dipeo/diagram_generated_staged/
   )$

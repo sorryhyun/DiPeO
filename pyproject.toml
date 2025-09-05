@@ -246,6 +246,8 @@ exclude = [
     "dipeo/diagram_generated/",
     "dipeo/diagram_generated_staged/",
     "projects/frontend_auto/generated/",
+    "projects/frontend_enhance/generated/",
+    "projects/.*/generated/",
     ".venv",
     "venv",
     "build",
