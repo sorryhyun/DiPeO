@@ -213,7 +213,7 @@ class PromptBuilder:
             settings = get_settings()
             # Get conversation context limit from settings (use a reasonable default)
             context_limit = getattr(settings, "conversation_context_limit", 10)
-        except:
+        except Exception:
             context_limit = 10  # Default fallback
 
         # Build conversation summary

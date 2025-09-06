@@ -13,6 +13,7 @@ from .conversions import (
 # Re-export all domain models
 from .domain_models import (
     ApiKeyID,
+    ArrowID,
     # Other models
     BaseNodeData,
     ChatResult,
@@ -74,6 +75,7 @@ from .enums import (
 __all__ = [
     "APIServiceType",
     "ApiKeyID",
+    "ArrowID",
     # Other models
     "BaseNodeData",
     "ChatResult",

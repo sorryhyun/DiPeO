@@ -83,7 +83,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         # 1. Extract configuration with defaults
         language = node.language.value if hasattr(node.language, "value") else node.language
         timeout = node.timeout or 30
-        function_name = node.functionName or "main"
+        function_name = node.function_name or "main"
 
         # 2. Runtime validation: Check executor availability
         executor = self._executors.get(language)
@@ -98,16 +98,16 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
 
         # 3. Runtime validation: Resolve and check file path if needed
         file_path = None
-        if node.filePath:
-            file_path = Path(node.filePath)
+        if node.file_path:
+            file_path = Path(node.file_path)
             if not file_path.is_absolute():
                 base_dir = os.getenv("DIPEO_BASE_DIR", os.getcwd())
-                file_path = Path(base_dir) / node.filePath
+                file_path = Path(base_dir) / node.file_path
 
             # Check file exists at runtime
             if not file_path.exists():
                 return EnvelopeFactory.error(
-                    f"File not found: {node.filePath}",
+                    f"File not found: {node.file_path}",
                     error_type="FileNotFoundError",
                     produced_by=node.id,
                     trace_id=request.execution_id or "",
@@ -115,7 +115,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
 
             if not file_path.is_file():
                 return EnvelopeFactory.error(
-                    f"Path is not a file: {node.filePath}",
+                    f"Path is not a file: {node.file_path}",
                     error_type="ValueError",
                     produced_by=node.id,
                     trace_id=request.execution_id or "",
@@ -134,12 +134,12 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         """Static validation - checks that can be done at compile/planning time."""
         node = request.node
 
-        # Check that exactly one of filePath or code is provided
-        if not node.filePath and not node.code:
-            return "Either filePath or code must be provided"
+        # Check that exactly one of file_path or code is provided
+        if not node.file_path and not node.code:
+            return "Either file_path or code must be provided"
 
-        if node.filePath and node.code:
-            return "Cannot provide both filePath and code. Use one or the other."
+        if node.file_path and node.code:
+            return "Cannot provide both file_path and code. Use one or the other."
 
         # Note: Language validation moved to pre_execute since it depends on runtime executors
         # File existence check also moved to pre_execute since it's a runtime concern

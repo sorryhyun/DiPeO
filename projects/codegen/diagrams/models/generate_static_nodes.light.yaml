@@ -81,15 +81,16 @@ nodes:
       functionName: generate_static_nodes
 
   # Generate Python code using template
-  - label: Generate Python Code
-    type: template_job
-    position: {x: 1000, y: 300}
-    props:
-      engine: jinja2
-      template_path: projects/codegen/templates/models/static_nodes_all.j2
-      output_path: dipeo/diagram_generated_staged/generated_nodes.py
-      # Template will automatically receive inputs from connections
-      # Enum fields mapping will be passed via input connections instead
+  # COMMENTED OUT - Phase 1 refactoring: Using compatibility shim instead of monolithic file
+  # - label: Generate Python Code
+  #   type: template_job
+  #   position: {x: 1000, y: 300}
+  #   props:
+  #     engine: jinja2
+  #     template_path: projects/codegen/templates/models/static_nodes_all.j2
+  #     output_path: dipeo/diagram_generated_staged/generated_nodes.py
+  #     # Template will automatically receive inputs from connections
+  #     # Enum fields mapping will be passed via input connections instead
 
   # Generate success summary
   - label: Generate Summary
@@ -127,9 +128,11 @@ connections:
   - {from: Extract Base Interface, to: Generate Static Nodes, label: base_data, content_type: object}
 
   # Generate Python code
-  - {from: Generate Static Nodes, to: Generate Python Code, label: static_nodes_data, content_type: object}
+  # COMMENTED OUT - Phase 1 refactoring: Using compatibility shim instead of monolithic file
+  # - {from: Generate Static Nodes, to: Generate Python Code, label: static_nodes_data, content_type: object}
 
   # Summary and End
   - {from: Generate Static Nodes, to: Generate Summary, label: static_nodes_data}
-  - {from: Generate Python Code, to: End}
+  # COMMENTED OUT - Phase 1 refactoring
+  # - {from: Generate Python Code, to: End}
   - {from: Generate Summary, to: End}

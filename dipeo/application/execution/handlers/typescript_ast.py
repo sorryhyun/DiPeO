@@ -67,15 +67,15 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         logger.info(f"[TypescriptAstNode {node.id}] Validating node")
 
         # Validate extract patterns
-        if node.extractPatterns:
+        if node.extract_patterns:
             valid_patterns = {"interface", "type", "enum", "class", "function", "const", "export"}
-            invalid = set(node.extractPatterns) - valid_patterns
+            invalid = set(node.extract_patterns) - valid_patterns
             if invalid:
                 return f"Invalid extract patterns: {', '.join(invalid)}. Valid patterns are: {', '.join(valid_patterns)}"
 
         # Validate parse mode
-        if node.parseMode and node.parseMode not in ["module", "script"]:
-            return f"Invalid parse mode: {node.parseMode}. Must be 'module' or 'script'"
+        if node.parse_mode and node.parse_mode not in ["module", "script"]:
+            return f"Invalid parse mode: {node.parse_mode}. Must be 'module' or 'script'"
 
         return None
 
@@ -191,10 +191,10 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             try:
                 results = await parser_service.parse_batch(
                     sources=sources,
-                    extract_patterns=node.extractPatterns or ["interface", "type", "enum"],
+                    extract_patterns=node.extract_patterns or ["interface", "type", "enum"],
                     options={
-                        "includeJSDoc": node.includeJSDoc or False,
-                        "parseMode": node.parseMode or "module",
+                        "includeJSDoc": node.include_js_doc or False,
+                        "parseMode": node.parse_mode or "module",
                     },
                 )
             except Exception:
@@ -223,10 +223,10 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             try:
                 result = await parser_service.parse(
                     source=source,
-                    extract_patterns=node.extractPatterns or ["interface", "type", "enum"],
+                    extract_patterns=node.extract_patterns or ["interface", "type", "enum"],
                     options={
-                        "includeJSDoc": node.includeJSDoc or False,
-                        "parseMode": node.parseMode or "module",
+                        "includeJSDoc": node.include_js_doc or False,
+                        "parseMode": node.parse_mode or "module",
                     },
                 )
             except Exception as parser_error:
@@ -295,8 +295,8 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
 
             return factory.json(output, produced_by=node.id, trace_id=trace_id).with_meta(
                 extracted_count=result["metadata"].get("extractedCount", 0),
-                parse_mode=node.parseMode or "module",
-                include_jsdoc=node.includeJSDoc or False,
+                parse_mode=node.parse_mode or "module",
+                include_jsdoc=node.include_js_doc or False,
             )
 
         # Fall back to base class serialization
