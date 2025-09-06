@@ -17,24 +17,24 @@ interface RunColumnProps {
 export function RunColumn({ executionId, onRemove }: RunColumnProps) {
   // Create a local store instance for this column
   const store = useMemo(() => createExecutionLocalStore(), []);
-  
+
   // Subscribe to execution updates
   useRunSubscription({ executionId, store });
-  
+
   // Fetch execution to get diagram_id
   const { data: executionData } = useQuery(GetExecutionDocument, {
     variables: { id: executionId },
     skip: !executionId,
   });
-  
+
   const diagramId = executionData?.execution?.diagram_id;
-  
+
   // Fetch diagram using the diagram_id from execution
   const { data: diagramData, loading: diagramLoading } = useQuery(GetDiagramDocument, {
     variables: { id: diagramId },
     skip: !diagramId,
   });
-  
+
   // Store diagram data in the local store when it's fetched
   useEffect(() => {
     if (diagramData?.diagram) {
@@ -49,19 +49,19 @@ export function RunColumn({ executionId, onRemove }: RunColumnProps) {
   }, [diagramData, executionData, store]);
 
   return (
-    <div 
+    <div
       className="rounded-2xl bg-gray-800/60 border border-gray-700 shadow p-3 min-w-[480px] flex flex-col h-full overflow-hidden"
       style={{ scrollSnapAlign: 'start' }}
     >
       {/* Column Header with run info and controls - Fixed at top */}
       <div className="flex-shrink-0">
-        <RunHeader 
-          executionId={executionId} 
+        <RunHeader
+          executionId={executionId}
           store={store}
           onRemove={onRemove}
         />
       </div>
-      
+
       {/* Scrollable content area */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Diagram Canvas - Read only view with execution highlights */}
@@ -76,12 +76,12 @@ export function RunColumn({ executionId, onRemove }: RunColumnProps) {
             <DiagramViewer store={store} readOnly />
           )}
         </div>
-        
+
         {/* Event strip showing execution timeline - Fixed height with internal scroll */}
         <div className="flex-shrink-0">
-          <EventStrip 
-            executionId={executionId} 
-            store={store} 
+          <EventStrip
+            executionId={executionId}
+            store={store}
           />
         </div>
       </div>

@@ -9,7 +9,7 @@ export const hookSpec: NodeSpecification = {
   icon: "🪝",
   color: "#9333ea",
   description: "Executes hooks at specific points in the diagram execution",
-  
+
   fields: [
     {
       name: "hook_type",
@@ -86,12 +86,12 @@ export const hookSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["success", "error"]
   },
-  
+
   outputs: {
     success: {
       type: "any",
@@ -102,13 +102,13 @@ export const hookSpec: NodeSpecification = {
       description: "Error output"
     }
   },
-  
+
   execution: {
     timeout: 60,
     retryable: true,
     maxRetries: 3
   },
-  
+
   examples: [
     {
       name: "Shell Hook",
@@ -130,6 +130,6 @@ export const hookSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   primaryDisplayField: "hook_type"
 };

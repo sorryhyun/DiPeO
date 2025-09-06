@@ -35,7 +35,7 @@ interface ExecutionState {
 export class ExecutionService {
   private static activeExecutions = new Map<ExecutionID, ExecutionState>();
   private static subscriptions = new Map<ExecutionID, any>();
-  
+
   /**
    * Start a new execution
    */
@@ -53,9 +53,9 @@ export class ExecutionService {
         },
       },
     );
-    
+
     const executionId = result.execute_diagram.execution.id as ExecutionID;
-    
+
     // Initialize local state
     this.activeExecutions.set(executionId, {
       id: executionId,
@@ -64,13 +64,13 @@ export class ExecutionService {
       nodeStates: new Map(),
       startedAt: new Date(),
     });
-    
+
     // Subscribe to updates
     this.subscribeToUpdates(executionId);
-    
+
     return executionId;
   }
-  
+
   /**
    * Stop an execution
    */
@@ -78,18 +78,18 @@ export class ExecutionService {
     // Call GraphQL mutation
     await GraphQLService.mutate(
       ControlExecutionDocument,
-      { 
+      {
         input: {
           execution_id: executionId,
           action: 'STOP',
         },
       },
     );
-    
+
     // Clean up local state
     this.cleanupExecution(executionId);
   }
-  
+
   /**
    * Subscribe to execution updates
    */
@@ -106,10 +106,10 @@ export class ExecutionService {
         this.cleanupExecution(executionId);
       },
     });
-    
+
     this.subscriptions.set(executionId, subscription);
   }
-  
+
   /**
    * Handle execution state update
    */
@@ -119,7 +119,7 @@ export class ExecutionService {
   ): void {
     const execution = this.activeExecutions.get(executionId);
     if (!execution) return;
-    
+
     // Update node state
     if (update.node_id && update.status) {
       execution.nodeStates.set(update.node_id, {
@@ -130,20 +130,20 @@ export class ExecutionService {
         ended_at: update.status === Status.COMPLETED ? update.timestamp : null,
       });
     }
-    
+
     // Update overall execution state
     if (update.type === EventType.EXECUTION_STATUS_CHANGED && update.data?.status) {
       execution.status = update.data.status as Status;
     }
-    
+
     // Check if execution completed
-    if (execution.status === Status.COMPLETED || 
+    if (execution.status === Status.COMPLETED ||
         execution.status === Status.FAILED) {
       execution.endedAt = new Date();
       this.cleanupExecution(executionId);
     }
   }
-  
+
   /**
    * Clean up execution resources
    */
@@ -154,53 +154,53 @@ export class ExecutionService {
       subscription.unsubscribe();
       this.subscriptions.delete(executionId);
     }
-    
+
     // Remove from active executions after a delay
     setTimeout(() => {
       this.activeExecutions.delete(executionId);
     }, 5000);
   }
-  
+
   /**
    * Get execution state
    */
   static getExecutionState(executionId: ExecutionID): ExecutionState | undefined {
     return this.activeExecutions.get(executionId);
   }
-  
+
   /**
    * Get all active executions
    */
   static getActiveExecutions(): ExecutionState[] {
     return Array.from(this.activeExecutions.values());
   }
-  
+
   /**
    * Calculate execution progress
    */
   static calculateProgress(execution: ExecutionState): number {
     if (execution.nodeStates.size === 0) return 0;
-    
+
     let completed = 0;
     execution.nodeStates.forEach(state => {
       if (state.status === Status.COMPLETED) {
         completed++;
       }
     });
-    
+
     return (completed / execution.nodeStates.size) * 100;
   }
-  
+
   /**
    * Get execution duration
    */
   static getExecutionDuration(execution: ExecutionState): number {
     if (!execution.startedAt) return 0;
-    
+
     const endTime = execution.endedAt || new Date();
     return endTime.getTime() - execution.startedAt.getTime();
   }
-  
+
   /**
    * Format execution result for display
    */
@@ -208,20 +208,20 @@ export class ExecutionService {
     if (typeof result === 'string') {
       return result;
     }
-    
+
     if (typeof result === 'object' && result !== null) {
       return JSON.stringify(result, null, 2);
     }
-    
+
     return String(result);
   }
-  
+
   /**
    * Get node execution order
    */
   static getExecutionOrder(execution: ExecutionState): NodeID[] {
     const order: NodeID[] = [];
-    
+
     // Sort nodes by start time
     const sortedNodes = Array.from(execution.nodeStates.entries())
       .sort((a, b) => {
@@ -229,21 +229,21 @@ export class ExecutionService {
         const bTime = b[1].started_at ? new Date(b[1].started_at).getTime() : 0;
         return aTime - bTime;
       });
-    
+
     sortedNodes.forEach(([nodeId]) => {
       order.push(nodeId);
     });
-    
+
     return order;
   }
-  
+
   /**
    * Check if execution can be retried
    */
   static canRetry(execution: ExecutionState): boolean {
     return execution.status === Status.FAILED;
   }
-  
+
   /**
    * Retry a failed execution
    */
@@ -252,7 +252,7 @@ export class ExecutionService {
     if (!execution || !this.canRetry(execution)) {
       throw new Error('Execution cannot be retried');
     }
-    
+
     // Start new execution with same parameters
     return this.startExecution(execution.diagramId);
   }

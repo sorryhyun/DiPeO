@@ -2,15 +2,15 @@ import os
 import warnings
 from contextlib import asynccontextmanager
 
-from dipeo.application.bootstrap import init_resources, shutdown_resources
-from dipeo.infrastructure.logging_config import setup_logging
+from dipeo_server.api.middleware import setup_middleware
+from dipeo_server.api.router import setup_routes
+from dipeo_server.app_context import initialize_container_async
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 
-from dipeo_server.api.middleware import setup_middleware
-from dipeo_server.api.router import setup_routes
-from dipeo_server.app_context import initialize_container_async
+from dipeo.application.bootstrap import init_resources, shutdown_resources
+from dipeo.infrastructure.logging_config import setup_logging
 
 load_dotenv()
 

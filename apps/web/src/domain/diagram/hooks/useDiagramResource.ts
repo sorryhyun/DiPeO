@@ -4,7 +4,7 @@ import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { DiagramConverter } from '@/infrastructure/converters';
 import { Converters } from '@/infrastructure/services';
 import { DiagramFormat, type DomainDiagram, type DomainNode } from '@dipeo/models';
-import { 
+import {
   useGetDiagramQuery,
   useCreateDiagramMutation,
   useDeleteDiagramMutation,
@@ -36,34 +36,34 @@ export function useDiagram(options: UseDiagramOptions = {}) {
     syncWithStore = true,
     showToasts = true
   } = options;
-  
+
   const store = useUnifiedStore();
   const [createDiagram] = useCreateDiagramMutation();
   const [deleteDiagram] = useDeleteDiagramMutation();
-  
+
   const operations: DiagramOperations = useMemo(() => ({
     fetch: async (id?: string) => {
       const targetId = id || diagramId;
       if (!targetId) throw new Error('No diagram ID provided');
-      
+
       const { data } = await useGetDiagramQuery({
         variables: { id: targetId }
       }).refetch();
-      
+
       if (!data?.diagram) {
         throw new Error('Diagram not found');
       }
-      
+
       const domainDiagram = DiagramConverter.toDomain(data.diagram) as DiagramResource;
-      
+
       if (syncWithStore && domainDiagram) {
         const jsonString = JSON.stringify(domainDiagram);
         await store.importDiagram(jsonString);
       }
-      
+
       return { ...domainDiagram, id: targetId };
     },
-    
+
     list: async (params?: Record<string, any>) => {
       const { data } = await useListDiagramsQuery({
         variables: {
@@ -72,14 +72,14 @@ export function useDiagram(options: UseDiagramOptions = {}) {
           filter: params?.filter
         }
       }).refetch();
-      
+
       if (!data?.diagrams) {
         return [];
       }
-      
+
       return data.diagrams.map(d => ({ ...DiagramConverter.toDomain(d), id: d.metadata?.id || undefined } as DiagramResource));
     },
-    
+
     create: async (data: Partial<DiagramResource>) => {
       const { data: result } = await createDiagram({
         variables: {
@@ -89,21 +89,21 @@ export function useDiagram(options: UseDiagramOptions = {}) {
           }
         }
       });
-      
+
       if (!result?.create_diagram) {
         throw new Error('Failed to create diagram');
       }
-      
+
       const domainDiagram = DiagramConverter.toDomain(result.create_diagram?.diagram || {}) as DiagramResource;
-      
+
       if (syncWithStore && domainDiagram) {
         const jsonString = JSON.stringify(domainDiagram);
         await store.importDiagram(jsonString);
       }
-      
+
       return { ...domainDiagram, id: result.create_diagram?.diagram?.metadata?.id || undefined };
     },
-    
+
     update: async (id: string, data: Partial<DiagramResource>) => {
       // Since there's no update mutation, use create with existing ID
       // or just update the store directly
@@ -128,24 +128,24 @@ export function useDiagram(options: UseDiagramOptions = {}) {
       }
       return { ...data, id } as DiagramResource;
     },
-    
+
     delete: async (id: string) => {
       const { data } = await deleteDiagram({
         variables: { id }
       });
-      
+
       if (data?.delete_diagram && syncWithStore) {
         store.clearDiagram();
       }
-      
+
       return data?.delete_diagram?.success || false;
     },
-    
-    
+
+
     loadFromFile: async (file: File) => {
       const content = await file.text();
       let diagram: DiagramResource;
-      
+
       try {
         if (file.name.endsWith('.yaml') || file.name.endsWith('.yml')) {
           const yaml = await import('js-yaml');
@@ -156,20 +156,20 @@ export function useDiagram(options: UseDiagramOptions = {}) {
       } catch (error) {
         throw new Error(`Failed to parse file: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-      
+
       if (syncWithStore && diagram) {
         const jsonString = JSON.stringify(diagram);
         await store.importDiagram(jsonString);
       }
     },
-    
+
     exportAs: async (format: DiagramFormat) => {
       const diagramJson = store.exportDiagram();
       const diagram = JSON.parse(diagramJson);
       let content: string;
       let filename: string;
       let mimeType: string;
-      
+
       switch (format) {
         case DiagramFormat.NATIVE:
           content = JSON.stringify(diagram, null, 2);
@@ -193,7 +193,7 @@ export function useDiagram(options: UseDiagramOptions = {}) {
         default:
           throw new Error(`Unsupported format: ${format}`);
       }
-      
+
       const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -204,16 +204,16 @@ export function useDiagram(options: UseDiagramOptions = {}) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     },
-    
+
     validate: async () => {
       return store.validateDiagram();
     },
-    
+
     clearAll: () => {
       store.clearAll();
     }
   }), [diagramId, syncWithStore, store, createDiagram, deleteDiagram]);
-  
+
   const resource = useResource<DiagramResource>('Diagram', operations as unknown as ResourceOperations<DiagramResource>, {
     showToasts,
     optimisticUpdates: true,
@@ -224,14 +224,14 @@ export function useDiagram(options: UseDiagramOptions = {}) {
       console.error(`[Diagram] ${operation} failed:`, error);
     }
   });
-  
+
   const currentDiagram = useMemo(() => {
     if (syncWithStore) {
       const nodes = Array.from(store.nodes.values());
       const arrows = Array.from(store.arrows.values());
       const persons = Array.from(store.persons.values());
       const handles = Array.from(store.handles.values());
-      
+
       return {
         nodes,
         arrows,
@@ -251,30 +251,30 @@ export function useDiagram(options: UseDiagramOptions = {}) {
     }
     return resource.data;
   }, [syncWithStore, store, resource.data]);
-  
+
   return {
     ...resource,
     diagram: currentDiagram,
     operations,
-    
+
     addNode: useCallback((node: DomainNode) => {
       if (syncWithStore) {
         store.addNode(node.type, node.position, node.data);
       }
     }, [syncWithStore, store]),
-    
+
     updateNode: useCallback((nodeId: string, data: Partial<DomainNode>) => {
       if (syncWithStore) {
         store.updateNode(Converters.toNodeId(nodeId), data);
       }
     }, [syncWithStore, store]),
-    
+
     removeNode: useCallback((nodeId: string) => {
       if (syncWithStore) {
         store.deleteNode(Converters.toNodeId(nodeId));
       }
     }, [syncWithStore, store]),
-    
+
     clearDiagram: useCallback(() => {
       operations.clearAll();
     }, [operations])

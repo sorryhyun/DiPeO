@@ -13,7 +13,7 @@ export const integratedApiSpec: NodeSpecification = {
   icon: "🔌",
   color: "#8b5cf6",
   description: "Connect to external APIs like Notion, Slack, GitHub, and more",
-  
+
   fields: [
     {
       name: "provider",
@@ -85,12 +85,12 @@ export const integratedApiSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["default", "error"]
   },
-  
+
   outputs: {
     result: {
       type: "any",
@@ -101,12 +101,12 @@ export const integratedApiSpec: NodeSpecification = {
       description: "Error details if the operation fails"
     }
   },
-  
+
   execution: {
     timeout: 60,
     retryable: true,
     maxRetries: 3
   },
-  
+
   primaryDisplayField: "provider"
 };

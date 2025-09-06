@@ -12,7 +12,7 @@ export const personBatchJobSpec: NodeSpecification = {
   icon: "📦",
   color: "#8b5cf6",
   description: "Execute AI tasks on batches of data using language models",
-  
+
   fields: [
     {
       name: "person",
@@ -50,24 +50,24 @@ export const personBatchJobSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["default"]
   },
-  
+
   outputs: {
     results: {
       type: "any",
       description: "Array of results from batch processing"
     }
   },
-  
+
   execution: {
     timeout: 600,
     retryable: true,
     maxRetries: 3
   },
-  
+
   primaryDisplayField: "batch_key"
 };

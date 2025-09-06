@@ -33,12 +33,12 @@ export function apiServiceTypeToLLMService(service: APIServiceType): LLMService 
   if (!isLLMService(service)) {
     throw new Error(`APIServiceType "${service}" is not an LLM service`);
   }
-  
+
   // Handle special cases
   if (service === APIServiceType.GEMINI) {
     return LLMService.GOOGLE;
   }
-  
+
   // Direct mapping for others
   return service as unknown as LLMService;
 }

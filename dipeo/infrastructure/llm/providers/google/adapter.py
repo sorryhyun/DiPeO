@@ -4,8 +4,9 @@ import logging
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
-from dipeo.diagram_generated import Message, ToolConfig
 from google.genai import types
+
+from dipeo.diagram_generated import Message, ToolConfig
 
 from ...capabilities import (
     RetryHandler,

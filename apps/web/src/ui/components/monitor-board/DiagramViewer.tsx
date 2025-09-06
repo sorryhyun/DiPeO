@@ -36,11 +36,11 @@ export function DiagramViewer({ store, readOnly = true }: DiagramViewerProps) {
       const rfNodes: ReactFlowNode[] = (state.nodes || []).map((node: any) => {
         const nodeState = state.nodeStates.get(node.id);
         const isRunning = state.runningNodes.has(node.id);
-        
+
         // Add execution state styling
         const nodeStyle: React.CSSProperties = {};
         let className = '';
-        
+
         if (isRunning) {
           className = 'node-running';
           nodeStyle.animation = 'pulse-blue 2s infinite';
@@ -99,7 +99,7 @@ export function DiagramViewer({ store, readOnly = true }: DiagramViewerProps) {
 
     // Subscribe to future changes
     const unsubscribe = store.subscribe(updateDiagram);
-    
+
     // Apply initial state immediately
     updateDiagram(store.getState());
 
@@ -142,7 +142,7 @@ export function DiagramViewer({ store, readOnly = true }: DiagramViewerProps) {
           showInteractive={false}
         />
       </ReactFlow>
-      
+
       {/* Add pulse animation styles */}
       <style>{`
         @keyframes pulse-blue {
@@ -153,17 +153,17 @@ export function DiagramViewer({ store, readOnly = true }: DiagramViewerProps) {
             box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
           }
         }
-        
+
         .node-running {
           border-color: #3b82f6 !important;
           border-width: 2px !important;
           box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
         }
-        
+
         .node-completed {
           background-color: rgba(16, 185, 129, 0.1) !important;
         }
-        
+
         .node-failed {
           background-color: rgba(239, 68, 68, 0.1) !important;
         }

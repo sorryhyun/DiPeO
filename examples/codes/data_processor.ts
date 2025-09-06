@@ -111,9 +111,9 @@ export function parse_data(inputs: InputData): ParsedData {
   /**Parse CSV data and prepare for quality check.*/
   const raw_data = inputs.raw_data || '';
   const config_data = inputs.config_data || '{}';
-  
+
   let data_rows: DataRow[] = [];
-  
+
   // Handle raw_data - could be CSV string or already-parsed JSON
   if (typeof raw_data === 'string') {
     // Try to parse as JSON first (in case DB already parsed it)
@@ -132,28 +132,28 @@ export function parse_data(inputs: InputData): ParsedData {
     // Already parsed data
     data_rows = Array.isArray(raw_data) ? raw_data : [];
   }
-  
+
   // Parse config
   const config: Config = typeof config_data === 'string' ? JSON.parse(config_data) : config_data;
-  
+
   // Enhanced validation
   const total_rows = data_rows.length;
   const valid_rows: DataRow[] = [];
   const invalid_rows: InvalidRow[] = [];
-  
+
   data_rows.forEach((row, idx) => {
     // Check for required fields based on config
     const required_fields = config.required_fields || [];
     let is_valid = true;
     const issues: string[] = [];
-    
+
     for (const field of required_fields) {
       if (!row[field] || String(row[field]).trim() === '') {
         is_valid = false;
         issues.push(`Missing ${field}`);
       }
     }
-    
+
     // Type validation if specified in config
     const field_types = config.field_types || {};
     for (const [field, expected_type] of Object.entries(field_types)) {
@@ -176,19 +176,19 @@ export function parse_data(inputs: InputData): ParsedData {
         }
       }
     }
-    
+
     if (is_valid) {
       valid_rows.push(row);
     } else {
       invalid_rows.push({ row_index: idx, data: row, issues });
     }
   });
-  
+
   // Calculate data statistics
   const numeric_fields = Object.entries(config.field_types || {})
     .filter(([_, ftype]) => ftype === 'number' || ftype === 'integer')
     .map(([field, _]) => field);
-  
+
   const statistics_summary: { [key: string]: Statistics } = {};
   for (const field of numeric_fields) {
     const values: number[] = [];
@@ -200,12 +200,12 @@ export function parse_data(inputs: InputData): ParsedData {
         // Skip invalid values
       }
     }
-    
+
     if (values.length > 0) {
       statistics_summary[field] = calculateStatistics(values);
     }
   }
-  
+
   return {
     total_rows,
     valid_rows: valid_rows.length,
@@ -222,12 +222,12 @@ export function extract_score(inputs: InputData): ProcessingResult {
   /**Extract quality score from the person job's quality check result.*/
   // Remove console.log debug statements as they interfere with JSON output
   const quality_result = inputs.quality_result || '{}';
-  
+
   let quality_score = 0;
   let quality_issues: string[] = [];
   let parsed_data: any = {};
   const parse_info = { method: "unknown", raw_input: String(quality_result).substring(0, 200) };
-  
+
   // Try multiple parsing strategies
   if (typeof quality_result === 'string') {
     // Strategy 1: Try direct JSON parsing
@@ -264,7 +264,7 @@ export function extract_score(inputs: InputData): ProcessingResult {
               }
             }
           }
-          
+
           if (end_pos > json_start) {
             try {
               const quality_data = JSON.parse(quality_result.substring(json_start, end_pos));
@@ -278,7 +278,7 @@ export function extract_score(inputs: InputData): ProcessingResult {
           }
         }
       }
-      
+
       // Strategy 3: Try to extract score from text
       if (quality_score === 0) {
         const score_match = quality_result.match(/score[:\s]*(\d+)/i);
@@ -292,7 +292,7 @@ export function extract_score(inputs: InputData): ProcessingResult {
           }
         }
       }
-      
+
       // Strategy 4: Default if nothing works
       if (quality_score === 0) {
         quality_issues = ["Failed to parse quality result", `Raw result: ${quality_result.substring(0, 100)}...`];
@@ -308,14 +308,14 @@ export function extract_score(inputs: InputData): ProcessingResult {
     }
     parse_info.method = "dict_input";
   }
-  
+
   // Get the parsed_data directly from inputs (new connection from Parse Data node)
   const input_parsed_data = inputs.parsed_data || {};
-  
+
   // Extract data from parsed_data for downstream use
   const data_rows = input_parsed_data.data_rows || [];
   const config = input_parsed_data.config || {};
-  
+
   // Set result variables for downstream nodes
   const result: ProcessingResult = {
     quality_score,
@@ -325,26 +325,26 @@ export function extract_score(inputs: InputData): ProcessingResult {
     parsed_data: input_parsed_data,
     parse_info // For debugging
   };
-  
+
   return result;
 }
 
 export function transform_data(inputs: InputData): TransformedData | { error: string; quality_score: number; issues: string[] } {
   /**Transform data according to business rules.*/
   // Data comes from the condition check which passes through Extract Score output
-  
+
   // Get processing_result directly from inputs
   let processing_result = inputs.processing_result || {};
-  
+
   // If it's not an object, something went wrong
   if (typeof processing_result !== 'object' || processing_result === null) {
     processing_result = {};
   }
-  
+
   const data_rows = processing_result.data_rows || [];
   const config = processing_result.config || {};
   const quality_score = processing_result.quality_score || 0;
-  
+
   if (quality_score < 70) {
     return {
       error: "Quality score too low for transformation",
@@ -352,14 +352,14 @@ export function transform_data(inputs: InputData): TransformedData | { error: st
       issues: inputs.quality_issues || []
     };
   }
-  
+
   // Apply transformations based on config
   const transformation_rules = config.transformations || {};
   const transformed_data: DataRow[] = [];
-  
+
   for (const row of data_rows) {
     const transformed_row: DataRow = { ...row };
-    
+
     // Apply field mappings
     const field_mappings = transformation_rules.field_mappings || {};
     for (const [old_field, new_field] of Object.entries(field_mappings)) {
@@ -368,7 +368,7 @@ export function transform_data(inputs: InputData): TransformedData | { error: st
         delete transformed_row[old_field];
       }
     }
-    
+
     // Apply calculations
     const calculations = transformation_rules.calculations || {};
     for (const [new_field, formula] of Object.entries(calculations)) {
@@ -384,7 +384,7 @@ export function transform_data(inputs: InputData): TransformedData | { error: st
         // Skip failed calculations
       }
     }
-    
+
     // Apply filters
     const filters = transformation_rules.filters || {};
     let include_row = true;
@@ -403,18 +403,18 @@ export function transform_data(inputs: InputData): TransformedData | { error: st
         }
       }
     }
-    
+
     if (include_row) {
       transformed_data.push(transformed_row);
     }
   }
-  
+
   const result: TransformedData = {
     transformed_count: transformed_data.length,
     original_count: data_rows.length,
     data: transformed_data
   };
-  
+
   return result;
 }
 
@@ -426,9 +426,9 @@ export function enrich_data(inputs: InputData): EnrichedData | { error: string; 
   if (typeof transformed_data_input === 'object' && transformed_data_input !== null && 'data' in transformed_data_input) {
     transformed_data = transformed_data_input.data || [];
   }
-  
+
   const api_response = inputs.api_response || '{}';
-  
+
   // Parse API response
   let api_data: any;
   let exchange_rates: { [key: string]: number } = {};
@@ -442,7 +442,7 @@ export function enrich_data(inputs: InputData): EnrichedData | { error: string; 
       api_response_preview: typeof api_response === 'string' ? api_response.substring(0, 200) : String(api_response)
     };
   }
-  
+
   // Enrich each record
   const enriched_data: DataRow[] = [];
   const enrichment_stats = {
@@ -450,10 +450,10 @@ export function enrich_data(inputs: InputData): EnrichedData | { error: string; 
     fields_added: new Set<string>(),
     currencies_converted: [] as string[]
   };
-  
+
   for (const item of transformed_data) {
     const enriched_item: DataRow = { ...item };
-    
+
     // Currency conversion enrichment
     for (const [field, value] of Object.entries(item)) {
       if (field.toLowerCase().includes('amount') || field.toLowerCase().includes('price')) {
@@ -465,7 +465,7 @@ export function enrich_data(inputs: InputData): EnrichedData | { error: string; 
             ['GBP', exchange_rates.GBP || 0.73],
             ['JPY', exchange_rates.JPY || 110]
           ];
-          
+
           for (const [currency, rate] of conversions) {
             const new_field = field.replace('usd', currency.toLowerCase());
             enriched_item[new_field] = Math.round(usd_amount * rate * 100) / 100;
@@ -480,14 +480,14 @@ export function enrich_data(inputs: InputData): EnrichedData | { error: string; 
         }
       }
     }
-    
+
     // Add metadata
     enriched_item['enriched_at'] = new Date().toISOString();
     enriched_item['exchange_rate_date'] = api_data.date || 'unknown';
-    
+
     enriched_data.push(enriched_item);
   }
-  
+
   const result: EnrichedData = {
     processed_at: api_data.date || new Date().toISOString(),
     total_records: enriched_data.length,
@@ -498,14 +498,14 @@ export function enrich_data(inputs: InputData): EnrichedData | { error: string; 
     },
     data: enriched_data
   };
-  
+
   return result;
 }
 
 export function analyze_patterns(inputs: InputData): AnalysisResult {
   /**Analyze patterns in the enriched data.*/
   const enriched_result = inputs.enriched_data || {};
-  
+
   // Handle case where enriched_result might be a string (error message)
   if (typeof enriched_result === 'string') {
     return {
@@ -518,9 +518,9 @@ export function analyze_patterns(inputs: InputData): AnalysisResult {
       recommendations: ["Check data processing pipeline"]
     };
   }
-  
+
   const enriched_data = enriched_result.data || [];
-  
+
   const analysis: AnalysisResult = {
     summary: {
       total_records: enriched_data.length,
@@ -530,15 +530,15 @@ export function analyze_patterns(inputs: InputData): AnalysisResult {
     anomalies: [],
     recommendations: []
   };
-  
+
   if (enriched_data.length === 0) {
     analysis.patterns.push("No data available for analysis");
     return analysis;
   }
-  
+
   // Analyze numeric fields
   const numeric_fields: { [key: string]: number[] } = {};
-  
+
   // Sample first 10 rows to identify numeric fields
   const sample_rows = enriched_data.slice(0, 10);
   for (const row of sample_rows) {
@@ -551,7 +551,7 @@ export function analyze_patterns(inputs: InputData): AnalysisResult {
       }
     }
   }
-  
+
   // Collect values for numeric fields
   for (const row of enriched_data) {
     for (const field of Object.keys(numeric_fields)) {
@@ -561,17 +561,17 @@ export function analyze_patterns(inputs: InputData): AnalysisResult {
       }
     }
   }
-  
+
   // Pattern analysis
   for (const [field, values] of Object.entries(numeric_fields)) {
     if (values.length > 0) {
       const stats = calculateStatistics(values);
-      
+
       // Detect patterns
       if (Math.abs(stats.mean - stats.median) > stats.std_dev) {
         analysis.patterns.push(`${field} shows skewed distribution`);
       }
-      
+
       // Detect anomalies (values beyond 2 standard deviations)
       const anomaly_count = values.filter(v => Math.abs(v - stats.mean) > 2 * stats.std_dev).length;
       if (anomaly_count > 0) {
@@ -583,30 +583,30 @@ export function analyze_patterns(inputs: InputData): AnalysisResult {
       }
     }
   }
-  
+
   // Currency analysis if available
   if (enriched_data.length > 0) {
-    const currency_fields = Object.keys(enriched_data[0]).filter(f => 
+    const currency_fields = Object.keys(enriched_data[0]).filter(f =>
       ['eur', 'gbp', 'jpy'].some(curr => f.toLowerCase().includes(curr))
     );
     if (currency_fields.length > 0) {
       analysis.patterns.push(`Data enriched with ${currency_fields.length} currency conversions`);
     }
   }
-  
+
   // Generate recommendations
   if (analysis.anomalies.length > 0) {
     analysis.recommendations.push("Review detected anomalies for data quality issues");
   }
-  
+
   if (enriched_data.length < 100) {
     analysis.recommendations.push("Consider collecting more data for robust analysis");
   }
-  
+
   if (analysis.recommendations.length === 0) {
     analysis.recommendations.push("Data quality appears good, proceed with downstream processing");
   }
-  
+
   return analysis;
 }
 
@@ -616,7 +616,7 @@ export function handle_error(inputs: InputData): ErrorResult {
   const processing_result = inputs.processing_result || {};
   const quality_score = processing_result.quality_score || 0;
   const quality_issues = processing_result.quality_issues || [];
-  
+
   return {
     status: "failed",
     reason: "Data quality below threshold",
@@ -632,10 +632,10 @@ export function handle_error(inputs: InputData): ErrorResult {
 function parseCSV(csvString: string): DataRow[] {
   const lines = csvString.trim().split('\n');
   if (lines.length === 0) return [];
-  
+
   const headers = lines[0].split(',').map(h => h.trim());
   const rows: DataRow[] = [];
-  
+
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(',').map(v => v.trim());
     const row: DataRow = {};
@@ -644,7 +644,7 @@ function parseCSV(csvString: string): DataRow[] {
     });
     rows.push(row);
   }
-  
+
   return rows;
 }
 
@@ -652,18 +652,18 @@ function calculateStatistics(values: number[]): Statistics {
   if (values.length === 0) {
     return { mean: 0, median: 0, std_dev: 0, min: 0, max: 0 };
   }
-  
+
   const sorted = [...values].sort((a, b) => a - b);
   const sum = values.reduce((a, b) => a + b, 0);
   const mean = sum / values.length;
-  
+
   const median = values.length % 2 === 0
     ? (sorted[values.length / 2 - 1] + sorted[values.length / 2]) / 2
     : sorted[Math.floor(values.length / 2)];
-  
+
   const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length;
   const std_dev = Math.sqrt(variance);
-  
+
   return {
     mean,
     median,

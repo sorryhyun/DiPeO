@@ -8,13 +8,13 @@ export function rebuildHandleIndex(
   handles: Map<HandleID, DomainHandle>
 ): Map<NodeID, DomainHandle[]> {
   const index = new Map<NodeID, DomainHandle[]>();
-  
+
   handles.forEach(handle => {
     const nodeHandles = index.get(handle.node_id) || [];
     nodeHandles.push(handle);
     index.set(handle.node_id, nodeHandles);
   });
-  
+
   return index;
 }
 
@@ -27,7 +27,7 @@ export function updateHandleIndex(
 ): void {
   // Clear and rebuild the index
   handleIndex.clear();
-  
+
   handles.forEach(handle => {
     const nodeHandles = handleIndex.get(handle.node_id) || [];
     if (nodeHandles.length === 0) {

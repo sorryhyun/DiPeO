@@ -35,8 +35,8 @@ nodes:
 
 connections:
   - {from: Start, to: Generate JSON Schemas}
-  
+
   # Pass JSON schema results to Pydantic generator
   - {from: Generate JSON Schemas, to: Generate Pydantic Models, label: schemas, content_type: object}
-  
+
   - {from: Generate Pydantic Models, to: End}

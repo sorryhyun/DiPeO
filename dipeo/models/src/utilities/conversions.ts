@@ -52,7 +52,7 @@ export function nodeKindToDomainType(kind: string): NodeType {
 export function domainTypeToNodeKind(type: NodeType | string): string {
   const normalizedType = typeof type === 'string' ? type.toLowerCase() : type;
   const kind = NODE_TYPE_REVERSE_MAP[normalizedType as NodeType];
-  
+
   if (!kind) {
     throw new Error(`Unknown node type: ${type}`);
   }
@@ -79,14 +79,14 @@ export function parseHandleId(
   const handleLabel = parts[parts.length - 2] as HandleLabel;
   const nodeIdParts = parts.slice(0, -2);
   const nodeId = nodeIdParts.join('_');
-  
+
   if (!nodeId || !handleLabel || !Object.values(HandleDirection).includes(direction)) {
     throw new Error(`Invalid handle ID format: ${handleId}`);
   }
   if (!Object.values(HandleLabel).includes(handleLabel)) {
     throw new Error(`Invalid handle label in handle ID: ${handleId}`);
   }
-  
+
   return {
     node_id: nodeId as NodeID,
     handle_label: handleLabel,
@@ -153,7 +153,7 @@ export function diagramMapsToArrays(diagram: {
 
 export function convertGraphQLPersonToDomain(graphqlPerson: any): DomainPerson {
   const apiKeyId = graphqlPerson.llm_config?.api_key_id || '';
-  
+
   return {
     id: graphqlPerson.id as PersonID,
     label: graphqlPerson.label,
@@ -169,15 +169,15 @@ export function convertGraphQLPersonToDomain(graphqlPerson: any): DomainPerson {
 
 export function convertGraphQLDiagramToDomain(diagram: any): Partial<DomainDiagram> {
   const result: Partial<DomainDiagram> = {};
-  
+
   if (diagram.nodes) {
     result.nodes = diagram.nodes;
   }
-  
+
   if (diagram.handles) {
     result.handles = diagram.handles;
   }
-  
+
   if (diagram.arrows) {
     result.arrows = diagram.arrows.map((arrow: any) => ({
       ...arrow,
@@ -185,11 +185,10 @@ export function convertGraphQLDiagramToDomain(diagram: any): Partial<DomainDiagr
       label: arrow.label,
     }));
   }
-  
+
   if (diagram.persons) {
     result.persons = diagram.persons.map(convertGraphQLPersonToDomain);
   }
-  
+
   return result;
 }
-

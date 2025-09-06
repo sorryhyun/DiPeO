@@ -1,6 +1,6 @@
 /**
  * Node Converter Module
- * 
+ *
  * Handles all conversions related to diagram nodes.
  * Provides consistent transformations between GraphQL, Domain, and UI representations.
  */
@@ -28,7 +28,7 @@ export class NodeConverter {
       data: graphqlNode.data || {}
     };
   }
-  
+
   /**
    * Convert domain node to GraphQL input
    */
@@ -40,35 +40,35 @@ export class NodeConverter {
       data: domainNode.data
     };
   }
-  
+
   /**
    * Batch convert GraphQL nodes to domain
    */
   static batchToDomain(graphqlNodes: DomainNodeType[]): DomainNode[] {
     return graphqlNodes.map(node => this.toDomain(node));
   }
-  
+
   /**
    * Batch convert domain nodes to GraphQL
    */
   static batchToGraphQL(domainNodes: DomainNode[]): Partial<DomainNodeType>[] {
     return domainNodes.map(node => this.toGraphQL(node));
   }
-  
+
   /**
    * Convert array to Map for efficient lookups
    */
   static arrayToMap(nodes: DomainNode[]): Map<NodeID, DomainNode> {
     return new Map(nodes.map(node => [node.id, node]));
   }
-  
+
   /**
    * Filter nodes by type
    */
   static filterByType(nodes: DomainNode[], type: NodeType): DomainNode[] {
     return nodes.filter(node => node.type === type);
   }
-  
+
   /**
    * Group nodes by type
    */
@@ -81,14 +81,14 @@ export class NodeConverter {
     });
     return groups;
   }
-  
+
   /**
    * Check if string is valid node type
    */
   static isValidNodeType(type: string): boolean {
     return type.toLowerCase() in NODE_TYPE_MAP;
   }
-  
+
   /**
    * Get node type from string safely
    */
@@ -99,7 +99,7 @@ export class NodeConverter {
       return null;
     }
   }
-  
+
   /**
    * Create a minimal node with defaults
    */

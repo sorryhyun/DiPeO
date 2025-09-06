@@ -251,4 +251,3 @@ start -> person_job <- condition (skippable, loop-back)
 - 내결함성을 위한 토큰 영속화
 - 확장을 위한 분산 토큰 전달
 - 토큰 기반 백프레셔 제어
-

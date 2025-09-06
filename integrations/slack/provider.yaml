@@ -207,7 +207,7 @@ webhook_events:
           "ts": {"type": "string"}
         }
       }
-  
+
   - name: app_mention
     description: App was mentioned in a message
     payload_schema: |

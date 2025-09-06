@@ -9,7 +9,7 @@ export const jsonSchemaValidatorSpec: NodeSpecification = {
   icon: "✓",
   color: "#8BC34A",
   description: "Validate data against JSON schema",
-  
+
   fields: [
     {
       name: "schema_path",
@@ -60,24 +60,24 @@ export const jsonSchemaValidatorSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["default"]
   },
-  
+
   outputs: {
     result: {
       type: "any",
       description: "Node execution result"
     }
   },
-  
+
   execution: {
     timeout: 300,
     retryable: true,
     maxRetries: 3
   },
-  
+
   primaryDisplayField: "schema_path"
 };

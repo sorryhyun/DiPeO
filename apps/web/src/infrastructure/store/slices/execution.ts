@@ -42,25 +42,25 @@ export function toCanonicalExecutionState(
 
 export interface ExecutionSlice {
   execution: StoreExecutionState;
-  
+
   // Execution control
   startExecution: (executionId: string) => void;
   stopExecution: () => void;
   pauseExecution: () => void;
   resumeExecution: () => void;
   clearExecutionState: () => void;
-  
+
   // Node state management
   updateNodeExecution: (nodeId: NodeID, state: StoreNodeState) => void;
   setNodeRunning: (nodeId: NodeID) => void;
   setNodeCompleted: (nodeId: NodeID) => void;
   setNodeFailed: (nodeId: NodeID, error: string) => void;
   setNodeSkipped: (nodeId: NodeID, reason: string) => void;
-  
+
   // Context management
   updateExecutionContext: (updates: Record<string, unknown>) => void;
   clearExecutionContext: () => void;
-  
+
   // Event handling
   handleExecutionEvent: (event: ExecutionUpdate) => void;
 }
@@ -73,7 +73,7 @@ const clearRunningNode = (state: UnifiedStore, nodeId: NodeID) => {
 // Helper to update node state
 const updateNodeState = (state: UnifiedStore, nodeId: NodeID, nodeState: StoreNodeState) => {
   state.execution.nodeStates.set(nodeId, nodeState);
-  
+
   if (nodeState.status === Status.RUNNING) {
     state.execution.runningNodes.add(nodeId);
   } else {
@@ -94,14 +94,14 @@ export const createExecutionSlice = (
     nodeStates: new Map(),
     context: {}
   },
-  
+
   // Execution control
   startExecution: (executionId) => set((state: UnifiedStore) => {
     // Clear previous execution state before starting new one
     state.execution.nodeStates.clear();
     state.execution.runningNodes.clear();
     state.execution.context = {};
-    
+
     state.execution = {
       id: executionId,
       isRunning: true,
@@ -113,7 +113,7 @@ export const createExecutionSlice = (
     // NOTE: UI state changes should be handled by UI slice listening to execution state changes
     // This maintains proper slice isolation
   }),
-  
+
   stopExecution: () => set((state: UnifiedStore) => {
     state.execution.isRunning = false;
     state.execution.isPaused = false;
@@ -122,7 +122,7 @@ export const createExecutionSlice = (
     // state.execution.nodeStates.clear(); // Clear all node highlights
     // NOTE: UI state changes should be handled by UI slice listening to execution state changes
   }),
-  
+
   pauseExecution: () => set((state: UnifiedStore) => {
     state.execution.isPaused = true;
     // Keep the execution state but pause all running nodes
@@ -136,7 +136,7 @@ export const createExecutionSlice = (
       }
     });
   }),
-  
+
   resumeExecution: () => set((state: UnifiedStore) => {
     state.execution.isPaused = false;
     // Resume all paused nodes
@@ -150,13 +150,13 @@ export const createExecutionSlice = (
       }
     });
   }),
-  
+
   // Node state management
   updateNodeExecution: (nodeId, nodeState) => set((state: UnifiedStore) => {
     console.log('[ExecutionSlice] Updating node execution:', nodeId, nodeState);
     updateNodeState(state, nodeId, nodeState);
   }),
-  
+
   setNodeRunning: (nodeId) => set((state: UnifiedStore) => {
     const nodeState: StoreNodeState = {
       status: Status.RUNNING,
@@ -164,7 +164,7 @@ export const createExecutionSlice = (
     };
     updateNodeState(state, nodeId, nodeState);
   }),
-  
+
   setNodeCompleted: (nodeId) => set((state: UnifiedStore) => {
     const nodeState: StoreNodeState = {
       status: Status.COMPLETED,
@@ -172,7 +172,7 @@ export const createExecutionSlice = (
     };
     updateNodeState(state, nodeId, nodeState);
   }),
-  
+
   setNodeFailed: (nodeId, error) => set((state: UnifiedStore) => {
     const nodeState: StoreNodeState = {
       status: Status.FAILED,
@@ -181,7 +181,7 @@ export const createExecutionSlice = (
     };
     updateNodeState(state, nodeId, nodeState);
   }),
-  
+
   setNodeSkipped: (nodeId, reason) => set((state: UnifiedStore) => {
     const nodeState: StoreNodeState = {
       status: Status.SKIPPED,
@@ -190,7 +190,7 @@ export const createExecutionSlice = (
     };
     updateNodeState(state, nodeId, nodeState);
   }),
-  
+
   // Context management
   updateExecutionContext: (updates) => set((state: UnifiedStore) => {
     state.execution.context = {
@@ -198,11 +198,11 @@ export const createExecutionSlice = (
       ...updates
     };
   }),
-  
+
   clearExecutionContext: () => set((state: UnifiedStore) => {
     state.execution.context = {};
   }),
-  
+
   clearExecutionState: () => set((state: UnifiedStore) => {
     state.execution = {
       id: null,
@@ -213,7 +213,7 @@ export const createExecutionSlice = (
       context: {}
     };
   }),
-  
+
   // Type-safe event handling
   handleExecutionEvent: (event) => set((state: UnifiedStore) => {
     switch (event.type) {
@@ -221,14 +221,14 @@ export const createExecutionSlice = (
         // Handle execution-level status changes
         if (event.data?.status === Status.RUNNING) {
           state.startExecution(event.execution_id);
-        } else if (event.data?.status === Status.COMPLETED || 
+        } else if (event.data?.status === Status.COMPLETED ||
                    event.data?.status === Status.FAILED) {
           state.stopExecution();
         } else if (event.data?.status === Status.PAUSED) {
           state.pauseExecution();
         }
         break;
-        
+
       case EventType.NODE_STATUS_CHANGED:
         // Handle node-level status changes
         if (event.node_id && event.status) {
@@ -240,16 +240,16 @@ export const createExecutionSlice = (
           updateNodeState(state, event.node_id as NodeID, nodeState);
         }
         break;
-        
+
       case EventType.NODE_PROGRESS:
         // Handle node progress updates (e.g., streaming responses)
         if (event.node_id && event.data) {
-          state.updateExecutionContext({ 
-            [`${event.node_id}_progress`]: event.data 
+          state.updateExecutionContext({
+            [`${event.node_id}_progress`]: event.data
           });
         }
         break;
-        
+
       case EventType.EXECUTION_ERROR:
         // Handle execution errors
         if (event.error) {
@@ -259,21 +259,21 @@ export const createExecutionSlice = (
           }
         }
         break;
-        
+
       case EventType.EXECUTION_UPDATE:
         // Handle generic execution updates
         if (event.result && event.node_id) {
-          state.updateExecutionContext({ 
-            [event.node_id]: event.result 
+          state.updateExecutionContext({
+            [event.node_id]: event.result
           });
         }
         break;
-        
+
       case EventType.INTERACTIVE_PROMPT:
       case EventType.INTERACTIVE_RESPONSE:
         // These are handled by other parts of the system
         break;
-        
+
       default:
         console.warn('[ExecutionSlice] Unknown event type:', event.type);
     }

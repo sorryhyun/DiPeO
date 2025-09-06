@@ -25,7 +25,7 @@ export function useNodeFormValidation({
   setErrors,
   setValidating,
 }: UseNodeFormValidationOptions) {
-  
+
   // Get node specification for enhanced validation
   const nodeSpec = useMemo(() => {
     return nodeType ? NodeService.getNodeSpec(nodeType) : null;
@@ -40,24 +40,24 @@ export function useNodeFormValidation({
     }
 
     const fieldValue = value ?? formState.data[field];
-    
+
     try {
       setValidating(true);
-      
+
       // Use ValidationService for field validation
       const validationMessages = ValidationService.getFieldValidationMessages(
         nodeType,
         field,
         fieldValue
       );
-      
+
       if (validationMessages.length > 0) {
         const error: ValidationError = {
           field,
           message: validationMessages[0] || 'Validation failed', // Use first error message
         };
         setFieldError(field, error);
-        
+
         return {
           valid: false,
           errors: [error],
@@ -71,9 +71,9 @@ export function useNodeFormValidation({
         field,
         message: error instanceof Error ? error.message : 'Validation failed',
       };
-      
+
       setFieldError(field, validationError);
-      
+
       return {
         valid: false,
         errors: [validationError],
@@ -94,24 +94,24 @@ export function useNodeFormValidation({
 
     try {
       setValidating(true);
-      
+
       // Validate the entire node data
       const fieldErrors = ValidationService.getFieldErrors(nodeType, formState.data);
-      
+
       // Convert field errors to ValidationError format
       Object.entries(fieldErrors).forEach(([field, messages]) => {
         const fieldValidationErrors: ValidationError[] = (messages as string[]).map((message: string) => ({
           field,
           message,
         }));
-        
+
         if (fieldValidationErrors.length > 0) {
           errors[field] = fieldValidationErrors;
           allErrors.push(...fieldValidationErrors);
           isValid = false;
         }
       });
-      
+
       setErrors(errors);
 
       return {

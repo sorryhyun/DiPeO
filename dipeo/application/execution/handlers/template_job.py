@@ -340,7 +340,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
             # Create parent directories if needed
             parent_dir = output_path.parent
-            if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
+            if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
                 filesystem_adapter.mkdir(parent_dir, parents=True)
 
             # Write the file
@@ -439,7 +439,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
                 # Create parent directories if needed
                 parent_dir = output_path.parent
-                if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
+                if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
                     filesystem_adapter.mkdir(parent_dir, parents=True)
 
                 with filesystem_adapter.open(output_path, "wb") as f:

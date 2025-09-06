@@ -9,14 +9,14 @@ export type NodeCategory = 'control' | 'ai' | 'compute' | 'data' | 'integration'
 export type FieldType = 'string' | 'number' | 'boolean' | 'array' | 'object' | 'enum' | 'any';
 
 // UI input types for field rendering
-export type UIInputType = 
-  | 'text' 
-  | 'textarea' 
-  | 'number' 
-  | 'checkbox' 
-  | 'select' 
-  | 'code' 
-  | 'group' 
+export type UIInputType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'checkbox'
+  | 'select'
+  | 'code'
+  | 'group'
   | 'json'
   | 'personSelect'  // Special person selector
   | 'nodeSelect';   // Node reference selector

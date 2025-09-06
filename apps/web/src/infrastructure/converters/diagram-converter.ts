@@ -1,6 +1,6 @@
 /**
  * Diagram Converter Module
- * 
+ *
  * Handles conversions for complete diagrams.
  * Orchestrates conversions of all diagram components.
  */
@@ -44,49 +44,49 @@ export class DiagramConverter {
   static toDomain(graphqlDiagram: DomainDiagramType | any): Partial<DomainDiagram> {
     return convertGraphQLDiagramToDomain(graphqlDiagram);
   }
-  
+
   /**
    * Convert domain diagram to GraphQL input
    */
   static toGraphQL(domainDiagram: Partial<DomainDiagram>): Partial<DomainDiagramType> {
     const result: Partial<DomainDiagramType> = {};
-    
+
     if (domainDiagram.nodes) {
       result.nodes = NodeConverter.batchToGraphQL(domainDiagram.nodes) as any;
     }
-    
+
     if (domainDiagram.arrows) {
       result.arrows = ArrowConverter.batchToGraphQL(domainDiagram.arrows) as any;
     }
-    
+
     if (domainDiagram.handles) {
       result.handles = HandleConverter.batchToGraphQL(domainDiagram.handles) as any;
     }
-    
+
     if (domainDiagram.persons) {
       result.persons = PersonConverter.batchToGraphQL(domainDiagram.persons) as any;
     }
-    
+
     if (domainDiagram.metadata) {
       result.metadata = domainDiagram.metadata as any;
     }
-    
+
     return result;
   }
-  
+
   /**
    * Convert GraphQL diagram to domain with Maps
    */
   static toDomainMaps(graphqlDiagram: DomainDiagramType): DiagramMaps {
     const domainDiagram = this.toDomain(graphqlDiagram);
     const maps = diagramArraysToMaps(domainDiagram);
-    
+
     return {
       ...maps,
       metadata: graphqlDiagram.metadata as DiagramMetadata | undefined
     };
   }
-  
+
   /**
    * Convert diagram arrays to Maps for efficient operations
    */
@@ -97,7 +97,7 @@ export class DiagramConverter {
       metadata: diagram.metadata || undefined
     };
   }
-  
+
   /**
    * Convert diagram Maps back to arrays for storage
    */
@@ -115,7 +115,7 @@ export class DiagramConverter {
       }
     } as DomainDiagram;
   }
-  
+
   /**
    * Create an empty diagram
    */
@@ -135,7 +135,7 @@ export class DiagramConverter {
       }
     };
   }
-  
+
   /**
    * Merge two diagrams
    */
@@ -151,7 +151,7 @@ export class DiagramConverter {
       metadata: diagram1.metadata || diagram2.metadata
     };
   }
-  
+
   /**
    * Validate diagram structure
    */
@@ -160,7 +160,7 @@ export class DiagramConverter {
     errors: string[];
   } {
     const errors: string[] = [];
-    
+
     // Check for orphaned handles
     if (diagram.handles && diagram.nodes) {
       const nodeIds = new Set(diagram.nodes.map(n => n.id));
@@ -169,18 +169,18 @@ export class DiagramConverter {
         errors.push(`Found ${orphanedHandles.length} orphaned handles`);
       }
     }
-    
+
     // Check for invalid arrows
     if (diagram.arrows && diagram.handles) {
       const handleIds = new Set(diagram.handles.map(h => h.id));
-      const invalidArrows = diagram.arrows.filter(a => 
+      const invalidArrows = diagram.arrows.filter(a =>
         !handleIds.has(a.source) || !handleIds.has(a.target)
       );
       if (invalidArrows.length > 0) {
         errors.push(`Found ${invalidArrows.length} arrows with invalid handles`);
       }
     }
-    
+
     return {
       valid: errors.length === 0,
       errors

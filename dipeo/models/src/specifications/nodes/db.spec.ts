@@ -9,7 +9,7 @@ export const dbSpec: NodeSpecification = {
   icon: "🗄️",
   color: "#795548",
   description: "Database operations",
-  
+
   fields: [
     {
       name: "file",
@@ -103,24 +103,24 @@ export const dbSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["default"]
   },
-  
+
   outputs: {
     result: {
       type: "any",
       description: "Node execution result"
     }
   },
-  
+
   execution: {
     timeout: 300,
     retryable: true,
     maxRetries: 3
   },
-  
+
   primaryDisplayField: "operation"
 };

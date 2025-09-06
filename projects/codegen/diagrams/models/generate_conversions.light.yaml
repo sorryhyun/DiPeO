@@ -70,16 +70,16 @@ connections:
   # Load data after parsing
   - {from: Start, to: Load Conversions AST}
   - {from: Start, to: Load Conversions TS}
-  
+
   # Extract raw data using cached AST
   - {from: Load Conversions AST, to: Extract Raw Conversions Data, label: ast_data, content_type: object}
   - {from: Load Conversions TS, to: Extract Raw Conversions Data, label: source, content_type: object}
-  
+
   # Pass raw extracted data to template renderer
   - {from: Extract Raw Conversions Data, to: Render Conversions Enhanced, label: conversions_data, content_type: object}  # Raw TypeScript data for template to process
-  
+
   # Generate summary
   - {from: Extract Raw Conversions Data, to: Generate Summary, label: extraction_result}
-  
+
   - {from: Render Conversions Enhanced, to: End}
   - {from: Generate Summary, to: End}

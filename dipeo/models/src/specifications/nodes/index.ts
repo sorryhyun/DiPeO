@@ -18,7 +18,7 @@ import { templateJobSpec } from './template-job.spec.js';
 import { typescriptAstSpec } from './typescript-ast.spec.js';
 import { userResponseSpec } from './user-response.spec.js';
 
-export { 
+export {
   apiJobSpec,
   codeJobSpec,
   conditionSpec,

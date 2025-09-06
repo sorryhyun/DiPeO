@@ -47,10 +47,10 @@ export const fileQueries: EntityQueryDefinitions = {
           ],
           fields: [
             { name: 'success' },
-            { 
+            {
               name: 'diagram',
               fields: [
-                { 
+                {
                   name: 'metadata',
                   fields: [
                     { name: 'id' },

@@ -13,7 +13,7 @@ export const typescriptAstSpec: NodeSpecification = {
   icon: "🔍",
   color: "#3178c6",
   description: "Parses TypeScript source code and extracts AST, interfaces, types, and enums",
-  
+
   fields: [
     {
       name: "source",
@@ -105,12 +105,12 @@ export const typescriptAstSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["results", "error"]
   },
-  
+
   outputs: {
     ast: {
       type: "any",
@@ -133,13 +133,13 @@ export const typescriptAstSpec: NodeSpecification = {
       description: "Error message if parsing fails"
     }
   },
-  
+
   execution: {
     timeout: 30,
     retryable: false,
     maxRetries: 0
   },
-  
+
   examples: [
     {
       name: "Parse Interface",
@@ -159,6 +159,6 @@ export const typescriptAstSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   primaryDisplayField: "parseMode"
 };

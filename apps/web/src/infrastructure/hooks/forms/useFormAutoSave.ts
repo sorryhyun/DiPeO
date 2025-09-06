@@ -16,7 +16,7 @@ export function useFormAutoSave<T extends Record<string, any>>({
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveError, setSaveError] = useState<Error | null>(null);
-  
+
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastSavedDataRef = useRef<T>(formState.data);
   const mountedRef = useRef(true);
@@ -57,9 +57,9 @@ export function useFormAutoSave<T extends Record<string, any>>({
     try {
       setIsSaving(true);
       setSaveError(null);
-      
+
       await onSave(dataToSave);
-      
+
       if (mountedRef.current) {
         lastSavedDataRef.current = formState.data;
         setLastSaved(new Date());
@@ -91,7 +91,7 @@ export function useFormAutoSave<T extends Record<string, any>>({
 
   useEffect(() => {
     const isDirty = Object.values(formState.dirty).some(Boolean);
-    
+
     if (enabled && isDirty && !hasErrors && !formState.isSubmitting) {
       scheduleSave();
     }
@@ -107,7 +107,7 @@ export function useFormAutoSave<T extends Record<string, any>>({
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    
+
     await save();
   }, [save]);
 
@@ -115,7 +115,7 @@ export function useFormAutoSave<T extends Record<string, any>>({
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    
+
     lastSavedDataRef.current = formState.data;
     setSaveError(null);
   }, [formState.data]);

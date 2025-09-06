@@ -3,8 +3,9 @@
 from enum import Enum
 from typing import Any, Literal
 
-from dipeo.diagram_generated.enums import RetryStrategy
 from pydantic import BaseModel, Field, HttpUrl
+
+from dipeo.diagram_generated.enums import RetryStrategy
 
 
 class AuthStrategy(str, Enum):

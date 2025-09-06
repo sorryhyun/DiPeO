@@ -10,7 +10,7 @@ persons:
       Create clear, comprehensive, and effective prompts for frontend code generators.
       Focus on specificity, completeness, and actionable instructions.
       Do not add any suggestions which are not requested, like 'If you want' or something at the end.
-      
+
   Frontend Generator:
     service: openai
     model: gpt-5-nano-2025-08-07
@@ -21,7 +21,7 @@ persons:
       Follow best practices for component structure, state management, and code organization.
       Do not add any suggestions which are not requested, like 'If you want' or something at the end.
 
-      
+
   Code Evaluator:
     service: openai
     model: gpt-5-nano-2025-08-07
@@ -55,17 +55,17 @@ nodes:
       language: python
       code: |
         import json
-        
+
         # Parse the loaded config
         if isinstance(config, str):
             config_data = json.loads(config)
         else:
             config_data = config
-        
+
         iteration_count = 0
         current_score = 0
         improvements_history = []
-        
+
         result = {
             "history": improvements_history,
             "prompt_type": config_data["prompt_type"],
@@ -123,10 +123,10 @@ nodes:
         score_match = re.search(r'Score:\s*(\d+)', code_evaluation, re.IGNORECASE)
         if score_match:
             score = int(score_match.group(1))
-        
+
         # Check if ready for production
         ready = "production ready" in code_evaluation.lower() or score >= 80
-        
+
         result = {
             "score": score,
             "ready_for_production": ready,
@@ -183,7 +183,7 @@ connections:
   - {from: Start, to: Load Config}
   - {from: Load Config, to: Initialize State, label: config, content_type: object}
   - {from: Initialize State, to: Generate Prompt_first, content_type: object}
-  
+
   # Generation and evaluation flow
   - {from: Generate Prompt, to: Generate Frontend Code, label: generated_prompt, content_type: object}
   - {from: Generate Frontend Code, to: Save Frontend Code, label: generated_code, content_type: object}
@@ -191,13 +191,12 @@ connections:
   - {from: Generate Frontend Code, to: Evaluate Generated Code, label: generated_code, content_type: object}
   - {from: Evaluate Generated Code, to: Check Score, label: code_evaluation, content_type: object}
   - {from: Check Score, to: Check Quality Target, label: checked, content_type: object}
-  
+
   # Success path (quality target met)
   - {from: Check Quality Target_condtrue, to: Save Enhanced Prompt, content_type: object}
   - {from: Save Enhanced Prompt, to: Save Summary, label: saved_prompt}
-  
+
   # Check if max iterations reached
   - {from: Check Quality Target_condfalse, to: Detect Max Iterations}
   - {from: Detect Max Iterations_condtrue, to: Stop if Max Iterations}
   - {from: Detect Max Iterations_condfalse, to: Generate Prompt, label: feedback, content_type: object}
-

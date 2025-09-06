@@ -109,7 +109,7 @@ export type ParameterizedSelector<P, T> = (params: P) => Selector<T>;
 // ===== Unified Store Interface (Flattened) =====
 // Uses composition to extend all slice interfaces
 
-export interface UnifiedStore extends 
+export interface UnifiedStore extends
   DiagramSlice,
   ExecutionSlice,
   PersonSlice,
@@ -118,23 +118,23 @@ export interface UnifiedStore extends
   // === Additional Core Data ===
   handles: Map<HandleID, DomainHandle>;
   handleIndex: Map<NodeID, DomainHandle[]>;
-  
+
   // === History ===
   history: {
     undoStack: StoreSnapshot[];
     redoStack: StoreSnapshot[];
     currentTransaction: Transaction | null;
   };
-  
+
   // === History Actions ===
   canUndo: boolean;
   canRedo: boolean;
   undo: () => void;
   redo: () => void;
-  
+
   // === Transaction Support ===
   transaction: <T>(fn: () => T) => T;
-  
+
   // === Utilities ===
   createSnapshot: () => StoreSnapshot;
   restoreSnapshot: (snapshot: StoreSnapshot) => void;

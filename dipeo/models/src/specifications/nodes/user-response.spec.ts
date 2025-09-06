@@ -9,7 +9,7 @@ export const userResponseSpec: NodeSpecification = {
   icon: "💬",
   color: "#E91E63",
   description: "Collect user input",
-  
+
   fields: [
     {
       name: "prompt",
@@ -34,24 +34,24 @@ export const userResponseSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["default"]
   },
-  
+
   outputs: {
     result: {
       type: "any",
       description: "Node execution result"
     }
   },
-  
+
   execution: {
     timeout: 300,
     retryable: true,
     maxRetries: 3
   },
-  
+
   primaryDisplayField: "prompt"
 };

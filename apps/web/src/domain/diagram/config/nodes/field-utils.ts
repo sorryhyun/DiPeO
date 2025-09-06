@@ -27,7 +27,7 @@ const specFieldImports: Record<string, () => Promise<{ default?: UnifiedFieldDef
  * Priority order:
  * 1. Spec-based fields (from node specifications) - richer, includes UI config
  * 2. Domain model fields (from TypeScript interfaces) - basic, structural
- * 
+ *
  * Both are then enhanced with manual overrides from fieldOverrides.ts
  */
 export async function getBestFieldConfig(nodeType: string): Promise<UnifiedFieldDefinition[]> {
@@ -42,7 +42,7 @@ export async function getBestFieldConfig(nodeType: string): Promise<UnifiedField
       console.warn(`Failed to load spec fields for ${nodeType}, falling back to domain fields:`, error);
     }
   }
-  
+
   // Fall back to domain model fields with overrides
   return mergeFieldConfigs(nodeType);
 }
@@ -51,22 +51,22 @@ export async function getBestFieldConfig(nodeType: string): Promise<UnifiedField
  * Apply field overrides to a set of fields
  */
 function applyFieldOverrides(
-  nodeType: string, 
+  nodeType: string,
   fields: UnifiedFieldDefinition[]
 ): UnifiedFieldDefinition[] {
   const overrides = NODE_FIELD_OVERRIDES[nodeType];
-  
+
   if (!overrides) {
     return fields;
   }
-  
+
   let result = [...fields];
-  
+
   // Remove excluded fields
   if (overrides.excludeFields) {
     result = result.filter(field => !overrides.excludeFields!.includes(field.name));
   }
-  
+
   // Apply field overrides
   if (overrides.fieldOverrides) {
     result = result.map(field => {
@@ -77,17 +77,17 @@ function applyFieldOverrides(
       return field;
     });
   }
-  
+
   // Add additional fields
   if (overrides.additionalFields) {
     result = [...result, ...overrides.additionalFields];
   }
-  
+
   // Apply custom field order if specified
   if (overrides.fieldOrder) {
     const orderedFields: UnifiedFieldDefinition[] = [];
     const fieldMap = new Map(result.map(f => [f.name, f]));
-    
+
     // Add fields in specified order
     for (const fieldName of overrides.fieldOrder) {
       const field = fieldMap.get(fieldName);
@@ -96,13 +96,13 @@ function applyFieldOverrides(
         fieldMap.delete(fieldName);
       }
     }
-    
+
     // Add any remaining fields not in the order
     orderedFields.push(...fieldMap.values());
-    
+
     return orderedFields;
   }
-  
+
   return result;
 }
 

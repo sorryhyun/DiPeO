@@ -5,13 +5,14 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
+from jinja2 import Template
+
 from dipeo.domain.base.exceptions import ServiceError
 from dipeo.domain.integrations.ports import APIKeyPort
 from dipeo.infrastructure.integrations.drivers.integrated_api.manifest_schema import (
     AuthConfig,
     AuthStrategy,
 )
-from jinja2 import Template
 
 logger = logging.getLogger(__name__)
 

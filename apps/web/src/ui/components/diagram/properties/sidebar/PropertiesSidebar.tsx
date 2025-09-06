@@ -13,10 +13,10 @@ export const PropertiesSidebar = React.memo(() => {
   const { state } = useCanvas();
   const { nodes, arrows, persons: personsMap } = state;
   const { selectedId, selectedType } = useUnifiedStore();
-  
+
   // Helper to get person by ID
   const getPersonById = (id: PersonID) => personsMap.get(id) || null;
-  
+
   // Derive selected IDs based on selectedType
   const selectedNodeId = selectedType === 'node' ? selectedId : null;
   const selectedArrowId = selectedType === 'arrow' ? selectedId : null;
@@ -25,7 +25,7 @@ export const PropertiesSidebar = React.memo(() => {
   // Find the selected element and its data
   let selectedIdToShow: string | null = null;
   let selectedData: UniversalData | null = null;
-  
+
   if (selectedNodeId) {
     const node = nodes.get(selectedNodeId as NodeID);
     if (node) {
@@ -40,12 +40,12 @@ export const PropertiesSidebar = React.memo(() => {
       // Parse handle ID to get source node ID
       const [sourceNodeId] = arrow.source.split(':');
       const sourceNode = sourceNodeId ? nodes.get(sourceNodeId as NodeID) : undefined;
-      
-      selectedData = { 
+
+      selectedData = {
         ...(arrow.data || {}),
         id: arrow.id,
         type: 'arrow' as const,
-        content_type: arrow.content_type 
+        content_type: arrow.content_type
           ? typeof arrow.content_type === 'string'
             ? arrow.content_type.toLowerCase()
             : arrow.content_type
@@ -61,7 +61,7 @@ export const PropertiesSidebar = React.memo(() => {
       selectedData = { ...person, type: 'person' };
     }
   }
-  
+
   return (
     <SidebarLayout position="right">
       <Suspense fallback={<div className="p-4 text-gray-500">Loading properties...</div>}>

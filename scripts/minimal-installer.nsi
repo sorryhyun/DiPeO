@@ -33,23 +33,23 @@ RequestExecutionLevel admin
 ; Installer Section
 Section "DiPeO Core Files" SEC01
     SetOutPath "$INSTDIR"
-    
+
     ; Copy executables
     File "..\apps\server\dist\dipeo-server.exe"
     File "..\apps\web\dist\dipeo-frontend.exe"
-    
+
     ; Copy frontend build files
     SetOutPath "$INSTDIR\web-dist"
     File /r "..\apps\web\dist\*.*"
     SetOutPath "$INSTDIR"
-    
+
     ; Copy launcher script (use the installed version)
     File /oname=launch-dipeo.bat "launch-dipeo-installed.bat"
-    
+
     ; Copy icon
     CreateDirectory "$INSTDIR\icons"
     File /oname=icons\icon.ico "icons\icon.ico"
-    
+
     ; Create required directories
     CreateDirectory "$INSTDIR\files"
     CreateDirectory "$INSTDIR\files\diagrams"
@@ -57,7 +57,7 @@ Section "DiPeO Core Files" SEC01
     CreateDirectory "$INSTDIR\files\conversation_logs"
     CreateDirectory "$INSTDIR\files\uploads"
     CreateDirectory "$INSTDIR\files\prompts"
-    
+
     ; Write registry keys
     WriteRegStr HKLM "Software\DiPeO" "Install_Dir" "$INSTDIR"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\DiPeO" "DisplayName" "DiPeO"
@@ -65,7 +65,7 @@ Section "DiPeO Core Files" SEC01
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\DiPeO" "DisplayIcon" "$INSTDIR\icons\icon.ico"
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\DiPeO" "NoModify" 1
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\DiPeO" "NoRepair" 1
-    
+
     ; Create uninstaller
     WriteUninstaller "$INSTDIR\uninstall.exe"
 SectionEnd
@@ -73,14 +73,14 @@ SectionEnd
 ; Start Menu Shortcuts Section
 Section "Start Menu Shortcuts" SEC02
     CreateDirectory "$SMPROGRAMS\DiPeO"
-    
+
     ; Create shortcut for launcher
     CreateShortCut "$SMPROGRAMS\DiPeO\DiPeO.lnk" "$INSTDIR\launch-dipeo.bat" "" "$INSTDIR\icons\icon.ico" 0
-    
+
     ; Create individual shortcuts with working directory set
     CreateShortCut "$SMPROGRAMS\DiPeO\DiPeO Backend Server.lnk" "$INSTDIR\dipeo-server.exe" "" "$INSTDIR\icons\icon.ico" 0 SW_SHOWNORMAL "$INSTDIR"
     CreateShortCut "$SMPROGRAMS\DiPeO\DiPeO Frontend.lnk" "$INSTDIR\dipeo-frontend.exe" "" "$INSTDIR\icons\icon.ico" 0 SW_SHOWNORMAL "$INSTDIR"
-    
+
     ; Uninstall shortcut
     CreateShortCut "$SMPROGRAMS\DiPeO\Uninstall DiPeO.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
 SectionEnd
@@ -98,7 +98,7 @@ Section "Uninstall"
     Delete "$INSTDIR\launch-dipeo.bat"
     Delete "$INSTDIR\icons\icon.ico"
     Delete "$INSTDIR\uninstall.exe"
-    
+
     ; Remove directories (only if empty)
     RMDir "$INSTDIR\icons"
     RMDir "$INSTDIR\files\diagrams"
@@ -108,12 +108,12 @@ Section "Uninstall"
     RMDir "$INSTDIR\files\prompts"
     RMDir "$INSTDIR\files"
     RMDir "$INSTDIR"
-    
+
     ; Remove shortcuts
     Delete "$SMPROGRAMS\DiPeO\*.lnk"
     RMDir "$SMPROGRAMS\DiPeO"
     Delete "$DESKTOP\DiPeO.lnk"
-    
+
     ; Remove registry keys
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\DiPeO"
     DeleteRegKey HKLM "Software\DiPeO"

@@ -12,10 +12,10 @@ persons:
     model: claude-code
     api_key_id: APIKEY_CLAUDE
     system_prompt: |
-      You are an expert React/TypeScript engineer. 
-      
+      You are an expert React/TypeScript engineer.
+
       CRITICAL: Return ONLY the raw code files in the exact format specified in the prompt. Do NOT include any conversational text, explanations, or commentary. Do NOT say "I'll implement..." or similar phrases.
-      
+
       Generate production-ready code only. Follow the exact format requested in the prompt. Return the complete response immediately without step-by-step explanations.
 
 nodes:
@@ -50,22 +50,22 @@ nodes:
         batch_index = item.get('index', 0)
         architecture = sections_data['architecture']
         sections_data = sections_data['sections']
-        
+
         # Select the section for this batch index
         if batch_index >= len(sections_data):
           raise ValueError(f"Batch index {batch_index} out of range for {len(sections_data)} sections")
-        
+
         sec = sections_data[batch_index]
-        
+
         print(f"Processing section {batch_index}: {sec.get('title', 'Unknown')}")
-        
+
         # Extract prompt context from the structured section
         prompt_ctx = sec.get("prompt_context", {})
-        
+
         # Convert prompt_requirements to a single string for easier use
         prompt_reqs = config.get("prompt_requirements", [])
         prompt_requirements_text = "\n".join(f"- {req}" for req in prompt_reqs)
-        
+
         result = {
           "architecture": architecture,
           "section": sec,
@@ -114,11 +114,11 @@ nodes:
         import json
         import os
         from pathlib import Path
-        
+
         # Extract the generated code from the correct variable name
         batch_index = context_data.get("batch_index")
         section_id = context_data.get("section_id")
-        
+
         result = {
           "section_id": section_id,
           "batch_index": batch_index,

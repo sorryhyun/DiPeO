@@ -41,45 +41,44 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
       const newMap = updateMap(map, entity.id as ID, entity);
       setEntityMap(state, entityType, newMap);
       state.dataVersion += 1;
-      
+
       options?.onAdd?.(state, entity);
       recordHistory(state);
-      
+
       return entity.id as ID;
     },
-    
+
     update: (state, id, updates) => {
       const map = getEntityMap<T, ID>(state, entityType);
       const newMap = updateEntity(map as Map<string, T>, id as string, updates);
-      
+
       if (newMap) {
         setEntityMap(state, entityType, newMap as Map<ID, T>);
         state.dataVersion += 1;
-        
+
         const entity = newMap.get(id as string);
         if (entity) {
           options?.onUpdate?.(state, id, entity as T);
         }
-        
+
         recordHistory(state);
       }
     },
-    
+
     delete: (state, id) => {
       options?.onDelete?.(state, id);
-      
+
       const map = getEntityMap<T, ID>(state, entityType);
       const newMap = updateMap(map, id, null, 'delete');
       setEntityMap(state, entityType, newMap);
       state.dataVersion += 1;
-      
+
       if (state.selectedId === id) {
         state.selectedId = null;
         state.selectedType = null;
       }
-      
+
       recordHistory(state);
     }
   };
 }
-

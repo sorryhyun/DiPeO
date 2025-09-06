@@ -2,7 +2,7 @@
 
 overwrite: true
 schema: "../server/schema.graphql"
-documents: 
+documents:
   # - "src/__generated__/queries/all-queries.ts"  # Future: Use TypeScript queries when schema is updated
   - "src/**/*.{ts,tsx}"
 generates:

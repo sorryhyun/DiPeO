@@ -3,9 +3,10 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.application.registry.keys import EXECUTION_SERVICE
 from fastapi import Request, WebSocket
 from strawberry.fastapi import BaseContext
+
+from dipeo.application.registry.keys import EXECUTION_SERVICE
 
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container

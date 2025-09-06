@@ -21,12 +21,12 @@ nodes:
         import os
         import json
         import glob
-        
+
         base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
-        
+
         # Aggregate all cached AST data from temp directory
         all_interfaces = []
-        
+
         # Load from temp directory structure (matching parse_typescript_batch_direct output)
         cache_patterns = [
             'temp/*.ts.json',
@@ -40,7 +40,7 @@ nodes:
             'temp/frontend/*.ts.json',
             'temp/frontend/query-definitions/*.ts.json'
         ]
-        
+
         for pattern in cache_patterns:
             cache_path = os.path.join(base_dir, pattern)
             for ast_file in glob.glob(cache_path):
@@ -52,7 +52,7 @@ nodes:
                             all_interfaces.extend(ast_data['interfaces'])
                 except Exception as e:
                     print(f"Warning: Failed to load {ast_file}: {e}")
-        
+
         result = {'interfaces': all_interfaces}
 
   # Load node specifications
@@ -65,10 +65,10 @@ nodes:
         import os
         import json
         import glob
-        
+
         base_dir = os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO')
         specs_path = os.path.join(base_dir, 'temp/specifications/nodes/*.spec.ts.json')
-        
+
         node_specs = []
         for spec_file in glob.glob(specs_path):
             try:
@@ -78,7 +78,7 @@ nodes:
                         node_specs.append(spec_data)
             except Exception as e:
                 print(f"Warning: Failed to load {spec_file}: {e}")
-        
+
         result = {'node_specs': node_specs}
 
   # Combine inputs and detect which handlers are needed
@@ -92,14 +92,14 @@ nodes:
         import os
         sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
         from projects.codegen.code.models.generate_handler_stubs import main
-        
+
         # Get inputs from both previous nodes
         ast_interfaces = inputs.get('Load AST Cache', {}).get('interfaces', [])
         node_specs = inputs.get('Load Node Specs', {}).get('node_specs', [])
-        
+
         # Prepare AST data structure
         ast_data = {'interfaces': ast_interfaces}
-        
+
         # Call the main function with both required arguments
         result = main(ast_data, node_specs)
 
@@ -145,7 +145,7 @@ nodes:
         # Get input from either path (Generate Handler Stubs or No Stubs Needed)
         input_from_stubs = inputs.get('Generate Handler Stubs', None)
         input_from_no_stubs = inputs.get('No Stubs Needed', None)
-        
+
         # Count generated stubs
         stub_count = 0
         if input_from_stubs:
@@ -157,14 +157,14 @@ nodes:
         elif input_from_no_stubs:
             # No stubs were needed
             stub_count = 0
-        
+
         result = {
             'status': 'success',
             'handler_stubs_generated': stub_count,
             'message': f'Successfully generated {stub_count} handler stub(s)',
             'output_location': 'dipeo/diagram_generated_staged/handlers/auto/'
         }
-        
+
         if stub_count > 0:
             print(f"✅ Handler stub generation complete: {stub_count} stub(s) created")
         else:
@@ -180,19 +180,19 @@ connections:
   # Load data in parallel
   - {from: Start, to: Load AST Cache}
   - {from: Start, to: Load Node Specs}
-  
+
   # Both loads feed into detection
   - {from: Load AST Cache, to: Detect Missing Handlers}
   - {from: Load Node Specs, to: Detect Missing Handlers}
-  
+
   # Conditional branching based on stub count
   - {from: Detect Missing Handlers, to: Check Stub Count}
   - {from: Check Stub Count, to: Generate Handler Stubs, condition: true}
   - {from: Check Stub Count, to: No Stubs Needed, condition: false}
-  
+
   # Converge to summary
   - {from: Generate Handler Stubs, to: Summarize Results}
   - {from: No Stubs Needed, to: Summarize Results}
-  
+
   # End
   - {from: Summarize Results, to: End}

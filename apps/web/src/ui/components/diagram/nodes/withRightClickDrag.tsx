@@ -25,29 +25,29 @@ export function withRightClickDrag<P extends NodeProps>(
     const handleMouseDown = useCallback((event: React.MouseEvent) => {
       // Only handle right-click (button 2)
       if (event.button !== 2) return;
-      
+
       event.preventDefault();
       event.stopPropagation();
-      
+
       const node = getNode(props.id);
       if (!node) return;
-      
+
       isDragging.current = true;
       startPosition.current = { x: node.position.x, y: node.position.y };
       startMousePosition.current = { x: event.clientX, y: event.clientY };
-      
+
       // Prevent context menu during drag
       const preventContextMenu = (e: MouseEvent) => {
         if (isDragging.current) {
           e.preventDefault();
         }
       };
-      
+
       // Add event listeners to window for drag
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       window.addEventListener('contextmenu', preventContextMenu);
-      
+
       // Cleanup function
       const cleanup = () => {
         isDragging.current = false;
@@ -57,22 +57,22 @@ export function withRightClickDrag<P extends NodeProps>(
         window.removeEventListener('mouseup', handleMouseUp);
         window.removeEventListener('contextmenu', preventContextMenu);
       };
-      
+
       // Store cleanup function
       window.__rightClickDragCleanup = cleanup;
     }, [props.id, getNode]);
 
     const handleMouseMove = useCallback((event: MouseEvent) => {
       if (!isDragging.current || !startPosition.current || !startMousePosition.current) return;
-      
+
       const deltaX = event.clientX - startMousePosition.current.x;
       const deltaY = event.clientY - startMousePosition.current.y;
-      
+
       const newPosition = {
         x: startPosition.current.x + deltaX,
         y: startPosition.current.y + deltaY,
       };
-      
+
       // Update node position
       setNodes((nodes) =>
         nodes.map((node) => {
@@ -89,7 +89,7 @@ export function withRightClickDrag<P extends NodeProps>(
 
     const handleMouseUp = useCallback((event: MouseEvent) => {
       if (event.button !== 2) return;
-      
+
       // Call cleanup
       if (window.__rightClickDragCleanup) {
         window.__rightClickDragCleanup();
@@ -108,7 +108,7 @@ export function withRightClickDrag<P extends NodeProps>(
     }, []);
 
     return (
-      <div 
+      <div
         ref={nodeRef}
         onMouseDown={handleMouseDown}
         className="nodrag" // Prevent default ReactFlow drag
@@ -125,10 +125,10 @@ export function applyRightClickDragToNodeTypes<T extends Record<string, React.Co
   nodeTypes: T
 ): T {
   const wrappedNodeTypes: Record<string, React.ComponentType<NodeProps>> = {};
-  
+
   for (const [key, Component] of Object.entries(nodeTypes)) {
     wrappedNodeTypes[key] = withRightClickDrag(Component);
   }
-  
+
   return wrappedNodeTypes as T;
 }

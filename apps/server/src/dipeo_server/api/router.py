@@ -1,9 +1,10 @@
 """API Router configuration for DiPeO server."""
 
-from dipeo.application.graphql import create_schema
 from fastapi import FastAPI
 from strawberry.fastapi import GraphQLRouter
 from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
+
+from dipeo.application.graphql import create_schema
 
 from .context import get_request_context
 from .webhooks import router as webhook_router

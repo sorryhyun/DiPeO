@@ -27,7 +27,7 @@ export function useDiagramSave({ saveToFileSystem }: UseDiagramSaveOptions) {
    */
   const extractBaseName = (filename: string): string => {
     let baseName = filename;
-    
+
     // Remove format-specific double extensions first (e.g., .light.yaml, .readable.yaml)
     const formatExtensionRemoved = baseName.replace(/\.(native|light|readable)\.(json|yaml|yml)$/i, '');
     if (formatExtensionRemoved !== baseName) {
@@ -36,12 +36,12 @@ export function useDiagramSave({ saveToFileSystem }: UseDiagramSaveOptions) {
       // If no format-specific extension, just remove the file extension
       baseName = baseName.replace(/\.(json|yaml|yml)$/i, '');
     }
-    
+
     // If nothing was removed (edge case), use everything before the last dot
     if (baseName === filename && filename.includes('.')) {
       baseName = filename.substring(0, filename.lastIndexOf('.'));
     }
-    
+
     return baseName;
   };
 
@@ -88,22 +88,22 @@ export function useDiagramSave({ saveToFileSystem }: UseDiagramSaveOptions) {
     const finalName = diagramName.trim() || 'diagram';
     let savePath: string;
     let filename: string = '';
-    
+
     if (diagramId) {
       // Parse the diagram ID to extract directory and base filename
       const pathParts = diagramId.split('/');
       const fullFilename = pathParts[pathParts.length - 1] || '';
       const directories = pathParts.slice(0, -1);
-      
+
       // Extract base name
       let baseName = extractBaseName(fullFilename);
-      
+
       // Use the user-provided name if it's different from the extracted base name
       if (finalName.trim() && finalName !== 'diagram' && finalName !== baseName) {
         // Extract just the filename part from finalName (in case user entered a path)
         const finalNameParts = finalName.split('/');
         const finalNameOnly = finalNameParts[finalNameParts.length - 1];
-        
+
         // Check if the final name already has the correct format extension
         if (finalNameOnly && hasCorrectExtension(finalNameOnly, selectedFormat)) {
           filename = finalNameOnly;
@@ -112,12 +112,12 @@ export function useDiagramSave({ saveToFileSystem }: UseDiagramSaveOptions) {
           baseName = extractBaseName(finalNameOnly);
         }
       }
-      
+
       // Generate filename based on selected format (only if not already set)
       if (!filename) {
         filename = generateFilename(baseName, selectedFormat);
       }
-      
+
       // Reconstruct the path
       if (directories.length > 0) {
         // Check if we're in a format-specific directory that needs to be changed
@@ -143,10 +143,10 @@ export function useDiagramSave({ saveToFileSystem }: UseDiagramSaveOptions) {
         const cleanName = extractBaseName(finalName);
         filename = generateFilename(cleanName, selectedFormat);
       }
-      
+
       savePath = filename;
     }
-    
+
     return savePath;
   };
 
@@ -155,24 +155,24 @@ export function useDiagramSave({ saveToFileSystem }: UseDiagramSaveOptions) {
    */
   const handleSave = useCallback(async (params: UseDiagramSaveParams) => {
     const { selectedFormat, diagramName, diagramId } = params;
-    
+
     try {
       setIsSaving(true);
-      
+
       // Determine the save path
       const savePath = determineSavePath(diagramId, diagramName, selectedFormat);
-      
+
       // For native format, use the existing saveDiagram function
       if (selectedFormat === DiagramFormat.NATIVE) {
         await saveToFileSystem(savePath, selectedFormat);
         toast.success(`Saved to ${savePath}`);
         return;
       }
-      
+
       // For light and readable formats, use convert + upload approach
       // First, serialize the current diagram state
       const diagramContent = JSON.stringify(serializeDiagram());
-      
+
       // Convert diagram to the desired format
       const convertResult = await convertDiagramMutation({
         variables: {
@@ -181,26 +181,26 @@ export function useDiagramSave({ saveToFileSystem }: UseDiagramSaveOptions) {
           to_format: selectedFormat
         }
       });
-      
+
       if (!convertResult.data?.convert_diagram_format?.success) {
         throw new Error(convertResult.data?.convert_diagram_format?.error || 'Conversion failed');
       }
-      
+
       // Get the converted content
       const convertedContent = convertResult.data.convert_diagram_format.content;
       if (!convertedContent) {
         throw new Error('No content returned from conversion');
       }
-      
+
       // Extract filename from savePath
       const savePathParts = savePath.split('/');
       const saveFilename = savePathParts[savePathParts.length - 1];
-      
+
       // Create a File object from the converted content
-      const file = new File([convertedContent], saveFilename || 'diagram.yaml', { 
-        type: 'text/yaml' 
+      const file = new File([convertedContent], saveFilename || 'diagram.yaml', {
+        type: 'text/yaml'
       });
-      
+
       // Upload the file to the appropriate directory
       const uploadResult = await uploadFileMutation({
         variables: {
@@ -208,11 +208,11 @@ export function useDiagramSave({ saveToFileSystem }: UseDiagramSaveOptions) {
           path: savePath
         }
       });
-      
+
       if (!uploadResult.data?.upload_file?.success) {
         throw new Error(uploadResult.data?.upload_file?.error || 'Upload failed');
       }
-      
+
       // Show success message
       toast.success(`Saved to ${savePath}`);
     } catch (error) {

@@ -21,9 +21,9 @@ interface TwoColumnLayoutProps {
   rightColumn: React.ReactNode;
 }
 
-export const TwoColumnPanelLayout: React.FC<TwoColumnLayoutProps> = ({ 
-  leftColumn, 
-  rightColumn 
+export const TwoColumnPanelLayout: React.FC<TwoColumnLayoutProps> = ({
+  leftColumn,
+  rightColumn
 }) => (
   <div className="grid grid-cols-2 gap-4">
     <div className={SPACE_Y_4}>{leftColumn}</div>
@@ -31,8 +31,8 @@ export const TwoColumnPanelLayout: React.FC<TwoColumnLayoutProps> = ({
   </div>
 );
 
-export const SingleColumnPanelLayout: React.FC<{ children: React.ReactNode }> = ({ 
-  children 
+export const SingleColumnPanelLayout: React.FC<{ children: React.ReactNode }> = ({
+  children
 }) => (
   <div className={SPACE_Y_4}>{children}</div>
 );

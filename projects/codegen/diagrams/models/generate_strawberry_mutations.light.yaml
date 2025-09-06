@@ -67,14 +67,14 @@ connections:
 
   # Load spec files
   - {from: Start, to: Load All Spec Files}
-  
+
   # Pass glob results directly to simplified generator
   - {from: Load All Spec Files, to: Generate Strawberry Types, label: default, content_type: object}
-  
+
   # Generate mutations
   - {from: Generate Strawberry Types, to: Generate Node Mutations, label: strawberry_types, content_type: object}
-  
+
   # Pass mutations data to template renderer
   - {from: Generate Node Mutations, to: Render Mutations Template, label: mutations, content_type: object}  # This becomes available as 'mutations' in template
-  
+
   - {from: Render Mutations Template, to: End}

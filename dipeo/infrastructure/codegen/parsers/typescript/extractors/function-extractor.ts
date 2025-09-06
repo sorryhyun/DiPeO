@@ -8,7 +8,7 @@ import { getJSDoc } from './utils'
 
 export function parseFunctions(sourceFile: SourceFile, includeJSDoc: boolean): FunctionInfo[] {
   const functions: FunctionInfo[] = []
-  
+
   sourceFile.getFunctions().forEach(func => {
     const parameters: ParameterInfo[] = func.getParameters().map(param => ({
       name: param.getName(),
@@ -16,7 +16,7 @@ export function parseFunctions(sourceFile: SourceFile, includeJSDoc: boolean): F
       optional: param.isOptional(),
       defaultValue: param.getInitializer()?.getText()
     }))
-    
+
     functions.push({
       name: func.getName() || 'Anonymous',
       parameters,
@@ -26,6 +26,6 @@ export function parseFunctions(sourceFile: SourceFile, includeJSDoc: boolean): F
       jsDoc: includeJSDoc ? getJSDoc(func) : undefined
     })
   })
-  
+
   return functions
 }

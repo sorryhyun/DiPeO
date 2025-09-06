@@ -16,9 +16,9 @@ export interface UseConversationDataOptions {
 
 export const useConversationData = (options: UseConversationDataOptions | ConversationFilters) => {
   // Support both old and new API for backward compatibility
-  const { filters, personId = null, enableRealtimeUpdates = true, executionStatus = null } = 
+  const { filters, personId = null, enableRealtimeUpdates = true, executionStatus = null } =
     'filters' in options ? options : { filters: options, personId: null, enableRealtimeUpdates: true, executionStatus: null };
-  
+
   const [conversationData, setConversationData] = useState<Record<string, UIPersonMemoryState>>({});
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const lastUpdateTime = useRef<string | null>(null);
@@ -26,7 +26,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
 
   // Determine if we should poll based on execution status
   const shouldPoll = enableRealtimeUpdates && (!executionStatus || isExecutionActive(executionStatus as any));
-  
+
   // Create query variables
   const queryVariables = useMemo(() => ({
     person_id: personId || undefined,
@@ -57,7 +57,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       pollInterval: shouldPoll ? 5000 : 0,
     }
   );
-  
+
   // Stop polling if we detect server shutdown
   useEffect(() => {
     if (error?.networkError) {
@@ -86,7 +86,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
     has_more?: boolean;
   }) => {
     const transformed: Record<string, UIPersonMemoryState> = {};
-    
+
     // Group conversations by personId
     const groupedByPerson: Record<string, typeof conversationsData.conversations> = {};
     conversationsData.conversations?.forEach((conv) => {
@@ -96,7 +96,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
       }
       groupedByPerson[pid].push(conv);
     });
-    
+
     // Transform to UIPersonMemoryState format
     Object.entries(groupedByPerson).forEach(([pid, convs]) => {
       if (!convs) return;
@@ -121,16 +121,16 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
           maxMessages: 20
         }
       };
-      
+
       // Update message counts
       messageCounts.current[pid] = convs?.length || 0;
-      
+
       // Update last fetch time
       if (convs && convs.length > 0) {
         lastUpdateTime.current = convs[convs.length - 1]!.timestamp;
       }
     });
-    
+
     return transformed;
   }, []);
 
@@ -190,9 +190,9 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   const loadMoreMessages = useCallback(async (personId: PersonID) => {
     const personData = conversationData[personId];
     if (!personData?.hasMore || isLoadingMore) return;
-    
+
     setIsLoadingMore(true);
-    
+
     try {
       const currentOffset = messageCounts.current[personId] || 0;
       const result = await fetchMore({
@@ -203,7 +203,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
         },
         updateQuery: (prev, { fetchMoreResult }) => {
           if (!fetchMoreResult) return prev;
-          
+
           const newData = fetchMoreResult.conversations as {
             conversations?: Array<unknown>;
             has_more?: boolean;
@@ -212,7 +212,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
             conversations?: Array<unknown>;
             has_more?: boolean;
           };
-          
+
           return {
             conversations: {
               ...prevData,
@@ -225,7 +225,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
           };
         }
       });
-      
+
       // Update message count
       if (result.data) {
         const newMessages = ((result.data.conversations as {
@@ -253,7 +253,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
 
     const handleRealtimeUpdate = (event: Event) => {
       if (!(event instanceof CustomEvent)) return;
-      
+
       const { type, data } = event.detail;
 
       if (type === 'message_added' && data.personId) {

@@ -10,7 +10,7 @@ const ExecutionControls = () => {
   // Get execution from Canvas context to avoid multiple instances
   const { operations } = useCanvas();
   const executionFromContext = operations.executionOps;
-  
+
   // Pass the execution from context to useMonitorMode to avoid creating another instance
   const { isMonitorMode, diagramName, execution } = useMonitorMode({ execution: executionFromContext });
   const nodes = useNodesData();
@@ -18,23 +18,23 @@ const ExecutionControls = () => {
   const persons = usePersonsData();
   const { handles } = useStoreDiagramData();
   const executionData = useExecutionData();
-  
+
   // Map execution state to old runStatus format
   // Use store's isRunning state as the source of truth
-  const runStatus = executionData.isRunning ? 'running' : 
+  const runStatus = executionData.isRunning ? 'running' :
                    execution.execution.error ? 'fail' :
                    execution.execution.endTime ? 'success' : 'idle';
-  
+
   // Uncomment for debugging execution state issues
-  // console.log('[ExecutionControls] State:', { 
-  //   storeIsRunning: executionData.isRunning, 
+  // console.log('[ExecutionControls] State:', {
+  //   storeIsRunning: executionData.isRunning,
   //   contextIsRunning: execution.isRunning,
-  //   runStatus 
+  //   runStatus
   // });
-  
+
   // Get current running node from execution state
-  const currentRunningNode = executionData.runningNodes.size > 0 
-    ? Array.from(executionData.runningNodes)[0] 
+  const currentRunningNode = executionData.runningNodes.size > 0
+    ? Array.from(executionData.runningNodes)[0]
     : null;
 
   return (
@@ -48,11 +48,11 @@ const ExecutionControls = () => {
           </span>
         </div>
       )}
-      
+
       {executionData.isRunning ? (
         <>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="bg-gradient-to-r from-red-500 to-red-600 text-white border-none hover:from-red-600 hover:to-red-700 shadow-md hover:shadow-lg transition-all"
             onClick={execution.abort}
           >
@@ -88,8 +88,8 @@ const ExecutionControls = () => {
           )}
         </>
       ) : !isMonitorMode ? (
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none hover:from-green-600 hover:to-emerald-600 shadow-md hover:shadow-lg transition-all"
           onClick={async () => {
             try {
@@ -110,7 +110,7 @@ const ExecutionControls = () => {
                 persons,
                 handles
               };
-              
+
               // Execute using the diagram data directly (no file save)
               await execution.execute(diagramForExecution);
             } catch (error) {
@@ -122,7 +122,7 @@ const ExecutionControls = () => {
           ▶️ Run Diagram
         </Button>
       ) : null}
-      
+
       <div className="whitespace-nowrap text-base font-medium ml-4">
         {executionData.isRunning && <span className="text-blue-400 animate-pulse">⚡ Running...</span>}
         {!executionData.isRunning && execution.execution.endTime && !execution.execution.error && <span className="text-green-400">✅ Success</span>}

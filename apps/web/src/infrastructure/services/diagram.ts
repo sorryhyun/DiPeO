@@ -24,7 +24,7 @@ import {
   NodeType,
   HandleDirection,
 } from '@dipeo/models';
-import { 
+import {
   createHandleId,
   parseHandleId,
 } from '@dipeo/models';
@@ -41,10 +41,10 @@ export class DiagramService {
    */
   static createNode(type: NodeType, position: { x: number; y: number }): DomainNode {
     const nodeId = `node_${generateShortId()}` as NodeID;
-    
+
     // Get node specification from @dipeo/models
     const nodeSpec = this.getNodeSpecification(type);
-    
+
     return {
       id: nodeId,
       type,
@@ -52,7 +52,7 @@ export class DiagramService {
       data: this.getDefaultNodeData(type),
     };
   }
-  
+
   /**
    * Create a connection between nodes
    */
@@ -66,37 +66,37 @@ export class DiagramService {
     if (!this.canConnect(sourceHandle, targetHandle)) {
       return null;
     }
-    
+
     const arrowId = `arrow_${generateShortId()}` as ArrowID;
-    
+
     return {
       id: arrowId,
       source: sourceHandle,
       target: targetHandle,
     };
   }
-  
+
   /**
    * Validate if two handles can be connected
    */
   static canConnect(sourceHandle: HandleID, targetHandle: HandleID): boolean {
     const source = parseHandleId(sourceHandle);
     const target = parseHandleId(targetHandle);
-    
+
     // Can't connect to same node
     if (source.node_id === target.node_id) {
       return false;
     }
-    
+
     // Must be output to input
     if (source.direction !== HandleDirection.OUTPUT || target.direction !== HandleDirection.INPUT) {
       return false;
     }
-    
+
     // Additional type compatibility checks could go here
     return true;
   }
-  
+
   /**
    * Get default data for a node type
    */
@@ -165,10 +165,10 @@ export class DiagramService {
         config: {},
       },
     } as const;
-    
+
     return defaults[type] || {};
   }
-  
+
   /**
    * Get node specification from registry
    */
@@ -179,14 +179,14 @@ export class DiagramService {
       defaultHeight: 100,
     };
   }
-  
+
   /**
    * Optimize diagram layout
    */
   static optimizeLayout(diagram: DomainDiagram): DomainDiagram {
     // Auto-layout algorithm - simplified version
     const optimized = { ...diagram };
-    
+
     // TODO: Implement proper auto-layout algorithm
     optimized.nodes = diagram.nodes.map(node => ({
       ...node,
@@ -195,22 +195,22 @@ export class DiagramService {
         y: node.position.y,
       },
     }));
-    
+
     return optimized;
   }
-  
+
   /**
    * Validate diagram structure
    */
   static validateDiagram(diagram: DomainDiagram): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
-    
+
     // Must have at least one START node
     const startNodes = diagram.nodes.filter(n => n.type === NodeType.START);
     if (startNodes.length === 0) {
       errors.push('Diagram must have at least one START node');
     }
-    
+
     // Check for orphaned nodes
     const connectedNodeIds = new Set<NodeID>();
     diagram.arrows.forEach(arrow => {
@@ -219,24 +219,24 @@ export class DiagramService {
       connectedNodeIds.add(sourceNodeId);
       connectedNodeIds.add(targetNodeId);
     });
-    
+
     diagram.nodes.forEach(node => {
       if (node.type !== NodeType.START && !connectedNodeIds.has(node.id)) {
         errors.push(`Node ${node.id} is not connected to the diagram`);
       }
     });
-    
+
     // Check for cycles
     if (this.hasCycles(diagram)) {
       errors.push('Diagram contains cycles');
     }
-    
+
     return {
       valid: errors.length === 0,
       errors,
     };
   }
-  
+
   /**
    * Check if diagram has cycles
    */
@@ -244,7 +244,7 @@ export class DiagramService {
     // Simple cycle detection using DFS
     const visited = new Set<NodeID>();
     const recursionStack = new Set<NodeID>();
-    
+
     const adjacencyList = new Map<NodeID, NodeID[]>();
     diagram.arrows.forEach(arrow => {
       const sourceNodeId = parseHandleId(arrow.source).node_id;
@@ -254,11 +254,11 @@ export class DiagramService {
       }
       adjacencyList.get(sourceNodeId)!.push(targetNodeId);
     });
-    
+
     const hasCycleDFS = (nodeId: NodeID): boolean => {
       visited.add(nodeId);
       recursionStack.add(nodeId);
-      
+
       const neighbors = adjacencyList.get(nodeId) || [];
       for (const neighbor of neighbors) {
         if (!visited.has(neighbor)) {
@@ -269,11 +269,11 @@ export class DiagramService {
           return true;
         }
       }
-      
+
       recursionStack.delete(nodeId);
       return false;
     };
-    
+
     for (const node of diagram.nodes) {
       if (!visited.has(node.id)) {
         if (hasCycleDFS(node.id)) {
@@ -281,29 +281,29 @@ export class DiagramService {
         }
       }
     }
-    
+
     return false;
   }
-  
+
   /**
    * Clone a diagram with new IDs
    */
   static cloneDiagram(diagram: DomainDiagram): DomainDiagram {
     const idMap = new Map<NodeID, NodeID>();
     const handleMap = new Map<HandleID, HandleID>();
-    
+
     // Clone nodes with new IDs
     const clonedNodes = diagram.nodes.map(node => {
       const newId = `node_${generateShortId()}` as NodeID;
       idMap.set(node.id, newId);
-      
+
       return {
         ...node,
         id: newId,
         data: { ...node.data },
       };
     });
-    
+
     // Update handle IDs
     diagram.handles.forEach(handle => {
       const parsed = parseHandleId(handle.id);
@@ -313,7 +313,7 @@ export class DiagramService {
         handleMap.set(handle.id, newHandleId);
       }
     });
-    
+
     // Clone arrows with updated references
     const clonedArrows = diagram.arrows.map(arrow => ({
       ...arrow,
@@ -321,13 +321,13 @@ export class DiagramService {
       source: handleMap.get(arrow.source) || arrow.source,
       target: handleMap.get(arrow.target) || arrow.target,
     }));
-    
+
     // Clone handles with updated IDs
     const clonedHandles = Array.from(diagram.handles).map(handle => ({
       ...handle,
       id: handleMap.get(handle.id) || handle.id,
     }));
-    
+
     return {
       ...diagram,
       nodes: clonedNodes,
@@ -343,27 +343,27 @@ export class DiagramService {
       },
     };
   }
-  
+
   /**
    * Export diagram to JSON
    */
   static exportToJSON(diagram: DomainDiagram): string {
     return JSON.stringify(diagram, null, 2);
   }
-  
+
   /**
    * Import diagram from JSON
    */
   static importFromJSON(json: string): DomainDiagram {
     const parsed = JSON.parse(json);
     const diagram = parsed as DomainDiagram;
-    
+
     // Validate imported diagram
     const validation = this.validateDiagram(diagram);
     if (!validation.valid) {
       throw new Error(`Invalid diagram: ${validation.errors.join(', ')}`);
     }
-    
+
     return diagram;
   }
 }

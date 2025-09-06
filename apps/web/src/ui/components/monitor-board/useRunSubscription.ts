@@ -11,11 +11,11 @@ interface ExecutionUpdateEvent {
   timestamp: string;
 }
 
-export function useRunSubscription({ 
-  executionId, 
-  store 
-}: { 
-  executionId: string; 
+export function useRunSubscription({
+  executionId,
+  store
+}: {
+  executionId: string;
   store: StoreApi<ExecutionLocalStore>;
 }) {
   const client = useApolloClient();

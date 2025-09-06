@@ -31,7 +31,7 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
   useEffect(() => {
     if (data?.execution_updates) {
       const update = data.execution_updates;
-      
+
       // Handle batch updates
       if (update.event_type === 'BATCH_UPDATE' && update.data) {
         const batchData = update.data;
@@ -44,17 +44,17 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
               if (typeof logData === 'object' && logData !== null) {
                 // Debug log to understand the structure
                 console.log('Log data structure:', logData);
-                
+
                 // Try different possible message field names
-                const message = logData.message || logData.msg || logData.text || logData.content || 
-                               (typeof logData.args === 'string' ? logData.args : 
-                                Array.isArray(logData.args) ? logData.args.join(' ') : '') || 
+                const message = logData.message || logData.msg || logData.text || logData.content ||
+                               (typeof logData.args === 'string' ? logData.args :
+                                Array.isArray(logData.args) ? logData.args.join(' ') : '') ||
                                JSON.stringify(logData);
-                
+
                 newLogs.push({
                   level: logData.level || logData.levelname || 'INFO',
                   message: message,
-                  timestamp: logData.extra_fields?.timestamp ? new Date(logData.extra_fields.timestamp * 1000).toISOString() : 
+                  timestamp: logData.extra_fields?.timestamp ? new Date(logData.extra_fields.timestamp * 1000).toISOString() :
                            logData.timestamp || logData.time || event.timestamp || new Date().toISOString(),
                   logger: logData.logger_name || logData.logger || logData.name || '',
                   node_id: logData.node_id,
@@ -73,13 +73,13 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
         if (typeof logData === 'object' && logData !== null) {
           // Debug log to understand the structure
           console.log('Individual log data structure:', logData);
-          
+
           // Try different possible message field names
-          const message = logData.message || logData.msg || logData.text || logData.content || 
-                         (typeof logData.args === 'string' ? logData.args : 
-                          Array.isArray(logData.args) ? logData.args.join(' ') : '') || 
+          const message = logData.message || logData.msg || logData.text || logData.content ||
+                         (typeof logData.args === 'string' ? logData.args :
+                          Array.isArray(logData.args) ? logData.args.join(' ') : '') ||
                          JSON.stringify(logData);
-          
+
           const newLog: LogEntry = {
             level: logData.level || logData.levelname || 'INFO',
             message: message,

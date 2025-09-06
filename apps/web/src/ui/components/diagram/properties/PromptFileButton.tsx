@@ -9,18 +9,18 @@ interface PromptFileButtonProps {
   tooltip?: string;
 }
 
-export function PromptFileButton({ 
-  onSelectContent, 
+export function PromptFileButton({
+  onSelectContent,
   className = '',
   tooltip = 'Load prompt from file'
 }: PromptFileButtonProps) {
   const [showPicker, setShowPicker] = useState(false);
-  
+
   const handleSelect = (content: string, filename?: string) => {
     onSelectContent(content, filename);
     setShowPicker(false);
   };
-  
+
   return (
     <>
       <Button
@@ -33,7 +33,7 @@ export function PromptFileButton({
       >
         <FileText className="h-4 w-4" />
       </Button>
-      
+
       <PromptFilePicker
         open={showPicker}
         onClose={() => setShowPicker(false)}

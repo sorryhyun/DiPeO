@@ -9,7 +9,7 @@ export const templateJobSpec: NodeSpecification = {
   icon: "📝",
   color: "#3F51B5",
   description: "Process templates with data",
-  
+
   fields: [
     {
       name: "template_path",
@@ -71,24 +71,24 @@ export const templateJobSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["default"]
   },
-  
+
   outputs: {
     result: {
       type: "any",
       description: "Node execution result"
     }
   },
-  
+
   execution: {
     timeout: 300,
     retryable: true,
     maxRetries: 3
   },
-  
+
   primaryDisplayField: "engine"
 };

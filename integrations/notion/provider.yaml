@@ -1,4 +1,4 @@
-# Notion Provider Manifest  
+# Notion Provider Manifest
 # Hybrid approach: Basic operations via manifest, complex logic via hooks
 
 name: notion
@@ -250,7 +250,7 @@ webhook_events:
           "created_time": {"type": "string", "format": "date-time"}
         }
       }
-  
+
   - name: page.updated
     description: A page was updated
     payload_schema: |

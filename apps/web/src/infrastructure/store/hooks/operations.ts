@@ -16,12 +16,12 @@ export const useDiagramOperations = () => useUnifiedStore(
     deleteNode: state.deleteNode,
     batchUpdateNodes: state.batchUpdateNodes,
     batchDeleteNodes: state.batchDeleteNodes,
-    
+
     // Arrow operations
     addArrow: state.addArrow,
     updateArrow: state.updateArrow,
     deleteArrow: state.deleteArrow,
-    
+
     // Diagram operations
     clearDiagram: state.clearDiagram,
     restoreDiagram: state.restoreDiagram,

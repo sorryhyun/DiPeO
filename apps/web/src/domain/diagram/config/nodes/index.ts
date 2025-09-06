@@ -7,7 +7,7 @@ export * from './helpers';
 export * from './nodeMeta';
 
 // Export registry functions
-export { 
+export {
   registerNodeConfig,
   getAllNodeConfigs,
   getNodeConfig,

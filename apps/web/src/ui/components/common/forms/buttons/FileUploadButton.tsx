@@ -25,30 +25,30 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
   title
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  
+
   const handleClick = () => {
     // Safe ref access
     fileInputRef.current?.click();
   };
-  
+
   const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    
+
     // Process file upload
     const files = event.target.files;
     if (files && files.length > 0) {
       onChange(event);
     }
-    
+
     // Reset input to allow same file selection
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   }, [onChange]);
-  
+
   return (
     <>
-      <Button 
-        variant={variant} 
+      <Button
+        variant={variant}
         className={className}
         size={size}
         onClick={handleClick}

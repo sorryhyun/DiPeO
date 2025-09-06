@@ -1,6 +1,6 @@
 /**
  * Dispatch Table Utilities
- * 
+ *
  * Provides a type-safe dispatch table pattern to replace switch statements
  * with more maintainable and performant lookup tables.
  */
@@ -13,7 +13,7 @@ export type DispatchTable<TKey extends string | number | symbol, TValue> = Recor
 /**
  * Function dispatch table for handlers
  */
-export type HandlerTable<TKey extends string | number | symbol, TArgs extends unknown[], TReturn> = 
+export type HandlerTable<TKey extends string | number | symbol, TArgs extends unknown[], TReturn> =
   DispatchTable<TKey, (...args: TArgs) => TReturn>;
 
 /**

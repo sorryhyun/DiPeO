@@ -5,7 +5,7 @@ export function useFormState<T extends Record<string, any> = Record<string, any>
   config: FormConfig<T>
 ) {
   const { initialValues, enableReinitialize = false } = config;
-  
+
   const [formState, setFormState] = useState<FormState<T>>(() => ({
     data: initialValues,
     errors: {},
@@ -16,7 +16,7 @@ export function useFormState<T extends Record<string, any> = Record<string, any>
   }));
 
   const initialValuesRef = useRef(initialValues);
-  
+
   if (enableReinitialize && initialValuesRef.current !== initialValues) {
     initialValuesRef.current = initialValues;
     setFormState(prev => ({
@@ -30,10 +30,10 @@ export function useFormState<T extends Record<string, any> = Record<string, any>
 
   const updateField = useCallback((update: FormFieldUpdate) => {
     const { field, value, touch = true } = update;
-    
+
     setFormState(prev => {
       const isDirty = value !== initialValuesRef.current[field as keyof T];
-      
+
       return {
         ...prev,
         data: {
@@ -55,11 +55,11 @@ export function useFormState<T extends Record<string, any> = Record<string, any>
   const updateFields = useCallback((updates: Partial<T>) => {
     setFormState(prev => {
       const newDirty = { ...prev.dirty };
-      
+
       Object.entries(updates).forEach(([field, value]) => {
         newDirty[field] = value !== initialValuesRef.current[field as keyof T];
       });
-      
+
       return {
         ...prev,
         data: {
@@ -74,13 +74,13 @@ export function useFormState<T extends Record<string, any> = Record<string, any>
   const setFieldError = useCallback((field: string, error: ValidationError | null) => {
     setFormState(prev => {
       const newErrors = { ...prev.errors };
-      
+
       if (error) {
         newErrors[field] = [error];
       } else {
         delete newErrors[field];
       }
-      
+
       return {
         ...prev,
         errors: newErrors,
@@ -120,10 +120,10 @@ export function useFormState<T extends Record<string, any> = Record<string, any>
   }, []);
 
   const reset = useCallback((values?: Partial<T>) => {
-    const resetValues = values 
+    const resetValues = values
       ? { ...initialValuesRef.current, ...values }
       : initialValuesRef.current;
-    
+
     setFormState({
       data: resetValues,
       errors: {},

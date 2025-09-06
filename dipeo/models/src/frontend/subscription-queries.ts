@@ -2,7 +2,7 @@ import { QuerySpecification } from './query-specifications';
 import { QueryOperationType } from './query-enums';
 
 export const createSubscriptionSpec = (
-  entity: string, 
+  entity: string,
   event: string,
   fields: string[]
 ): QuerySpecification => ({
@@ -38,7 +38,7 @@ export const createExecutionSubscriptionSpec = (): QuerySpecification => ({
     { name: 'id', required: true },
     { name: 'status', required: true },
     { name: 'progress', required: false },
-    { 
+    {
       name: 'results',
       required: false,
       fields: [

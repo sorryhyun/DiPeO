@@ -5,9 +5,10 @@ import os
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
-from dipeo.config.llm import DEFAULT_TEMPERATURE
 from openai import AsyncOpenAI, OpenAI
 from pydantic import BaseModel
+
+from dipeo.config.llm import DEFAULT_TEMPERATURE
 
 from ...core.client import AsyncBaseClientWrapper, BaseClientWrapper
 

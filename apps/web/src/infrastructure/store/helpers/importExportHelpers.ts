@@ -8,9 +8,9 @@ export function createNode(type: NodeType, position: Vec2, initialData?: Record<
   const id = generateNodeId();
   const nodeConfig = getNodeConfig(type);
   const configDefaults = nodeConfig ? { ...nodeConfig.defaults } : {};
-  
+
   const label = String(initialData?.label || configDefaults.label || generateNodeLabel(type, id));
-  
+
   return {
     id,
     type,

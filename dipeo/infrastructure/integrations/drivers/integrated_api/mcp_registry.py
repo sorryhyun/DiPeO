@@ -9,6 +9,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import yaml
+
 from dipeo.infrastructure.integrations.drivers.integrated_api.providers.mcp_provider import (
     MCPProvider,
     MCPTool,

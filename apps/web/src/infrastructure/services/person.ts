@@ -63,7 +63,7 @@ export class PersonService {
   private static personsCache = new Map<PersonID, DomainPerson>();
   private static lastFetch: number = 0;
   private static CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-  
+
   /**
    * Create a new person
    */
@@ -73,20 +73,20 @@ export class PersonService {
     if (!validation.valid) {
       throw new Error(`Invalid person: ${validation.errors.map(e => e.message).join(', ')}`);
     }
-    
+
     // Convert to GraphQL format and create
     const input = PersonConverter.toGraphQL(person as DomainPerson);
     const result = await GraphQLService.mutate(
       CreatePersonDocument,
       { input },
     );
-    
+
     const created = PersonConverter.toDomain(result.create_person.person);
     this.personsCache.set(created.id, created);
-    
+
     return created;
   }
-  
+
   /**
    * Update an existing person
    */
@@ -98,28 +98,28 @@ export class PersonService {
     if (!existing) {
       throw new Error(`Person ${id} not found`);
     }
-    
+
     const updated = { ...existing, ...updates };
-    
+
     // Validate updated person
     const validation = ValidationService.validatePerson(updated);
     if (!validation.valid) {
       throw new Error(`Invalid person: ${validation.errors.map(e => e.message).join(', ')}`);
     }
-    
+
     // Update via GraphQL
     const input = PersonConverter.toGraphQL(updated);
     const result = await GraphQLService.mutate(
       UpdatePersonDocument,
       { id, input },
     );
-    
+
     const updatedPerson = PersonConverter.toDomain(result.update_person.person);
     this.personsCache.set(id, updatedPerson);
-    
+
     return updatedPerson;
   }
-  
+
   /**
    * Delete a person
    */
@@ -128,11 +128,11 @@ export class PersonService {
       DeletePersonDocument,
       { id },
     );
-    
+
     this.personsCache.delete(id);
     return result.delete_person.success;
   }
-  
+
   /**
    * Get a person by ID
    */
@@ -141,40 +141,40 @@ export class PersonService {
     if (this.personsCache.has(id)) {
       return this.personsCache.get(id)!;
     }
-    
+
     // Fetch from backend
     const result = await GraphQLService.query(
       GetPersonDocument,
       { id },
     );
-    
+
     if (!result.person) {
       return null;
     }
-    
+
     const person = PersonConverter.toDomain(result.person);
     this.personsCache.set(id, person);
-    
+
     return person;
   }
-  
+
   /**
    * Get all persons
    */
   static async getAllPersons(forceRefresh = false): Promise<DomainPerson[]> {
     const now = Date.now();
-    
+
     // Check if cache is still valid
     if (!forceRefresh && (now - this.lastFetch) < this.CACHE_TTL && this.personsCache.size > 0) {
       return Array.from(this.personsCache.values());
     }
-    
+
     // Fetch from backend
     const result = await GraphQLService.query(
       ListPersonsDocument,
       { limit: 100 },
     );
-    
+
     // Update cache
     this.personsCache.clear();
     const persons = result.persons.map((p: any) => {
@@ -182,11 +182,11 @@ export class PersonService {
       this.personsCache.set(person.id, person);
       return person;
     });
-    
+
     this.lastFetch = now;
     return persons;
   }
-  
+
   /**
    * Create a person from a template
    */
@@ -195,19 +195,19 @@ export class PersonService {
     if (!base) {
       throw new Error(`Unknown person template: ${template}`);
     }
-    
+
     return {
       ...base,
       label: `${base.label} (${new Date().toISOString().split('T')[0]})`,
     };
   }
-  
+
   /**
    * Get recommended temperature for a role
    */
   static getRecommendedTemperature(role: string): number {
     const lowerRole = role.toLowerCase();
-    
+
     if (lowerRole.includes('analy') || lowerRole.includes('data')) {
       return 0.3; // Low temperature for analytical tasks
     }
@@ -220,10 +220,10 @@ export class PersonService {
     if (lowerRole.includes('chat') || lowerRole.includes('convers')) {
       return 0.7; // Moderate-high for conversational
     }
-    
+
     return 0.5; // Default moderate temperature
   }
-  
+
   /**
    * Get recommended model for a use case
    */
@@ -239,7 +239,7 @@ export class PersonService {
         return 'gpt-4.1-nano' as LLMService;
     }
   }
-  
+
   /**
    * Validate a system prompt
    */
@@ -248,31 +248,31 @@ export class PersonService {
     warnings: string[];
   } {
     const warnings: string[] = [];
-    
+
     if (prompt.length > 5000) {
       warnings.push('System prompt is very long (>5000 chars), may impact performance');
     }
-    
+
     if (prompt.length < 10) {
       warnings.push('System prompt is very short, consider adding more context');
     }
-    
+
     if (prompt.includes('{{') && prompt.includes('}}')) {
       warnings.push('System prompt contains template variables that may not be replaced');
     }
-    
+
     return {
       valid: true,
       warnings,
     };
   }
-  
+
   /**
    * Generate a system prompt based on role
    */
   static generateSystemPrompt(role: string, style?: 'formal' | 'casual' | 'technical'): string {
     const basePrompt = `You are a ${role}.`;
-    
+
     let styleAddition = '';
     switch (style) {
       case 'formal':
@@ -285,10 +285,10 @@ export class PersonService {
         styleAddition = ' Provide detailed technical explanations when appropriate.';
         break;
     }
-    
+
     let roleSpecific = '';
     const lowerRole = role.toLowerCase();
-    
+
     if (lowerRole.includes('analy')) {
       roleSpecific = ' Focus on data-driven insights and objective analysis.';
     } else if (lowerRole.includes('develop')) {
@@ -298,10 +298,10 @@ export class PersonService {
     } else if (lowerRole.includes('teach')) {
       roleSpecific = ' Explain concepts clearly and provide helpful examples.';
     }
-    
+
     return basePrompt + styleAddition + roleSpecific;
   }
-  
+
   /**
    * Clone a person with a new name
    */
@@ -312,7 +312,7 @@ export class PersonService {
       // Remove ID so a new one will be generated
     };
   }
-  
+
   /**
    * Export persons to JSON
    */
@@ -320,7 +320,7 @@ export class PersonService {
     const persons = await this.getAllPersons();
     return JSON.stringify(persons, null, 2);
   }
-  
+
   /**
    * Import persons from JSON
    */
@@ -329,9 +329,9 @@ export class PersonService {
     if (!Array.isArray(parsed)) {
       throw new Error('Invalid persons JSON: must be an array');
     }
-    
+
     const imported: DomainPerson[] = [];
-    
+
     for (const personData of parsed) {
       // Remove ID to create new persons
       const { id, ...data } = personData;
@@ -342,7 +342,7 @@ export class PersonService {
         console.error(`Failed to import person: ${error}`);
       }
     }
-    
+
     return imported;
   }
 }

@@ -34,7 +34,7 @@ export type FieldHelpers<T> = {
   error: string | undefined;
   touched: boolean;
   dirty: boolean;
-  
+
   onChange: (value: any) => void;
   onBlur: () => void;
   setError: (error: string | null) => void;
@@ -46,14 +46,14 @@ export type UseFormReturn<T> = {
   errors: Record<string, string[]>;
   touched: Record<string, boolean>;
   dirty: Record<string, boolean>;
-  
+
   isSubmitting: boolean;
   isValidating: boolean;
   isValid: boolean;
   isDirty: boolean;
   isTouched: boolean;
   submitCount: number;
-  
+
   getFieldProps: <K extends keyof T>(field: K) => {
     name: K;
     value: T[K];
@@ -61,21 +61,21 @@ export type UseFormReturn<T> = {
     onBlur: () => void;
     error: string | undefined;
   };
-  
+
   getFieldHelpers: <K extends keyof T>(field: K) => FieldHelpers<T>;
-  
+
   setFieldValue: <K extends keyof T>(field: K, value: T[K]) => void;
   setFieldError: (field: keyof T, error: string | string[] | null) => void;
   setFieldTouched: (field: keyof T, touched?: boolean) => void;
   setValues: (values: Partial<T>) => void;
   setErrors: (errors: Record<string, string[]>) => void;
-  
+
   validateField: <K extends keyof T>(field: K) => Promise<boolean>;
   validateForm: () => Promise<boolean>;
-  
+
   handleSubmit: (e?: React.FormEvent) => Promise<void>;
   handleReset: () => void;
-  
+
   resetForm: (values?: Partial<T>) => void;
   clearErrors: () => void;
   clearField: <K extends keyof T>(field: K) => void;
@@ -110,7 +110,7 @@ export function useForm<T extends Record<string, any>>(
     onChange,
     onReset,
   } = mergedConfig;
-  
+
   const [state, setState] = useState<FormState<T>>({
     values: initialValues,
     errors: {},
@@ -121,11 +121,11 @@ export function useForm<T extends Record<string, any>>(
     submitCount: 0,
     isValid: true,
   });
-  
+
   const initialValuesRef = useRef(initialValues);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const isMountedRef = useRef(true);
-  
+
   if (enableReinitialize && initialValuesRef.current !== initialValues) {
     initialValuesRef.current = initialValues;
     setState(prev => ({
@@ -136,16 +136,16 @@ export function useForm<T extends Record<string, any>>(
       errors: {},
     }));
   }
-  
+
   const isDirty = Object.values(state.dirty).some(Boolean);
   const isTouched = Object.values(state.touched).some(Boolean);
-  
+
   const validateWithSchema = useCallback(async (
     values: T,
     field?: keyof T
   ): Promise<Record<string, string[]>> => {
     if (!validationSchema) return {};
-    
+
     try {
       if (field) {
         // For field-level validation, validate the whole object but only check the specific field
@@ -170,12 +170,12 @@ export function useForm<T extends Record<string, any>>(
       return {};
     }
   }, [validationSchema]);
-  
+
   const validateWithCustom = useCallback(async (
     values: T
   ): Promise<Record<string, string[]>> => {
     if (!onValidate) return {};
-    
+
     try {
       const errors = await onValidate(values);
       return errors || {};
@@ -184,19 +184,19 @@ export function useForm<T extends Record<string, any>>(
       return {};
     }
   }, [onValidate]);
-  
+
   const validateField = useCallback(async <K extends keyof T>(
     field: K
   ): Promise<boolean> => {
     if (!isMountedRef.current) return true;
-    
+
     setState(prev => ({ ...prev, isValidating: true }));
-    
+
     const schemaErrors = await validateWithSchema(state.values, field);
     const customErrors = await validateWithCustom(state.values);
-    
+
     const fieldError = schemaErrors[String(field)] || customErrors[String(field)];
-    
+
     setState(prev => {
       const newErrors = { ...prev.errors };
       if (fieldError && fieldError.length > 0) {
@@ -204,7 +204,7 @@ export function useForm<T extends Record<string, any>>(
       } else {
         delete newErrors[String(field)];
       }
-      
+
       return {
         ...prev,
         errors: newErrors,
@@ -212,44 +212,44 @@ export function useForm<T extends Record<string, any>>(
         isValid: Object.keys(newErrors).length === 0,
       };
     });
-    
+
     return !fieldError || fieldError.length === 0;
   }, [state.values, validateWithSchema, validateWithCustom]);
-  
+
   const validateForm = useCallback(async (): Promise<boolean> => {
     if (!isMountedRef.current) return true;
-    
+
     setState(prev => ({ ...prev, isValidating: true }));
-    
+
     const schemaErrors = await validateWithSchema(state.values);
     const customErrors = await validateWithCustom(state.values);
-    
+
     const allErrors = { ...schemaErrors, ...customErrors };
-    
+
     setState(prev => ({
       ...prev,
       errors: allErrors,
       isValidating: false,
       isValid: Object.keys(allErrors).length === 0,
     }));
-    
+
     return Object.keys(allErrors).length === 0;
   }, [state.values, validateWithSchema, validateWithCustom]);
-  
+
   const setFieldValue = useCallback(<K extends keyof T>(
     field: K,
     value: T[K]
   ) => {
     setState(prev => {
       const isDirty = value !== initialValuesRef.current[field];
-      
+
       const newValues = {
         ...prev.values,
         [field]: value,
       };
-      
+
       onChange?.(newValues, field);
-      
+
       return {
         ...prev,
         values: newValues,
@@ -259,11 +259,11 @@ export function useForm<T extends Record<string, any>>(
         },
       };
     });
-    
+
     if (validateOnChange) {
       void validateField(field);
     }
-    
+
     if (autoSave) {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
@@ -275,20 +275,20 @@ export function useForm<T extends Record<string, any>>(
       }, autoSaveDelay);
     }
   }, [validateOnChange, validateField, autoSave, autoSaveDelay, onSubmit, onChange, state.values]);
-  
+
   const setFieldError = useCallback((
     field: keyof T,
     error: string | string[] | null
   ) => {
     setState(prev => {
       const newErrors = { ...prev.errors };
-      
+
       if (error) {
         newErrors[String(field)] = Array.isArray(error) ? error : [error];
       } else {
         delete newErrors[String(field)];
       }
-      
+
       return {
         ...prev,
         errors: newErrors,
@@ -296,7 +296,7 @@ export function useForm<T extends Record<string, any>>(
       };
     });
   }, []);
-  
+
   const setFieldTouched = useCallback((
     field: keyof T,
     touched = true
@@ -308,35 +308,35 @@ export function useForm<T extends Record<string, any>>(
         [field]: touched,
       },
     }));
-    
+
     if (validateOnBlur && touched) {
       void validateField(field);
     }
   }, [validateOnBlur, validateField]);
-  
+
   const setValues = useCallback((values: Partial<T>) => {
     setState(prev => {
       const newValues = { ...prev.values, ...values };
       const newDirty = { ...prev.dirty };
-      
+
       Object.keys(values).forEach(field => {
         newDirty[field] = values[field as keyof T] !== initialValuesRef.current[field as keyof T];
       });
-      
+
       onChange?.(newValues);
-      
+
       return {
         ...prev,
         values: newValues,
         dirty: newDirty,
       };
     });
-    
+
     if (validateOnChange) {
       void validateForm();
     }
   }, [validateOnChange, validateForm, onChange]);
-  
+
   const setErrors = useCallback((errors: Record<string, string[]>) => {
     setState(prev => ({
       ...prev,
@@ -344,23 +344,23 @@ export function useForm<T extends Record<string, any>>(
       isValid: Object.keys(errors).length === 0,
     }));
   }, []);
-  
+
   const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
-    
+
     if (!onSubmit || state.isSubmitting) return;
-    
+
     setState(prev => ({
       ...prev,
       isSubmitting: true,
       submitCount: prev.submitCount + 1,
     }));
-    
+
     let isValid = true;
     if (validateOnSubmit) {
       isValid = await validateForm();
     }
-    
+
     if (isValid) {
       try {
         await onSubmit(state.values);
@@ -376,13 +376,13 @@ export function useForm<T extends Record<string, any>>(
     } else if (showToasts) {
       toast.error('Please fix the errors before submitting');
     }
-    
+
     setState(prev => ({
       ...prev,
       isSubmitting: false,
     }));
   }, [onSubmit, state.isSubmitting, state.values, validateOnSubmit, validateForm, showToasts]);
-  
+
   const handleReset = useCallback(() => {
     setState({
       values: initialValuesRef.current,
@@ -396,12 +396,12 @@ export function useForm<T extends Record<string, any>>(
     });
     onReset?.();
   }, [onReset]);
-  
+
   const resetForm = useCallback((values?: Partial<T>) => {
-    const resetValues = values 
+    const resetValues = values
       ? { ...initialValuesRef.current, ...values }
       : initialValuesRef.current;
-    
+
     setState({
       values: resetValues,
       errors: {},
@@ -413,7 +413,7 @@ export function useForm<T extends Record<string, any>>(
       isValid: true,
     });
   }, []);
-  
+
   const clearErrors = useCallback(() => {
     setState(prev => ({
       ...prev,
@@ -421,12 +421,12 @@ export function useForm<T extends Record<string, any>>(
       isValid: true,
     }));
   }, []);
-  
+
   const clearField = useCallback(<K extends keyof T>(field: K) => {
     setState(prev => {
       const newErrors = { ...prev.errors };
       delete newErrors[String(field)];
-      
+
       return {
         ...prev,
         values: {
@@ -446,11 +446,11 @@ export function useForm<T extends Record<string, any>>(
       };
     });
   }, []);
-  
+
   const getFieldProps = useCallback(<K extends keyof T>(field: K) => {
     const fieldString = String(field);
     const error = state.errors[fieldString]?.[0];
-    
+
     return {
       name: field,
       value: state.values[field],
@@ -462,26 +462,26 @@ export function useForm<T extends Record<string, any>>(
       error,
     };
   }, [state.values, state.errors, setFieldValue, setFieldTouched]);
-  
+
   const getFieldHelpers = useCallback(<K extends keyof T>(field: K): FieldHelpers<T> => {
     const fieldString = String(field);
-    
+
     return {
       value: state.values[field],
       error: state.errors[fieldString]?.[0],
       touched: state.touched[fieldString] || false,
       dirty: state.dirty[fieldString] || false,
-      
+
       onChange: (value: any) => setFieldValue(field, value),
       onBlur: () => setFieldTouched(field),
       setError: (error: string | null) => setFieldError(field, error),
       setTouched: (touched: boolean) => setFieldTouched(field, touched),
     };
   }, [state, setFieldValue, setFieldTouched, setFieldError]);
-  
+
   useEffect(() => {
     isMountedRef.current = true;
-    
+
     return () => {
       isMountedRef.current = false;
       if (autoSaveTimerRef.current) {
@@ -489,35 +489,35 @@ export function useForm<T extends Record<string, any>>(
       }
     };
   }, []);
-  
+
   return {
     values: state.values,
     errors: state.errors,
     touched: state.touched,
     dirty: state.dirty,
-    
+
     isSubmitting: state.isSubmitting,
     isValidating: state.isValidating,
     isValid: state.isValid,
     isDirty,
     isTouched,
     submitCount: state.submitCount,
-    
+
     getFieldProps,
     getFieldHelpers,
-    
+
     setFieldValue,
     setFieldError,
     setFieldTouched,
     setValues,
     setErrors,
-    
+
     validateField,
     validateForm,
-    
+
     handleSubmit,
     handleReset,
-    
+
     resetForm,
     clearErrors,
     clearField,

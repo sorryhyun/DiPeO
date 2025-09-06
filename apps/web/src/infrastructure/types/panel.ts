@@ -39,7 +39,7 @@ export type FieldValidator<T = unknown> = (
   formData: T
 ) => ValidationResult | { isValid: boolean; error?: string };
 
-export type OptionsConfig<T = unknown> = 
+export type OptionsConfig<T = unknown> =
   | Array<{ value: string; label: string }>
   | (() => Promise<Array<{ value: string; label: string }>>)
   | ((formData: T) => Promise<Array<{ value: string; label: string }>>);
@@ -100,7 +100,7 @@ export interface PanelFormProps<T extends Record<string, unknown>> {
   className?: string;
 }
 
-// Note: DOMAIN_TO_UI_FIELD_TYPE has been moved to fieldTypeRegistry.ts 
+// Note: DOMAIN_TO_UI_FIELD_TYPE has been moved to fieldTypeRegistry.ts
 // to avoid circular dependencies
 
 export function createPanelFormData<T extends Record<string, unknown>>(

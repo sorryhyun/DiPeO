@@ -15,7 +15,7 @@ export interface SelectionBounds {
   height: number;
 }
 
-export type SelectionAction = 
+export type SelectionAction =
   | { type: 'select'; items: SelectionItem[] }
   | { type: 'deselect'; items: SelectionItem[] }
   | { type: 'toggle'; items: SelectionItem[] }

@@ -11,7 +11,7 @@ export const diagramQueries: EntityQueryDefinitions = {
         { name: 'id', type: 'ID', required: true }
       ],
       fields: [
-        { 
+        {
           name: 'diagram',
           args: [
             { name: 'id', value: 'id', isVariable: true }
@@ -22,7 +22,7 @@ export const diagramQueries: EntityQueryDefinitions = {
               fields: [
                 { name: 'id' },
                 { name: 'type' },
-                { 
+                {
                   name: 'position',
                   fields: [
                     { name: 'x' },

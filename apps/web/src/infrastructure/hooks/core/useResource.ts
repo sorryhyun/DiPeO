@@ -40,17 +40,17 @@ export type UseResourceReturn<T> = {
   error: Error | null;
   updating: boolean;
   deleting: boolean;
-  
+
   fetch: (id?: string) => Promise<void>;
   list: (params?: Record<string, any>) => Promise<T[]>;
   create: (data: Partial<T>) => Promise<T | null>;
   update: (id: string, data: Partial<T>) => Promise<T | null>;
   delete: (id: string) => Promise<boolean>;
-  
+
   refetch: () => Promise<void>;
   clearError: () => void;
   reset: () => void;
-  
+
   isStale: boolean;
   lastFetch: Date | null;
 };
@@ -69,7 +69,7 @@ export function useResource<T extends { id?: string } = any>(
 ): UseResourceReturn<T> {
   const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
   const { showToasts, optimisticUpdates, autoRefetch, refetchInterval, onSuccess, onError } = mergedOptions;
-  
+
   const [state, setState] = useState<ResourceState<T>>({
     data: null,
     loading: false,
@@ -78,18 +78,18 @@ export function useResource<T extends { id?: string } = any>(
     deleting: false,
     lastFetch: null,
   });
-  
+
   const currentIdRef = useRef<string | undefined>(undefined);
   const refetchTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const previousDataRef = useRef<T | null>(null);
-  
-  const isStale = state.lastFetch 
-    ? new Date().getTime() - state.lastFetch.getTime() > refetchInterval! 
+
+  const isStale = state.lastFetch
+    ? new Date().getTime() - state.lastFetch.getTime() > refetchInterval!
     : true;
-  
+
   const handleError = useCallback((operation: string, error: unknown) => {
     const errorObj = error instanceof Error ? error : new Error(String(error));
-    
+
     setState(prev => ({
       ...prev,
       loading: false,
@@ -97,37 +97,37 @@ export function useResource<T extends { id?: string } = any>(
       deleting: false,
       error: errorObj,
     }));
-    
+
     if (showToasts) {
-      const message = error instanceof ApolloError 
-        ? error.message 
+      const message = error instanceof ApolloError
+        ? error.message
         : `Failed to ${operation} ${resource}`;
       toast.error(message);
     }
-    
+
     onError?.(operation, errorObj);
   }, [resource, showToasts, onError]);
-  
+
   const handleSuccess = useCallback((operation: string, data?: T) => {
     if (showToasts && operation !== 'fetch') {
-      const message = operation === 'delete' 
+      const message = operation === 'delete'
         ? `${resource} deleted successfully`
         : `${resource} ${operation}d successfully`;
       toast.success(message);
     }
-    
+
     onSuccess?.(operation, data);
   }, [resource, showToasts, onSuccess]);
-  
+
   const fetch = useCallback(async (id?: string) => {
     if (!operations.fetch) {
       console.warn(`No fetch operation defined for ${resource}`);
       return;
     }
-    
+
     currentIdRef.current = id;
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
+
     try {
       const data = await operations.fetch(id);
       setState(prev => ({
@@ -141,15 +141,15 @@ export function useResource<T extends { id?: string } = any>(
       handleError('fetch', error);
     }
   }, [operations, handleSuccess, handleError]);
-  
+
   const list = useCallback(async (params?: Record<string, any>): Promise<T[]> => {
     if (!operations.list) {
       console.warn(`No list operation defined for ${resource}`);
       return [];
     }
-    
+
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
+
     try {
       const data = await operations.list(params);
       setState(prev => ({
@@ -164,13 +164,13 @@ export function useResource<T extends { id?: string } = any>(
       return [];
     }
   }, [operations, handleSuccess, handleError]);
-  
+
   const create = useCallback(async (data: Partial<T>): Promise<T | null> => {
     if (!operations.create) {
       console.warn(`No create operation defined for ${resource}`);
       return null;
     }
-    
+
     if (operations.validate) {
       const validation = await operations.validate(data);
       if (!validation.isValid) {
@@ -179,9 +179,9 @@ export function useResource<T extends { id?: string } = any>(
         return null;
       }
     }
-    
+
     setState(prev => ({ ...prev, updating: true, error: null }));
-    
+
     try {
       const result = await operations.create(data);
       setState(prev => ({
@@ -197,13 +197,13 @@ export function useResource<T extends { id?: string } = any>(
       return null;
     }
   }, [operations, resource, handleSuccess, handleError]);
-  
+
   const update = useCallback(async (id: string, data: Partial<T>): Promise<T | null> => {
     if (!operations.update) {
       console.warn(`No update operation defined for ${resource}`);
       return null;
     }
-    
+
     if (operations.validate) {
       const validation = await operations.validate(data);
       if (!validation.isValid) {
@@ -212,9 +212,9 @@ export function useResource<T extends { id?: string } = any>(
         return null;
       }
     }
-    
+
     setState(prev => ({ ...prev, updating: true, error: null }));
-    
+
     if (optimisticUpdates && state.data) {
       previousDataRef.current = state.data;
       setState(prev => ({
@@ -222,7 +222,7 @@ export function useResource<T extends { id?: string } = any>(
         data: { ...prev.data!, ...data },
       }));
     }
-    
+
     try {
       const result = await operations.update(id, data);
       setState(prev => ({
@@ -244,15 +244,15 @@ export function useResource<T extends { id?: string } = any>(
       return null;
     }
   }, [operations, resource, optimisticUpdates, state.data, handleSuccess, handleError]);
-  
+
   const deleteResource = useCallback(async (id: string): Promise<boolean> => {
     if (!operations.delete) {
       console.warn(`No delete operation defined for ${resource}`);
       return false;
     }
-    
+
     setState(prev => ({ ...prev, deleting: true, error: null }));
-    
+
     try {
       const success = await operations.delete(id);
       if (success) {
@@ -269,17 +269,17 @@ export function useResource<T extends { id?: string } = any>(
       return false;
     }
   }, [operations, resource, handleSuccess, handleError]);
-  
+
   const refetch = useCallback(async () => {
     if (currentIdRef.current !== undefined && operations.fetch) {
       await fetch(currentIdRef.current);
     }
   }, [fetch, operations.fetch]);
-  
+
   const clearError = useCallback(() => {
     setState(prev => ({ ...prev, error: null }));
   }, []);
-  
+
   const reset = useCallback(() => {
     setState({
       data: null,
@@ -294,7 +294,7 @@ export function useResource<T extends { id?: string } = any>(
       clearInterval(refetchTimerRef.current);
     }
   }, []);
-  
+
   useEffect(() => {
     if (autoRefetch && !state.loading && !state.updating && !state.deleting) {
       refetchTimerRef.current = setInterval(() => {
@@ -303,14 +303,14 @@ export function useResource<T extends { id?: string } = any>(
         }
       }, refetchInterval);
     }
-    
+
     return () => {
       if (refetchTimerRef.current) {
         clearInterval(refetchTimerRef.current);
       }
     };
   }, [autoRefetch, refetchInterval, isStale, refetch, state.loading, state.updating, state.deleting]);
-  
+
   useEffect(() => {
     return () => {
       if (refetchTimerRef.current) {
@@ -318,24 +318,24 @@ export function useResource<T extends { id?: string } = any>(
       }
     };
   }, []);
-  
+
   return {
     data: state.data,
     loading: state.loading,
     error: state.error,
     updating: state.updating,
     deleting: state.deleting,
-    
+
     fetch,
     list,
     create,
     update,
     delete: deleteResource,
-    
+
     refetch,
     clearError,
     reset,
-    
+
     isStale,
     lastFetch: state.lastFetch,
   };

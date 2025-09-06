@@ -133,7 +133,7 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                         pass
 
                 # Start execution in background - keep reference to avoid task cleanup issues
-                _background_task = asyncio.create_task(run_execution())  # noqa: RUF006
+                _background_task = asyncio.create_task(run_execution())
 
                 # Wait briefly for execution to start
                 await asyncio.sleep(0.1)

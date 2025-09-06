@@ -5,7 +5,7 @@ import {
 } from '@dipeo/models';
 
 // Re-export canonical types that don't need adaptation
-export type { 
+export type {
   PersonMemoryMessage,
   LLMUsage,
 } from '@dipeo/models';
@@ -17,5 +17,5 @@ export { Status, EventType };
 export type { InteractivePromptData } from './message';
 
 
-// Use canonical ExecutionOptions directly  
+// Use canonical ExecutionOptions directly
 export type ExecutionOptions = CanonicalExecutionOptions;

@@ -18,7 +18,7 @@ export class GraphQLService {
   static get client() {
     return apolloClient;
   }
-  
+
   /**
    * Use generated query hooks
    * Example: GraphQLService.hooks.useGetDiagramQuery
@@ -26,7 +26,7 @@ export class GraphQLService {
   static get hooks() {
     return GraphQLOperations;
   }
-  
+
   /**
    * Execute a query directly (for non-hook usage)
    */
@@ -41,7 +41,7 @@ export class GraphQLService {
     });
     return result.data;
   }
-  
+
   /**
    * Execute a mutation
    */
@@ -55,7 +55,7 @@ export class GraphQLService {
     });
     return result.data;
   }
-  
+
   /**
    * Subscribe to real-time updates
    */
@@ -68,14 +68,14 @@ export class GraphQLService {
       variables,
     });
   }
-  
+
   /**
    * Clear Apollo cache
    */
   static clearCache() {
     return this.client.clearStore();
   }
-  
+
   /**
    * Reset Apollo cache and refetch active queries
    */

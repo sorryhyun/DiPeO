@@ -6,13 +6,13 @@ export type InteractionMode =
   | 'multi-select'
   | 'disabled';
 
-export type ViewMode = 
+export type ViewMode =
   | 'design'
   | 'execution'
   | 'debug'
   | 'preview';
 
-export type ExecutionStatus = 
+export type ExecutionStatus =
   | 'idle'
   | 'running'
   | 'paused'

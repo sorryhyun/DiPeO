@@ -100,7 +100,7 @@ function useCommonFlowProps({
 }: CommonFlowPropsParams) {
   return useMemo(() => {
     const edges = arrows.map(arrow => DiagramAdapter.arrowToReactFlow(arrow)) as Edge[];
-    
+
     const baseProps = {
       fitView: false,
       nodes,
@@ -151,7 +151,7 @@ function useCommonFlowProps({
         event.preventDefault();
         selectNode(node.id);
         setDashboardTab('properties');
-        
+
         if (node.type === NodeType.PERSON_JOB && node.data.person) {
           highlightPerson(node.data.person as PersonID);
         } else {
@@ -202,9 +202,9 @@ function useCommonFlowProps({
 const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) => {
   const state = useCanvasState();
   const operations = useCanvasOperations();
-  
+
   const { nodes, arrows, onNodesChange, onArrowsChange, onConnect } = operations.canvasHandlers;
-  
+
   const {
     onDragOver,
     onNodeDrop,
@@ -217,11 +217,11 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     onNodeDragStartCanvas,
     onNodeDragStopCanvas,
   } = operations.interactions;
-  
+
   const { addNode: _addNode, deleteNode: _deleteNode } = operations.nodeOps;
   const { deleteArrow: _deleteArrow } = operations.arrowOps;
   const { addPerson } = operations.personOps;
-  
+
   const {
     selectedNodeId,
     selectedArrowId,
@@ -234,24 +234,24 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     selectArrow,
     clearSelection,
   } = operations;
-  
+
   const highlightPerson = useUnifiedStore(state => state.highlightPerson);
   const setDashboardTab = useUnifiedStore(state => state.setDashboardTab);
 
   const flowWrapperRef = useRef<HTMLDivElement>(null);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
-  
+
   const setViewport = useUnifiedStore(state => state.setViewport);
-  
+
   const handleInit = (inst: ReactFlowInstance) => {
     setRfInstance(inst);
     const viewport = inst.getViewport();
     setViewport(viewport.zoom, { x: viewport.x, y: viewport.y });
   };
-  
+
   const hasFitView = useRef(false);
   const prevNodeCount = useRef(0);
-  
+
   useEffect(() => {
     if (rfInstance && nodes.length > 0 && prevNodeCount.current === 0 && !hasFitView.current) {
       hasFitView.current = true;
@@ -263,7 +263,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
     }
     prevNodeCount.current = nodes.length;
   }, [nodes.length, rfInstance]);
-  
+
   // TODO: Implement proper viewport synchronization without causing re-render loops
   const handleViewportChange = useCallback((_viewport: { x: number; y: number; zoom: number }) => {
   }, []);
@@ -323,9 +323,9 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "200px" }}>
               <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.85 }} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
-              <Background 
-                variant={BackgroundVariant.Dots} 
-                gap={16} 
+              <Background
+                variant={BackgroundVariant.Dots}
+                gap={16}
                 size={1.5}
                 className="opacity-[0.03]"
                 color="currentColor"
@@ -353,9 +353,9 @@ const DiagramCanvas: React.FC<DiagramCanvasProps> = ({ executionMode = false }) 
             <div ref={flowWrapperRef} tabIndex={0} className="relative h-full w-full outline-none" style={{ minHeight: "400px" }}>
               <ReactFlow {...flowProps} defaultViewport={{ x: 0, y: 0, zoom: 0.85 }} onInit={handleInit} onViewportChange={handleViewportChange} />
               <Controls />
-              <Background 
-                variant={BackgroundVariant.Dots} 
-                gap={16} 
+              <Background
+                variant={BackgroundVariant.Dots}
+                gap={16}
                 size={1.5}
                 className="opacity-[0.03]"
                 color="currentColor"

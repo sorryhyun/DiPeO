@@ -74,7 +74,7 @@ export const TYPE_TO_ZOD: Record<string, string> = {
 
 export const BRANDED_TYPES = [
   'PersonID', 'NodeID', 'HandleID', 'ArrowID', 'NodeType',
-  'SupportedLanguage', 'HttpMethod', 'DBBlockSubType', 
+  'SupportedLanguage', 'HttpMethod', 'DBBlockSubType',
   'HookType', 'HookTriggerMode', 'ContentType',
   'ToolSelection', 'APIServiceType'
 ];

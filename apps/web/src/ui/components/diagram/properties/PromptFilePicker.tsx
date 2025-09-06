@@ -23,17 +23,17 @@ interface PromptFilePickerProps {
 export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [previewContent, setPreviewContent] = useState<string>('');
-  
+
   // Query to get list of prompt files
   const { data, loading, error } = useQuery(ListPromptFilesDocument, {
     skip: !open,
   });
-  
+
   // Lazy query to get file content
   const [getFileContent, { loading: loadingContent }] = useLazyQuery(GetPromptFileDocument);
-  
+
   const promptFiles = (data?.prompt_files || []) as PromptFile[];
-  
+
   // Load preview when file is selected
   useEffect(() => {
     if (selectedFile) {
@@ -46,14 +46,14 @@ export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerPr
       });
     }
   }, [selectedFile, getFileContent]);
-  
+
   const handleSelect = () => {
     if (selectedFile && previewContent) {
       onSelect(previewContent, selectedFile);
       onClose();
     }
   };
-  
+
   const getFileIcon = (extension: string) => {
     switch (extension) {
       case '.txt':
@@ -66,17 +66,17 @@ export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerPr
         return <File className="w-4 h-4" />;
     }
   };
-  
+
   const formatFileSize = (bytes: number) => {
     if (!bytes || isNaN(bytes)) return '';
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
-  
+
   return (
-    <Modal 
-      isOpen={open} 
+    <Modal
+      isOpen={open}
       onClose={onClose}
       title="Select Prompt File"
       className="max-w-4xl"
@@ -91,19 +91,19 @@ export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerPr
                   <Loader2 className="w-6 h-6 animate-spin" />
                 </div>
               )}
-              
+
               {error && (
                 <div className="p-4 text-sm text-destructive">
                   Error loading prompt files
                 </div>
               )}
-              
+
               {!loading && !error && promptFiles.length === 0 && (
                 <div className="p-4 text-sm text-muted-foreground">
                   No prompt files found in /files/prompts/
                 </div>
               )}
-              
+
               {promptFiles.map((file) => (
                 <button
                   key={file.name}
@@ -131,7 +131,7 @@ export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerPr
               ))}
             </div>
           </div>
-          
+
           {/* Preview */}
           <div className="flex-1 border rounded-lg">
             <div className="h-full overflow-y-auto">
@@ -140,13 +140,13 @@ export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerPr
                   Select a file to preview
                 </div>
               )}
-              
+
               {selectedFile && loadingContent && (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-6 h-6 animate-spin" />
                 </div>
               )}
-              
+
               {selectedFile && !loadingContent && previewContent && (
                 <pre className="p-4 text-sm font-mono whitespace-pre-wrap">
                   {previewContent}
@@ -155,13 +155,13 @@ export function PromptFilePicker({ open, onClose, onSelect }: PromptFilePickerPr
             </div>
           </div>
         </div>
-        
+
         <div className="flex justify-end gap-2 mt-4">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSelect} 
+          <Button
+            onClick={handleSelect}
             disabled={!selectedFile || !previewContent || loadingContent}
           >
             Use This Prompt

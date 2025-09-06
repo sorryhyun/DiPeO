@@ -3,7 +3,7 @@ import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 
 /**
  * Hook to handle monitor mode based on URL parameters
- * 
+ *
  * Behavior:
  * - ?monitor=true - Opens simple single execution monitor mode
  * - ?monitor=board - Opens monitor board (with run picker and multi-execution view)
@@ -22,22 +22,22 @@ export function useMonitorBoardMode() {
     const handlePopState = () => {
       setUrlKey(prev => prev + 1);
     };
-    
+
     const handleUrlChange = () => {
       setUrlKey(prev => prev + 1);
     };
 
     window.addEventListener('popstate', handlePopState);
-    
+
     // Also listen for programmatic URL changes
     const originalPushState = window.history.pushState;
     const originalReplaceState = window.history.replaceState;
-    
+
     window.history.pushState = function(...args) {
       originalPushState.apply(window.history, args);
       handleUrlChange();
     };
-    
+
     window.history.replaceState = function(...args) {
       originalReplaceState.apply(window.history, args);
       handleUrlChange();
@@ -55,19 +55,19 @@ export function useMonitorBoardMode() {
     const params = new URLSearchParams(window.location.search);
     const monitorParam = params.get('monitor');
     const idsParam = params.get('ids');
-    
+
     if (!monitorParam) {
       return { isMonitorMode: false, isBoardMode: false, executionIds: [] };
     }
-    
+
     const ids = idsParam ? idsParam.split(',').filter(Boolean) : [];
-    
+
     if (monitorParam === 'board') {
       return { isMonitorMode: true, isBoardMode: true, executionIds: ids };
     } else if (monitorParam === 'true') {
       return { isMonitorMode: true, isBoardMode: false, executionIds: [] };
     }
-    
+
     return { isMonitorMode: false, isBoardMode: false, executionIds: [] };
   }, [urlKey]);
 

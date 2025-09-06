@@ -8,13 +8,13 @@ import { getJSDoc } from './utils'
 
 export function parseEnums(sourceFile: SourceFile, includeJSDoc: boolean): EnumInfo[] {
   const enums: EnumInfo[] = []
-  
+
   sourceFile.getEnums().forEach(enumDecl => {
     const members = enumDecl.getMembers().map(member => ({
       name: member.getName(),
       value: member.getValue()
     }))
-    
+
     enums.push({
       name: enumDecl.getName(),
       members,
@@ -22,6 +22,6 @@ export function parseEnums(sourceFile: SourceFile, includeJSDoc: boolean): EnumI
       jsDoc: includeJSDoc ? getJSDoc(enumDecl) : undefined
     })
   })
-  
+
   return enums
 }

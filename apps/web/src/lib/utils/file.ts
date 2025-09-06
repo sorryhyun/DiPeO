@@ -5,7 +5,7 @@
 
 import { toast } from 'react-hot-toast';
 import { apolloClient } from '@/lib/graphql/client';
-import { 
+import {
   UploadFileDocument,
   type UploadFileMutation,
   type UploadFileMutationVariables,
@@ -39,7 +39,7 @@ export const readFileAsText = (file: File, options?: ReadFileOptions): Promise<s
       reject(new Error(`File size exceeds maximum allowed size of ${options.maxSize} bytes`));
       return;
     }
-    
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result;
@@ -62,7 +62,7 @@ export const selectFile = (options?: ReadFileOptions): Promise<File> => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = options?.acceptedTypes || '.json,.yaml,.yml,.react.json,.native.yaml,.readable.yaml';
-    
+
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
@@ -71,7 +71,7 @@ export const selectFile = (options?: ReadFileOptions): Promise<File> => {
         reject(new Error('No file selected'));
       }
     };
-    
+
     input.click();
   });
 };
@@ -107,7 +107,7 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
     // Just send the path without 'files/' prefix
     // Backend will handle putting it in the right directory
     const path = file.name;
-    
+
     const { data } = await apolloClient.mutate<UploadFileMutation, UploadFileMutationVariables>({
       mutation: UploadFileDocument,
       variables: {
@@ -115,15 +115,15 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
         path
       }
     });
-    
+
     if (!data?.upload_file.success) {
       throw new Error(data?.upload_file.error || 'Failed to save diagram');
     }
-    
+
     // Extract diagram ID from filename
     const filename = file.name;
     const diagramId = filename.replace('.yaml', '').replace('.yml', '').replace('.json', '');
-    
+
     return {
       success: true,
       diagramId,
@@ -167,11 +167,11 @@ export const uploadFile = async (
         path: `uploads/${filename}`
       }
     });
-    
+
     if (!data?.upload_file.success) {
       throw new Error(data?.upload_file.error || 'Failed to upload file');
     }
-    
+
     return {
       success: true,
       path: data.upload_file.path || undefined,

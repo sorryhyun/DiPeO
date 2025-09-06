@@ -14,6 +14,7 @@ from typing import Any
 from uuid import uuid4
 
 import aiosqlite
+
 from dipeo.config import STATE_DB_PATH
 from dipeo.diagram_generated import (
     DiagramID,

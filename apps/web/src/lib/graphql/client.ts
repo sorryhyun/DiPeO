@@ -31,7 +31,7 @@ const wsClient = createClient({
       const wasDisconnected = !isConnected;
       isConnected = true;
       lastConnectionTime = Date.now();
-      
+
       if (wasDisconnected && retryCount > 0) {
         console.log(`[GraphQL WS] Reconnected to server after ${retryCount} attempts`);
         toast.success('WebSocket reconnected');
@@ -44,15 +44,15 @@ const wsClient = createClient({
       const wasConnected = isConnected;
       isConnected = false;
       retryCount++;
-      
+
       const connectionDuration = Date.now() - lastConnectionTime;
-      const reason = event instanceof CloseEvent ? 
-        `Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}` : 
+      const reason = event instanceof CloseEvent ?
+        `Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}` :
         'Unknown reason';
-      
+
       console.log(`[GraphQL WS] Connection closed - ${reason}`);
       console.log(`[GraphQL WS] Connection was active for ${Math.round(connectionDuration / 1000)}s`);
-      
+
       if (wasConnected) {
         if (event instanceof CloseEvent) {
           if (event.code === 1000) {

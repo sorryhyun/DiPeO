@@ -8,7 +8,7 @@ import {
 import { DiagramFormat } from '@dipeo/models';
 import { serializeDiagram } from '@/domain/diagram/utils/diagramSerializer';
 import { createEntityMutation } from '@/lib/graphql/hooks';
-import { 
+import {
   ConvertDiagramFormatDocument,
   type ConvertDiagramFormatMutation,
   type ConvertDiagramFormatMutationVariables,
@@ -37,7 +37,7 @@ export const useFileOperations = () => {
     try {
       // Save the file to server first
       const result = await saveDiagramFile(file);
-      
+
       if (!result.success) {
         throw new Error(result.message || 'Failed to upload diagram to server');
       }
@@ -47,11 +47,11 @@ export const useFileOperations = () => {
         const { data, error } = await getDiagram({
           variables: { id: result.diagramId }
         });
-        
+
         if (error) {
           throw new Error(`Failed to load diagram: ${error.message}`);
         }
-        
+
         if (data?.diagram) {
           // Load the diagram data directly
           loadDiagramFromData({
@@ -65,7 +65,7 @@ export const useFileOperations = () => {
               id: data.diagram.metadata?.id || result.diagramId
             }
           });
-          
+
           toast.success(
             `Loaded ${result.diagramName || 'diagram'} (${result.nodeCount} nodes)`
           );
@@ -101,9 +101,9 @@ export const useFileOperations = () => {
   }, [loadFile]);
 
 
-  
+
   // UPLOAD OPERATIONS
-  
+
 
   const saveDiagram = useCallback(async (
     filename?: string,
@@ -113,28 +113,28 @@ export const useFileOperations = () => {
     try {
       // Serialize the current diagram state
       const diagramContent = serializeDiagram();
-      
+
       // Use the regular upload for all saves
       const actualFilename = filename || 'diagram.json';
       const actualFormat = format || DiagramFormat.NATIVE;
-      
+
       const content = JSON.stringify(diagramContent, null, 2);
-      
-      const file = new File([content], actualFilename, { 
-        type: actualFilename.endsWith('.json') ? 'application/json' : 'text/yaml' 
+
+      const file = new File([content], actualFilename, {
+        type: actualFilename.endsWith('.json') ? 'application/json' : 'text/yaml'
       });
-      
+
       // Save the diagram
       const saveResult = await saveDiagramFile(file, actualFormat);
-      
+
       if (!saveResult.success) {
         throw new Error(saveResult.message || 'Failed to save diagram');
       }
-      
+
       // Update the format in the store
       const store = useUnifiedStore.getState();
       store.setDiagramFormat(actualFormat);
-      
+
       // Silent save - no toast notification
       return saveResult;
     } catch (error) {
@@ -146,9 +146,9 @@ export const useFileOperations = () => {
     }
   }, []);
 
-  
+
   // EXPORT OPERATIONS
-  
+
 
   const downloadAs = useCallback(async (
     format: DiagramFormat = DiagramFormat.NATIVE,
@@ -159,7 +159,7 @@ export const useFileOperations = () => {
     try {
       // Serialize the current diagram state
       const diagramContent = JSON.stringify(serializeDiagram());
-      
+
       // Export via GraphQL - convert format to uppercase for GraphQL enum
       const { data } = await convertDiagram({
         variables: {
@@ -168,22 +168,22 @@ export const useFileOperations = () => {
           to_format: format
         }
       });
-      
+
       if (!data?.convert_diagram_format.success) {
         throw new Error(data?.convert_diagram_format.error || 'Failed to convert diagram');
       }
-      
+
       const exportResult = data.convert_diagram_format;
-      
+
       // Determine filename
       const actualFilename = filename || `diagram.${format === DiagramFormat.NATIVE ? 'json' : 'yaml'}`;
-      
+
       // Download the file
       if (exportResult.content) {
         downloadFile(exportResult.content, actualFilename);
         toast.success(`Exported as ${actualFilename}`);
       }
-      
+
       return {
         success: true,
         filename: actualFilename,
@@ -207,7 +207,7 @@ export const useFileOperations = () => {
   ): Promise<{ content: string; format: string; filename: string }> => {
     try {
       const diagramContent = JSON.stringify(serializeDiagram());
-      
+
       const { data } = await convertDiagram({
         variables: {
           content: diagramContent,
@@ -215,13 +215,13 @@ export const useFileOperations = () => {
           to_format: format
         }
       });
-      
+
       if (!data?.convert_diagram_format.success) {
         throw new Error(data?.convert_diagram_format.error || 'Failed to convert diagram');
       }
-      
+
       const result = data.convert_diagram_format;
-      
+
       return {
         content: result.content || '',
         format: result.format || format,
@@ -234,9 +234,9 @@ export const useFileOperations = () => {
     }
   }, [convertDiagram]);
 
-  
+
   // FORMAT INFORMATION
-  
+
 
   /**
    * Get available formats
@@ -283,18 +283,18 @@ export const useFileOperations = () => {
   return {
     // State
     isProcessing,
-    
+
     // Load operations
     loadDiagram: loadFile,
     loadWithDialog,
-    
+
     // Save operations
     saveDiagram,
-    
+
     // Export operations
     downloadAs,
     convertFormat,
-    
+
     // Format information
     getAvailableFormats
   };

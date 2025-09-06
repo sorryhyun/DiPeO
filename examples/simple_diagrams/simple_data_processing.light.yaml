@@ -27,26 +27,26 @@ nodes:
       import json
       import csv
       from io import StringIO
-      
+
       def process_data(input_data):
           # Parse CSV data
           reader = csv.DictReader(StringIO(input_data["raw_data"]))
           rows = list(reader)
-          
+
           # Clean and validate data
           cleaned_rows = []
           invalid_count = 0
-          
+
           for row in rows:
               # Remove empty values and strip whitespace
               cleaned_row = {k: v.strip() for k, v in row.items() if v and v.strip()}
-              
+
               # Basic validation (customize as needed)
               if cleaned_row:
                   cleaned_rows.append(cleaned_row)
               else:
                   invalid_count += 1
-          
+
           # Calculate statistics
           stats = {
               "total_rows": len(rows),
@@ -54,13 +54,13 @@ nodes:
               "invalid_rows": invalid_count,
               "columns": list(rows[0].keys()) if rows else []
           }
-          
+
           return {
               "cleaned_data": cleaned_rows,
               "statistics": stats,
               "dataset_name": input_data.get("dataset_name", "unknown")
           }
-      
+
       result = process_data(inputs)
     functionName: process_data
 
@@ -70,16 +70,16 @@ nodes:
   props:
     default_prompt: |
       Analyze this cleaned dataset and identify key patterns:
-      
+
       Dataset: {{processed.dataset_name}}
       Statistics: {{processed.statistics}}
       Sample data (first 5 rows): {{processed.cleaned_data[:5]}}
-      
+
       Please provide:
       1. Main patterns or trends you observe
       2. Data quality assessment
       3. Potential insights for business decisions
-      
+
       Format your response as a structured analysis.
     max_iteration: 1
     memorize_to: CONVERSATION_PAIRS
@@ -93,33 +93,33 @@ nodes:
     code: |
       import json
       from datetime import datetime
-      
+
       def format_report(input_data):
           analysis = input_data["analysis"]
           stats = input_data["statistics"]
           dataset_name = input_data["dataset_name"]
-          
+
           report = f"""# Data Processing Report
-      
+
       **Generated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
       **Dataset**: {dataset_name}
-      
+
       ## Statistics
       - Total Rows: {stats['total_rows']}
       - Valid Rows: {stats['valid_rows']}
       - Invalid Rows: {stats['invalid_rows']}
       - Columns: {', '.join(stats['columns'])}
-      
+
       ## Analysis
       {analysis}
-      
+
       ## Processed Data Summary
       Successfully processed {stats['valid_rows']} records from {dataset_name}.
       Data quality: {round(stats['valid_rows'] / stats['total_rows'] * 100, 1)}%
       """
-          
+
           return {"report": report, "metadata": stats}
-      
+
       result = format_report(inputs)
     functionName: format_report
 

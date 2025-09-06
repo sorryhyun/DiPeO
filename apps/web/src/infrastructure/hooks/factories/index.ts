@@ -4,7 +4,7 @@ export type { OperationHookConfig, OperationHookReturn } from './storeOpFactory'
 
 // Unified operation factory
 export { useOperationFactory, useAsyncState, createSimpleStoreOperations } from './useOperationFactory';
-export type { 
+export type {
   UnifiedOperationConfig,
   UnifiedOperationReturn,
   AsyncOperationState,

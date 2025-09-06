@@ -11,7 +11,7 @@ function buildNodeMetadata() {
 
   // Get all available node types from the registry
   const allConfigs = getAllNodeConfigs();
-  
+
   for (const [nodeType, config] of allConfigs) {
     if (config) {
       icons[nodeType as NodeType] = config.icon;
@@ -30,7 +30,7 @@ function buildNodeMetadata() {
     }
     if (!labels[nodeType]) {
       // Convert enum to title case
-      labels[nodeType] = nodeType.split('_').map(word => 
+      labels[nodeType] = nodeType.split('_').map(word =>
         word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
       ).join(' ');
     }

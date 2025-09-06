@@ -56,7 +56,7 @@ nodes:
         2. Key information or data points
         3. Important links or resources
         4. Overall structure and organization
-        
+
         Page data:
         URL: {{navigation_result.url}}
         Title: {{navigation_result.title}}
@@ -89,22 +89,22 @@ connections:
   - from: Start
     to: Navigate to Website
     content_type: raw_text
-    
+
   - from: Navigate to Website
     to: Capture Page Snapshot
     content_type: raw_text
     label: navigation_result
-    
+
   - from: Capture Page Snapshot
     to: Analyze Content
     content_type: raw_text
     label: snapshot
-    
+
   - from: Analyze Content
     to: Save Analysis
     content_type: raw_text
     label: analysis_result
-    
+
   - from: Save Analysis
     to: Complete
     content_type: raw_text

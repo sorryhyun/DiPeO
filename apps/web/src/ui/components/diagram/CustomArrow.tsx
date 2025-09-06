@@ -35,7 +35,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   const { arrowOps } = useCanvasOperations();
   const currentArrow = useArrowData(arrowId(id));
   const isExecutionMode = activeCanvas === 'execution';
-  
+
   const arrowData = data as ArrowData | undefined;
   const controlPointOffsetX = Number(arrowData?.controlPointOffsetX ?? 0);
   const controlPointOffsetY = Number(arrowData?.controlPointOffsetY ?? 0);
@@ -45,21 +45,21 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
     // Extract handle name from the full handle ID (e.g., "node-123_condtrue_output" -> "condtrue")
     const sourceHandleParts = sourceHandle?.split('_') || [];
     const sourceHandleName = sourceHandleParts[sourceHandleParts.length - 2]?.toLowerCase();
-    
+
     // Check if this is a branch arrow from a condition node
     // by looking at the source handle name
     const isConditionBranch = sourceHandleName === 'condtrue' || sourceHandleName === 'condfalse';
-    
+
     if (arrowData?.branch) {
       return <span>{arrowData.branch === 'true' ? '✅' : '❌'}</span>;
     }
-    
+
     // If no explicit branch data but it's from a condition node, infer from handle name
     if (isConditionBranch) {
       const isTrueBranch = sourceHandleName === 'condtrue';
       return <span>{isTrueBranch ? '✅' : '❌'}</span>;
     }
-    
+
     if (arrowData?.content_type) {
       // Support both uppercase and lowercase enum values
       const contentType = arrowData.content_type.toLowerCase();
@@ -72,12 +72,12 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
       };
       return <span>{icons[contentType] || '📋'}</span>;
     }
-    
+
     // If arrow has a label but no content_type, assume it's raw text
     if (arrowData?.label) {
       return <span>📝</span>;
     }
-    
+
     // No emoji for arrows without explicit content_type or label
     return null;
   }, [arrowData?.branch, arrowData?.content_type, arrowData?.label, source, sourceHandle]);
@@ -86,10 +86,10 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
   // Create a type-safe wrapper that updates arrow data in the store
   const handleUpdateData = useCallback(async (edgeId: string, newData: Partial<ArrowData>) => {
     if (!newData) return;
-    
+
     // Use the current arrow data to preserve existing data
     const currentData = (currentArrow?.data || {}) as ArrowData;
-    
+
     // Merge the new data with existing data
     await arrowOps.updateArrow(arrowId(edgeId), {
       data: { ...currentData, ...newData } as Record<string, unknown>
@@ -101,7 +101,7 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
     let path: string;
     let lx: number;
     let ly: number;
-    
+
     if (source === target) {
       const x = sourceX;
       const y = sourceY;
@@ -114,14 +114,14 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
     } else {
       const defaultControlX = (sourceX + targetX) / 2;
       const defaultControlY = (sourceY + targetY) / 2;
-      
+
       // Apply user's control point offset
       const controlX = defaultControlX + controlPointOffsetX;
       const controlY = defaultControlY + controlPointOffsetY;
-      
+
       // Create quadratic bezier path with custom control point
       path = `M ${sourceX},${sourceY} Q ${controlX},${controlY} ${targetX},${targetY}`;
-      
+
       // Calculate point on the bezier curve at t=0.5 (midpoint along the curve)
       const midPoint = getQuadraticPoint(
         { x: sourceX, y: sourceY },
@@ -132,20 +132,20 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
       lx = midPoint.x;
       ly = midPoint.y;
     }
-    
+
     return { edgePath: path, labelX: lx, labelY: ly };
   }, [source, target, sourceX, sourceY, targetX, targetY, controlPointOffsetX, controlPointOffsetY, arrowData?.loopRadius]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setIsDragging(true);
-    
+
     // Convert initial mouse position to flow coordinates
     const initialFlowPosition = screenToFlowPosition({
       x: e.clientX,
       y: e.clientY,
     });
-    
+
     // Store the initial offset between mouse and control point
     if (source === target) {
       // For self-loops, calculate initial distance
@@ -165,31 +165,31 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
         controlY: controlPointOffsetY,
       };
     }
-    
+
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!dragRef.current) return;
-      
+
       // Convert mouse position to flow coordinates
       const flowPosition = screenToFlowPosition({
         x: moveEvent.clientX,
         y: moveEvent.clientY,
       });
-      
+
       if (source === target) {
         // For self-loops, calculate distance based on initial radius and mouse movement
         const nodeX = sourceX;
         const nodeY = sourceY;
         const deltaX = flowPosition.x - dragRef.current.startX;
         const deltaY = flowPosition.y - dragRef.current.startY;
-        
+
         // Calculate new distance from node center
         const newX = nodeX + dragRef.current.controlX + deltaX;
         const newY = nodeY + deltaY;
         const distance = Math.sqrt(
-          Math.pow(newX - nodeX, 2) + 
+          Math.pow(newX - nodeX, 2) +
           Math.pow(newY - nodeY, 2)
         );
-        
+
         handleUpdateData(id as string, {
           loopRadius: Math.max(30, Math.min(100, distance)),
         });
@@ -197,25 +197,25 @@ export const CustomArrow = React.memo<CustomArrowProps>(({
         // Calculate the mouse movement delta
         const deltaX = flowPosition.x - dragRef.current.startX;
         const deltaY = flowPosition.y - dragRef.current.startY;
-        
+
         // Apply delta to the original control point offset
         const newControlX = dragRef.current.controlX + deltaX;
         const newControlY = dragRef.current.controlY + deltaY;
-        
+
         handleUpdateData(id as string, {
           controlPointOffsetX: Math.round(newControlX * 10) / 10,
           controlPointOffsetY: Math.round(newControlY * 10) / 10,
         });
       }
     };
-    
+
     const handleMouseUp = () => {
       setIsDragging(false);
       dragRef.current = null;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-    
+
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }, [id, source, target, screenToFlowPosition, sourceX, sourceY, handleUpdateData, controlPointOffsetX, controlPointOffsetY, arrowData]);

@@ -487,7 +487,7 @@ print(json.dumps(result))
 
             # Create parent directories if needed
             parent_dir = path.parent
-            if parent_dir != Path(".") and not filesystem_adapter.exists(parent_dir):
+            if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
                 filesystem_adapter.mkdir(parent_dir, parents=True)
 
             # Prepare content based on format

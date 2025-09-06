@@ -19,7 +19,7 @@ export interface ContextMenuProps {
 const DEFAULT_NODE_TYPES = Array.from(getAllNodeConfigs().keys());
 const DEFAULT_NODE_LABELS = Object.fromEntries(
   DEFAULT_NODE_TYPES.map(key => [
-    key, 
+    key,
     key.replace(/_/g, ' ').replace(/\b\w/g, l => l)
   ])
 );
@@ -40,14 +40,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   // Use props if provided, otherwise use pre-computed defaults
   const nodeTypes = nodeTypesProp || DEFAULT_NODE_TYPES;
   const nodeLabels = nodeLabelsProp || DEFAULT_NODE_LABELS;
-  
+
   // Memoize node entries to avoid re-creating on every render
   const nodeEntries = useMemo(() => {
-    return Array.isArray(nodeTypes) 
+    return Array.isArray(nodeTypes)
       ? nodeTypes.map(type => [type, type])
       : Object.entries(nodeTypes);
   }, [nodeTypes]);
-  
+
   const handleAddNode = useCallback(async (nodeType: string) => {
     const pos = projectPosition(position.x, position.y);
     await nodeOps.addNode(nodeType as DomainNode['type'], pos);
@@ -96,7 +96,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           Delete
         </div>
       )}
-      
+
       <div className="border-t border-gray-200">
         <div className="px-4 py-2 text-sm font-medium text-gray-700">Add Block</div>
         {nodeEntries.map(([, nodeType]) => (
@@ -109,7 +109,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           </div>
         ))}
       </div>
-      
+
       <div className="border-t border-gray-200">
         <div
           className="px-4 py-2 hover:bg-gray-100 cursor-pointer"

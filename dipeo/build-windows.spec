@@ -50,7 +50,7 @@ base_hiddenimports = [
     'dipeo.application.bootstrap',
     'dipeo.models',
     'dipeo.utils',
-    
+
     # Common dependencies
     'yaml',
     'pyyaml',
@@ -76,7 +76,7 @@ server_hiddenimports = [
     'hypercorn.protocol.ws',
     'hypercorn.typing',
     'hypercorn.utils',
-    
+
     # Strawberry GraphQL
     'strawberry',
     'strawberry.asgi',
@@ -89,24 +89,24 @@ server_hiddenimports = [
     'strawberry.extensions',
     'strawberry.http',
     'strawberry.file_uploads',
-    
+
     # FastAPI and dependencies
     'fastapi',
     'fastapi.middleware',
     'fastapi.middleware.cors',
     'fastapi.staticfiles',
-    
+
     # Async libraries
     'aiofiles',
     'aiohttp',
     'anyio',
     'sniffio',
-    
+
     # LLM clients
     'anthropic',
     'openai',
     'google.genai',
-    
+
     # Other server dependencies
     'python_multipart',
     'multipart',
@@ -115,7 +115,7 @@ server_hiddenimports = [
     'graphql',
     'prometheus_client',
     'dotenv',
-    
+
     # Server-specific DiPeO modules
     'dipeo_server',
     'dipeo_server.api.graphql.queries',
@@ -170,7 +170,7 @@ datas = [
     # Container moved to application.bootstrap
     (str(DIPEO_DIR / 'models'), 'dipeo/models'),
     (str(DIPEO_DIR / 'utils'), 'dipeo/utils'),
-    
+
     # Include __init__.py files
     (str(DIPEO_DIR / '__init__.py'), 'dipeo/'),
 ]
@@ -180,7 +180,7 @@ if IS_SERVER_BUILD:
     server_src = ROOT_DIR / 'apps' / 'server' / 'src'
     if server_src.exists():
         datas.append((str(server_src), 'src'))
-    
+
     # Include schema file if it exists
     schema_file = ROOT_DIR / 'apps' / 'server' / 'schema.graphql'
     if schema_file.exists():

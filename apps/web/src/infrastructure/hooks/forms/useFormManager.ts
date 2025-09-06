@@ -62,10 +62,10 @@ export function useFormManager<T extends Record<string, any>>({
     stateOperations.updateFields(updates);
 
     if (config.validateOnChange) {
-      const fieldsToValidate = Object.keys(updates).filter(field => 
+      const fieldsToValidate = Object.keys(updates).filter(field =>
         formState.touched[field]
       );
-      
+
       await Promise.all(
         fieldsToValidate.map(field => validation.validateField(field))
       );
@@ -85,13 +85,13 @@ export function useFormManager<T extends Record<string, any>>({
 
     try {
       stateOperations.setSubmitting(true);
-      
+
       Object.keys(formState.data).forEach(field => {
         stateOperations.setFieldTouched(field);
       });
 
       const validationResult = await validation.validateForm();
-      
+
       if (!validationResult.valid) {
         return;
       }
@@ -118,7 +118,7 @@ export function useFormManager<T extends Record<string, any>>({
   const reset = useCallback((values?: Partial<T>) => {
     stateOperations.reset(values);
     validation.clearAllErrors();
-    
+
     if (autoSaveState) {
       autoSaveState.resetAutoSave();
     }

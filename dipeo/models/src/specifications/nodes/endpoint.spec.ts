@@ -9,7 +9,7 @@ export const endpointSpec: NodeSpecification = {
   icon: "🏁",
   color: "#F44336",
   description: "Exit point for diagram execution",
-  
+
   fields: [
     {
       name: "save_to_file",
@@ -30,19 +30,19 @@ export const endpointSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: []
   },
-  
+
   outputs: {},
-  
+
   execution: {
     timeout: 300,
     retryable: true,
     maxRetries: 3
   },
-  
+
   primaryDisplayField: "save_to_file"
 };

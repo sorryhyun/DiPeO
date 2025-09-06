@@ -13,11 +13,11 @@ export const smoothConfig = {
 // Framer Motion variants for common animations
 export const fadeInVariants = {
   hidden: { opacity: 0 },
-  visible: { 
+  visible: {
     opacity: 1,
     transition: { duration: 0.2 }
   },
-  exit: { 
+  exit: {
     opacity: 0,
     transition: { duration: 0.15 }
   }
@@ -25,13 +25,13 @@ export const fadeInVariants = {
 
 export const slideInVariants = {
   hidden: { opacity: 0, y: 10 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }
   },
-  exit: { 
-    opacity: 0, 
+  exit: {
+    opacity: 0,
     y: -10,
     transition: { duration: 0.2 }
   }
@@ -39,13 +39,13 @@ export const slideInVariants = {
 
 export const scaleInVariants = {
   hidden: { opacity: 0, scale: 0.95 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     scale: 1,
     transition: { duration: 0.2, ease: [0.4, 0, 0.2, 1] }
   },
-  exit: { 
-    opacity: 0, 
+  exit: {
+    opacity: 0,
     scale: 0.95,
     transition: { duration: 0.15 }
   }
@@ -53,17 +53,17 @@ export const scaleInVariants = {
 
 export const popInVariants = {
   hidden: { opacity: 0, scale: 0.8 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     scale: 1,
-    transition: { 
+    transition: {
       type: "spring",
       stiffness: 300,
       damping: 20
     }
   },
-  exit: { 
-    opacity: 0, 
+  exit: {
+    opacity: 0,
     scale: 0.8,
     transition: { duration: 0.15 }
   }
@@ -96,7 +96,7 @@ export const staggerItemVariants = {
 // Hover animations
 export const hoverScaleVariants = {
   rest: { scale: 1 },
-  hover: { 
+  hover: {
     scale: 1.05,
     transition: {
       duration: 0.2,
@@ -107,11 +107,11 @@ export const hoverScaleVariants = {
 };
 
 export const hoverLiftVariants = {
-  rest: { 
+  rest: {
     y: 0,
     boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
   },
-  hover: { 
+  hover: {
     y: -2,
     boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)",
     transition: {
@@ -124,8 +124,8 @@ export const hoverLiftVariants = {
 // Interaction feedback
 export const rippleAnimation = {
   initial: { scale: 0, opacity: 0.5 },
-  animate: { 
-    scale: 4, 
+  animate: {
+    scale: 4,
     opacity: 0,
     transition: {
       duration: 0.6,
@@ -160,13 +160,13 @@ export const shimmerAnimation = {
 
 // Notification animations
 export const notificationVariants = {
-  hidden: { 
-    opacity: 0, 
+  hidden: {
+    opacity: 0,
     y: -20,
     scale: 0.9
   },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     scale: 1,
     transition: {
@@ -175,8 +175,8 @@ export const notificationVariants = {
       damping: 20
     }
   },
-  exit: { 
-    opacity: 0, 
+  exit: {
+    opacity: 0,
     x: 100,
     transition: {
       duration: 0.2

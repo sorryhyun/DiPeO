@@ -22,7 +22,7 @@ persons:
       that follow best practices for modularity, error handling, and performance.
       Always ensure proper node positioning with x-coordinates incrementing by 200-300 for readability.
       IMPORTANT: Never use 'empty' content_type - always use 'raw_text', 'object', or 'conversation_state'.
-  
+
   test_data_creator:
     service: openai
     model: gpt-5-nano-2025-08-07
@@ -36,7 +36,7 @@ nodes:
   - label: start
     type: start
     position: {x: 100, y: 200}
-    
+
   - label: load_request
     type: code_job
     position: {x: 300, y: 200}
@@ -70,7 +70,7 @@ nodes:
       prompt_file: test_data_generator.txt
       max_iteration: 1
       text_format_file: projects/dipeodipeo/test_data_models.py
-  
+
   - label: save_test_data
     type: db
     position: {x: 1000, y: 200}
@@ -88,7 +88,7 @@ nodes:
       prompt_file: diagram_generator.txt
       max_iteration: 1
       text_format_file: projects/dipeodipeo/light_diagram_models.py
-      
+
   - label: format_yaml
     type: code_job
     position: {x: 1400, y: 200}
@@ -96,7 +96,7 @@ nodes:
       language: python
       filePath: projects/dipeodipeo/process.py
       functionName: process_diagram
-  
+
   - label: save_diagram
     type: db
     position: {x: 1600, y: 200}

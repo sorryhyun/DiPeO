@@ -4,9 +4,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from pydantic import BaseModel
+
 from dipeo.config.llm import DEFAULT_TEMPERATURE
 from dipeo.diagram_generated.enums import ExecutionPhase
-from pydantic import BaseModel
 
 
 class ProviderType(str, Enum):

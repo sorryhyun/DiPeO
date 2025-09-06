@@ -6,7 +6,7 @@ import { BaseNode } from './BaseNode';
 const ConfigurableNode = React.memo<NodeProps>(({ id, type, data, selected, dragging }) => {
   // Use the type prop from React Flow directly
   const nodeType = type || 'start';
-  
+
   return (
     <BaseNode
       id={id}

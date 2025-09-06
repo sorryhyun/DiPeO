@@ -92,21 +92,21 @@ export const ExecutionLogView: React.FC = () => {
   }, [logs, autoScroll]);
 
   const filteredLogs = logs.filter(log => {
-    const matchesText = !filter || 
+    const matchesText = !filter ||
       log.message.toLowerCase().includes(filter.toLowerCase()) ||
       log.logger.toLowerCase().includes(filter.toLowerCase()) ||
       (log.node_id && log.node_id.toLowerCase().includes(filter.toLowerCase()));
-    
+
     const matchesLevel = levelFilter === 'ALL' || log.level.toUpperCase() === levelFilter;
-    
+
     return matchesText && matchesLevel;
   });
 
   const exportLogs = () => {
-    const logText = filteredLogs.map(log => 
+    const logText = filteredLogs.map(log =>
       `[${log.timestamp}] [${log.level}] ${log.logger}${log.node_id ? ` (${log.node_id})` : ''}: ${log.message}`
     ).join('\n');
-    
+
     const blob = new Blob([logText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -178,7 +178,7 @@ export const ExecutionLogView: React.FC = () => {
 
       {/* Logs */}
       <div className="flex-1 relative">
-        <div 
+        <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
           className="h-full overflow-auto p-4 font-mono text-xs bg-gray-900"

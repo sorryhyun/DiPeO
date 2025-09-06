@@ -4,10 +4,11 @@ import json
 from pathlib import Path
 
 import yaml
+from pydantic import ValidationError
+
 from dipeo.infrastructure.integrations.drivers.integrated_api.manifest_schema import (
     ProviderManifest,
 )
-from pydantic import ValidationError
 
 
 class IntegrationsCommand:

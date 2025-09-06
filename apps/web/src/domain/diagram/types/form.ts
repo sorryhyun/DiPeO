@@ -8,7 +8,7 @@ import { FIELD_TYPES, type ValidationResult, type FieldType } from '@/infrastruc
  * Property field types for form rendering
  * Extended field types that include data types not in base panel fields
  */
-export type PropertyFieldType = 
+export type PropertyFieldType =
   | FieldType
   | 'json'
   | 'array'

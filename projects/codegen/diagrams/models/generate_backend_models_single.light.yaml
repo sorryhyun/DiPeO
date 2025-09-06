@@ -9,7 +9,7 @@ nodes:
     type: start
     position: {x: 50, y: 100}
 
-  # Parse batch input to get node type 
+  # Parse batch input to get node type
   - label: Parse Node Type
     type: code_job
     position: {x: 200, y: 100}
@@ -19,7 +19,7 @@ nodes:
         # node_type is like "api-job", "person-job", etc.
         # Extract just the string value for template substitution
         result = default['default']['node_spec_path']
-  
+
   # Load cached AST data for this node spec
   - label: Load Cached AST
     type: db
@@ -29,7 +29,7 @@ nodes:
       sub_type: file
       source_details: temp/specifications/nodes/{node_type}.spec.ts.json
       format: json
-      
+
   # Load codegen mappings
   - label: Load Codegen Mappings
     type: db
@@ -39,7 +39,7 @@ nodes:
       sub_type: file
       source_details: temp/codegen/mappings.ts.json
       format: json
-      
+
   # Extract mappings
   - label: Extract Mappings
     type: code_job
@@ -48,7 +48,7 @@ nodes:
       language: python
       filePath: projects/codegen/code/shared/extract_mappings.py
       functionName: main
-      
+
   # Extract specification from AST
   - label: Extract Specification
     type: code_job
@@ -57,7 +57,7 @@ nodes:
       language: python
       filePath: projects/codegen/code/shared/typescript_spec_parser.py
       functionName: main
-      
+
   # Prepare complete context for templates
   - label: Prepare Context
     type: code_job
@@ -69,18 +69,18 @@ nodes:
         spec_result = inputs.get('spec_data', {})
         mappings = inputs.get('mappings', {})
         node_type_str = inputs.get('node_type', 'unknown')
-        
+
         # Extract the actual spec data (typescript_spec_parser returns {"spec_data": spec})
         if isinstance(spec_result, dict) and 'spec_data' in spec_result:
             spec_data = spec_result['spec_data']
         else:
             spec_data = spec_result
-        
+
         # Clean up nodeType by removing "NodeType." prefix and convert to lowercase
         # Ensure spec_data is a dictionary
         if not isinstance(spec_data, dict):
             raise ValueError(f"spec_data is not a dictionary: {type(spec_data)} - {spec_data}")
-        
+
         cleaned_spec_data = dict(spec_data)
         if 'nodeType' in cleaned_spec_data:
             node_type_raw = cleaned_spec_data['nodeType']
@@ -91,14 +91,14 @@ nodes:
                 node_type_enum = node_type_raw
             # Convert UPPER_SNAKE_CASE to lower_snake_case for filters to work properly
             cleaned_spec_data['nodeType'] = node_type_enum.lower()
-        
+
         # Convert node type from hyphenated to snake_case for file names
         # e.g., "api-job" -> "api_job"
         node_type_snake = node_type_str.replace('-', '_')
-        
+
         # Create node_name in PascalCase for class names
         node_name = ''.join(word.title() for word in node_type_snake.split('_'))
-        
+
         # Build the context with everything needed for templates
         try:
             context = {
@@ -118,7 +118,7 @@ nodes:
                 f"mappings type: {type(mappings)}. "
                 f"Error: {str(e)}"
             )
-        
+
         result = context
 
   # Generate backend code using template_job nodes
@@ -141,23 +141,23 @@ nodes:
 connections:
   # Parse input first
   - {from: Start, to: Parse Node Type, content_type: object}
-    
+
   # Load resources in parallel (node_type passed as text for template substitution)
   - {from: Parse Node Type, to: Load Cached AST, label: node_type}
   - {from: Parse Node Type, to: Load Codegen Mappings}
-    
-  # Extract specification from AST  
+
+  # Extract specification from AST
   - {from: Load Cached AST, to: Extract Specification, label: ast_data, content_type: object}
   - {from: Parse Node Type, to: Extract Specification, label: node_type}
-    
+
   # Extract mappings
   - {from: Load Codegen Mappings, to: Extract Mappings, content_type: object}
-    
+
   # Prepare context with all data
   - {from: Extract Specification, to: Prepare Context, label: spec_data, content_type: object}
   - {from: Extract Mappings, to: Prepare Context, label: mappings, content_type: object}
   - {from: Parse Node Type, to: Prepare Context, label: node_type}
-  
+
   # Pass context to template_job nodes
   - {from: Prepare Context, to: Generate Pydantic Model, content_type: object}
   - {from: Prepare Context, to: Generate Static Node, content_type: object}

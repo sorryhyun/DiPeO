@@ -126,7 +126,7 @@ webhook_events:
           "timestamp": {"type": "string", "format": "date-time"}
         }
       }
-  
+
   - name: resource.updated
     description: Triggered when a resource is updated
     payload_schema: |

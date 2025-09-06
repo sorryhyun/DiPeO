@@ -1,6 +1,6 @@
 /**
  * Handle Converter Module
- * 
+ *
  * Handles all conversions related to node handles (connection points).
  * Manages handle ID parsing, creation, and compatibility checks.
  */
@@ -33,7 +33,7 @@ export class HandleConverter {
       position: graphqlHandle.position
     };
   }
-  
+
   /**
    * Convert domain handle to GraphQL input
    */
@@ -47,28 +47,28 @@ export class HandleConverter {
       position: domainHandle.position
     };
   }
-  
+
   /**
    * Batch convert GraphQL handles to domain
    */
   static batchToDomain(graphqlHandles: DomainHandleType[]): DomainHandle[] {
     return graphqlHandles.map(handle => this.toDomain(handle));
   }
-  
+
   /**
    * Batch convert domain handles to GraphQL
    */
   static batchToGraphQL(domainHandles: DomainHandle[]): Partial<DomainHandleType>[] {
     return domainHandles.map(handle => this.toGraphQL(handle));
   }
-  
+
   /**
    * Convert array to Map for efficient lookups
    */
   static arrayToMap(handles: DomainHandle[]): Map<HandleID, DomainHandle> {
     return new Map(handles.map(handle => [handle.id, handle]));
   }
-  
+
   /**
    * Parse handle ID into components
    */
@@ -79,7 +79,7 @@ export class HandleConverter {
   } {
     return parseHandleId(id);
   }
-  
+
   /**
    * Create handle ID from components
    */
@@ -90,21 +90,21 @@ export class HandleConverter {
   ): HandleID {
     return createHandleId(nodeId, label, direction);
   }
-  
+
   /**
    * Check if two handles can be connected
    */
   static areCompatible(source: DomainHandle, target: DomainHandle): boolean {
     return areHandlesCompatible(source, target);
   }
-  
+
   /**
    * Find handles by node ID
    */
   static findByNode(handles: DomainHandle[], nodeId: NodeID): DomainHandle[] {
     return handles.filter(handle => handle.node_id === nodeId);
   }
-  
+
   /**
    * Find handles by direction
    */
@@ -114,7 +114,7 @@ export class HandleConverter {
   ): DomainHandle[] {
     return handles.filter(handle => handle.direction === direction);
   }
-  
+
   /**
    * Group handles by node
    */
@@ -127,7 +127,7 @@ export class HandleConverter {
     });
     return groups;
   }
-  
+
   /**
    * Get input/output handles for a node
    */
@@ -141,7 +141,7 @@ export class HandleConverter {
       outputs: nodeHandles.filter(h => h.direction === HandleDirection.OUTPUT)
     };
   }
-  
+
   /**
    * Create a minimal handle
    */

@@ -28,4 +28,3 @@ export interface Conversation {
   messages: Message[];
   metadata?: ConversationMetadata;
 }
-

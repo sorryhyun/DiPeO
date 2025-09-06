@@ -1,6 +1,6 @@
 /**
  * useExecution - GraphQL-based execution hook replacing WebSocket
- * 
+ *
  * This hook provides the same interface as useExecution but uses GraphQL
  * subscriptions and mutations instead of WebSocket.
  */
@@ -40,33 +40,33 @@ export interface UseExecutionReturn {
   isReconnecting: boolean;
   progress: number;
   duration: string;
-  
+
   // Execution Actions
   execute: (diagram?: DomainDiagram, options?: ExecutionOptions) => Promise<void>;
   connectToExecution: (executionId: string, totalNodes?: number) => void;
   abort: () => void;
-  
+
   // Node Actions
   pauseNode: (nodeId: string) => void;
   resumeNode: (nodeId: string) => void;
   skipNode: (nodeId: string) => void;
-  
+
   // Interactive Prompt
   interactivePrompt: InteractivePromptData | null;
   respondToPrompt: (response: string) => void;
-  
+
   // UI Helpers
   formatTime: (startTime: Date | null, endTime: Date | null) => string;
   getNodeIcon: (nodeType: string) => string;
   getNodeColor: (nodeType: string) => string;
   getNodeExecutionState: (nodeId: string) => import('./useExecutionState').NodeState | undefined;
-  
+
   // Store integration
   currentRunningNode: string | null;
   nodeRunningStates: Record<string, boolean>;
   runContext: Record<string, unknown>;
   skippedNodes: Array<{ nodeId: string; reason: string }>;
-  
+
   // Additional properties for compatibility
   runningNodes: Set<NodeID>;
   nodes?: Array<any>;
@@ -80,11 +80,11 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     formatDuration = true,
     onUpdate
   } = options;
-  
+
   // Store integration
   const executionStoreSelector = React.useMemo(createCommonStoreSelector, []);
   const executionActions = useUnifiedStore(useShallow(executionStoreSelector));
-  
+
   // State management
   const state = useExecutionState();
   const {
@@ -103,11 +103,11 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     errorExecution,
     updateProgress,
   } = state;
-  
+
   // Streaming operations (GraphQL or SSE)
   // Use execution.executionId from state for reactivity - this ensures subscription reconnects when ID changes
   const currentExecutionId = execution.executionId;
-  const streaming = useExecutionStreaming({ 
+  const streaming = useExecutionStreaming({
     executionId: currentExecutionId,
     skip: !currentExecutionId,
     onConnectionLoss: () => {
@@ -122,7 +122,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
       }
     }
   });
-  
+
   // Process subscription updates
   useExecutionUpdates({
     state,
@@ -137,24 +137,24 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   // Main Actions
   const execute = useCallback(async (diagram?: DomainDiagram, options?: ExecutionOptions) => {
     resetState();
-    
+
     try {
       // Prepare diagram data for execution
       const diagramData = diagram ? {
         nodes: diagram.nodes.reduce((acc: Record<string, unknown>, node) => {
           return { ...acc, [node.id]: stripTypenames(node) };
         }, {}),
-        arrows: diagram.arrows.reduce((acc: Record<string, unknown>, arrow) => ({ 
-          ...acc, 
-          [arrow.id]: stripTypenames(arrow) 
+        arrows: diagram.arrows.reduce((acc: Record<string, unknown>, arrow) => ({
+          ...acc,
+          [arrow.id]: stripTypenames(arrow)
         }), {}),
-        persons: diagram.persons.reduce((acc: Record<string, unknown>, person) => ({ 
-          ...acc, 
-          [person.id]: stripTypenames(person) 
+        persons: diagram.persons.reduce((acc: Record<string, unknown>, person) => ({
+          ...acc,
+          [person.id]: stripTypenames(person)
         }), {}),
-        handles: diagram.handles?.reduce((acc: Record<string, unknown>, handle) => ({ 
-          ...acc, 
-          [handle.id]: stripTypenames(handle) 
+        handles: diagram.handles?.reduce((acc: Record<string, unknown>, handle) => ({
+          ...acc,
+          [handle.id]: stripTypenames(handle)
         }), {}) || {},
         metadata: stripTypenames(diagram.metadata)
       } : null;
@@ -171,7 +171,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
           }
         }
       });
-      
+
       if (result.data?.execute_diagram?.success && result.data.execute_diagram.execution?.id) {
         const execId = result.data.execute_diagram.execution.id;
         const totalNodes = diagram ? (diagram.nodes || []).length : 0;
@@ -193,7 +193,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
 
   const controlExecution = useCallback(async (action: string, nodeIdStr?: string) => {
     if (!executionIdRef.current) return;
-    
+
     try {
       await streaming.controlExecution({
         variables: {
@@ -234,7 +234,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
 
   const respondToPrompt = useCallback(async (response: string) => {
     if (!executionIdRef.current || !interactivePrompt) return;
-    
+
     try {
       await streaming.submitInteractiveResponse({
         variables: {
@@ -294,27 +294,27 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     isReconnecting: false, // GraphQL handles reconnection automatically
     progress,
     duration,
-    
+
     // Execution Actions
     execute,
     connectToExecution: connectToExecutionWithStore,
     abort,
-    
+
     // Node Actions
     pauseNode,
     resumeNode,
     skipNode,
-    
+
     // Interactive Prompt
     interactivePrompt,
     respondToPrompt,
-    
+
     // UI Helpers
     formatTime: formatTimeHelper,
     getNodeIcon,
     getNodeColor,
     getNodeExecutionState,
-    
+
     // Store integration
     currentRunningNode: currentRunningNodeRef.current,
     nodeRunningStates,

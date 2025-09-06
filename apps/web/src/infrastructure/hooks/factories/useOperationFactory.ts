@@ -40,7 +40,7 @@ export interface BaseOperationConfig {
 /**
  * Store-specific operation configuration
  */
-export interface StoreOperationConfig<TEntity, TCreateArgs extends unknown[] = unknown[]> 
+export interface StoreOperationConfig<TEntity, TCreateArgs extends unknown[] = unknown[]>
   extends Omit<BaseOperationConfig, 'messages' | 'options'>, OperationHookConfig<TEntity, TCreateArgs> {
   type: 'store';
 }
@@ -48,7 +48,7 @@ export interface StoreOperationConfig<TEntity, TCreateArgs extends unknown[] = u
 /**
  * GraphQL-specific operation configuration
  */
-export interface GraphQLOperationConfig<_TData = any, _TVariables extends OperationVariables = OperationVariables> 
+export interface GraphQLOperationConfig<_TData = any, _TVariables extends OperationVariables = OperationVariables>
   extends BaseOperationConfig {
   type: 'graphql';
   documents: {
@@ -65,7 +65,7 @@ export interface GraphQLOperationConfig<_TData = any, _TVariables extends Operat
 /**
  * Unified operation configuration
  */
-export type UnifiedOperationConfig<TEntity = any, TCreateArgs extends unknown[] = unknown[]> = 
+export type UnifiedOperationConfig<TEntity = any, TCreateArgs extends unknown[] = unknown[]> =
   | StoreOperationConfig<TEntity, TCreateArgs>
   | GraphQLOperationConfig;
 
@@ -87,16 +87,16 @@ export interface UnifiedOperationReturn<TEntity = any, TCreateArgs extends unkno
   data: TEntity[] | null;
   dataMap: Map<string, TEntity> | null;
   count: number;
-  
+
   // Async state
   state: AsyncOperationState;
-  
+
   // CRUD operations
   create: (...args: TCreateArgs) => Promise<string | null>;
   update: (id: string, updates: Partial<TEntity>) => Promise<boolean>;
   remove: (id: string) => Promise<boolean>;
   refresh?: () => Promise<void>;
-  
+
   // Utilities
   getById: (id: string) => TEntity | undefined;
   exists: (id: string) => boolean;
@@ -169,23 +169,23 @@ export function useOperationFactory<TEntity = any, TCreateArgs extends unknown[]
       data: storeOperations.items,
       dataMap: storeOperations.itemsMap,
       count: storeOperations.count,
-      
+
       // Async state
       state: {
         isLoading: false, // Store operations are synchronous
         isMutating: storeOperations.isProcessing,
-        error: Object.keys(storeOperations.errors).length > 0 
-          ? new Error(Object.values(storeOperations.errors)[0]) 
+        error: Object.keys(storeOperations.errors).length > 0
+          ? new Error(Object.values(storeOperations.errors)[0])
           : null,
         isSuccess: !storeOperations.isProcessing && Object.keys(storeOperations.errors).length === 0,
       },
-      
+
       // CRUD operations
       create: storeOperations.add,
       update: storeOperations.update,
       remove: storeOperations.delete,
       refresh: undefined, // Store doesn't need refresh
-      
+
       // Utilities
       getById: storeOperations.getById,
       exists: storeOperations.exists,
@@ -199,7 +199,7 @@ export function useOperationFactory<TEntity = any, TCreateArgs extends unknown[]
 
   // Handle GraphQL operations
   const { entityName, documents, messages, options = { showToasts: true } } = config as GraphQLOperationConfig;
-  
+
   // Create GraphQL hooks
   const queryHook = documents.list ? createEntityQuery({
     entityName,
@@ -308,7 +308,7 @@ export function useOperationFactory<TEntity = any, TCreateArgs extends unknown[]
 
   const refresh = useCallback(async () => {
     if (!queryResult?.refetch) return;
-    
+
     try {
       asyncActions.setLoading(true);
       await queryResult.refetch();
@@ -350,16 +350,16 @@ export function useOperationFactory<TEntity = any, TCreateArgs extends unknown[]
     data: dataArray,
     dataMap,
     count: dataMap.size,
-    
+
     // Async state
     state: combinedAsyncState,
-    
+
     // CRUD operations
     create,
     update,
     remove,
     refresh: queryResult ? refresh : undefined,
-    
+
     // Utilities
     getById,
     exists,

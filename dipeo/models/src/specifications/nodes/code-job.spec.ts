@@ -9,7 +9,7 @@ export const codeJobSpec: NodeSpecification = {
   icon: "💻",
   color: "#9C27B0",
   description: "Execute custom code functions",
-  
+
   fields: [
     {
       name: "language",
@@ -71,12 +71,12 @@ export const codeJobSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["default"]
   },
-  
+
   inputPorts: [
     {
       name: "default",
@@ -91,19 +91,19 @@ export const codeJobSpec: NodeSpecification = {
       description: "Code to execute (overrides filePath if provided)"
     }
   ],
-  
+
   outputs: {
     result: {
       type: "any",
       description: "Code execution result"
     }
   },
-  
+
   execution: {
     timeout: 300,
     retryable: true,
     maxRetries: 3
   },
-  
+
   primaryDisplayField: "language"
 };

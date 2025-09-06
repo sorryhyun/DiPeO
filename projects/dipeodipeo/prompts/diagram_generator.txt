@@ -90,7 +90,7 @@ connections:
     to: Process
     label: raw_data
     content_type: raw_text  # or object for structured data
-    
+
   # In Process node, access as:
   # Python: raw_data
   # Templates: {{raw_data}}
@@ -151,12 +151,12 @@ CRITICAL REQUIREMENTS:
      async def process_item(item):
          # Process individual item
          return processed_item
-     
+
      async def main():
          tasks = [process_item(item) for item in input_data]
          results = await asyncio.gather(*tasks)
          return results
-     
+
      result = asyncio.run(main())
      ```
 
@@ -241,7 +241,7 @@ For CSV processing without sub_diagram:
     code: |
       import csv
       from io import StringIO
-      
+
       reader = csv.DictReader(StringIO(csv_content))
       records = list(reader)
       result = {"records": records, "count": len(records)}
@@ -258,17 +258,17 @@ For parallel processing without sub_diagram:
     language: python
     code: |
       import asyncio
-      
+
       async def process_record(record):
           # Your processing logic here
           await asyncio.sleep(0.01)  # Simulate async work
           return {**record, "processed": True}
-      
+
       async def main():
           tasks = [process_record(r) for r in input_records]
           results = await asyncio.gather(*tasks)
           return results
-      
+
       result = asyncio.run(main())
 ```
 
@@ -281,13 +281,13 @@ For validation with proper content types:
     code: |
       valid_records = []
       invalid_records = []
-      
+
       for record in input_data.get("records", []):
           if all(field in record for field in required_fields):
               valid_records.append(record)
           else:
               invalid_records.append(record)
-      
+
       result = {
           "valid": valid_records,
           "invalid": invalid_records,

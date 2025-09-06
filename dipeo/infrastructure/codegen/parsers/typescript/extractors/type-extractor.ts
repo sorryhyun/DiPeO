@@ -8,12 +8,12 @@ import { getJSDoc } from './utils'
 
 export function parseTypeAliases(sourceFile: SourceFile, includeJSDoc: boolean): TypeAliasInfo[] {
   const types: TypeAliasInfo[] = []
-  
+
   sourceFile.getTypeAliases().forEach(typeAlias => {
     // Get the type node to preserve original syntax
     const typeNode = typeAlias.getTypeNode()
     const typeText = typeNode ? typeNode.getText() : typeAlias.getType().getText(typeAlias)
-    
+
     types.push({
       name: typeAlias.getName(),
       type: typeText,
@@ -21,6 +21,6 @@ export function parseTypeAliases(sourceFile: SourceFile, includeJSDoc: boolean):
       jsDoc: includeJSDoc ? getJSDoc(typeAlias) : undefined
     })
   })
-  
+
   return types
 }

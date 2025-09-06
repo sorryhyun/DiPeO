@@ -9,23 +9,23 @@ Write-Host ""
 if (-not (Test-Path "apps\server\dist\dipeo-server.exe")) {
     Write-Host "Step 1: Building Backend Server..." -ForegroundColor Yellow
     Push-Location apps\server
-    
+
     # Check if PyInstaller is installed
     python -m pip show pyinstaller > $null 2>&1
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Installing PyInstaller..." -ForegroundColor Yellow
         python -m pip install pyinstaller
     }
-    
+
     # Build backend
     pyinstaller --clean dipeo-server-correct.spec
-    
+
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Backend build failed!" -ForegroundColor Red
         Pop-Location
         exit 1
     }
-    
+
     Pop-Location
     Write-Host "Backend built successfully!" -ForegroundColor Green
 } else {

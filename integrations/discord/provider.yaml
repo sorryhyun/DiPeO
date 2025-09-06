@@ -436,7 +436,7 @@ webhook_events:
           "timestamp": {"type": "string"}
         }
       }
-  
+
   - name: guild_member_add
     description: A new member joined the guild
     payload_schema: |

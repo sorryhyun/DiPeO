@@ -21,7 +21,7 @@ export interface CanvasState {
   selectedArrowId: ArrowID | null;
   selectedPersonId: PersonID | null;
   selectedNodeIds: Set<NodeID>;
-  
+
   // Canvas UI state
   activeCanvas: 'main' | 'execution' | 'memory' | 'preview' | 'monitor';
   readOnly: boolean;
@@ -30,20 +30,20 @@ export interface CanvasState {
   zoom: number;
   position: Vec2;
   canvasMode: 'select' | 'pan' | 'zoom';
-  
+
   // Diagram data
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
   persons: Map<PersonID, DomainPerson>;
   personsWithUsage: Array<DomainPerson & { nodeCount: number }>;
-  
+
   // Execution state
   nodeStates: Map<NodeID, any>;
   executionProgress: number;
   runningNodeCount: number;
   completedNodeCount: number;
   failedNodeCount: number;
-  
+
   // Metadata
   diagramName: string;
   diagramId: string | null;
@@ -60,23 +60,23 @@ export interface CanvasOperations {
   selectPerson: (personId: PersonID | null) => void;
   selectMultipleNodes: (nodeIds: NodeID[]) => void;
   clearSelection: () => void;
-  
+
   // Canvas controls
   setReadOnly: (readOnly: boolean) => void;
   setCanvasMode: (mode: 'select' | 'pan' | 'zoom') => void;
-  
+
   // Diagram operations (unified)
   nodeOps: ReturnType<typeof useNodeOperations>;
   arrowOps: ReturnType<typeof useArrowOperations>;
   personOps: ReturnType<typeof usePersonOperations>;
-  
+
   // Canvas and interaction handlers
   canvasHandlers: ReturnType<typeof useCanvasBase>;
   interactions: ReturnType<typeof useCanvasInteractions>;
-  
+
   // Execution operations
   executionOps: ReturnType<typeof useExecution>;
-  
+
   // Direct store operations
   clearDiagram: () => void;
   clearAll: () => void;
@@ -104,7 +104,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       selectedType: state.selectedType,
       selectedId: state.selectedId,
       multiSelectedIds: state.multiSelectedIds,
-      
+
       // Canvas state
       activeCanvas: state.activeCanvas,
       readOnly: state.readOnly,
@@ -113,18 +113,18 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       zoom: state.zoom,
       position: state.position,
       canvasMode: state.canvasMode,
-      
+
       // Metadata
       diagramName: state.diagramName,
       diagramId: state.diagramId,
     }))
   );
-  
+
   // Derive specific selection states
   const selectedNodeId = uiState.selectedType === 'node' ? (uiState.selectedId as NodeID) : null;
   const selectedArrowId = uiState.selectedType === 'arrow' ? (uiState.selectedId as ArrowID) : null;
   const selectedPersonId = uiState.selectedType === 'person' ? (uiState.selectedId as PersonID) : null;
-  
+
   // Create selectedNodeIds Set
   const selectedNodeIds = useMemo(() => {
     const nodeIds = new Set<NodeID>();
@@ -135,7 +135,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
     }
     return nodeIds;
   }, [uiState.multiSelectedIds, uiState.selectedType]);
-  
+
   // Get store operations
   const storeOperations = useUnifiedStore(
     useShallow(state => ({
@@ -149,11 +149,11 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       validateDiagram: state.validateDiagram,
     }))
   );
-  
+
   // Get data from hooks
   const diagramData = useDiagramData();
   const personsArray = usePersonsData();
-  
+
   // Get operation hooks (called once)
   const canvasHandlers = useCanvasBase();
   const interactions = useCanvasInteractions();
@@ -161,36 +161,36 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
   const arrowOps = useArrowOperations();
   const personOps = usePersonOperations();
   const executionOps = useExecution({ showToasts: false });
-  
+
   // Use the same execution instance for both operations and state
   const execution = executionOps;
-  
+
   // Memoize Map creations to prevent recreating on every render
-  const nodesMap = useMemo(() => 
+  const nodesMap = useMemo(() =>
     new Map(diagramData.nodes.map((node: DomainNode) => [node.id, node])),
     [diagramData.nodes]
   );
-  
-  const arrowsMap = useMemo(() => 
+
+  const arrowsMap = useMemo(() =>
     new Map(diagramData.arrows.map((arrow: DomainArrow) => [arrow.id, arrow])),
     [diagramData.arrows]
   );
-  
-  const personsMap = useMemo(() => 
+
+  const personsMap = useMemo(() =>
     new Map(personsArray.map((person: DomainPerson) => [person.id, person])),
     [personsArray]
   );
-  
+
   // Get computed execution data
   const executionProgress = useExecutionProgressComputed();
   const runningNodes = useRunningNodesComputed();
   const completedNodes = useCompletedNodesComputed();
   const failedNodes = useFailedNodesComputed();
-  
+
   // Calculate persons with usage stats
   const personsWithUsage = useMemo(() => {
     const usageMap = new Map<PersonID, number>();
-    
+
     // Count person usage in nodes
     nodesMap.forEach((node: any) => {
       const personId = node.data?.person || node.data?.personId;
@@ -198,14 +198,14 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
         usageMap.set(personId as PersonID, (usageMap.get(personId as PersonID) || 0) + 1);
       }
     });
-    
+
     // Map persons with usage count
     return personsArray.map(person => ({
       ...person as DomainPerson,
       nodeCount: usageMap.get(person.id as PersonID) || 0
     }));
   }, [nodesMap, personsArray]);
-  
+
   // Create selection operations
   const selectionOps = useMemo(() => ({
     selectNode: (nodeId: NodeID | null) => {
@@ -233,7 +233,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       storeOperations.multiSelect(nodeIds, 'node');
     },
   }), [storeOperations]);
-  
+
   // Build context value
   const contextValue = useMemo<CanvasContextValue>(() => ({
     state: {
@@ -242,7 +242,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       selectedArrowId,
       selectedPersonId,
       selectedNodeIds,
-      
+
       // Canvas UI state
       activeCanvas: uiState.activeCanvas,
       readOnly: uiState.readOnly,
@@ -251,20 +251,20 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       zoom: uiState.zoom,
       position: uiState.position,
       canvasMode: uiState.canvasMode,
-      
+
       // Diagram data
       nodes: nodesMap,
       arrows: arrowsMap,
       persons: personsMap,
       personsWithUsage,
-      
+
       // Execution state
       nodeStates: new Map(Object.entries(execution.nodeStates).map(([k, v]) => [nodeId(k), v])),
       executionProgress: executionProgress.percentage,
       runningNodeCount: runningNodes.length,
       completedNodeCount: completedNodes.length,
       failedNodeCount: failedNodes.length,
-      
+
       // Metadata
       diagramName: uiState.diagramName,
       diagramId: uiState.diagramId,
@@ -274,23 +274,23 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
       // Selection operations
       ...selectionOps,
       clearSelection: storeOperations.clearSelection,
-      
+
       // Canvas controls
       setReadOnly: storeOperations.setReadOnly,
       setCanvasMode: storeOperations.setCanvasMode,
-      
+
       // Diagram operations
       nodeOps,
       arrowOps,
       personOps,
-      
+
       // Canvas and interactions
       canvasHandlers,
       interactions,
-      
+
       // Execution
       executionOps,
-      
+
       // Direct store operations
       clearDiagram: storeOperations.clearDiagram,
       clearAll: storeOperations.clearAll,
@@ -302,7 +302,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
     executionProgress, runningNodes, completedNodes, failedNodes,
     selectionOps, storeOperations, nodeOps, arrowOps, personOps, canvasHandlers, interactions, executionOps
   ]);
-  
+
   return (
     <CanvasContext.Provider value={contextValue}>
       {children}

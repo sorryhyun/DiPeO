@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 export function useUrlSyncedIds() {
   // Track if IDs were explicitly provided in URL
   const hasExplicitIds = useRef<boolean>(false);
-  
+
   const [executionIds, setExecutionIds] = useState<string[]>(() => {
     const params = new URLSearchParams(window.location.search);
     const idsParam = params.get('ids');
@@ -22,11 +22,11 @@ export function useUrlSyncedIds() {
     if (!hasExplicitIds.current && executionIds.length > 0) {
       return; // Skip URL update for auto-fetched IDs
     }
-    
+
     const params = new URLSearchParams(window.location.search);
     const currentIds = params.get('ids');
     const newIdsString = executionIds.join(',');
-    
+
     if (executionIds.length === 0 && currentIds) {
       // Remove the ids param if no executions
       params.delete('ids');
@@ -37,7 +37,7 @@ export function useUrlSyncedIds() {
       // No change needed
       return;
     }
-    
+
     // Update URL without reload
     const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
     window.history.replaceState({}, '', newUrl);
@@ -78,12 +78,12 @@ export function useUrlSyncedIds() {
       setExecutionIds(prev => {
         // Deduplicate the incoming IDs first
         const uniqueIds = [...new Set(ids)];
-        
+
         // If nothing changed, return prev to avoid re-render
         if (uniqueIds.length === prev.length && uniqueIds.every((id, i) => id === prev[i])) {
           return prev;
         }
-        
+
         return uniqueIds;
       });
     }

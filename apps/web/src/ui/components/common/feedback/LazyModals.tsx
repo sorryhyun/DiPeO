@@ -16,7 +16,7 @@ interface LazyDiagramFileModalProps {
 
 export const LazyApiKeysModal: React.FC<LazyApiKeysModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
-  
+
   return (
     <Suspense fallback={
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -39,7 +39,7 @@ export const LazyApiKeysModal: React.FC<LazyApiKeysModalProps> = ({ isOpen, onCl
 
 export const LazyDiagramFileModal: React.FC<LazyDiagramFileModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
-  
+
   return (
     <Suspense fallback={
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

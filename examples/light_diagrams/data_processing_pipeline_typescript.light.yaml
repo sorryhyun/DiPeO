@@ -44,19 +44,19 @@ nodes:
       Statistics: {{parsed_data.statistics}}
 
       IMPORTANT: You MUST respond with ONLY a valid JSON object with score and issues.
-      
+
       Required format:
       {
         "score": <number 0-100>,
         "issues": ["issue1", "issue2"]
       }
-      
+
       Example response:
       {
         "score": 85,
         "issues": ["Missing data in row 9", "Invalid region in 1 row"]
       }
-      
+
       DO NOT include any explanatory text before or after the JSON.
     max_iteration: 1
     person: QualityChecker

@@ -28,7 +28,7 @@ export const AsyncFieldWrapper: React.FC<AsyncFieldWrapperProps> = ({
   useEffect(() => {
     const loadOptions = async () => {
       const optionsConfig = fieldDefinition.options;
-      
+
       if (!optionsConfig) {
         setOptions([]);
         return;

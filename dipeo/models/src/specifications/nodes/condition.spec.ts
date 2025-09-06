@@ -10,7 +10,7 @@ export const conditionSpec: NodeSpecification = {
   icon: "🔀",
   color: "#FF9800",
   description: "Conditional branching based on expressions",
-  
+
   fields: [
     {
       name: "condition_type",
@@ -156,12 +156,12 @@ export const conditionSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["condtrue", "condfalse"]
   },
-  
+
   outputs: {
     true: {
       type: "any",
@@ -172,12 +172,12 @@ export const conditionSpec: NodeSpecification = {
       description: "Output when condition is false"
     }
   },
-  
+
   execution: {
     timeout: 300,
     retryable: true,
     maxRetries: 3
   },
-  
+
   primaryDisplayField: "condition_type"
 };

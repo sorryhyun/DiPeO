@@ -1,6 +1,6 @@
 /**
  * Execution Monitor Feature - Public API
- * 
+ *
  * This feature provides real-time monitoring and control of diagram execution,
  * including execution state visualization, interactive prompts, and debugging tools.
  */

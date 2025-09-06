@@ -12,9 +12,9 @@ export type StoreExecutionState = {
   id: string | null;
   isRunning: boolean;
   runningNodes: Set<string>;
-  nodeStates: Map<string, { 
-    status: string; 
-    timestamp: number; 
+  nodeStates: Map<string, {
+    status: string;
+    timestamp: number;
     error?: string | null;
     outputs?: any;
   }>;
@@ -42,7 +42,7 @@ export type ExecutionLocalStoreActions = {
 
 export type ExecutionLocalStore = StoreExecutionState & ExecutionLocalStoreActions;
 
-export const createExecutionLocalStore = () => 
+export const createExecutionLocalStore = () =>
   createStore<ExecutionLocalStore>((set, get) => ({
     id: null,
     isRunning: false,
@@ -57,10 +57,10 @@ export const createExecutionLocalStore = () =>
     handles: undefined,
 
     setExecutionId: (id: string) => set({ id }),
-    
+
     setRunning: (isRunning: boolean) => set({ isRunning }),
-    
-    updateNodeState: (nodeId: string, state) => 
+
+    updateNodeState: (nodeId: string, state) =>
       set((prev) => {
         const newNodeStates = new Map(prev.nodeStates);
         newNodeStates.set(nodeId, state);
@@ -72,38 +72,38 @@ export const createExecutionLocalStore = () =>
           error: state.error,
           outputs: state.outputs,
         };
-        return { 
+        return {
           nodeStates: newNodeStates,
           nodeEvents: [...prev.nodeEvents, newEvent]
         };
       }),
-    
+
     addNodeEvent: (event: NodeEvent) =>
       set((prev) => ({
         nodeEvents: [...prev.nodeEvents, event]
       })),
-    
+
     addRunningNode: (nodeId: string) =>
       set((prev) => {
         const newRunningNodes = new Set(prev.runningNodes);
         newRunningNodes.add(nodeId);
         return { runningNodes: newRunningNodes };
       }),
-    
+
     removeRunningNode: (nodeId: string) =>
       set((prev) => {
         const newRunningNodes = new Set(prev.runningNodes);
         newRunningNodes.delete(nodeId);
         return { runningNodes: newRunningNodes };
       }),
-    
+
     setStartedAt: (timestamp: number) => set({ startedAt: timestamp }),
-    
+
     setFinishedAt: (timestamp: number) => set({ finishedAt: timestamp }),
-    
-    setDiagramData: (name: string, nodes: any[], edges: any[], handles?: any[]) => 
+
+    setDiagramData: (name: string, nodes: any[], edges: any[], handles?: any[]) =>
       set({ diagramName: name, nodes, edges, handles }),
-    
+
     reset: () => set({
       id: null,
       isRunning: false,

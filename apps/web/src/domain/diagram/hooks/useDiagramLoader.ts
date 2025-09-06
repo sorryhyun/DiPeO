@@ -14,7 +14,7 @@ export function useDiagramLoader() {
   // Function to load diagram from data directly (used by CLI session monitor)
   const loadDiagramFromData = (diagramData: any) => {
     setIsLoading(true);
-    
+
     try {
       // Convert diagram data to domain format
       const diagramWithCounts = {
@@ -23,7 +23,7 @@ export function useDiagramLoader() {
         arrowCount: diagramData.arrows?.length || 0,
         personCount: diagramData.persons?.length || 0
       };
-      
+
       // Convert to Maps for the store
       const { nodes, handles, persons, arrows } = diagramArraysToMaps({
         nodes: diagramData.nodes || [],
@@ -31,13 +31,13 @@ export function useDiagramLoader() {
         handles: diagramData.handles || [],
         persons: diagramData.persons || []
       });
-      
+
       // Update store with diagram data
       const store = useUnifiedStore.getState();
       store.transaction(() => {
         // Clear existing data
         store.clearDiagram();
-        
+
         // Restore the snapshot
         store.restoreSnapshot({
           nodes,
@@ -46,7 +46,7 @@ export function useDiagramLoader() {
           handles,
           timestamp: Date.now()
         });
-        
+
         // Set metadata
         if (diagramData.metadata) {
           store.setDiagramName(diagramData.metadata.name || 'CLI Diagram');
@@ -54,7 +54,7 @@ export function useDiagramLoader() {
           store.setDiagramId(diagramData.metadata.id || null);
         }
       });
-      
+
       toast.success('Loaded diagram from CLI');
     } catch (err) {
       console.error('Failed to load diagram from data:', err);
@@ -67,7 +67,7 @@ export function useDiagramLoader() {
   return {
     isLoading,
     hasLoaded: false, // Deprecated - kept for compatibility
-    diagramId: null, // Deprecated - kept for compatibility  
+    diagramId: null, // Deprecated - kept for compatibility
     diagramFormat: null, // Deprecated - kept for compatibility
     error: null, // Deprecated - kept for compatibility
     loadDiagramFromData

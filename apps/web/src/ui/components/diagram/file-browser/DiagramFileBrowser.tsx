@@ -12,7 +12,7 @@ export const DiagramFileBrowser: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPath, setSelectedPath] = useState<string>();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   // Get diagram loading functions
   const [getDiagram, { loading: loadingDiagram }] = useGetDiagramLazyQuery();
   const { loadDiagramFromData } = useDiagramLoader();
@@ -21,18 +21,18 @@ export const DiagramFileBrowser: React.FC = () => {
     if (file.type === 'file') {
       // Update selected path immediately for UI feedback
       setSelectedPath(file.path);
-      
+
       try {
         // Fetch diagram content from server
         const { data, error } = await getDiagram({
           variables: { id: file.path }
         });
-        
+
         if (error) {
           toast.error(`Failed to load diagram: ${error.message}`);
           return;
         }
-        
+
         if (data?.diagram) {
           // Load the diagram data directly without URL changes
           loadDiagramFromData({
@@ -46,7 +46,7 @@ export const DiagramFileBrowser: React.FC = () => {
               id: data.diagram.metadata?.id || file.path
             }
           });
-          
+
           toast.success(`Loaded ${file.name}`);
         } else {
           toast.error('Diagram not found');
@@ -79,13 +79,13 @@ export const DiagramFileBrowser: React.FC = () => {
 
   const filterNodes = (nodes: FileNode[], query: string): FileNode[] => {
     if (!query) return nodes;
-    
+
     const lowerQuery = query.toLowerCase();
-    
+
     return nodes.reduce<FileNode[]>((filtered, node) => {
       // Check if current node matches
       const matches = node.name.toLowerCase().includes(lowerQuery);
-      
+
       if (node.type === 'folder' && node.children) {
         // For folders, check children recursively
         const filteredChildren = filterNodes(node.children, query);
@@ -103,7 +103,7 @@ export const DiagramFileBrowser: React.FC = () => {
         // Include file if it matches
         filtered.push(node);
       }
-      
+
       return filtered;
     }, []);
   };
@@ -141,7 +141,7 @@ export const DiagramFileBrowser: React.FC = () => {
             className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder-gray-400"
           />
         </div>
-        
+
         <Button
           variant="outline"
           size="sm"
@@ -166,8 +166,8 @@ export const DiagramFileBrowser: React.FC = () => {
           </div>
         ) : (
           <>
-            <FileTree 
-              nodes={filteredTree} 
+            <FileTree
+              nodes={filteredTree}
               onFileClick={handleFileClick}
               selectedPath={selectedPath}
             />

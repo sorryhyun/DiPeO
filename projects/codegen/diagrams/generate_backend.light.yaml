@@ -159,7 +159,7 @@ nodes:
       language: python
       code: |
         import json
-        
+
         # Collect generation results
         results = {
             "status": "completed",
@@ -178,18 +178,18 @@ nodes:
                 "TypeScript indexes"
             ]
         }
-        
+
         print("\n✅ Backend code generation completed successfully!")
         print("\nGenerated:")
         for item in results["generated"]:
             print(f"  • {item}")
-        
+
         print("\nNext steps:")
         print("  1. Review generated code in dipeo/diagram_generated_staged/")
         print("  2. Run 'make apply-syntax-only' to apply changes")
         print("  3. Run 'make graphql-schema' to update GraphQL types")
         print("  4. Run 'make lint-server' to check Python code quality")
-        
+
         return results
 
   - label: End
@@ -211,15 +211,15 @@ connections:
   - {from: Start, to: Generate Strawberry Mutations}
   - {from: Start, to: Generate Validation Models}
   - {from: Start, to: Generate TypeScript Indexes}
-  
+
   # Backend models batch processing chain
   - {from: Discover Node Specs, to: Prepare Node List, content_type: object}
   - {from: Prepare Node List, to: Batch Generate Backend Models, content_type: object}
-  
+
   # Models init generation chain
   - {from: Discover Node Specs, to: Prepare Init Context, content_type: object}
   - {from: Prepare Init Context, to: Generate Models Init, content_type: object}
-  
+
   # All generation tasks converge to Summary
   - {from: Batch Generate Backend Models, to: Summary}
   - {from: Generate Models Init, to: Summary}
@@ -233,6 +233,6 @@ connections:
   - {from: Generate Strawberry Mutations, to: Summary}
   - {from: Generate Validation Models, to: Summary}
   - {from: Generate TypeScript Indexes, to: Summary}
-  
+
   # Summary to End
   - {from: Summary, to: End}

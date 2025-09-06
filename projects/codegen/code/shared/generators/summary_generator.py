@@ -12,7 +12,7 @@ def generate_field_configs_summary(node_configs: list) -> dict:
     # print(f"  - apps/web/src/__generated__/fields.ts")
     # print(f"  - dipeo/diagram_generated_staged/field-configs.json")
     # print(f"Timestamp: {datetime.now().isoformat()}")
-    
+
     return {
         'status': 'success',
         'message': 'Field configurations generated successfully',
@@ -31,7 +31,7 @@ def generate_graphql_schema_summary(graphql_types: dict) -> dict:
     # print(f"  - {len(graphql_types.get('input_types', []))} input types")
     # print(f"Output written to: dipeo/diagram_generated_staged/domain-schema.graphql")
     # print(f"Timestamp: {datetime.now().isoformat()}")
-    
+
     return {
         'status': 'success',
         'message': 'GraphQL schema generated successfully'
@@ -46,7 +46,7 @@ def generate_python_models_summary(generation_result: dict) -> dict:
     # print(f"Generated {generation_result.get('enums_count', 0)} enums")
     # print(f"Generated {generation_result.get('type_aliases_count', 0)} type aliases")
     # print(f"\nOutput written to: dipeo/models/models.py")
-    
+
     return {
         'status': 'success',
         'message': 'Python domain models generated successfully',
@@ -61,7 +61,7 @@ def generate_conversions_summary(node_type_map: dict) -> dict:
     # print(f"Generated mappings for {len(node_type_map)} node types")
     # print(f"Output written to: dipeo/models/conversions.py")
     # print(f"Timestamp: {datetime.now().isoformat()}")
-    
+
     return {
         'status': 'success',
         'message': 'Domain model conversions generated successfully',
@@ -85,9 +85,9 @@ def generate_static_nodes_summary(static_nodes_data) -> dict:
                 static_nodes_data = {}  # Default to empty dict on parse error
         else:
             static_nodes_data = {}  # Default to empty dict for empty strings
-    
+
     node_classes = static_nodes_data.get('node_classes', [])
-    
+
     # Verbose logging removed - uncomment if needed for debugging
     # print(f"\n=== Static Nodes Generation Complete ===")
     # print(f"Generated {len(node_classes)} node classes:")
@@ -95,7 +95,7 @@ def generate_static_nodes_summary(static_nodes_data) -> dict:
     #     print(f"  - {nc['class_name']}")
     # print(f"\nOutput written to: dipeo/diagram_generated_staged/generated_nodes.py")
     # print(f"Timestamp: {datetime.now().isoformat()}")
-    
+
     return {
         'status': 'success',
         'message': 'Static nodes generated successfully',
@@ -111,7 +111,7 @@ def generate_zod_schemas_summary(schemas: list, enum_schemas: dict) -> dict:
     # print(f"Generated {len(enum_schemas)} enum schemas")
     # print(f"Output written to: apps/web/src/__generated__/schemas.ts")
     # print(f"Timestamp: {datetime.now().isoformat()}")
-    
+
     return {
         'status': 'success',
         'message': 'Zod schemas generated successfully',

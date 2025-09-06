@@ -9,7 +9,7 @@ export const apiJobSpec: NodeSpecification = {
   icon: "🌐",
   color: "#00BCD4",
   description: "Make HTTP API requests",
-  
+
   fields: [
     {
       name: "url",
@@ -110,24 +110,24 @@ export const apiJobSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["default"]
   },
-  
+
   outputs: {
     result: {
       type: "any",
       description: "API response data"
     }
   },
-  
+
   execution: {
     timeout: 300,
     retryable: true,
     maxRetries: 3
   },
-  
+
   primaryDisplayField: "method"
 };

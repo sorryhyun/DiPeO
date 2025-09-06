@@ -31,7 +31,7 @@ const FlowHandleComponent: React.FC<FlowHandleProps> = ({
   ...props
 }) => {
   const rfType = type === 'output' ? 'source' : 'target';
-  
+
   // Generate the handle ID in the expected format: nodeId_handleId_direction
   const rfHandleId = `${nodeId}_${handleId}_${type === 'output' ? 'output' : 'input'}`;
 
@@ -41,13 +41,13 @@ const FlowHandleComponent: React.FC<FlowHandleProps> = ({
     // Use smaller distance for start/endpoint nodes
     const isSmallNode = nodeType === 'start' || nodeType === 'endpoint';
     const distance = isSmallNode ? 20 : HANDLE_DISTANCE;
-    
+
     return {
       width: 'auto',
       minWidth: '50px',
       height: '20px',
-      backgroundColor: type === 'output' 
-        ? 'rgba(34, 197, 94, 0.9)' 
+      backgroundColor: type === 'output'
+        ? 'rgba(34, 197, 94, 0.9)'
         : 'rgba(59, 130, 246, 0.9)',
       border: `2px solid ${baseColor}`,
       borderRadius: '12px',

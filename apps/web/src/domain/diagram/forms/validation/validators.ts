@@ -6,13 +6,13 @@ export const createValidator = (
 ): FieldValidator => {
   return (value, formData) => {
     const result = validate(value, formData);
-    
+
     if (result === true) {
       return { valid: true, errors: [] };
     }
-    
+
     const message = typeof result === 'string' ? result : defaultMessage;
-    
+
     return {
       valid: false,
       errors: [{ field: '', message }],
@@ -102,14 +102,14 @@ export const oneOf = <T>(values: T[], message?: string): FieldValidator =>
 export const compose = (...validators: FieldValidator[]): FieldValidator => {
   return async (value, formData) => {
     const errors: ValidationResult['errors'] = [];
-    
+
     for (const validator of validators) {
       const result = await validator(value, formData);
       if (!result.valid) {
         errors.push(...result.errors);
       }
     }
-    
+
     return {
       valid: errors.length === 0,
       errors,

@@ -1,6 +1,6 @@
 /**
  * Execution Converter Module
- * 
+ *
  * Handles conversions for execution states and updates.
  * Manages transformations between GraphQL, Domain, and Store representations.
  */
@@ -17,9 +17,9 @@ import {
   Status,
   EventType
 } from '@dipeo/models';
-import type { 
+import type {
   ExecutionStateType,
-  ExecutionUpdate as GraphQLExecutionUpdate 
+  ExecutionUpdate as GraphQLExecutionUpdate
 } from '@/__generated__/graphql';
 import { executionId, diagramId, nodeId } from '@/infrastructure/types/branded';
 
@@ -47,7 +47,7 @@ export class ExecutionConverter {
    */
   static toDomain(graphqlExecution: ExecutionStateType): ExecutionState {
     const nodeStates: Record<string, NodeState> = {};
-    
+
     if (graphqlExecution.node_states) {
       Object.entries(graphqlExecution.node_states).forEach(([nodeId, state]) => {
         if (state) {
@@ -62,7 +62,7 @@ export class ExecutionConverter {
         }
       });
     }
-    
+
     return {
       id: executionId(graphqlExecution.id),
       status: graphqlExecution.status as Status,
@@ -78,7 +78,7 @@ export class ExecutionConverter {
       executed_nodes: []
     };
   }
-  
+
   /**
    * Convert GraphQL execution update to domain
    */
@@ -90,14 +90,14 @@ export class ExecutionConverter {
       timestamp: update.timestamp
     };
   }
-  
+
   /**
    * Convert domain execution state to store format
    */
   static toStore(domainExecution: ExecutionState): StoreExecutionState {
     const nodeStates = new Map<NodeID, StoreNodeState>();
     const runningNodes = new Set<NodeID>();
-    
+
     Object.entries(domainExecution.node_states).forEach(([nodeId, state]) => {
       const id = nodeId as NodeID;
       nodeStates.set(id, {
@@ -106,12 +106,12 @@ export class ExecutionConverter {
         timestamp: state.started_at ? new Date(state.started_at).getTime() : Date.now(),
         skipReason: undefined
       });
-      
+
       if (state.status === Status.RUNNING) {
         runningNodes.add(id);
       }
     });
-    
+
     return {
       id: domainExecution.id,
       isRunning: domainExecution.status === Status.RUNNING,
@@ -121,7 +121,7 @@ export class ExecutionConverter {
       context: domainExecution.node_outputs
     };
   }
-  
+
   /**
    * Convert store execution state to domain
    */
@@ -131,24 +131,24 @@ export class ExecutionConverter {
   ): ExecutionState {
     const nodeStates: Record<string, NodeState> = {};
     let hasFailed = false;
-    
+
     storeExecution.nodeStates.forEach((state, nodeId) => {
       const timestamp = new Date(state.timestamp);
       nodeStates[nodeId] = {
         status: state.status,
         started_at: timestamp.toISOString(),
-        ended_at: state.status !== Status.RUNNING 
-          ? timestamp.toISOString() 
+        ended_at: state.status !== Status.RUNNING
+          ? timestamp.toISOString()
           : null,
         error: state.error || null,
         llm_usage: null
       };
-      
+
       if (state.status === Status.FAILED) {
         hasFailed = true;
       }
     });
-    
+
     let status: Status;
     if (storeExecution.isPaused) {
       status = Status.PAUSED;
@@ -157,7 +157,7 @@ export class ExecutionConverter {
     } else {
       status = hasFailed ? Status.FAILED : Status.COMPLETED;
     }
-    
+
     return {
       id: executionId(storeExecution.id || ''),
       status,
@@ -175,7 +175,7 @@ export class ExecutionConverter {
       executed_nodes: Array.from(storeExecution.nodeStates.keys())
     };
   }
-  
+
   /**
    * Process execution update and update store state
    */
@@ -184,12 +184,12 @@ export class ExecutionConverter {
     update: ExecutionUpdate
   ): StoreExecutionState {
     const newState = { ...currentState };
-    
+
     // Handle different update types
     if (update.type === EventType.NODE_STATUS_CHANGED && update.data?.node_id) {
       const id = nodeId(update.data.node_id);
       const status = update.data.status as Status;
-      
+
       if (status === Status.RUNNING) {
         newState.runningNodes.add(id);
         newState.nodeStates.set(id, {
@@ -221,10 +221,10 @@ export class ExecutionConverter {
         newState.runningNodes.clear();
       }
     }
-    
+
     return newState;
   }
-  
+
   /**
    * Create initial execution state
    */

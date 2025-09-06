@@ -60,7 +60,7 @@ export function useExecutionGraphQL({ executionId, skip = false }: UseExecutionG
     executeDiagram: executeDiagramMutation,
     controlExecution: controlExecutionMutation,
     submitInteractiveResponse: submitInteractiveResponseMutation,
-    
+
     // Subscription data
     executionUpdates: executionData?.execution_updates,
     // TODO: These subscriptions no longer exist separately - data is in executionUpdates

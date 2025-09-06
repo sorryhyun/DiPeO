@@ -14,7 +14,7 @@ function AppContent() {
   return (
     <>
       <MainLayout />
-      
+
       <Suspense fallback={null}>
         <LazyToaster richColors position="bottom-center" />
       </Suspense>

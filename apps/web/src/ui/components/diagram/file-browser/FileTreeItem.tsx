@@ -67,7 +67,7 @@ export const FileTreeItem: React.FC<FileTreeItemProps> = ({
         ) : (
           <span className="w-4" />
         )}
-        
+
         {/* Icon */}
         <span className="flex-shrink-0 text-base">
           {node.type === 'folder' ? (
@@ -76,18 +76,18 @@ export const FileTreeItem: React.FC<FileTreeItemProps> = ({
             getFormatEmoji()
           )}
         </span>
-        
+
         <span className="flex-1 text-sm truncate">
           {node.name}
         </span>
-        
+
         {node.type === 'file' && node.size && (
           <span className="text-xs text-black/60 ml-2">
             {formatFileSize(node.size)}
           </span>
         )}
       </div>
-      
+
       {/* Render children if folder is expanded */}
       {node.type === 'folder' && isExpanded && node.children && (
         <div>

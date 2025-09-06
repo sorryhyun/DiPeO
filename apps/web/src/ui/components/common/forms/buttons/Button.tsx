@@ -17,25 +17,25 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       ring-offset-background
       relative overflow-hidden
     `;
-    
+
     const variants = {
       default: `
-        bg-neutral-900 text-white 
+        bg-neutral-900 text-white
         hover:bg-neutral-800 hover:shadow-md
         active:scale-[0.98]
       `,
       primary: `
-        bg-primary-600 text-white 
+        bg-primary-600 text-white
         hover:bg-primary-700 hover:shadow-md hover:shadow-primary-500/25
         active:scale-[0.98]
       `,
       secondary: `
-        bg-accent-600 text-white 
+        bg-accent-600 text-white
         hover:bg-accent-700 hover:shadow-md hover:shadow-accent-500/25
         active:scale-[0.98]
       `,
       destructive: `
-        bg-danger-600 text-white 
+        bg-danger-600 text-white
         hover:bg-danger-700 hover:shadow-md hover:shadow-danger-500/25
         active:scale-[0.98]
       `,
@@ -50,7 +50,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         active:bg-neutral-200
       `,
       link: `
-        bg-transparent underline-offset-4 
+        bg-transparent underline-offset-4
         hover:underline hover:text-primary-600
         px-0 h-auto
       `,
@@ -65,7 +65,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         before:transition-transform before:duration-700
       `,
     };
-    
+
     const sizes = {
       default: "h-10 px-4 py-2 text-sm rounded-lg",
       sm: "h-8 px-3 py-1.5 text-xs rounded-md",
@@ -73,7 +73,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       xl: "h-14 px-8 py-4 text-lg rounded-xl",
       icon: "h-10 w-10 p-0 rounded-lg",
     };
-    
+
     const iconSizes = {
       default: "h-4 w-4",
       sm: "h-3 w-3",
@@ -81,7 +81,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       xl: "h-6 w-6",
       icon: "h-5 w-5",
     };
-    
+
     return (
       <button
         className={clsx(

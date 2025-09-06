@@ -229,4 +229,3 @@ export function isExecutionActive(status: Status): boolean {
 export function isNodeExecutionActive(status: Status): boolean {
   return isStatusActive(status);
 }
-

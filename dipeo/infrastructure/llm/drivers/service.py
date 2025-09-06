@@ -5,6 +5,13 @@ import hashlib
 import time
 from typing import Any
 
+from tenacity import (
+    AsyncRetrying,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
 from dipeo.config import VALID_LLM_SERVICES, get_settings, normalize_service_name
 from dipeo.config.services import LLMServiceName
 from dipeo.diagram_generated import ChatResult
@@ -13,12 +20,6 @@ from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.integrations.ports import APIKeyPort
 from dipeo.domain.integrations.ports import LLMService as LLMServicePort
 from dipeo.infrastructure.shared.drivers.utils import SingleFlightCache
-from tenacity import (
-    AsyncRetrying,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
 
 from .factory import create_adapter
 
@@ -66,7 +67,9 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             api_key_data = self.api_key_service.get_api_key(api_key_id)
             return api_key_data["key"]
         except APIKeyError as e:
-            raise LLMServiceError(service="api_key_service", message=f"Failed to get API key: {e}") from e
+            raise LLMServiceError(
+                service="api_key_service", message=f"Failed to get API key: {e}"
+            ) from e
 
     def _create_cache_key(self, provider: str, model: str, api_key_id: str) -> str:
         key_string = f"{provider}:{model}:{api_key_id}"
@@ -261,7 +264,9 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             return await adapter.get_available_models()
 
         except Exception as e:
-            raise LLMServiceError(service="llm", message=f"Failed to get available models: {e}") from e
+            raise LLMServiceError(
+                service="llm", message=f"Failed to get available models: {e}"
+            ) from e
 
     def get_token_counts(self, client_name: str, usage: Any) -> Any:
         """Extract token usage information from provider response."""

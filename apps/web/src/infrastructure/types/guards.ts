@@ -74,8 +74,8 @@ export function isFlippedNode(node: DomainNode): boolean {
 }
 
 // Type guard for nodes that can have persons
-export function hasPersonConfig(node: DomainNode): node is DomainNode & { 
-  data: PersonJobNodeData | PersonBatchJobNodeData 
+export function hasPersonConfig(node: DomainNode): node is DomainNode & {
+  data: PersonJobNodeData | PersonBatchJobNodeData
 } {
   return isPersonJobNode(node) || isPersonBatchJobNode(node);
 }

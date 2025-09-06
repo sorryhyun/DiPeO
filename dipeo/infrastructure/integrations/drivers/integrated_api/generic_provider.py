@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 import jsonpointer
+from jinja2 import Environment, Template, meta
+
 from dipeo.domain.base.exceptions import ServiceError
 from dipeo.domain.integrations.ports import APIKeyPort
 from dipeo.infrastructure.integrations.adapters.api_service import APIService
@@ -25,7 +27,6 @@ from dipeo.infrastructure.integrations.drivers.integrated_api.providers.base_pro
     BaseApiProvider,
 )
 from dipeo.infrastructure.integrations.drivers.integrated_api.rate_limiter import RateLimiter
-from jinja2 import Environment, Template, meta
 
 logger = logging.getLogger(__name__)
 

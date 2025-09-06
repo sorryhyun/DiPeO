@@ -2,6 +2,4 @@
 
 from .manage_conversation import ManageConversationUseCase
 
-__all__ = [
-    "ManageConversationUseCase"
-]
+__all__ = ["ManageConversationUseCase"]

@@ -16,15 +16,15 @@ import { useDiagramLoader } from '@/domain/diagram/hooks/useDiagramLoader';
 const TopBar = () => {
   const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.NATIVE);
   const [displayName, setDisplayName] = useState<string>('');
-  
+
   // Use UI state for mode control
   const { activeCanvas, isMonitorMode } = useUIState();
   const { setActiveCanvas, setMonitorMode } = useUIOperations();
   const { stopExecution } = useExecutionOperations();
-  
+
   // Get diagram format from store
   const diagramFormatFromStore = useDiagramFormat();
-  
+
   // Get diagram metadata from store
   const { diagramName, diagramDescription, diagramId, setDiagramName, setDiagramDescription } = useUnifiedStore(
     useShallow(state => ({
@@ -44,30 +44,30 @@ const TopBar = () => {
     autoSave: !isMonitorMode, // Disable auto-save when in monitor mode
     autoSaveInterval: 15000 // Auto-save every 15 seconds
   });
-  
+
   // Extract what we need
   const {
     newDiagram: clearDiagram,
     isDirty
   } = diagramManager;
-  
+
   // File operations
   const { saveDiagram: saveToFileSystem } = useFileOperations();
-  
+
   // Use the new diagram save hook
   const { isSaving, handleSave } = useDiagramSave({ saveToFileSystem });
-  
+
   // Add GraphQL query and diagram loader
   const [getDiagram] = useGetDiagramLazyQuery();
   const { loadDiagramFromData } = useDiagramLoader();
-  
+
 
   // Handle monitor mode from URL
   useEffect(() => {
     const checkMonitorParam = () => {
       const params = new URLSearchParams(window.location.search);
       const monitorParam = params.get('monitor') === 'true';
-      
+
       if (monitorParam !== isMonitorMode) {
         setMonitorMode(monitorParam);
         if (monitorParam) {
@@ -76,20 +76,20 @@ const TopBar = () => {
         }
       }
     };
-    
+
     // Check on mount
     checkMonitorParam();
-    
+
     // Listen for URL changes
     const handleUrlChange = () => checkMonitorParam();
     window.addEventListener('popstate', handleUrlChange);
-    
+
     return () => {
       window.removeEventListener('popstate', handleUrlChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
-  
+
   // When monitor mode changes, adjust canvas if needed
   useEffect(() => {
     if (isMonitorMode && activeCanvas === 'main') {
@@ -97,23 +97,23 @@ const TopBar = () => {
       setActiveCanvas('execution');
     }
   }, [isMonitorMode, activeCanvas, setActiveCanvas]);
-  
+
   // Helper function to extract format from filename
   const extractFormatFromName = (name: string): { cleanName: string, format: DiagramFormat } => {
     if (name.endsWith('.light.yaml') || name.endsWith('.light.yml')) {
-      return { 
-        cleanName: name.replace(/\.(light\.(yaml|yml))$/, ''), 
-        format: DiagramFormat.LIGHT 
+      return {
+        cleanName: name.replace(/\.(light\.(yaml|yml))$/, ''),
+        format: DiagramFormat.LIGHT
       };
     } else if (name.endsWith('.readable.yaml') || name.endsWith('.readable.yml')) {
-      return { 
-        cleanName: name.replace(/\.(readable\.(yaml|yml))$/, ''), 
-        format: DiagramFormat.READABLE 
+      return {
+        cleanName: name.replace(/\.(readable\.(yaml|yml))$/, ''),
+        format: DiagramFormat.READABLE
       };
     } else if (name.endsWith('.native.json')) {
-      return { 
-        cleanName: name.replace(/\.native\.json$/, ''), 
-        format: DiagramFormat.NATIVE 
+      return {
+        cleanName: name.replace(/\.native\.json$/, ''),
+        format: DiagramFormat.NATIVE
       };
     }
     // Default case - no format suffix
@@ -212,7 +212,7 @@ const TopBar = () => {
               )}
             </div>
           </div>
-          
+
           {/* Description Row */}
           <input
             type="text"
@@ -222,11 +222,11 @@ const TopBar = () => {
             placeholder="Description (optional)"
           />
         </div>
-        
+
         <div className="flex items-center space-x-2">
           {/* Action Buttons */}
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
             onClick={() => {
               if (window.confirm('Create a new diagram? This will clear the current diagram.')) {
@@ -238,7 +238,7 @@ const TopBar = () => {
           >
             📄 New
           </Button>
-          
+
           {/* Load/Save buttons in vertical layout */}
           <div className="flex flex-col space-y-1">
             <Button
@@ -247,18 +247,18 @@ const TopBar = () => {
               onClick={async () => {
                 // Build full path with format
                 const fullPath = addFormatSuffix(displayName.trim() || 'quicksave', selectedFormat);
-                
+
                 try {
                   // Fetch diagram content from server
                   const { data, error } = await getDiagram({
                     variables: { id: fullPath }
                   });
-                  
+
                   if (error) {
                     toast.error(`Failed to load diagram: ${error.message}`);
                     return;
                   }
-                  
+
                   if (data?.diagram) {
                     // Load the diagram data directly without URL changes
                     loadDiagramFromData({
@@ -272,7 +272,7 @@ const TopBar = () => {
                         id: data.diagram.metadata?.id || fullPath
                       }
                     });
-                    
+
                     toast.success(`Loaded ${fullPath}`);
                   } else {
                     toast.error('Diagram not found');
@@ -286,8 +286,8 @@ const TopBar = () => {
             >
               📂 Load
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm px-3 py-1"
               onClick={handleConvertAndSave}
               disabled={isSaving}
@@ -303,17 +303,17 @@ const TopBar = () => {
               )}
             </Button>
           </div>
-          
+
           {/* Divider */}
           <div className="h-6 w-px bg-gray-300 mx-2" />
-          
+
           {/* Execution Mode and Monitor Mode in vertical layout */}
           <div className="flex flex-col items-end space-y-2">
             <Button
               variant="outline"
               className={`bg-white transition-all duration-300 ${
                 activeCanvas === 'execution'
-                  ? 'bg-green-100 border-green-400 hover:bg-green-200' 
+                  ? 'bg-green-100 border-green-400 hover:bg-green-200'
                   : 'hover:bg-gray-50 hover:border-gray-300'
               }`}
               onClick={() => {
@@ -335,12 +335,12 @@ const TopBar = () => {
               }`} />
               {activeCanvas === 'execution' ? 'Exit Execution Mode' : 'Execution Mode'}
             </Button>
-            
+
             <button
               onClick={() => {
                 const newMonitorMode = !isMonitorMode;
                 setMonitorMode(newMonitorMode);
-                
+
                 if (newMonitorMode) {
                   // Add monitor param to URL
                   const url = new URL(window.location.href);
@@ -356,8 +356,8 @@ const TopBar = () => {
                 }
               }}
               className={`flex items-center space-x-2 px-4 py-2 border rounded-md transition-all duration-300 ${
-                isMonitorMode 
-                  ? 'bg-blue-100 border-blue-400 hover:bg-blue-200' 
+                isMonitorMode
+                  ? 'bg-blue-100 border-blue-400 hover:bg-blue-200'
                   : 'bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400'
               }`}
               title={isMonitorMode ? 'Disable Monitor Mode' : 'Enable Monitor Mode'}

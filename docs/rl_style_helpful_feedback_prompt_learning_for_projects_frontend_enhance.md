@@ -363,4 +363,3 @@ Apply the following edits strictly:
 {{/each}}
 Return JSON with prompt_text (final) and sections (updated list).
 ```
-

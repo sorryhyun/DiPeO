@@ -12,11 +12,11 @@ export default defineConfig({
         manualChunks: {
           // Core React dependencies
           'react-vendor': ['react', 'react-dom', 'react/jsx-runtime'],
-          
+
           // Large diagram library
           'diagram-vendor': ['@xyflow/react'],
         },
-        
+
         // Better chunk naming
         chunkFileNames: (chunkInfo) => {
           const facadeModuleId = chunkInfo.facadeModuleId
@@ -24,19 +24,19 @@ export default defineConfig({
             : 'chunk';
           return `assets/${facadeModuleId}-[hash].js`;
         },
-        
+
         // Optimize asset names
         assetFileNames: 'assets/[name]-[hash].[ext]',
         entryFileNames: 'assets/[name]-[hash].js',
       },
-      
+
       // External dependencies to reduce bundle size
       external: (_id) => {
         // Don't bundle these in production if they're CDN available
         return false; // Keep all dependencies bundled for now
       },
     },
-    
+
     // Enable better tree shaking
     minify: 'terser',
     terserOptions: {
@@ -49,7 +49,7 @@ export default defineConfig({
         safari10: true,
       },
     },
-    
+
     // Optimize chunks
     chunkSizeWarningLimit: 1000,
     target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],

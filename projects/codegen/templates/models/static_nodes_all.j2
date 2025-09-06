@@ -29,7 +29,7 @@ class BaseExecutableNode:
     # Required fields only - no defaults in base class
     id: NodeID
     position: Vec2
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
         result = {
@@ -143,7 +143,7 @@ def create_executable_node(
 ) -> ExecutableNode:
     """Factory function to create typed executable nodes from diagram data."""
     data = data or {}
-    
+
 {%- if static_nodes_data is defined and static_nodes_data is mapping %}
 {%- set classes = static_nodes_data.node_classes if static_nodes_data.node_classes is defined else [] %}
 {%- elif classes is not defined %}
@@ -177,7 +177,7 @@ def create_executable_node(
 {%- endif %}
 {%- endfor %}
         )
-    
+
 {% endfor %}
     if node_type == NodeType.PERSON_BATCH_JOB:
         return PersonBatchJobNode(
@@ -209,5 +209,5 @@ def create_executable_node(
 {%- endfor %}
 {%- endif %}
         )
-    
+
     raise ValueError(f"Unknown node type: {node_type}")

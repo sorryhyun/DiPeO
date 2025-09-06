@@ -64,7 +64,7 @@ export async function migrateToUnifiedStore(
       const validationResult = validateLegacyState(legacyState);
       result.errors.push(...validationResult.errors);
       result.warnings.push(...validationResult.warnings);
-      
+
       if (validationResult.errors.length > 0 && !dryRun) {
         result.success = false;
         return result;
@@ -109,7 +109,7 @@ export async function migrateToUnifiedStore(
         ...personState,
         ...uiState,
       };
-      
+
       // In actual implementation, this would update the store
       // For now, we'll just mark it as successful
       result.success = true;
@@ -186,7 +186,7 @@ function migrateExecutionState(legacyExecution?: Partial<ExecutionSlice>): Parti
   if (!legacyExecution) return null;
 
   const current = legacyExecution.execution as StoreExecutionState | undefined;
-  
+
   return {
     execution: current ? {
       id: current.id || null,
@@ -276,7 +276,7 @@ export const importPathMigration: Record<string, string> = {
   '@/domain/person/store/personSlice': '@/infrastructure/store/slices/person',
   '@/core/store/slices/uiSlice': '@/infrastructure/store/slices/ui',
   '@/core/store/unifiedStore': '@/infrastructure/store',
-  
+
   // Hook migrations
   '@/domain/diagram/hooks/useDiagramManager': '@/infrastructure/store/hooks/useDiagram',
   '@/domain/execution/hooks/useExecution': '@/infrastructure/store/hooks/useExecution',
@@ -315,7 +315,7 @@ export function createStoreAdapter() {
         useUnifiedStore.getState().deleteNode(id);
       },
     },
-    
+
     // Execution adapter
     execution: {
       get isRunning() {
@@ -328,7 +328,7 @@ export function createStoreAdapter() {
         useUnifiedStore.getState().stopExecution();
       },
     },
-    
+
     // Person adapter
     person: {
       get persons() {
@@ -359,25 +359,25 @@ export async function runMigrationScript(options: {
   interactive?: boolean;
 }): Promise<void> {
   console.log('🔄 Starting store migration...');
-  
+
   // Step 1: Backup existing code if requested
   if (options.backup) {
     console.log('📦 Creating backup...');
     // Implementation would backup files
   }
-  
+
   // Step 2: Update import statements
   console.log('📝 Updating import statements...');
   // Implementation would use AST to update imports
-  
+
   // Step 3: Update hook usage
   console.log('🔗 Updating hook usage...');
   // Implementation would update hook calls
-  
+
   // Step 4: Update store access patterns
   console.log('🔧 Updating store access patterns...');
   // Implementation would update direct store access
-  
+
   console.log('✅ Migration completed!');
 }
 
@@ -391,19 +391,19 @@ export function validateMigration(store: UnifiedStore): {
   issues: string[];
 } {
   const issues: string[] = [];
-  
+
   // Check required state structure (flattened)
   if (!store.nodes) issues.push('Missing nodes state');
   if (!store.arrows) issues.push('Missing arrows state');
   if (!store.execution) issues.push('Missing execution state');
   if (!store.persons) issues.push('Missing persons state');
   if (!store.selectedId !== undefined) issues.push('Missing UI state');
-  
+
   // Check data integrity
   if (!store.nodes || !store.arrows) {
     issues.push('Incomplete diagram state');
   }
-  
+
   return {
     isValid: issues.length === 0,
     issues,

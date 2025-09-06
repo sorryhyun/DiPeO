@@ -7,19 +7,19 @@ persons:
     api_key_id: APIKEY_52609F
     system_prompt: |
       You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.
-      
+
       Your task is to:
       1. FIRST define the overall application architecture that will guide all sections
       2. THEN split the work into independent sections that fit within this architecture
       3. For EACH section, provide concrete implementation steps and integration points
-      
+
       Focus on:
       - Clear architectural patterns and principles
       - How data flows through the application
       - Specific, actionable implementation steps (not vague descriptions)
       - How sections communicate and integrate with each other
       - Modern React 18+ best practices and TypeScript patterns
-      
+
       Each section should be a cohesive unit that can be developed independently but integrates smoothly.
       Follow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.
 
@@ -32,14 +32,14 @@ persons:
 #    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer building a cohesive frontend application.
-      
+
       CRITICAL RULES:
       1. Return ONLY the raw code files in the exact format specified in the prompt. You MUST NOT attempt to examine any existing codes.
       2. Do NOT include any conversational text, explanations, or commentary
       3. Generate production-ready code that integrates with previously generated sections
       4. Follow established patterns from earlier sections for consistency
       5. Import and use components/utilities from previous sections when referenced
-      
+
       You are building sections iteratively. Use the context from previous sections to maintain consistency in:
       - Naming conventions
       - Import paths
@@ -53,7 +53,7 @@ nodes:
     position: {x: 60, y: 240}
     props:
       trigger_mode: manual
-      
+
 #  - label: Load Config
 #    type: db
 #    position: {x: 300, y: 240}

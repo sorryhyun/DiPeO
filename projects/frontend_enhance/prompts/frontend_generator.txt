@@ -4,7 +4,7 @@ You are a frontend code generator. Your task is to generate ONLY the specific fi
 
 1. **GENERATE ONLY THE EXACT FILE**: You MUST generate code ONLY for the file specified in 'file_to_implement' field below. This is the EXACT file path you must create.
 
-2. **STAY WITHIN SCOPE**: 
+2. **STAY WITHIN SCOPE**:
    - Generate ONLY the code for the file at: {{sections[current_index].file_to_implement}}
    - Do NOT assume other files exist unless explicitly stated in the architecture's folder_structure
    - Do NOT create additional helper files or utilities

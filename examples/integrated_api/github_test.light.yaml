@@ -31,7 +31,7 @@ nodes:
         - A clear title about testing the DiPeO GitHub integration
         - A body that explains this is an automated test
         - Include current timestamp: {{timestamp}}
-        
+
         Return as JSON with keys: title, body
       max_iteration: 1
       memory_profile: GOLDFISH
@@ -44,7 +44,7 @@ nodes:
       code: |
         import json
         from datetime import datetime
-        
+
         # Parse the assistant's response
         try:
             # Extract JSON from the response
@@ -57,7 +57,7 @@ nodes:
                 json_start = response.find('```') + 3
                 json_end = response.find('```', json_start)
                 response = response[json_start:json_end]
-            
+
             issue_data = json.loads(response.strip())
         except:
             # Fallback if parsing fails
@@ -65,7 +65,7 @@ nodes:
                 "title": f"DiPeO GitHub Integration Test - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
                 "body": "This is an automated test issue created by DiPeO to verify GitHub API integration.\n\nTest timestamp: " + datetime.now().isoformat()
             }
-        
+
         result = issue_data
 
   - label: Create GitHub Issue
@@ -88,19 +88,19 @@ nodes:
       language: python
       code: |
         import json
-        
+
         # Parse the created issue response
         if isinstance(created_issue, str):
             issue = json.loads(created_issue)
         else:
             issue = created_issue
-        
+
         issue_number = issue.get('number')
         issue_url = issue.get('html_url')
-        
+
         print(f"Created issue #{issue_number}")
         print(f"URL: {issue_url}")
-        
+
         result = {
             "issue_number": issue_number,
             "issue_url": issue_url,
@@ -140,28 +140,28 @@ nodes:
       language: python
       code: |
         import json
-        
+
         # Parse the issues list
         if isinstance(issues_list, str):
             issues = json.loads(issues_list)
         else:
             issues = issues_list
-        
+
         # Count issues and verify our created issue is there
         issue_count = len(issues)
         our_issue = None
-        
+
         for issue in issues:
             if issue.get('number') == issue_info['issue_number']:
                 our_issue = issue
                 break
-        
+
         print(f"Found {issue_count} issues with 'dipeo-integration' label")
         if our_issue:
             print(f"✓ Our created issue #{issue_info['issue_number']} is in the list")
         else:
             print(f"✗ Our created issue #{issue_info['issue_number']} was not found")
-        
+
         result = {
             "total_issues": issue_count,
             "found_our_issue": our_issue is not None,
@@ -187,7 +187,7 @@ nodes:
         - Mention this is part of the DiPeO integration test
         - Include test results: {{list_results}}
         - Be friendly and informative
-        
+
         Return just the comment text.
       max_iteration: 1
       memory_profile: GOLDFISH
@@ -212,21 +212,21 @@ nodes:
       code: |
         summary = f"""
         ✅ GitHub Integration Test Complete!
-        
+
         📋 Test Results:
         1. ✓ Created issue #{issue_info['issue_number']}
            URL: {issue_info['issue_url']}
-        
+
         2. ✓ Listed {list_results['total_issues']} issues with 'dipeo-integration' label
            Found our issue: {'✓ Yes' if list_results['found_our_issue'] else '✗ No'}
-        
+
         3. ✓ Added comment to issue #{issue_info['issue_number']}
-        
+
         🎯 All GitHub API operations completed successfully!
-        
+
         Note: Remember to clean up the test issue when done.
         """
-        
+
         print(summary)
         result = {"summary": summary}
 

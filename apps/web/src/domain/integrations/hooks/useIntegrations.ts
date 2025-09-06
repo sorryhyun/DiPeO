@@ -229,7 +229,7 @@ export function useIntegrations() {
       //   },
       // });
       // return result.data?.executeIntegration;
-      
+
       console.warn('Execute integration not implemented yet');
       return null;
     },

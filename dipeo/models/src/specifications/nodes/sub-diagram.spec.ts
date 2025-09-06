@@ -12,7 +12,7 @@ export const subDiagramSpec: NodeSpecification = {
   icon: "📊",
   color: "#8B5CF6",
   description: "Execute another diagram as a node within the current diagram",
-  
+
   fields: [
     {
       name: "diagram_name",
@@ -147,25 +147,25 @@ export const subDiagramSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: ["default"],
     outputs: ["default"]
   },
-  
+
   outputs: {
     default: {
       type: "any",
       description: "Output from sub-diagram execution (includes results and error if any)"
     }
   },
-  
+
   execution: {
     timeout: 600,
     retryable: true,
     maxRetries: 1
   },
-  
+
   examples: [
     {
       name: "Execute Named Diagram",
@@ -197,6 +197,6 @@ export const subDiagramSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   primaryDisplayField: "diagram_name"
 };

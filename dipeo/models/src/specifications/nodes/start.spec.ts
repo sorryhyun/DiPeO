@@ -9,7 +9,7 @@ export const startSpec: NodeSpecification = {
   icon: "🚀",
   color: "#4CAF50",
   description: "Entry point for diagram execution",
-  
+
   fields: [
     {
       name: "trigger_mode",
@@ -85,19 +85,19 @@ export const startSpec: NodeSpecification = {
       }
     }
   ],
-  
+
   handles: {
     inputs: [],
     outputs: ["default"]
   },
-  
+
   outputs: {
     result: {
       type: "any",
       description: "Node execution result"
     }
   },
-  
+
   execution: {
     timeout: 300,
     retryable: true,

@@ -32,7 +32,7 @@ export function getControlPoint(start: Vec2, end: Vec2, curvature: number = 0.5)
   const mid = getMidpoint(start, end);
   const distance = getDistance(start, end);
   const angle = getAngle(start, end);
-  
+
   const perpAngle = angle + Math.PI / 2;
   const offset = distance * curvature * 0.5;
   return {

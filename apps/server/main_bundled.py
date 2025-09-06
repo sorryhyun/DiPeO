@@ -71,7 +71,6 @@ if __name__ == "__main__":
         # If there's no start function, the server initialization happens at import time
         # or we need to call the appropriate function
         import uvicorn
-
         from main import app
 
         # Get port from environment or use default

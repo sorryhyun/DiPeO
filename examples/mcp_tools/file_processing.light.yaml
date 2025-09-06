@@ -42,7 +42,7 @@ nodes:
       code: |
         # Extract file paths from directory listing
         files_to_process = []
-        
+
         if file_list and "files" in file_list:
             for file_info in file_list["files"]:
                 file_path = f"{source_dir}/{file_info}"
@@ -50,7 +50,7 @@ nodes:
                     "path": file_path,
                     "name": file_info
                 })
-        
+
         result = {
             "files": files_to_process,
             "count": len(files_to_process)
@@ -79,10 +79,10 @@ nodes:
         2. Key topics or themes
         3. Word count and statistics
         4. Suggested improvements or corrections
-        
+
         File: {{processed_list.files[0].name}}
         Content: {{file_content.content}}
-        
+
         Format your response as JSON.
       max_iteration: 1
       memory_profile: MINIMAL
@@ -134,36 +134,36 @@ connections:
   - from: Start
     to: List Source Files
     content_type: raw_text
-    
+
   - from: List Source Files
     to: Process File List
     content_type: raw_text
     label: file_list
-    
+
   - from: Process File List
     to: Read File Content
     content_type: raw_text
     label: processed_list
-    
+
   - from: Read File Content
     to: Analyze Content
     content_type: raw_text
     label: file_content
-    
+
   - from: Analyze Content
     to: Ensure Output Directory
     content_type: raw_text
     label: analysis
-    
+
   - from: Ensure Output Directory
     to: Save Analysis
     content_type: raw_text
-    
+
   - from: Save Analysis
     to: Verify Output
     content_type: raw_text
     label: save_result
-    
+
   - from: Verify Output
     to: Complete
     content_type: raw_text

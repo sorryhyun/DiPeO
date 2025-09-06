@@ -25,14 +25,14 @@ class SideEffectRegistry {
 
   getEffects(action: string): SideEffect[] {
     const effects: SideEffect[] = [];
-    
+
     // Check for exact matches and patterns
     for (const [pattern, patternEffects] of this.effects.entries()) {
       if (this.matchesPattern(action, pattern)) {
         effects.push(...patternEffects);
       }
     }
-    
+
     return effects;
   }
 
@@ -54,7 +54,7 @@ const registry = new SideEffectRegistry();
 export const autoSaveSideEffect: SideEffect = {
   trigger: (context) => {
     // Trigger on any diagram or person modification
-    return context.action.startsWith('diagram.') || 
+    return context.action.startsWith('diagram.') ||
            context.action.startsWith('person.');
   },
   execute: async (context) => {
@@ -86,7 +86,7 @@ export const analyticsSideEffect: SideEffect = {
 export const validationSideEffect: SideEffect = {
   trigger: (context) => {
     // Validate on diagram changes
-    return context.action.startsWith('diagram.') && 
+    return context.action.startsWith('diagram.') &&
            !context.action.includes('Silent');
   },
   execute: async (context) => {
@@ -99,7 +99,7 @@ export const validationSideEffect: SideEffect = {
 export const websocketSideEffect: SideEffect = {
   trigger: (context) => {
     // Send updates for collaborative features
-    return context.action.startsWith('diagram.') || 
+    return context.action.startsWith('diagram.') ||
            context.action.startsWith('execution.');
   },
   execute: async (context) => {
@@ -152,7 +152,7 @@ export const sideEffectsMiddleware: SideEffectsMiddleware = (config) => (set, ge
       };
 
       const effects = registry.getEffects(currentAction);
-      
+
       // Execute all matching side effects
       Promise.all(
         effects
@@ -237,7 +237,7 @@ export function createThrottledSideEffect(
       } else {
         // Schedule execution for later
         pendingExecution = () => effect.execute(context);
-        
+
         if (!timeoutId) {
           const remainingTime = interval - timeSinceLastExecution;
           timeoutId = setTimeout(async () => {

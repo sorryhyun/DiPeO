@@ -47,10 +47,10 @@ const InteractivePromptModal: React.FC<InteractivePromptModalProps> = ({
 
   const { context } = prompt;
   const isUserResponse = context?.nodeType === 'user_response';
-  
+
   // Different title based on node type
-  const title = isUserResponse 
-    ? 'User Input Required' 
+  const title = isUserResponse
+    ? 'User Input Required'
     : `Interactive Prompt from ${context?.person_name || context?.person_id || 'Person'}${context?.model ? ` (${context.model})` : ''}`;
 
   return (
@@ -93,7 +93,7 @@ const InteractivePromptModal: React.FC<InteractivePromptModalProps> = ({
             Iteration: {context.execution_count + 1}
           </div>
         )}
-        
+
         {prompt.timeout && isUserResponse && (
           <div className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
             ⏱️ Timeout: {prompt.timeout} seconds
