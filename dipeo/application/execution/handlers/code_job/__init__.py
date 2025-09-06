@@ -192,7 +192,8 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         import time
 
         node = request.node
-        exec_context = inputs
+        # Ensure exec_context is always a dictionary
+        exec_context = inputs if isinstance(inputs, dict) else {}
 
         # Use pre-validated data from instance variables (set in pre_execute)
         timeout = self._current_timeout

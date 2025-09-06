@@ -18,9 +18,6 @@ class TypescriptAstNode:
     id: NodeID
     position: Vec2
 
-    # Required node-specific fields
-    source: str
-
     # Optional base fields
     label: str = ""
     flipped: bool = False
@@ -29,7 +26,10 @@ class TypescriptAstNode:
     # Node type (fixed for this node class)
     type: NodeType = field(default=NodeType.TYPESCRIPT_AST, init=False)
 
-    # Optional node-specific fields
+    # Node-specific fields (source is optional for batch mode)
+    source: str = ""
+    batch: bool = False
+    batch_input_key: str = "sources"
     extract_patterns: List[Any] = field(default_factory=list)
     include_js_doc: bool = False
     parse_mode: Literal["module", "script"] = None
@@ -51,6 +51,8 @@ class TypescriptAstNode:
 
         # Add node-specific fields
         data["source"] = self.source
+        data["batch"] = self.batch
+        data["batchInputKey"] = self.batch_input_key
         data["extractPatterns"] = self.extract_patterns
         data["includeJSDoc"] = self.include_js_doc
         data["parseMode"] = self.parse_mode

@@ -9,16 +9,14 @@ repos:
     rev: v0.8.0
     hooks:
       - id: ruff
-        args: [--fix, --ignore, F841, F401, SIM102, E722, N802]  # Removed --exit-non-zero-on-fix to allow auto-fixing, ignoring common issues
+        args: ["--fix"]  # Only apply auto-fixes, use pyproject.toml for ignore rules
         exclude: |
           (?x)^(
             dipeo/diagram_generated/.*|
             dipeo/diagram_generated_staged/.*|
             projects/codegen/.*|
             projects/frontend_enhance/.*|
-            projects/frontend_auto/.*|
-            .*__generated__.py|
-            .*/migrations/.*
+            projects/frontend_auto/.*
           )$
       - id: ruff-format
         exclude: |
@@ -27,8 +25,7 @@ repos:
             dipeo/diagram_generated_staged/.*|
             projects/frontend_enhance/.*|
             projects/frontend_auto/.*|
-            projects/codegen/.*|
-            .*__generated__.py
+            projects/codegen/.*
           )$
 
   # Type checking with mypy - COMMENTED OUT (run manually when needed)
@@ -116,7 +113,6 @@ exclude: |
   (?x)^(
     \.git/|
     \.venv/|
-    venv/|
     __pycache__/|
     \.mypy_cache/|
     \.ruff_cache/|

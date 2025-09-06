@@ -34,6 +34,8 @@ class TemplateJobNode:
     output_path: str = ""
     variables: Dict[str, Any] = field(default_factory=dict)
     engine: Literal["internal", "jinja2"] = None
+    preprocessor: Optional[Dict[str, Any]] = None
+    foreach: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -53,4 +55,8 @@ class TemplateJobNode:
         data["output_path"] = self.output_path
         data["variables"] = self.variables
         data["engine"] = self.engine
+        if self.preprocessor:
+            data["preprocessor"] = self.preprocessor
+        if self.foreach:
+            data["foreach"] = self.foreach
         return data

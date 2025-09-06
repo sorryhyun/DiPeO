@@ -21,8 +21,8 @@ from .nodes.template_job_node import TemplateJobNode
 from .nodes.typescript_ast_node import TypescriptAstNode
 from .nodes.user_response_node import UserResponseNode
 
-# Re-export NodeType enum from enums
-from .enums import NodeType
+# Re-export NodeType and DBBlockSubType enums from enums
+from .enums import NodeType, DBBlockSubType
 
 # Re-export base types from domain_models (will be replaced by compatibility shim next)
 from .domain_models import (
@@ -102,17 +102,33 @@ def create_executable_node(
         )
     
     elif node_type == NodeType.DB:
+        # Handle source_details if it exists (backward compatibility)
+        source_details = data.get('source_details', {})
+        if isinstance(source_details, dict):
+            file_val = source_details.get('file', data.get('file', ''))
+            collection_val = source_details.get('collection', data.get('collection', ''))
+            query_val = source_details.get('query', data.get('query', ''))
+            data_val = source_details.get('data', data.get('data', {}))
+        else:
+            file_val = data.get('file', '')
+            collection_val = data.get('collection', '')
+            query_val = data.get('query', '')
+            data_val = data.get('data', {})
+            
         return DBNode(
             id=node_id,
             position=position,
             label=label,
             flipped=flipped,
             metadata=metadata,
-            operation=data.get('operation'),
-            sub_type=data.get('sub_type'),
-            source_details=data.get('source_details'),
-            format=data.get('format'),
-            glob=data.get('glob', False),
+            operation=data.get('operation', ''),
+            sub_type=data.get('sub_type', data.get('subType', DBBlockSubType.FILE)),
+            file=file_val,
+            collection=collection_val,
+            query=query_val,
+            data=data_val,
+            serialize_json=data.get('serialize_json', data.get('serializeJson', False)),
+            format=data.get('format', ''),
         )
     
     elif node_type == NodeType.ENDPOINT:
@@ -251,10 +267,13 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            engine=data.get('engine'),
-            template=data.get('template'),
-            template_path=data.get('template_path'),
-            output_path=data.get('output_path'),
+            engine=data.get('engine', 'jinja2'),
+            template_content=data.get('template', data.get('template_content', '')),
+            template_path=data.get('template_path', data.get('templatePath', '')),
+            output_path=data.get('output_path', data.get('outputPath', '')),
+            variables=data.get('variables', {}),
+            preprocessor=data.get('preprocessor'),
+            foreach=data.get('foreach'),
         )
     
     elif node_type == NodeType.TYPESCRIPT_AST:
@@ -265,6 +284,8 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             source=data.get('source', data.get('filePath', '')),
+            batch=data.get('batch', False),
+            batch_input_key=data.get('batchInputKey', data.get('batch_input_key', 'sources')),
             extract_patterns=data.get('extractPatterns', data.get('extract_patterns', [])),
             include_js_doc=data.get('includeJSDoc', data.get('include_js_doc', False)),
             parse_mode=data.get('parseMode', data.get('parse_mode', 'module')),
