@@ -38,6 +38,7 @@ export interface UIConfiguration {
   max?: number;    // For number input
   showPromptFileButton?: boolean;  // Show button to load prompt from file
   adjustable?: boolean;  // Allow field to be resized
+  hidden?: boolean;  // Hide field from UI (but keep in data model)
 }
 
 /**
@@ -155,22 +156,22 @@ export function isNodeSpecification(value: any): value is NodeSpecification {
 // Helper to validate field specification
 export function validateFieldSpecification(field: FieldSpecification): string[] {
   const errors: string[] = [];
-  
+
   if (!field.name) {
     errors.push('Field name is required');
   }
-  
+
   if (!field.type) {
     errors.push('Field type is required');
   }
-  
+
   if (!field.uiConfig || !field.uiConfig.inputType) {
     errors.push(`Field ${field.name} must have uiConfig with inputType`);
   }
-  
+
   if (field.type === 'object' && !field.nestedFields) {
     errors.push(`Object field ${field.name} must have nestedFields`);
   }
-  
+
   return errors;
 }

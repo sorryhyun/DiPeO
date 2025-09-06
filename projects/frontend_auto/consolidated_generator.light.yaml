@@ -44,12 +44,12 @@ persons:
       Every file must be immediately usable with no placeholders or TODOs.
 
   Frontend Generator:
-    service: openai
-    model: gpt-5-mini-2025-08-07
-    api_key_id: APIKEY_52609F
-#    service: claude-code
-#    model: claude-code
-#    api_key_id: APIKEY_CLAUDE
+#    service: openai
+#    model: gpt-5-mini-2025-08-07
+#    api_key_id: APIKEY_52609F
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
 
@@ -62,12 +62,12 @@ persons:
 
 
   Frontend Verdict:
-    service: openai
-    model: gpt-5-mini-2025-08-07
-    api_key_id: APIKEY_52609F
-#    service: claude-code
-#    model: claude-code
-#    api_key_id: APIKEY_CLAUDE
+#    service: openai
+#    model: gpt-5-mini-2025-08-07
+#    api_key_id: APIKEY_52609F
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer.
 
@@ -229,7 +229,7 @@ nodes:
       person: Frontend Generator
       max_iteration: 100
       memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
-      at_most: 5
+      at_most: 7
       prompt_file: frontend_generator.txt
 
   - label: Check Output Quality
@@ -267,7 +267,7 @@ nodes:
     props:
       person: Frontend Generator
       memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
-      at_most: 4
+      at_most: 6
       prompt_file: frontend_reviser.txt
 
   - label: Write Section Result

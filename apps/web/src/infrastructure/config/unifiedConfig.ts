@@ -12,13 +12,13 @@ export interface UnifiedFieldDefinition<T = any> {
   name: string;
   type: FieldType;
   label: string;
-  
+
   // Common properties
   required?: boolean;
   placeholder?: string;
   defaultValue?: unknown;
   description?: string;
-  
+
   // UI properties
   rows?: number;
   min?: number;
@@ -26,15 +26,16 @@ export interface UnifiedFieldDefinition<T = any> {
   disabled?: boolean | ((formData: T) => boolean);
   column?: 1 | 2;
   className?: string;
-  
+  hidden?: boolean; // Hide field from UI (but keep in data model)
+
   // Behavior
   options?: OptionsConfig<T>;
   dependsOn?: string[];
   conditional?: ConditionalConfig<T>;
-  
+
   // Validation
   validate?: FieldValidator<T>;
-  
+
   // Special properties for specific field types
   labelPlaceholder?: string; // for labelPersonRow
   personPlaceholder?: string; // for labelPersonRow
@@ -43,11 +44,11 @@ export interface UnifiedFieldDefinition<T = any> {
   language?: string; // for code field (e.g., 'json', 'javascript', 'python')
   readOnly?: boolean; // for read-only fields
   adjustable?: boolean; // for resizable text fields
-  
+
   // Nested fields for composite types
   fields?: UnifiedFieldDefinition<T>[];
   nestedFields?: UnifiedFieldDefinition<T>[];
-  
+
   // UI configuration object (for nested fields)
   uiConfig?: {
     inputType?: string;
@@ -70,13 +71,13 @@ export interface UnifiedNodeConfig<T extends Record<string, unknown> = Record<st
   category?: string;  // Node category for grouping in UI
   defaults: Record<string, unknown>;
   primaryDisplayField?: string;  // Field to show when node is not hovered
-  
+
   // Panel configuration properties (optional overrides)
   panelLayout?: 'single' | 'twoColumn';
   panelFieldOverrides?: Partial<Record<keyof T, Partial<TypedPanelFieldConfig<T>>>>;
   panelFieldOrder?: Array<keyof T | 'labelPersonRow'>;
   panelCustomFields?: Array<TypedPanelFieldConfig<T>>;
-  
+
   // Allow custom field definitions to override registry
   customFields?: UnifiedFieldDefinition<T>[];
 }
@@ -115,41 +116,41 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
 ): PanelLayoutConfig<T> {
   // Convert custom fields to panel field configs
   const panelFields: Array<TypedPanelFieldConfig<T>> = [];
-  
+
   if (config.customFields) {
     for (const field of config.customFields) {
       const panelField = convertToPanelFieldConfig<T>(field);
-      
+
       // Apply any field-specific overrides
       if (config.panelFieldOverrides?.[field.name as keyof T]) {
         Object.assign(panelField, config.panelFieldOverrides[field.name as keyof T]);
       }
-      
+
       panelFields.push(panelField);
     }
   }
-  
+
   const customFieldsMap = new Map(
     (config.panelCustomFields || []).map(field => [field.type === FIELD_TYPES.LABEL_PERSON_ROW ? FIELD_TYPES.LABEL_PERSON_ROW : field.name || field.type, field])
   );
 
-  
-  const orderedFields = config.panelFieldOrder 
+
+  const orderedFields = config.panelFieldOrder
     ? orderFields(panelFields, config.panelFieldOrder, customFieldsMap)
     : [...panelFields, ...(config.panelCustomFields || [])];
-  
+
   // Determine layout
   const layout = config.panelLayout || (orderedFields.length > 3 ? 'twoColumn' : 'single');
-  
+
   if (layout === 'twoColumn') {
     const leftColumnFields: Array<TypedPanelFieldConfig<T>> = [];
     const rightColumnFields: Array<TypedPanelFieldConfig<T>> = [];
-    
+
     // First, group fields by explicit column assignment
     const fieldsWithColumn1: Array<TypedPanelFieldConfig<T>> = [];
     const fieldsWithColumn2: Array<TypedPanelFieldConfig<T>> = [];
     const fieldsWithoutColumn: Array<TypedPanelFieldConfig<T>> = [];
-    
+
     for (const field of orderedFields) {
       if (field.column === 1) {
         fieldsWithColumn1.push(field);
@@ -159,17 +160,17 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
         fieldsWithoutColumn.push(field);
       }
     }
-    
+
     // Add explicitly assigned fields first
     leftColumnFields.push(...fieldsWithColumn1);
     rightColumnFields.push(...fieldsWithColumn2);
-    
+
     // Handle fields without explicit column assignment
     if (fieldsWithoutColumn.length > 0) {
       if (config.panelFieldOrder) {
         const leftFieldNames = ['labelPersonRow', 'contextCleaningRule', 'maxIteration'];
         const rightFieldNames = ['defaultPrompt', 'firstOnlyPrompt'];
-        
+
         for (const field of fieldsWithoutColumn) {
           const fieldKey = field.name || field.type;
           if (leftFieldNames.includes(fieldKey)) {
@@ -185,7 +186,7 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
         // Distribute remaining fields evenly
         const currentLeftCount = leftColumnFields.length;
         const currentRightCount = rightColumnFields.length;
-        
+
         fieldsWithoutColumn.forEach((field, index) => {
           if (currentLeftCount + index <= currentRightCount + (fieldsWithoutColumn.length - index - 1)) {
             leftColumnFields.push(field);
@@ -195,14 +196,14 @@ export function derivePanelConfig<T extends Record<string, unknown>>(
         });
       }
     }
-    
+
     return {
       layout: 'twoColumn',
       leftColumn: leftColumnFields,
       rightColumn: rightColumnFields
     };
   }
-  
+
   const result = {
     layout: 'single' as const,
     fields: orderedFields
@@ -215,14 +216,14 @@ function orderFields<T extends Record<string, unknown>>(
   order: Array<keyof T | string>,
   customFieldsMap?: Map<string, TypedPanelFieldConfig<T>>
 ): Array<TypedPanelFieldConfig<T>> {
-  
+
   const fieldMap = new Map(
     fields.map(field => [field.name || field.type, field])
   );
 
-  
+
   const orderedFields: Array<TypedPanelFieldConfig<T>> = [];
-  
+
   for (const key of order) {
     const field = fieldMap.get(key as string);
     if (field) {
@@ -242,7 +243,7 @@ function orderFields<T extends Record<string, unknown>>(
       console.log(`  Field not found for key: ${String(key)}`);
     }
   }
-  
+
   // Add any remaining fields not in the order
   const remainingFields = Array.from(fieldMap.values());
   orderedFields.push(...remainingFields);

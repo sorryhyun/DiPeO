@@ -54,18 +54,18 @@ function getFieldType(type: string): UnifiedFieldType {
 // Helper function to flatten nested object properties
 function flattenObject(obj: Record<string, unknown>, prefix = ''): Record<string, unknown> {
   const flattened: Record<string, unknown> = {};
-  
+
   Object.keys(obj).forEach(key => {
     const value = obj[key];
     const newKey = prefix ? `${prefix}.${key}` : key;
-    
+
     if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
       Object.assign(flattened, flattenObject(value as Record<string, unknown>, newKey));
     } else {
       flattened[newKey] = value;
     }
   });
-  
+
   return flattened;
 }
 
@@ -73,7 +73,7 @@ function flattenObject(obj: Record<string, unknown>, prefix = ''): Record<string
 function ensurePersonFields(flattenedData: Record<string, unknown>): Record<string, unknown> {
   // Ensure llm_config fields are present even if undefined
   const ensuredData = { ...flattenedData };
-  
+
   // List of expected fields that should always be present
   const expectedFields = [
     'llm_config.api_key_id',
@@ -82,13 +82,13 @@ function ensurePersonFields(flattenedData: Record<string, unknown>): Record<stri
     'llm_config.system_prompt',
     'temperature'
   ];
-  
+
   expectedFields.forEach(field => {
     if (!(field in ensuredData)) {
       ensuredData[field] = undefined;
     }
   });
-  
+
   return ensuredData;
 }
 
@@ -99,16 +99,16 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   // For arrows and persons, it's a string ('arrow' or 'person')
   const nodeConfig = nodeType !== 'arrow' && nodeType !== 'person' ? getNodeConfig(nodeType) : undefined;
   const queryClient = useQueryClient();
-  
+
   // Debug logging for node config lookup
   if (!nodeConfig && nodeType !== 'arrow' && nodeType !== 'person') {
     console.warn(`No config found for node type: ${nodeType}`);
   }
-  
+
   // Use context instead of individual hooks
   const { nodeOps, arrowOps, personOps, clearSelection } = useCanvasOperations();
   const { personsWithUsage } = useCanvasState();
-  
+
   // Get panel config from the new unified configuration
   let panelConfig = null;
   if (nodeType === 'arrow' || nodeType === 'person') {
@@ -116,21 +116,21 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
   } else if (nodeConfig) {
     panelConfig = derivePanelConfig(nodeConfig);
   }
-  
+
   const personsForSelect = personsWithUsage.map(person => ({ id: person.id, label: person.label }));
-  
+
   const getEntityType = (dataType: unknown): 'node' | 'arrow' | 'person' => {
     if (dataType === 'arrow') return 'arrow';
     if (dataType === 'person') return 'person';
     return 'node';
   };
-  
+
   const entityType = getEntityType(data.type);
 
   // Flatten the data for form fields if it's a person - memoize to prevent infinite loops
   const flattenedData = useMemo(() => {
-    return entityType === 'person' 
-      ? ensurePersonFields(flattenObject(data as Record<string, unknown>)) 
+    return entityType === 'person'
+      ? ensurePersonFields(flattenObject(data as Record<string, unknown>))
       : data;
   }, [entityType, data]);
 
@@ -154,7 +154,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         [name]: value,
         'llm_config.model': '', // Clear model when API key changes
       };
-      
+
       if (value) {
         try {
           const { data: apiKeysData } = await apolloClient.query<GetApiKeysQuery>({
@@ -169,39 +169,39 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
           console.error('Failed to update service:', error);
         }
       }
-      
+
       // Update form data immediately
       updateFormData(updates);
-      
+
       // Then invalidate model options cache after a small delay to ensure data is updated
       setTimeout(() => {
-        queryClient.invalidateQueries({ 
+        queryClient.invalidateQueries({
           queryKey: ['field-options', entityType, entityId, 'llm_config.model'],
           exact: false
         });
       }, 100);
       return;
     }
-    
+
     // Regular field update
     updateField(name, value);
-    
+
     if (data.type === 'person' && name === 'llm_config.model' && value) {
       const apiKeyIdStr = formData['llm_config.api_key_id'] as string;
-      
+
       // Only proceed if we have an API key
       if (!apiKeyIdStr) {
         console.warn('Cannot set model without an API key');
         updateField('llm_config.model', undefined);
         return;
       }
-      
+
       // Update the person's model directly without requiring saved diagram
       try {
         const personData = data as DomainPerson;
         const { data: updateResult } = await apolloClient.mutate({
           mutation: UpdatePersonDocument,
-          variables: { 
+          variables: {
             id: entityId,
             input: {
               llm_config: {
@@ -213,7 +213,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
             }
           }
         });
-        
+
         if (!updateResult?.update_person?.success) {
           console.error('Failed to update model:', updateResult?.update_person?.message);
         } else {
@@ -223,16 +223,20 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         console.error('Error initializing model:', error);
       }
     }
-    
+
     // Don't manually sync other fields - let auto-save handle everything
   }, [updateField, updateFormData, formData, data, entityId, queryClient]);
 
   const shouldRenderField = useCallback((fieldConfig: TypedPanelFieldConfig<Record<string, unknown>>): boolean => {
+    // Check if field is hidden
+    if (fieldConfig.hidden) return false;
+
+    // Check conditional rendering
     if (!fieldConfig.conditional) return true;
-    
+
     const fieldValue = formData[fieldConfig.conditional.field];
     const { values, operator = 'includes' } = fieldConfig.conditional;
-    
+
     return checkCondition(operator, fieldValue, values);
   }, [formData]);
 
@@ -242,9 +246,9 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
 
   const renderField = useCallback((fieldConfig: TypedPanelFieldConfig<Record<string, unknown>>, index: number): React.ReactNode => {
     const key = fieldConfig.name ? `${fieldConfig.name}-${index}` : `field-${index}`;
-    
+
     if (!shouldRenderField(fieldConfig)) return null;
-    
+
     if (fieldConfig.type === 'row' && fieldConfig.fields) {
       return (
         <FormRow key={key} className={fieldConfig.className}>
@@ -252,7 +256,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         </FormRow>
       );
     }
-    
+
     if (fieldConfig.type === 'labelPersonRow') {
       return (
         <FormRow key={key}>
@@ -280,15 +284,15 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         </FormRow>
       );
     }
-    
+
     if (fieldConfig.type === 'custom') return null;
-    
+
     const processedField = processedFields.find((pf: { field: { name?: string } }) => pf.field.name === fieldConfig.name);
     const options = processedField?.options;
     const isLoading = processedField?.isLoading;
-    
+
     const fieldValue = fieldConfig.name ? formData[fieldConfig.name] : undefined;
-    
+
     return (
       <UnifiedFormField
         key={key}

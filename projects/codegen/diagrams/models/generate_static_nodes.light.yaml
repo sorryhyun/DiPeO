@@ -40,9 +40,7 @@ nodes:
       format: json
       glob: true  # Enable glob pattern expansion
       source_details:
-        # Dynamically discover all node data files
-        - "temp/core/nodes/*.data.ts.json"
-        # Also load spec files to get defaultValues
+        # Dynamic discovery of all node SPECIFICATION files (replacing *.data.ts files)
         - "temp/specifications/nodes/*.spec.ts.json"
 
   # Load cached diagram AST for BaseNodeData
@@ -113,24 +111,24 @@ connections:
   - {from: Start, to: Load Mappings AST}
   - {from: Start, to: Load All Node Data AST}
   - {from: Start, to: Load Diagram AST}
-  
+
   # Extract mappings
   - {from: Load Mappings AST, to: Extract Mappings, content_type: object}
-  
+
   # Extract node data from loaded AST files
   - {from: Load All Node Data AST, to: Extract Node Data, content_type: object}
-  
+
   # Extract base interface
   - {from: Load Diagram AST, to: Extract Base Interface, label: diagram_ast, content_type: object}
-  
+
   # Generate static nodes with all inputs
   - {from: Extract Node Data, to: Generate Static Nodes, label: node_data, content_type: object}
   - {from: Extract Mappings, to: Generate Static Nodes, label: mappings, content_type: object}
   - {from: Extract Base Interface, to: Generate Static Nodes, label: base_data, content_type: object}
-  
+
   # Generate Python code
   - {from: Generate Static Nodes, to: Generate Python Code, label: static_nodes_data, content_type: object}
-  
+
   # Summary and End
   - {from: Generate Static Nodes, to: Generate Summary, label: static_nodes_data}
   - {from: Generate Python Code, to: End}

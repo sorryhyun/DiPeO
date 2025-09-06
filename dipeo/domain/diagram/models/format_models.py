@@ -25,7 +25,8 @@ class LightNode(BaseModel):
     model_config = {"extra": "allow"}  # Allow additional fields
 
     @field_validator("position")
-    def validate_position(self, v):
+    @classmethod
+    def validate_position(cls, v):
         if v and not all(k in v for k in ["x", "y"]):
             raise ValueError("Position must have x and y coordinates")
         return v
@@ -66,7 +67,8 @@ class ReadableNode(BaseModel):
     props: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("position")
-    def validate_position(self, v):
+    @classmethod
+    def validate_position(cls, v):
         if not all(k in v for k in ["x", "y"]):
             raise ValueError("Position must have x and y coordinates")
         return v

@@ -30,8 +30,8 @@ nodes:
         - temp/core/integration.ts.json
         # Base node data interface (must be loaded before node data files)
         - temp/core/nodes/base.ts.json
-        # Dynamic discovery of all node data files
-        - "temp/core/nodes/*.data.ts.json"
+        # Dynamic discovery of all node SPECIFICATION files (replacing *.data.ts files)
+        - "temp/specifications/nodes/*.spec.ts.json"
 
   # Extract raw model data using simplified extractor
   - label: Extract Raw Model Data
@@ -73,15 +73,15 @@ connections:
   # Run batch parser first
   # Load cached AST data after parsing
   - {from: Start, to: Load All AST Files}
-  
+
   # Pass glob results directly to simplified extractor
   - {from: Load All AST Files, to: Extract Raw Model Data, label: default, content_type: object}
-  
+
   # Pass raw extracted data to template renderer
   - {from: Extract Raw Model Data, to: Render Python Models Enhanced, label: model_data, content_type: object}  # Raw TypeScript data for template to process
-  
+
   # Generate summary with counts from extraction
   - {from: Extract Raw Model Data, to: Generate Summary, label: generation_result}
-  
+
   - {from: Render Python Models Enhanced, to: End}
   - {from: Generate Summary, to: End}

@@ -1,11 +1,11 @@
 {
   "nodes": [
     {
-      "id": "node_xx434wf0",
+      "id": "node_6o9m2lxo",
       "type": "start",
       "position": {
-        "x": 400,
-        "y": 870
+        "x": 253.75,
+        "y": 407.5
       },
       "data": {
         "trigger_mode": "none",
@@ -15,11 +15,23 @@
       }
     },
     {
-      "id": "node_69dxgli3",
+      "id": "node_dn5mv67r",
+      "type": "endpoint",
+      "position": {
+        "x": 410,
+        "y": 420
+      },
+      "data": {
+        "save_to_file": false,
+        "label": "endpoint"
+      }
+    },
+    {
+      "id": "node_ygi9jbc1",
       "type": "person_job",
       "position": {
-        "x": 480,
-        "y": 920
+        "x": 160,
+        "y": 540
       },
       "data": {
         "first_only_prompt": "",
@@ -32,66 +44,46 @@
         ],
         "label": "person_job"
       }
-    },
-    {
-      "id": "node_mt8hv927",
-      "type": "code_job",
-      "position": {
-        "x": 480,
-        "y": 920
-      },
-      "data": {
-        "language": null,
-        "label": "code_job"
-      }
     }
   ],
   "arrows": [],
   "persons": [],
   "handles": [
     {
-      "id": "node_xx434wf0_default_output",
-      "node_id": "node_xx434wf0",
+      "id": "node_6o9m2lxo_default_output",
+      "node_id": "node_6o9m2lxo",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_69dxgli3_default_input",
-      "node_id": "node_69dxgli3",
+      "id": "node_dn5mv67r_default_input",
+      "node_id": "node_dn5mv67r",
       "label": "default",
       "direction": "input",
       "data_type": "any",
       "position": "left"
     },
     {
-      "id": "node_69dxgli3_first_input",
-      "node_id": "node_69dxgli3",
+      "id": "node_ygi9jbc1_default_input",
+      "node_id": "node_ygi9jbc1",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_ygi9jbc1_first_input",
+      "node_id": "node_ygi9jbc1",
       "label": "first",
       "direction": "input",
       "data_type": "any",
       "position": "left"
     },
     {
-      "id": "node_69dxgli3_default_output",
-      "node_id": "node_69dxgli3",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_mt8hv927_default_input",
-      "node_id": "node_mt8hv927",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_mt8hv927_default_output",
-      "node_id": "node_mt8hv927",
+      "id": "node_ygi9jbc1_default_output",
+      "node_id": "node_ygi9jbc1",
       "label": "default",
       "direction": "output",
       "data_type": "any",
@@ -99,12 +91,12 @@
     }
   ],
   "metadata": {
-    "name": "test_workflow.light.yaml",
+    "name": "Untitled",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-09-06T08:21:12.599Z",
-    "modified": "2025-09-06T08:21:12.599Z",
+    "created": "2025-09-06T02:17:26.366Z",
+    "modified": "2025-09-06T02:17:26.366Z",
     "version": "1.0.0",
     "id": null
   }

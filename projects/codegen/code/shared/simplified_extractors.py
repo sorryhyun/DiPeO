@@ -226,6 +226,64 @@ def generate_node_mutations(inputs: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _generate_interface_from_spec(spec: dict[str, Any]) -> dict[str, Any] | None:
+    """
+    Generate an interface definition from a node specification.
+
+    Args:
+        spec: Node specification with fields
+
+    Returns:
+        Interface definition or None if cannot generate
+    """
+    # Get node type and clean it
+    node_type = spec.get('nodeType', '')
+    node_type = node_type.replace('NodeType.', '').replace('"', '')
+
+    if not node_type:
+        return None
+
+    # Convert node type to interface name
+    # e.g., PERSON_JOB -> PersonJobNodeData
+    parts = node_type.split('_')
+    interface_name = ''.join(part.capitalize() for part in parts) + 'NodeData'
+
+    # Convert fields to properties
+    properties = []
+    for field in spec.get('fields', []):
+        # Map field type to TypeScript type
+        field_type = field.get('type', 'any')
+
+        # Handle special types
+        if field_type == 'select':
+            # Get from options or default to string
+            field_type = 'string'
+        elif field_type == 'enum':
+            field_type = 'string'
+
+        # Build property definition
+        prop = {
+            'name': field.get('name'),
+            'type': field_type,
+            'optional': not field.get('required', False),
+            'description': field.get('description')
+        }
+
+        # Add validation info if present
+        if 'validation' in field:
+            prop['validation'] = field['validation']
+
+        properties.append(prop)
+
+    # Return interface definition
+    return {
+        'name': interface_name,
+        'properties': properties,
+        'extends': ['BaseNodeData'],  # All node data interfaces extend BaseNodeData
+        'description': f"Data model for {spec.get('displayName', node_type)} node"
+    }
+
+
 def _process_interface_jsdoc(interfaces: list[dict]) -> None:
     """Process interfaces and map jsDoc to description."""
     for interface in interfaces:
@@ -290,6 +348,18 @@ def extract_models_from_glob(inputs: dict[str, Any]) -> dict[str, Any]:
         all_types.extend(ast_data.get('types', []))
         all_enums.extend(ast_data.get('enums', []))
         all_constants.extend(ast_data.get('constants', []))
+
+        # Generate interfaces from specifications
+        if filepath.endswith('.spec.ts.json'):
+            for const in ast_data.get('constants', []):
+                name = const.get('name', '')
+                if name.endswith('Spec') or name.endswith('spec'):
+                    spec_value = const.get('value', {})
+                    if isinstance(spec_value, dict) and 'fields' in spec_value:
+                        # Generate interface from spec fields
+                        interface = _generate_interface_from_spec(spec_value)
+                        if interface:
+                            all_interfaces.append(interface)
 
     # Filter and process types
     filtered_types = _filter_deprecated_types(all_types)

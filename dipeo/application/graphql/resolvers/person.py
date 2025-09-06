@@ -141,6 +141,11 @@ class PersonResolver:
     async def list_api_keys(self, service: str | None = None) -> list[DomainApiKey]:
         """List API keys, optionally filtered by service."""
         try:
+            from dipeo.diagram_generated.enums import APIServiceType
+
+            # Get valid LLM service values
+            valid_services = {s.value for s in APIServiceType}
+
             apikey_service = self.registry.resolve(API_KEY_SERVICE)
             logger.debug(f"Got apikey_service: {apikey_service}")
             # Run blocking operation in thread pool to avoid blocking event loop
@@ -150,6 +155,11 @@ class PersonResolver:
             # Convert to DomainApiKey objects
             domain_keys = []
             for key_data in api_keys:
+                # Skip non-LLM services (like notion, google_search, etc.)
+                if key_data.get("service") not in valid_services:
+                    logger.debug(f"Skipping non-LLM service: {key_data.get('service')}")
+                    continue
+
                 # Filter by service if provided
                 if service and key_data.get("service") != service:
                     continue
@@ -159,7 +169,9 @@ class PersonResolver:
                         id=key_data["id"],
                         label=key_data["label"],
                         service=key_data["service"],
-                        key="***hidden***",  # Never expose actual keys
+                        key=key_data.get(
+                            "key", "***hidden***"
+                        ),  # Use the key from service (should be properly masked)
                     )
                 )
 

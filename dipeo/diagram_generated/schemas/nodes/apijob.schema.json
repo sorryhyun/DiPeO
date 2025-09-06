@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/ApiJobNodeData",
   "definitions": {
-    "Record<string,string>": {
+    "JsonDict": {
       "additionalProperties": false,
       "type": "object"
     },
@@ -15,27 +15,6 @@
         "patch"
       ],
       "type": "string"
-    },
-    "JsonValue": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/JsonObject"
-        },
-        {
-          "items": {
-            "$ref": "#/definitions/JsonValue"
-          },
-          "type": "array"
-        },
-        {
-          "type": [
-            "null",
-            "string",
-            "number",
-            "boolean"
-          ]
-        }
-      ]
     },
     "ApiJobNodeData": {
       "additionalProperties": false,
@@ -108,9 +87,30 @@
       },
       "type": "object"
     },
-    "JsonDict": {
+    "Record<string,string>": {
       "additionalProperties": false,
       "type": "object"
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/JsonObject"
+        },
+        {
+          "items": {
+            "$ref": "#/definitions/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "type": [
+            "null",
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      ]
     }
   }
 }

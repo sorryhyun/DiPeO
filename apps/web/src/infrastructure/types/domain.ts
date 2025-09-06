@@ -55,24 +55,28 @@ export type {
 } from '@dipeo/models';
 
 // Node Data Types
+// Note: Node data types are now generated locally in __generated__/models/
+// They are no longer exported from @dipeo/models to avoid duplication
 export type {
-  BaseNodeData,
-  StartNodeData,
-  ConditionNodeData,
-  PersonJobNodeData,
-  EndpointNodeData,
-  DBNodeData,
-  CodeJobNodeData,
-  ApiJobNodeData,
-  UserResponseNodeData,
-  PersonBatchJobNodeData,
-  HookNodeData,
-  TemplateJobNodeData,
-  JsonSchemaValidatorNodeData,
-  TypescriptAstNodeData,
-  SubDiagramNodeData,
-  IntegratedApiNodeData
+  BaseNodeData
 } from '@dipeo/models';
+
+// Import generated node data types
+export type { StartNodeData } from '../../__generated__/models/StartNode';
+export type { ConditionNodeData } from '../../__generated__/models/ConditionNode';
+export type { PersonJobNodeData } from '../../__generated__/models/PersonJobNode';
+export type { EndpointNodeData } from '../../__generated__/models/EndpointNode';
+export { type DbNodeData as DBNodeData } from '../../__generated__/models/DbNode';
+export type { CodeJobNodeData } from '../../__generated__/models/CodeJobNode';
+export type { ApiJobNodeData } from '../../__generated__/models/ApiJobNode';
+export type { UserResponseNodeData } from '../../__generated__/models/UserResponseNode';
+export type { PersonBatchJobNodeData } from '../../__generated__/models/PersonBatchJobNode';
+export type { HookNodeData } from '../../__generated__/models/HookNode';
+export type { TemplateJobNodeData } from '../../__generated__/models/TemplateJobNode';
+export type { JsonSchemaValidatorNodeData } from '../../__generated__/models/JsonSchemaValidatorNode';
+export type { TypescriptAstNodeData } from '../../__generated__/models/TypescriptAstNode';
+export type { SubDiagramNodeData } from '../../__generated__/models/SubDiagramNode';
+export type { IntegratedApiNodeData } from '../../__generated__/models/IntegratedApiNode';
 
 // Execution Types
 export type {
@@ -112,7 +116,7 @@ export {
 
 // UI-Specific Type Augmentation
 // This is the only UI-specific type that should be defined here
-export type WithUI<T> = T & { 
+export type WithUI<T> = T & {
   flipped?: boolean;
   // Allow other UI-specific properties
   [key: string]: unknown;
@@ -124,14 +128,14 @@ export function hasUIProperties<T>(obj: T | WithUI<T>): obj is WithUI<T> {
 }
 
 // Import types to use in function signatures
-import type { 
-  NodeID as NodeIDImport, 
-  ArrowID as ArrowIDImport, 
+import type {
+  NodeID as NodeIDImport,
+  ArrowID as ArrowIDImport,
   HandleID as HandleIDImport,
-  PersonID as PersonIDImport, 
-  ApiKeyID as ApiKeyIDImport, 
+  PersonID as PersonIDImport,
+  ApiKeyID as ApiKeyIDImport,
   DiagramID as DiagramIDImport,
-  ExecutionID as ExecutionIDImport 
+  ExecutionID as ExecutionIDImport
 } from '@dipeo/models';
 
 // Re-export branded ID creation functions for UI convenience

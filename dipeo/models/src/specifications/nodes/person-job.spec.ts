@@ -9,7 +9,7 @@ export const personJobSpec: NodeSpecification = {
   icon: "🤖",
   color: "#2196F3",
   description: "Execute tasks using AI language models",
-  
+
   fields: [
     {
       name: "person",
@@ -42,7 +42,8 @@ export const personJobSpec: NodeSpecification = {
       uiConfig: {
         inputType: "text",
         placeholder: "example_first.txt",
-        column: 2
+        column: 2,
+        hidden: true
       }
     },
     {
@@ -67,7 +68,8 @@ export const personJobSpec: NodeSpecification = {
       uiConfig: {
         inputType: "text",
         placeholder: "example.txt",
-        column: 2
+        column: 2,
+        hidden: true
       }
     },
     {
@@ -161,24 +163,24 @@ export const personJobSpec: NodeSpecification = {
       }
     },
   ],
-  
+
   handles: {
     inputs: ["default", "first"],
     outputs: ["default"]
   },
-  
+
   outputs: {
     result: {
       type: "any",
       description: "AI response and results"
     }
   },
-  
+
   execution: {
     timeout: 300,
     retryable: true,
     maxRetries: 3
   },
-  
+
   primaryDisplayField: "person"
 };

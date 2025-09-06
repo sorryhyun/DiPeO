@@ -32,8 +32,8 @@ nodes:
     - temp/core/diagram.ts.json
     # Base node data interface (must be loaded before node data files)
     - temp/core/nodes/base.ts.json
-    # Dynamically discover all node data files
-    - "temp/core/nodes/*.data.ts.json"
+    # Dynamic discovery of all node SPECIFICATION files (replacing *.data.ts files)
+    - "temp/specifications/nodes/*.spec.ts.json"
 - label: parse db output
   type: code_job
   position: {x: 380, y: 276}
@@ -42,9 +42,9 @@ nodes:
     code: |
       import json
       import ast
-      
+
       data = inputs.get('default', {})
-      
+
       # If data is a string, parse it
       if isinstance(data, str):
           try:
@@ -57,7 +57,7 @@ nodes:
               except json.JSONDecodeError:
                   print(f"ERROR: Failed to parse data string")
                   data = {}
-      
+
       return data
 - label: unified extractor
   type: code_job

@@ -190,5 +190,6 @@ def extract_api_key_summary(key_id: str, info: dict) -> dict:
             "id": key_id,
             "label": info.get("label", key_id),
             "service": info["service"],
+            "key": info.get("key", ""),  # Include the key in the summary
         }
     return None

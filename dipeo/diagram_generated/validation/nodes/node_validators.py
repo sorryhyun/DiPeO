@@ -1,4 +1,5 @@
 # Combined node validators for GraphQL v2
+from typing import Type
 
 from pydantic import BaseModel
 
@@ -41,5 +42,5 @@ def validate_node_data(node_type: str, data: dict) -> BaseModel:
     validator_class = NODE_VALIDATORS.get(node_type)
     if not validator_class:
         raise ValueError(f"No validator found for node type: {node_type}")
-    
+
     return validator_class(**data)
