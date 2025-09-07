@@ -24,7 +24,7 @@ class StartNode(BaseModel):
     position: Vec2
 
     # Required node-specific fields
-    trigger_mode: HookTriggerMode = Field(description="How this start node is triggered")
+    trigger_mode: HookTriggerMode = Field(default=HookTriggerMode.NONE, description="How this start node is triggered")
 
     # Optional base fields
     label: str = Field(default="", description="Node label for display")

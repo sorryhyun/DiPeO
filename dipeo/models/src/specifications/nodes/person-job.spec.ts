@@ -162,6 +162,54 @@ export const personJobSpec: NodeSpecification = {
         rows: 4
       }
     },
+    // Batch execution fields
+    {
+      name: "batch",
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: "Enable batch mode for processing multiple items",
+      uiConfig: {
+        inputType: "checkbox"
+      }
+    },
+    {
+      name: "batch_input_key",
+      type: "string",
+      required: false,
+      defaultValue: "items",
+      description: "Key containing the array to iterate over in batch mode",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "items"
+      }
+    },
+    {
+      name: "batch_parallel",
+      type: "boolean",
+      required: false,
+      defaultValue: true,
+      description: "Execute batch items in parallel",
+      uiConfig: {
+        inputType: "checkbox"
+      }
+    },
+    {
+      name: "max_concurrent",
+      type: "number",
+      required: false,
+      defaultValue: 10,
+      description: "Maximum concurrent executions in batch mode",
+      validation: {
+        min: 1,
+        max: 100
+      },
+      uiConfig: {
+        inputType: "number",
+        min: 1,
+        max: 100
+      }
+    },
   ],
 
   handles: {

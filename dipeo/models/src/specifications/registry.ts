@@ -8,7 +8,6 @@ import { NodeSpecification, NodeSpecificationRegistry } from './types.js';
 // Import all node specifications
 import { startSpec } from './nodes/start.spec.js';
 import { personJobSpec } from './nodes/person-job.spec.js';
-import { personBatchJobSpec } from './nodes/person-batch-job.spec.js';
 import { conditionSpec } from './nodes/condition.spec.js';
 import { codeJobSpec } from './nodes/code-job.spec.js';
 import { apiJobSpec } from './nodes/api-job.spec.js';
@@ -26,7 +25,6 @@ import { integratedApiSpec } from './nodes/integrated-api.spec.js';
 export const nodeSpecificationRegistry: NodeSpecificationRegistry = {
   start: startSpec,
   person_job: personJobSpec,
-  person_batch_job: personBatchJobSpec,
   condition: conditionSpec,
   code_job: codeJobSpec,
   api_job: apiJobSpec,

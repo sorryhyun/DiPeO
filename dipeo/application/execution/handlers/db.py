@@ -13,7 +13,8 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
-from dipeo.diagram_generated.unified_nodes.db_node import DBNode, NodeType
+from dipeo.diagram_generated.enums import NodeType
+from dipeo.diagram_generated.unified_nodes.db_node import DbNode
 from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
 
 if TYPE_CHECKING:
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
-class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
+class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
     """
     Clean separation of concerns using Template Method Pattern:
     1. validate() - Static/structural validation (compile-time checks)
@@ -44,12 +45,12 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         self._current_template_processor = None
 
     @property
-    def node_class(self) -> type[DBNode]:
-        return DBNode
+    def node_class(self) -> type[DbNode]:
+        return DbNode
 
     @property
     def schema(self) -> type[BaseModel]:
-        return DBNode
+        return DbNode
 
     @property
     def requires_services(self) -> list[str]:
@@ -59,7 +60,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
     def description(self) -> str:
         return "File-based DB node supporting read, write and append operations"
 
-    async def pre_execute(self, request: ExecutionRequest[DBNode]) -> Envelope | None:
+    async def pre_execute(self, request: ExecutionRequest[DbNode]) -> Envelope | None:
         """Pre-execution setup: validate database service availability.
 
         Moves service resolution and validation out of execute_request
@@ -178,7 +179,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
             logger.warning(f"Unknown format '{format_type}', returning as text")
             return content
 
-    async def run(self, inputs: dict[str, Any], request: ExecutionRequest[DBNode]) -> Any:
+    async def run(self, inputs: dict[str, Any], request: ExecutionRequest[DbNode]) -> Any:
         """Execute database operation."""
         node = request.node
         context = request.context
@@ -364,7 +365,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         else:
             return str(query_result)
 
-    def _build_node_output(self, result: Any, request: ExecutionRequest[DBNode]) -> dict[str, Any]:
+    def _build_node_output(self, result: Any, request: ExecutionRequest[DbNode]) -> dict[str, Any]:
         """Build multi-representation output for database operations."""
         node = request.node
         operation = node.operation
@@ -460,7 +461,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
             "meta": {"operation": operation},
         }
 
-    def serialize_output(self, result: Any, request: ExecutionRequest[DBNode]) -> Envelope:
+    def serialize_output(self, result: Any, request: ExecutionRequest[DbNode]) -> Envelope:
         """Custom serialization for DB results with multi-representation."""
         node = request.node
         trace_id = request.execution_id or ""
@@ -489,7 +490,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         return envelope
 
     async def prepare_inputs(
-        self, request: ExecutionRequest[DBNode], inputs: dict[str, Envelope]
+        self, request: ExecutionRequest[DbNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
         """Prepare inputs with token consumption.
 
@@ -501,7 +502,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
         # Call parent prepare_inputs for default envelope conversion
         return await super().prepare_inputs(request, envelope_inputs)
 
-    def post_execute(self, request: ExecutionRequest[DBNode], output: Envelope) -> Envelope:
+    def post_execute(self, request: ExecutionRequest[DbNode], output: Envelope) -> Envelope:
         """Post-execution hook to emit tokens.
 
         Phase 5: Now emits output as tokens to trigger downstream nodes.

@@ -198,7 +198,7 @@ def create_executable_node(
             max_iteration=data.get('max_iteration', 100),
             memorize_to=data.get('memorize_to'),
             at_most=data.get('at_most'),
-            tools=data.get('tools', 'none'),
+            tools=data.get('tools', []),
             text_format=data.get('text_format'),
             text_format_file=data.get('text_format_file'),
             batch=data.get('batch'),
@@ -220,13 +220,19 @@ def create_executable_node(
             max_iteration=data.get('max_iteration', 100),
             memorize_to=data.get('memorize_to', ''),
             at_most=data.get('at_most', 0),
-            tools=data.get('tools', 'none'),
+            tools=data.get('tools', []),
             text_format=data.get('text_format', ''),
             resolved_prompt=data.get('resolved_prompt', ''),
             resolved_first_prompt=data.get('resolved_first_prompt', ''),
         )
 
     elif node_type == NodeType.START:
+        custom_data_val = data.get('custom_data')
+        if isinstance(custom_data_val, dict) and not custom_data_val:
+            custom_data_val = ''  # Convert empty dict to empty string
+        elif custom_data_val is None:
+            custom_data_val = ''
+        
         return StartNode(
             id=node_id,
             position=position,
@@ -234,10 +240,10 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             trigger_mode=data.get('trigger_mode'),
-            custom_data=data.get('custom_data'),
-            output_data_structure=data.get('output_data_structure'),
-            hook_event=data.get('hook_event'),
-            hook_filters=data.get('hook_filters'),
+            custom_data=custom_data_val,
+            output_data_structure=data.get('output_data_structure', {}),
+            hook_event=data.get('hook_event', ''),
+            hook_filters=data.get('hook_filters', {}),
         )
 
     elif node_type == NodeType.SUB_DIAGRAM:

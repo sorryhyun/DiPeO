@@ -7,7 +7,6 @@
 export const NODE_INTERFACE_MAP: Record<string, string> = {
   'start': 'StartNodeData',
   'person_job': 'PersonJobNodeData',
-  'person_batch_job': 'PersonBatchJobNodeData',
   'condition': 'ConditionNodeData',
   'endpoint': 'EndpointNodeData',
   'db': 'DBNodeData',
