@@ -27,7 +27,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      file: temp/specifications/nodes/{node_type}.spec.ts.json
+      file: temp/nodes/{node_type}.spec.ts.json
       format: json
 
   # Load codegen mappings

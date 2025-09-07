@@ -38,7 +38,7 @@ nodes:
         # Enum files
         - "temp/core/enums/*.ts.json"  # Load all enum definitions
         # Dynamic discovery of all node SPECIFICATION files (replacing *.data.ts files)
-        - "temp/specifications/nodes/*.spec.ts.json"  # This will match all node spec files automatically!
+        - "temp/nodes/*.spec.ts.json"  # This will match all node spec files automatically!
 
   # Prepare GraphQL data using simplified extractor
   - label: Prepare GraphQL Data

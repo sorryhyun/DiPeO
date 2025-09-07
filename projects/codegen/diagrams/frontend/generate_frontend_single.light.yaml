@@ -15,7 +15,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      file: "temp/specifications/nodes/{node_spec_path}.spec.ts.json"  # Use node_spec_path directly
+      file: "temp/nodes/{node_spec_path}.spec.ts.json"  # Use node_spec_path directly
       format: json
 
   # Prepare inputs for extractor

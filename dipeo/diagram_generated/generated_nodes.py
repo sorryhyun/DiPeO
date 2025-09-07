@@ -1,5 +1,5 @@
 """
-Compatibility shim for generated_nodes.py
+Compatibility shim for generated_unified_nodes.py
 Re-exports from individual files for backward compatibility.
 This file is part of the Phase 1 refactoring to eliminate monolithic files.
 """
@@ -179,7 +179,6 @@ def create_executable_node(
             mode=data.get('mode', 'validate'),
         )
 
-
     elif node_type == NodeType.PERSON_JOB:
         return PersonJobNode(
             id=node_id,
@@ -193,7 +192,7 @@ def create_executable_node(
             max_iteration=data.get('max_iteration', 100),
             memorize_to=data.get('memorize_to', ''),
             at_most=data.get('at_most', 0),
-            tools=data.get('tools', None),
+            tools=data.get('tools', 'none'),
             text_format=data.get('text_format', ''),
             resolved_prompt=data.get('resolved_prompt', ''),
             resolved_first_prompt=data.get('resolved_first_prompt', ''),

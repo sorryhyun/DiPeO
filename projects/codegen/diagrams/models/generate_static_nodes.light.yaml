@@ -41,7 +41,7 @@ nodes:
       glob: true  # Enable glob pattern expansion
       file:
         # Dynamic discovery of all node SPECIFICATION files (replacing *.data.ts files)
-        - "temp/specifications/nodes/*.spec.ts.json"
+        - "temp/nodes/*.spec.ts.json"
 
   # Load cached diagram AST for BaseNodeData
   - label: Load Diagram AST

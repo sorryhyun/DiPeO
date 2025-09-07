@@ -27,7 +27,7 @@ nodes:
         # Also load the consolidated cache if available
         - "temp/all_node_specs_ast.json"
         # Dynamically discover all node spec files
-        - "temp/specifications/nodes/*.spec.ts.json"
+        - "temp/nodes/*.spec.ts.json"
 
   # Generate Strawberry types directly from glob results
   - label: Generate Strawberry Types

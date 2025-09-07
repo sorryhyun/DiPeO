@@ -628,9 +628,12 @@ def extract_field_configs_from_specs(specifications: list[dict], enum_values: di
             if ui_type == 'select':
                 options = []
                 if ui_config.get('options'):
-                    options = [opt.get('value') for opt in ui_config.get('options', [])]
+                    # Keep the full option objects with value and label
+                    options = ui_config.get('options', [])
                 elif field.get('validation', {}).get('allowedValues'):
-                    options = field['validation']['allowedValues']
+                    # Convert plain values to option objects
+                    allowed_values = field['validation']['allowedValues']
+                    options = [{'value': val, 'label': val} for val in allowed_values]
                 if options:
                     field_config['options'] = options
 

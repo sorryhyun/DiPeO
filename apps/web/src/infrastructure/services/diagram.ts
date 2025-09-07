@@ -173,7 +173,7 @@ export class DiagramService {
    * Get node specification from registry
    */
   private static getNodeSpecification(type: NodeType): any {
-    // Would import from @dipeo/models/specifications
+    // Would import from @dipeo/models node specifications
     return {
       defaultWidth: 200,
       defaultHeight: 100,

@@ -3,15 +3,14 @@ export * from './core/diagram.js';
 export * from './core/execution.js';
 export * from './core/conversation.js';
 export * from './core/integration.js';
-export * from './core/nodes/index.js';
 export * from './core/enums/index.js';
 export * from './core/types/json.js';
 
-// Specifications
-export * from './specifications/types.js';
-export * from './specifications/categories.js';
-export * from './specifications/registry.js';
-// Individual spec exports from specifications/nodes/index.js are available via registry
+// Node specifications - primary exports
+export * from './node-specification.js';
+export * from './node-categories.js';
+export * from './node-registry.js';
+export * from './nodes/index.js';
 
 // Utilities
 export * from './utilities/conversions.js';

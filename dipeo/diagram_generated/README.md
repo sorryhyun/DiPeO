@@ -66,7 +66,7 @@ dipeo run codegen/diagrams/generate_all --light --debug --no-browser --timeout=3
 
 ## Source Files
 
-- **Node specifications**: `projects/codegen/specifications/nodes/*.json`
+- **Node specifications**: `dipeo/models/src/nodes/*.spec.ts` (generates temp/nodes/*.json)
 - **Templates**: `projects/codegen/templates/backend/`
 - **Generation diagrams**: `projects/codegen/diagrams/backend/`
 

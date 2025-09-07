@@ -22,7 +22,7 @@ nodes:
       format: json
       glob: true
       file:
-        - "temp/specifications/nodes/*.spec.ts.json"
+        - "temp/nodes/*.spec.ts.json"
 
   - label: Prepare Node List
     type: code_job

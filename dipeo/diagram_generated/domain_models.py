@@ -20,7 +20,6 @@ from dipeo.domain.type_defs import JsonDict, JsonList, JsonPrimitive, JsonValue
 from .enums import *
 from .integrations import *
 
-
 # NewType declarations
 ApiKeyID = NewType('ApiKeyID', str)
 ArrowID = NewType('ArrowID', str)

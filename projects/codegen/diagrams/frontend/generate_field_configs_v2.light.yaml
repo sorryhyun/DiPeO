@@ -38,7 +38,7 @@ nodes:
         # Base node data interface (must be loaded before node data files)
         - temp/core/nodes/base.ts.json
         # Dynamic discovery of all node SPECIFICATION files (replacing *.data.ts files)
-        - "temp/specifications/nodes/*.spec.ts.json"
+        - "temp/nodes/*.spec.ts.json"
 
   # Parse DB output if it's a string
   - label: Parse DB Output

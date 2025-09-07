@@ -29,7 +29,7 @@ def extract_node_types_from_glob(glob_results: dict[str, Any]) -> list[str]:
             continue
 
         # Extract node type from filename
-        # e.g., "temp/specifications/nodes/person-job.spec.ts.json" -> "person_job"
+        # e.g., "temp/nodes/person-job.spec.ts.json" -> "person_job"
         from pathlib import Path
         base_filename = Path(filepath).name
         node_type = base_filename.replace('.spec.ts.json', '').replace('-', '_')

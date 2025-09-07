@@ -19,7 +19,7 @@ nodes:
       glob: true  # Enable glob pattern expansion
       file:
         # Dynamically discover all node spec files
-        - "temp/specifications/nodes/*.spec.ts.json"
+        - "temp/nodes/*.spec.ts.json"
 
   - label: Generate Registry
     type: code_job
