@@ -5,7 +5,7 @@ import uuid
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from dipeo.diagram_generated.generated_nodes import SubDiagramNode
+    from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
 
 logger = logging.getLogger(__name__)
 
@@ -126,10 +126,13 @@ class BaseSubDiagramExecutor:
         if not self._load_diagram_use_case:
             raise ValueError("LoadDiagramUseCase not available")
 
+        # Only pass diagram_data if it's not None and not empty
+        diagram_data = node.diagram_data if node.diagram_data and node.diagram_data != {} else None
+
         return await self._load_diagram_use_case.load_diagram(
-            diagram_name=node.diagram_name if not node.diagram_data else None,
+            diagram_name=node.diagram_name if not diagram_data else None,
             diagram_format=node.diagram_format,
-            diagram_data=node.diagram_data,
+            diagram_data=diagram_data,
         )
 
     def _create_execution_id(self, parent_execution_id: str, suffix: str = "sub") -> str:

@@ -81,8 +81,8 @@ def extract_node_specs_from_glob(inputs: dict[str, Any]) -> dict[str, Any]:
 
 def extract_node_data_from_glob(inputs: dict[str, Any]) -> dict[str, Any]:
     """
-    Extract node data interfaces directly from glob-loaded data files.
-    Also preserves the full glob results for spec extraction.
+    Extract node data interfaces from spec files by generating them from fields.
+    Since .data.ts files no longer exist, we generate interfaces from specifications.
 
     Args:
         inputs: Dict with file paths as keys from DB glob operation
@@ -100,27 +100,69 @@ def extract_node_data_from_glob(inputs: dict[str, Any]) -> dict[str, Any]:
         if filepath in ['default', 'inputs', 'node_id']:
             continue
 
-        # Check if this is a data file
-        if not filepath.endswith('.data.ts.json'):
+        # Check if this is a spec file (not data file anymore)
+        if not filepath.endswith('.spec.ts.json'):
             continue
 
         # Extract node type from filename
         base_filename = Path(filepath).name
-        node_type = base_filename.replace('.data.ts.json', '').replace('-', '_')
+        # Remove .spec.ts.json to get node type
+        node_type = base_filename.replace('.spec.ts.json', '').replace('-', '_')
 
         # Parse AST data if string
         if isinstance(ast_data, str):
             ast_data = json.loads(ast_data)
 
-        # Find the data interface
-        for interface in ast_data.get('interfaces', []):
-            interface_name = interface.get('name', '')
-            if interface_name.endswith('Data') and not interface_name.startswith('Base'):
-                node_data_by_type[node_type] = {
-                    'interface': interface,
-                    'properties': interface.get('properties', [])
-                }
-                break
+        # Extract the specification from constants
+        for const in ast_data.get('constants', []):
+            const_name = const.get('name', '')
+            if const_name.endswith('Spec') or const_name.endswith('spec'):
+                spec_value = const.get('value', {})
+                if isinstance(spec_value, dict) and 'nodeType' in spec_value:
+                    # Generate interface from specification fields
+                    interface_name = ''.join(word.capitalize() for word in node_type.split('_')) + 'NodeData'
+
+                    # Convert spec fields to interface properties
+                    properties = []
+                    for field in spec_value.get('fields', []):
+                        field_name = field.get('name')
+                        field_type = field.get('type', 'any')
+                        required = field.get('required', False)
+
+                        # Map field types to TypeScript types
+                        if field_type == 'enum':
+                            # For enums, use string type as a simplification
+                            ts_type = 'string'
+                        elif field_type == 'number':
+                            ts_type = 'number'
+                        elif field_type == 'boolean':
+                            ts_type = 'boolean'
+                        elif field_type == 'array':
+                            ts_type = 'any[]'
+                        elif field_type == 'object':
+                            ts_type = 'Record<string, any>'
+                        else:
+                            ts_type = field_type if field_type else 'any'
+
+                        properties.append({
+                            'name': field_name,
+                            'type': ts_type,
+                            'optional': not required,
+                            'description': field.get('description', '')
+                        })
+
+                    # Create synthetic interface structure matching what the old code expected
+                    interface = {
+                        'name': interface_name,
+                        'properties': properties,
+                        'extends': ['BaseNodeData']  # All node data extends BaseNodeData
+                    }
+
+                    node_data_by_type[node_type] = {
+                        'interface': interface,
+                        'properties': properties
+                    }
+                    break
 
     # Return both the extracted node data AND the full glob results
     # This allows extract_specs_from_combined_data to work with the spec files

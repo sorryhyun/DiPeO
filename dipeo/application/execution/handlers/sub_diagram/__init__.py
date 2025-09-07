@@ -15,8 +15,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.diagram_generated.generated_nodes import NodeType, SubDiagramNode
-from dipeo.diagram_generated.models.sub_diagram_model import SubDiagramNodeData
+from dipeo.diagram_generated.unified_nodes.sub_diagram_node import NodeType, SubDiagramNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 from .base_executor import BaseSubDiagramExecutor
@@ -66,7 +65,7 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return SubDiagramNodeData
+        return SubDiagramNode
 
     @property
     def requires_services(self) -> list[str]:

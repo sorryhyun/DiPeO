@@ -6,8 +6,8 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import EXECUTION_CONTEXT
-from dipeo.diagram_generated.generated_nodes import NodeType, UserResponseNode
-from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
+from dipeo.diagram_generated.enums import NodeType
+from dipeo.diagram_generated.unified_nodes.user_response_node import UserResponseNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return UserResponseNodeData
+        return UserResponseNode
 
     @property
     def description(self) -> str:

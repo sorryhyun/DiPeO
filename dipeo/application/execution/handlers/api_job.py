@@ -8,8 +8,8 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import API_INVOKER
-from dipeo.diagram_generated.generated_nodes import ApiJobNode, NodeType
-from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData, HttpMethod
+from dipeo.diagram_generated.enums import HttpMethod
+from dipeo.diagram_generated.unified_nodes.api_job_node import ApiJobNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
@@ -49,7 +49,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return ApiJobNodeData
+        return ApiJobNode
 
     @property
     def requires_services(self) -> list[str]:

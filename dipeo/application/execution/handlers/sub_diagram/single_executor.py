@@ -7,7 +7,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handlers.sub_diagram.base_executor import BaseSubDiagramExecutor
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
 from dipeo.diagram_generated import Status
-from dipeo.diagram_generated.generated_nodes import SubDiagramNode
+from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:

@@ -14,7 +14,7 @@ class ConversationAggregator:
     def aggregate_conversations(self, context: ExecutionContext, diagram: Any) -> dict[str, Any]:
         aggregated = {"messages": []}
 
-        from dipeo.diagram_generated.generated_nodes import NodeType
+        from dipeo.diagram_generated.unified_nodes.person_job_node import NodeType
 
         person_job_nodes = []
         all_person_jobs = diagram.get_nodes_by_type(NodeType.PERSON_JOB)
@@ -53,7 +53,7 @@ class ConversationAggregator:
     def get_latest_conversation(
         self, context: ExecutionContext, diagram: Any
     ) -> dict[str, Any] | None:
-        from dipeo.diagram_generated.generated_nodes import NodeType
+        from dipeo.diagram_generated.unified_nodes.person_job_node import NodeType
 
         person_job_nodes = diagram.get_nodes_by_type(NodeType.PERSON_JOB)
         for node in person_job_nodes:

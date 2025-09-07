@@ -146,6 +146,13 @@ nodes:
       template_path: projects/codegen/templates/backend/unified_node_model.j2
       output_path: dipeo/diagram_generated_staged/unified_nodes/{{ node_type }}_node.py
 
+  # End node to complete the diagram
+  - label: End
+    type: endpoint
+    position: {x: 1100, y: 200}
+    props:
+      save_to_file: false
+
 connections:
   # Parse input first
   - {from: Start, to: Parse Node Type, content_type: object}
@@ -170,3 +177,8 @@ connections:
   - {from: Prepare Context, to: Generate Pydantic Model, content_type: object}
   - {from: Prepare Context, to: Generate Static Node, content_type: object}
   - {from: Prepare Context, to: Generate Unified Model, content_type: object}
+
+  # Connect all generation nodes to End
+  - {from: Generate Pydantic Model, to: End}
+  - {from: Generate Static Node, to: End}
+  - {from: Generate Unified Model, to: End}

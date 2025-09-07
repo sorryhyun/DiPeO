@@ -14,8 +14,8 @@ from pydantic import BaseModel
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.diagram_generated.generated_nodes import NodeType, PersonJobNode
-from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData
+from dipeo.diagram_generated.enums import NodeType
+from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode
 from dipeo.domain.conversation import Person
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
@@ -61,10 +61,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     @property
     def node_type(self) -> str:
         return NodeType.PERSON_JOB.value
-
-    @property
-    def schema(self) -> type[BaseModel]:
-        return PersonJobNodeData
 
     @property
     def requires_services(self) -> list[str]:

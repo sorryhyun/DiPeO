@@ -50,4 +50,11 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
       return { isValid: true };
     },
   },
+  {
+    name: 'preprocessor',
+    type: 'text',
+    label: 'Preprocessor',
+    required: false,
+    description: 'Preprocessor function to apply before templating',
+  },
 ];

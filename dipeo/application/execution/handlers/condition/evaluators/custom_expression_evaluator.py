@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from dipeo.diagram_generated.generated_nodes import ConditionNode
+from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode
 from dipeo.domain.execution.execution_context import ExecutionContext
 
 from .base import BaseConditionEvaluator, EvaluationResult

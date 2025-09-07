@@ -7,7 +7,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases import PromptLoadingUseCase
 from dipeo.config.llm import PERSON_JOB_MAX_TOKENS, PERSON_JOB_TEMPERATURE
 from dipeo.diagram_generated.domain_models import PersonID
-from dipeo.diagram_generated.generated_nodes import PersonJobNode
+from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode
 from dipeo.domain.conversation import Person
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 

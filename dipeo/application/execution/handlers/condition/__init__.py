@@ -10,8 +10,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.diagram_generated.generated_nodes import ConditionNode, NodeType
-from dipeo.diagram_generated.models.condition_model import ConditionNodeData
+from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 from .evaluators import (
@@ -55,7 +54,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return ConditionNodeData
+        return ConditionNode
 
     @property
     def requires_services(self) -> list[str]:

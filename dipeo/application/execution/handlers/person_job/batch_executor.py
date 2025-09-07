@@ -5,7 +5,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.diagram_generated.generated_nodes import PersonJobNode
+from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 from .single_executor import SinglePersonJobExecutor

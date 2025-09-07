@@ -36,6 +36,8 @@ class TypescriptAstNode:
     transform_enums: bool = False
     flatten_output: bool = False
     output_format: Literal["standard", "for_codegen", "for_analysis"] = None
+    batch: bool = False
+    batch_input_key: str = "sources"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
@@ -57,4 +59,6 @@ class TypescriptAstNode:
         data["transformEnums"] = self.transform_enums
         data["flattenOutput"] = self.flatten_output
         data["outputFormat"] = self.output_format
+        data["batch"] = self.batch
+        data["batchInputKey"] = self.batch_input_key
         return data

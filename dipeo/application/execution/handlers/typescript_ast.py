@@ -7,8 +7,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.diagram_generated.generated_nodes import NodeType, TypescriptAstNode
-from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
+from dipeo.diagram_generated.unified_nodes.typescript_ast_node import NodeType, TypescriptAstNode
 from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
 
 if TYPE_CHECKING:
@@ -48,7 +47,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return TypescriptAstNodeData
+        return TypescriptAstNode
 
     @property
     def requires_services(self) -> list[str]:

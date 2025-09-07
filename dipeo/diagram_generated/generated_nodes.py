@@ -4,22 +4,23 @@ Re-exports from individual files for backward compatibility.
 This file is part of the Phase 1 refactoring to eliminate monolithic files.
 """
 
-# Re-export all node classes from individual files
-from .nodes.api_job_node import ApiJobNode
-from .nodes.code_job_node import CodeJobNode
-from .nodes.condition_node import ConditionNode
-from .nodes.db_node import DbNode as DBNode  # Alias for compatibility
-from .nodes.endpoint_node import EndpointNode
-from .nodes.hook_node import HookNode
-from .nodes.integrated_api_node import IntegratedApiNode
-from .nodes.json_schema_validator_node import JsonSchemaValidatorNode
-from .nodes.person_batch_job_node import PersonBatchJobNode
-from .nodes.person_job_node import PersonJobNode
-from .nodes.start_node import StartNode
-from .nodes.sub_diagram_node import SubDiagramNode
-from .nodes.template_job_node import TemplateJobNode
-from .nodes.typescript_ast_node import TypescriptAstNode
-from .nodes.user_response_node import UserResponseNode
+# Re-export all node classes from unified models (Phase 2)
+from .unified_nodes.api_job_node import ApiJobNode
+from .unified_nodes.code_job_node import CodeJobNode
+from .unified_nodes.condition_node import ConditionNode
+from .unified_nodes.db_node import DbNode
+from .unified_nodes.db_node import DbNode as DBNode  # Alias for compatibility
+from .unified_nodes.endpoint_node import EndpointNode
+from .unified_nodes.hook_node import HookNode
+from .unified_nodes.integrated_api_node import IntegratedApiNode
+from .unified_nodes.json_schema_validator_node import JsonSchemaValidatorNode
+from .unified_nodes.person_batch_job_node import PersonBatchJobNode
+from .unified_nodes.person_job_node import PersonJobNode
+from .unified_nodes.start_node import StartNode
+from .unified_nodes.sub_diagram_node import SubDiagramNode
+from .unified_nodes.template_job_node import TemplateJobNode
+from .unified_nodes.typescript_ast_node import TypescriptAstNode
+from .unified_nodes.user_response_node import UserResponseNode
 
 # Re-export NodeType and DBBlockSubType enums from enums
 from .enums import NodeType, DBBlockSubType
@@ -272,8 +273,8 @@ def create_executable_node(
             template_path=data.get('template_path', data.get('templatePath', '')),
             output_path=data.get('output_path', data.get('outputPath', '')),
             variables=data.get('variables', {}),
-            preprocessor=data.get('preprocessor'),
-            foreach=data.get('foreach'),
+            # preprocessor field removed - not in generated node class yet
+            # foreach field removed - not in TypeScript spec
         )
 
     elif node_type == NodeType.TYPESCRIPT_AST:
@@ -301,10 +302,8 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            join_policy=data.get('join_policy'),
-            join_k=data.get('join_k'),
-            prompt=data.get('prompt'),
-            timeout=data.get('timeout', 300),
+            prompt=data.get('prompt', ''),
+            timeout=data.get('timeout', 0),
         )
 
     else:

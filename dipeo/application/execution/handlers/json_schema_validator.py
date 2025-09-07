@@ -10,8 +10,10 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
-from dipeo.diagram_generated.generated_nodes import JsonSchemaValidatorNode, NodeType
-from dipeo.diagram_generated.models.json_schema_validator_model import JsonSchemaValidatorNodeData
+from dipeo.diagram_generated.unified_nodes.json_schema_validator_node import (
+    JsonSchemaValidatorNode,
+    NodeType,
+)
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
@@ -46,7 +48,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return JsonSchemaValidatorNodeData
+        return JsonSchemaValidatorNode
 
     @property
     def requires_services(self) -> list[str]:

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.diagram_generated import ExecutionID, ExecutionState, LLMUsage, NodeState, Status
-from dipeo.diagram_generated.generated_nodes import SubDiagramNode
+from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.infrastructure.execution.messaging import NullEventBus
 

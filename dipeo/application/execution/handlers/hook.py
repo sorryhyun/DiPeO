@@ -12,8 +12,8 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
-from dipeo.diagram_generated.generated_nodes import HookNode, NodeType
-from dipeo.diagram_generated.models.hook_model import HookNodeData, HookType
+from dipeo.diagram_generated.enums import HookType
+from dipeo.diagram_generated.unified_nodes.hook_node import HookNode, NodeType
 from dipeo.domain.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.domain.events import DomainEvent
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -51,7 +51,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return HookNodeData
+        return HookNode
 
     @property
     def description(self) -> str:

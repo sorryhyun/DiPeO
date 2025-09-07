@@ -13,8 +13,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
-from dipeo.diagram_generated.generated_nodes import DBNode, NodeType
-from dipeo.diagram_generated.models.db_model import DbNodeData as DBNodeData
+from dipeo.diagram_generated.unified_nodes.db_node import DBNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
 
 if TYPE_CHECKING:
@@ -50,7 +49,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return DBNodeData
+        return DBNode
 
     @property
     def requires_services(self) -> list[str]:

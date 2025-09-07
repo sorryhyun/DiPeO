@@ -8,8 +8,8 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
-from dipeo.diagram_generated.generated_nodes import EndpointNode, NodeType
-from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
+from dipeo.diagram_generated.enums import NodeType
+from dipeo.diagram_generated.unified_nodes.endpoint_node import EndpointNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
@@ -46,7 +46,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return EndpointNodeData
+        return EndpointNode
 
     @property
     def requires_services(self) -> list[str]:

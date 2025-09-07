@@ -25,6 +25,10 @@ class TypescriptAstNodeData(BaseModel):
 
     output_format: Optional[Literal["standard", "for_codegen", "for_analysis"]] = Field(alias="outputFormat", description="Output format for the parsed data")
 
+    batch: Optional[bool] = Field(default=False, description="Enable batch processing mode")
+
+    batch_input_key: Optional[str] = Field(alias="batchInputKey", default="sources", description="Key to extract batch items from input")
+
 
     class Config:
         extra = "forbid"

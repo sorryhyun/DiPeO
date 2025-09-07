@@ -8,8 +8,7 @@ from pydantic import BaseModel
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.diagram_generated.generated_nodes import CodeJobNode, NodeType
-from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData
+from dipeo.diagram_generated.unified_nodes.code_job_node import CodeJobNode, NodeType
 from dipeo.domain.base.storage_port import FileSystemPort
 from dipeo.domain.diagram.ports import TemplateProcessorPort
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -66,7 +65,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return CodeJobNodeData
+        return CodeJobNode
 
     @property
     def requires_services(self) -> list[str]:

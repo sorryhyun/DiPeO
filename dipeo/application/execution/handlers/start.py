@@ -6,8 +6,8 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import STATE_STORE
-from dipeo.diagram_generated.generated_nodes import NodeType, StartNode
-from dipeo.diagram_generated.models.start_model import HookTriggerMode, StartNodeData
+from dipeo.diagram_generated.enums import HookTriggerMode, NodeType
+from dipeo.diagram_generated.unified_nodes.start_node import StartNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
@@ -35,7 +35,7 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return StartNodeData
+        return StartNode
 
     @property
     def description(self) -> str:
@@ -168,9 +168,6 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
 
     def post_execute(self, request: ExecutionRequest[StartNode], output: Envelope) -> Envelope:
         # Debug logging without using request.metadata
-        if self._current_trigger_mode:
-            print(f"[StartNode] Executed with trigger mode: {self._current_trigger_mode}")
-
         # Emit output as tokens to trigger downstream nodes
         context = request.context
         outputs = {"default": output}

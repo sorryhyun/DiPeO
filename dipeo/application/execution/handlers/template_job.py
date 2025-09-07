@@ -11,8 +11,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
-from dipeo.diagram_generated.generated_nodes import NodeType, TemplateJobNode
-from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
+from dipeo.diagram_generated.unified_nodes.template_job_node import NodeType, TemplateJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 from dipeo.infrastructure.codegen.templates.drivers.factory import get_enhanced_template_service
 
@@ -59,7 +58,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
     @property
     def schema(self) -> type[BaseModel]:
-        return TemplateJobNodeData
+        return TemplateJobNode
 
     @property
     def requires_services(self) -> list[str]:
@@ -262,8 +261,9 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         template_processor = self._current_template_processor
 
         # Apply preprocessor if configured
-        if node.preprocessor:
-            preprocessor_config = node.preprocessor if isinstance(node.preprocessor, dict) else {}
+        preprocessor = getattr(node, "preprocessor", None)
+        if preprocessor:
+            preprocessor_config = preprocessor if isinstance(preprocessor, dict) else {}
             module_name = preprocessor_config.get("module")
             function_name = preprocessor_config.get("function")
 

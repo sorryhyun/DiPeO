@@ -7,6 +7,7 @@ export interface TemplateJobNodeData {
   output_path?: string;
   variables?: Record<string, any>;
   engine?: 'internal' | 'jinja2';
+  preprocessor?: string;
 }
 
 // Zod schema for validation
@@ -16,4 +17,5 @@ export const TemplateJobNodeDataSchema = z.object({
   output_path: z.string().optional(),
   variables: z.record(z.any()).optional(),
   engine: z.enum(["internal", "jinja2"]).optional(),
+  preprocessor: z.string().optional(),
 });
