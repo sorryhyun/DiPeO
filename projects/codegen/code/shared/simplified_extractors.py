@@ -197,10 +197,7 @@ def prepare_strawberry_types(inputs: dict[str, Any]) -> dict[str, Any]:
         node_type = spec['name']
 
         # Convert node type to class name
-        if node_type == 'db':
-            class_name = 'DB'
-        else:
-            class_name = ''.join(word.capitalize() for word in node_type.split('_'))
+        class_name = ''.join(word.capitalize() for word in node_type.split('_'))
 
         strawberry_types.append({
             'node_type': node_type,

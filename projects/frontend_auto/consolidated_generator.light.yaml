@@ -88,7 +88,7 @@ nodes:
 #      operation: read
 #      sub_type: file
 #      format: json
-#      source_details: "{config_file}"
+#      file: "{config_file}"
 #
 #  - label: Setup Generated Directory
 #    type: code_job
@@ -192,7 +192,7 @@ nodes:
 #      operation: write
 #      sub_type: file
 #      format: json
-#      source_details: projects/frontend_auto/generated/sections_data.json
+#      file: projects/frontend_auto/generated/sections_data.json
 
   - label: load Data
     type: db
@@ -201,7 +201,7 @@ nodes:
       operation: read
       sub_type: file
       format: json
-      source_details: projects/frontend_auto/generated/sections_data.json
+      file: projects/frontend_auto/generated/sections_data.json
 
   - label: Check Continue
     type: condition
@@ -220,7 +220,7 @@ nodes:
       operation: read
       sub_type: file
       format: json
-      source_details: projects/frontend_auto/generated/sections_data.json
+      file: projects/frontend_auto/generated/sections_data.json
 
   - label: Generate Frontend Code
     type: person_job
@@ -249,7 +249,7 @@ nodes:
       operation: read
       sub_type: file
       format: json
-      source_details: projects/frontend_auto/generated/sections_data.json
+      file: projects/frontend_auto/generated/sections_data.json
 
   - label: load code for revise
     type: db
@@ -258,7 +258,7 @@ nodes:
       operation: read
       sub_type: file
       format: text
-      source_details: projects/frontend_auto/generated/temp_section_{current_index}.tsx
+      file: projects/frontend_auto/generated/temp_section_{current_index}.tsx
 
 
   - label: Revise Frontend Code
@@ -277,7 +277,7 @@ nodes:
       operation: write
       sub_type: file
       format: text
-      source_details: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
+      file: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
       flipped: [true, false]  # only for UI, does not affect on logic
 
   - label: Write revised Result
@@ -287,7 +287,7 @@ nodes:
       operation: write
       sub_type: file
       format: text
-      source_details: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
+      file: "projects/frontend_auto/generated/temp_section_{current_index}.tsx"
       flipped: [true, false]  # only for UI, does not affect on logic
 
 
@@ -298,7 +298,7 @@ nodes:
       operation: read
       sub_type: file
       format: json
-      source_details: projects/frontend_auto/generated/sections_data.json
+      file: projects/frontend_auto/generated/sections_data.json
 
   - label: load Data wow
     type: db
@@ -307,7 +307,7 @@ nodes:
       operation: read
       sub_type: file
       format: json
-      source_details: projects/frontend_auto/generated/sections_data.json
+      file: projects/frontend_auto/generated/sections_data.json
 
   - label: Rename Files
     type: code_job
