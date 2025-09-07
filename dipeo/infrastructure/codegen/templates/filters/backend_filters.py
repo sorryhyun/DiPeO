@@ -423,6 +423,7 @@ class BackendFilters:
     def python_default(field: dict[str, Any]) -> str:
         """Get Python default value for a field."""
         field_type = field.get("type", "string")
+        is_required = field.get("required", False)
 
         # Check for explicit default
         if "default" in field:
@@ -436,7 +437,11 @@ class BackendFilters:
             else:
                 return str(default_val)
 
-        # Type-based defaults
+        # For optional fields without an explicit default, use None
+        if not is_required:
+            return "None"
+
+        # Type-based defaults for required fields
         if field_type in ["object", "dict"]:
             return "field(default_factory=dict)"
         elif field_type in ["array", "list"]:

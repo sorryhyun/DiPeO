@@ -38,19 +38,19 @@ class TypescriptAstNode(BaseModel):
     
     extract_patterns: List[Any] = Field(default_factory=list, alias="extractPatterns", description="Patterns to extract from the AST")
     
-    include_js_doc: bool = Field(default=False, alias="includeJSDoc", description="Include JSDoc comments in the extracted data")
+    include_js_doc: bool = Field(default=None, alias="includeJSDoc", description="Include JSDoc comments in the extracted data")
     
     parse_mode: Literal["module", "script"] = Field(default=None, alias="parseMode", description="TypeScript parsing mode")
     
-    transform_enums: bool = Field(default=False, alias="transformEnums", description="Transform enum definitions to a simpler format")
+    transform_enums: bool = Field(default=None, alias="transformEnums", description="Transform enum definitions to a simpler format")
     
-    flatten_output: bool = Field(default=False, alias="flattenOutput", description="Flatten the output structure for easier consumption")
+    flatten_output: bool = Field(default=None, alias="flattenOutput", description="Flatten the output structure for easier consumption")
     
     output_format: Literal["standard", "for_codegen", "for_analysis"] = Field(default=None, alias="outputFormat", description="Output format for the parsed data")
     
-    batch: bool = Field(default=False, description="Enable batch processing mode")
+    batch: bool = Field(default=None, description="Enable batch processing mode")
     
-    batch_input_key: str = Field(default="", alias="batchInputKey", description="Key to extract batch items from input")
+    batch_input_key: str = Field(default=None, alias="batchInputKey", description="Key to extract batch items from input")
 
     class Config:
         # Make the instance immutable after creation

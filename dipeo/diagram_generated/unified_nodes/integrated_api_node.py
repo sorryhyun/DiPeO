@@ -37,13 +37,13 @@ class IntegratedApiNode(BaseModel):
 
     # Optional node-specific fields
     
-    resource_id: str = Field(default="", description="Resource identifier (e.g., page ID, channel ID)")
+    resource_id: str = Field(default=None, description="Resource identifier (e.g., page ID, channel ID)")
     
     config: Dict[str, Any] = Field(default_factory=dict, description="Provider-specific configuration")
     
-    timeout: int = Field(default=0, description="Request timeout in seconds")
+    timeout: int = Field(default=None, description="Request timeout in seconds")
     
-    max_retries: float = Field(default=0, description="Maximum retry attempts")
+    max_retries: float = Field(default=None, description="Maximum retry attempts")
 
     class Config:
         # Make the instance immutable after creation

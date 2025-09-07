@@ -39,33 +39,33 @@ class PersonJobNode(BaseModel):
 
     # Optional node-specific fields
     
-    person: str = Field(default="", description="AI person to use")
+    person: str = Field(default=None, description="AI person to use")
     
-    first_prompt_file: str = Field(default="", description="External prompt file for first iteration only")
+    first_prompt_file: str = Field(default=None, description="External prompt file for first iteration only")
     
-    default_prompt: str = Field(default="", description="Default prompt template")
+    default_prompt: str = Field(default=None, description="Default prompt template")
     
-    prompt_file: str = Field(default="", description="Path to prompt file in /files/prompts/")
+    prompt_file: str = Field(default=None, description="Path to prompt file in /files/prompts/")
     
-    memorize_to: str = Field(default="", description="Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria.")
+    memorize_to: str = Field(default=None, description="Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria.")
     
-    at_most: float = Field(default=0, description="Select at most N messages to keep (system messages may be preserved in addition).")
+    at_most: float = Field(default=None, description="Select at most N messages to keep (system messages may be preserved in addition).")
     
-    tools: List[ToolConfig] = Field(default="", description="Tools available to the AI agent")
+    tools: Optional[List[ToolConfig]] = Field(default=None, description="Tools available to the AI agent")
     
-    text_format: str = Field(default="", description="JSON schema or response format for structured outputs")
+    text_format: str = Field(default=None, description="JSON schema or response format for structured outputs")
     
-    resolved_prompt: str = Field(default="", description="Pre-resolved prompt content from compile-time")
+    resolved_prompt: str = Field(default=None, description="Pre-resolved prompt content from compile-time")
     
-    resolved_first_prompt: str = Field(default="", description="Pre-resolved first prompt content from compile-time")
+    resolved_first_prompt: str = Field(default=None, description="Pre-resolved first prompt content from compile-time")
     
-    batch: bool = Field(default=False, description="Enable batch mode for processing multiple items")
+    batch: bool = Field(default=None, description="Enable batch mode for processing multiple items")
     
-    batch_input_key: str = Field(default="", description="Key containing the array to iterate over in batch mode")
+    batch_input_key: str = Field(default=None, description="Key containing the array to iterate over in batch mode")
     
-    batch_parallel: bool = Field(default=False, description="Execute batch items in parallel")
+    batch_parallel: bool = Field(default=None, description="Execute batch items in parallel")
     
-    max_concurrent: float = Field(default=0, description="Maximum concurrent executions in batch mode")
+    max_concurrent: float = Field(default=None, description="Maximum concurrent executions in batch mode")
 
     class Config:
         # Make the instance immutable after creation

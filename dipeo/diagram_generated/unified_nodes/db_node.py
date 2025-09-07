@@ -39,15 +39,15 @@ class DbNode(BaseModel):
     
     file: Any = Field(default=None, description="File path or array of file paths")
     
-    collection: str = Field(default="", description="Database collection name")
+    collection: str = Field(default=None, description="Database collection name")
     
-    query: str = Field(default="", description="Query configuration")
+    query: str = Field(default=None, description="Query configuration")
     
     data: Dict[str, Any] = Field(default_factory=dict, description="Data configuration")
     
-    serialize_json: bool = Field(default=False, description="Serialize structured data to JSON string (for backward compatibility)")
+    serialize_json: bool = Field(default=None, description="Serialize structured data to JSON string (for backward compatibility)")
     
-    format: str = Field(default="", description="Data format (json, yaml, csv, text, etc.)")
+    format: str = Field(default=None, description="Data format (json, yaml, csv, text, etc.)")
 
     class Config:
         # Make the instance immutable after creation

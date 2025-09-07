@@ -5,20 +5,20 @@ This file is part of the Phase 1 refactoring to eliminate monolithic files.
 """
 
 # Re-export all node classes from individual files
-from .nodes.api_job_node import ApiJobNode
-from .nodes.code_job_node import CodeJobNode
-from .nodes.condition_node import ConditionNode
-from .nodes.db_node import DbNode as DBNode  # Alias for compatibility
-from .nodes.endpoint_node import EndpointNode
-from .nodes.hook_node import HookNode
-from .nodes.integrated_api_node import IntegratedApiNode
-from .nodes.json_schema_validator_node import JsonSchemaValidatorNode
-from .nodes.person_job_node import PersonJobNode
-from .nodes.start_node import StartNode
-from .nodes.sub_diagram_node import SubDiagramNode
-from .nodes.template_job_node import TemplateJobNode
-from .nodes.typescript_ast_node import TypescriptAstNode
-from .nodes.user_response_node import UserResponseNode
+from .unified_nodes.api_job_node import ApiJobNode
+from .unified_nodes.code_job_node import CodeJobNode
+from .unified_nodes.condition_node import ConditionNode
+from .unified_nodes.db_node import DbNode as DBNode  # Alias for compatibility
+from .unified_nodes.endpoint_node import EndpointNode
+from .unified_nodes.hook_node import HookNode
+from .unified_nodes.integrated_api_node import IntegratedApiNode
+from .unified_nodes.json_schema_validator_node import JsonSchemaValidatorNode
+from .unified_nodes.person_job_node import PersonJobNode
+from .unified_nodes.start_node import StartNode
+from .unified_nodes.sub_diagram_node import SubDiagramNode
+from .unified_nodes.template_job_node import TemplateJobNode
+from .unified_nodes.typescript_ast_node import TypescriptAstNode
+from .unified_nodes.user_response_node import UserResponseNode
 
 # Re-export NodeType and DBBlockSubType enums from enums
 from .enums import NodeType, DBBlockSubType
@@ -179,6 +179,7 @@ def create_executable_node(
             mode=data.get('mode', 'validate'),
         )
 
+
     elif node_type == NodeType.PERSON_JOB:
         return PersonJobNode(
             id=node_id,
@@ -192,7 +193,7 @@ def create_executable_node(
             max_iteration=data.get('max_iteration', 100),
             memorize_to=data.get('memorize_to', ''),
             at_most=data.get('at_most', 0),
-            tools=data.get('tools', 'none'),
+            tools=data.get('tools', None),
             text_format=data.get('text_format', ''),
             resolved_prompt=data.get('resolved_prompt', ''),
             resolved_first_prompt=data.get('resolved_first_prompt', ''),

@@ -37,23 +37,23 @@ class ConditionNode(BaseModel):
     
     condition_type: Literal["detect_max_iterations", "check_nodes_executed", "custom", "llm_decision"] = Field(default=None, description="Type of condition to evaluate")
     
-    expression: str = Field(default="", description="Boolean expression to evaluate")
+    expression: str = Field(default=None, description="Boolean expression to evaluate")
     
     node_indices: List[Any] = Field(default_factory=list, description="Node indices for detect_max_iteration condition")
     
-    person: str = Field(default="", description="AI agent to use for decision making")
+    person: str = Field(default=None, description="AI agent to use for decision making")
     
-    judge_by: str = Field(default="", description="Prompt for LLM to make a judgment")
+    judge_by: str = Field(default=None, description="Prompt for LLM to make a judgment")
     
-    judge_by_file: str = Field(default="", description="External prompt file path")
+    judge_by_file: str = Field(default=None, description="External prompt file path")
     
-    memorize_to: str = Field(default="", description="Memory control strategy (e.g., GOLDFISH for fresh evaluation)")
+    memorize_to: str = Field(default=None, description="Memory control strategy (e.g., GOLDFISH for fresh evaluation)")
     
-    at_most: float = Field(default=0, description="Maximum messages to keep in memory")
+    at_most: float = Field(default=None, description="Maximum messages to keep in memory")
     
-    expose_index_as: str = Field(default="", description="Variable name to expose the condition node's execution count (0-based index) to downstream nodes")
+    expose_index_as: str = Field(default=None, description="Variable name to expose the condition node's execution count (0-based index) to downstream nodes")
     
-    skippable: bool = Field(default=False, description="When true, downstream nodes can execute even if this condition hasn't been evaluated yet")
+    skippable: bool = Field(default=None, description="When true, downstream nodes can execute even if this condition hasn't been evaluated yet")
 
     class Config:
         # Make the instance immutable after creation

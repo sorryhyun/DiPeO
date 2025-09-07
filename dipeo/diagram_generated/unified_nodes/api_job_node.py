@@ -43,7 +43,7 @@ class ApiJobNode(BaseModel):
     
     body: Dict[str, Any] = Field(default_factory=dict, description="Request body")
     
-    timeout: int = Field(default=0, description="Request timeout in seconds")
+    timeout: int = Field(default=None, description="Request timeout in seconds")
     
     auth_type: Literal["none", "bearer", "basic", "api_key"] = Field(default=None, description="Authentication type")
     

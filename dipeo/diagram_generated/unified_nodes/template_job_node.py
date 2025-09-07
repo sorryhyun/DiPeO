@@ -35,17 +35,17 @@ class TemplateJobNode(BaseModel):
 
     # Optional node-specific fields
     
-    template_path: str = Field(default="", description="Path to template file")
+    template_path: str = Field(default=None, description="Path to template file")
     
-    template_content: str = Field(default="", description="Inline template content")
+    template_content: str = Field(default=None, description="Inline template content")
     
-    output_path: str = Field(default="", description="Output file path")
+    output_path: str = Field(default=None, description="Output file path")
     
     variables: Dict[str, Any] = Field(default_factory=dict, description="Variables configuration")
     
     engine: Literal["internal", "jinja2"] = Field(default=None, description="Template engine to use")
     
-    preprocessor: str = Field(default="", description="Preprocessor function to apply before templating")
+    preprocessor: str = Field(default=None, description="Preprocessor function to apply before templating")
 
     class Config:
         # Make the instance immutable after creation
