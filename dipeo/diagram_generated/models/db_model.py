@@ -11,7 +11,7 @@ from ..integrations import *
 class DbNodeData(BaseModel):
     """Data model for Database node."""
 
-    file: Optional[str] = Field(description="File path or array of file paths")
+    file: Optional[Union[str, List[str]]] = Field(description="File path or array of file paths")
 
     collection: Optional[str] = Field(description="Database collection name")
 

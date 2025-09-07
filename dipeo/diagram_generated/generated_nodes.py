@@ -4,23 +4,21 @@ Re-exports from individual files for backward compatibility.
 This file is part of the Phase 1 refactoring to eliminate monolithic files.
 """
 
-# Re-export all node classes from unified models (Phase 2)
-from .unified_nodes.api_job_node import ApiJobNode
-from .unified_nodes.code_job_node import CodeJobNode
-from .unified_nodes.condition_node import ConditionNode
-from .unified_nodes.db_node import DbNode
-from .unified_nodes.db_node import DbNode as DBNode  # Alias for compatibility
-from .unified_nodes.endpoint_node import EndpointNode
-from .unified_nodes.hook_node import HookNode
-from .unified_nodes.integrated_api_node import IntegratedApiNode
-from .unified_nodes.json_schema_validator_node import JsonSchemaValidatorNode
-from .unified_nodes.person_batch_job_node import PersonBatchJobNode
-from .unified_nodes.person_job_node import PersonJobNode
-from .unified_nodes.start_node import StartNode
-from .unified_nodes.sub_diagram_node import SubDiagramNode
-from .unified_nodes.template_job_node import TemplateJobNode
-from .unified_nodes.typescript_ast_node import TypescriptAstNode
-from .unified_nodes.user_response_node import UserResponseNode
+# Re-export all node classes from individual files
+from .nodes.api_job_node import ApiJobNode
+from .nodes.code_job_node import CodeJobNode
+from .nodes.condition_node import ConditionNode
+from .nodes.db_node import DbNode as DBNode  # Alias for compatibility
+from .nodes.endpoint_node import EndpointNode
+from .nodes.hook_node import HookNode
+from .nodes.integrated_api_node import IntegratedApiNode
+from .nodes.json_schema_validator_node import JsonSchemaValidatorNode
+from .nodes.person_job_node import PersonJobNode
+from .nodes.start_node import StartNode
+from .nodes.sub_diagram_node import SubDiagramNode
+from .nodes.template_job_node import TemplateJobNode
+from .nodes.typescript_ast_node import TypescriptAstNode
+from .nodes.user_response_node import UserResponseNode
 
 # Re-export NodeType and DBBlockSubType enums from enums
 from .enums import NodeType, DBBlockSubType
@@ -181,32 +179,6 @@ def create_executable_node(
             mode=data.get('mode', 'validate'),
         )
 
-    elif node_type == NodeType.PERSON_BATCH_JOB:
-        return PersonBatchJobNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            join_policy=data.get('join_policy'),
-            join_k=data.get('join_k'),
-            person=data.get('person'),
-            first_only_prompt=data.get('first_only_prompt'),
-            first_prompt_file=data.get('first_prompt_file'),
-            default_prompt=data.get('default_prompt'),
-            prompt_file=data.get('prompt_file'),
-            max_iteration=data.get('max_iteration', 100),
-            memorize_to=data.get('memorize_to'),
-            at_most=data.get('at_most'),
-            tools=data.get('tools', []),
-            text_format=data.get('text_format'),
-            text_format_file=data.get('text_format_file'),
-            batch=data.get('batch'),
-            batch_input_key=data.get('batch_input_key'),
-            batch_parallel=data.get('batch_parallel'),
-            max_concurrent=data.get('max_concurrent'),
-        )
-
     elif node_type == NodeType.PERSON_JOB:
         return PersonJobNode(
             id=node_id,
@@ -220,30 +192,24 @@ def create_executable_node(
             max_iteration=data.get('max_iteration', 100),
             memorize_to=data.get('memorize_to', ''),
             at_most=data.get('at_most', 0),
-            tools=data.get('tools', []),
+            tools=data.get('tools', 'none'),
             text_format=data.get('text_format', ''),
             resolved_prompt=data.get('resolved_prompt', ''),
             resolved_first_prompt=data.get('resolved_first_prompt', ''),
         )
 
     elif node_type == NodeType.START:
-        custom_data_val = data.get('custom_data')
-        if isinstance(custom_data_val, dict) and not custom_data_val:
-            custom_data_val = ''  # Convert empty dict to empty string
-        elif custom_data_val is None:
-            custom_data_val = ''
-        
         return StartNode(
             id=node_id,
             position=position,
             label=label,
             flipped=flipped,
             metadata=metadata,
-            trigger_mode=data.get('trigger_mode'),
-            custom_data=custom_data_val,
-            output_data_structure=data.get('output_data_structure', {}),
-            hook_event=data.get('hook_event', ''),
-            hook_filters=data.get('hook_filters', {}),
+            trigger_mode=data.get('trigger_mode', 'none'),
+            custom_data=data.get('custom_data'),
+            output_data_structure=data.get('output_data_structure'),
+            hook_event=data.get('hook_event'),
+            hook_filters=data.get('hook_filters'),
         )
 
     elif node_type == NodeType.SUB_DIAGRAM:
@@ -308,8 +274,10 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            prompt=data.get('prompt', ''),
-            timeout=data.get('timeout', 0),
+            join_policy=data.get('join_policy'),
+            join_k=data.get('join_k'),
+            prompt=data.get('prompt'),
+            timeout=data.get('timeout', 300),
         )
 
     else:
@@ -331,7 +299,6 @@ ExecutableNode = Union[
     TemplateJobNode,
     TypescriptAstNode,
     UserResponseNode,
-    PersonBatchJobNode
 ]
 
 # Re-export all for backward compatibility
@@ -345,7 +312,6 @@ __all__ = [
     'HookNode',
     'IntegratedApiNode',
     'JsonSchemaValidatorNode',
-    'PersonBatchJobNode',
     'PersonJobNode',
     'StartNode',
     'SubDiagramNode',

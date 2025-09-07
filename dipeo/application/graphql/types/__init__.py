@@ -42,7 +42,6 @@ from dipeo.diagram_generated.models.db_model import DbNodeData
 from dipeo.diagram_generated.models.endpoint_model import EndpointNodeData
 from dipeo.diagram_generated.models.hook_model import HookNodeData
 from dipeo.diagram_generated.models.json_schema_validator_model import JsonSchemaValidatorNodeData
-from dipeo.diagram_generated.models.person_batch_job_model import PersonBatchJobNodeData
 from dipeo.diagram_generated.models.person_job_model import PersonJobNodeData
 
 # Import specific node data types
@@ -75,7 +74,6 @@ __all__ = [
     "JsonSchemaValidatorNodeData",
     "LLMUsageType",
     "NodeStateType",
-    "PersonBatchJobNodeData",
     "PersonJobNodeData",
     "PersonLLMConfigType",
     "SerializedEnvelopeType",

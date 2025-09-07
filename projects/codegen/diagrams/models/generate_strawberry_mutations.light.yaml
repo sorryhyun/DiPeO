@@ -20,7 +20,7 @@ nodes:
       sub_type: file
       format: json  # Parse JSON files automatically
       glob: true  # Enable glob pattern expansion
-      source_details:
+      file:
         # Also load the consolidated cache if available
         - "temp/all_node_specs_ast.json"
         # Dynamically discover all node spec files

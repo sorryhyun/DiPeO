@@ -55,13 +55,6 @@ class GeneratedConstraints:
             allowed_sources=None,
             allowed_targets=None,
         ),
-        NodeType.PERSON_BATCH_JOB: NodeConstraint(
-            max_inputs=None,
-            max_outputs=None,
-            required_handles={HandleLabel.DEFAULT},
-            allowed_sources=None,
-            allowed_targets=None,
-        ),
         NodeType.CONDITION: NodeConstraint(
             max_inputs=1,  # Single input for condition evaluation
             max_outputs=None,  # Multiple branches allowed

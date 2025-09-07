@@ -12,7 +12,6 @@ from .endpoint_node import EndpointNode
 from .hook_node import HookNode
 from .integrated_api_node import IntegratedApiNode
 from .json_schema_validator_node import JsonSchemaValidatorNode
-from .person_batch_job_node import PersonBatchJobNode
 from .person_job_node import PersonJobNode
 from .start_node import StartNode
 from .sub_diagram_node import SubDiagramNode
@@ -29,7 +28,6 @@ __all__ = [
     "HookNode",
     "IntegratedApiNode",
     "JsonSchemaValidatorNode",
-    "PersonBatchJobNode",
     "PersonJobNode",
     "StartNode",
     "SubDiagramNode",

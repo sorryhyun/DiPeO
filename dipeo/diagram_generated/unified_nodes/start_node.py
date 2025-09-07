@@ -24,7 +24,6 @@ class StartNode(BaseModel):
     position: Vec2
 
     # Required node-specific fields
-    trigger_mode: HookTriggerMode = Field(default=HookTriggerMode.NONE, description="How this start node is triggered")
 
     # Optional base fields
     label: str = Field(default="", description="Node label for display")
@@ -36,7 +35,9 @@ class StartNode(BaseModel):
 
     # Optional node-specific fields
     
-    custom_data: str = Field(default="", description="Custom data to pass when manually triggered")
+    trigger_mode: HookTriggerMode = Field(default=None, description="How this start node is triggered")
+    
+    custom_data: Any = Field(default=None, description="Custom data to pass when manually triggered")
     
     output_data_structure: Dict[str, Any] = Field(default_factory=dict, description="Expected output data structure")
     

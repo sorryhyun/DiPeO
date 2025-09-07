@@ -31,7 +31,7 @@ class DbNode:
     type: NodeType = field(default=NodeType.DB, init=False)
 
     # Optional node-specific fields
-    file: str = ""
+    file: Union[str, List[str]] = ""
     collection: str = ""
     query: str = ""
     data: Dict[str, Any] = field(default_factory=dict)

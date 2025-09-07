@@ -31,7 +31,7 @@ nodes:
       sub_type: file
       format: json  # Parse JSON files automatically
       glob: true  # Enable glob pattern expansion
-      source_details:
+      file:
         - temp/codegen/mappings.ts.json
         - temp/codegen/node-interface-map.ts.json
         - temp/core/diagram.ts.json

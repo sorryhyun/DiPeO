@@ -14,6 +14,10 @@ export interface PersonJobNodeData {
   text_format?: string;
   resolved_prompt?: string;
   resolved_first_prompt?: string;
+  batch?: boolean;
+  batch_input_key?: string;
+  batch_parallel?: boolean;
+  max_concurrent?: number;
 }
 
 // Zod schema for validation
@@ -30,4 +34,8 @@ export const PersonJobNodeDataSchema = z.object({
   text_format: z.string().optional(),
   resolved_prompt: z.string().optional(),
   resolved_first_prompt: z.string().optional(),
+  batch: z.boolean().optional(),
+  batch_input_key: z.string().optional(),
+  batch_parallel: z.boolean().optional(),
+  max_concurrent: z.number().min(1).max(100).optional(),
 });

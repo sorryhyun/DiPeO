@@ -37,7 +37,7 @@ class DbNode(BaseModel):
 
     # Optional node-specific fields
     
-    file: str = Field(default="", description="File path or array of file paths")
+    file: Any = Field(default=None, description="File path or array of file paths")
     
     collection: str = Field(default="", description="Database collection name")
     

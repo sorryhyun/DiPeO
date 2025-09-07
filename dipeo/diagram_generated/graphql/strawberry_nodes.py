@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-07T12:46:04.865452
+Generated at: 2025-09-07T17:31:09.544594
 """
 
 import strawberry
@@ -69,12 +69,6 @@ class JsonSchemaValidatorDataType:
     pass
 
 
-@strawberry.experimental.pydantic.type(PersonBatchJobNodeData, all_fields=True)
-class PersonBatchJobDataType:
-    """Execute AI tasks on batches of data using language models - Data fields only"""
-    pass
-
-
 @strawberry.experimental.pydantic.type(PersonJobNodeData, all_fields=True)
 class PersonJobDataType:
     """Execute tasks using AI language models - Data fields only"""
@@ -134,8 +128,6 @@ NodeDataUnion = strawberry.union(
 
         JsonSchemaValidatorDataType,
 
-        PersonBatchJobDataType,
-
         PersonJobDataType,
 
         StartDataType,
@@ -172,8 +164,6 @@ __all__ = [
     'IntegratedApiDataType',
 
     'JsonSchemaValidatorDataType',
-
-    'PersonBatchJobDataType',
 
     'PersonJobDataType',
 

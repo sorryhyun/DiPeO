@@ -10,7 +10,6 @@ import { endpointConfig } from '@/__generated__/nodes/EndpointConfig';
 import { hookConfig } from '@/__generated__/nodes/HookConfig';
 import { integratedApiConfig } from '@/__generated__/nodes/IntegratedApiConfig';
 import { jsonSchemaValidatorConfig } from '@/__generated__/nodes/JsonSchemaValidatorConfig';
-import { personBatchJobConfig } from '@/__generated__/nodes/PersonBatchJobConfig';
 import { personJobConfig } from '@/__generated__/nodes/PersonJobConfig';
 import { startConfig } from '@/__generated__/nodes/StartConfig';
 import { subDiagramConfig } from '@/__generated__/nodes/SubDiagramConfig';
@@ -27,7 +26,6 @@ export function registerAllNodes() {
   registerNodeConfig(hookConfig);
   registerNodeConfig(integratedApiConfig);
   registerNodeConfig(jsonSchemaValidatorConfig);
-  registerNodeConfig(personBatchJobConfig);
   registerNodeConfig(personJobConfig);
   registerNodeConfig(startConfig);
   registerNodeConfig(subDiagramConfig);

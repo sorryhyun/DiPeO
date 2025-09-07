@@ -18,7 +18,6 @@ NODE_TYPE_MAP: Dict[str, NodeType] = {
     "code_job": NodeType.CODE_JOB,
     "api_job": NodeType.API_JOB,
     "person_job": NodeType.PERSON_JOB,
-    "person_batch_job": NodeType.PERSON_BATCH_JOB,
     "condition": NodeType.CONDITION,
     "user_response": NodeType.USER_RESPONSE,
     "start": NodeType.START,

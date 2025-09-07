@@ -49,7 +49,7 @@ def _get_node_handlers() -> dict[str, type[TypedNodeHandler]]:
         NodeType.TYPESCRIPT_AST: TypescriptAstNodeHandler,
         NodeType.SUB_DIAGRAM: SubDiagramNodeHandler,
         NodeType.INTEGRATED_API: IntegratedApiNodeHandler,
-        # Note: PERSON_BATCH_JOB handler may be missing - add when available
+        # Note: PERSON_BATCH_JOB was consolidated into PERSON_JOB
     }
 
 

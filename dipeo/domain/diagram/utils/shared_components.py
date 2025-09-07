@@ -140,18 +140,6 @@ class HandleGenerator:
             )
             return
 
-        # person_batch_job nodes have default input and output
-        if node_type == NodeType.PERSON_BATCH_JOB.value:
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
-            )
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
-            )
-            return
-
         # user_response nodes have default input and output
         if node_type == NodeType.USER_RESPONSE.value:
             _push_handle(

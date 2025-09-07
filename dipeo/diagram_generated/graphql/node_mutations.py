@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-07T12:46:04.850119
+Generated at: 2025-09-07T17:31:09.519966
 """
 
 import strawberry
@@ -161,24 +161,6 @@ class CreateJsonSchemaValidatorInput:
 @strawberry.input
 class UpdateJsonSchemaValidatorInput:
     """Input for updating a JSON Schema Validator node"""
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: Optional[strawberry.scalars.JSON] = None
-    position: Optional[Vec2Input] = None
-
-
-@strawberry.input
-class CreatePersonBatchJobInput:
-    """Input for creating a Person Batch Job node"""
-    diagram_id: str
-    position: Vec2Input
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: strawberry.scalars.JSON
-
-@strawberry.input
-class UpdatePersonBatchJobInput:
-    """Input for updating a Person Batch Job node"""
     # TODO: Add node-specific fields from spec
     # For now, we accept a generic data dict that will be validated
     data: Optional[strawberry.scalars.JSON] = None
@@ -845,74 +827,6 @@ class NodeMutations:
 
 
     @strawberry.mutation
-    async def create_person_batch_job_node(
-        self,
-        info: Info,
-        input: CreatePersonBatchJobInput
-    ) -> PersonBatchJobDataType:
-        """Create a Person Batch Job node"""
-        registry: ServiceRegistry = info.context["registry"]
-
-        
-        # Prepare node data
-        node_data = {
-            "type": "person_batch_job",
-            "position": input.position,
-            "data": input.data
-        }
-
-        # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_PORT)
-
-        # Create the node
-        domain_node = await integrated_service.create_node(
-            diagram_id=input.diagram_id,
-            node_data=node_data
-        )
-        
-
-        # Convert to GraphQL type
-        # For now, return the DomainNodeType directly
-        return DomainNodeType(
-            id=domain_node.id,
-            type=domain_node.type,
-            position=domain_node.position,
-            data=domain_node.data
-        )
-
-
-    @strawberry.mutation
-    async def update_person_batch_job_node(
-        self,
-        info: Info,
-        id: str, input: UpdatePersonBatchJobInput
-    ) -> PersonBatchJobDataType:
-        """Update a Person Batch Job node"""
-        registry: ServiceRegistry = info.context["registry"]
-
-        
-        # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_PORT)
-
-        # Update the node
-        domain_node = await integrated_service.update_node(
-            diagram_id=None,  # TODO: Need diagram_id from somewhere
-            node_id=id,
-            data=input.data
-        )
-        
-
-        # Convert to GraphQL type
-        # For now, return the DomainNodeType directly
-        return DomainNodeType(
-            id=domain_node.id,
-            type=domain_node.type,
-            position=domain_node.position,
-            data=domain_node.data
-        )
-
-
-    @strawberry.mutation
     async def create_person_job_node(
         self,
         info: Info,
@@ -1349,9 +1263,6 @@ __all__ = [
 
     'CreateJsonSchemaValidatorInput',
     'UpdateJsonSchemaValidatorInput',
-
-    'CreatePersonBatchJobInput',
-    'UpdatePersonBatchJobInput',
 
     'CreatePersonJobInput',
     'UpdatePersonJobInput',

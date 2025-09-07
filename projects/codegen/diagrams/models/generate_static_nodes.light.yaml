@@ -19,7 +19,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: temp/codegen/mappings.ts.json
+      file: temp/codegen/mappings.ts.json
 
   # Extract mappings
   - label: Extract Mappings
@@ -39,7 +39,7 @@ nodes:
       sub_type: file
       format: json
       glob: true  # Enable glob pattern expansion
-      source_details:
+      file:
         # Dynamic discovery of all node SPECIFICATION files (replacing *.data.ts files)
         - "temp/specifications/nodes/*.spec.ts.json"
 
@@ -50,7 +50,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details:
+      file:
         - temp/core/diagram.ts.json
 
   # Extract BaseNodeData interface

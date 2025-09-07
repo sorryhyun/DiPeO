@@ -131,4 +131,48 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     rows: 4,
     column: 2,
   },
+  {
+    name: 'batch',
+    type: 'checkbox',
+    label: 'Batch',
+    required: false,
+    defaultValue: false,
+    description: 'Enable batch mode for processing multiple items',
+  },
+  {
+    name: 'batch_input_key',
+    type: 'text',
+    label: 'Batch input key',
+    required: false,
+    defaultValue: "items",
+    placeholder: 'items',
+    description: 'Key containing the array to iterate over in batch mode',
+  },
+  {
+    name: 'batch_parallel',
+    type: 'checkbox',
+    label: 'Batch parallel',
+    required: false,
+    defaultValue: true,
+    description: 'Execute batch items in parallel',
+  },
+  {
+    name: 'max_concurrent',
+    type: 'number',
+    label: 'Max concurrent',
+    required: false,
+    defaultValue: 10,
+    description: 'Maximum concurrent executions in batch mode',
+    min: 1,
+    max: 100,
+    validate: (value: unknown) => {
+      if (typeof value === 'number' && value < 1) {
+        return { isValid: false, error: 'Value must be at least 1' };
+      }
+      if (typeof value === 'number' && value > 100) {
+        return { isValid: false, error: 'Value must be at most 100' };
+      }
+      return { isValid: true };
+    },
+  },
 ];

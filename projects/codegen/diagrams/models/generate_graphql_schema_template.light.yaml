@@ -29,7 +29,7 @@ nodes:
       sub_type: file
       format: json
       glob: true  # Enable glob pattern expansion
-      source_details:
+      file:
         # Core AST files
         - temp/core/diagram.ts.json
         - temp/core/execution.ts.json

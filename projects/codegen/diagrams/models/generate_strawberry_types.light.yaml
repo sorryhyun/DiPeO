@@ -23,7 +23,7 @@ nodes:
       sub_type: file
       format: json  # Parse JSON files automatically
       glob: true  # Enable glob pattern expansion
-      source_details:
+      file:
         # Also load the consolidated cache if available
         - "temp/all_node_specs_ast.json"
         # Dynamically discover all node spec files
@@ -59,7 +59,7 @@ nodes:
       sub_type: file
       format: json
       glob: true
-      source_details:
+      file:
         - "temp/core/diagram.ts.json"
         - "temp/core/execution.ts.json"
 
@@ -114,7 +114,7 @@ nodes:
       sub_type: file
       format: json
       glob: true
-      source_details:
+      file:
         - "temp/frontend/graphql-inputs.ts.json"
 
   # NEW: Extract input types from AST
@@ -147,7 +147,7 @@ nodes:
       sub_type: file
       format: json
       glob: true
-      source_details:
+      file:
         - "temp/core/enums/*.ts.json"
 
   # NEW: Extract GraphQL enums from AST

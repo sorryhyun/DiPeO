@@ -413,6 +413,8 @@ class BackendFilters:
                 quoted_values = ", ".join(f'"{v}"' for v in values)
                 return f"Literal[{quoted_values}]"
             return "str"
+        elif field_type == "any":
+            return "Any"
         else:
             # Default to the type as-is (might be a custom type)
             return field_type

@@ -15,7 +15,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: "temp/specifications/nodes/{node_spec_path}.spec.ts.json"  # Use node_spec_path directly
+      file: "temp/specifications/nodes/{node_spec_path}.spec.ts.json"  # Use node_spec_path directly
       format: json
 
   # Prepare inputs for extractor
@@ -62,7 +62,7 @@ nodes:
       filePath: projects/codegen/code/frontend/frontend_node_extractor.py
       functionName: main
 
-  # Generate all three files using template_job
+  # Generate all three file using template_job
   - label: Generate TypeScript Model
     type: template_job
     position: {x: 700, y: 100}

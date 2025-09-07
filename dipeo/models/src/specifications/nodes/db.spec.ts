@@ -13,7 +13,7 @@ export const dbSpec: NodeSpecification = {
   fields: [
     {
       name: "file",
-      type: "string",
+      type: "any",
       required: false,
       description: "File path or array of file paths",
       uiConfig: {

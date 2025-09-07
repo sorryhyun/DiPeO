@@ -392,8 +392,6 @@ class NodeType(str, Enum):
     
     USER_RESPONSE = "user_response"
     
-    PERSON_BATCH_JOB = "person_batch_job"
-    
     HOOK = "hook"
     
     TEMPLATE_JOB = "template_job"

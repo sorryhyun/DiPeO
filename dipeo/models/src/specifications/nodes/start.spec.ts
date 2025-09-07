@@ -14,7 +14,7 @@ export const startSpec: NodeSpecification = {
     {
       name: "trigger_mode",
       type: "enum",
-      required: true,
+      required: false,
       defaultValue: "none",
       description: "How this start node is triggered",
       validation: {
@@ -31,7 +31,7 @@ export const startSpec: NodeSpecification = {
     },
     {
       name: "custom_data",
-      type: "string",
+      type: "any",
       required: false,
       description: "Custom data to pass when manually triggered",
       conditional: {

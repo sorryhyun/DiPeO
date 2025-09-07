@@ -51,7 +51,7 @@ class PersonJobNode(BaseModel):
     
     at_most: float = Field(default=0, description="Select at most N messages to keep (system messages may be preserved in addition).")
     
-    tools: List[ToolConfig] = Field(default_factory=list, description="Tools available to the AI agent")
+    tools: List[ToolConfig] = Field(default="", description="Tools available to the AI agent")
     
     text_format: str = Field(default="", description="JSON schema or response format for structured outputs")
     
@@ -61,11 +61,11 @@ class PersonJobNode(BaseModel):
     
     batch: bool = Field(default=False, description="Enable batch mode for processing multiple items")
     
-    batch_input_key: str = Field(default="items", description="Key containing the array to iterate over in batch mode")
+    batch_input_key: str = Field(default="", description="Key containing the array to iterate over in batch mode")
     
-    batch_parallel: bool = Field(default=True, description="Execute batch items in parallel")
+    batch_parallel: bool = Field(default=False, description="Execute batch items in parallel")
     
-    max_concurrent: int = Field(default=10, description="Maximum concurrent executions in batch mode")
+    max_concurrent: float = Field(default=0, description="Maximum concurrent executions in batch mode")
 
     class Config:
         # Make the instance immutable after creation
