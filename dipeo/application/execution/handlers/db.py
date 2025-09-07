@@ -219,6 +219,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
 
             processed_paths.append(file_path)
 
+        # Auto-detect and expand glob patterns before passing to db_service
+        # No need for explicit glob field - just check if paths contain glob characters
+        processed_paths = self._expand_glob_patterns(processed_paths, base_dir)
+
         format_type = getattr(node, "format", None)
 
         if format_type and node.operation == "write":
@@ -235,9 +239,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     path = f"{path}.json"
                 adjusted_paths.append(path)
             processed_paths = adjusted_paths
-
-        if getattr(node, "glob", False):
-            processed_paths = self._expand_glob_patterns(processed_paths, base_dir)
 
         if node.operation == "write":
             input_val = (
@@ -304,7 +305,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DBNode]):
                     "file_count": len(processed_paths),
                     "format": format_type,
                     "serialize_json": serialize_json,
-                    "glob": getattr(node, "glob", False),
                 }
 
             elif len(processed_paths) == 1:

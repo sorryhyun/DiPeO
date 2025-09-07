@@ -272,8 +272,6 @@ def create_executable_node(
             template_path=data.get('template_path', data.get('templatePath', '')),
             output_path=data.get('output_path', data.get('outputPath', '')),
             variables=data.get('variables', {}),
-            preprocessor=data.get('preprocessor'),
-            foreach=data.get('foreach'),
         )
     
     elif node_type == NodeType.TYPESCRIPT_AST:

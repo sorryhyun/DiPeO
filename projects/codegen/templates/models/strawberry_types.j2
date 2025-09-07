@@ -8,6 +8,7 @@ Generated at: {{ strawberry_types.generated_at | default('N/A') }}
 import strawberry
 from typing import *
 from strawberry.types import *
+from .strawberry_domain import TemplatePreprocessorType, ToolConfigType
 
 # Import Pydantic models
 {% if strawberry_types and strawberry_types.strawberry_types %}

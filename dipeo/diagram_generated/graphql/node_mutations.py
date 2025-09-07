@@ -2,24 +2,24 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-06T12:56:08.000378
+Generated at: 2025-09-07T11:25:23.405497
 """
 
-from typing import *
-
 import strawberry
+from typing import *
 from strawberry.types import *
 
-# Import services and keys
-from dipeo.application.registry import *
-from dipeo.application.registry.keys import *
+# Import data types and unions
+from .strawberry_nodes import *
 
 # Import base types
 from dipeo.diagram_generated.graphql.domain_types import *
 from dipeo.diagram_generated.graphql.inputs import *
 
-# Import data types and unions
-from .strawberry_nodes import *
+# Import services and keys
+from dipeo.application.registry import *
+from dipeo.application.registry.keys import *
+
 
 # Generate input types for each node
 
@@ -1324,36 +1324,51 @@ class NodeMutations:
 
 # Export mutations
 __all__ = [
-    'CreateApiJobInput',
-    'CreateCodeJobInput',
-    'CreateConditionInput',
-    'CreateDBInput',
-    'CreateEndpointInput',
-    'CreateHookInput',
-    'CreateIntegratedApiInput',
-    'CreateJsonSchemaValidatorInput',
-    'CreatePersonBatchJobInput',
-    'CreatePersonJobInput',
-    'CreateStartInput',
-    'CreateSubDiagramInput',
-    'CreateTemplateJobInput',
-    'CreateTypescriptAstInput',
-    'CreateUserResponseInput',
     'NodeMutations',
+
+    'CreateApiJobInput',
     'UpdateApiJobInput',
+
+    'CreateCodeJobInput',
     'UpdateCodeJobInput',
+
+    'CreateConditionInput',
     'UpdateConditionInput',
+
+    'CreateDBInput',
     'UpdateDBInput',
+
+    'CreateEndpointInput',
     'UpdateEndpointInput',
+
+    'CreateHookInput',
     'UpdateHookInput',
+
+    'CreateIntegratedApiInput',
     'UpdateIntegratedApiInput',
+
+    'CreateJsonSchemaValidatorInput',
     'UpdateJsonSchemaValidatorInput',
+
+    'CreatePersonBatchJobInput',
     'UpdatePersonBatchJobInput',
+
+    'CreatePersonJobInput',
     'UpdatePersonJobInput',
+
+    'CreateStartInput',
     'UpdateStartInput',
+
+    'CreateSubDiagramInput',
     'UpdateSubDiagramInput',
+
+    'CreateTemplateJobInput',
     'UpdateTemplateJobInput',
+
+    'CreateTypescriptAstInput',
     'UpdateTypescriptAstInput',
+
+    'CreateUserResponseInput',
     'UpdateUserResponseInput',
 
 ]

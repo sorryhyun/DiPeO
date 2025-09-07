@@ -1,8 +1,8 @@
 # Auto-generated Pydantic model for code_job node
 
 from typing import *
-
 from pydantic import *
+
 
 from ..enums import *
 from ..integrations import *

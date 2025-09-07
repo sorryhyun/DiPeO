@@ -2,22 +2,24 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-06T12:56:08.053007
+Generated at: 2025-09-07T11:25:23.423099
 """
 
-from typing import *
-
 import strawberry
+from typing import *
 from strawberry.types import *
+
+# Import Pydantic models
+
+from ..domain_models import *
+
 
 # Import generated scalars
 from dipeo.diagram_generated.graphql.scalars import *
 
-# Import Pydantic models
-from ..domain_models import *
-
-# Import registered domain types (must be imported before using them in node types)
+# Import domain types that are used in node data models
 from .strawberry_domain import TemplatePreprocessorType, ToolConfigType
+
 
 # Generate Strawberry types for node data
 
@@ -155,21 +157,36 @@ NodeDataUnion = strawberry.union(
 
 # Export all types
 __all__ = [
-    'ApiJobDataType',
-    'CodeJobDataType',
-    'ConditionDataType',
-    'DBDataType',
-    'EndpointDataType',
-    'HookDataType',
-    'IntegratedApiDataType',
-    'JsonSchemaValidatorDataType',
     'NodeDataUnion',
+
+    'ApiJobDataType',
+
+    'CodeJobDataType',
+
+    'ConditionDataType',
+
+    'DBDataType',
+
+    'EndpointDataType',
+
+    'HookDataType',
+
+    'IntegratedApiDataType',
+
+    'JsonSchemaValidatorDataType',
+
     'PersonBatchJobDataType',
+
     'PersonJobDataType',
+
     'StartDataType',
+
     'SubDiagramDataType',
+
     'TemplateJobDataType',
+
     'TypescriptAstDataType',
+
     'UserResponseDataType',
 
 ]

@@ -1308,3 +1308,4 @@ yarn.lock
 /.playwright-mcp/integrations.zip
 /.playwright-mcp/projects.zip
 /.playwright-mcp/scripts.zip
+/.playwright-mcp/

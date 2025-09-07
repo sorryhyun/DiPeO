@@ -2,7 +2,7 @@
 GraphQL input types for DiPeO mutations.
 Auto-generated from TypeScript definitions.
 
-Generated at: 2025-09-06T12:56:08.065147
+Generated at: 2025-09-07T11:25:23.432240
 """
 
 from datetime import datetime
@@ -10,17 +10,13 @@ from typing import Optional
 
 import strawberry
 
+
 # Import enums from generated modules
-from dipeo.diagram_generated.enums import (
-    APIServiceType,
-    DiagramFormat,
-    LLMService,
-    NodeType,
-    Status,
-)
+from dipeo.diagram_generated.enums import APIServiceType, LLMService, NodeType, Status, DiagramFormat
 
 # Import scalars to ensure they're registered
 from dipeo.diagram_generated.graphql.scalars import *
+
 
 
 @strawberry.input
@@ -168,23 +164,23 @@ class UnregisterCliSessionInput:
 
 # Export all input types
 __all__ = [
-    'CreateApiKeyInput',
+    'Vec2Input',
+    'CreateNodeInput',
+    'UpdateNodeInput',
     'CreateArrowInput',
     'CreateDiagramInput',
-    'CreateNodeInput',
-    'CreatePersonInput',
-    'DiagramFilterInput',
-    'ExecuteDiagramInput',
-    'ExecutionControlInput',
-    'ExecutionFilterInput',
-    'FileOperationInput',
-    'InteractiveResponseInput',
+    'UpdateDiagramInput',
     'PersonLLMConfigInput',
+    'CreatePersonInput',
+    'UpdatePersonInput',
+    'CreateApiKeyInput',
+    'ExecuteDiagramInput',
+    'FileOperationInput',
+    'UpdateNodeStateInput',
+    'DiagramFilterInput',
+    'ExecutionFilterInput',
+    'ExecutionControlInput',
+    'InteractiveResponseInput',
     'RegisterCliSessionInput',
     'UnregisterCliSessionInput',
-    'UpdateDiagramInput',
-    'UpdateNodeInput',
-    'UpdateNodeStateInput',
-    'UpdatePersonInput',
-    'Vec2Input',
 ]

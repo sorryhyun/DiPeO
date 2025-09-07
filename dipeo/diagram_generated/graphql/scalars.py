@@ -2,12 +2,11 @@
 Strawberry GraphQL scalar types for DiPeO.
 Auto-generated from TypeScript branded types.
 
-Generated at: 2025-09-06T12:56:08.057217
+Generated at: 2025-09-07T11:25:23.426187
 """
 
-from typing import Any, NewType
-
 import strawberry
+from typing import Any, NewType
 from strawberry.scalars import ID
 
 # Import the base domain types
@@ -20,6 +19,7 @@ from dipeo.diagram_generated.domain_models import (
     NodeID,
     PersonID,
 )
+
 
 # Generate Strawberry scalar types for branded IDs
 
