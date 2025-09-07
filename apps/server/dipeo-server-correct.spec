@@ -51,10 +51,7 @@ if os.path.exists(schema_file):
 else:
     print(f"WARNING: schema.graphql not found at {schema_file}")
 
-# Add config.py if exists
-config_file = os.path.join(SERVER_DIR, 'config.py')
-if os.path.exists(config_file):
-    datas.append((config_file, '.'))
+# Config.py removed - using dipeo.config directly
 
 # Add dipeo package
 if os.path.exists(DIPEO_DIR) and os.path.isdir(DIPEO_DIR):
@@ -70,18 +67,13 @@ for dir_name in ['files', 'examples', 'files/results', 'files/conversation_logs'
     if not os.path.exists(dir_path):
         os.makedirs(dir_path, exist_ok=True)
 
-# Main bundled entry point should be in server directory
-main_bundled_py = os.path.join(SERVER_DIR, 'main_bundled.py')
-if not os.path.exists(main_bundled_py):
-    print(f"WARNING: main_bundled.py not found at {main_bundled_py}, falling back to main.py")
-    main_py = os.path.join(SERVER_DIR, 'main.py')
-    if not os.path.exists(main_py):
-        print(f"ERROR: main.py not found at {main_py}")
-        raise FileNotFoundError(f"main.py not found at {main_py}")
-    entry_point = main_py
-else:
-    entry_point = main_bundled_py
-    print(f"Using main_bundled.py as entry point: {main_bundled_py}")
+# Main entry point
+main_py = os.path.join(SERVER_DIR, 'main.py')
+if not os.path.exists(main_py):
+    print(f"ERROR: main.py not found at {main_py}")
+    raise FileNotFoundError(f"main.py not found at {main_py}")
+entry_point = main_py
+print(f"Using main.py as entry point: {main_py}")
 
 a = Analysis(
     [entry_point],  # Use the determined entry point
