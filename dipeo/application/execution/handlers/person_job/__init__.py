@@ -162,13 +162,18 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 node, "first_prompt_file", None
             )
 
+            # Check for pre-resolved prompts from compilation
+            has_resolved_prompt = getattr(node, "resolved_prompt", None) or getattr(
+                node, "resolved_first_prompt", None
+            )
+
             # Use default_prompt from node configuration
             prompt = getattr(node, "default_prompt", None)
 
             # Only raise error if no prompt sources are available
-            if not prompt and not has_prompt_file:
+            if not prompt and not has_prompt_file and not has_resolved_prompt:
                 raise ValueError(
-                    f"No prompt provided and no default_prompt or prompt_file configured for node {node.id}"
+                    f"No prompt provided and no default_prompt, prompt_file, or resolved_prompt configured for node {node.id}"
                 )
 
         # Extract context (optional)
