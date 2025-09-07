@@ -1,6 +1,6 @@
 [project]
 name = "dipeo-monorepo"
-version = "0.1.0"
+version = "1.0.0"
 description = "DiPeO - Diagrammed People & Organizations: Visual programming for AI agent workflows"
 authors = [
     {name = "sorryhyun", email = "standingbehindnv@gmail.com"},

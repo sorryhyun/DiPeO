@@ -13,7 +13,7 @@ import warnings
 from typing import TYPE_CHECKING
 
 # Version information
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 # Import sub-modules
 from . import domain

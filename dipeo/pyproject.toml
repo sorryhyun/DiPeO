@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dipeo"
-version = "0.1.0"
+version = "1.0.0"
 description = "DiPeO - Diagrammed People & Organizations: Visual programming for AI agent workflows"
 authors = [
     {name = "sorryhyun", email = "standingbehindnv@gmail.com"},
