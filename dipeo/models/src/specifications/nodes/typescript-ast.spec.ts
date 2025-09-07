@@ -103,6 +103,26 @@ export const typescriptAstSpec: NodeSpecification = {
           { value: "for_analysis", label: "For Analysis" }
         ]
       }
+    },
+    {
+      name: "batch",
+      type: "boolean",
+      required: false,
+      defaultValue: false,
+      description: "Enable batch processing mode",
+      uiConfig: {
+        inputType: "checkbox"
+      }
+    },
+    {
+      name: "batchInputKey",
+      type: "string",
+      required: false,
+      defaultValue: "sources",
+      description: "Key to extract batch items from input",
+      uiConfig: {
+        inputType: "text"
+      }
     }
   ],
 

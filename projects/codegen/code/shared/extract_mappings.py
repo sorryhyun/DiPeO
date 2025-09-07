@@ -483,6 +483,174 @@ def extract_field_configs(interfaces: list[dict], enums: list[dict], mappings: d
     }
 
 
+def extract_specifications(ast_files: dict) -> list[dict]:
+    """Extract node specifications from AST files"""
+    specifications = []
+
+    for filepath, content in ast_files.items():
+        if '.spec.ts.json' in filepath and 'index.ts.json' not in filepath:
+            ast_data = content if isinstance(content, dict) else json.loads(content)
+
+            # Find specification constants
+            for constant in ast_data.get('constants', []):
+                name = constant.get('name', '')
+                if name.endswith('Spec'):
+                    spec_value = constant.get('value', {})
+                    # Extract node type from the spec
+                    node_type_raw = spec_value.get('nodeType', '')
+                    # Remove NodeType. prefix if present
+                    if node_type_raw.startswith('NodeType.'):
+                        node_type = node_type_raw.replace('NodeType.', '').lower()
+                    else:
+                        node_type = node_type_raw.lower()
+
+                    specifications.append({
+                        'name': name,
+                        'nodeType': node_type,
+                        'spec': spec_value
+                    })
+
+    return specifications
+
+
+def spec_field_to_zod(field: dict, enum_values: dict) -> str:
+    """Convert a specification field to Zod schema"""
+    name = field.get('name', '')
+    field_type = field.get('type', 'string')
+    required = field.get('required', False)
+    validation = field.get('validation', {})
+
+    # Map specification types to Zod schemas
+    if field_type == 'enum':
+        allowed_values = validation.get('allowedValues', [])
+        if allowed_values:
+            values_str = ', '.join([f"'{v}'" for v in allowed_values])
+            zod_type = f"z.enum([{values_str}])"
+        else:
+            zod_type = 'z.string()'
+    elif field_type == 'boolean':
+        zod_type = 'z.boolean()'
+    elif field_type == 'number':
+        zod_type = 'z.number()'
+    elif field_type == 'array':
+        zod_type = 'z.array(z.any())'
+    elif field_type == 'object':
+        zod_type = 'z.record(z.string(), z.any())'
+    else:
+        zod_type = 'z.string()'
+
+    # Add optional modifier if not required
+    if not required:
+        zod_type = f"{zod_type}.optional()"
+
+    return f"  {name}: {zod_type}"
+
+
+def extract_zod_from_specs(specifications: list[dict], enum_values: dict) -> dict:
+    """Extract Zod schemas from specifications"""
+    schemas = []
+
+    for spec_data in specifications:
+        node_type = spec_data['nodeType']
+        spec = spec_data['spec']
+        fields = spec.get('fields', [])
+
+        # Generate Zod properties for each field
+        properties = []
+
+        # Add base fields
+        properties.append("  label: z.string()")
+        properties.append("  flipped: z.boolean().optional()")
+
+        # Add spec fields
+        for field in fields:
+            prop = spec_field_to_zod(field, enum_values)
+            properties.append(prop)
+
+        schema_code = f"z.object({{\n{',\n'.join(properties)}\n}})"
+
+        # Create interface name from node type - match NODE_INTERFACE_MAP format
+        # Convert snake_case to PascalCase and add NodeData suffix
+        words = node_type.split('_')
+        interface_name = ''.join(word.capitalize() for word in words) + 'NodeData'
+
+        schemas.append({
+            'nodeType': node_type,
+            'interfaceName': interface_name,
+            'schemaCode': schema_code
+        })
+
+    return {
+        'schemas': schemas,
+        'enum_schemas': {},
+        'branded_types': []
+    }
+
+
+def extract_field_configs_from_specs(specifications: list[dict], enum_values: dict) -> dict:
+    """Extract field configurations from specifications"""
+    node_configs = []
+
+    for spec_data in specifications:
+        node_type = spec_data['nodeType']
+        spec = spec_data['spec']
+        fields_data = spec.get('fields', [])
+
+        fields = []
+        for field in fields_data:
+            name = field.get('name', '')
+            field_type = field.get('type', 'string')
+            required = field.get('required', False)
+            ui_config = field.get('uiConfig', {})
+
+            # Determine field type for UI
+            if ui_config.get('inputType') == 'select' or field_type == 'enum':
+                ui_type = 'select'
+            elif ui_config.get('inputType') == 'textarea':
+                ui_type = 'variableTextArea'
+            elif ui_config.get('inputType') == 'code':
+                ui_type = 'code'
+            elif field_type == 'boolean':
+                ui_type = 'checkbox'
+            elif field_type == 'number':
+                ui_type = 'number'
+            else:
+                ui_type = get_field_type(name, field_type)
+
+            field_config = {
+                'name': name,
+                'type': ui_type,
+                'label': field.get('label') or generate_label(name),
+                'required': required
+            }
+
+            # Add options for select fields
+            if ui_type == 'select':
+                options = []
+                if ui_config.get('options'):
+                    options = [opt.get('value') for opt in ui_config.get('options', [])]
+                elif field.get('validation', {}).get('allowedValues'):
+                    options = field['validation']['allowedValues']
+                if options:
+                    field_config['options'] = options
+
+            # Add placeholder if specified
+            if ui_config.get('placeholder'):
+                field_config['placeholder'] = ui_config['placeholder']
+
+            fields.append(field_config)
+
+        node_configs.append({
+            'nodeType': node_type,
+            'fields': fields
+        })
+
+    return {
+        'node_configs': node_configs,
+        'enum_values': enum_values
+    }
+
+
 def main(inputs: dict) -> dict:
     """Main entry point for unified mappings and Zod schemas extraction."""
     from datetime import datetime
@@ -568,11 +736,48 @@ def main(inputs: dict) -> dict:
                     'field_special_handling': {}
                 }
 
-            # Generate Zod schemas
-            zod_result = extract_zod_schemas(all_interfaces, all_enums, mappings)
+            # Try interface-based extraction first
+            if all_interfaces:
+                print(f"Found {len(all_interfaces)} interfaces, trying interface-based extraction")
+                # Generate Zod schemas from interfaces
+                zod_result = extract_zod_schemas(all_interfaces, all_enums, mappings)
+                # Generate field configs from interfaces
+                field_configs_result = extract_field_configs(all_interfaces, all_enums, mappings)
 
-            # Generate field configs
-            field_configs_result = extract_field_configs(all_interfaces, all_enums, mappings)
+                # Check if we actually got any node schemas
+                if not zod_result.get('schemas'):
+                    print("No node schemas found from interfaces, falling back to specifications...")
+                    all_interfaces = []  # Force specification extraction
+
+            # If no interfaces or no schemas found, try specifications
+            if not all_interfaces or not zod_result.get('schemas'):
+                print("Checking for specifications...")
+                # Extract specifications
+                specifications = extract_specifications(default_data)
+
+                if specifications:
+                    print(f"Found {len(specifications)} specifications, using specification-based extraction")
+                    # Extract enum values
+                    enum_values = extract_enum_values(all_enums)
+
+                    # Generate Zod schemas from specifications
+                    zod_result = extract_zod_from_specs(specifications, enum_values)
+
+                    # Generate field configs from specifications
+                    field_configs_result = extract_field_configs_from_specs(specifications, enum_values)
+                else:
+                    print("WARNING: No specifications found either")
+                    # Return empty results if nothing worked
+                    if not all_interfaces:
+                        zod_result = {
+                            'schemas': [],
+                            'enum_schemas': {},
+                            'branded_types': []
+                        }
+                        field_configs_result = {
+                            'node_configs': [],
+                            'enum_values': {}
+                        }
 
             # Return combined result
             return {

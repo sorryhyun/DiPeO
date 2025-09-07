@@ -69,6 +69,15 @@ export const templateJobSpec: NodeSpecification = {
           { value: "jinja2", label: "Jinja2" }
         ]
       }
+    },
+    {
+      name: "preprocessor",
+      type: "string",
+      required: false,
+      description: "Preprocessor function to apply before templating",
+      uiConfig: {
+        inputType: "text"
+      }
     }
   ],
 

@@ -51,13 +51,10 @@ PersonID = NewType('PersonID', str)
 TaskID = NewType('TaskID', str)
 
 
-
-
-
 class Vec2(BaseModel):
     """Vec2 model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     x: int
     y: int
 
@@ -65,7 +62,7 @@ class Vec2(BaseModel):
 class DomainHandle(BaseModel):
     """DomainHandle model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: HandleID
     node_id: NodeID
     label: HandleLabel
@@ -77,7 +74,7 @@ class DomainHandle(BaseModel):
 class DomainNode(BaseModel):
     """DomainNode model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: NodeID
     type: NodeType
     position: Vec2
@@ -87,7 +84,7 @@ class DomainNode(BaseModel):
 class DomainArrow(BaseModel):
     """DomainArrow model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: ArrowID
     source: HandleID
     target: HandleID
@@ -101,7 +98,7 @@ class DomainArrow(BaseModel):
 class PersonLLMConfig(BaseModel):
     """PersonLLMConfig model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     service: LLMService
     model: str
     api_key_id: ApiKeyID
@@ -112,7 +109,7 @@ class PersonLLMConfig(BaseModel):
 class DomainPerson(BaseModel):
     """DomainPerson model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: PersonID
     label: str
     llm_config: PersonLLMConfig
@@ -122,7 +119,7 @@ class DomainPerson(BaseModel):
 class DomainApiKey(BaseModel):
     """DomainApiKey model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: ApiKeyID
     label: str
     service: APIServiceType
@@ -132,7 +129,7 @@ class DomainApiKey(BaseModel):
 class DiagramMetadata(BaseModel):
     """DiagramMetadata model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: DiagramID | None = Field(default=None)
     name: str | None = Field(default=None)
     description: str | None = Field(default=None)
@@ -147,7 +144,7 @@ class DiagramMetadata(BaseModel):
 class DomainDiagram(BaseModel):
     """DomainDiagram model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     nodes: list[DomainNode]
     handles: list[DomainHandle]
     arrows: list[DomainArrow]
@@ -158,7 +155,7 @@ class DomainDiagram(BaseModel):
 class LLMUsage(BaseModel):
     """LLMUsage model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     input: int
     output: int
     cached: int | None = Field(default=None)
@@ -168,7 +165,7 @@ class LLMUsage(BaseModel):
 class NodeState(BaseModel):
     """NodeState model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     status: Status
     started_at: str | None = Field(default=None)
     ended_at: str | None = Field(default=None)
@@ -180,7 +177,7 @@ class NodeState(BaseModel):
 class NodeMetrics(BaseModel):
     """NodeMetrics model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     node_id: str
     node_type: str
     start_time: float
@@ -195,7 +192,7 @@ class NodeMetrics(BaseModel):
 class Bottleneck(BaseModel):
     """Bottleneck model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     node_id: str
     node_type: str
     duration_ms: float
@@ -205,7 +202,7 @@ class Bottleneck(BaseModel):
 class ExecutionMetrics(BaseModel):
     """ExecutionMetrics model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     execution_id: ExecutionID
     start_time: float
     end_time: float | None = Field(default=None)
@@ -219,7 +216,7 @@ class ExecutionMetrics(BaseModel):
 class EnvelopeMeta(BaseModel):
     """EnvelopeMeta model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     node_id: str | None = Field(default=None)
     llm_usage: LLMUsage | None = Field(default=None)
     execution_time: float | None = Field(default=None)
@@ -232,7 +229,7 @@ class EnvelopeMeta(BaseModel):
 class SerializedEnvelope(BaseModel):
     """SerializedEnvelope model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     envelope_format: Literal[True]
     id: str
     trace_id: str
@@ -248,7 +245,7 @@ class SerializedEnvelope(BaseModel):
 class ExecutionState(BaseModel):
     """ExecutionState model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: ExecutionID
     status: Status
     diagram_id: DiagramID | None = Field(default=None)
@@ -270,7 +267,7 @@ class ExecutionState(BaseModel):
 class ExecutionOptions(BaseModel):
     """ExecutionOptions model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     mode: Literal["normal", "debug", "monitor"] | None = Field(default=None)
     timeout: int | None = Field(default=None)
     variables: JsonDict | None = Field(default=None)
@@ -280,7 +277,7 @@ class ExecutionOptions(BaseModel):
 class InteractivePromptData(BaseModel):
     """InteractivePromptData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     node_id: NodeID
     prompt: str
     timeout: int | None = Field(default=None)
@@ -290,7 +287,7 @@ class InteractivePromptData(BaseModel):
 class InteractiveResponse(BaseModel):
     """InteractiveResponse model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     node_id: NodeID
     response: str
     timestamp: str
@@ -299,7 +296,7 @@ class InteractiveResponse(BaseModel):
 class ExecutionUpdate(BaseModel):
     """ExecutionUpdate model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     type: EventType
     execution_id: ExecutionID
     node_id: NodeID | None = Field(default=None)
@@ -316,7 +313,7 @@ class ExecutionUpdate(BaseModel):
 class NodeDefinition(BaseModel):
     """NodeDefinition model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     type: str
     node_schema: Any
     handler: Any
@@ -328,7 +325,7 @@ class Message(BaseModel):
     """Base message interface for conversations
 Used by both execution (PersonMemory) and person domains"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: str | None = Field(default=None)
     from_person_id: PersonID | Literal["system"]
     to_person_id: PersonID
@@ -342,7 +339,7 @@ Used by both execution (PersonMemory) and person domains"""
 class ConversationMetadata(BaseModel):
     """ConversationMetadata model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     started_at: str
     last_message_at: str
     total_tokens: float
@@ -353,7 +350,7 @@ class ConversationMetadata(BaseModel):
 class Conversation(BaseModel):
     """Conversation model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     messages: list[Message]
     metadata: ConversationMetadata | None = Field(default=None)
 
@@ -361,7 +358,7 @@ class Conversation(BaseModel):
 class ToolConfig(BaseModel):
     """ToolConfig model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     type: ToolType
     enabled: bool | None = Field(default=None)
     config: dict[str, Any] | None = Field(default=None)
@@ -370,7 +367,7 @@ class ToolConfig(BaseModel):
 class WebSearchResult(BaseModel):
     """WebSearchResult model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     url: str
     title: str
     snippet: str
@@ -380,7 +377,7 @@ class WebSearchResult(BaseModel):
 class ImageGenerationResult(BaseModel):
     """ImageGenerationResult model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     image_data: str
     format: str
     width: int | None = Field(default=None)
@@ -390,7 +387,7 @@ class ImageGenerationResult(BaseModel):
 class ToolOutput(BaseModel):
     """ToolOutput model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     type: ToolType
     result: list[WebSearchResult] | ImageGenerationResult | Any
     raw_response: Any | None = Field(default=None)
@@ -399,7 +396,7 @@ class ToolOutput(BaseModel):
 class ChatResult(BaseModel):
     """ChatResult model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     text: str
     llm_usage: LLMUsage | None = Field(default=None)
     raw_response: Any | None = Field(default=None)
@@ -409,7 +406,7 @@ class ChatResult(BaseModel):
 class LLMRequestOptions(BaseModel):
     """LLMRequestOptions model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     temperature: float | None = Field(default=None)
     max_tokens: float | None = Field(default=None)
     top_p: float | None = Field(default=None)
@@ -421,7 +418,7 @@ class LLMRequestOptions(BaseModel):
 class BaseNodeData(BaseModel):
     """Base node data interface that all node types extend"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     label: str
     flipped: bool | None = Field(default=None)
 
@@ -429,7 +426,7 @@ class BaseNodeData(BaseModel):
 class ApiJobNodeData(BaseNodeData):
     """ApiJobNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     url: str
     method: HttpMethod
     headers: dict[str, str] | None = Field(default=None)
@@ -443,34 +440,42 @@ class ApiJobNodeData(BaseNodeData):
 class CodeJobNodeData(BaseNodeData):
     """Configuration data for CodeJob nodes that execute code"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     language: SupportedLanguage = Field(description="Programming language: python, typescript, bash, or shell")
-    file_path: str | None = Field(alias='filePath', default=None, description="External code file path (e.g., \u0027files/code/processor.py\u0027)")
+    file_path: str | None = Field(alias='filePath', default=None,
+                                  description="External code file path (e.g., \u0027files/code/processor.py\u0027)")
     code: str | None = Field(default=None, description="Inline code or path to external file")
-    function_name: str | None = Field(alias='functionName', default=None, description="Function to call in external file (required with filePath)")
+    function_name: str | None = Field(alias='functionName', default=None,
+                                      description="Function to call in external file (required with filePath)")
     timeout: int | None = Field(default=None, description="Execution timeout in seconds (default: 60)")
 
 
 class ConditionNodeData(BaseNodeData):
     """Configuration data for Condition nodes that handle conditional branching"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    condition_type: ConditionType | None = Field(default=None, description="Condition type: detect_max_iterations, nodes_executed, custom, or llm_decision")
-    expression: str | None = Field(default=None, description="Python expression for custom type (access to all variables)")
-    node_indices: list[str] | None = Field(default=None, description="List of node indices for nodes_executed condition type")
-    expose_index_as: str | None = Field(default=None, description="Variable name to expose the condition node\u0027s execution count (0-based index) to downstream nodes")
-    skippable: bool | None = Field(default=None, description="When true, downstream nodes can execute even if this condition hasn\u0027t been evaluated yet")
+
+    condition_type: ConditionType | None = Field(default=None,
+                                                 description="Condition type: detect_max_iterations, nodes_executed, custom, or llm_decision")
+    expression: str | None = Field(default=None,
+                                   description="Python expression for custom type (access to all variables)")
+    node_indices: list[str] | None = Field(default=None,
+                                           description="List of node indices for nodes_executed condition type")
+    expose_index_as: str | None = Field(default=None,
+                                        description="Variable name to expose the condition node\u0027s execution count (0-based index) to downstream nodes")
+    skippable: bool | None = Field(default=None,
+                                   description="When true, downstream nodes can execute even if this condition hasn\u0027t been evaluated yet")
     person: PersonID | None = Field(default=None, description="AI agent to use (when condition_type is LLM_DECISION)")
     judge_by: str | None = Field(default=None, description="The prompt/criteria for LLM to judge")
     judge_by_file: str | None = Field(default=None, description="External prompt file in {subdirectory}/prompts/")
-    memorize_to: str | None = Field(default=None, description="Memory control (e.g., \"GOLDFISH\" for fresh evaluation)")
+    memorize_to: str | None = Field(default=None,
+                                    description="Memory control (e.g., \"GOLDFISH\" for fresh evaluation)")
     at_most: float | None = Field(default=None, description="Max messages to keep in memory")
 
 
 class DBNodeData(BaseNodeData):
     """Configuration data for DB nodes that handle file system operations"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     file: list[str] | None = Field(default=None, description="File path(s) - single string or list for multiple files")
     collection: str | None = Field(default=None, description="Database collection name (for database operations)")
     sub_type: DBBlockSubType = Field(description="Storage type: file or database")
@@ -485,7 +490,7 @@ class DBNodeData(BaseNodeData):
 class EndpointNodeData(BaseNodeData):
     """EndpointNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     save_to_file: bool
     file_name: str | None = Field(default=None)
 
@@ -493,7 +498,7 @@ class EndpointNodeData(BaseNodeData):
 class HookNodeData(BaseNodeData):
     """HookNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     hook_type: HookType
     command: str | None = Field(default=None)
     args: list[str] | None = Field(default=None)
@@ -514,11 +519,15 @@ class HookNodeData(BaseNodeData):
 class IntegratedApiNodeData(BaseNodeData):
     """IntegratedApiNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    provider: str = Field(description="Provider id from the dynamic registry (e.g., \u0027notion\u0027, \u0027slack\u0027)")
-    operation: str = Field(description="The operation to perform (provider-specific)\nThis is a string to allow dynamic operations per provider")
-    config: JsonDict | None = Field(default=None, description="Provider-specific configuration\nStructure depends on the selected provider and operation")
-    resource_id: str | None = Field(default=None, description="Optional resource ID (e.g., page_id for Notion, channel_id for Slack)")
+
+    provider: str = Field(
+        description="Provider id from the dynamic registry (e.g., \u0027notion\u0027, \u0027slack\u0027)")
+    operation: str = Field(
+        description="The operation to perform (provider-specific)\nThis is a string to allow dynamic operations per provider")
+    config: JsonDict | None = Field(default=None,
+                                    description="Provider-specific configuration\nStructure depends on the selected provider and operation")
+    resource_id: str | None = Field(default=None,
+                                    description="Optional resource ID (e.g., page_id for Notion, channel_id for Slack)")
     timeout: int | None = Field(default=None, description="Request timeout in seconds")
     max_retries: float | None = Field(default=None, description="Maximum number of retries for failed requests")
 
@@ -526,7 +535,7 @@ class IntegratedApiNodeData(BaseNodeData):
 class JsonSchemaValidatorNodeData(BaseNodeData):
     """JsonSchemaValidatorNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     schema_path: str | None = Field(default=None)
     json_schema: JsonDict | None = Field(default=None)
     data_path: str | None = Field(default=None)
@@ -537,18 +546,23 @@ class JsonSchemaValidatorNodeData(BaseNodeData):
 class PersonJobNodeData(BaseNodeData):
     """Configuration data for PersonJob nodes that execute LLM agents"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
-    person: PersonID | None = Field(default=None, description="Reference to agent defined in \u0027persons\u0027 section")
+
+    person: PersonID | None = Field(default=None,
+                                    description="Reference to agent defined in \u0027persons\u0027 section")
     first_only_prompt: str = Field(description="Special prompt for first iteration only, supports {{variable}} syntax")
-    first_prompt_file: str | None = Field(default=None, description="External prompt file for first iteration only (overrides first_only_prompt)")
-    default_prompt: str | None = Field(default=None, description="Prompt template using {{variable}} syntax for subsequent iterations")
-    prompt_file: str | None = Field(default=None, description="External prompt file in files/prompts/ (overrides inline prompts)")
+    first_prompt_file: str | None = Field(default=None,
+                                          description="External prompt file for first iteration only (overrides first_only_prompt)")
+    default_prompt: str | None = Field(default=None,
+                                       description="Prompt template using {{variable}} syntax for subsequent iterations")
+    prompt_file: str | None = Field(default=None,
+                                    description="External prompt file in files/prompts/ (overrides inline prompts)")
     max_iteration: float = Field(description="Maximum conversation turns (default: 1)")
     memorize_to: str
     at_most: float
     tools: ToolSelection | None = Field(default=None, description="LLM tools to enable (web_search_preview, etc.)")
     text_format: str | None = Field(default=None, description="Pydantic model name for structured output")
-    text_format_file: str | None = Field(default=None, description="External Python file with Pydantic models (overrides text_format)")
+    text_format_file: str | None = Field(default=None,
+                                         description="External Python file with Pydantic models (overrides text_format)")
     batch: bool | None = Field(default=None, description="Enable batch processing for arrays")
     batch_input_key: str | None = Field(default=None, description="Array variable name for batch processing")
     batch_parallel: bool | None = Field(default=None, description="Execute batch items in parallel")
@@ -558,7 +572,7 @@ class PersonJobNodeData(BaseNodeData):
 class StartNodeData(BaseNodeData):
     """StartNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     trigger_mode: HookTriggerMode
     custom_data: dict[str, str | float | bool] | None = Field(default=None)
     output_data_structure: dict[str, str] | None = Field(default=None)
@@ -569,21 +583,24 @@ class StartNodeData(BaseNodeData):
 class SubDiagramNodeData(BaseNodeData):
     """Configuration data for SubDiagram nodes that execute other diagrams"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     diagram_name: str | None = Field(default=None, description="Path to sub-diagram file")
-    diagram_format: DiagramFormat | None = Field(default=None, description="Diagram format: light or native (default: light)")
+    diagram_format: DiagramFormat | None = Field(default=None,
+                                                 description="Diagram format: light or native (default: light)")
     diagram_data: JsonDict | None = Field(default=None, description="Pass all current variables to sub-diagram")
-    pass_input_data: bool | None = Field(alias='passInputData', default=None, description="Whether to pass input data from parent to sub-diagram (default: false)")
+    pass_input_data: bool | None = Field(alias='passInputData', default=None,
+                                         description="Whether to pass input data from parent to sub-diagram (default: false)")
     batch: bool | None = Field(default=None, description="Enable batch processing for arrays")
     batch_input_key: str | None = Field(default=None, description="Array variable name for batch processing")
     batch_parallel: bool | None = Field(default=None, description="Execute batch items in parallel")
-    ignore_if_sub: bool | None = Field(alias='ignoreIfSub', default=None, description="Skip if already running as sub-diagram")
+    ignore_if_sub: bool | None = Field(alias='ignoreIfSub', default=None,
+                                       description="Skip if already running as sub-diagram")
 
 
 class TemplatePreprocessor(BaseModel):
     """Configuration for template preprocessor"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     module: str = Field(description="Python module path, e.g. \"projects.codegen.code.shared.context_builders\"")
     function: str = Field(description="Function name to call, e.g. \"build_context_from_ast\"")
     args: JsonDict | None = Field(default=None, description="Optional arguments passed as kwargs to the function")
@@ -592,20 +609,23 @@ class TemplatePreprocessor(BaseModel):
 class TemplateJobNodeData(BaseNodeData):
     """TemplateJobNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     template_path: str | None = Field(default=None)
     template_content: str | None = Field(default=None)
     output_path: str | None = Field(default=None, description="Single-file path; can contain template expressions")
-    variables: JsonDict | None = Field(default=None, description="Simple key\u2192value map passed to template; string values are resolved")
+    variables: JsonDict | None = Field(default=None,
+                                       description="Simple key\u2192value map passed to template; string values are resolved")
     engine: TemplateEngine | None = Field(default=None)
-    foreach: dict[str, Any] | None = Field(default=None, description="Render a template for each item and write many files")
-    preprocessor: TemplatePreprocessor | None = Field(default=None, description="Optional Python preprocessor that returns extra context for the template")
+    foreach: dict[str, Any] | None = Field(default=None,
+                                           description="Render a template for each item and write many files")
+    preprocessor: TemplatePreprocessor | None = Field(default=None,
+                                                      description="Optional Python preprocessor that returns extra context for the template")
 
 
 class TypescriptAstNodeData(BaseNodeData):
     """TypescriptAstNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     source: str | None = Field(default=None)
     extract_patterns: list[str] | None = Field(alias='extractPatterns', default=None)
     include_js_doc: bool | None = Field(alias='includeJSDoc', default=None)
@@ -618,7 +638,7 @@ class TypescriptAstNodeData(BaseNodeData):
 class UserResponseNodeData(BaseNodeData):
     """UserResponseNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     prompt: str
     timeout: int
 
@@ -627,8 +647,6 @@ class UserResponseNodeData(BaseNodeData):
 SerializedNodeOutput = SerializedEnvelope
 PersonMemoryMessage = Message
 PersonBatchJobNodeData = PersonJobNodeData
-
-
 
 
 def parse_handle_id(handle_id: str) -> tuple[NodeID, str, str]:
@@ -643,6 +661,7 @@ def parse_handle_id(handle_id: str) -> tuple[NodeID, str, str]:
 
     return NodeID(node_id), label, direction
 
+
 def create_handle_id(node_id: NodeID, label: str, direction: str) -> HandleID:
     """Create a handle ID from components."""
     return HandleID(f"{node_id}_{label}_{direction}")
@@ -652,145 +671,243 @@ def create_handle_id(node_id: NodeID, label: str, direction: str) -> HandleID:
 def is_vec2(obj: Any) -> bool:
     """Check if object is a Vec2."""
     return isinstance(obj, Vec2)
+
+
 def is_domain_handle(obj: Any) -> bool:
     """Check if object is a DomainHandle."""
     return isinstance(obj, DomainHandle)
+
+
 def is_domain_node(obj: Any) -> bool:
     """Check if object is a DomainNode."""
     return isinstance(obj, DomainNode)
+
+
 def is_domain_arrow(obj: Any) -> bool:
     """Check if object is a DomainArrow."""
     return isinstance(obj, DomainArrow)
+
+
 def is_person_llm_config(obj: Any) -> bool:
     """Check if object is a PersonLLMConfig."""
     return isinstance(obj, PersonLLMConfig)
+
+
 def is_domain_person(obj: Any) -> bool:
     """Check if object is a DomainPerson."""
     return isinstance(obj, DomainPerson)
+
+
 def is_domain_api_key(obj: Any) -> bool:
     """Check if object is a DomainApiKey."""
     return isinstance(obj, DomainApiKey)
+
+
 def is_diagram_metadata(obj: Any) -> bool:
     """Check if object is a DiagramMetadata."""
     return isinstance(obj, DiagramMetadata)
+
+
 def is_domain_diagram(obj: Any) -> bool:
     """Check if object is a DomainDiagram."""
     return isinstance(obj, DomainDiagram)
+
+
 def is_llm_usage(obj: Any) -> bool:
     """Check if object is a LLMUsage."""
     return isinstance(obj, LLMUsage)
+
+
 def is_node_state(obj: Any) -> bool:
     """Check if object is a NodeState."""
     return isinstance(obj, NodeState)
+
+
 def is_node_metrics(obj: Any) -> bool:
     """Check if object is a NodeMetrics."""
     return isinstance(obj, NodeMetrics)
+
+
 def is_bottleneck(obj: Any) -> bool:
     """Check if object is a Bottleneck."""
     return isinstance(obj, Bottleneck)
+
+
 def is_execution_metrics(obj: Any) -> bool:
     """Check if object is a ExecutionMetrics."""
     return isinstance(obj, ExecutionMetrics)
+
+
 def is_envelope_meta(obj: Any) -> bool:
     """Check if object is a EnvelopeMeta."""
     return isinstance(obj, EnvelopeMeta)
+
+
 def is_serialized_envelope(obj: Any) -> bool:
     """Check if object is a SerializedEnvelope."""
     return isinstance(obj, SerializedEnvelope)
+
+
 def is_execution_state(obj: Any) -> bool:
     """Check if object is a ExecutionState."""
     return isinstance(obj, ExecutionState)
+
+
 def is_execution_options(obj: Any) -> bool:
     """Check if object is a ExecutionOptions."""
     return isinstance(obj, ExecutionOptions)
+
+
 def is_interactive_prompt_data(obj: Any) -> bool:
     """Check if object is a InteractivePromptData."""
     return isinstance(obj, InteractivePromptData)
+
+
 def is_interactive_response(obj: Any) -> bool:
     """Check if object is a InteractiveResponse."""
     return isinstance(obj, InteractiveResponse)
+
+
 def is_execution_update(obj: Any) -> bool:
     """Check if object is a ExecutionUpdate."""
     return isinstance(obj, ExecutionUpdate)
+
+
 def is_node_definition(obj: Any) -> bool:
     """Check if object is a NodeDefinition."""
     return isinstance(obj, NodeDefinition)
+
+
 def is_message(obj: Any) -> bool:
     """Check if object is a Message."""
     return isinstance(obj, Message)
+
+
 def is_conversation_metadata(obj: Any) -> bool:
     """Check if object is a ConversationMetadata."""
     return isinstance(obj, ConversationMetadata)
+
+
 def is_conversation(obj: Any) -> bool:
     """Check if object is a Conversation."""
     return isinstance(obj, Conversation)
+
+
 def is_tool_config(obj: Any) -> bool:
     """Check if object is a ToolConfig."""
     return isinstance(obj, ToolConfig)
+
+
 def is_web_search_result(obj: Any) -> bool:
     """Check if object is a WebSearchResult."""
     return isinstance(obj, WebSearchResult)
+
+
 def is_image_generation_result(obj: Any) -> bool:
     """Check if object is a ImageGenerationResult."""
     return isinstance(obj, ImageGenerationResult)
+
+
 def is_tool_output(obj: Any) -> bool:
     """Check if object is a ToolOutput."""
     return isinstance(obj, ToolOutput)
+
+
 def is_chat_result(obj: Any) -> bool:
     """Check if object is a ChatResult."""
     return isinstance(obj, ChatResult)
+
+
 def is_llm_request_options(obj: Any) -> bool:
     """Check if object is a LLMRequestOptions."""
     return isinstance(obj, LLMRequestOptions)
+
+
 def is_base_node_data(obj: Any) -> bool:
     """Check if object is a BaseNodeData."""
     return isinstance(obj, BaseNodeData)
+
+
 def is_api_job_node_data(obj: Any) -> bool:
     """Check if object is a ApiJobNodeData."""
     return isinstance(obj, ApiJobNodeData)
+
+
 def is_code_job_node_data(obj: Any) -> bool:
     """Check if object is a CodeJobNodeData."""
     return isinstance(obj, CodeJobNodeData)
+
+
 def is_condition_node_data(obj: Any) -> bool:
     """Check if object is a ConditionNodeData."""
     return isinstance(obj, ConditionNodeData)
+
+
 def is_db_node_data(obj: Any) -> bool:
     """Check if object is a DBNodeData."""
     return isinstance(obj, DBNodeData)
+
+
 def is_endpoint_node_data(obj: Any) -> bool:
     """Check if object is a EndpointNodeData."""
     return isinstance(obj, EndpointNodeData)
+
+
 def is_hook_node_data(obj: Any) -> bool:
     """Check if object is a HookNodeData."""
     return isinstance(obj, HookNodeData)
+
+
 def is_integrated_api_node_data(obj: Any) -> bool:
     """Check if object is a IntegratedApiNodeData."""
     return isinstance(obj, IntegratedApiNodeData)
+
+
 def is_json_schema_validator_node_data(obj: Any) -> bool:
     """Check if object is a JsonSchemaValidatorNodeData."""
     return isinstance(obj, JsonSchemaValidatorNodeData)
+
+
 def is_person_job_node_data(obj: Any) -> bool:
     """Check if object is a PersonJobNodeData."""
     return isinstance(obj, PersonJobNodeData)
+
+
 def is_start_node_data(obj: Any) -> bool:
     """Check if object is a StartNodeData."""
     return isinstance(obj, StartNodeData)
+
+
 def is_sub_diagram_node_data(obj: Any) -> bool:
     """Check if object is a SubDiagramNodeData."""
     return isinstance(obj, SubDiagramNodeData)
+
+
 def is_template_preprocessor(obj: Any) -> bool:
     """Check if object is a TemplatePreprocessor."""
     return isinstance(obj, TemplatePreprocessor)
+
+
 def is_template_job_node_data(obj: Any) -> bool:
     """Check if object is a TemplateJobNodeData."""
     return isinstance(obj, TemplateJobNodeData)
+
+
 def is_typescript_ast_node_data(obj: Any) -> bool:
     """Check if object is a TypescriptAstNodeData."""
     return isinstance(obj, TypescriptAstNodeData)
+
+
 def is_user_response_node_data(obj: Any) -> bool:
     """Check if object is a UserResponseNodeData."""
     return isinstance(obj, UserResponseNodeData)
 
 
 # Constants from TypeScript
-PROVIDER_OPERATIONS = {"\u0027github\u0027": ["create_issue", "update_issue", "list_issues", "create_pr", "merge_pr", "get_repo_info"], "\u0027google_search\u0027": ["search"], "\u0027jira\u0027": ["create_issue", "update_issue", "search_issues", "transition_issue", "add_comment"], "\u0027notion\u0027": ["create_page", "update_page", "read_page", "delete_page", "create_database", "query_database", "update_database"], "\u0027slack\u0027": ["send_message", "read_channel", "create_channel", "list_channels", "upload_file"]}
+PROVIDER_OPERATIONS = {
+    "\u0027github\u0027": ["create_issue", "update_issue", "list_issues", "create_pr", "merge_pr", "get_repo_info"],
+    "\u0027google_search\u0027": ["search"],
+    "\u0027jira\u0027": ["create_issue", "update_issue", "search_issues", "transition_issue", "add_comment"],
+    "\u0027notion\u0027": ["create_page", "update_page", "read_page", "delete_page", "create_database",
+                           "query_database", "update_database"],
+    "\u0027slack\u0027": ["send_message", "read_channel", "create_channel", "list_channels", "upload_file"]}

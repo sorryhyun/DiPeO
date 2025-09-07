@@ -2,12 +2,13 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-07T11:25:23.423099
+Generated at: 2025-09-07T12:46:04.865452
 """
 
 import strawberry
 from typing import *
 from strawberry.types import *
+from .strawberry_domain import TemplatePreprocessorType, ToolConfigType
 
 # Import Pydantic models
 
@@ -16,9 +17,6 @@ from ..domain_models import *
 
 # Import generated scalars
 from dipeo.diagram_generated.graphql.scalars import *
-
-# Import domain types that are used in node data models
-from .strawberry_domain import TemplatePreprocessorType, ToolConfigType
 
 
 # Generate Strawberry types for node data

@@ -329,9 +329,9 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 logger.warning(
                     f"[GENERATED_NODES WRITE FOREACH] Node {node.id} writing to {output_path} in foreach mode"
                 )
-                logger.debug(
-                    f"[GENERATED_NODES FOREACH CONTEXT] Item index: {local_context.get('index')}, Item var: {var_name}"
-                )
+                # logger.debug(
+                #     f"[GENERATED_NODES FOREACH CONTEXT] Item index: {local_context.get('index')}, Item var: {var_name}"
+                # )
 
             # Check for duplicate write
             if self._is_duplicate_write(str(output_path), rendered, str(node.id)):
@@ -349,109 +349,57 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
             return str(output_path)
 
-        # Handle foreach mode
-        if node.foreach:
-            foreach_config = node.foreach if isinstance(node.foreach, dict) else {}
-            items = foreach_config.get("items", [])
-
-            # Resolve items if it's a string (dotted path or expression)
-            if isinstance(items, str):
-                items = self._resolve_dotted_path(items, template_vars)
-
-            # Ensure items is a list
-            items = list(items or [])
-
-            # Apply limit if specified
-            limit = foreach_config.get("limit")
-            if limit:
-                items = items[:limit]
-
-            # Get the variable name for each item (handle both 'as' and 'as_')
-            var_name = foreach_config.get("as") or foreach_config.get("as_") or "item"
-
-            # Get output path template
-            output_path_template = foreach_config.get("output_path", "output_{index}.txt")
-
-            # Render template for each item
-            written_files = []
-            for idx, item in enumerate(items):
-                # Create local context with item using centralized context builder
-                # Note: foreach locals like 'this', '@index' should be provided as locals_
-                foreach_locals = {
-                    var_name: item,
-                    "this": item,  # Alias for consistency with other template systems
-                    "@index": idx,
-                    "@first": idx == 0,
-                    "@last": idx == len(items) - 1,
-                    "index": idx,  # Keep for backward compatibility
-                }
-                local_context = request.context.build_template_context(
-                    inputs=inputs,  # Original inputs, not template_vars
-                    locals_=foreach_locals,
-                    globals_win=True,
-                )
-
-                # Render and write file
-                output_file = await render_to_path(output_path_template, local_context)
-                written_files.append(output_file)
-
-            # Return list of written files
-            return {"written": written_files, "count": len(written_files)}
-
-        # Single file mode (backward compatible)
-        else:
-            # Render template
-            if engine == "internal":
+        # Single file mode (foreach not currently implemented)
+        # Render template
+        if engine == "internal":
+            rendered = await template_service.render_string(template_content, template_vars)
+        elif engine == "jinja2":
+            try:
                 rendered = await template_service.render_string(template_content, template_vars)
-            elif engine == "jinja2":
-                try:
-                    rendered = await template_service.render_string(template_content, template_vars)
-                except Exception as e:
-                    # Fall back to standard Jinja2
-                    rendered = await self._render_jinja2(template_content, template_vars)
-                    logger.debug(f"Enhancement fallback: {e}")
-            else:
-                rendered = template_content
+            except Exception as e:
+                # Fall back to standard Jinja2
+                rendered = await self._render_jinja2(template_content, template_vars)
+                logger.debug(f"Enhancement fallback: {e}")
+        else:
+            rendered = template_content
 
-            # Write to file if output_path is specified
-            if node.output_path:
-                # Use Jinja2 for output path
-                processed_output_path = (
-                    await template_service.render_string(node.output_path, template_vars)
-                ).strip()
+        # Write to file if output_path is specified
+        if node.output_path:
+            # Use Jinja2 for output path
+            processed_output_path = (
+                await template_service.render_string(node.output_path, template_vars)
+            ).strip()
 
-                output_path = Path(processed_output_path)
+            output_path = Path(processed_output_path)
 
-                # Check if this is a duplicate write to generated_nodes.py
-                if "generated_nodes.py" in str(output_path):
-                    logger.warning(
-                        f"[GENERATED_NODES WRITE] Node {node.id} writing to {output_path}"
-                    )
-                    if "batch_item" in template_vars:
-                        logger.debug("[GENERATED_NODES BATCH] Batch item detected in context")
+            # Check if this is a duplicate write to generated_nodes.py
+            if "generated_nodes.py" in str(output_path):
+                logger.warning(f"[GENERATED_NODES WRITE] Node {node.id} writing to {output_path}")
+                if "batch_item" in template_vars:
+                    logger.debug("[GENERATED_NODES BATCH] Batch item detected in context")
 
-                # Check for duplicate write
-                if self._is_duplicate_write(str(output_path), rendered, str(node.id)):
-                    logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
-                    # Store output path for metadata but don't write
-                    self._current_output_path = output_path
-                    return rendered  # Return content without writing
-
-                # Create parent directories if needed
-                parent_dir = output_path.parent
-                if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
-                    filesystem_adapter.mkdir(parent_dir, parents=True)
-
-                with filesystem_adapter.open(output_path, "wb") as f:
-                    f.write(rendered.encode("utf-8"))
-                # Store output path for metadata
+            # Check for duplicate write
+            if self._is_duplicate_write(str(output_path), rendered, str(node.id)):
+                logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
+                # Store output path for metadata but don't write
                 self._current_output_path = output_path
-            else:
-                logger.info(
-                    "[TEMPLATE_JOB DEBUG] No output_path specified, returning rendered content only"
-                )
+                return rendered  # Return content without writing
 
-            return rendered
+            # Create parent directories if needed
+            parent_dir = output_path.parent
+            if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
+                filesystem_adapter.mkdir(parent_dir, parents=True)
+
+            with filesystem_adapter.open(output_path, "wb") as f:
+                f.write(rendered.encode("utf-8"))
+            # Store output path for metadata
+            self._current_output_path = output_path
+        else:
+            logger.info(
+                "[TEMPLATE_JOB DEBUG] No output_path specified, returning rendered content only"
+            )
+
+        return rendered
 
     def _build_node_output(
         self, result: Any, request: ExecutionRequest[TemplateJobNode]
@@ -480,7 +428,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 "output_path": str(self._current_output_path)
                 if hasattr(self, "_current_output_path") and self._current_output_path
                 else None,
-                "foreach": node.foreach is not None,
             },
         }
 

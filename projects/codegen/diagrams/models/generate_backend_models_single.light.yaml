@@ -138,6 +138,14 @@ nodes:
       template_path: projects/codegen/templates/backend/static_nodes.j2
       output_path: dipeo/diagram_generated_staged/nodes/{{ node_type }}_node.py
 
+  - label: Generate Unified Model
+    type: template_job
+    position: {x: 900, y: 300}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/backend/unified_node_model.j2
+      output_path: dipeo/diagram_generated_staged/unified_nodes/{{ node_type }}_node.py
+
 connections:
   # Parse input first
   - {from: Start, to: Parse Node Type, content_type: object}
@@ -161,3 +169,4 @@ connections:
   # Pass context to template_job nodes
   - {from: Prepare Context, to: Generate Pydantic Model, content_type: object}
   - {from: Prepare Context, to: Generate Static Node, content_type: object}
+  - {from: Prepare Context, to: Generate Unified Model, content_type: object}

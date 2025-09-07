@@ -49,7 +49,7 @@ def create_executable_node(
 ) -> 'ExecutableNode':
     """Factory function to create typed executable nodes from diagram data."""
     data = data or {}
-    
+
     # Create the appropriate node based on type
     if node_type == NodeType.API_JOB:
         return ApiJobNode(
@@ -67,7 +67,7 @@ def create_executable_node(
             retry_count=data.get('retry_count', 3),
             retry_delay=data.get('retry_delay', 1),
         )
-    
+
     elif node_type == NodeType.CODE_JOB:
         return CodeJobNode(
             id=node_id,
@@ -81,7 +81,7 @@ def create_executable_node(
             function_name=data.get('functionName', data.get('function_name', '')),
             timeout=data.get('timeout', 0),
         )
-    
+
     elif node_type == NodeType.CONDITION:
         return ConditionNode(
             id=node_id,
@@ -100,7 +100,7 @@ def create_executable_node(
             expose_index_as=data.get('expose_index_as', ''),
             skippable=data.get('skippable', False),
         )
-    
+
     elif node_type == NodeType.DB:
         # Handle source_details if it exists (backward compatibility)
         source_details = data.get('source_details', {})
@@ -114,7 +114,7 @@ def create_executable_node(
             collection_val = data.get('collection', '')
             query_val = data.get('query', '')
             data_val = data.get('data', {})
-            
+
         return DBNode(
             id=node_id,
             position=position,
@@ -130,7 +130,7 @@ def create_executable_node(
             serialize_json=data.get('serialize_json', data.get('serializeJson', False)),
             format=data.get('format', ''),
         )
-    
+
     elif node_type == NodeType.ENDPOINT:
         return EndpointNode(
             id=node_id,
@@ -141,7 +141,7 @@ def create_executable_node(
             save_to_file=data.get('save_to_file', False),
             file_name=data.get('filename', data.get('file_name', '')),
         )
-    
+
     elif node_type == NodeType.HOOK:
         return HookNode(
             id=node_id,
@@ -154,7 +154,7 @@ def create_executable_node(
             trigger_on=data.get('trigger_on'),
             condition=data.get('condition'),
         )
-    
+
     elif node_type == NodeType.INTEGRATED_API:
         return IntegratedApiNode(
             id=node_id,
@@ -167,7 +167,7 @@ def create_executable_node(
             config=data.get('config'),
             use_hooks=data.get('use_hooks', False),
         )
-    
+
     elif node_type == NodeType.JSON_SCHEMA_VALIDATOR:
         return JsonSchemaValidatorNode(
             id=node_id,
@@ -179,7 +179,7 @@ def create_executable_node(
             raise_on_invalid=data.get('raise_on_invalid', False),
             mode=data.get('mode', 'validate'),
         )
-    
+
     elif node_type == NodeType.PERSON_BATCH_JOB:
         return PersonBatchJobNode(
             id=node_id,
@@ -205,7 +205,7 @@ def create_executable_node(
             batch_parallel=data.get('batch_parallel'),
             max_concurrent=data.get('max_concurrent'),
         )
-    
+
     elif node_type == NodeType.PERSON_JOB:
         return PersonJobNode(
             id=node_id,
@@ -224,7 +224,7 @@ def create_executable_node(
             resolved_prompt=data.get('resolved_prompt', ''),
             resolved_first_prompt=data.get('resolved_first_prompt', ''),
         )
-    
+
     elif node_type == NodeType.START:
         return StartNode(
             id=node_id,
@@ -238,7 +238,7 @@ def create_executable_node(
             hook_event=data.get('hook_event'),
             hook_filters=data.get('hook_filters'),
         )
-    
+
     elif node_type == NodeType.SUB_DIAGRAM:
         return SubDiagramNode(
             id=node_id,
@@ -259,7 +259,7 @@ def create_executable_node(
             batch_input_key=data.get('batch_input_key', ''),
             batch_parallel=data.get('batch_parallel', False),
         )
-    
+
     elif node_type == NodeType.TEMPLATE_JOB:
         return TemplateJobNode(
             id=node_id,
@@ -272,8 +272,10 @@ def create_executable_node(
             template_path=data.get('template_path', data.get('templatePath', '')),
             output_path=data.get('output_path', data.get('outputPath', '')),
             variables=data.get('variables', {}),
+            preprocessor=data.get('preprocessor'),
+            foreach=data.get('foreach'),
         )
-    
+
     elif node_type == NodeType.TYPESCRIPT_AST:
         return TypescriptAstNode(
             id=node_id,
@@ -291,7 +293,7 @@ def create_executable_node(
             flatten_output=data.get('flattenOutput', data.get('flatten_output', False)),
             output_format=data.get('outputFormat', data.get('output_format')),
         )
-    
+
     elif node_type == NodeType.USER_RESPONSE:
         return UserResponseNode(
             id=node_id,
@@ -304,7 +306,7 @@ def create_executable_node(
             prompt=data.get('prompt'),
             timeout=data.get('timeout', 300),
         )
-    
+
     else:
         raise ValueError(f"Unknown node type: {node_type}")
 

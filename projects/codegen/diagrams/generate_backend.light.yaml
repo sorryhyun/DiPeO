@@ -61,6 +61,15 @@ nodes:
       template_path: projects/codegen/templates/backend/models_init.j2
       output_path: dipeo/diagram_generated_staged/models/__init__.py
 
+  # Generate unified_nodes __init__.py
+  - label: Generate Unified Nodes Init
+    type: template_job
+    position: {x: 850, y: 100}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/backend/unified_nodes_init.j2
+      output_path: dipeo/diagram_generated_staged/unified_nodes/__init__.py
+
   # Generate Python Models
   - label: Generate Python Models
     type: sub_diagram
@@ -166,6 +175,8 @@ nodes:
             "generated": [
                 "Backend models (batch)",
                 "Models __init__.py",
+                "Unified node models",
+                "Unified nodes __init__.py",
                 "Python models",
                 "Enums",
                 "Integrations",
@@ -219,10 +230,12 @@ connections:
   # Models init generation chain
   - {from: Discover Node Specs, to: Prepare Init Context, content_type: object}
   - {from: Prepare Init Context, to: Generate Models Init, content_type: object}
+  - {from: Prepare Init Context, to: Generate Unified Nodes Init, content_type: object}
 
   # All generation tasks converge to Summary
   - {from: Batch Generate Backend Models, to: Summary}
   - {from: Generate Models Init, to: Summary}
+  - {from: Generate Unified Nodes Init, to: Summary}
   - {from: Generate Python Models, to: Summary}
   - {from: Generate Enums, to: Summary}
   - {from: Generate Integrations, to: Summary}
