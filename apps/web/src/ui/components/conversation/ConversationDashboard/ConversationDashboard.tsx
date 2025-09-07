@@ -27,7 +27,7 @@ const ConversationDashboard: React.FC = () => {
     showForgotten: false,
   });
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Create a debounced search handler
   const debouncedSetSearchTerm = React.useMemo(
     () => debounce((searchTerm: string) => {
@@ -42,10 +42,10 @@ const ConversationDashboard: React.FC = () => {
   const { operations } = useCanvas();
   const { execution } = operations.executionOps;
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   // Use persons directly from the hook
   const persons = personsArray;
-  
+
   // Get selected person ID if a person is selected
   const selectedPersonId = React.useMemo(() => {
     if (!selectedId) return null;
@@ -53,7 +53,7 @@ const ConversationDashboard: React.FC = () => {
     const person = personsMap.get(selectedId as PersonID);
     return person ? selectedId as PersonID : null;
   }, [selectedId, personsMap]);
-  
+
 
   // Use consolidated conversation data hook with real-time updates
   const {
@@ -77,7 +77,7 @@ const ConversationDashboard: React.FC = () => {
     }, 300),
     []
   );
-  
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     const handleMessageAdded = () => {
@@ -92,7 +92,7 @@ const ConversationDashboard: React.FC = () => {
 
   // Initial load - only run once on mount
   useEffect(() => {
-     
+
   }, []); // Empty dependency array to run only once
 
   // Handle person selection from sidebar
@@ -119,7 +119,7 @@ const ConversationDashboard: React.FC = () => {
       void fetchMore(dashboardSelectedPerson);
     }
   }, [dashboardSelectedPerson, conversationData, isLoadingMore, fetchMore]);
-  
+
   // Throttled scroll handler to prevent excessive calls
   const handleScroll = React.useMemo(
     () => throttle(handleScrollInternal, 150),
@@ -170,14 +170,14 @@ const ConversationDashboard: React.FC = () => {
       } as UIConversationMessage));
       messages.push(...messagesWithPersonId);
     });
-    
+
     // Sort messages by timestamp
     messages.sort((a, b) => {
       const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
       const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
       return aTime - bTime;
     });
-    
+
     const tokens = messages.reduce((sum, msg) => sum + (msg.tokenCount || 0), 0);
     return { allMessages: messages, totalTokens: tokens };
   }, [dashboardSelectedPerson, conversationData]);
@@ -190,16 +190,16 @@ const ConversationDashboard: React.FC = () => {
 
   // Memoize selected person for render functions
   const selectedPersonForRender = React.useMemo(
-    () => dashboardSelectedPerson && dashboardSelectedPerson !== 'whole' 
-      ? persons.find(p => p.id === dashboardSelectedPerson) 
+    () => dashboardSelectedPerson && dashboardSelectedPerson !== 'whole'
+      ? persons.find(p => p.id === dashboardSelectedPerson)
       : null,
     [dashboardSelectedPerson, persons]
   );
-  
+
   // Render person status bar
   const renderPersonBar = () => {
     const selectedPerson = selectedPersonForRender;
-    
+
     return (
       <div className="flex items-center justify-between px-4 py-2 bg-gray-100 border-b">
         <div className="flex items-center space-x-4">
@@ -212,7 +212,7 @@ const ConversationDashboard: React.FC = () => {
             <MessageSquare className="h-4 w-4" />
             <span>Whole Conversation</span>
           </Button>
-          
+
           {selectedPerson && (
             <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md">
               <User className="h-4 w-4" />
@@ -226,7 +226,7 @@ const ConversationDashboard: React.FC = () => {
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Button
             variant="ghost"
@@ -323,7 +323,7 @@ const ConversationDashboard: React.FC = () => {
 
     // Handle individual person view
     if (dashboardSelectedPerson === 'whole' || !conversationData[dashboardSelectedPerson]) return null;
-    
+
     const personMemory = conversationData[dashboardSelectedPerson];
     const totalTokens = calculateTotalTokens();
 
@@ -399,7 +399,7 @@ const ConversationDashboard: React.FC = () => {
   );
 
   const isEmbedded = true; // Always embedded since we don't have routing
-  
+
   if (isEmbedded) {
     // Embedded view - no expansion controls or person bar
     return (
@@ -408,7 +408,7 @@ const ConversationDashboard: React.FC = () => {
         <div className="flex-shrink-0">
           {renderTabSwitcher()}
         </div>
-        
+
         {/* Content area - Scrollable */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Conversation Tab */}
@@ -434,12 +434,12 @@ const ConversationDashboard: React.FC = () => {
               )}
             </div>
           </div>
-          
+
           {/* Execution Order Tab - Always mounted but hidden when not active */}
           <div className={`flex-1 flex overflow-hidden ${activeTab === 'execution-order' ? '' : 'hidden'}`}>
             <ExecutionOrderView />
           </div>
-          
+
           {/* Execution Log Tab - Always mounted but hidden when not active */}
           <div className={`flex-1 flex overflow-hidden ${activeTab === 'execution-log' ? '' : 'hidden'}`}>
             <ExecutionLogView />

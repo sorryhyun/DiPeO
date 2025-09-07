@@ -17,9 +17,9 @@ nodes:
       sub_type: file
       format: json  # Parse JSON files automatically
       glob: true  # Enable glob pattern expansion
-      source_details:
+      file:
         # Dynamically discover all node spec files
-        - "temp/specifications/nodes/*.spec.ts.json"
+        - "temp/nodes/*.spec.ts.json"
 
   - label: Generate Registry
     type: code_job
@@ -35,7 +35,7 @@ nodes:
     props:
       operation: write
       sub_type: file
-      source_details: apps/web/src/__generated__/nodeRegistry.ts
+      file: apps/web/src/__generated__/nodeRegistry.ts
 
   - label: End
     type: endpoint

@@ -123,7 +123,7 @@ class EventBasedStateStore(StateStorePort):
             # Close old connection if any (after setting new one)
             if old_conn:
                 import contextlib
-                
+
                 with contextlib.suppress(Exception):
                     await loop.run_in_executor(self._executor, old_conn.close)
         except Exception as e:

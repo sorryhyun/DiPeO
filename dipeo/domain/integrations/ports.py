@@ -12,7 +12,7 @@ class ApiProviderRegistry(Protocol):
 
     async def register_provider(self, provider_name: str, provider_instance: "ApiProvider") -> None:
         """Register a new API provider dynamically.
-        
+
         Args:
             provider_name: Unique identifier for the provider
             provider_instance: The provider implementation
@@ -21,7 +21,7 @@ class ApiProviderRegistry(Protocol):
 
     async def unregister_provider(self, provider_name: str) -> None:
         """Unregister an API provider.
-        
+
         Args:
             provider_name: Provider to remove
         """
@@ -29,10 +29,10 @@ class ApiProviderRegistry(Protocol):
 
     def get_provider(self, provider_name: str) -> Optional["ApiProvider"]:
         """Get a registered provider by name.
-        
+
         Args:
             provider_name: Provider identifier
-            
+
         Returns:
             Provider instance or None if not found
         """
@@ -42,12 +42,12 @@ class ApiProviderRegistry(Protocol):
         """List all registered provider names."""
         ...
 
-    def get_provider_manifest(self, provider_name: str) -> Optional[dict]:
+    def get_provider_manifest(self, provider_name: str) -> dict | None:
         """Get provider manifest with capabilities and schemas.
-        
+
         Args:
             provider_name: Provider identifier
-            
+
         Returns:
             Provider manifest or None if not found
         """
@@ -62,14 +62,14 @@ class ApiInvoker(Protocol):
         self,
         provider: str,
         operation: str,
-        config: Optional[dict[str, Any]] = None,
-        resource_id: Optional[str] = None,
-        api_key_id: Optional[str] = None,
+        config: dict[str, Any] | None = None,
+        resource_id: str | None = None,
+        api_key_id: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 3,
     ) -> dict[str, Any]:
         """Invoke an API operation with automatic auth and retries.
-        
+
         Args:
             provider: Provider name from registry
             operation: Operation identifier
@@ -78,10 +78,10 @@ class ApiInvoker(Protocol):
             api_key_id: API key identifier for auth
             timeout: Request timeout in seconds
             max_retries: Maximum retry attempts
-            
+
         Returns:
             Operation result
-            
+
         Raises:
             ProviderNotFoundError: Provider not registered
             OperationNotSupportedError: Operation not available
@@ -94,15 +94,15 @@ class ApiInvoker(Protocol):
         self,
         provider: str,
         operation: str,
-        config: Optional[dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
     ) -> bool:
         """Validate if an operation can be executed.
-        
+
         Args:
             provider: Provider name
             operation: Operation identifier
             config: Configuration to validate
-            
+
         Returns:
             True if valid, False otherwise
         """
@@ -112,17 +112,17 @@ class ApiInvoker(Protocol):
         self,
         provider: str,
         operation: str,
-        config: Optional[dict[str, Any]] = None,
-        api_key_id: Optional[str] = None,
+        config: dict[str, Any] | None = None,
+        api_key_id: str | None = None,
     ) -> dict[str, Any]:
         """Prepare request with auth headers and transformed config.
-        
+
         Args:
             provider: Provider name
             operation: Operation identifier
             config: Raw configuration
             api_key_id: API key identifier
-            
+
         Returns:
             Prepared request data
         """
@@ -135,12 +135,12 @@ class ApiInvoker(Protocol):
         response: Any,
     ) -> dict[str, Any]:
         """Map provider-specific response to standard format.
-        
+
         Args:
             provider: Provider name
             operation: Operation identifier
             response: Raw provider response
-            
+
         Returns:
             Standardized response
         """
@@ -169,48 +169,46 @@ class ApiProvider(Protocol):
     async def execute(
         self,
         operation: str,
-        config: Optional[dict[str, Any]] = None,
-        resource_id: Optional[str] = None,
-        headers: Optional[dict[str, str]] = None,
+        config: dict[str, Any] | None = None,
+        resource_id: str | None = None,
+        headers: dict[str, str] | None = None,
         timeout: float = 30.0,
     ) -> Any:
         """Execute an operation.
-        
+
         Args:
             operation: Operation identifier
             config: Operation configuration
             resource_id: Optional resource ID
             headers: Request headers (including auth)
             timeout: Request timeout
-            
+
         Returns:
             Provider-specific response
-            
+
         Raises:
             OperationError: On execution failures
         """
         ...
 
-    async def validate_config(
-        self, operation: str, config: Optional[dict[str, Any]] = None
-    ) -> bool:
+    async def validate_config(self, operation: str, config: dict[str, Any] | None = None) -> bool:
         """Validate operation configuration.
-        
+
         Args:
             operation: Operation identifier
             config: Configuration to validate
-            
+
         Returns:
             True if valid
         """
         ...
 
-    def get_operation_schema(self, operation: str) -> Optional[dict]:
+    def get_operation_schema(self, operation: str) -> dict | None:
         """Get JSON schema for operation configuration.
-        
+
         Args:
             operation: Operation identifier
-            
+
         Returns:
             JSON schema or None
         """
@@ -219,19 +217,19 @@ class ApiProvider(Protocol):
 
 class APIKeyPort(Protocol):
     """Protocol for API key management."""
-    
+
     async def get_api_key(self, key_name: str) -> str | None:
         """Get an API key by name."""
         ...
-    
+
     async def set_api_key(self, key_name: str, key_value: str) -> None:
         """Set an API key."""
         ...
-    
+
     async def delete_api_key(self, key_name: str) -> None:
         """Delete an API key."""
         ...
-    
+
     async def list_api_keys(self) -> list[str]:
         """List all API key names."""
         ...
@@ -239,58 +237,52 @@ class APIKeyPort(Protocol):
 
 class ASTParserPort(Protocol):
     """Protocol for AST parsers supporting multiple programming languages."""
-    
+
     async def parse(
-        self,
-        source: str,
-        extract_patterns: list[str],
-        options: dict[str, Any] | None = None
+        self, source: str, extract_patterns: list[str], options: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Parse source code and extract AST information.
-        
+
         Args:
             source: The source code to parse
             extract_patterns: List of patterns to extract (e.g., ["interface", "type", "enum"])
             options: Optional parser-specific options
-                
+
         Returns:
             Dictionary containing:
                 - ast: The extracted AST nodes organized by pattern type
                 - metadata: Additional metadata about the parsing operation
         """
         ...
-    
+
     async def parse_file(
-        self,
-        file_path: str,
-        extract_patterns: list[str],
-        options: dict[str, Any] | None = None
+        self, file_path: str, extract_patterns: list[str], options: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Parse a file and extract AST information.
-        
+
         Args:
             file_path: Path to the file to parse
             extract_patterns: List of patterns to extract
             options: Optional parser-specific options
-            
+
         Returns:
             Dictionary containing extracted AST and metadata
         """
         ...
-    
+
     async def parse_batch(
         self,
         sources: dict[str, str],
         extract_patterns: list[str],
-        options: dict[str, Any] | None = None
+        options: dict[str, Any] | None = None,
     ) -> dict[str, dict[str, Any]]:
         """Parse multiple source code strings in batch.
-        
+
         Args:
             sources: Dictionary mapping keys to source code
             extract_patterns: List of patterns to extract
             options: Optional parser-specific options
-            
+
         Returns:
             Dictionary mapping each key to its parse result
         """
@@ -304,20 +296,18 @@ class LLMService(Protocol):
     async def complete(
         self,
         messages: list[dict[str, str]],
-        provider: Optional[str] = None,
-        model: Optional[str] = None,
-        api_key_id: Optional[str] = None,
+        provider: str | None = None,
+        model: str | None = None,
+        api_key_id: str | None = None,
         **kwargs,
     ) -> "ChatResult":
         """Complete with automatic provider selection."""
         ...
 
-    async def validate_api_key(
-        self, api_key_id: str, provider: Optional[str] = None
-    ) -> bool:
+    async def validate_api_key(self, api_key_id: str, provider: str | None = None) -> bool:
         """Validate an API key is functional."""
         ...
 
-    async def get_provider_for_model(self, model: str) -> Optional[str]:
+    async def get_provider_for_model(self, model: str) -> str | None:
         """Determine which provider supports a given model."""
         ...

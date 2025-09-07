@@ -9,7 +9,7 @@ export * from './domain';
 // Type factory utilities
 export * from './type-factories';
 
-// UI-specific branded types and utilities  
+// UI-specific branded types and utilities
 export * from './branded';
 
 // Type guards for UI and domain types
@@ -18,7 +18,7 @@ export * from './guards';
 // Other UI-specific types
 export * from './errors';
 // Export utilities except DataType to avoid conflict with domain export
-export { 
+export {
   generateId,
   generatePrefixedId,
   generateApiKeyId,
@@ -30,7 +30,7 @@ export {
   type ExtendedDataType
 } from './utilities';
 // Export panel types except PanelFormData which comes from type-factories
-export { 
+export {
   FIELD_TYPES,
   type FieldType,
   type ValidationResult,

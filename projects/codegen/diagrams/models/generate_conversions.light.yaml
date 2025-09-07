@@ -19,7 +19,7 @@ nodes:
       operation: read
       sub_type: file
       format: json
-      source_details: temp/utilities/conversions.ts.json
+      file: temp/utilities/conversions.ts.json
 
   # Load the original conversions.ts file (still needed for raw source)
   - label: Load Conversions TS
@@ -28,7 +28,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: dipeo/models/src/utilities/conversions.ts
+      file: dipeo/models/src/utilities/conversions.ts
 
   # Extract raw NODE_TYPE_MAP entries (no conversion)
   - label: Extract Raw Conversions Data
@@ -70,16 +70,16 @@ connections:
   # Load data after parsing
   - {from: Start, to: Load Conversions AST}
   - {from: Start, to: Load Conversions TS}
-  
+
   # Extract raw data using cached AST
   - {from: Load Conversions AST, to: Extract Raw Conversions Data, label: ast_data, content_type: object}
   - {from: Load Conversions TS, to: Extract Raw Conversions Data, label: source, content_type: object}
-  
+
   # Pass raw extracted data to template renderer
   - {from: Extract Raw Conversions Data, to: Render Conversions Enhanced, label: conversions_data, content_type: object}  # Raw TypeScript data for template to process
-  
+
   # Generate summary
   - {from: Extract Raw Conversions Data, to: Generate Summary, label: extraction_result}
-  
+
   - {from: Render Conversions Enhanced, to: End}
   - {from: Generate Summary, to: End}

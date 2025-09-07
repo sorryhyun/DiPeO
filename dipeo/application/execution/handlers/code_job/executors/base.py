@@ -7,6 +7,7 @@ from typing import Any, Protocol, TypedDict
 
 class ExecutionResult(TypedDict, total=False):
     """Result of code execution."""
+
     value: Any
     output: str
     error: str | None
@@ -15,49 +16,41 @@ class ExecutionResult(TypedDict, total=False):
 
 class CodeExecutor(Protocol):
     """Protocol for language-specific code executors."""
-    
+
     async def execute_file(
-        self,
-        file_path: Path,
-        inputs: dict[str, Any],
-        timeout: int,
-        function_name: str = "main"
+        self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
         """Execute code from a file.
-        
+
         Args:
             file_path: Path to the code file
             inputs: Input data to pass to the code
             timeout: Execution timeout in seconds
             function_name: Function to call (language-specific)
-            
+
         Returns:
             Execution result
-            
+
         Raises:
             TimeoutError: If execution exceeds timeout
             Exception: For other execution errors
         """
         ...
-    
+
     async def execute_inline(
-        self,
-        code: str,
-        inputs: dict[str, Any],
-        timeout: int,
-        function_name: str = "main"
+        self, code: str, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
         """Execute inline code.
-        
+
         Args:
             code: Source code to execute
             inputs: Input data to pass to the code
             timeout: Execution timeout in seconds
             function_name: Function to call (if applicable)
-            
+
         Returns:
             Execution result
-            
+
         Raises:
             TimeoutError: If execution exceeds timeout
             Exception: For other execution errors
@@ -67,16 +60,21 @@ class CodeExecutor(Protocol):
 
 class BaseCodeExecutor(ABC):
     """Base class for code executors with common functionality."""
-    
+
     def prepare_inputs(self, inputs: dict[str, Any]) -> dict[str, Any]:
         """Prepare inputs for execution (e.g., parse JSON strings)."""
         import json
-        
+
         prepared = {}
+        # Handle case where inputs might not be a dictionary
+        if not isinstance(inputs, dict):
+            # If inputs is None or not a dict, return empty dict
+            return prepared
+
         if inputs:
             for key, value in inputs.items():
                 # Try to parse JSON strings
-                if isinstance(value, str) and value.strip() and value.strip()[0] in '{[':
+                if isinstance(value, str) and value.strip() and value.strip()[0] in "{[":
                     try:
                         prepared[key] = json.loads(value)
                     except json.JSONDecodeError:
@@ -84,25 +82,17 @@ class BaseCodeExecutor(ABC):
                 else:
                     prepared[key] = value
         return prepared
-    
+
     @abstractmethod
     async def execute_file(
-        self,
-        file_path: Path,
-        inputs: dict[str, Any],
-        timeout: int,
-        function_name: str = "main"
+        self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
         """Execute code from a file."""
         pass
-    
+
     @abstractmethod
     async def execute_inline(
-        self,
-        code: str,
-        inputs: dict[str, Any],
-        timeout: int,
-        function_name: str = "main"
+        self, code: str, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
         """Execute inline code."""
         pass

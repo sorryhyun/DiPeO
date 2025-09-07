@@ -7,7 +7,7 @@ export function useRippleEffect() {
   const createRipple = useCallback((event: React.MouseEvent<HTMLElement>) => {
     const button = event.currentTarget;
     const rippleContainer = rippleRef.current;
-    
+
     if (!rippleContainer) return;
 
     // Create ripple element

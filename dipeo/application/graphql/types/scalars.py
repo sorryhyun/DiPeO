@@ -1,108 +1,50 @@
 """
 Strawberry scalar types for DiPeO IDs.
 
-This module registers all the NewType ID types as Strawberry scalars.
+This module extends the generated scalars with additional ID types not yet
+included in code generation (HookID and TaskID).
 """
 
 import strawberry
-from dipeo.diagram_generated.domain_models import (
-    NodeID,
-    HandleID,
-    ArrowID,
-    PersonID,
-    ApiKeyID,
-    DiagramID,
-    ExecutionID,
-    HookID,
-    TaskID,
-)
+from strawberry.scalars import JSON
 
-# Register ID types as Strawberry scalars
-NodeIDScalar = strawberry.scalar(
-    NodeID,
-    name="NodeID",
-    description="Unique identifier for nodes",
-    serialize=lambda v: str(v),
-    parse_value=lambda v: NodeID(str(v)) if v else None,
-)
+from dipeo.diagram_generated.domain_models import HookID, TaskID
 
-HandleIDScalar = strawberry.scalar(
-    HandleID,
-    name="HandleID",
-    description="Unique identifier for handles",
-    serialize=lambda v: str(v),
-    parse_value=lambda v: HandleID(str(v)) if v else None,
-)
+# Re-export all generated scalars
+from dipeo.diagram_generated.graphql.scalars import *
 
-ArrowIDScalar = strawberry.scalar(
-    ArrowID,
-    name="ArrowID",
-    description="Unique identifier for arrows",
-    serialize=lambda v: str(v),
-    parse_value=lambda v: ArrowID(str(v)) if v else None,
-)
-
-PersonIDScalar = strawberry.scalar(
-    PersonID,
-    name="PersonID",
-    description="Unique identifier for persons",
-    serialize=lambda v: str(v),
-    parse_value=lambda v: PersonID(str(v)) if v else None,
-)
-
-ApiKeyIDScalar = strawberry.scalar(
-    ApiKeyID,
-    name="ApiKeyID",
-    description="Unique identifier for API keys",
-    serialize=lambda v: str(v),
-    parse_value=lambda v: ApiKeyID(str(v)) if v else None,
-)
-
-DiagramIDScalar = strawberry.scalar(
-    DiagramID,
-    name="DiagramID",
-    description="Unique identifier for diagrams",
-    serialize=lambda v: str(v),
-    parse_value=lambda v: DiagramID(str(v)) if v else None,
-)
-
-ExecutionIDScalar = strawberry.scalar(
-    ExecutionID,
-    name="ExecutionID",
-    description="Unique identifier for executions",
-    serialize=lambda v: str(v),
-    parse_value=lambda v: ExecutionID(str(v)) if v else None,
-)
-
+# Register additional ID types not in generated scalars
 HookIDScalar = strawberry.scalar(
     HookID,
     name="HookID",
     description="Unique identifier for hooks",
-    serialize=lambda v: str(v),
-    parse_value=lambda v: HookID(str(v)) if v else None,
+    serialize=lambda v: str(v) if v is not None else None,
+    parse_value=lambda v: HookID(v) if v is not None else None,
 )
 
 TaskIDScalar = strawberry.scalar(
     TaskID,
     name="TaskID",
     description="Unique identifier for tasks",
-    serialize=lambda v: str(v),
-    parse_value=lambda v: TaskID(str(v)) if v else None,
+    serialize=lambda v: str(v) if v is not None else None,
+    parse_value=lambda v: TaskID(v) if v is not None else None,
 )
 
-# Import JSONScalar from strawberry
-from strawberry.scalars import JSON as JSONScalar
+# Alias for backward compatibility
+JSONScalar = JSON
 
-# Export scalars
+# Export all scalars (generated + additional)
 __all__ = [
-    'NodeIDScalar',
-    'HandleIDScalar',
-    'ArrowIDScalar',
-    'PersonIDScalar',
-    'ApiKeyIDScalar',
-    'DiagramIDScalar',
-    'ExecutionIDScalar',
-    'HookIDScalar',
-    'TaskIDScalar',
-    'JSONScalar',
+    # From generated
+    "ApiKeyIDScalar",
+    "ArrowIDScalar",
+    "DiagramIDScalar",
+    "ExecutionIDScalar",
+    "HandleIDScalar",
+    # Additional
+    "HookIDScalar",
+    "JSONScalar",
+    "NodeIDScalar",
+    "PersonIDScalar",
+    "TaskIDScalar",
 ]

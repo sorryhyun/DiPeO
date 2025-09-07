@@ -11,7 +11,6 @@ export enum NodeType {
   ENDPOINT = 'endpoint',
   DB = 'db',
   USER_RESPONSE = 'user_response',
-  PERSON_BATCH_JOB = 'person_batch_job',
   HOOK = 'hook',
   TEMPLATE_JOB = 'template_job',
   JSON_SCHEMA_VALIDATOR = 'json_schema_validator',

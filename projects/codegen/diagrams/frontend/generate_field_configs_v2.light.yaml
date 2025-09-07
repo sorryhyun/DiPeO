@@ -31,14 +31,14 @@ nodes:
       sub_type: file
       format: json  # Parse JSON files automatically
       glob: true  # Enable glob pattern expansion
-      source_details:
+      file:
         - temp/codegen/mappings.ts.json
         - temp/codegen/node-interface-map.ts.json
         - temp/core/diagram.ts.json
         # Base node data interface (must be loaded before node data files)
         - temp/core/nodes/base.ts.json
-        # Dynamically discover all node data files
-        - "temp/core/nodes/*.data.ts.json"
+        # Dynamic discovery of all node SPECIFICATION files (replacing *.data.ts files)
+        - "temp/nodes/*.spec.ts.json"
 
   # Parse DB output if it's a string
   - label: Parse DB Output
@@ -49,9 +49,9 @@ nodes:
       code: |
         import json
         import ast
-        
+
         data = inputs.get('default', {})
-        
+
         # If data is a string, parse it
         if isinstance(data, str):
             try:
@@ -64,7 +64,7 @@ nodes:
                 except json.JSONDecodeError:
                     print(f"ERROR: Failed to parse data string")
                     data = {}
-        
+
         return data
 
   # Unified extractor for mappings, zod schemas, and field configs
@@ -92,7 +92,7 @@ nodes:
             'enum_values': field_configs_data.get('enum_values', {}),
             'now': result.get('now', '')
         }
-  
+
   # Use template_job for rendering - it now automatically unwraps default inputs
   - label: Render Field Configs Template
     type: template_job
@@ -120,20 +120,20 @@ nodes:
 connections:
   # Run batch parser first
   - {from: Start, to: Parse TypeScript Batch}
-  
+
   # Load cached data after parsing
   - {from: Parse TypeScript Batch, to: Load All AST Files}
-  
+
   # Parse and run unified extractor
   - {from: Load All AST Files, to: Parse DB Output, content_type: object}
   - {from: Parse DB Output, to: Unified Extractor, content_type: object}  # No label = default
-  
+
   # Extract field configs data for template
   - {from: Unified Extractor, to: Extract Field Configs Data, content_type: object}
-  
+
   # Pass to template renderer and JSON writer
   - {from: Extract Field Configs Data, to: Render Field Configs Template, content_type: object}
   - {from: Extract Field Configs Data, to: Write Field Configs JSON, content_type: object}
-  
+
   - {from: Render Field Configs Template, to: End}
   - {from: Write Field Configs JSON, to: End}

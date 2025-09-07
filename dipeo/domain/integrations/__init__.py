@@ -3,7 +3,7 @@
 from .ports import ApiInvoker, ApiProvider, ApiProviderRegistry
 
 __all__ = [
-    "ApiProviderRegistry",
     "ApiInvoker",
     "ApiProvider",
+    "ApiProviderRegistry",
 ]

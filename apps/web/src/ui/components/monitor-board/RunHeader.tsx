@@ -12,15 +12,15 @@ interface RunHeaderProps {
 }
 
 export function RunHeader({ executionId, store, onRemove }: RunHeaderProps) {
-  const { 
-    isRunning, 
-    diagramName, 
-    startedAt, 
+  const {
+    isRunning,
+    diagramName,
+    startedAt,
     finishedAt,
     runningNodes,
-    nodeStates 
+    nodeStates
   } = useStore(store);
-  
+
   const [controlExecution] = useControlExecutionMutation();
 
   // Calculate elapsed time
@@ -42,12 +42,12 @@ export function RunHeader({ executionId, store, onRemove }: RunHeaderProps) {
       running: runningNodes.size,
       total: nodeStates.size,
     };
-    
+
     nodeStates.forEach((state) => {
       if (state.status === 'completed') stats.completed++;
       else if (state.status === 'failed') stats.failed++;
     });
-    
+
     return stats;
   }, [runningNodes, nodeStates]);
 
@@ -125,7 +125,7 @@ export function RunHeader({ executionId, store, onRemove }: RunHeaderProps) {
             <AlertCircle className="w-5 h-5 text-gray-400" />
           )}
         </div>
-        
+
         {/* Diagram name and execution ID */}
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium text-gray-200 truncate">
@@ -144,7 +144,7 @@ export function RunHeader({ executionId, store, onRemove }: RunHeaderProps) {
           <Clock className="w-3 h-3" />
           <span>{elapsedTime}</span>
         </div>
-        
+
         {/* Node counters */}
         <div className="flex items-center gap-2 text-xs">
           {nodeStats.running > 0 && (
@@ -185,7 +185,7 @@ export function RunHeader({ executionId, store, onRemove }: RunHeaderProps) {
             </button>
           </>
         )}
-        
+
         {!isRunning && status === 'running' && (
           <button
             onClick={handleResume}
@@ -195,7 +195,7 @@ export function RunHeader({ executionId, store, onRemove }: RunHeaderProps) {
             <Play className="w-4 h-4 text-gray-400" />
           </button>
         )}
-        
+
         {onRemove && (
           <button
             onClick={onRemove}

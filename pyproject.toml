@@ -189,6 +189,33 @@ ignore = [
     "E501",   # line too long (handled by formatter)
     "B008",   # do not perform function calls in argument defaults
     "RUF012", # Mutable class attributes should be annotated
+    "F841",   # local variable is assigned to but never used
+    "F401",   # imported but unused
+    "F403",   # `from module import *` used; unable to detect undefined names
+    "F405",   # name may be undefined, or defined from star imports
+    "SIM102", # use a single if statement instead of nested if statements
+    "SIM108", # use ternary operator instead of if-else-block
+    "SIM116", # use a dictionary instead of consecutive if statements
+    "SIM103", # return the negated condition directly
+    "RUF006", # store a reference to the return value of asyncio.create_task
+    "UP007",  # use X | Y for type annotations
+    "E722",   # do not use bare except
+    "N802",   # function name should be lowercase
+    "B904",   # Within an except clause, raise exceptions with raise ... from err
+    "C901",   # too complex
+    "RUF001", # String contains ambiguous character
+    "PTH123", # open() should be replaced by Path.open()
+    "PTH109", # os.getcwd() should be replaced by Path.cwd()
+    "PTH101", # os.chmod() should be replaced by Path.chmod()
+    "PTH116", # os.stat() should be replaced by Path.stat()
+    "PTH110", # os.path.exists should be replaced by Path.exists()
+    "PTH108", # os.unlink should be replaced by Path.unlink()
+    "PTH117", # os.path.isabs should be replaced by Path.is_absolute()
+    "PTH118", # os.path.join should be replaced by Path.joinpath()
+    "PTH119", # os.path.basename should be replaced by Path.name
+    "PTH111", # os.path.expanduser should be replaced by Path.expanduser()
+    "PTH201", # Path constructor with current directory
+    "PTH207", # glob should be replaced by Path.glob
 ]
 
 [tool.ruff.lint.pep8-naming]

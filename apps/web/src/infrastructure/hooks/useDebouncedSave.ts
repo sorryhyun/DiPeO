@@ -51,7 +51,7 @@ export function useDebouncedSave(options: UseDebouncedSaveOptions) {
 
   const saveImmediately = useCallback(async (filename: string) => {
     cancelPendingSave();
-    
+
     await onSave(filename);
   }, [onSave, cancelPendingSave]);
 

@@ -29,7 +29,7 @@ nodes:
       sub_type: file
       format: json
       glob: true  # Enable glob pattern expansion
-      source_details:
+      file:
         # Core AST files
         - temp/core/diagram.ts.json
         - temp/core/execution.ts.json
@@ -37,8 +37,8 @@ nodes:
         - temp/core/integration.ts.json
         # Enum files
         - "temp/core/enums/*.ts.json"  # Load all enum definitions
-        # Dynamic discovery of all node data files
-        - "temp/core/nodes/*.data.ts.json"  # This will match all node data files automatically!
+        # Dynamic discovery of all node SPECIFICATION files (replacing *.data.ts files)
+        - "temp/nodes/*.spec.ts.json"  # This will match all node spec files automatically!
 
   # Prepare GraphQL data using simplified extractor
   - label: Prepare GraphQL Data
@@ -78,19 +78,19 @@ nodes:
       save_to_file: false
 
 connections:
-  
+
   # Load all AST files
   - {from: Start, to: Load All AST Files}
-  
+
   # Prepare GraphQL data
   - {from: Load All AST Files, to: Prepare GraphQL Data, content_type: object}
-  
+
   # Render schema
   - {from: Prepare GraphQL Data, to: Render GraphQL Schema, content_type: object}
-  
+
   # Generate summary
   - {from: Prepare GraphQL Data, to: Generate Summary, label: graphql_data}
-  
+
   # End connections
   - {from: Render GraphQL Schema, to: End}
   - {from: Generate Summary, to: End}

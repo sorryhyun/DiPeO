@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/ui/components/common/forms/buttons';
 import { Select } from '@/ui/components/common/forms';
 import { useFileOperations } from '@/domain/diagram/hooks';
-import { 
+import {
   useGetSupportedFormatsQuery
 } from '@/__generated__/graphql';
 import { DiagramFormat } from '@dipeo/models';
@@ -18,12 +18,12 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
   const [selectedFormat, setSelectedFormat] = useState<DiagramFormat>(DiagramFormat.NATIVE);
   const [includeMetadata, setIncludeMetadata] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Get diagram ID from file operations or state
   const diagramId = useRef<string | null>(null);
 
   const { saveDiagram, downloadAs } = useFileOperations();
-  
+
   // Fetch supported formats from GraphQL
   const { data: formatsData, loading: formatsLoading } = useGetSupportedFormatsQuery();
 
@@ -32,18 +32,18 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
     if (!file) return;
 
     setIsUploading(true);
-    
+
     try {
       // Use file operations hook to handle the file
       const result = await saveDiagram(file.name, selectedFormat);
-      
+
       if (!result || !result.diagramId) {
         throw new Error('Failed to save diagram');
       }
 
       const { diagramId: newDiagramId, diagramName, nodeCount } = result;
       diagramId.current = newDiagramId || null;
-      
+
       toast.success(
         <div className="flex flex-col gap-1">
           <span className="font-medium">Upload successful!</span>
@@ -82,7 +82,7 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
           <Upload className="w-5 h-5" />
           Upload Diagram
         </h3>
-        
+
         <div className="relative">
           <input
             ref={fileInputRef}
@@ -92,15 +92,15 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
             className="hidden"
             id="diagram-upload"
           />
-          
+
           <label
             htmlFor="diagram-upload"
             className={`
-              flex flex-col items-center justify-center w-full h-32 
+              flex flex-col items-center justify-center w-full h-32
               border-2 border-dashed rounded-lg cursor-pointer
               transition-all duration-200
-              ${isUploading 
-                ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
+              ${isUploading
+                ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
                 : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50'
               }
             `}
@@ -117,7 +117,7 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
                   Drop YAML/JSON file here or click to browse
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-500">
-                  {formatsLoading ? 'Loading formats...' : 
+                  {formatsLoading ? 'Loading formats...' :
                    formatsData?.supported_formats
                      ?.filter(f => f.supports_import)
                      .map(f => f.format)

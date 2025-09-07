@@ -1,25 +1,25 @@
 """Dynamic objects that maintain state during diagram execution."""
 
-from .conversation import Conversation, ConversationContext
-from .person import Person
 from .brain import (
     CognitiveBrain,
     MemorySelectionConfig,
-    MessageScorer,
     MessageDeduplicator,
+    MessageScorer,
     ScoringWeights,
 )
+from .conversation import Conversation, ConversationContext
+from .person import Person
 
 __all__ = [
-    # Dynamic objects
-    "Conversation",
-    "ConversationContext", 
-    "Person",
     # Cognitive components
     "CognitiveBrain",
+    # Dynamic objects
+    "Conversation",
+    "ConversationContext",
     # Memory selection
     "MemorySelectionConfig",
-    "MessageScorer",
     "MessageDeduplicator",
+    "MessageScorer",
+    "Person",
     "ScoringWeights",
 ]

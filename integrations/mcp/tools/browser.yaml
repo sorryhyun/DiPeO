@@ -274,7 +274,7 @@ config:
   viewport:
     width: 1280
     height: 720
-  
+
 # Metadata
 metadata:
   author: DiPeO Team

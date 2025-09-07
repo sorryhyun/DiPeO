@@ -30,7 +30,7 @@ class EventFilter(Protocol):
         ...
 
 
-class EventHandler(Protocol, Generic[T]):
+class EventHandler[T](Protocol):
     """Protocol for handling domain events."""
 
     async def handle(self, event: T) -> None:

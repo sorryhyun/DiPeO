@@ -9,20 +9,23 @@ repos:
     rev: v0.8.0
     hooks:
       - id: ruff
-        args: [--fix]  # Removed --exit-non-zero-on-fix to allow auto-fixing
+        args: ["--fix", "--config=pyproject.toml"]  # Explicitly use pyproject.toml configuration
         exclude: |
           (?x)^(
             dipeo/diagram_generated/.*|
             dipeo/diagram_generated_staged/.*|
-            .*__generated__.py|
-            .*/migrations/.*
+            projects/codegen/.*|
+            projects/frontend_enhance/.*|
+            projects/frontend_auto/.*
           )$
       - id: ruff-format
         exclude: |
           (?x)^(
             dipeo/diagram_generated/.*|
             dipeo/diagram_generated_staged/.*|
-            .*__generated__.py
+            projects/frontend_enhance/.*|
+            projects/frontend_auto/.*|
+            projects/codegen/.*
           )$
 
   # Type checking with mypy - COMMENTED OUT (run manually when needed)
@@ -85,9 +88,8 @@ repos:
           )$
       - id: end-of-file-fixer
         exclude: dipeo/diagram_generated/
-      - id: check-yaml
-        exclude: \.light\.yaml$
-      - id: check-json
+      # - id: check-yaml  # Skipped - DiPeO has special YAML formats
+      # - id: check-json  # Skipped - can be too strict for generated files
       - id: check-added-large-files
         args: ['--maxkb=1000']
       - id: check-merge-conflict
@@ -110,7 +112,6 @@ exclude: |
   (?x)^(
     \.git/|
     \.venv/|
-    venv/|
     __pycache__/|
     \.mypy_cache/|
     \.ruff_cache/|

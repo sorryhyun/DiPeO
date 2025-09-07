@@ -1,6 +1,6 @@
 /**
  * useMonitorMode - Hook to handle monitor mode auto-execution
- * 
+ *
  * This hook detects when the app is in monitor mode and automatically
  * monitors CLI-launched executions.
  */
@@ -49,65 +49,65 @@ export interface UseMonitorModeOptions {
 
 export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   const { pollCliSessions = true, execution: providedExecution } = options;
-  
+
   // Track if we've already started execution to prevent double-starts
   const hasStartedRef = useRef(false);
   const lastSessionIdRef = useRef<string | null>(null);
   const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Get execution hook - use provided one or create own instance
   const execution = providedExecution || useExecution({ showToasts: true });
-  
+
   // Get diagram loading function
   const { loadDiagramFromData } = useDiagramLoader();
-  
+
   // Get UI operations and state
   const { isMonitorMode: isMonitorModeFromStore } = useUIState();
   const { setActiveCanvas } = useUIOperations();
-  
+
   // Lazy query to fetch execution state on demand
   const [fetchExecutionState] = useLazyQuery(GET_EXECUTION_STATE_QUERY, {
     fetchPolicy: 'network-only',
   });
-  
+
   // Check if we're in monitor mode (from store)
   const isMonitorMode = () => {
     return isMonitorModeFromStore;
   };
-  
+
   // Track if we're in initial connection phase for faster polling
   const initialConnectionRef = useRef(true);
-  
+
   // Poll for active CLI session when in monitor mode
   const { data: cliSessionData, loading: cliSessionLoading, error: cliSessionError } = useQuery(ACTIVE_CLI_SESSION_QUERY, {
     skip: !isMonitorMode() || !pollCliSessions,
     pollInterval: initialConnectionRef.current ? 100 : 200, // Fast polling initially, then slower
     fetchPolicy: 'network-only',
   });
-  
+
   const activeSession = cliSessionData?.active_cli_session;
-  
+
   // CLI session monitoring handles all execution now
   // No need for URL-based execution logic
-  
+
   // Handle CLI session monitoring
   useEffect(() => {
     if (!isMonitorMode() || !pollCliSessions || cliSessionLoading || cliSessionError) return;
-    
+
     if (activeSession?.is_active) {
       // New CLI session detected
       if (activeSession.session_id !== lastSessionIdRef.current) {
         lastSessionIdRef.current = activeSession.session_id;
-        
+
         // Cancel any pending clear operation
         if (clearTimeoutRef.current) {
           clearTimeout(clearTimeoutRef.current);
           clearTimeoutRef.current = null;
         }
-        
+
         // console.log('[Monitor] CLI execution:', activeSession.execution_id);
         toast.info(`Connected to CLI execution: ${activeSession.diagram_name}`);
-        
+
         // Load diagram if data is provided
         if (activeSession.diagram_data) {
           try {
@@ -117,35 +117,35 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
             console.error('[Monitor] Failed to parse diagram data:', e);
           }
         }
-        
+
         // Switch to execution canvas
         setActiveCanvas('execution');
-        
+
         // Add a small delay to ensure React Flow has time to initialize nodes/handles
         // This prevents the "Couldn't create edge" error
         setTimeout(async () => {
           // Connect to the CLI execution directly (no URL params needed)
-          const nodeCount = activeSession.diagram_data ? 
-            JSON.parse(activeSession.diagram_data).nodes?.length || 0 : 
+          const nodeCount = activeSession.diagram_data ?
+            JSON.parse(activeSession.diagram_data).nodes?.length || 0 :
             0;
-          
+
           // console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
           execution.connectToExecution(activeSession.execution_id, nodeCount);
           hasStartedRef.current = true;
-          
+
           // Immediately fetch current execution state to pre-populate node states
           try {
             const { data } = await fetchExecutionState({
               variables: { id: activeSession.execution_id }
             });
-            
+
             if (data?.execution?.node_states) {
               // Pre-populate node states for immediate highlighting
               const nodeStates = data.execution.node_states;
               if (nodeStates && typeof nodeStates === 'object') {
                 // Access the store directly to update node states
                 const store = useUnifiedStore.getState();
-                
+
                 // Process each node state and update the store
                 Object.entries(nodeStates).forEach(([nodeIdStr, state]: [string, any]) => {
                   if (state?.status) {
@@ -172,7 +172,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
                 // console.log('[Monitor] Pre-populated node states:', Object.keys(nodeStates).length);
               }
             }
-            
+
             // Slow down polling after initial connection
             setTimeout(() => {
               initialConnectionRef.current = false;
@@ -188,7 +188,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       lastSessionIdRef.current = null;
       hasStartedRef.current = false;
       initialConnectionRef.current = true; // Reset for next connection
-      
+
       // Clear diagram after a delay, but only if no new session starts
       clearTimeoutRef.current = setTimeout(() => {
         const store = useUnifiedStore.getState();
@@ -203,24 +203,24 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       }, 3000); // 3 seconds delay to avoid race conditions
     }
   }, [cliSessionData, cliSessionLoading, cliSessionError, isMonitorMode, pollCliSessions, setActiveCanvas, loadDiagramFromData, execution, fetchExecutionState]);
-  
+
   // Monitor execution completion to properly clear status
   useEffect(() => {
     if (!isMonitorMode() || !execution) return;
-    
+
     // When execution completes but we're still in monitor mode
     if (!execution.isRunning && hasStartedRef.current) {
       // console.log('[Monitor] Execution completed, clearing status');
       // Mark that we're no longer tracking an execution
       hasStartedRef.current = false;
-      
+
       // If there's no active session, clear the session ref
       if (!activeSession?.is_active) {
         lastSessionIdRef.current = null;
       }
     }
   }, [execution?.isRunning, isMonitorMode, activeSession]);
-  
+
   // Cleanup timeout on unmount or when monitor mode changes
   useEffect(() => {
     return () => {
@@ -230,7 +230,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       }
     };
   }, []);
-  
+
   return {
     isMonitorMode: isMonitorMode(),
     diagramName: activeSession?.diagram_name || null,

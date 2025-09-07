@@ -34,7 +34,7 @@ export function GlobalKeyboardHandler() {
         }
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [saveDiagram, isMonitorMode]);

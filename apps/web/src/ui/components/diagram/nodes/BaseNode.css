@@ -7,7 +7,7 @@
   --shadow-color: theme('colors.neutral.200 / 0.3');
   --bg-color: theme('colors.white');
   --hover-bg-color: theme('colors.neutral.50');
-  
+
   border-color: var(--border-color);
   background-color: var(--bg-color);
 }
@@ -70,7 +70,7 @@
 /* Selected state with modern ring effect */
 [data-selected="true"] {
   border-color: theme('colors.primary.500');
-  box-shadow: 
+  box-shadow:
     0 0 0 3px theme('colors.primary.500 / 0.2'),
     0 0 0 6px theme('colors.primary.500 / 0.1'),
     0 8px 16px -4px var(--shadow-color);
@@ -82,7 +82,7 @@
   --border-color: theme('colors.success.500');
   --ring-color: theme('colors.success.400 / 0.4');
   --shadow-color: theme('colors.success.300 / 0.5');
-  
+
   border-color: var(--border-color);
   background: linear-gradient(
     135deg,
@@ -92,7 +92,7 @@
   );
   background-size: 200% 200%;
   animation: gradientShift 3s ease infinite;
-  box-shadow: 
+  box-shadow:
     0 0 0 4px var(--ring-color),
     0 0 20px var(--shadow-color),
     0 12px 20px -8px var(--shadow-color);
@@ -110,10 +110,10 @@
   --border-color: theme('colors.danger.500');
   --ring-color: theme('colors.danger.400 / 0.3');
   --shadow-color: theme('colors.danger.300 / 0.4');
-  
+
   border-color: var(--border-color);
   background-color: theme('colors.danger.50');
-  box-shadow: 
+  box-shadow:
     0 0 0 3px var(--ring-color),
     0 0 15px var(--shadow-color),
     0 10px 18px -6px var(--shadow-color);
@@ -122,12 +122,12 @@
 }
 
 @keyframes errorPulse {
-  0%, 100% { box-shadow: 
+  0%, 100% { box-shadow:
     0 0 0 3px var(--ring-color),
     0 0 15px var(--shadow-color),
     0 10px 18px -6px var(--shadow-color);
   }
-  50% { box-shadow: 
+  50% { box-shadow:
     0 0 0 4px var(--ring-color),
     0 0 20px var(--shadow-color),
     0 12px 20px -8px var(--shadow-color);
@@ -139,14 +139,14 @@
   --border-color: theme('colors.accent.600');
   --ring-color: theme('colors.accent.400 / 0.3');
   --shadow-color: theme('colors.accent.300 / 0.4');
-  
+
   border-color: var(--border-color);
   background: linear-gradient(
     135deg,
     theme('colors.accent.50'),
     theme('colors.white')
   );
-  box-shadow: 
+  box-shadow:
     0 0 0 3px var(--ring-color),
     0 8px 16px -4px var(--shadow-color);
   transform: scale(1.01);
@@ -157,7 +157,7 @@
   --border-color: theme('colors.warning.400');
   --ring-color: theme('colors.warning.300 / 0.3');
   --shadow-color: theme('colors.warning.200 / 0.3');
-  
+
   border-color: var(--border-color);
   background-color: theme('colors.warning.50 / 0.7');
   opacity: 0.8;
@@ -169,7 +169,7 @@
 [data-color]:not([data-selected="true"]):not([data-running="true"]):not([data-skipped="true"]):hover {
   border-color: var(--border-color);
   background-color: var(--hover-bg-color);
-  box-shadow: 
+  box-shadow:
     0 6px 12px -2px var(--shadow-color),
     0 0 0 2px theme('colors.border.light');
   /* Removed transform to prevent node movement on hover */
@@ -239,7 +239,7 @@
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  background: linear-gradient(45deg, 
+  background: linear-gradient(45deg,
     theme('colors.accent.400'),
     theme('colors.primary.400')
   );
@@ -265,7 +265,7 @@
 /* Focus styles for accessibility */
 [data-color]:focus-visible {
   outline: none;
-  box-shadow: 
+  box-shadow:
     0 0 0 3px theme('colors.primary.500'),
     0 0 0 6px theme('colors.primary.500 / 0.2');
 }

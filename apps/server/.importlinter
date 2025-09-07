@@ -5,7 +5,7 @@ include_external_packages = True
 [importlinter:contract:no-old-imports]
 name = No imports from old src.* paths
 type = forbidden
-source_modules = 
+source_modules =
     dipeo_server
 forbidden_modules =
     src.common

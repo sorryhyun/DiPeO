@@ -9,6 +9,8 @@ export interface TypescriptAstNodeData {
   transformEnums?: boolean;
   flattenOutput?: boolean;
   outputFormat?: 'standard' | 'for_codegen' | 'for_analysis';
+  batch?: boolean;
+  batchInputKey?: string;
 }
 
 // Zod schema for validation
@@ -20,4 +22,6 @@ export const TypescriptAstNodeDataSchema = z.object({
   transformEnums: z.boolean().optional(),
   flattenOutput: z.boolean().optional(),
   outputFormat: z.enum(["standard", "for_codegen", "for_analysis"]).optional(),
+  batch: z.boolean().optional(),
+  batchInputKey: z.string().optional(),
 });

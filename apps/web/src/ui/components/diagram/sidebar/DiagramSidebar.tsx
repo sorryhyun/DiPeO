@@ -69,7 +69,7 @@ PersonItem.displayName = 'PersonItem';
 const categorizeNodes = () => {
   const allConfigs = getAllNodeConfigs();
   const categorizedNodes = new Map<string, Array<{ type: string; label: string }>>();
-  
+
   // Category display names and order
   const categoryMeta: Record<string, { name: string; icon: string; order: number }> = {
     control: { name: 'Control Flow', icon: '🎯', order: 1 },
@@ -80,21 +80,21 @@ const categorizeNodes = () => {
     validation: { name: 'Validation', icon: '✅', order: 6 },
     utility: { name: 'Utilities', icon: '🛠️', order: 7 },
   };
-  
+
   // Group nodes by category
   allConfigs.forEach((config, nodeType) => {
     const category = config.category || 'utility'; // Default to utility if no category
-    
+
     if (!categorizedNodes.has(category)) {
       categorizedNodes.set(category, []);
     }
-    
+
     categorizedNodes.get(category)!.push({
       type: nodeType,
       label: `${config.icon || '📦'} ${config.label || nodeType}`
     });
   });
-  
+
   // Sort categories by order and convert to array
   const sortedCategories = Array.from(categorizedNodes.entries())
     .sort(([a], [b]) => {
@@ -105,7 +105,7 @@ const categorizeNodes = () => {
     .map(([category, nodes]) => ({
       category,
       meta: categoryMeta[category] || { name: category, icon: '📦', order: 999 },
-      nodes: category === 'control' 
+      nodes: category === 'control'
         ? nodes.sort((a, b) => {
             // Custom sorting for control flow: start, condition, endpoint
             const controlOrder: Record<string, number> = {
@@ -119,7 +119,7 @@ const categorizeNodes = () => {
           })
         : nodes.sort((a, b) => a.label.localeCompare(b.label)) // Sort other categories alphabetically
     }));
-  
+
   return sortedCategories;
 };
 
@@ -129,19 +129,19 @@ export const DiagramSidebar = React.memo(() => {
   const { select, clearSelection } = useSelectionOperations();
   const personsMap = usePersonsData();
   const personOps = usePersonOperations();
-  
+
   // Helper to get person by ID
   const getPersonById = (id: PersonID) => personsArray.find(p => p.id === id) || null;
-  
+
   // Convert persons array to PersonID array like the old hook did
   const persons = React.useMemo(
     () => personsArray.map((p: DomainPerson) => personId(p.id)),
     [personsArray]
   );
-  
+
   // Derive selected person ID
   const selectedPersonId = selectedType === 'person' ? selectedId : null;
-  
+
   const setSelectedPersonId = (id: PersonID | null) => {
     if (id) select(id, 'person');
     else clearSelection();
@@ -150,11 +150,11 @@ export const DiagramSidebar = React.memo(() => {
   const [blocksExpanded, setBlocksExpanded] = useState(true);
   const [personsExpanded, setPersonsExpanded] = useState(true);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
-  
+
   const handlePersonClick = (personId: string) => {
     setSelectedPersonId(personId as PersonID);
   };
-  
+
   // Get categorized nodes
   const categorizedNodes = React.useMemo(() => categorizeNodes(), []);
 
@@ -165,13 +165,13 @@ export const DiagramSidebar = React.memo(() => {
           <TabTrigger value="workspace">Workspace</TabTrigger>
           <TabTrigger value="files">Files</TabTrigger>
         </TabList>
-        
+
         {/* Workspace Tab - Consolidated view */}
         <TabContent value="workspace" className="p-2 overflow-y-auto">
           <div className="space-y-6">
             {/* Blocks Section */}
             <div>
-              <h3 
+              <h3
                 className="font-semibold flex items-center justify-between cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors duration-200"
                 onClick={() => setBlocksExpanded(!blocksExpanded)}
               >
@@ -201,10 +201,10 @@ export const DiagramSidebar = React.memo(() => {
                 </div>
               )}
             </div>
-            
+
             {/* Persons Section */}
             <div>
-              <h3 
+              <h3
                 className="font-semibold flex items-center justify-between cursor-pointer hover:bg-white/50 p-2 rounded-lg transition-colors duration-200"
                 onClick={() => setPersonsExpanded(!personsExpanded)}
               >
@@ -250,7 +250,7 @@ export const DiagramSidebar = React.memo(() => {
                 </div>
               )}
             </div>
-            
+
             {/* Tools Section - API Keys only */}
             <div>
               <h3 className="font-semibold flex items-center gap-2 p-2">
@@ -258,8 +258,8 @@ export const DiagramSidebar = React.memo(() => {
                 <span className="text-base font-medium">Tools</span>
               </h3>
               <div>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full bg-white hover:bg-purple-50 hover:border-purple-300 transition-colors duration-200 py-2"
                   onClick={() => setIsApiModalOpen(true)}
                 >
@@ -269,13 +269,13 @@ export const DiagramSidebar = React.memo(() => {
             </div>
           </div>
         </TabContent>
-        
+
         {/* Files Tab */}
         <TabContent value="files" className="overflow-hidden">
           <DiagramFileBrowser />
         </TabContent>
       </Tabs>
-      
+
       <LazyApiKeysModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} />
     </SidebarLayout>
   );

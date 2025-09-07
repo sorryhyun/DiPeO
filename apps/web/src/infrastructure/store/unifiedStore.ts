@@ -13,9 +13,9 @@ import {
   createPersonSlice,
   createUISlice
 } from "./slices";
-import { 
-  createFullSnapshot, 
-  recordHistory 
+import {
+  createFullSnapshot,
+  recordHistory
 } from "./helpers/entityHelpers";
 import { rebuildHandleIndex } from "./helpers/handleIndexHelper";
 
@@ -46,7 +46,7 @@ const createStore = () => {
         ...createExecutionSlice(set, get, api),
         ...createPersonSlice(set, get, api),
         ...createUISlice(set, get, api),
-        
+
         handles: new Map(),
         handleIndex: new Map(),
         history: {
@@ -59,11 +59,11 @@ const createStore = () => {
         get canUndo() {
           return get().history.undoStack.length > 0;
         },
-        
+
         get canRedo() {
           return get().history.redoStack.length > 0;
         },
-        
+
         undo: () => {
           const state = get();
           if (state.history.undoStack.length === 0) return;
@@ -74,15 +74,15 @@ const createStore = () => {
               state.history.redoStack.push(createFullSnapshot(state));
               state.history.undoStack.pop();
             });
-            
+
             state.restoreDiagramSilently(snapshot.nodes, snapshot.arrows);
             state.restorePersonsSilently(snapshot.persons);
-            
+
             set((state: UnifiedStore) => {
               state.handles = new Map(snapshot.handles);
               state.handleIndex = rebuildHandleIndex(state.handles);
             });
-            
+
             state.triggerArraySync();
           }
         },
@@ -98,17 +98,17 @@ const createStore = () => {
               state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack.pop();
             });
-            
+
             // Use silent restore methods to avoid multiple dataVersion increments
             state.restoreDiagramSilently(snapshot.nodes, snapshot.arrows);
             state.restorePersonsSilently(snapshot.persons);
-            
+
             // Restore unified store data
             set((state: UnifiedStore) => {
               state.handles = new Map(snapshot.handles);
               state.handleIndex = rebuildHandleIndex(state.handles);
             });
-            
+
             // Trigger array sync once through the diagram slice
             state.triggerArraySync();
           }
@@ -143,17 +143,17 @@ const createStore = () => {
 
         restoreSnapshot: (snapshot) => {
           const state = get();
-          
+
           // Use silent restore methods to avoid multiple dataVersion increments
           state.restoreDiagramSilently(snapshot.nodes, snapshot.arrows);
           state.restorePersonsSilently(snapshot.persons);
-          
+
           // Update UnifiedStore-specific data
           set((state: UnifiedStore) => {
             state.handles = new Map(snapshot.handles);
             state.handleIndex = rebuildHandleIndex(snapshot.handles);
           });
-          
+
           // Trigger array sync once to update all arrays
           state.triggerArraySync();
         },
@@ -167,15 +167,15 @@ const createStore = () => {
                 handleIdsToDelete.push(handleId);
               }
             });
-            
+
             handleIdsToDelete.forEach(handleId => {
               state.handles.delete(handleId);
             });
-            
+
             state.handleIndex.delete(nodeId);
           });
         },
-        
+
         clearAll: () => {
           const state = get();
           // Use slice methods to clear data properly
@@ -183,7 +183,7 @@ const createStore = () => {
           state.clearPersons();
           state.stopExecution();
           state.clearUIState();
-          
+
           // Clear unified store specific data
           set((state: UnifiedStore) => {
             state.handles = new Map();

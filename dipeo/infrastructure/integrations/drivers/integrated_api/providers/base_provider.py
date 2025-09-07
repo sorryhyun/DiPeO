@@ -2,7 +2,7 @@
 
 import logging
 from abc import abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from dipeo.domain.base import BaseService, ServiceError
 from dipeo.domain.integrations.ports import ApiProvider as ApiProviderPort
@@ -37,7 +37,7 @@ class BaseApiProvider(BaseService, ApiProviderPort):
         config: dict[str, Any] | None = None,
         resource_id: str | None = None,
         api_key: str | None = None,
-        timeout: float = 30.0
+        timeout: float = 30.0,
     ) -> dict[str, Any]:
         """Execute a specific operation."""
         if operation not in self.supported_operations:
@@ -55,7 +55,7 @@ class BaseApiProvider(BaseService, ApiProviderPort):
                 config=config or {},
                 resource_id=resource_id,
                 api_key=api_key,
-                timeout=timeout
+                timeout=timeout,
             )
         except Exception as e:
             logger.error(f"{self.provider_name} operation '{operation}' failed: {e}")
@@ -66,18 +66,14 @@ class BaseApiProvider(BaseService, ApiProviderPort):
         self,
         operation: str,
         config: dict[str, Any],
-        resource_id: Optional[str],
+        resource_id: str | None,
         api_key: str,
-        timeout: float
+        timeout: float,
     ) -> dict[str, Any]:
         """Execute the actual operation. Must be implemented by subclasses."""
         ...
 
-    async def validate_config(
-        self,
-        operation: str,
-        config: dict[str, Any] | None = None
-    ) -> bool:
+    async def validate_config(self, operation: str, config: dict[str, Any] | None = None) -> bool:
         """Validate operation configuration."""
         if operation not in self.supported_operations:
             return False
@@ -93,8 +89,8 @@ class BaseApiProvider(BaseService, ApiProviderPort):
                 "type": type(error).__name__,
                 "message": str(error),
                 "provider": self.provider_name,
-                "operation": operation
-            }
+                "operation": operation,
+            },
         }
 
     def _build_success_response(self, data: Any, operation: str) -> dict[str, Any]:
@@ -102,8 +98,5 @@ class BaseApiProvider(BaseService, ApiProviderPort):
         return {
             "success": True,
             "data": data,
-            "metadata": {
-                "provider": self.provider_name,
-                "operation": operation
-            }
+            "metadata": {"provider": self.provider_name, "operation": operation},
         }

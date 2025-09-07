@@ -54,7 +54,7 @@ export function updateEntity<T extends { id: string; data?: Record<string, unkno
 ): Map<string, T> | null {
   const entity = map.get(id);
   if (!entity) return null;
-  
+
   const updatedEntity = { ...entity };
   if ('data' in updates && 'data' in entity && entity.data && updates.data && updates.data !== null) {
     updatedEntity.data = { ...entity.data, ...updates.data };
@@ -63,6 +63,6 @@ export function updateEntity<T extends { id: string; data?: Record<string, unkno
   } else {
     Object.assign(updatedEntity, updates);
   }
-  
+
   return updateMap(map, id, updatedEntity);
 }

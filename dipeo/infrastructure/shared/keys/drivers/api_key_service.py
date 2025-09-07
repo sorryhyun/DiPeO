@@ -2,14 +2,17 @@
 
 import json
 import logging
+import uuid
 from pathlib import Path
 
+from dipeo.config import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.diagram_generated import APIServiceType
 from dipeo.domain.base import APIKeyError, BaseService
+from dipeo.domain.base.exceptions import ValidationError
 from dipeo.domain.integrations.ports import APIKeyPort
 
 
 class APIKeyService(BaseService, APIKeyPort):
-    
     def __init__(self, file_path: Path | None = None):
         super().__init__()
         if file_path is None:
@@ -19,43 +22,46 @@ class APIKeyService(BaseService, APIKeyPort):
         self._store: dict[str, dict] = {}
         self._logger = logging.getLogger(__name__)
         self._logger.debug(f"APIKeyService.__init__ called with file_path: {self.file_path}")
-    
+
     async def initialize(self) -> None:
         self._store = await self._load_all()
         # Loaded API keys successfully
         self._logger.debug(f"APIKeyService.initialize() - Loaded keys: {list(self._store.keys())}")
-    
+
     async def _load_all(self) -> dict[str, dict]:
         """Load all API keys from file storage."""
         if not self.file_path.exists():
             return {}
-        
+
         try:
             with open(self.file_path) as f:
                 return json.load(f)
         except (OSError, json.JSONDecodeError) as e:
             self._logger.error(f"Failed to load API keys from {self.file_path}: {e}")
             return {}
-    
+
     async def _save_store(self) -> None:
         """Save all API keys to file storage."""
         try:
-            with open(self.file_path, 'w') as f:
+            with open(self.file_path, "w") as f:
                 json.dump(self._store, f, indent=2)
         except OSError as e:
             self._logger.error(f"Failed to save API keys to {self.file_path}: {e}")
             raise
-    
+
     def get_api_key(self, key_id: str) -> dict:
         if key_id not in self._store:
             import logging
+
             logger = logging.getLogger(__name__)
-            logger.error(f"API key '{key_id}' not found. Available keys: {list(self._store.keys())}")
+            logger.error(
+                f"API key '{key_id}' not found. Available keys: {list(self._store.keys())}"
+            )
             raise APIKeyError(f"API key '{key_id}' not found")
-        
+
         info = self._store[key_id]
         return format_api_key_info(key_id, info)
-    
+
     def list_api_keys(self) -> list[dict]:
         result = []
         for key_id, info in self._store.items():
@@ -63,40 +69,40 @@ class APIKeyService(BaseService, APIKeyPort):
             if summary:
                 result.append(summary)
         return result
-    
+
     async def create_api_key(self, label: str, service: str, key: str) -> dict:
         self.validate_required_fields(
             {"label": label, "service": service, "key": key},
             ["label", "service", "key"],
         )
-        
+
         # Validate service name
         normalized_service = validate_service_name(service)
-        
+
         # Validate API key format
         validate_api_key_format(key, normalized_service)
-        
+
         # Generate unique ID
         key_id = generate_api_key_id()
-        
+
         # Store the API key
         self._store[key_id] = {
             "label": label,
             "service": normalized_service,
             "key": key,
         }
-        
+
         await self._save_store()
-        
+
         return {"id": key_id, "label": label, "service": normalized_service}
-    
+
     async def delete_api_key(self, key_id: str) -> None:
         if key_id not in self._store:
             raise APIKeyError(f"API key '{key_id}' not found")
-        
+
         del self._store[key_id]
         await self._save_store()
-    
+
     async def update_api_key(
         self,
         key_id: str,
@@ -106,23 +112,23 @@ class APIKeyService(BaseService, APIKeyPort):
     ) -> dict:
         if key_id not in self._store:
             raise APIKeyError(f"API key '{key_id}' not found")
-        
+
         api_key_data = self._store[key_id].copy()
-        
+
         if label is not None:
             api_key_data["label"] = label
-        
+
         if service is not None:
             normalized_service = validate_service_name(service)
             api_key_data["service"] = normalized_service
-        
+
         if key is not None:
             validate_api_key_format(key, api_key_data["service"])
             api_key_data["key"] = key
-        
+
         self._store[key_id] = api_key_data
         await self._save_store()
-        
+
         return {
             "id": key_id,
             "label": api_key_data["label"],
@@ -131,12 +137,6 @@ class APIKeyService(BaseService, APIKeyPort):
 
 
 # API Key validation utilities
-
-import uuid
-
-from dipeo.domain.base.exceptions import ValidationError
-from dipeo.config import VALID_LLM_SERVICES, normalize_service_name
-from dipeo.diagram_generated import APIServiceType
 
 VALID_SERVICES = VALID_LLM_SERVICES
 
@@ -155,10 +155,10 @@ def validate_service_name(service: str) -> str:
 def validate_api_key_format(key: str, service: str) -> None:
     if not key or not key.strip():
         raise ValidationError("API key cannot be empty")
-    
+
     # Ollama doesn't need real API keys - accept 'ollama' as a placeholder
     if service == APIServiceType.OLLAMA.value:
-        if key.lower() in ['ollama', 'local', 'none', 'claude-code']:
+        if key.lower() in ["ollama", "local", "none", "claude-code"]:
             return  # Accept common placeholders for Ollama
         # Also accept any non-empty string for Ollama
         return
@@ -190,5 +190,6 @@ def extract_api_key_summary(key_id: str, info: dict) -> dict:
             "id": key_id,
             "label": info.get("label", key_id),
             "service": info["service"],
+            "key": info.get("key", ""),  # Include the key in the summary
         }
     return None

@@ -1,6 +1,6 @@
 /**
  * Diagram Editor Feature - Public API
- * 
+ *
  * This feature provides the visual diagram editing capabilities for DiPeO,
  * including node creation, connection management, and diagram serialization.
  */
@@ -101,9 +101,9 @@ export {
 /**
  * Handle index utilities for managing connection points
  */
-export { 
-  createHandleIndex, 
-  getHandlesForNode 
+export {
+  createHandleIndex,
+  getHandlesForNode
 } from './utils/handleIndex';
 
 

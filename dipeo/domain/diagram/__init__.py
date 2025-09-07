@@ -8,18 +8,18 @@ This module contains the core domain models and logic for diagrams:
 """
 
 from .models import (
-    ExecutableDiagram,
-    ExecutableNode,
-    ExecutableEdgeV2,
     BaseExecutableNode,
+    ExecutableDiagram,
+    ExecutableEdgeV2,
+    ExecutableNode,
     NodeOutputProtocolV2,
 )
 
 __all__ = [
+    "BaseExecutableNode",
     # Models
     "ExecutableDiagram",
-    "ExecutableNode", 
     "ExecutableEdgeV2",
-    "BaseExecutableNode",
+    "ExecutableNode",
     "NodeOutputProtocolV2",
 ]

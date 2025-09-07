@@ -335,7 +335,7 @@ webhook_events:
           "commits": {"type": "array"}
         }
       }
-  
+
   - name: pull_request
     description: Pull request activity
     payload_schema: |

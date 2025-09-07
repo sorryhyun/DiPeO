@@ -30,7 +30,7 @@ nodes:
       sub_type: file
       format: json
       glob: true
-      source_details:
+      file:
         - "temp/core/enums/*.ts.json"
 
   # Extract enum definitions (simplified - just data extraction)

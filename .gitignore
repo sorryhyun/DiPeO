@@ -181,3 +181,4 @@ yarn.lock
 /projects/frontend_enhance/generated/section_7_testing-guidelines.json
 /projects/frontend_auto/generated/
 /projects/frontend_enhance/generated/
+/.playwright-mcp/*

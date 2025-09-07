@@ -31,8 +31,8 @@ const MessageItem = React.memo<MessageItemProps>(({
       <div
         className={`
           max-w-2xl p-3 rounded-lg
-          ${isFromSelectedPerson 
-            ? 'bg-blue-500 text-white' 
+          ${isFromSelectedPerson
+            ? 'bg-blue-500 text-white'
             : 'bg-gray-100 text-gray-800'
           }
         `}
@@ -94,7 +94,7 @@ export const MessageList = React.memo<MessageListProps>(({
       {messages.map((message) => {
         const isFromSelectedPerson = message.personId === currentPersonId;
         const senderPerson = personMap.get(message.personId);
-        
+
         return (
           <MessageItem
             key={message.id}
@@ -120,7 +120,7 @@ export const MessageList = React.memo<MessageListProps>(({
     prevProps.persons.length === nextProps.persons.length &&
     prevProps.isLoadingMore === nextProps.isLoadingMore &&
     // Check if messages array reference is the same or content is identical
-    (prevProps.messages === nextProps.messages || 
+    (prevProps.messages === nextProps.messages ||
      prevProps.messages.every((msg, idx) => msg.id === nextProps.messages[idx]?.id))
   );
 });

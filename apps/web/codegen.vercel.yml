@@ -2,7 +2,7 @@
 
 overwrite: true
 schema: "../server/schema.graphql"
-documents: 
+documents:
   - "src/__generated__/queries/*.graphql"
   - "src/**/*.{ts,tsx}"
 generates:

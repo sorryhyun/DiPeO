@@ -10,7 +10,7 @@ import { QueryField, QuerySpecification, QueryVariable } from './query-specifica
  */
 export function buildQueryName(operation: CrudOperation, entity: QueryEntity): string {
   const entityName = entity.toString();
-  
+
   switch (operation) {
     case CrudOperation.GET:
       return `Get${entityName}`;
@@ -53,41 +53,41 @@ export function getOperationType(crudOp: CrudOperation): QueryOperationType {
  */
 export function getStandardVariables(operation: CrudOperation, entity: QueryEntity): QueryVariable[] {
   const entityName = entity.toString();
-  
+
   switch (operation) {
     case CrudOperation.GET:
       return [
         { name: 'id', type: 'ID', required: true }
       ];
-    
+
     case CrudOperation.LIST:
       return [
         { name: 'offset', type: 'Int', required: false },
         { name: 'limit', type: 'Int', required: false },
         { name: 'filter', type: `${entityName}Filter`, required: false }
       ];
-    
+
     case CrudOperation.CREATE:
       return [
         { name: 'input', type: `Create${entityName}Input`, required: true }
       ];
-    
+
     case CrudOperation.UPDATE:
       return [
         { name: 'id', type: 'ID', required: true },
         { name: 'input', type: `Update${entityName}Input`, required: true }
       ];
-    
+
     case CrudOperation.DELETE:
       return [
         { name: 'id', type: 'ID', required: true }
       ];
-    
+
     case CrudOperation.SUBSCRIBE:
       return [
         { name: 'id', type: 'ID', required: false }
       ];
-    
+
     default:
       return [];
   }
@@ -98,7 +98,7 @@ export function getStandardVariables(operation: CrudOperation, entity: QueryEnti
  */
 export function getReturnType(operation: CrudOperation, entity: QueryEntity): string {
   const entityName = entity.toString();
-  
+
   switch (operation) {
     case CrudOperation.GET:
     case CrudOperation.CREATE:
@@ -125,7 +125,7 @@ export function buildQuerySpecification(
   customVariables?: QueryVariable[]
 ): QuerySpecification {
   const entityName = entity.toString();
-  
+
   return {
     name: buildQueryName(operation, entity),
     operation: getOperationType(operation),
@@ -143,26 +143,26 @@ export function buildQuerySpecification(
 export function getFieldPreset(entity: QueryEntity, preset: FieldPreset): QueryField[] {
   // This would be expanded with actual field definitions per entity and preset
   // For now, return a basic structure that can be customized per entity
-  
+
   switch (preset) {
     case FieldPreset.MINIMAL:
       return [
         { name: 'id', required: true },
         { name: getMainLabelField(entity), required: true }
       ];
-    
+
     case FieldPreset.STANDARD:
       return [
         { name: 'id', required: true },
         { name: getMainLabelField(entity), required: true },
         ...getStandardFields(entity)
       ];
-    
+
     case FieldPreset.DETAILED:
     case FieldPreset.FULL:
       // These would include all fields for the entity
       return getAllFields(entity);
-    
+
     default:
       return [];
   }

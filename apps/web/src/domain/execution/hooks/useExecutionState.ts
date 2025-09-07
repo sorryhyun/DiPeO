@@ -53,7 +53,7 @@ export function useExecutionState() {
     const now = new Date();
     startTimeRef.current = now;
     executionIdRef.current = executionIdStr;
-    
+
     setExecution({
       isRunning: true,
       executionId: executionIdStr,
@@ -64,7 +64,7 @@ export function useExecutionState() {
       endTime: null,
       error: null,
     });
-    
+
     // Start duration timer
     if (formatDuration) {
       durationInterval.current = setInterval(() => {
@@ -72,7 +72,7 @@ export function useExecutionState() {
           const elapsed = Date.now() - startTimeRef.current.getTime();
           const seconds = Math.floor(elapsed / 1000);
           const minutes = Math.floor(seconds / 60);
-          
+
           if (minutes > 0) {
             setDuration(`${minutes}m ${seconds % 60}s`);
           } else {
@@ -90,7 +90,7 @@ export function useExecutionState() {
       endTime: new Date(),
       error: null,
     }));
-    
+
     if (durationInterval.current) {
       clearInterval(durationInterval.current);
       durationInterval.current = null;
@@ -104,7 +104,7 @@ export function useExecutionState() {
       endTime: new Date(),
       error,
     }));
-    
+
     if (durationInterval.current) {
       clearInterval(durationInterval.current);
       durationInterval.current = null;
@@ -152,7 +152,7 @@ export function useExecutionState() {
     skippedNodesRef.current = [];
     currentRunningNodeRef.current = null;
     executionIdRef.current = null;
-    
+
     if (durationInterval.current) {
       clearInterval(durationInterval.current);
       durationInterval.current = null;
@@ -171,7 +171,7 @@ export function useExecutionState() {
 
   const connectToExecution = useCallback((executionIdStr: string, totalNodes: number = 0) => {
     executionIdRef.current = executionIdStr;
-    
+
     setExecution({
       isRunning: true,
       executionId: executionIdStr,
@@ -182,7 +182,7 @@ export function useExecutionState() {
       endTime: null,
       error: null,
     });
-    
+
     // Clear any existing node states when connecting to a new execution
     setNodeStates({});
   }, []);
@@ -194,14 +194,14 @@ export function useExecutionState() {
     interactivePrompt,
     progress,
     duration,
-    
+
     // Refs
     executionIdRef,
     currentRunningNodeRef,
     runContextRef,
     skippedNodesRef,
     durationInterval,
-    
+
     // Actions
     startExecution,
     connectToExecution,

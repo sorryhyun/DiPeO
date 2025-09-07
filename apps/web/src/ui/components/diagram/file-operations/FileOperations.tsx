@@ -3,7 +3,7 @@ import { Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/ui/components/common/forms/buttons/Button';
 import { Select } from '@/ui/components/common/forms/Select';
-import { 
+import {
   useConvertDiagramFormatMutation,
   useUploadFileMutation,
   useGetDiagramLazyQuery
@@ -36,9 +36,9 @@ export const FileOperations: React.FC = () => {
       toast.error('Please enter a diagram name');
       return;
     }
-    
+
     setIsUploading(true);
-    
+
     try {
       // Build the diagram path based on selected format
       let diagramPath = finalName;
@@ -49,17 +49,17 @@ export const FileOperations: React.FC = () => {
       } else if (selectedFormat === DiagramFormat.NATIVE) {
         diagramPath = `${selectedFormat}/${finalName}`;
       }
-      
+
       // Fetch diagram content from server
       const { data, error } = await getDiagram({
         variables: { id: diagramPath }
       });
-      
+
       if (error) {
         toast.error(`Failed to load diagram: ${error.message}`);
         return;
       }
-      
+
       if (data?.diagram) {
         // Load the diagram data directly without URL changes
         loadDiagramFromData({
@@ -69,7 +69,7 @@ export const FileOperations: React.FC = () => {
           persons: data.diagram.persons || [],
           metadata: data.diagram.metadata
         });
-        
+
         toast.success(`Loaded ${finalName}`);
       } else {
         toast.error('Diagram not found');
@@ -86,25 +86,25 @@ export const FileOperations: React.FC = () => {
     try {
       // Use the user-provided name or default
       const finalName = diagramName.trim() || 'diagram';
-      
+
       // Check if the user already included the extension
       const hasExtension = finalName.endsWith('.json') || finalName.endsWith('.yaml') || finalName.endsWith('.yml');
-      
+
       // Generate filename based on format
       const extension = selectedFormat === DiagramFormat.NATIVE ? 'json' : 'yaml';
       const filename = hasExtension ? finalName : `${finalName}.${extension}`;
-      
+
       // For native format, use the existing saveDiagram function
       if (selectedFormat === DiagramFormat.NATIVE) {
         await saveDiagram(filename, selectedFormat);
         toast.success(`Saved as ${filename}`);
         return;
       }
-      
+
       // For light and readable formats, use convert + upload approach
       // First, serialize the current diagram state
       const diagramContent = JSON.stringify(serializeDiagram());
-      
+
       // Convert diagram to the desired format
       const convertResult = await convertDiagramMutation({
         variables: {
@@ -113,27 +113,27 @@ export const FileOperations: React.FC = () => {
           to_format: selectedFormat
         }
       });
-      
+
       if (!convertResult.data?.convert_diagram_format?.success) {
         throw new Error(convertResult.data?.convert_diagram_format?.error || 'Conversion failed');
       }
-      
+
       // Get the converted content
       const convertedContent = convertResult.data.convert_diagram_format.content;
       if (!convertedContent) {
         throw new Error('No content returned from conversion');
       }
-      
-      
+
+
       // Simply use the filename as the path
       // The saveDiagram function will prepend 'files/' to it
       const path = filename;
-      
+
       // Create a File object from the converted content
-      const file = new File([convertedContent], filename, { 
-        type: 'text/yaml' 
+      const file = new File([convertedContent], filename, {
+        type: 'text/yaml'
       });
-      
+
       // Upload the converted file
       const uploadResult = await uploadFileMutation({
         variables: {
@@ -141,11 +141,11 @@ export const FileOperations: React.FC = () => {
           path: filename
         }
       });
-      
+
       if (!uploadResult.data?.upload_file?.success) {
         throw new Error(uploadResult.data?.upload_file?.error || 'Upload failed');
       }
-      
+
       toast.success(`Saved as ${filename}`);
     } catch (error) {
       console.error('Export error:', error);
@@ -191,7 +191,7 @@ export const FileOperations: React.FC = () => {
           placeholder="Diagram name"
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
-        
+
         <Select
           value={selectedFormat}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedFormat(e.target.value as DiagramFormat)}
@@ -203,7 +203,7 @@ export const FileOperations: React.FC = () => {
             </option>
           ))}
         </Select>
-        
+
         <Button
           onClick={handleExport}
           variant="outline"

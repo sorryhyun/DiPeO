@@ -20,7 +20,7 @@ export function useDiagramFiles() {
     },
     pollInterval: 30000, // Refresh every 30 seconds
   });
-  
+
   // Stop polling if we're in CLI monitor mode and detect server shutdown
   React.useEffect(() => {
     if (error?.networkError) {
@@ -44,19 +44,19 @@ export function useDiagramFiles() {
     // Helper function to build tree structure
     const buildTree = (files: Array<{ path: string; node: FileNode }>): FileNode[] => {
       const root: Record<string, TreeNode> = {};
-      
+
       // Sort files by path to ensure folders are created before their files
       files.sort((a, b) => a.path.localeCompare(b.path));
-      
+
       files.forEach(({ path, node }) => {
         const parts = path.split('/');
         let current = root;
-        
+
         // Build folder structure
         for (let i = 0; i < parts.length - 1; i++) {
           const folderName = parts[i];
           if (!folderName) continue; // Skip empty parts
-          
+
           if (!current[folderName]) {
             current[folderName] = {
               name: folderName,
@@ -70,7 +70,7 @@ export function useDiagramFiles() {
             current = folderNode.children;
           }
         }
-        
+
         // Add file
         const fileName = parts[parts.length - 1];
         if (fileName) {
@@ -81,7 +81,7 @@ export function useDiagramFiles() {
           } as TreeNode;
         }
       });
-      
+
       // Convert object to array and sort
       const convertToArray = (obj: Record<string, TreeNode>): FileNode[] => {
         return Object.values(obj).map(item => {
@@ -101,7 +101,7 @@ export function useDiagramFiles() {
           return a.name.localeCompare(b.name);
         });
       };
-      
+
       return convertToArray(root);
     };
 
@@ -111,12 +111,12 @@ export function useDiagramFiles() {
       if (!diagram.metadata?.id) return;
 
       const fullPath = diagram.metadata.id;
-      
+
       // Extract format from file extension
       let format: 'native' | 'light' | 'readable' = 'native';
       const pathParts = fullPath.split('/');
       const fileName = pathParts[pathParts.length - 1] || fullPath;
-      
+
       if (fullPath.endsWith('.native.json')) {
         format = 'native';
       } else if (fullPath.endsWith('.light.yaml') || fullPath.endsWith('.light.yml')) {

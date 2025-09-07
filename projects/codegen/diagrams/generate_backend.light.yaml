@@ -21,8 +21,8 @@ nodes:
       sub_type: file
       format: json
       glob: true
-      source_details:
-        - "temp/specifications/nodes/*.spec.ts.json"
+      file:
+        - "temp/nodes/*.spec.ts.json"
 
   - label: Prepare Node List
     type: code_job
@@ -52,23 +52,14 @@ nodes:
       filePath: projects/codegen/code/models/prepare_init_context_from_specs.py
       functionName: prepare_init_context_from_specs
 
-  # Generate models __init__.py
-  - label: Generate Models Init
+  # Generate unified_nodes __init__.py
+  - label: Generate Unified Nodes Init
     type: template_job
-    position: {x: 700, y: 100}
+    position: {x: 850, y: 100}
     props:
       engine: jinja2
-      template_path: projects/codegen/templates/backend/models_init.j2
-      output_path: dipeo/diagram_generated_staged/models/__init__.py
-
-  # Generate Python Models
-  - label: Generate Python Models
-    type: sub_diagram
-    position: {x: 400, y: 300}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_python_models_dynamic
-      diagram_format: light
-      passInputData: false
+      template_path: projects/codegen/templates/backend/unified_nodes_init.j2
+      output_path: dipeo/diagram_generated_staged/unified_nodes/__init__.py
 
   # Generate Enums
   - label: Generate Enums
@@ -106,14 +97,6 @@ nodes:
       diagram_format: light
       passInputData: false
 
-  # Generate Static Nodes
-  - label: Generate Static Nodes
-    type: sub_diagram
-    position: {x: 400, y: 550}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_static_nodes
-      diagram_format: light
-      passInputData: false
 
   # Generate Strawberry Types
   - label: Generate Strawberry Types
@@ -133,14 +116,6 @@ nodes:
       diagram_format: light
       passInputData: false
 
-  # Generate Validation Models
-  - label: Generate Validation Models
-    type: sub_diagram
-    position: {x: 400, y: 700}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_validation_models
-      diagram_format: light
-      passInputData: false
 
   # Generate TypeScript Indexes
   - label: Generate TypeScript Indexes
@@ -159,13 +134,15 @@ nodes:
       language: python
       code: |
         import json
-        
+
         # Collect generation results
         results = {
             "status": "completed",
             "generated": [
                 "Backend models (batch)",
                 "Models __init__.py",
+                "Unified node models",
+                "Unified nodes __init__.py",
                 "Python models",
                 "Enums",
                 "Integrations",
@@ -178,18 +155,18 @@ nodes:
                 "TypeScript indexes"
             ]
         }
-        
+
         print("\n✅ Backend code generation completed successfully!")
         print("\nGenerated:")
         for item in results["generated"]:
             print(f"  • {item}")
-        
+
         print("\nNext steps:")
         print("  1. Review generated code in dipeo/diagram_generated_staged/")
         print("  2. Run 'make apply-syntax-only' to apply changes")
         print("  3. Run 'make graphql-schema' to update GraphQL types")
         print("  4. Run 'make lint-server' to check Python code quality")
-        
+
         return results
 
   - label: End
@@ -201,38 +178,32 @@ nodes:
 connections:
   # Start all generation tasks from Start in parallel
   - {from: Start, to: Discover Node Specs}
-  - {from: Start, to: Generate Python Models}
   - {from: Start, to: Generate Enums}
   - {from: Start, to: Generate Integrations}
   - {from: Start, to: Generate Conversions}
   - {from: Start, to: Generate GraphQL Schema}
-  - {from: Start, to: Generate Static Nodes}
   - {from: Start, to: Generate Strawberry Types}
   - {from: Start, to: Generate Strawberry Mutations}
-  - {from: Start, to: Generate Validation Models}
   - {from: Start, to: Generate TypeScript Indexes}
-  
+
   # Backend models batch processing chain
   - {from: Discover Node Specs, to: Prepare Node List, content_type: object}
   - {from: Prepare Node List, to: Batch Generate Backend Models, content_type: object}
-  
+
   # Models init generation chain
   - {from: Discover Node Specs, to: Prepare Init Context, content_type: object}
-  - {from: Prepare Init Context, to: Generate Models Init, content_type: object}
-  
+  - {from: Prepare Init Context, to: Generate Unified Nodes Init, content_type: object}
+
   # All generation tasks converge to Summary
   - {from: Batch Generate Backend Models, to: Summary}
-  - {from: Generate Models Init, to: Summary}
-  - {from: Generate Python Models, to: Summary}
+  - {from: Generate Unified Nodes Init, to: Summary}
   - {from: Generate Enums, to: Summary}
   - {from: Generate Integrations, to: Summary}
   - {from: Generate Conversions, to: Summary}
   - {from: Generate GraphQL Schema, to: Summary}
-  - {from: Generate Static Nodes, to: Summary}
   - {from: Generate Strawberry Types, to: Summary}
   - {from: Generate Strawberry Mutations, to: Summary}
-  - {from: Generate Validation Models, to: Summary}
   - {from: Generate TypeScript Indexes, to: Summary}
-  
+
   # Summary to End
   - {from: Summary, to: End}

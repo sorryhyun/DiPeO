@@ -13,7 +13,7 @@ import type {
   LLMService,
 } from '@dipeo/models';
 import { NodeType } from '@dipeo/models';
-import { 
+import {
   isValidLLMService,
   isValidAPIServiceType,
 } from '@dipeo/models';
@@ -55,14 +55,14 @@ export class ValidationService {
     const schemaKey = nodeType.toLowerCase().replace(/_/g, '_');
     return getNodeDataSchema(schemaKey);
   }
-  
+
   /**
    * Validate a node
    */
   static validateNode(node: DomainNode): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
-    
+
     // Get schema for node type from generated schemas
     const schema = this.getNodeSchema(node.type);
     if (!schema) {
@@ -78,7 +78,7 @@ export class ValidationService {
         return { valid: false, errors, warnings };
       }
     }
-    
+
     // Validate node data if schema exists
     if (schema) {
       try {
@@ -95,17 +95,17 @@ export class ValidationService {
         }
       }
     }
-    
+
     // Additional business rule validations
     this.validateNodeBusinessRules(node, errors, warnings);
-    
+
     return {
       valid: errors.length === 0,
       errors,
       warnings,
     };
   }
-  
+
   /**
    * Validate node business rules
    */
@@ -116,7 +116,6 @@ export class ValidationService {
   ): void {
     switch (node.type) {
       case NodeType.PERSON_JOB:
-      case NodeType.PERSON_BATCH_JOB:
         // Warn if no person is selected
         if (!node.data.person) {
           warnings.push({
@@ -125,11 +124,11 @@ export class ValidationService {
           });
         }
         break;
-        
+
       case NodeType.SUB_DIAGRAM:
         // Check if diagram exists
-        if (node.data.diagram_name && 
-            typeof node.data.diagram_name === 'string' && 
+        if (node.data.diagram_name &&
+            typeof node.data.diagram_name === 'string' &&
             !this.diagramExists(node.data.diagram_name)) {
           errors.push({
             field: 'diagram_name',
@@ -138,7 +137,7 @@ export class ValidationService {
           });
         }
         break;
-        
+
       case NodeType.ENDPOINT:
         // Warn about insecure URLs
         if (typeof node.data.url === 'string' && node.data.url.startsWith('http://')) {
@@ -150,14 +149,14 @@ export class ValidationService {
         break;
     }
   }
-  
+
   /**
    * Validate a person configuration
    */
   static validatePerson(person: DomainPerson): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
-    
+
     const schema = z.object({
       name: z.string().min(1).max(100),
       role: z.string().min(1).max(200),
@@ -166,7 +165,7 @@ export class ValidationService {
       tools_enabled: z.boolean().optional(),
       max_tokens: z.number().min(1).max(100000).optional(),
     });
-    
+
     try {
       schema.parse(person);
     } catch (error) {
@@ -180,23 +179,23 @@ export class ValidationService {
         });
       }
     }
-    
+
     // Additional person-specific validations can be added here
-    
+
     return {
       valid: errors.length === 0,
       errors,
       warnings,
     };
   }
-  
+
   /**
    * Validate a diagram
    */
   static validateDiagram(diagram: DomainDiagram): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
-    
+
     // Must have at least one node
     if (diagram.nodes.length === 0) {
       errors.push({
@@ -205,7 +204,7 @@ export class ValidationService {
         code: 'EMPTY_DIAGRAM',
       });
     }
-    
+
     // Must have a START node
     const hasStart = diagram.nodes.some(n => n.type === NodeType.START);
     if (!hasStart && diagram.nodes.length > 0) {
@@ -215,7 +214,7 @@ export class ValidationService {
         code: 'NO_START_NODE',
       });
     }
-    
+
     // Validate all nodes
     diagram.nodes.forEach(node => {
       const nodeValidation = this.validateNode(node);
@@ -228,16 +227,16 @@ export class ValidationService {
         field: `nodes.${node.id}.${w.field}`,
       })));
     });
-    
+
     // Validate arrow connections
     diagram.arrows.forEach(arrow => {
       // Arrow source/target are HandleIDs, extract node IDs
       const sourceNodeId = arrow.source.split('_')[0] as NodeID;
       const targetNodeId = arrow.target.split('_')[0] as NodeID;
-      
+
       const sourceExists = diagram.nodes.some(n => n.id === sourceNodeId);
       const targetExists = diagram.nodes.some(n => n.id === targetNodeId);
-      
+
       if (!sourceExists) {
         errors.push({
           field: `arrows.${arrow.id}`,
@@ -245,7 +244,7 @@ export class ValidationService {
           code: 'INVALID_SOURCE',
         });
       }
-      
+
       if (!targetExists) {
         errors.push({
           field: `arrows.${arrow.id}`,
@@ -254,7 +253,7 @@ export class ValidationService {
         });
       }
     });
-    
+
     // Check for disconnected nodes
     const connectedNodes = new Set<NodeID>();
     diagram.arrows.forEach(arrow => {
@@ -264,7 +263,7 @@ export class ValidationService {
       connectedNodes.add(sourceNodeId);
       connectedNodes.add(targetNodeId);
     });
-    
+
     diagram.nodes.forEach(node => {
       if (node.type !== NodeType.START && !connectedNodes.has(node.id)) {
         warnings.push({
@@ -273,14 +272,14 @@ export class ValidationService {
         });
       }
     });
-    
+
     return {
       valid: errors.length === 0,
       errors,
       warnings,
     };
   }
-  
+
   /**
    * Helper to check if diagram exists (would query backend)
    */
@@ -288,7 +287,7 @@ export class ValidationService {
     // This would actually query the backend
     return true;
   }
-  
+
   /**
    * Validate form data against a schema
    */
@@ -306,7 +305,7 @@ export class ValidationService {
       throw error;
     }
   }
-  
+
   /**
    * Get field validation messages for a specific node type and field
    */
@@ -316,17 +315,17 @@ export class ValidationService {
     value: unknown,
   ): string[] {
     const messages: string[] = [];
-    
+
     // Get the schema for this node type
-    const nodeTypeEnum = typeof nodeType === 'string' 
+    const nodeTypeEnum = typeof nodeType === 'string'
       ? nodeType.toUpperCase().replace(/-/g, '_') as NodeType
       : nodeType;
     const schema = this.getNodeSchema(nodeTypeEnum);
-    
+
     if (!schema) {
       return messages;
     }
-    
+
     // Try to parse just this field
     try {
       const fieldData = { [fieldName]: value };
@@ -346,10 +345,10 @@ export class ValidationService {
         });
       }
     }
-    
+
     return messages;
   }
-  
+
   /**
    * Get field errors for a node
    */
@@ -358,17 +357,17 @@ export class ValidationService {
     data: Record<string, unknown>,
   ): Record<string, string[]> {
     const fieldErrors: Record<string, string[]> = {};
-    
+
     // Get the schema for this node type
     const nodeTypeEnum = typeof nodeType === 'string'
       ? nodeType.toUpperCase().replace(/-/g, '_') as NodeType
       : nodeType;
     const schema = this.getNodeSchema(nodeTypeEnum);
-    
+
     if (!schema) {
       return fieldErrors;
     }
-    
+
     try {
       schema.parse(data);
     } catch (error) {
@@ -382,10 +381,10 @@ export class ValidationService {
         });
       }
     }
-    
+
     return fieldErrors;
   }
-  
+
   /**
    * Validate a connection between two handles
    */
@@ -396,14 +395,14 @@ export class ValidationService {
   ): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
-    
+
     // Extract node IDs from handle IDs (format: nodeId_handleLabel_direction)
     const sourceNodeId = sourceHandle.split('_')[0] as NodeID;
     const targetNodeId = targetHandle.split('_')[0] as NodeID;
-    
+
     const sourceNode = nodes.get(sourceNodeId);
     const targetNode = nodes.get(targetNodeId);
-    
+
     if (!sourceNode) {
       errors.push({
         field: 'source',
@@ -411,7 +410,7 @@ export class ValidationService {
         code: 'SOURCE_NOT_FOUND',
       });
     }
-    
+
     if (!targetNode) {
       errors.push({
         field: 'target',
@@ -419,10 +418,10 @@ export class ValidationService {
         code: 'TARGET_NOT_FOUND',
       });
     }
-    
+
     // Additional connection validation logic
     // (e.g., checking if connection types are compatible)
-    
+
     return {
       valid: errors.length === 0,
       errors,

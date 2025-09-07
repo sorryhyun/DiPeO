@@ -15,9 +15,9 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: "temp/specifications/nodes/{node_spec_path}.spec.ts.json"  # Use node_spec_path directly
+      file: "temp/nodes/{node_spec_path}.spec.ts.json"  # Use node_spec_path directly
       format: json
-  
+
   # Prepare inputs for extractor
   - label: Prepare Extractor Inputs
     type: code_job
@@ -27,32 +27,32 @@ nodes:
       code: |
         # Get AST data and node type
         ast_data = inputs.get('ast_data')
-        
+
         # Extract node type from the default input
         default = inputs.get('default', {})
-        
+
         if "node_spec_path" in default:
             node_type_hyphenated = default["node_spec_path"]
         elif 'default' in default:
             node_type_hyphenated = default['default']["node_spec_path"]
         else:
             raise ValueError(f"node_spec_path not found in input: {default}")
-        
+
         if not ast_data:
             raise ValueError(f"No AST data found for node type: {node_type_hyphenated}")
-        
+
         if isinstance(ast_data, str):
             raise ValueError(f"AST data is a string instead of dict: {ast_data[:100]}...")
-        
+
         # Convert to underscore format for the extractor (it expects underscore format)
         node_type = node_type_hyphenated.replace('-', '_')
-        
+
         result = {
             'ast_data': ast_data,
             'node_type': node_type
         }
         return result
-  
+
   # Extract all frontend data in one step
   - label: Extract Frontend Data
     type: code_job
@@ -62,7 +62,7 @@ nodes:
       filePath: projects/codegen/code/frontend/frontend_node_extractor.py
       functionName: main
 
-  # Generate all three files using template_job
+  # Generate all three file using template_job
   - label: Generate TypeScript Model
     type: template_job
     position: {x: 700, y: 100}
@@ -96,19 +96,19 @@ nodes:
 connections:
   # Start to Load AST - passes the input directly without wrapping
   - {from: Start, to: Load AST}
-  
+
   # Pass AST data and original input to prepare
   - {from: Load AST, to: Prepare Extractor Inputs, label: ast_data, content_type: object}
   - {from: Start, to: Prepare Extractor Inputs, content_type: object}
 
   # Extract all data
   - {from: Prepare Extractor Inputs, to: Extract Frontend Data, content_type: object}
-  
+
   # Pass extracted data directly to template jobs (no label = auto unwrap)
   - {from: Extract Frontend Data, to: Generate TypeScript Model, content_type: object}
   - {from: Extract Frontend Data, to: Generate Node Config, content_type: object}
   - {from: Extract Frontend Data, to: Generate Field Config, content_type: object}
-    
+
   # All complete
   - {from: Generate TypeScript Model, to: End}
   - {from: Generate Node Config, to: End}

@@ -59,7 +59,7 @@ export function createAsyncAction<T>(
 ) {
   return async () => {
     const { execute, onStart, onSuccess, onError, onFinally } = config;
-    
+
     try {
       onStart?.();
       const result = await execute();
@@ -87,7 +87,7 @@ export async function executeBatchAction<T>(
   config: BatchActionConfig<T>
 ): Promise<void> {
   const { items, processor, onProgress, parallel = false } = config;
-  
+
   if (parallel) {
     await Promise.all(
       items.map(async (item, index) => {
@@ -119,10 +119,10 @@ export async function executeOptimisticUpdate<T>(
   config: OptimisticUpdateConfig<T>
 ): Promise<T> {
   const { optimisticUpdate, serverUpdate, rollback, commit } = config;
-  
+
   // Apply optimistic update
   optimisticUpdate();
-  
+
   try {
     // Perform server update
     const result = await serverUpdate();
@@ -153,10 +153,10 @@ export function createTransaction(
   return (config: TransactionConfig) => {
     const { operations, beforeCommit, afterCommit, onRollback } = config;
     const transactionId = config.id || crypto.randomUUID();
-    
+
     // Create snapshot before transaction
     const snapshot = get().history.undoStack[get().history.undoStack.length - 1];
-    
+
     try {
       // Mark transaction start
       set((state: UnifiedStore) => ({
@@ -169,12 +169,12 @@ export function createTransaction(
           }
         }
       }));
-      
+
       beforeCommit?.();
-      
+
       // Execute all operations
       operations.forEach(op => op());
-      
+
       // Commit transaction
       set((state: UnifiedStore) => {
         if (state.history.currentTransaction?.id === transactionId && snapshot) {
@@ -191,13 +191,13 @@ export function createTransaction(
         }
         return {};
       });
-      
+
       afterCommit?.();
       return true as any;
     } catch (error) {
       // Rollback on error
       onRollback?.();
-      
+
       // Restore from snapshot
       if (snapshot) {
         set((state: any) => {
@@ -205,7 +205,7 @@ export function createTransaction(
           state.history.currentTransaction = null;
         });
       }
-      
+
       throw error;
     }
   };
@@ -222,14 +222,14 @@ export function validateWithPattern<T>(
   config: ValidationConfig<T>
 ): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
-  
+
   for (const validator of config.validators) {
     const error = validator(config.data);
     if (error) {
       errors.push(error);
     }
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -250,9 +250,9 @@ export function createSubscription<T>(
 ) {
   return (config: SubscriptionConfig<T>): (() => void) => {
     const { selector, onChange, equalityFn = Object.is } = config;
-    
+
     let previousValue = selector(getState());
-    
+
     return subscribe((state) => {
       const currentValue = selector(state);
       if (!equalityFn(currentValue, previousValue)) {
@@ -275,24 +275,24 @@ export function createComputed<T>(
   config: ComputedConfig<T>
 ) {
   const { dependencies, compute, memoize = true } = config;
-  
+
   let cachedDeps: unknown[] | null = null;
   let cachedResult: T | null = null;
-  
+
   return (state: UnifiedStore): T => {
     const currentDeps = dependencies.map(dep => dep(state));
-    
+
     if (memoize && cachedDeps && arraysEqual(currentDeps, cachedDeps)) {
       return cachedResult!;
     }
-    
+
     const result = compute(...currentDeps);
-    
+
     if (memoize) {
       cachedDeps = currentDeps;
       cachedResult = result;
     }
-    
+
     return result;
   };
 }

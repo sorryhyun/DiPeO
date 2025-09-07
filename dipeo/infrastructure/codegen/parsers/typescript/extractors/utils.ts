@@ -20,22 +20,22 @@ export function parseExpression(node: Node): any {
   if (Node.isObjectLiteralExpression(node)) {
     return parseObjectLiteral(node)
   }
-  
+
   // Array literal
   if (Node.isArrayLiteralExpression(node)) {
     return node.getElements().map(elem => parseExpression(elem))
   }
-  
+
   // String literal
   if (Node.isStringLiteral(node)) {
     return node.getLiteralValue()
   }
-  
+
   // Numeric literal
   if (Node.isNumericLiteral(node)) {
     return node.getLiteralValue()
   }
-  
+
   // Boolean literal
   if (Node.isTrueLiteral(node)) {
     return true
@@ -43,12 +43,12 @@ export function parseExpression(node: Node): any {
   if (Node.isFalseLiteral(node)) {
     return false
   }
-  
+
   // Null literal
   if (Node.isNullLiteral(node)) {
     return null
   }
-  
+
   // Identifier (e.g., undefined)
   if (Node.isIdentifier(node)) {
     const text = node.getText()
@@ -58,23 +58,23 @@ export function parseExpression(node: Node): any {
     // Return identifier name for other cases
     return text
   }
-  
+
   // For other node types, return the text representation
   return node.getText()
 }
 
 function parseObjectLiteral(node: Node): any {
   const result: any = {}
-  
+
   // Use ts-morph's proper API to get object literal properties
   if (Node.isObjectLiteralExpression(node)) {
     const objLiteral = node
-    
+
     objLiteral.getProperties().forEach(prop => {
       if (Node.isPropertyAssignment(prop)) {
         const name = prop.getName()
         const initializer = prop.getInitializer()
-        
+
         if (initializer) {
           result[name] = parseExpression(initializer)
         } else {
@@ -86,6 +86,6 @@ function parseObjectLiteral(node: Node): any {
       }
     })
   }
-  
+
   return result
 }

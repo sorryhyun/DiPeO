@@ -2,14 +2,14 @@
 
 import os
 
-from dipeo.domain.base import APIKeyError, BaseService, ValidationError
 from dipeo.config import VALID_LLM_SERVICES, normalize_service_name
+from dipeo.domain.base import APIKeyError, BaseService, ValidationError
 from dipeo.domain.integrations.ports import APIKeyPort
 
 
 class EnvironmentAPIKeyService(BaseService, APIKeyPort):
     """API Key service that reads from environment variables.
-    
+
     This adapter allows applications to use environment variables for API key management,
     which is useful for CLI applications and containerized deployments.
     """
@@ -144,6 +144,4 @@ class EnvironmentAPIKeyService(BaseService, APIKeyPort):
         """Validate service name."""
         normalized_service = normalize_service_name(service)
         if normalized_service not in self.VALID_SERVICES:
-            raise ValidationError(
-                f"Invalid service. Must be one of: {self.VALID_SERVICES}"
-            )
+            raise ValidationError(f"Invalid service. Must be one of: {self.VALID_SERVICES}")

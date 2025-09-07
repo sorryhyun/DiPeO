@@ -22,11 +22,11 @@ export function getPanelConfig(type: NodeType | 'arrow' | 'person') {
       return derivePanelConfig(unifiedConfig);
     }
   }
-  
+
   // Only arrow and person remain in ENTITY_PANEL_CONFIGS
   if (type === 'arrow' || type === 'person') {
     return ENTITY_PANEL_CONFIGS[type];
   }
-  
+
   return null;
 }

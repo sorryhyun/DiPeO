@@ -11,7 +11,7 @@ import { JsonDict } from './types/json.js';
 
 export { LLMService, APIServiceType };
 export type { ToolConfig };
-export * from './nodes/index.js';
+export type { BaseNodeData } from '../node-specification.js';
 export * from './enums/index.js';
 export interface Vec2 {
   x: number;

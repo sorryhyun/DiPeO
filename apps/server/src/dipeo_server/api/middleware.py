@@ -1,15 +1,16 @@
 import os
 
-from dipeo.domain.base.exceptions import (  # noqa: F401
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from dipeo.domain.base.exceptions import (
     ConfigurationError,
     DiPeOError,
     ExecutionError,
     ServiceError,
     ValidationError,
 )
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 
 def setup_middleware(app: FastAPI):

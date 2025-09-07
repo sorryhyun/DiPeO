@@ -4,27 +4,28 @@ This module defines the domain-owned contracts for diagram operations,
 moving them from core/ports to domain ownership.
 """
 
-from typing import Protocol, TYPE_CHECKING, Any, Optional
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
-    from dipeo.diagram_generated import DomainDiagram, DiagramFormat
-    from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
+    from dipeo.diagram_generated import DiagramFormat, DomainDiagram
     from dipeo.domain.base.storage_port import DiagramInfo
+    from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 
 
 # ============================================================================
 # Diagram Compilation Port
 # ============================================================================
 
+
 class DiagramCompiler(Protocol):
     """Protocol for compiling between different diagram representations.
-    
+
     This is the domain-owned contract for diagram compilation.
     Implementations transform DomainDiagram to ExecutableDiagram.
     """
-    
+
     def compile(self, domain_diagram: "DomainDiagram") -> "ExecutableDiagram":
         """Compile domain diagram to executable form with resolved connections and execution order."""
         ...
@@ -34,40 +35,43 @@ class DiagramCompiler(Protocol):
 # Diagram Storage Serialization Port
 # ============================================================================
 
+
 class DiagramStorageSerializer(ABC):
     """Interface for serializing diagrams to/from storage formats.
-    
+
     This is used ONLY for file persistence. Internal APIs should
     pass DomainDiagram objects directly.
     """
-    
+
     @abstractmethod
     def serialize_for_storage(self, diagram: "DomainDiagram", format: str) -> str:
         """Serialize a DomainDiagram to string for file storage.
-        
+
         Args:
             diagram: The DomainDiagram to serialize
             format: Target format ('json', 'yaml', 'light', 'readable')
-            
+
         Returns:
             String representation for file storage
         """
         pass
 
     @abstractmethod
-    def deserialize_from_storage(self, content: str, format: str | None = None, diagram_path: str | None = None) -> "DomainDiagram":
+    def deserialize_from_storage(
+        self, content: str, format: str | None = None, diagram_path: str | None = None
+    ) -> "DomainDiagram":
         """Deserialize file content to DomainDiagram.
-        
+
         Args:
             content: String content from file
             format: Optional format hint, will auto-detect if not provided
             diagram_path: Optional path to the diagram file for context (e.g., prompt resolution)
-            
+
         Returns:
             DomainDiagram instance
         """
         pass
-    
+
     def validate(self, content: str) -> tuple[bool, list[str]]:
         """Validate that content can be deserialized."""
         try:
@@ -81,12 +85,13 @@ class DiagramStorageSerializer(ABC):
 # Format Strategy Port
 # ============================================================================
 
+
 class FormatStrategy(ABC):
     """Strategy for handling specific diagram formats.
-    
+
     Each format (light, native, readable) has its own strategy.
     """
-    
+
     @abstractmethod
     def parse(self, content: str) -> Any:
         """Parse content to intermediate format (dict, Pydantic model, etc)."""
@@ -98,9 +103,11 @@ class FormatStrategy(ABC):
         pass
 
     @abstractmethod
-    def deserialize_to_domain(self, content: str, diagram_path: str | None = None) -> "DomainDiagram":
+    def deserialize_to_domain(
+        self, content: str, diagram_path: str | None = None
+    ) -> "DomainDiagram":
         """Deserialize format-specific string to domain diagram.
-        
+
         Args:
             content: String content to deserialize
             diagram_path: Optional path to the diagram file for context
@@ -142,9 +149,10 @@ class FormatStrategy(ABC):
 # Unified Diagram Port
 # ============================================================================
 
+
 class DiagramPort(Protocol):
     """Protocol for all diagram operations - single source of truth.
-    
+
     This interface provides:
     - CRUD operations (create, get, update, delete)
     - Loading operations (from file or string)
@@ -157,16 +165,16 @@ class DiagramPort(Protocol):
     def detect_format(self, content: str) -> "DiagramFormat":
         """Detect the format of diagram content."""
         ...
-    
+
     def serialize(self, diagram: "DomainDiagram", format_type: str) -> str:
         """Serialize a DomainDiagram to string."""
         ...
-    
-    def deserialize(self, content: str, format_type: Optional[str] = None) -> "DomainDiagram":
+
+    def deserialize(self, content: str, format_type: str | None = None) -> "DomainDiagram":
         """Deserialize string content to DomainDiagram."""
         ...
-    
-    def load_from_string(self, content: str, format_type: Optional[str] = None) -> "DomainDiagram":
+
+    def load_from_string(self, content: str, format_type: str | None = None) -> "DomainDiagram":
         """Load a diagram from string content."""
         ...
 
@@ -174,35 +182,35 @@ class DiagramPort(Protocol):
     async def load_from_file(self, file_path: str) -> "DomainDiagram":
         """Load diagram from file."""
         ...
-    
+
     # Query operations
     async def exists(self, diagram_id: str) -> bool:
         """Check if a diagram exists."""
         ...
-    
-    async def list_diagrams(self, format_type: Optional[str] = None) -> list["DiagramInfo"]:
+
+    async def list_diagrams(self, format_type: str | None = None) -> list["DiagramInfo"]:
         """List all diagrams, optionally filtered by format."""
         ...
-    
+
     # CRUD operations
     async def create_diagram(
         self, name: str, diagram: "DomainDiagram", format_type: str = "native"
-    ) -> str: 
+    ) -> str:
         """Create a new diagram with a unique ID."""
         ...
-        
-    async def get_diagram(self, diagram_id: str) -> "DomainDiagram | None": 
+
+    async def get_diagram(self, diagram_id: str) -> "DomainDiagram | None":
         """Get a diagram by its ID."""
         ...
-        
-    async def update_diagram(self, diagram_id: str, diagram: "DomainDiagram") -> None: 
+
+    async def update_diagram(self, diagram_id: str, diagram: "DomainDiagram") -> None:
         """Update an existing diagram."""
         ...
-        
-    async def delete_diagram(self, diagram_id: str) -> None: 
+
+    async def delete_diagram(self, diagram_id: str) -> None:
         """Delete a diagram from storage."""
         ...
-    
+
     # Compilation
     def compile(self, domain_diagram: "DomainDiagram") -> "ExecutableDiagram":
         """Compile a DomainDiagram to ExecutableDiagram."""
@@ -213,9 +221,11 @@ class DiagramPort(Protocol):
 # Template Processing Port
 # ============================================================================
 
+
 @dataclass
 class TemplateResult:
     """Result of template processing with detailed feedback."""
+
     content: str
     missing_keys: list[str] = field(default_factory=list)
     used_keys: list[str] = field(default_factory=list)
@@ -224,23 +234,23 @@ class TemplateResult:
 
 class TemplateProcessorPort(Protocol):
     """Port for template processing functionality.
-    
+
     Infrastructure layer must provide implementations for variable substitution,
     conditionals, loops, and other template processing features.
     """
-    
+
     def process(self, template: str, context: dict[str, Any]) -> TemplateResult:
         """Process template and return detailed result including errors and missing keys."""
         ...
-    
+
     def process_simple(self, template: str, context: dict[str, Any]) -> str:
         """Convenience method that returns just the processed content."""
         ...
-    
+
     def process_single_brace(self, template: str, context: dict[str, Any]) -> str:
         """Process single brace variables {var} for arrow transformations."""
         ...
-    
+
     def extract_variables(self, template: str) -> list[str]:
         """Extract all variable names from a template."""
         ...

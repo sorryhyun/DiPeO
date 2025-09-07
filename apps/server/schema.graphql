@@ -10,7 +10,7 @@ enum APIServiceType {
   CLAUDE_CODE
 }
 
-"""Unique identifier for API keys"""
+"""Unique identifier type for apikey entities"""
 scalar ApiKeyID
 
 type ApiKeyResult {
@@ -20,7 +20,7 @@ type ApiKeyResult {
   api_key: DomainApiKeyType
 }
 
-"""Unique identifier for arrows"""
+"""Unique identifier type for arrow entities"""
 scalar ArrowID
 
 type AuthConfigType {
@@ -132,7 +132,7 @@ type DiagramFormatInfo {
   description: String
 }
 
-"""Unique identifier for diagrams"""
+"""Unique identifier type for diagram entities"""
 scalar DiagramID
 
 type DiagramMetadataType {
@@ -233,7 +233,7 @@ input ExecutionFilterInput {
   started_before: DateTime = null
 }
 
-"""Unique identifier for executions"""
+"""Unique identifier type for execution entities"""
 scalar ExecutionID
 
 type ExecutionResult {
@@ -283,7 +283,7 @@ enum HandleDirection {
   OUTPUT
 }
 
-"""Unique identifier for handles"""
+"""Unique identifier type for handle entities"""
 scalar HandleID
 
 enum HandleLabel {
@@ -354,7 +354,7 @@ type Mutation {
   unregister_cli_session(input: UnregisterCliSessionInput!): CliSessionResult!
 }
 
-"""Unique identifier for nodes"""
+"""Unique identifier type for node entities"""
 scalar NodeID
 
 type NodeResult {
@@ -373,7 +373,6 @@ enum NodeType {
   ENDPOINT
   DB
   USER_RESPONSE
-  PERSON_BATCH_JOB
   HOOK
   TEMPLATE_JOB
   JSON_SCHEMA_VALIDATOR
@@ -402,7 +401,7 @@ type OperationType {
   timeout_override: Float
 }
 
-"""Unique identifier for persons"""
+"""Unique identifier type for person entities"""
 scalar PersonID
 
 input PersonLLMConfigInput {

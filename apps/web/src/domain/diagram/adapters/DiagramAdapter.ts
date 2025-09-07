@@ -1,21 +1,21 @@
 /**
  * DiagramAdapter - React Flow Integration Layer
- * 
+ *
  * PURPOSE:
  * This adapter handles conversions between DiPeO's domain models and React Flow's
  * visual representation. It is specifically focused on the UI layer integration.
- * 
+ *
  * RESPONSIBILITIES:
  * - Convert domain nodes/arrows to React Flow nodes/edges
  * - Convert React Flow elements back to domain models
  * - Validate connections according to business rules
  * - Cache conversions for performance optimization
- * 
+ *
  * NOT RESPONSIBLE FOR:
  * - GraphQL type conversions (see @/lib/graphql/types)
  * - Data structure conversions (Arrays <-> Maps)
  * - Domain model definitions
- * 
+ *
  * USAGE:
  * Import this adapter when working with React Flow components.
  * For data conversions, import from '@/lib/graphql/types' instead.
@@ -107,25 +107,25 @@ export class DiagramAdapter {
     edges: DiPeoEdge[];
   } {
     const startTime = performance.now();
-    
+
     // Pre-index handles for O(1) lookups
     const handleIndex = createHandleIndex(diagram.handles || []);
     const indexTime = performance.now();
-    
+
     const nodes = (diagram.nodes || []).map((node: DomainNode) => {
       // O(1) lookup instead of O(n) filtering
       const handles = getHandlesForNode(handleIndex, node.id);
       return this.nodeToReactFlow(node, handles);
     });
-    
+
     const nodesTime = performance.now();
 
-    const edges = (diagram.arrows || []).map((arrow: DomainArrow) => 
+    const edges = (diagram.arrows || []).map((arrow: DomainArrow) =>
       this.arrowToReactFlow(arrow)
     );
-    
+
     const endTime = performance.now();
-    
+
     // Log performance metrics in development
     if (import.meta.env.DEV && diagram.nodes.length > 10) {
       console.log('[Performance] DiagramAdapter.toReactFlow:', {
@@ -150,21 +150,21 @@ export class DiagramAdapter {
     const inputs = handles
       .filter(h => h.direction === HandleDirection.INPUT)
       .reduce((acc, h) => ({ ...acc, [h.label]: h }), {});
-    
+
     const outputs = handles
       .filter(h => h.direction === HandleDirection.OUTPUT)
       .reduce((acc, h) => ({ ...acc, [h.label]: h }), {});
 
     // Ensure position is always defined with valid numbers
-    const position = node.position && 
-                    typeof node.position.x === 'number' && 
-                    typeof node.position.y === 'number' 
+    const position = node.position &&
+                    typeof node.position.x === 'number' &&
+                    typeof node.position.y === 'number'
                     ? { x: node.position.x, y: node.position.y }
                     : { x: 0, y: 0 };
 
     // Process node data
     const nodeData = { ...(node.data || {}) };
-    
+
     // Convert tools array to comma-separated string for person_job nodes
     if (node.type === NodeType.PERSON_JOB && Array.isArray(nodeData.tools)) {
       nodeData.tools = Converters.toolsArrayToString(nodeData.tools as Array<{ type: string }>);
@@ -174,7 +174,7 @@ export class DiagramAdapter {
     // This handles nodes loaded from the backend that only have memory_settings
     if (node.type === NodeType.PERSON_JOB && nodeData.memory_settings && !nodeData.memory_profile) {
       const memorySettings = nodeData.memory_settings as any;
-      
+
       // Determine memory profile based on memory settings
       // if (memorySettings.view === MemoryView.ALL_MESSAGES && !memorySettings.max_messages) {
       //   nodeData.memory_profile = 'FULL';
@@ -218,25 +218,25 @@ export class DiagramAdapter {
     const targetParsed = Converters.parseHandleId(arrow.target);
     const sourceNode = sourceParsed.node_id;
     const targetNode = targetParsed.node_id;
-    
+
     // React Flow expects sourceHandle/targetHandle to be the full handle ID
     // that matches what FlowHandle component generates: nodeId_label_direction
     // Since our stored format is already in this format, we use it directly
     const sourceHandle = arrow.source;
     const targetHandle = arrow.target;
-    
+
     // Merge arrow's direct fields (content_type, label) into data
     const edgeData = { ...(arrow.data || {}) };
     if (arrow.content_type) {
       // Normalize content_type to lowercase for UI consistency
-      edgeData.content_type = typeof arrow.content_type === 'string' 
-        ? arrow.content_type.toLowerCase() 
+      edgeData.content_type = typeof arrow.content_type === 'string'
+        ? arrow.content_type.toLowerCase()
         : arrow.content_type;
     }
     if (arrow.label) {
       edgeData.label = arrow.label;
     }
-    
+
     return {
       id: arrow.id,
       type: 'customArrow',
@@ -257,7 +257,7 @@ export class DiagramAdapter {
    */
   static reactToNode(rfNode: RFNode): DomainNode {
     const { _handles, ...nodeData } = rfNode.data || {};
-    
+
     return {
       id: Converters.toNodeId(rfNode.id),
       type: Converters.stringToNodeType(rfNode.type || 'start'),
@@ -276,9 +276,9 @@ export class DiagramAdapter {
     // Map handle strings to HandleLabel enum
     const sourceHandleLabel = (rfEdge.sourceHandle || 'default') as HandleLabel;
     const targetHandleLabel = (rfEdge.targetHandle || 'default') as HandleLabel;
-    
+
     const sourceHandle = Converters.createHandleId(
-      Converters.toNodeId(rfEdge.source), 
+      Converters.toNodeId(rfEdge.source),
       sourceHandleLabel,
       HandleDirection.OUTPUT
     );
@@ -290,14 +290,14 @@ export class DiagramAdapter {
 
     // Extract content_type and label from data
     const { content_type, label, ...restData } = rfEdge.data || {};
-    
+
     const domainArrow: DomainArrow = {
       id: Converters.toArrowId(rfEdge.id),
       source: sourceHandle,
       target: targetHandle,
       data: Object.keys(restData).length > 0 ? restData : null
     };
-    
+
     // Add content_type and label as direct fields if present
     if (content_type !== undefined && content_type !== null) {
       // Keep content_type as lowercase for backend compatibility
@@ -320,7 +320,7 @@ export class DiagramAdapter {
 
     const sourceHandleLabel = (connection.sourceHandle || 'default') as HandleLabel;
     const targetHandleLabel = (connection.targetHandle || 'default') as HandleLabel;
-    
+
     const sourceHandle = Converters.createHandleId(
       Converters.toNodeId(connection.source),
       sourceHandleLabel,
@@ -364,7 +364,7 @@ export class DiagramAdapter {
 
     const sourceHandleLabel = (connection.sourceHandle || 'default') as HandleLabel;
     const targetHandleLabel = (connection.targetHandle || 'default') as HandleLabel;
-    
+
     const sourceHandleId = Converters.createHandleId(
       Converters.toNodeId(connection.source),
       sourceHandleLabel,
@@ -379,7 +379,7 @@ export class DiagramAdapter {
     // Find the actual handles
     const sourceNode = diagram.nodes.find((n: DomainNode) => n.id === connection.source);
     const targetNode = diagram.nodes.find((n: DomainNode) => n.id === connection.target);
-    
+
     if (!sourceNode || !targetNode) {
       validated.isValid = false;
       validated.validationMessage = 'Node not found';
@@ -388,7 +388,7 @@ export class DiagramAdapter {
 
     // Pre-index handles for O(1) lookups
     const handleIndex = createHandleIndex(diagram.handles || []);
-    
+
     // Extract handle label from the full handle ID
     // Handle ID format: nodeId_handleLabel_direction
     const extractHandleLabel = (handleId: string | null): string => {
@@ -400,10 +400,10 @@ export class DiagramAdapter {
       }
       return handleId;
     };
-    
+
     const sourceLabel = extractHandleLabel(connection.sourceHandle);
     const targetLabel = extractHandleLabel(connection.targetHandle);
-    
+
     const sourceHandle = findHandleByLabel(
       handleIndex,
       Converters.toNodeId(connection.source),
@@ -424,10 +424,10 @@ export class DiagramAdapter {
         targetNode: connection.target,
         targetHandleId: connection.targetHandle,
         targetLabel,
-        availableHandles: diagram.handles?.map(h => ({ 
-          nodeId: h.node_id, 
-          label: h.label, 
-          direction: h.direction 
+        availableHandles: diagram.handles?.map(h => ({
+          nodeId: h.node_id,
+          label: h.label,
+          direction: h.direction
         }))
       });
       validated.isValid = false;
@@ -449,7 +449,7 @@ export class DiagramAdapter {
     const existingArrow = diagram.arrows.find((arrow: DomainArrow) =>
       arrow.source === sourceHandleId && arrow.target === targetHandleId
     );
-    
+
     if (existingArrow) {
       validated.isValid = false;
       validated.validationMessage = 'Connection already exists';
@@ -476,11 +476,11 @@ export class DiagramAdapter {
    */
   static reactNodesToDomain(rfNodes: RFNode[]): Map<NodeID, DomainNode> {
     const domainNodes = rfNodes.map(rfNode => this.reactToNode(rfNode));
-    return diagramArraysToMaps({ 
-      nodes: domainNodes, 
-      arrows: [], 
-      handles: [], 
-      persons: [] 
+    return diagramArraysToMaps({
+      nodes: domainNodes,
+      arrows: [],
+      handles: [],
+      persons: []
     }).nodes;
   }
 
@@ -489,11 +489,11 @@ export class DiagramAdapter {
    */
   static reactEdgesToDomain(rfEdges: RFEdge[]): Map<ArrowID, DomainArrow> {
     const domainArrows = rfEdges.map(rfEdge => this.reactToArrow(rfEdge));
-    return diagramArraysToMaps({ 
-      nodes: [], 
-      arrows: domainArrows, 
-      handles: [], 
-      persons: [] 
+    return diagramArraysToMaps({
+      nodes: [],
+      arrows: domainArrows,
+      handles: [],
+      persons: []
     }).arrows;
   }
 }

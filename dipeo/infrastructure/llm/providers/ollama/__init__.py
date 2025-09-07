@@ -3,4 +3,4 @@
 from .adapter import OllamaAdapter
 from .client import AsyncOllamaClientWrapper, OllamaClientWrapper
 
-__all__ = ["OllamaAdapter", "OllamaClientWrapper", "AsyncOllamaClientWrapper"]
+__all__ = ["AsyncOllamaClientWrapper", "OllamaAdapter", "OllamaClientWrapper"]

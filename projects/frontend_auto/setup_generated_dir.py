@@ -4,47 +4,48 @@ Setup the generated directory with base configuration files before generation st
 This ensures all config files are in place before any source code generation.
 """
 
+import json
 import os
 import shutil
 from pathlib import Path
-import json
+
 
 def setup_generated_directory(inputs=None):
     """
     Initialize the generated directory with base configuration files.
-    
+
     This function:
     1. Creates the generated directory if it doesn't exist
     2. Copies all base configuration files from base_configs/
     3. Creates necessary subdirectories (src/, etc.)
     4. Returns status for the diagram flow
     """
-    
+
     # Get base directory from environment or use current file's location
-    dipeo_base = os.environ.get('DIPEO_BASE_DIR')
+    dipeo_base = os.environ.get("DIPEO_BASE_DIR")
     if dipeo_base:
         project_dir = Path(dipeo_base) / "projects" / "frontend_auto"
     else:
         # Fallback to relative path from script location
         project_dir = Path(__file__).parent
-    
+
     base_configs_dir = project_dir / "base_configs"
     generated_dir = project_dir / "generated"
-    
+
     # Check if base_configs directory exists
     if not base_configs_dir.exists():
         print(f"Error: Base configs directory not found at {base_configs_dir}")
         return {"success": False, "error": "Base configs directory not found"}
-    
+
     # Create generated directory if it doesn't exist
     generated_dir.mkdir(parents=True, exist_ok=True)
     print(f"✓ Ensured generated directory exists at {generated_dir}")
-    
+
     # Create src directory
     src_dir = generated_dir / "src"
     src_dir.mkdir(parents=True, exist_ok=True)
     print(f"✓ Created src directory at {src_dir}")
-    
+
     # List of config files to copy
     config_files = [
         "package.json",
@@ -56,25 +57,25 @@ def setup_generated_directory(inputs=None):
         "postcss.config.js",
         "index.html",
         ".gitignore",
-        ".eslintrc.json"
+        ".eslintrc.json",
     ]
-    
+
     copied_count = 0
     for config_file in config_files:
         source = base_configs_dir / config_file
         target = generated_dir / config_file
-        
+
         if source.exists():
             shutil.copy2(source, target)
             print(f"✓ Copied {config_file} to generated/")
             copied_count += 1
         else:
             print(f"⚠ Warning: {config_file} not found in base_configs/")
-    
+
     # Create additional directories that might be needed
     additional_dirs = [
         "src/core",
-        "src/app", 
+        "src/app",
         "src/providers",
         "src/services",
         "src/hooks",
@@ -89,15 +90,15 @@ def setup_generated_directory(inputs=None):
         "src/styles",
         "src/mocks",
         "src/plugins",
-        "src/workers"
+        "src/workers",
     ]
-    
+
     for dir_path in additional_dirs:
         full_path = generated_dir / dir_path
         full_path.mkdir(parents=True, exist_ok=True)
-    
-    print(f"✓ Created all necessary subdirectories")
-    
+
+    print("✓ Created all necessary subdirectories")
+
     # Create a basic styles/tailwind.css file if it doesn't exist
     tailwind_css = generated_dir / "src" / "styles" / "tailwind.css"
     if not tailwind_css.exists():
@@ -161,16 +162,15 @@ def setup_generated_directory(inputs=None):
   }
 }
 """)
-        print(f"✓ Created src/styles/tailwind.css")
-    
-    print(f"\n✅ Setup complete! Copied {copied_count} config files and created directory structure")
-    
+        print("✓ Created src/styles/tailwind.css")
+
+    print(
+        f"\n✅ Setup complete! Copied {copied_count} config files and created directory structure"
+    )
+
     # Return success status for diagram flow
-    return {
-        "success": True,
-        "copied_files": copied_count,
-        "generated_dir": str(generated_dir)
-    }
+    return {"success": True, "copied_files": copied_count, "generated_dir": str(generated_dir)}
+
 
 if __name__ == "__main__":
     result = setup_generated_directory()

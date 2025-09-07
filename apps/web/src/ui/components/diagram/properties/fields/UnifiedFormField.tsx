@@ -3,10 +3,10 @@ import { Input, Select, Switch } from '@/ui/components/common/forms';
 import { Button, FileUploadButton } from '@/ui/components/common/forms/buttons';
 import { Spinner } from '@/ui/components/common/feedback';
 import { FileText } from 'lucide-react';
-import { 
-  FULL_WIDTH, SPACE_Y_2, TEXTAREA_CLASSES, LABEL_TEXT, 
-  ERROR_TEXT, ERROR_TEXT_MT, HELPER_TEXT, HELPER_TEXT_MT, 
-  REQUIRED_ASTERISK, FLEX_CENTER_GAP 
+import {
+  FULL_WIDTH, SPACE_Y_2, TEXTAREA_CLASSES, LABEL_TEXT,
+  ERROR_TEXT, ERROR_TEXT_MT, HELPER_TEXT, HELPER_TEXT_MT,
+  REQUIRED_ASTERISK, FLEX_CENTER_GAP
 } from '../styles.constants';
 import { readFileAsText } from '@/lib/utils/file';
 import { FIELD_TYPES } from '@/infrastructure/types/panel';
@@ -19,7 +19,7 @@ import { debounce } from '@/lib/utils/debounce';
 export type FieldValue = string | number | boolean | null | undefined;
 
 // Map UnifiedFormField types to base field types
-export type UnifiedFieldType = 
+export type UnifiedFieldType =
   | typeof FIELD_TYPES.TEXT
   | typeof FIELD_TYPES.SELECT
   | typeof FIELD_TYPES.TEXTAREA
@@ -86,7 +86,7 @@ function normalizeUnifiedFieldType(type: string): UnifiedFieldType {
 // PromptFileField component - extracted to fix React hooks rules
 const PromptFileField: React.FC<WidgetProps> = (p) => {
   const [showPicker, setShowPicker] = React.useState(false);
-  
+
   return (
     <>
       <div className={FLEX_CENTER_GAP}>
@@ -142,7 +142,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
       {...p.customProps}
     />
   ),
-  
+
   [FIELD_TYPES.NUMBER]: (p) => (
     <Input
       id={p.fieldId}
@@ -157,7 +157,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
       {...p.customProps}
     />
   ),
-  
+
   [FIELD_TYPES.MAX_ITERATION]: (p) => (
     <Input
       id={p.fieldId}
@@ -175,13 +175,13 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
       {...p.customProps}
     />
   ),
-  
+
   [FIELD_TYPES.TEXTAREA]: (p) => {
     // For adjustable textareas, remove transition to prevent resize delay
-    const textareaClasses = p.adjustable 
+    const textareaClasses = p.adjustable
       ? TEXTAREA_CLASSES.replace('resize-none', 'resize-y').replace('transition-all duration-200', '')
       : TEXTAREA_CLASSES;
-    
+
     return (
       <div className="relative">
         <textarea
@@ -213,9 +213,9 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
       </div>
     );
   },
-  
+
   [FIELD_TYPES.VARIABLE_TEXTAREA]: (p) => widgets[FIELD_TYPES.TEXTAREA](p),
-  
+
   [FIELD_TYPES.SELECT]: (p) => (
     <Select
       id={p.fieldId}
@@ -240,7 +240,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
       ))}
     </Select>
   ),
-  
+
   [FIELD_TYPES.PERSON_SELECT]: (p) => (
     <Select
       id={p.fieldId}
@@ -258,7 +258,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
       ))}
     </Select>
   ),
-  
+
   [FIELD_TYPES.BOOLEAN]: (p) => (
     <Switch
       id={p.fieldId}
@@ -268,7 +268,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
       {...p.customProps}
     />
   ),
-  
+
   file: (p) => {
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
@@ -302,7 +302,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
           disabled={p.isLoadingState}
           className={FULL_WIDTH}
         />
-        
+
         <div className={FLEX_CENTER_GAP}>
           <FileUploadButton
             accept={p.acceptedFileTypes || ".txt,.docx,.doc,.pdf,.csv,.json"}
@@ -314,7 +314,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
           >
             {p.isLoadingState ? "Uploading..." : "Upload File"}
           </FileUploadButton>
-          
+
           {p.isLoadingState && (
             <div className="flex items-center text-sm text-gray-600">
               <Spinner size="sm" className="mr-2" />
@@ -379,7 +379,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
       {...p.customProps}
     />
   ),
-  
+
   // Custom prompt file picker - stores filename, not content
   'promptFile': (p) => <PromptFileField {...p} />
 };
@@ -426,74 +426,74 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const isLoadingState = isLoading || localLoading;
-  
+
   // Get field metadata from NodeService if nodeType is provided
   const fieldMetadata = useMemo(() => {
     if (!nodeType || !name) return null;
     const nodeSpec = NodeService.getNodeSpec(nodeType);
     return nodeSpec?.fields?.find(f => f.name === name);
   }, [nodeType, name]);
-  
+
   // Validation function
   const validateFieldValue = useCallback((fieldValue: FieldValue) => {
     if (!nodeType || !name) return;
-    
+
     setIsValidating(true);
     const errors = ValidationService.getFieldValidationMessages(nodeType, name, fieldValue);
     setValidationErrors(errors);
-    
+
     // Notify parent component
     if (onValidationChange) {
       onValidationChange(errors.length === 0, errors);
     }
-    
+
     setIsValidating(false);
   }, [nodeType, name, onValidationChange]);
-  
+
   // Debounced validation for onChange
   const debouncedValidate = useMemo(
     () => debounce(validateFieldValue, 300),
     [validateFieldValue]
   );
-  
+
   // Handle value changes with validation
   const handleChange = useCallback((newValue: FieldValue) => {
     onChange(newValue);
-    
+
     if (validateOnChange && nodeType) {
       debouncedValidate(newValue);
     }
   }, [onChange, validateOnChange, nodeType, debouncedValidate]);
-  
+
   // Handle blur events with validation
   const handleBlur = useCallback(() => {
     if (validateOnBlur && nodeType) {
       validateFieldValue(value);
     }
   }, [validateOnBlur, nodeType, value, validateFieldValue]);
-  
+
   // Validate on mount if nodeType is provided
   useEffect(() => {
     if (nodeType && name) {
       validateFieldValue(value);
     }
   }, [nodeType, name]); // eslint-disable-line react-hooks/exhaustive-deps
-  
+
   // Memoize variable detection hint
   const variableHint = useMemo(() => {
     if (!detectedVariables?.length) return hint;
     const variableText = `Detected variables: ${detectedVariables.map(v => `{{${v}}}`).join(', ')}`;
     return hint ? `${hint}\n${variableText}` : variableText;
   }, [detectedVariables, hint]);
-  
+
   // Combine validation errors with prop error
   const displayError = error || (validationErrors.length > 0 ? validationErrors[0] : null);
-  
+
   // Use field metadata for enhanced configuration
   const enhancedPlaceholder = placeholder || fieldMetadata?.uiConfig?.placeholder;
   const enhancedHelperText = helperText || fieldMetadata?.description;
   const isRequired = required || fieldMetadata?.required;
-  
+
   // Create widget props
   const widgetProps: WidgetProps = {
     value,
@@ -521,14 +521,14 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
     adjustable,
     onPromptFileSelect
   };
-  
+
   // Normalize field type for lookup
   const normalizedType = normalizeUnifiedFieldType(type);
   const fieldElement = widgets[normalizedType]?.(widgetProps) ?? null;
-  
+
   // Use vertical layout for adjustable fields or when explicitly specified
   const effectiveLayout = adjustable ? 'vertical' : layout;
-  
+
   if (effectiveLayout === 'vertical') {
     return (
       <div className={`${SPACE_Y_2} ${className} ${adjustable ? 'w-full' : ''}`}>
@@ -543,7 +543,7 @@ export const UnifiedFormField: React.FC<UnifiedFormFieldProps> = ({
       </div>
     );
   }
-  
+
   // Inline layout (default)
   return (
     <div className={`flex items-center gap-4 ${className}`}>

@@ -1,6 +1,6 @@
 /**
  * Person Converter Module
- * 
+ *
  * Handles all conversions related to AI personas.
  * Manages transformations between GraphQL and Domain representations.
  */
@@ -23,7 +23,7 @@ export class PersonConverter {
   static toDomain(graphqlPerson: DomainPersonType | any): DomainPerson {
     return convertGraphQLPersonToDomain(graphqlPerson);
   }
-  
+
   /**
    * Convert domain person to GraphQL input
    */
@@ -39,35 +39,35 @@ export class PersonConverter {
       }
     };
   }
-  
+
   /**
    * Batch convert GraphQL persons to domain
    */
   static batchToDomain(graphqlPersons: DomainPersonType[]): DomainPerson[] {
     return graphqlPersons.map(person => this.toDomain(person));
   }
-  
+
   /**
    * Batch convert domain persons to GraphQL
    */
   static batchToGraphQL(domainPersons: DomainPerson[]): Partial<DomainPersonType>[] {
     return domainPersons.map(person => this.toGraphQL(person));
   }
-  
+
   /**
    * Convert array to Map for efficient lookups
    */
   static arrayToMap(persons: DomainPerson[]): Map<PersonID, DomainPerson> {
     return new Map(persons.map(person => [person.id, person]));
   }
-  
+
   /**
    * Filter persons by LLM service
    */
   static filterByService(persons: DomainPerson[], service: LLMService): DomainPerson[] {
     return persons.filter(person => person.llm_config.service === service);
   }
-  
+
   /**
    * Group persons by LLM service
    */
@@ -81,7 +81,7 @@ export class PersonConverter {
     });
     return groups;
   }
-  
+
   /**
    * Create a minimal person
    */
@@ -102,7 +102,7 @@ export class PersonConverter {
       type: 'person'
     };
   }
-  
+
   /**
    * Update LLM config for a person
    */
@@ -118,12 +118,12 @@ export class PersonConverter {
       }
     };
   }
-  
+
   /**
    * Check if person has valid API key
    */
   static hasApiKey(person: DomainPerson): boolean {
-    return person.llm_config.api_key_id !== '' && 
+    return person.llm_config.api_key_id !== '' &&
            person.llm_config.api_key_id !== apiKeyId('');
   }
 }

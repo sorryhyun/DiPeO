@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from dipeo.diagram_generated import DataType, HandleDirection, HandleLabel, NodeID, NodeType
+
 from .handle_utils import create_handle_id
 
 log = logging.getLogger(__name__)
@@ -27,25 +28,25 @@ __all__ = (
 # Internal helpers
 
 
-def _create_handle_id_from_enums(node_id: str, label: HandleLabel, direction: HandleDirection) -> str:
+def _create_handle_id_from_enums(
+    node_id: str, label: HandleLabel, direction: HandleDirection
+) -> str:
     # Use the handle_utils version which properly handles enums
     result = create_handle_id(NodeID(node_id), label, direction)
     return str(result)
 
 
-def _push_handle(
-    container: dict[str, Any] | Any, handle: dict[str, Any]
-) -> None:
+def _push_handle(container: dict[str, Any] | Any, handle: dict[str, Any]) -> None:
     if isinstance(container, dict):
-        handles = container.get('handles', [])
+        handles = container.get("handles", [])
         if isinstance(handles, dict):
-            handles[handle['id']] = handle
+            handles[handle["id"]] = handle
         else:
             handles.append(handle)
-            container['handles'] = handles
-    elif hasattr(container, 'handles'):
+            container["handles"] = handles
+    elif hasattr(container, "handles"):
         if isinstance(container.handles, dict):
-            container.handles[handle['id']] = handle
+            container.handles[handle["id"]] = handle
         else:
             container.handles.append(handle)
 
@@ -58,12 +59,12 @@ def _make_handle(
 ) -> dict[str, Any]:
     hid = _create_handle_id_from_enums(node_id, label, direction)
     return {
-        'id': hid,
-        'node_id': node_id,
-        'label': label.value,
-        'direction': direction.value,
-        'data_type': dtype.value,
-        'position': "left" if direction == HandleDirection.INPUT else "right",
+        "id": hid,
+        "node_id": node_id,
+        "label": label.value,
+        "direction": direction.value,
+        "data_type": dtype.value,
+        "position": "left" if direction == HandleDirection.INPUT else "right",
     }
 
 
@@ -71,7 +72,6 @@ def _make_handle(
 
 
 class HandleGenerator:
-
     def generate_for_node(
         self,
         diagram: dict[str, Any] | Any,
@@ -84,14 +84,14 @@ class HandleGenerator:
                 _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
             )
             return
-            
+
         if node_type == NodeType.ENDPOINT.value:
             _push_handle(
                 diagram,
                 _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
             )
             return
-            
+
         # Condition nodes have one input and two outputs (true/false)
         if node_type == NodeType.CONDITION.value:
             _push_handle(
@@ -100,14 +100,18 @@ class HandleGenerator:
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.CONDTRUE, HandleDirection.OUTPUT, DataType.BOOLEAN),
+                _make_handle(
+                    node_id, HandleLabel.CONDTRUE, HandleDirection.OUTPUT, DataType.BOOLEAN
+                ),
             )
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.CONDFALSE, HandleDirection.OUTPUT, DataType.BOOLEAN),
+                _make_handle(
+                    node_id, HandleLabel.CONDFALSE, HandleDirection.OUTPUT, DataType.BOOLEAN
+                ),
             )
             return
-            
+
         # Database nodes have input and output
         if node_type == NodeType.DB.value:
             _push_handle(
@@ -135,19 +139,7 @@ class HandleGenerator:
                 _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
             )
             return
-            
-        # person_batch_job nodes have default input and output
-        if node_type == NodeType.PERSON_BATCH_JOB.value:
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
-            )
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
-            )
-            return
-            
+
         # user_response nodes have default input and output
         if node_type == NodeType.USER_RESPONSE.value:
             _push_handle(
@@ -171,7 +163,6 @@ class HandleGenerator:
 
 
 class PositionCalculator:
-
     def __init__(
         self,
         columns: int = 4,
@@ -186,22 +177,21 @@ class PositionCalculator:
     def calculate_grid_position(self, index: int) -> dict[str, float]:
         row, col = divmod(index, self.columns)
         return {
-            'x': self.x_offset + col * self.x_spacing,
-            'y': self.y_offset + row * self.y_spacing,
+            "x": self.x_offset + col * self.x_spacing,
+            "y": self.y_offset + row * self.y_spacing,
         }
 
     def calculate_vertical_position(self, index: int, x: int = 300) -> dict[str, float]:
-        return {'x': x, 'y': self.y_offset + index * self.y_spacing}
+        return {"x": x, "y": self.y_offset + index * self.y_spacing}
 
     def calculate_horizontal_position(self, index: int, y: int = 300) -> dict[str, float]:
         return {
-            'x': self.x_offset + index * self.x_spacing,
-            'y': y,
+            "x": self.x_offset + index * self.x_spacing,
+            "y": y,
         }
 
 
 class ArrowBuilder:
-
     @staticmethod
     def create_arrow_id(source_handle: str, target_handle: str) -> str:
         return f"{source_handle}->{target_handle}"
@@ -228,21 +218,17 @@ def coerce_to_dict(
 ) -> dict[str, Any]:
     if isinstance(seq_or_map, dict):
         return dict(seq_or_map)
-    if isinstance(seq_or_map, (list, tuple)):
+    if isinstance(seq_or_map, list | tuple):
         return {
             (
-                item.get(id_key)
-                if isinstance(item, dict) and id_key in item
-                else f"{prefix}_{i}"
+                item.get(id_key) if isinstance(item, dict) and id_key in item else f"{prefix}_{i}"
             ): item
             for i, item in enumerate(seq_or_map)
         }
     return {}
 
 
-def build_node(
-    id: str, type_: str, pos: dict[str, float] | None = None, **data
-) -> dict[str, Any]:
+def build_node(id: str, type_: str, pos: dict[str, float] | None = None, **data) -> dict[str, Any]:
     return {"id": id, "type": type_, "position": pos or {}, **data}
 
 
@@ -254,7 +240,7 @@ def ensure_position(
     if not node_dict.get("position"):
         calc = position_calculator or PositionCalculator()
         vec = calc.calculate_grid_position(index)
-        node_dict["position"] = {"x": vec.get('x'), "y": vec.get('y')}
+        node_dict["position"] = {"x": vec.get("x"), "y": vec.get("y")}
 
 
 def extract_common_arrows(arrows: Any) -> list[dict[str, Any]]:

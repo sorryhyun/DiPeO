@@ -1,6 +1,6 @@
 // Re-export conversation types from core for backwards compatibility
-export type { 
+export type {
   InteractivePromptData,
   ConversationFilters,
-  UIConversationMessage 
+  UIConversationMessage
 } from '@/infrastructure/types/conversation';

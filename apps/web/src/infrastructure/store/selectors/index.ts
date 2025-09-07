@@ -195,11 +195,11 @@ function createSelector<Args extends any[], R>(
 
   return (state: UnifiedStore) => {
     const currentArgs = selectors.map(sel => sel(state));
-    
+
     if (lastArgs && currentArgs.every((arg, i) => arg === lastArgs![i])) {
       return lastResult!;
     }
-    
+
     lastArgs = currentArgs;
     lastResult = combiner(...(currentArgs as Args));
     return lastResult;
@@ -275,7 +275,7 @@ export const selectExecutionSummary: Selector<{
   const isExecuting = selectIsExecuting(state);
   const progress = selectExecutionProgress(state);
   const nodeStates = state.execution.nodeStates;
-  
+
   const totalNodes = nodeStates.size;
   const completedNodes = Array.from(nodeStates.values()).filter(
     (state: NodeExecutionState) => state.status === Status.COMPLETED
@@ -307,15 +307,15 @@ export const selectGraphStructure: Selector<{
   (nodes: Map<NodeID, DomainNode>, arrows: Map<ArrowID, DomainArrow>) => {
     // Build adjacency list for graph traversal
     const adjacencyList = new Map<NodeID, NodeID[]>();
-    
+
     nodes.forEach((_, nodeId: NodeID) => {
       adjacencyList.set(nodeId, []);
     });
-    
+
     arrows.forEach((arrow: DomainArrow) => {
       const sourceNodeId = extractNodeIdFromHandleId(arrow.source);
       const targetNodeId = extractNodeIdFromHandleId(arrow.target);
-      
+
       const neighbors = adjacencyList.get(sourceNodeId) || [];
       neighbors.push(targetNodeId);
       adjacencyList.set(sourceNodeId, neighbors);
@@ -363,8 +363,8 @@ function checkIsDAG(adjacencyList: Map<NodeID, NodeID[]>): boolean {
 
 // Note: Selector hooks should be created in components that import both selectors and the store
 // to avoid circular dependencies. Example usage:
-// 
+//
 // import { useUnifiedStore } from '@/infrastructure/store';
 // import { selectNodeById } from '@/infrastructure/store/selectors';
-// 
+//
 // const useNodeById = (id: NodeID) => useUnifiedStore(selectNodeById(id));

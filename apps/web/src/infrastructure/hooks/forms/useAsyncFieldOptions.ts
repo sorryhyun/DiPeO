@@ -24,7 +24,7 @@ export function useAsyncFieldOptions<T extends Record<string, any>, Option = any
 
   const isEnabled = useMemo(() => {
     if (!enabled) return false;
-    
+
     return dependencies.every(dep => {
       const value = formState.data[dep];
       return value !== undefined && value !== null && value !== '';
@@ -82,15 +82,15 @@ export function useMultipleAsyncFieldOptions<T extends Record<string, any>>(
   const queryConfigs = useMemo(() => {
     return fieldEntries.map(([field, options]) => {
       const { queryKey, queryFn, dependencies = [], enabled = true } = options;
-      
+
       // Calculate if query should be enabled based on dependencies
       const hasAllDependencies = dependencies.length === 0 || dependencies.every(dep => {
         const value = trackedDependencyValues[dep];
         return value !== undefined && value !== null && value !== '';
       });
-      
+
       const isEnabled = enabled && hasAllDependencies;
-      
+
       // Create dependency values for query key
       const dependencyValues = dependencies.map(dep => trackedDependencyValues[dep]);
 
@@ -114,13 +114,13 @@ export function useMultipleAsyncFieldOptions<T extends Record<string, any>>(
     return fieldEntries.reduce((acc, [field], index) => {
       const queryResult = queryResults[index];
       const options = fields[field];
-      
+
       if (!options || !queryResult) {
         return acc;
       }
-      
+
       const { dependencies = [], enabled = true } = options;
-      
+
       const isEnabled = enabled && dependencies.every((dep: string) => {
         const value = trackedDependencyValues[dep];
         return value !== undefined && value !== null && value !== '';

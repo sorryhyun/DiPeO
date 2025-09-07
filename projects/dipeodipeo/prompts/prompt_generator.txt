@@ -12,22 +12,22 @@ PROMPT GENERATION GUIDELINES:
    - Consider error handling and validation requirements
 
 2. STRUCTURE YOUR PROMPT:
-   
+
    A. Clear Objective Statement
       - Start with "Create a DiPeO diagram that..."
       - Be specific about the goal and expected outcome
       - Mention key operations (load, process, validate, save)
-   
+
    B. Input/Output Specification
       - Clearly describe input data sources and formats
       - Specify expected output format and destination
       - Include sample data structure if relevant
-   
+
    C. Processing Steps
       - List required operations in logical order
       - Specify when to use code_job vs person_job
       - Include validation and error handling steps
-   
+
    D. Technical Requirements
       - Specify programming language preferences (Python default)
       - Mention performance considerations (parallel processing)
@@ -44,16 +44,16 @@ PROMPT GENERATION GUIDELINES:
 
    For Data Processing Workflows:
    ```
-   "Load [data type] from [source], validate [criteria], 
+   "Load [data type] from [source], validate [criteria],
    transform by [operation], and save to [destination]"
    ```
-   
+
    For Analysis Workflows:
    ```
-   "Analyze [data] for [patterns/metrics], generate 
+   "Analyze [data] for [patterns/metrics], generate
    [insights/reports], and output [format]"
    ```
-   
+
    For Integration Workflows:
    ```
    "Fetch data from [API/source], combine with [local data],
@@ -72,20 +72,20 @@ PROMPT GENERATION GUIDELINES:
 6. EXAMPLE PROMPT STRUCTURE:
 
    "Create a DiPeO diagram that [main objective].
-   
+
    The diagram should:
    1. [First major step with details]
    2. [Second major step with details]
    3. [Additional steps...]
-   
+
    Requirements:
    - Input: [format and source]
    - Output: [format and destination]
    - Processing: [key operations]
    - Validation: [criteria]
    - Error handling: [approach]
-   
-   Use code_job nodes for [specific operations] and 
+
+   Use code_job nodes for [specific operations] and
    ensure all connections specify appropriate content_types
    (raw_text for unstructured data, object for structured data)."
 

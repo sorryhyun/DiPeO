@@ -1,103 +1,100 @@
 """GraphQL result types for DiPeO operations."""
 
 import strawberry
-from typing import Optional
-
-from strawberry.scalars import JSON as JSONScalar
+from strawberry.scalars import JSON
 
 # Import ID scalars from domain models (if needed for type checking)
-
-# Import Strawberry types
-from .domain_types import (
-    DomainDiagramType,
-    ExecutionStateType,
-    DomainPersonType,
+# Import Strawberry types from generated code
+from dipeo.diagram_generated.graphql.domain_types import (
     DomainApiKeyType,
-    DomainNodeType
+    DomainDiagramType,
+    DomainNodeType,
+    DomainPersonType,
+    ExecutionStateType,
 )
 
 
 @strawberry.type
 class DiagramOperationResult:
     success: bool
-    message: Optional[str] = None
-    diagram: Optional[DomainDiagramType] = None
-    error: Optional[str] = None
+    message: str | None = None
+    diagram: DomainDiagramType | None = None
+    error: str | None = None
 
 
 @strawberry.type
 class ExecutionResult:
     success: bool
-    execution_id: Optional[str] = None
-    execution: Optional[ExecutionStateType] = None
-    message: Optional[str] = None
-    error: Optional[str] = None
+    execution_id: str | None = None
+    execution: ExecutionStateType | None = None
+    message: str | None = None
+    error: str | None = None
 
 
 @strawberry.type
 class FileOperationResult:
     success: bool
-    message: Optional[str] = None
-    content: Optional[str] = None
-    error: Optional[str] = None
+    message: str | None = None
+    content: str | None = None
+    error: str | None = None
 
 
 @strawberry.type
 class PersonResult:
     success: bool
-    person: Optional[DomainPersonType] = None
-    message: Optional[str] = None
-    error: Optional[str] = None
+    person: DomainPersonType | None = None
+    message: str | None = None
+    error: str | None = None
 
 
 @strawberry.type
 class ApiKeyResult:
     success: bool
-    message: Optional[str] = None
-    error: Optional[str] = None
-    api_key: Optional[DomainApiKeyType] = None
+    message: str | None = None
+    error: str | None = None
+    api_key: DomainApiKeyType | None = None
 
 
 @strawberry.type
 class DeleteResult:
     success: bool
-    message: Optional[str] = None
-    error: Optional[str] = None
-    deleted_id: Optional[str] = None
+    message: str | None = None
+    error: str | None = None
+    deleted_id: str | None = None
 
 
 @strawberry.type
 class DiagramResult:
     success: bool
-    diagram: Optional[DomainDiagramType] = None
-    message: Optional[str] = None
-    error: Optional[str] = None
+    diagram: DomainDiagramType | None = None
+    message: str | None = None
+    error: str | None = None
 
 
 @strawberry.type
 class NodeResult:
     success: bool
-    node: Optional[DomainNodeType] = None
-    message: Optional[str] = None
-    error: Optional[str] = None
+    node: DomainNodeType | None = None
+    message: str | None = None
+    error: str | None = None
 
 
 @strawberry.type
 class FileUploadResult:
     success: bool
-    message: Optional[str] = None
-    path: Optional[str] = None
-    size_bytes: Optional[int] = None
-    content_type: Optional[str] = None
-    error: Optional[str] = None
+    message: str | None = None
+    path: str | None = None
+    size_bytes: int | None = None
+    content_type: str | None = None
+    error: str | None = None
 
 
 @strawberry.type
 class TestApiKeyResult:
     success: bool
-    message: Optional[str] = None
-    error: Optional[str] = None
-    model_info: Optional[JSONScalar] = None
+    message: str | None = None
+    error: str | None = None
+    model_info: JSON | None = None
 
 
 @strawberry.type
@@ -107,11 +104,11 @@ class DiagramFormatInfo:
     extension: str
     supports_export: bool
     supports_import: bool
-    description: Optional[str] = None
+    description: str | None = None
 
 
 @strawberry.type
 class CliSessionResult:
     success: bool
-    message: Optional[str] = None
-    error: Optional[str] = None
+    message: str | None = None
+    error: str | None = None

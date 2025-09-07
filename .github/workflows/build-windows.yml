@@ -19,40 +19,40 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write  # Required for creating releases
-    
+
     env:
       DIPEO_BASE_DIR: ${{ github.workspace }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      
+
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 10
           run_install: false
-      
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      
+
       - name: Install Windows dependencies
         run: |
           # Install Visual Studio Build Tools components if needed
           # This is usually pre-installed on GitHub Actions Windows runners
-      
+
       - name: Install uv
         uses: astral-sh/setup-uv@v6
-      
+
       - name: Cache uv dependencies
         uses: actions/cache@v3
         with:
@@ -62,33 +62,33 @@ jobs:
           key: ${{ runner.os }}-uv-${{ hashFiles('requirements.txt', 'pyproject.toml', 'uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-
-      
+
       - name: Setup Python Environment with uv
         run: |
           # Create virtual environment with uv
           uv venv --python 3.13
-          
+
           # Activate venv (Windows PowerShell)
           & .\.venv\Scripts\Activate.ps1
-          
+
           Write-Host "Installing Python dependencies with uv..."
-          
+
           # Install all dependencies from requirements.txt (includes editable installs)
           uv pip sync requirements.txt
-          
+
           # Install development dependencies
           uv pip install "ruff>=0.8.0" mypy pytest-asyncio pytest-cov isort black import-linter
-          
+
           # Install PyInstaller for building executables
           uv pip install pyinstaller==6.14.2
-          
+
           # Install CLI package
           uv pip install -e apps/cli
-          
+
           # Quick version checks
           Write-Host "Python version: $(python --version)"
           Write-Host "PyInstaller version: $(pyinstaller --version)"
-          
+
           # Check if dipeo command is available
           $dipeoCmd = Get-Command dipeo -ErrorAction SilentlyContinue
           if ($dipeoCmd) {
@@ -96,16 +96,16 @@ jobs:
           } else {
             Write-Host "WARNING: dipeo command not found in PATH"
           }
-          
+
           Write-Host "Python environment setup complete"
-      
+
       - name: Install Node dependencies
         run: |
           pnpm install --frozen-lockfile
-      
+
       - name: Build TypeScript models
         run: pnpm --filter @dipeo/models build
-      
+
       - name: Verify TypeScript tools
         run: |
           Write-Host "Checking for tsx availability..."
@@ -122,38 +122,38 @@ jobs:
               Write-Host "ERROR: tsx not found anywhere!"
             }
           }
-          
+
           Write-Host "Checking TypeScript parser script..."
           if (Test-Path "dipeo/infra/parsers/typescript/ts_ast_extractor.ts") {
             Write-Host "TypeScript parser script found"
           } else {
             Write-Host "ERROR: TypeScript parser script not found!"
           }
-      
+
       - name: Generate code
         run: |
           # Activate venv
           & .\.venv\Scripts\Activate.ps1
-          
+
           # Set environment variables for proper module resolution
           $env:PYTHONPATH = "${{ github.workspace }}"
           $env:VIRTUAL_ENV = "${{ github.workspace }}\.venv"
           $env:PATH = "${{ github.workspace }}\.venv\Scripts;$env:PATH"
           Write-Host "PYTHONPATH set to: $env:PYTHONPATH"
           Write-Host "VIRTUAL_ENV set to: $env:VIRTUAL_ENV"
-          
+
           Write-Host "Running unified diagram-based code generation..."
-          
+
           # Generate models
           dipeo run codegen/diagrams/generate_all --light --debug --timeout=30
-          
+
           # Apply staged changes (copy files)
           if (Test-Path "dipeo/diagram_generated_staged") {
             Write-Host "Copying staged files to active directory..."
             Copy-Item -Path "dipeo/diagram_generated_staged/*" -Destination "dipeo/diagram_generated/" -Recurse -Force
             Write-Host "Staged changes applied successfully!"
           }
-          
+
           # Export GraphQL schema
           Write-Host "Exporting GraphQL schema from application layer..."
           $env:PYTHONPATH = "${{ github.workspace }}"
@@ -161,48 +161,48 @@ jobs:
           $env:PATH = "${{ github.workspace }}\.venv\Scripts;$env:PATH"
           python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
           Write-Host "GraphQL schema exported to apps/server/schema.graphql"
-          
+
           # Generate GraphQL TypeScript types
           Write-Host "Generating GraphQL TypeScript types..."
           pnpm --filter web codegen
           Write-Host "GraphQL TypeScript types generated!"
-          
+
           Write-Host "All code generation completed using DiPeO diagrams!"
-      
+
       - name: Build Python Server
         working-directory: apps/server
         run: |
           # Activate venv
           & ..\..\.venv\Scripts\Activate.ps1
-          
+
           # Set environment variables for proper module resolution
           $env:PYTHONPATH = "${{ github.workspace }}"
           $env:VIRTUAL_ENV = "${{ github.workspace }}\.venv"
           $env:PATH = "${{ github.workspace }}\.venv\Scripts;$env:PATH"
-          
+
           # Build with PyInstaller
           pyinstaller --clean dipeo-server-correct.spec
-          
+
           # Verify build
           if (!(Test-Path "dist\dipeo-server.exe")) {
             Write-Error "Failed to build dipeo-server.exe"
             exit 1
           }
           Write-Host "Backend built successfully!"
-      
+
       - name: Build Frontend
         working-directory: apps/web
         run: |
           # Build frontend using the build script
           & .\build-frontend.ps1
-          
+
           # Verify build
           if (!(Test-Path "dist\dipeo-frontend.exe")) {
             Write-Error "Failed to build dipeo-frontend.exe"
             exit 1
           }
           Write-Host "Frontend built successfully!"
-      
+
       - name: Install NSIS via Chocolatey
         shell: powershell
         run: |
@@ -219,44 +219,44 @@ jobs:
           if (!(Test-Path $nsisPath)) {
             $nsisPath = "${env:ProgramFiles}\NSIS\makensis.exe"
           }
-          
+
           if (!(Test-Path $nsisPath)) {
             Write-Error "NSIS not found!"
             exit 1
           }
-          
+
           # Build the installer
           & $nsisPath scripts/minimal-installer.nsi
-          
+
           # Verify installer was created
           if (!(Test-Path "scripts/DiPeO-Setup-Minimal.exe")) {
             Write-Error "Failed to create installer!"
             exit 1
           }
-          
+
           Write-Host "Installer built successfully!"
-      
+
       - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
         with:
           name: DiPeO-Windows-Installer
           path: scripts/DiPeO-Setup-Minimal.exe
           retention-days: 30
-      
+
       - name: Upload Server Executable
         uses: actions/upload-artifact@v4
         with:
           name: DiPeO-Server-Windows
           path: apps/server/dist/dipeo-server.exe
           retention-days: 30
-      
+
       - name: Upload Frontend Executable
         uses: actions/upload-artifact@v4
         with:
           name: DiPeO-Frontend-Windows
           path: apps/web/dist/dipeo-frontend.exe
           retention-days: 30
-      
+
       - name: Create Release (if tagged)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1

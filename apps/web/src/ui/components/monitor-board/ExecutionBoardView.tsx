@@ -15,7 +15,7 @@ export default function ExecutionBoardView() {
     setAutoFetchedIds,
     hasExplicitIds,
   } = useUrlSyncedIds();
-  
+
   const [showRunPicker, setShowRunPicker] = React.useState(false);
   const [compactMode, setCompactMode] = React.useState(false);
   const [includeCompleted, setIncludeCompleted] = React.useState(false);
@@ -52,7 +52,7 @@ export default function ExecutionBoardView() {
   const handleAddExecution = (id: string) => {
     addExecutionId(id);
     setShowRunPicker(false);
-    
+
     // Scroll to the newly added column after a brief delay
     setTimeout(() => {
       if (scrollContainerRef.current) {
@@ -95,7 +95,7 @@ export default function ExecutionBoardView() {
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* Compact mode toggle */}
           <button
@@ -109,7 +109,7 @@ export default function ExecutionBoardView() {
               <Minimize2 className="w-4 h-4 text-gray-400" />
             )}
           </button>
-          
+
           {/* Add run button */}
           <button
             onClick={() => setShowRunPicker(true)}
@@ -118,7 +118,7 @@ export default function ExecutionBoardView() {
             <Plus className="w-4 h-4" />
             Add Run
           </button>
-          
+
           {/* Clear all button */}
           {executionIds.length > 0 && (
             <button
@@ -192,7 +192,7 @@ export default function ExecutionBoardView() {
         <div
           ref={scrollContainerRef}
           className="flex-1 overflow-x-auto overflow-y-hidden"
-          style={{ 
+          style={{
             scrollSnapType: 'x mandatory',
             scrollBehavior: 'smooth',
           }}
@@ -233,17 +233,17 @@ const styles = `
     width: 6px;
     height: 6px;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: rgb(31 41 55 / 0.5);
     border-radius: 3px;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgb(75 85 99);
     border-radius: 3px;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgb(107 114 128);
   }

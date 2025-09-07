@@ -1,0 +1,41 @@
+"""
+GraphQL input types for DiPeO mutations.
+Auto-generated from TypeScript definitions.
+
+Generated at: {{ generation_time }}
+"""
+
+from datetime import datetime
+from typing import Optional
+
+import strawberry
+
+
+# Import enums from generated modules
+from dipeo.diagram_generated.enums import APIServiceType, LLMService, NodeType, Status, DiagramFormat
+
+# Import scalars to ensure they're registered
+from dipeo.diagram_generated.graphql.scalars import *
+
+{% for input_type in input_types %}
+
+@strawberry.input
+class {{ input_type.name }}:
+    {%- if input_type.description %}
+    """{{ input_type.description }}"""
+    {%- endif %}
+    {%- for field in input_type.fields %}
+    {%- if field.optional %}
+    {{ field.name }}: {{ field.type_str }} | None{% if field.default_value %} = {{ field.default_value }}{% else %} = None{% endif %}
+    {%- else %}
+    {{ field.name }}: {{ field.type_str }}{% if field.default_value %} = {{ field.default_value }}{% endif %}
+    {%- endif %}
+    {%- endfor %}
+{% endfor %}
+
+# Export all input types
+__all__ = [
+{%- for input_type in input_types %}
+    '{{ input_type.name }}',
+{%- endfor %}
+]

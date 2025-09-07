@@ -7,6 +7,9 @@ import logging
 import time
 from typing import Any
 
+from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
+
 from dipeo.domain.events import (
     DomainEvent,
     EventScope,
@@ -17,8 +20,6 @@ from dipeo.infrastructure.events.adapters import InMemoryEventBus
 from dipeo.infrastructure.integrations.drivers.integrated_api.registry import (
     ProviderRegistry,
 )
-from fastapi import APIRouter, HTTPException, Request, Response, status
-from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
@@ -254,7 +255,6 @@ async def receive_webhook(
     try:
         # Get container from app context
         from dipeo.application.registry.keys import EVENT_BUS, PROVIDER_REGISTRY
-
         from dipeo_server.app_context import get_container
 
         container = get_container()

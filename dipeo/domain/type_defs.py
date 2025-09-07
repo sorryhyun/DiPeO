@@ -8,7 +8,7 @@ E = TypeVar("E")
 
 
 @dataclass
-class Result(Generic[T, E]):
+class Result[T, E]:
     """Type-safe Result type for handling success/error cases.
 
     This implementation uses type guards to ensure type safety without type: ignore.

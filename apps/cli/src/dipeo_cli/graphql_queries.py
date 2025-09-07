@@ -5,12 +5,11 @@ loaded from separate query files or defined as constants.
 """
 
 from pathlib import Path
-from typing import Dict, Optional
 
 
 class GraphQLQueries:
     """Container for GraphQL queries used by the CLI."""
-    
+
     # Mutations
     EXECUTE_DIAGRAM = """
         mutation ExecuteDiagram($diagramId: ID, $diagramData: JSON, $variables: JSON, $useUnifiedMonitoring: Boolean) {
@@ -26,7 +25,7 @@ class GraphQLQueries:
             }
         }
     """
-    
+
     REGISTER_CLI_SESSION = """
         mutation RegisterCliSession($executionId: String!, $diagramName: String!, $diagramFormat: String!, $diagramData: JSON, $diagramPath: String) {
             register_cli_session(input: {
@@ -41,7 +40,7 @@ class GraphQLQueries:
             }
         }
     """
-    
+
     UNREGISTER_CLI_SESSION = """
         mutation UnregisterCliSession($executionId: String!) {
             unregister_cli_session(input: { execution_id: $executionId }) {
@@ -49,7 +48,7 @@ class GraphQLQueries:
             }
         }
     """
-    
+
     # Queries
     GET_EXECUTION_RESULT = """
         query GetExecutionResult($id: ID!) {
@@ -60,7 +59,7 @@ class GraphQLQueries:
             }
         }
     """
-    
+
     GET_EXECUTION_METRICS = """
         query GetExecutionMetrics($id: ID!) {
             execution(id: $id) {
@@ -77,7 +76,7 @@ class GraphQLQueries:
             }
         }
     """
-    
+
     EXECUTION_METRICS_DETAILED = """
         query ExecutionMetrics($executionId: ID!) {
             execution(id: $executionId) {
@@ -99,7 +98,7 @@ class GraphQLQueries:
             }
         }
     """
-    
+
     EXECUTION_HISTORY = """
         query ExecutionHistory($diagramId: ID!, $includeMetrics: Boolean!) {
             executionHistory(diagramId: $diagramId, limit: 10, includeMetrics: $includeMetrics) {
@@ -118,7 +117,7 @@ class GraphQLQueries:
             }
         }
     """
-    
+
     LATEST_EXECUTION = """
         query LatestExecution {
             executions(limit: 1) {
@@ -139,31 +138,31 @@ class GraphQLQueries:
             }
         }
     """
-    
+
     @classmethod
-    def load_from_file(cls, query_name: str, queries_dir: Optional[Path] = None) -> str:
+    def load_from_file(cls, query_name: str, queries_dir: Path | None = None) -> str:
         """Load a GraphQL query from a file.
-        
+
         Args:
             query_name: Name of the query file (without .graphql extension)
             queries_dir: Directory containing query files (defaults to ./queries)
-            
+
         Returns:
             The GraphQL query string
         """
         if queries_dir is None:
             queries_dir = Path(__file__).parent / "queries"
-        
+
         query_file = queries_dir / f"{query_name}.graphql"
-        
+
         if query_file.exists():
             return query_file.read_text()
-        
+
         # Fallback to class attribute if file doesn't exist
         return getattr(cls, query_name.upper(), None)
-    
+
     @classmethod
-    def get_all_queries(cls) -> Dict[str, str]:
+    def get_all_queries(cls) -> dict[str, str]:
         """Get all available queries as a dictionary."""
         return {
             "execute_diagram": cls.EXECUTE_DIAGRAM,

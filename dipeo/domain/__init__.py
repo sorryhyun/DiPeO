@@ -20,13 +20,13 @@ from dipeo.config import (
 )
 
 __all__ = [
-    # Service utilities
-    "is_llm_service",
+    "LLM_SERVICE_TYPES",
     "api_service_type_to_llm_service",
-    "llm_service_to_api_service_type",
     "get_llm_service_types",
     "get_non_llm_service_types",
-    "is_valid_llm_service",
+    # Service utilities
+    "is_llm_service",
     "is_valid_api_service_type",
-    "LLM_SERVICE_TYPES",
+    "is_valid_llm_service",
+    "llm_service_to_api_service_type",
 ]

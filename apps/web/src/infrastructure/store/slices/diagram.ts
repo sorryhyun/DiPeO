@@ -1,11 +1,11 @@
 import { ArrowID, DomainArrow, DomainNode, NodeID, HandleID } from '@/infrastructure/types';
 import { generateArrowId } from '@/infrastructure/types/utilities';
-import { 
-  Converters, 
-  NodeFactory, 
-  NodeService, 
+import {
+  Converters,
+  NodeFactory,
+  NodeService,
   ValidationService,
-  DiagramOperations 
+  DiagramOperations
 } from '@/infrastructure/services';
 // import { recordHistory } from '@/infrastructure/store/helpers/entityHelpers';
 import { NodeType, Vec2, DiagramFormat, DomainDiagram } from '@dipeo/models';
@@ -15,43 +15,43 @@ export interface DiagramSlice {
   // Core data structures
   nodes: Map<NodeID, DomainNode>;
   arrows: Map<ArrowID, DomainArrow>;
-  
+
   // Data version for tracking changes
   dataVersion: number;
-  
+
   // Diagram metadata
   diagramName: string;
   diagramDescription: string;
   diagramId: string | null;
   diagramFormat: DiagramFormat | null;
-  
+
   // Node operations
   addNode: (type: NodeType, position: Vec2, initialData?: Record<string, unknown>) => NodeID;
   updateNode: (id: NodeID, updates: Partial<DomainNode>) => void;
   updateNodeSilently: (id: NodeID, updates: Partial<DomainNode>) => void;
   deleteNode: (id: NodeID) => void;
   getNode: (id: NodeID) => DomainNode | undefined;
-  
+
   // Import/Export operations
   importDiagram: (jsonString: string) => Promise<{ success: boolean; error?: string }>;
   exportDiagram: (pretty?: boolean) => string;
-  
+
   // Arrow operations
   addArrow: (source: string, target: string, data?: Record<string, unknown>) => ArrowID;
   updateArrow: (id: ArrowID, updates: Partial<DomainArrow>) => void;
   deleteArrow: (id: ArrowID) => void;
   getArrow: (id: ArrowID) => DomainArrow | undefined;
-  
+
   // Batch operations
   batchUpdateNodes: (updates: Array<{id: NodeID, updates: Partial<DomainNode>}>) => void;
   batchDeleteNodes: (ids: NodeID[]) => void;
-  
+
   // Diagram metadata operations
   setDiagramName: (name: string) => void;
   setDiagramDescription: (description: string) => void;
   setDiagramId: (id: string | null) => void;
   setDiagramFormat: (format: DiagramFormat | null) => void;
-  
+
   // Utility
   clearDiagram: () => void;
   restoreDiagram: (nodes: Map<NodeID, DomainNode>, arrows: Map<ArrowID, DomainArrow>) => void;
@@ -89,7 +89,7 @@ export const createDiagramSlice = (
   addNode: (type, position, initialData) => {
     // Use NodeFactory for type-safe node creation with validation
     const result = NodeFactory.createNodeWithValidation(type, position, initialData);
-    
+
     if (!result.success) {
       console.error('Failed to create node:', result.error);
       // Fall back to creating without validation for backward compatibility
@@ -101,7 +101,7 @@ export const createDiagramSlice = (
       });
       return Converters.toNodeId(node.id);
     }
-    
+
     const node = result.data;
     set(state => {
       // Use any to bypass TypeScript's deep instantiation issue with Immer
@@ -121,7 +121,7 @@ export const createDiagramSlice = (
       }
     });
   },
-  
+
   updateNodeSilently: (id, updates) => {
     set(state => {
       const node = state.nodes.get(id);
@@ -133,7 +133,7 @@ export const createDiagramSlice = (
       }
     });
   },
-  
+
   deleteNode: (id) => {
     set(state => {
       const deleted = (state.nodes as any).delete(id);
@@ -146,46 +146,46 @@ export const createDiagramSlice = (
             return sourceNodeId === id || targetNodeId === id;
           })
           .map(([arrowId]) => arrowId);
-        
+
         arrowsToDelete.forEach(arrowId => (state.arrows as any).delete(arrowId));
-        
+
         // Clear selection if deleted
         if (state.selectedId === id) {
           state.selectedId = null;
           state.selectedType = null;
         }
-        
+
         afterChange(state as any);
       }
     });
-    
+
     // Call the unified store's handle cleanup method
     get().cleanupNodeHandles(id);
   },
 
   getNode: (id) => get().nodes.get(id),
-  
+
   // Arrow operations
   addArrow: (source, target, data) => {
     // Extract content_type and label from data if present
     let content_type: string | undefined;
     let label: string | undefined;
     let arrowData = data;
-    
+
     if (data) {
       const { content_type: ct, label: l, ...restData } = data;
       content_type = typeof ct === 'string' ? ct : undefined;
       label = l as string | undefined;
       arrowData = Object.keys(restData).length > 0 ? restData : undefined;
     }
-    
+
     const arrow: DomainArrow = {
       id: generateArrowId(),
       source: source as HandleID,
       target: target as HandleID,
       data: arrowData  // DomainArrow.data is optional
     };
-    
+
     // Add optional fields only if they have actual values
     if (content_type !== undefined && content_type !== null) {
       (arrow as any).content_type = content_type;
@@ -193,13 +193,13 @@ export const createDiagramSlice = (
     if (label !== undefined && label !== null) {
       arrow.label = label;
     }
-    
+
     set(state => {
       // Validate source and target nodes exist
 
       let sourceNodeId: NodeID;
       let targetNodeId: NodeID;
-      
+
       try {
         const sourceParsed = Converters.parseHandleId(Converters.toHandleId(source));
         const targetParsed = Converters.parseHandleId(Converters.toHandleId(target));
@@ -209,7 +209,7 @@ export const createDiagramSlice = (
         console.error('Failed to parse handle IDs:', e);
         throw new Error(`Invalid handle ID format: ${source} or ${target}`);
       }
-      
+
       if (!state.nodes.has(sourceNodeId)) {
         console.error('Available nodes:', Array.from(state.nodes.keys()));
         throw new Error(`Source node ${sourceNodeId} not found`);
@@ -217,11 +217,11 @@ export const createDiagramSlice = (
       if (!state.nodes.has(targetNodeId)) {
         throw new Error(`Target node ${targetNodeId} not found`);
       }
-      
+
       (state.arrows as any).set(Converters.toArrowId(arrow.id), arrow);
       afterChange(state as any);
     });
-    
+
     return Converters.toArrowId(arrow.id);
   },
 
@@ -262,20 +262,20 @@ export const createDiagramSlice = (
           hasChanges = true;
         }
       });
-      
+
       if (hasChanges) {
         afterChange(state as any);
       }
     });
   },
-  
+
   batchDeleteNodes: (ids) => {
     set(state => {
       let hasChanges = false;
       ids.forEach(id => {
         if ((state.nodes as any).delete(id)) {
           hasChanges = true;
-          
+
           // Remove connected arrows
           const arrowsToDelete = Array.from(state.arrows.entries())
             .filter(([_, arrow]) => {
@@ -284,20 +284,20 @@ export const createDiagramSlice = (
               return sourceNodeId === id || targetNodeId === id;
             })
             .map(([arrowId]) => arrowId);
-          
+
           arrowsToDelete.forEach(arrowId => (state.arrows as any).delete(arrowId));
         }
       });
-      
+
       if (hasChanges) {
         afterChange(state as any);
       }
     });
-    
+
     // Clean up handles for all deleted nodes
     ids.forEach(id => get().cleanupNodeHandles(id));
   },
-  
+
   // Diagram metadata operations
   setDiagramName: (name) => {
     set(state => {
@@ -305,28 +305,28 @@ export const createDiagramSlice = (
       // Don't increment version or record history for metadata changes
     });
   },
-  
+
   setDiagramDescription: (description) => {
     set(state => {
       state.diagramDescription = description;
       // Don't increment version or record history for metadata changes
     });
   },
-  
+
   setDiagramId: (id) => {
     set(state => {
       state.diagramId = id;
       // Don't increment version or record history for metadata changes
     });
   },
-  
+
   setDiagramFormat: (format) => {
     set(state => {
       state.diagramFormat = format;
       // Don't increment version or record history for metadata changes
     });
   },
-  
+
   clearDiagram: () => {
     set(state => {
       (state.nodes as any).clear();
@@ -338,7 +338,7 @@ export const createDiagramSlice = (
       afterChange(state as any);
     });
   },
-  
+
   restoreDiagram: (nodes, arrows) => {
     set(state => {
       state.nodes = new Map(nodes);
@@ -346,7 +346,7 @@ export const createDiagramSlice = (
       afterChange(state as any);
     });
   },
-  
+
   restoreDiagramSilently: (nodes, arrows) => {
     set(state => {
       state.nodes = new Map(nodes);
@@ -357,7 +357,7 @@ export const createDiagramSlice = (
       state.handlesArray = Array.from((state.handles as any).values());
     });
   },
-  
+
   triggerArraySync: () => {
     set(state => {
       // Update all arrays from their Maps
@@ -372,7 +372,7 @@ export const createDiagramSlice = (
 
   validateDiagram: () => {
     const state = get();
-    
+
     // Create a DomainDiagram from the current state
     const diagram: DomainDiagram = {
       nodes: Array.from(state.nodes.values()),
@@ -380,13 +380,13 @@ export const createDiagramSlice = (
       arrows: Array.from(state.arrows.values()),
       persons: Array.from(state.persons.values())
     };
-    
+
     // Use ValidationService for comprehensive validation
     const validationResult = ValidationService.validateDiagram(diagram);
-    
+
     // Convert validation result to expected format
     const errors: string[] = [];
-    
+
     // Add node errors
     if (validationResult.nodeErrors) {
       validationResult.nodeErrors.forEach((fieldErrors, nodeId) => {
@@ -399,53 +399,53 @@ export const createDiagramSlice = (
         }
       });
     }
-    
+
     // Add connection errors
     if (validationResult.connectionErrors) {
       validationResult.connectionErrors.forEach((error) => {
         errors.push(error.message);
       });
     }
-    
+
     // Add general errors
     if (validationResult.generalErrors) {
       validationResult.generalErrors.forEach((error) => {
         errors.push(error.message);
       });
     }
-    
+
     // Add additional person assignment check
     state.nodes.forEach(node => {
-      if ((node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && !node.data?.person) {
+      if (node.type === NodeType.PERSON_JOB && !node.data?.person) {
         errors.push(`Node ${node.data?.label || node.id} requires a person to be assigned`);
       }
     });
-    
+
     return {
       isValid: errors.length === 0,
       errors
     };
   },
-  
+
   // Import/Export operations
   importDiagram: async (jsonString) => {
     try {
       const result = await DiagramOperations.importDiagram(jsonString);
-      
+
       if (!result.success) {
         return { success: false, error: result.errors?.join(', ') || 'Import failed' };
       }
-      
+
       if (!result.diagram) {
         return { success: false, error: 'No diagram data found' };
       }
-      
+
       const diagram = result.diagram;
       const metadata = diagram.metadata || {} as any;
-      
+
       // Clear current diagram
       get().clearDiagram();
-      
+
       // Set metadata
       set(state => {
         if (metadata.name) state.diagramName = metadata.name;
@@ -453,24 +453,24 @@ export const createDiagramSlice = (
         if (metadata.id) state.diagramId = metadata.id;
         if (metadata.format) state.diagramFormat = metadata.format;
       });
-      
+
       // Restore nodes and arrows
       const { nodes, arrows } = Converters.diagramArraysToMaps(diagram);
       get().restoreDiagram(nodes, arrows);
-      
+
       return { success: true };
     } catch (error) {
       console.error('Failed to import diagram:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   },
-  
+
   exportDiagram: (pretty = false) => {
     const state = get();
-    
+
     // Create DomainDiagram from current state
     const diagram: DomainDiagram = {
       nodes: Array.from(state.nodes.values()),
@@ -478,7 +478,7 @@ export const createDiagramSlice = (
       arrows: Array.from(state.arrows.values()),
       persons: Array.from(state.persons.values())
     };
-    
+
     // Use DiagramOperations for export
     return DiagramOperations.exportDiagram(diagram, pretty);
   }

@@ -42,16 +42,20 @@ class ConvertCommand:
         # Use the diagram service for format conversion
         try:
             # Import required modules
-            from dipeo.infrastructure.diagram.drivers.diagram_service import DiagramService
-            from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
             from dipeo.config import get_settings
+            from dipeo.infrastructure.diagram.drivers.diagram_service import (
+                DiagramService,
+            )
+            from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
 
             # Create diagram service using unified config
             settings = get_settings()
-            filesystem = LocalFileSystemAdapter(base_path=Path(settings.storage.base_dir))
+            filesystem = LocalFileSystemAdapter(
+                base_path=Path(settings.storage.base_dir)
+            )
             diagram_service = DiagramService(
                 filesystem=filesystem,
-                base_path=Path(settings.storage.base_dir) / settings.storage.data_dir
+                base_path=Path(settings.storage.base_dir) / settings.storage.data_dir,
             )
 
             # Load the diagram data
@@ -84,9 +88,7 @@ class ConvertCommand:
         if file_name.endswith(".readable.yaml"):
             return "readable"
         file_type = "input" if is_input else "output"
-        raise ValueError(
-            f"Cannot determine format from {file_type} file: {path}"
-        )
+        raise ValueError(f"Cannot determine format from {file_type} file: {path}")
 
     def _copy_with_formatting(self, input_path: str, output_path: str):
         """Copy file with proper formatting."""

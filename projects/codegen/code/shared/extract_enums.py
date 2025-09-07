@@ -2,26 +2,26 @@
 
 import ast
 import json
-from typing import Dict, Any, List
+from typing import Any
 
 
-def extract_enum_values(members: List[dict]) -> List[dict]:
+def extract_enum_values(members: list[dict]) -> list[dict]:
     """Extract values from enum members."""
     values = []
     for member in members:
         if member.get('type') == 'EnumMember':
             id_node = member.get('id', {})
             init_node = member.get('initializer', {})
-            
+
             # Get the enum member name
             if id_node.get('type') == 'Identifier':
                 name = id_node.get('name', '')
-                
+
                 # Get the enum member value
                 value = name  # Default to name if no initializer
                 if init_node and init_node.get('type') == 'Literal':
                     value = init_node.get('value', name)
-                
+
                 values.append({
                     'name': name.lower(),  # Convert to lowercase for Python
                     'value': value
@@ -47,37 +47,34 @@ def extract_jsdoc_description(node: dict) -> str:
     return ''
 
 
-def extract_enums(ast_data: dict) -> List[dict]:
+def extract_enums(ast_data: dict) -> list[dict]:
     """Extract enum definitions from TypeScript AST data."""
     # Handle case where ast_data might be a list (the enums array directly)
-    if isinstance(ast_data, list):
-        enums_from_ast = ast_data
-    else:
-        # The typescript_ast node returns enums directly
-        enums_from_ast = ast_data.get('enums', [])
-    
+    # Handle case where ast_data might be a list (the enums array directly)
+    enums_from_ast = ast_data if isinstance(ast_data, list) else ast_data.get('enums', [])
+
     # Initialize result
     enums = []
-    
+
     # Process each enum
     for enum in enums_from_ast:
         enum_name = enum.get('name', '')
         description = enum.get('jsDoc', '') or f'{enum_name} enum values'
         members = enum.get('members', [])
-        
+
         # Extract values
         values = []
         for member in members:
             member_name = member.get('name', '')
             member_value = member.get('value', member_name)
-            
+
             if member_name:
                 values.append({
                     'name': member_name,
                     'value': member_value,
                     'python_name': member_name  # Keep original case for Python
                 })
-        
+
         # Add to results
         if enum_name and values:
             enums.append({
@@ -85,15 +82,15 @@ def extract_enums(ast_data: dict) -> List[dict]:
                 'description': description,
                 'values': values
             })
-    
+
     return enums
 
 
-def main(inputs: dict) -> List[dict]:
+def main(inputs: dict) -> list[dict]:
     """Main entry point for enum extraction."""
     ast_data = inputs.get('default', {})
     all_enums = []
-    
+
     # Handle string input (Python dict format from glob)
     if isinstance(ast_data, str):
         try:
@@ -106,17 +103,17 @@ def main(inputs: dict) -> List[dict]:
             except json.JSONDecodeError:
                 # If both fail, return empty list
                 return []
-    
+
     # SEAC compliant: Handle direct structures only
     if isinstance(ast_data, dict):
         # Check if we have multiple files from glob
-        if all(isinstance(k, str) and k.endswith('.json') for k in ast_data.keys() if k):
+        if all(isinstance(k, str) and k.endswith('.json') for k in ast_data if k):
             # Multiple files from glob operation
-            for file_path, file_content in ast_data.items():
+            for _file_path, file_content in ast_data.items():
                 # Skip invalid entries (strings or None)
                 if not isinstance(file_content, dict):
                     continue
-                    
+
                 file_enums = extract_enums(file_content)
                 all_enums.extend(file_enums)
         else:
@@ -125,7 +122,7 @@ def main(inputs: dict) -> List[dict]:
     else:
         # Direct data (shouldn't happen normally but handle gracefully)
         all_enums = extract_enums(ast_data)
-    
+
     # Return just the list of enums
     # The template_job will receive this via the labeled connection 'enums_data'
     return all_enums

@@ -5,20 +5,20 @@ import { apolloClient } from '@/lib/graphql/client';
 import { gql } from '@apollo/client';
 
 const Q_PROVIDERS = gql`
-  query Providers { 
-    providers { 
-      name 
-      metadata { 
+  query Providers {
+    providers {
+      name
+      metadata {
         description
-      } 
-    } 
+      }
+    }
   }
 `;
 
 const Q_PROVIDER_OPS = gql`
   query ProviderOps($provider: String!) {
-    provider_operations(provider: $provider) { 
-      name 
+    provider_operations(provider: $provider) {
+      name
       description
     }
   }
@@ -32,15 +32,15 @@ export interface FieldOverrides {
   [nodeType: string]: {
     // Fields to completely remove from the generated config
     excludeFields?: string[];
-    
+
     // Field-specific overrides (partial updates)
     fieldOverrides?: {
       [fieldName: string]: Partial<UnifiedFieldDefinition>;
     };
-    
+
     // Additional custom fields not in the domain model
     additionalFields?: UnifiedFieldDefinition[];
-    
+
     // Custom field order (if not specified, uses generated order)
     fieldOrder?: string[];
   };
@@ -69,7 +69,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
       }
     }
   },
-  
+
   person_job: {
     excludeFields: ['person', 'memory_config', 'memory_settings', 'prompt_file'], // person handled by labelPersonRow, memory fields excluded, prompt_file integrated into prompt fields
     fieldOverrides: {
@@ -129,7 +129,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
     ],
     fieldOrder: ['labelPersonRow', 'max_iteration', 'tools', 'memory_profile', 'default_prompt', 'first_only_prompt']
   },
-  
+
   condition: {
     fieldOverrides: {
       condition_type: {
@@ -145,7 +145,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
       }
     }
   },
-  
+
   api_job: {
     fieldOverrides: {
       method: {
@@ -159,7 +159,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
       }
     }
   },
-  
+
   code_job: {
     fieldOverrides: {
       language: {
@@ -170,7 +170,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
       }
     }
   },
-  
+
   db: {
     fieldOverrides: {
       sub_type: {
@@ -187,7 +187,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
       }
     }
   },
-  
+
   hook: {
     fieldOverrides: {
       timeout: {
@@ -201,7 +201,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
       }
     }
   },
-  
+
   integrated_api: {
     fieldOverrides: {
       provider: {
@@ -209,16 +209,16 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
         // OptionsConfig supports async functions returning {value,label}[]
         options: async () => {
           try {
-            const { data } = await apolloClient.query({ 
-              query: Q_PROVIDERS, 
-              fetchPolicy: 'network-only' 
+            const { data } = await apolloClient.query({
+              query: Q_PROVIDERS,
+              fetchPolicy: 'network-only'
             });
-            
+
             const providers = (data?.providers ?? []).map((p: any) => ({
               value: p.name,
               label: p.metadata?.description || p.name,
             }));
-            
+
             return providers;
           } catch (error) {
             console.error('[IntegratedAPI] Error fetching providers:', error);
@@ -233,22 +233,22 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
         options: async (form) => {
           try {
             const provider = (form as any)?.provider;
-            
+
             if (!provider) {
               return [];
             }
-            
-            const { data } = await apolloClient.query({ 
-              query: Q_PROVIDER_OPS, 
-              variables: { provider }, 
-              fetchPolicy: 'network-only' 
+
+            const { data } = await apolloClient.query({
+              query: Q_PROVIDER_OPS,
+              variables: { provider },
+              fetchPolicy: 'network-only'
             });
-            
-            const operations = (data?.provider_operations ?? []).map((op: any) => ({ 
-              value: op.name, 
-              label: op.description || op.name 
+
+            const operations = (data?.provider_operations ?? []).map((op: any) => ({
+              value: op.name,
+              label: op.description || op.name
             }));
-            
+
             return operations;
           } catch (error) {
             console.error('[IntegratedAPI] Error fetching operations:', error);
@@ -264,15 +264,15 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
 /**
  * Merge generated fields with UI-specific overrides
  */
-export function mergeFieldConfigs(nodeType: string, options?: { 
-  useZodValidation?: boolean 
+export function mergeFieldConfigs(nodeType: string, options?: {
+  useZodValidation?: boolean
 }): UnifiedFieldDefinition[] {
   const { useZodValidation = true } = options || {};
-  
+
   // Get base generated fields
   const generatedFields = getGeneratedFields(nodeType);
   const overrides = NODE_FIELD_OVERRIDES[nodeType];
-  
+
   // Add Zod validation to generated fields if enabled
   let fields = generatedFields.map(field => {
     if (useZodValidation && !field.validate) {
@@ -283,16 +283,16 @@ export function mergeFieldConfigs(nodeType: string, options?: {
     }
     return field;
   });
-  
+
   if (!overrides) {
     return fields;
   }
-  
+
   // Remove excluded fields
   if (overrides.excludeFields) {
     fields = fields.filter(field => !overrides.excludeFields!.includes(field.name));
   }
-  
+
   // Apply field overrides
   if (overrides.fieldOverrides) {
     fields = fields.map(field => {
@@ -308,17 +308,17 @@ export function mergeFieldConfigs(nodeType: string, options?: {
       return field;
     });
   }
-  
+
   // Add additional fields
   if (overrides.additionalFields) {
     fields = [...fields, ...overrides.additionalFields];
   }
-  
+
   // Apply custom field order if specified
   if (overrides.fieldOrder) {
     const orderedFields: UnifiedFieldDefinition[] = [];
     const fieldMap = new Map(fields.map(f => [f.name, f]));
-    
+
     // Add fields in specified order
     for (const fieldName of overrides.fieldOrder) {
       const field = fieldMap.get(fieldName);
@@ -327,13 +327,13 @@ export function mergeFieldConfigs(nodeType: string, options?: {
         fieldMap.delete(fieldName);
       }
     }
-    
+
     // Add any remaining fields not in the order
     orderedFields.push(...fieldMap.values());
-    
+
     return orderedFields;
   }
-  
+
   return fields;
 }
 

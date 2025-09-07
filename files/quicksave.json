@@ -1,330 +1,111 @@
 {
   "nodes": [
     {
-      "id": "node_0",
+      "id": "node_xx434wf0",
       "type": "start",
       "position": {
-        "x": 60,
-        "y": 240
+        "x": 400,
+        "y": 870
       },
       "data": {
-        "trigger_mode": "manual",
+        "trigger_mode": "none",
+        "label": "start",
         "custom_data": {},
-        "output_data_structure": {},
-        "label": "start"
+        "output_data_structure": {}
       }
     },
     {
-      "id": "node_1",
-      "type": "db",
-      "position": {
-        "x": 1100,
-        "y": 240
-      },
-      "data": {
-        "operation": "read",
-        "sub_type": "file",
-        "format": "json",
-        "file": "projects/frontend_auto/generated/sections_data.json",
-        "label": "load sections data"
-      }
-    },
-    {
-      "id": "node_2",
-      "type": "condition",
-      "position": {
-        "x": 1450,
-        "y": 240
-      },
-      "data": {
-        "condition_type": "custom",
-        "expression": "current_index >= len(default.sections)",
-        "expose_index_as": "current_index",
-        "flipped": [
-          false,
-          true
-        ],
-        "label": "check continue"
-      }
-    },
-    {
-      "id": "node_3",
+      "id": "node_69dxgli3",
       "type": "person_job",
       "position": {
-        "x": 1800,
-        "y": 240
+        "x": 480,
+        "y": 920
       },
       "data": {
-        "person": "Frontend Generator",
+        "first_only_prompt": "",
         "max_iteration": 100,
-        "memorize_to": "Necessary codes to implement or which are dependent to",
-        "at_most": 2,
-        "prompt_file": "frontend_generator.txt",
-        "label": "generate frontend code",
-        "first_only_prompt": ""
+        "tools": [
+          {
+            "type": "none",
+            "enabled": true
+          }
+        ],
+        "label": "person_job"
       }
     },
     {
-      "id": "node_4",
-      "type": "db",
-      "position": {
-        "x": 2200,
-        "y": 240
-      },
-      "data": {
-        "operation": "write",
-        "sub_type": "file",
-        "format": "text",
-        "file": "projects/frontend_auto/generated/temp_section_{current_index}.tsx",
-        "label": "write section result"
-      }
-    },
-    {
-      "id": "node_5",
+      "id": "node_mt8hv927",
       "type": "code_job",
       "position": {
-        "x": 1500,
-        "y": 600
+        "x": 480,
+        "y": 920
       },
       "data": {
-        "language": "python",
-        "filePath": "projects/frontend_auto/rename_generated_files.py",
-        "functionName": "rename_generated_files",
-        "label": "rename files"
-      }
-    },
-    {
-      "id": "node_6",
-      "type": "endpoint",
-      "position": {
-        "x": 1800,
-        "y": 600
-      },
-      "data": {
-        "file_format": "json",
-        "save_to_file": true,
-        "file_name": "projects/frontend_auto/generated/consolidated_results.json",
-        "label": "end"
+        "language": null,
+        "label": "code_job"
       }
     }
   ],
-  "arrows": [
-    {
-      "id": "arrow_0",
-      "source": "node_0_default_output",
-      "target": "node_1_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "raw_text"
-    },
-    {
-      "id": "arrow_1",
-      "source": "node_1_default_output",
-      "target": "node_2_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_2",
-      "source": "node_2_condfalse_output",
-      "target": "node_3_default_input",
-      "label": null,
-      "packing": null,
-      "data": {
-        "branch": "false"
-      },
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_3",
-      "source": "node_2_condtrue_output",
-      "target": "node_5_default_input",
-      "label": null,
-      "packing": null,
-      "data": {
-        "branch": "true"
-      },
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_4",
-      "source": "node_3_default_output",
-      "target": "node_4_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_5",
-      "source": "node_4_default_output",
-      "target": "node_2_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    },
-    {
-      "id": "arrow_6",
-      "source": "node_5_default_output",
-      "target": "node_6_default_input",
-      "label": null,
-      "packing": null,
-      "data": null,
-      "content_type": "object"
-    }
-  ],
-  "persons": [
-    {
-      "id": "Section Planner",
-      "label": "section planner",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-mini-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": "You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.\n\nYour task is to:\n1. FIRST define the overall application architecture that will guide all sections\n2. THEN split the work into COMPLETE sections covering ALL required files\n3. For EACH section, provide concrete implementation steps and integration points\n\nFocus on:\n- COMPLETENESS: No missing imports or references\n- SELF-CONTAINED: Each file should be fully implemented\n- Clear architectural patterns and principles\n- How data flows through the application\n- Specific, actionable implementation steps (not vague descriptions)\n- How sections communicate and integrate with each other\n- Modern React 18+ best practices and TypeScript patterns\n\nEach section should be a cohesive unit that can be developed independently but integrates smoothly.\nFollow the Pydantic schema strictly - include architecture, implementation_steps, and integration_points.\n",
-        "prompt_file": null
-      },
-      "type": "person"
-    },
-    {
-      "id": "Frontend Generator",
-      "label": "frontend generator",
-      "llm_config": {
-        "service": "openai",
-        "model": "gpt-5-nano-2025-08-07",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": "You are an expert React/TypeScript engineer building a cohesive frontend application.\n\nCRITICAL RULES:\n1. Return ONLY the raw code files in the exact format specified in the prompt. You MUST NOT attempt to examine any existing codes.\n2. Do NOT include any conversational text, explanations, or commentary\n3. Generate COMPLETE, WORKING code - no placeholders or TODOs\n4. Follow established patterns from earlier sections for consistency\n5. Import and use components/utilities from previous sections when referenced\n\nIMPLEMENTATION REQUIREMENTS:\n- Every component must be FULLY implemented with all logic\n- Include proper TypeScript types for all props and functions\n- Implement actual functionality, not just UI shells\n- For mock data/adapters, provide realistic implementations\n- For utility functions, provide complete implementations\n- For hooks, include all necessary logic and state management\n- For API clients, include error handling and response processing\n\nYou are building sections iteratively. Use the context from previous sections to maintain consistency in:\n- Naming conventions\n- Import paths\n- Type definitions\n- Component patterns\n- State management approach\n\nREMEMBER: This code should be deployable as-is once all sections are generated!\n",
-        "prompt_file": null
-      },
-      "type": "person"
-    }
-  ],
+  "arrows": [],
+  "persons": [],
   "handles": [
     {
-      "id": "node_0_default_output",
-      "node_id": "node_0",
+      "id": "node_xx434wf0_default_output",
+      "node_id": "node_xx434wf0",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_1_default_input",
-      "node_id": "node_1",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_1_default_output",
-      "node_id": "node_1",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_2_default_input",
-      "node_id": "node_2",
+      "id": "node_69dxgli3_default_input",
+      "node_id": "node_69dxgli3",
       "label": "default",
       "direction": "input",
       "data_type": "any",
       "position": "left"
     },
     {
-      "id": "node_2_condtrue_output",
-      "node_id": "node_2",
-      "label": "condtrue",
-      "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_2_condfalse_output",
-      "node_id": "node_2",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_3_first_input",
-      "node_id": "node_3",
+      "id": "node_69dxgli3_first_input",
+      "node_id": "node_69dxgli3",
       "label": "first",
       "direction": "input",
       "data_type": "any",
       "position": "left"
     },
     {
-      "id": "node_3_default_input",
-      "node_id": "node_3",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_3_default_output",
-      "node_id": "node_3",
+      "id": "node_69dxgli3_default_output",
+      "node_id": "node_69dxgli3",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_4_default_input",
-      "node_id": "node_4",
+      "id": "node_mt8hv927_default_input",
+      "node_id": "node_mt8hv927",
       "label": "default",
       "direction": "input",
       "data_type": "any",
       "position": "left"
     },
     {
-      "id": "node_4_default_output",
-      "node_id": "node_4",
+      "id": "node_mt8hv927_default_output",
+      "node_id": "node_mt8hv927",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_5_default_input",
-      "node_id": "node_5",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_5_default_output",
-      "node_id": "node_5",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_6_default_input",
-      "node_id": "node_6",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     }
   ],
   "metadata": {
-    "name": "consolidated_generator",
+    "name": "test_workflow.light.yaml",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-08-23T01:50:21.927Z",
-    "modified": "2025-08-23T01:50:21.927Z",
+    "created": "2025-09-06T08:21:12.599Z",
+    "modified": "2025-09-06T08:21:12.599Z",
     "version": "1.0.0",
-    "id": "projects/frontend_auto/consolidated_generator"
+    "id": null
   }
 }

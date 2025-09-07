@@ -1,4 +1,4 @@
-import { 
+import {
   GetApiKeysDocument,
   CreateApiKeyDocument,
   DeleteApiKeyDocument,
@@ -30,7 +30,7 @@ const useGetAvailableModelsQuery = createEntityQuery({
 const useCreateApiKeyMutation = createEntityMutation({
   entityName: 'API Key',
   document: CreateApiKeyDocument,
-  successMessage: (data: any) => 
+  successMessage: (data: any) =>
     data.create_api_key?.success && data.create_api_key?.api_key
       ? `API key "${data.create_api_key.api_key.label}" added successfully`
       : 'API key created',
@@ -62,9 +62,9 @@ const handleDeleteResponse = createResponseHandler('API Key', 'delete');
 
 export const useApiKeyOperations = () => {
   // Use factory-generated hooks
-  const { data: apiKeysData, loading: loadingApiKeys, refetch: refetchApiKeys } = 
+  const { data: apiKeysData, loading: loadingApiKeys, refetch: refetchApiKeys } =
     useGetApiKeysQuery();
-  
+
   const [createMutation, { loading: creatingApiKey }] = useCreateApiKeyMutation();
   const [deleteMutation, { loading: deletingApiKey }] = useDeleteApiKeyMutation();
   const [testMutation, { loading: testingApiKey }] = useTestApiKeyMutation();
@@ -72,20 +72,20 @@ export const useApiKeyOperations = () => {
   // Wrapper functions with proper typing
   const createApiKey = async (label: string, service: string | APIServiceType, key: string) => {
     // Convert string to enum if needed
-    const serviceEnum = Object.values(APIServiceType).includes(service as APIServiceType) 
+    const serviceEnum = Object.values(APIServiceType).includes(service as APIServiceType)
       ? service as APIServiceType
       : APIServiceType[service.toUpperCase() as keyof typeof APIServiceType] || service as APIServiceType;
-    
+
     const result = await createMutation({
       variables: {
         input: { label, service: serviceEnum, key }
       }
     });
-    
+
     if (result.data) {
       handleCreateResponse(result.data.create_api_key);
     }
-    
+
     return result;
   };
 
@@ -93,11 +93,11 @@ export const useApiKeyOperations = () => {
     const result = await deleteMutation({
       variables: { id }
     });
-    
+
     if (result.data) {
       handleDeleteResponse(result.data.delete_api_key);
     }
-    
+
     return result;
   };
 
@@ -117,13 +117,13 @@ export const useApiKeyOperations = () => {
   return {
     // Data
     apiKeys: apiKeysData?.api_keys || [],
-    
+
     // Loading states
     loadingApiKeys,
     creatingApiKey,
     deletingApiKey,
     testingApiKey,
-    
+
     // Operations
     createApiKey,
     deleteApiKey,

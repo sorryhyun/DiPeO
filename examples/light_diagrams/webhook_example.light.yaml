@@ -30,7 +30,7 @@ nodes:
         prompt: |
           Process the following GitHub webhook event:
           {{webhook_payload}}
-          
+
           Extract the key information:
           - Repository name
           - Commit message

@@ -51,4 +51,3 @@ export interface LLMRequestOptions {
   tools?: ToolConfig[];
   response_format?: any;
 }
-

@@ -1,7 +1,8 @@
 """Ollama adapter implementation for local model execution."""
 
 import logging
-from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
+from collections.abc import AsyncIterator, Iterator
+from typing import Any
 
 from dipeo.diagram_generated import Message, ToolConfig
 
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class OllamaAdapter(UnifiedAdapter):
     """Unified Ollama adapter for local model execution."""
-    
+
     def __init__(self, config: AdapterConfig):
         """Initialize Ollama adapter with capabilities."""
         # Set defaults for Ollama
@@ -36,33 +37,32 @@ class OllamaAdapter(UnifiedAdapter):
             config.api_key = ""
         if not config.base_url:
             config.base_url = "http://localhost:11434"
-        
+
         # Initialize clients first (before calling super().__init__)
         self.sync_client_wrapper = OllamaClientWrapper(config)
         self.async_client_wrapper = AsyncOllamaClientWrapper(config)
-        
+
         # Now call parent init
         super().__init__(config)
-        
+
         # Initialize limited capabilities for Ollama
         self.retry_handler = RetryHandler(
             ProviderType.OLLAMA,
             RetryConfig(
                 max_attempts=config.max_retries or 3,
                 initial_delay=config.retry_delay or 1.0,
-                backoff_factor=config.retry_backoff or 2.0
-            )
+                backoff_factor=config.retry_backoff or 2.0,
+            ),
         )
         self.streaming_handler = StreamingHandler(
-            ProviderType.OLLAMA,
-            StreamConfig(mode=config.streaming_mode or StreamingMode.SSE)
+            ProviderType.OLLAMA, StreamConfig(mode=config.streaming_mode or StreamingMode.SSE)
         )
-        
+
         # Initialize processors
         self.message_processor = MessageProcessor(ProviderType.OLLAMA)
         self.response_processor = ResponseProcessor(ProviderType.OLLAMA)
         self.token_counter = TokenCounter(ProviderType.OLLAMA)
-    
+
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Ollama provider capabilities."""
         return ProviderCapabilities(
@@ -100,60 +100,60 @@ class OllamaAdapter(UnifiedAdapter):
                 "llava",  # Vision model
                 "bakllava",  # Vision model
             },
-            streaming_modes={StreamingMode.SSE}
+            streaming_modes={StreamingMode.SSE},
         )
-    
+
     def _create_sync_client(self):
         """Create synchronous client."""
         return self.sync_client_wrapper
-    
+
     async def _create_async_client(self):
         """Create asynchronous client."""
         return self.async_client_wrapper
-    
+
     def validate_model(self, model: str) -> bool:
         """Validate if model is supported."""
         # Ollama can pull any model, so we're more permissive
         # Check if it's a known model or follows Ollama naming pattern
         model_base = model.split(":")[0]
         return (
-            model_base in self.capabilities.supported_models or
-            model in self.capabilities.supported_models or
-            True  # Allow any model name as Ollama can pull models dynamically
+            model_base in self.capabilities.supported_models
+            or model in self.capabilities.supported_models
+            or True  # Allow any model name as Ollama can pull models dynamically
         )
-    
-    def prepare_messages(self, messages: List[Message]) -> tuple[List[Dict[str, Any]], Optional[str]]:
+
+    def prepare_messages(self, messages: list[Message]) -> tuple[list[dict[str, Any]], str | None]:
         """Prepare messages for Ollama API, extracting system prompt."""
         # Extract system prompt
         system_prompt = self.message_processor.extract_system_prompt(messages)
-        
+
         # Filter out system messages and process the rest
         non_system_messages = [msg for msg in messages if msg.role != "system"]
         prepared_messages = self.message_processor.prepare_messages(non_system_messages)
-        
+
         return prepared_messages, system_prompt
-    
+
     def chat(
         self,
-        messages: List[Message],
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        tools: Optional[List[ToolConfig]] = None,
-        response_format: Optional[Any] = None,
-        execution_phase: Optional[ExecutionPhase] = None,
-        **kwargs
+        messages: list[Message],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        tools: list[ToolConfig] | None = None,
+        response_format: Any | None = None,
+        execution_phase: ExecutionPhase | None = None,
+        **kwargs,
     ) -> LLMResponse:
         """Execute synchronous chat completion with retry logic."""
         temperature = temperature or self.config.temperature
         max_tokens = max_tokens or self.config.max_tokens
-        
+
         # Prepare messages and extract system prompt
         prepared_messages, system_prompt = self.prepare_messages(messages)
-        
+
         # Ollama doesn't support tools
         if tools:
             logger.warning("Ollama doesn't support function calling/tools yet")
-        
+
         # Execute with retry
         @self.retry_handler.with_retry
         def _execute():
@@ -163,11 +163,11 @@ class OllamaAdapter(UnifiedAdapter):
                 temperature=temperature,
                 max_tokens=max_tokens,
                 system=system_prompt,
-                **kwargs
+                **kwargs,
             )
-        
+
         raw_response = _execute()
-        
+
         # Process response
         text = ""
         if isinstance(raw_response, dict):
@@ -176,7 +176,7 @@ class OllamaAdapter(UnifiedAdapter):
                 text = raw_response["message"].get("content", "")
             elif "response" in raw_response:
                 text = raw_response["response"]
-        
+
         # Extract token usage if available
         token_usage = None
         if isinstance(raw_response, dict):
@@ -188,40 +188,36 @@ class OllamaAdapter(UnifiedAdapter):
                     {
                         "prompt_eval_count": prompt_tokens,
                         "eval_count": completion_tokens,
-                        "total_count": prompt_tokens + completion_tokens
+                        "total_count": prompt_tokens + completion_tokens,
                     },
-                    self.model
+                    self.model,
                 )
-        
-        response = LLMResponse(
-            text=text,
-            raw_response=raw_response,
-            token_usage=token_usage
-        )
-        
+
+        response = LLMResponse(text=text, raw_response=raw_response, token_usage=token_usage)
+
         return response
-    
+
     async def async_chat(
         self,
-        messages: List[Message],
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        tools: Optional[List[ToolConfig]] = None,
-        response_format: Optional[Any] = None,
-        execution_phase: Optional[ExecutionPhase] = None,
-        **kwargs
+        messages: list[Message],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        tools: list[ToolConfig] | None = None,
+        response_format: Any | None = None,
+        execution_phase: ExecutionPhase | None = None,
+        **kwargs,
     ) -> LLMResponse:
         """Execute asynchronous chat completion with retry logic."""
         temperature = temperature or self.config.temperature
         max_tokens = max_tokens or self.config.max_tokens
-        
+
         # Prepare messages and extract system prompt
         prepared_messages, system_prompt = self.prepare_messages(messages)
-        
+
         # Ollama doesn't support tools
         if tools:
             logger.warning("Ollama doesn't support function calling/tools yet")
-        
+
         # Execute with retry
         @self.retry_handler.with_async_retry
         async def _execute():
@@ -231,11 +227,11 @@ class OllamaAdapter(UnifiedAdapter):
                 temperature=temperature,
                 max_tokens=max_tokens,
                 system=system_prompt,
-                **kwargs
+                **kwargs,
             )
-        
+
         raw_response = await _execute()
-        
+
         # Process response
         text = ""
         if isinstance(raw_response, dict):
@@ -244,7 +240,7 @@ class OllamaAdapter(UnifiedAdapter):
                 text = raw_response["message"].get("content", "")
             elif "response" in raw_response:
                 text = raw_response["response"]
-        
+
         # Extract token usage if available
         token_usage = None
         if isinstance(raw_response, dict):
@@ -255,34 +251,30 @@ class OllamaAdapter(UnifiedAdapter):
                     {
                         "prompt_eval_count": prompt_tokens,
                         "eval_count": completion_tokens,
-                        "total_count": prompt_tokens + completion_tokens
+                        "total_count": prompt_tokens + completion_tokens,
                     },
-                    self.model
+                    self.model,
                 )
-        
-        response = LLMResponse(
-            text=text,
-            raw_response=raw_response,
-            token_usage=token_usage
-        )
-        
+
+        response = LLMResponse(text=text, raw_response=raw_response, token_usage=token_usage)
+
         return response
-    
+
     def stream(
         self,
-        messages: List[Message],
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        tools: Optional[List[ToolConfig]] = None,
-        **kwargs
+        messages: list[Message],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        tools: list[ToolConfig] | None = None,
+        **kwargs,
     ) -> Iterator[str]:
         """Stream synchronous chat completion."""
         temperature = temperature or self.config.temperature
         max_tokens = max_tokens or self.config.max_tokens
-        
+
         # Prepare messages and extract system prompt
         prepared_messages, system_prompt = self.prepare_messages(messages)
-        
+
         # Execute with retry
         @self.retry_handler.with_retry
         def _execute():
@@ -292,11 +284,11 @@ class OllamaAdapter(UnifiedAdapter):
                 temperature=temperature,
                 max_tokens=max_tokens,
                 system=system_prompt,
-                **kwargs
+                **kwargs,
             )
-        
+
         stream = _execute()
-        
+
         # Process stream chunks
         for chunk in stream:
             if isinstance(chunk, dict):
@@ -308,22 +300,22 @@ class OllamaAdapter(UnifiedAdapter):
                 elif "response" in chunk:
                     # Some Ollama versions use 'response' field
                     yield chunk["response"]
-    
+
     async def async_stream(
         self,
-        messages: List[Message],
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        tools: Optional[List[ToolConfig]] = None,
-        **kwargs
+        messages: list[Message],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        tools: list[ToolConfig] | None = None,
+        **kwargs,
     ) -> AsyncIterator[str]:
         """Stream asynchronous chat completion."""
         temperature = temperature or self.config.temperature
         max_tokens = max_tokens or self.config.max_tokens
-        
+
         # Prepare messages and extract system prompt
         prepared_messages, system_prompt = self.prepare_messages(messages)
-        
+
         # Execute with retry
         @self.retry_handler.with_async_retry
         async def _execute():
@@ -333,11 +325,11 @@ class OllamaAdapter(UnifiedAdapter):
                 temperature=temperature,
                 max_tokens=max_tokens,
                 system=system_prompt,
-                **kwargs
+                **kwargs,
             )
-        
+
         stream = await _execute()
-        
+
         # Process stream chunks
         async for chunk in stream:
             if isinstance(chunk, dict):

@@ -7,23 +7,23 @@ import { FlowHandle } from '../controls/FlowHandle';
 
 const PersonClass: React.FC<NodeProps> = React.memo(({ data, selected, id }) => {
   const [isDragging, setIsDragging] = React.useState(false);
-  
+
   // Cast data once to avoid repeated casting
   const personData = data as unknown as DomainPerson;
   const nodeIdTyped = createNodeId(id);
-  
+
   const handleDragStart = useCallback((e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('application/person', personData.id || id);
     setIsDragging(true);
   }, [personData.id, id]);
-  
+
   const handleDragEnd = useCallback(() => {
     setIsDragging(false);
   }, []);
-  
+
   return (
-    <div 
+    <div
       className={`p-2 border-2 rounded-md shadow-md bg-white w-52 cursor-move transition-all ${
         selected ? 'border-green-500 ring-2 ring-green-300' : 'border-gray-300'
       } ${isDragging ? 'opacity-50 scale-95' : 'hover:shadow-lg'}`}
@@ -73,7 +73,7 @@ const PersonClass: React.FC<NodeProps> = React.memo(({ data, selected, id }) => 
   // Custom comparison to prevent unnecessary re-renders
   const prevData = prevProps.data as unknown as DomainPerson;
   const nextData = nextProps.data as unknown as DomainPerson;
-  
+
   return (
     prevProps.id === nextProps.id &&
     prevProps.selected === nextProps.selected &&

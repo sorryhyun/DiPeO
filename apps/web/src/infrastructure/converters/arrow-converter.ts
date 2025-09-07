@@ -1,6 +1,6 @@
 /**
  * Arrow Converter Module
- * 
+ *
  * Handles all conversions related to diagram arrows (connections).
  * Manages transformations between different arrow representations.
  */
@@ -28,7 +28,7 @@ export class ArrowConverter {
       data: graphqlArrow.data || null
     };
   }
-  
+
   /**
    * Convert domain arrow to GraphQL input
    */
@@ -42,28 +42,28 @@ export class ArrowConverter {
       data: domainArrow.data
     };
   }
-  
+
   /**
    * Batch convert GraphQL arrows to domain
    */
   static batchToDomain(graphqlArrows: DomainArrowType[]): DomainArrow[] {
     return graphqlArrows.map(arrow => this.toDomain(arrow));
   }
-  
+
   /**
    * Batch convert domain arrows to GraphQL
    */
   static batchToGraphQL(domainArrows: DomainArrow[]): Partial<DomainArrowType>[] {
     return domainArrows.map(arrow => this.toGraphQL(arrow));
   }
-  
+
   /**
    * Convert array to Map for efficient lookups
    */
   static arrayToMap(arrows: DomainArrow[]): Map<ArrowID, DomainArrow> {
     return new Map(arrows.map(arrow => [arrow.id, arrow]));
   }
-  
+
   /**
    * Find arrows connected to a specific handle
    */
@@ -75,7 +75,7 @@ export class ArrowConverter {
     const outgoing = arrows.filter(arrow => arrow.source === handleId);
     return { incoming, outgoing };
   }
-  
+
   /**
    * Find arrows between two nodes (via their handles)
    */
@@ -86,18 +86,18 @@ export class ArrowConverter {
   ): DomainArrow[] {
     const sourceSet = new Set(sourceHandles);
     const targetSet = new Set(targetHandles);
-    return arrows.filter(arrow => 
+    return arrows.filter(arrow =>
       sourceSet.has(arrow.source) && targetSet.has(arrow.target)
     );
   }
-  
+
   /**
    * Create arrow ID from source and target handles
    */
   static createArrowId(source: HandleID, target: HandleID): ArrowID {
     return arrowId(`${source}_to_${target}`);
   }
-  
+
   /**
    * Create a minimal arrow
    */

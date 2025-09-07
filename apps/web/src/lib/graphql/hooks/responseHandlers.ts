@@ -28,28 +28,28 @@ export function handleStandardResponse<T extends StandardResponse>(
     if (options?.onSuccess) {
       options.onSuccess(response);
     }
-    
+
     if (!options?.silent) {
       const message = typeof options?.successMessage === 'function'
         ? options.successMessage(response)
         : options?.successMessage || response.message || 'Operation successful';
       toast.success(message);
     }
-    
+
     return true;
   } else {
     // Handle error
     if (options?.onError) {
       options.onError(response);
     }
-    
+
     if (!options?.silent) {
       const message = typeof options?.errorMessage === 'function'
         ? options.errorMessage(response)
         : options?.errorMessage || response.error || response.message || 'Operation failed';
       toast.error(message);
     }
-    
+
     return false;
   }
 }
@@ -64,11 +64,11 @@ export function extractResponseData<T extends StandardResponse, K extends keyof 
   if (!response.success) {
     throw new Error(response.error || response.message || 'Operation failed');
   }
-  
+
   if (!(dataKey in response)) {
     throw new Error(`Expected data field "${String(dataKey)}" not found in response`);
   }
-  
+
   return response[dataKey];
 }
 

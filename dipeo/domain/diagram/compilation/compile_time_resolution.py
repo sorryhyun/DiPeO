@@ -4,25 +4,26 @@ This module contains the domain contracts for resolving diagram structure
 at compile-time, including connections and transformation rules.
 """
 
-from typing import Any, Protocol
 from abc import ABC, abstractmethod
+from typing import Any
+
 from dipeo.diagram_generated import DomainArrow, DomainNode, NodeID
 from dipeo.diagram_generated.enums import NodeType
 
 
 class Connection:
     """Represents a resolved connection between nodes.
-    
+
     This is determined at compile-time based on arrow definitions.
     """
-    
+
     def __init__(
         self,
         source_node_id: NodeID,
         target_node_id: NodeID,
         source_output: str | None = None,
         target_input: str | None = None,
-        metadata: dict[str, Any] | None = None
+        metadata: dict[str, Any] | None = None,
     ):
         self.source_node_id = source_node_id
         self.target_node_id = target_node_id
@@ -33,20 +34,20 @@ class Connection:
 
 class TransformRules:
     """Encapsulates transformation rules for a connection.
-    
+
     These rules are determined at compile-time based on node types
     and will be applied during runtime execution.
     """
-    
+
     def __init__(self, rules: dict[str, Any] | None = None):
         self.rules = rules or {}
-    
+
     def add_rule(self, rule_type: str, config: Any) -> None:
         self.rules[rule_type] = config
-    
+
     def get_rule(self, rule_type: str) -> Any | None:
         return self.rules.get(rule_type)
-    
+
     def merge_with(self, other: "TransformRules") -> "TransformRules":
         """Merge with another set of rules, other takes precedence."""
         merged = TransformRules(self.rules.copy())
@@ -56,44 +57,42 @@ class TransformRules:
 
 class CompileTimeResolver(ABC):
     """Base class for resolving static structure and transformation rules at compile time.
-    
+
     This resolver works during diagram compilation to determine connections
     and transformation rules that will be used during execution.
     """
-    
+
     @abstractmethod
     def resolve_connections(
-        self, 
-        arrows: list[DomainArrow], 
-        nodes: list[DomainNode]
+        self, arrows: list[DomainArrow], nodes: list[DomainNode]
     ) -> list[Connection]:
         """Resolve arrows to concrete connections between nodes.
-        
+
         Args:
             arrows: List of domain arrows defining connections
             nodes: List of domain nodes in the diagram
-            
+
         Returns:
             List of resolved connections with source/target information
         """
         pass
-    
+
     @abstractmethod
     def determine_transformation_rules(
-        self, 
+        self,
         connection: Connection,
         source_node_type: NodeType,
         target_node_type: NodeType,
-        nodes_by_id: dict[NodeID, DomainNode]
+        nodes_by_id: dict[NodeID, DomainNode],
     ) -> TransformRules:
         """Determine all transformation rules for a connection.
-        
+
         Args:
             connection: The resolved connection
             source_node_type: Type of the source node
             target_node_type: Type of the target node
             nodes_by_id: Mapping of node IDs to nodes
-            
+
         Returns:
             Transformation rules to apply for this connection
         """

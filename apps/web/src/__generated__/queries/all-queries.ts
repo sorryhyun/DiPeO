@@ -41,8 +41,8 @@ export interface ControlExecutionVariables {
 
 export const CONVERTDIAGRAMFORMAT_MUTATION = gql`
   mutation ConvertDiagramFormat(
-    $content: String!, 
-    $from_format: DiagramFormat!, 
+    $content: String!,
+    $from_format: DiagramFormat!,
     $to_format: DiagramFormat!
   ) {
     convert_diagram_format(content: $content, from_format: $from_format, to_format: $to_format) {
@@ -106,7 +106,7 @@ export interface CreateDiagramVariables {
 
 export const CREATENODE_MUTATION = gql`
   mutation CreateNode(
-    $diagram_id: ID!, 
+    $diagram_id: ID!,
     $input: CreateNodeInput!
   ) {
     create_node(diagram_id: $diagram_id, input: $input) {
@@ -184,7 +184,7 @@ export interface DeleteDiagramVariables {
 
 export const DELETENODE_MUTATION = gql`
   mutation DeleteNode(
-    $diagram_id: ID!, 
+    $diagram_id: ID!,
     $node_id: ID!
   ) {
     delete_node(diagram_id: $diagram_id, node_id: $node_id) {
@@ -302,8 +302,8 @@ export interface UnregisterCliSessionVariables {
 
 export const UPDATENODE_MUTATION = gql`
   mutation UpdateNode(
-    $diagram_id: ID!, 
-    $node_id: ID!, 
+    $diagram_id: ID!,
+    $node_id: ID!,
     $input: UpdateNodeInput!
   ) {
     update_node(diagram_id: $diagram_id, node_id: $node_id, input: $input) {
@@ -343,7 +343,7 @@ export interface UpdateNodeStateVariables {
 
 export const UPDATEPERSON_MUTATION = gql`
   mutation UpdatePerson(
-    $id: ID!, 
+    $id: ID!,
     $input: UpdatePersonInput!
   ) {
     update_person(id: $id, input: $input) {
@@ -365,7 +365,7 @@ export interface UpdatePersonVariables {
 
 export const UPLOADDIAGRAM_MUTATION = gql`
   mutation UploadDiagram(
-    $file: Upload!, 
+    $file: Upload!,
     $format: DiagramFormat!
   ) {
     upload_diagram(file: $file, format: $format) {
@@ -389,7 +389,7 @@ export interface UploadDiagramVariables {
 
 export const UPLOADFILE_MUTATION = gql`
   mutation UploadFile(
-    $file: Upload!, 
+    $file: Upload!,
     $path: String
   ) {
     upload_file(file: $file, path: $path) {
@@ -410,7 +410,7 @@ export interface UploadFileVariables {
 
 export const VALIDATEDIAGRAM_MUTATION = gql`
   mutation ValidateDiagram(
-    $content: String!, 
+    $content: String!,
     $format: DiagramFormat!
   ) {
     validate_diagram(content: $content, format: $format) {
@@ -475,7 +475,7 @@ export interface GetApiKeysVariables {
 
 export const GETAVAILABLEMODELS_QUERY = gql`
   query GetAvailableModels(
-    $service: String!, 
+    $service: String!,
     $apiKeyId: ID!
   ) {
     available_models(service: $service, api_key_id: $apiKeyId)
@@ -577,8 +577,8 @@ export const GETEXECUTIONCAPABILITIES_QUERY = gql`
 
 export const GETEXECUTIONHISTORY_QUERY = gql`
   query GetExecutionHistory(
-    $diagram_id: ID, 
-    $limit: Int, 
+    $diagram_id: ID,
+    $limit: Int,
     $include_metrics: Boolean
   ) {
     execution_history {
@@ -684,12 +684,12 @@ export const HEALTHCHECK_QUERY = gql`
 
 export const LISTCONVERSATIONS_QUERY = gql`
   query ListConversations(
-    $person_id: ID, 
-    $execution_id: ID, 
-    $search: String, 
-    $show_forgotten: Boolean, 
-    $limit: Int, 
-    $offset: Int, 
+    $person_id: ID,
+    $execution_id: ID,
+    $search: String,
+    $show_forgotten: Boolean,
+    $limit: Int,
+    $offset: Int,
     $since: DateTime
   ) {
     conversations(person_id: $person_id, execution_id: $execution_id, search: $search, show_forgotten: $show_forgotten, limit: $limit, offset: $offset, since: $since)
@@ -708,8 +708,8 @@ export interface ListConversationsVariables {
 
 export const LISTDIAGRAMS_QUERY = gql`
   query ListDiagrams(
-    $filter: DiagramFilterInput, 
-    $limit: Int, 
+    $filter: DiagramFilterInput,
+    $limit: Int,
     $offset: Int
   ) {
     diagrams(filter: $filter, limit: $limit, offset: $offset) {
@@ -736,8 +736,8 @@ export interface ListDiagramsVariables {
 
 export const LISTEXECUTIONS_QUERY = gql`
   query ListExecutions(
-    $filter: ExecutionFilterInput, 
-    $limit: Int, 
+    $filter: ExecutionFilterInput,
+    $limit: Int,
     $offset: Int
   ) {
     executions(filter: $filter, limit: $limit, offset: $offset) {

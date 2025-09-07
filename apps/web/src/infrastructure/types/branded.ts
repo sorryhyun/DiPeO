@@ -3,7 +3,7 @@
  * Domain branded types are imported from './domain'
  */
 
-import { 
+import {
   parseHandleId as domainParseHandleId,
   type NodeID,
   type HandleID,
@@ -51,9 +51,9 @@ export const messageId = (id: string): MessageID => id as MessageID;
 export const isValidHandleIdFormat = (id: string): boolean => {
   try {
     const parsed = domainParseHandleId(id as HandleID);
-    return parsed !== null && 
-           'nodeId' in parsed && 
-           'label' in parsed && 
+    return parsed !== null &&
+           'nodeId' in parsed &&
+           'label' in parsed &&
            'direction' in parsed;
   } catch {
     return false;

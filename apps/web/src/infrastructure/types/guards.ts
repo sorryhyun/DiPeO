@@ -13,7 +13,6 @@ import {
   type CodeJobNodeData,
   type ApiJobNodeData,
   type UserResponseNodeData,
-  type PersonBatchJobNodeData,
   type HookNodeData,
   type WithUI,
   hasUIProperties
@@ -55,9 +54,6 @@ export function isUserResponseNode(node: DomainNode): node is DomainNode & { dat
   return node.type === NodeType.USER_RESPONSE;
 }
 
-export function isPersonBatchJobNode(node: DomainNode): node is DomainNode & { data: PersonBatchJobNodeData } {
-  return node.type === NodeType.PERSON_BATCH_JOB;
-}
 
 export function isHookNode(node: DomainNode): node is DomainNode & { data: HookNodeData } {
   return node.type === NodeType.HOOK;
@@ -74,10 +70,10 @@ export function isFlippedNode(node: DomainNode): boolean {
 }
 
 // Type guard for nodes that can have persons
-export function hasPersonConfig(node: DomainNode): node is DomainNode & { 
-  data: PersonJobNodeData | PersonBatchJobNodeData 
+export function hasPersonConfig(node: DomainNode): node is DomainNode & {
+  data: PersonJobNodeData
 } {
-  return isPersonJobNode(node) || isPersonBatchJobNode(node);
+  return isPersonJobNode(node);
 }
 
 // Type guard for nodes that execute code

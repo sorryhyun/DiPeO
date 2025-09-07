@@ -76,4 +76,20 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
       return { isValid: true };
     },
   },
+  {
+    name: 'batch',
+    type: 'checkbox',
+    label: 'Batch',
+    required: false,
+    defaultValue: false,
+    description: 'Enable batch processing mode',
+  },
+  {
+    name: 'batchInputKey',
+    type: 'text',
+    label: 'Batchinputkey',
+    required: false,
+    defaultValue: "sources",
+    description: 'Key to extract batch items from input',
+  },
 ];

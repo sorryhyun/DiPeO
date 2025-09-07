@@ -34,7 +34,7 @@ nodes:
         - Mention this is a test message
         - Include current timestamp: {{timestamp}}
         - Be warm and engaging
-        
+
         Return just the message text, no formatting.
       max_iteration: 1
       memory_profile: GOLDFISH
@@ -56,19 +56,19 @@ nodes:
       language: python
       code: |
         import json
-        
+
         # Parse the sent message response
         if isinstance(message_response, str):
             message = json.loads(message_response)
         else:
             message = message_response
-        
+
         message_id = message.get('id')
         channel_id = message.get('channel_id')
-        
+
         print(f"Sent message ID: {message_id}")
         print(f"In channel: {channel_id}")
-        
+
         result = {
             "message_id": message_id,
             "channel_id": channel_id,
@@ -86,7 +86,7 @@ nodes:
         - Related to DiPeO testing
         - Short (under 100 characters)
         - Include a test identifier
-        
+
         Return just the thread name.
       max_iteration: 1
       memory_profile: GOLDFISH
@@ -110,19 +110,19 @@ nodes:
       language: python
       code: |
         import json
-        
+
         # Parse the thread response
         if isinstance(thread_response, str):
             thread = json.loads(thread_response)
         else:
             thread = thread_response
-        
+
         thread_id = thread.get('id')
         thread_name = thread.get('name')
-        
+
         print(f"Created thread: {thread_name}")
         print(f"Thread ID: {thread_id}")
-        
+
         result = {
             "thread_id": thread_id,
             "thread_name": thread_name
@@ -136,7 +136,7 @@ nodes:
       code: |
         from datetime import datetime
         import random
-        
+
         # Generate some test status data
         test_stats = {
             "tests_run": random.randint(10, 50),
@@ -144,10 +144,10 @@ nodes:
             "api_calls": 3,
             "timestamp": datetime.now().isoformat()
         }
-        
+
         test_stats["tests_failed"] = test_stats["tests_run"] - test_stats["tests_passed"]
         test_stats["success_rate"] = round((test_stats["tests_passed"] / test_stats["tests_run"]) * 100, 2)
-        
+
         # Pick a color based on success rate
         if test_stats["success_rate"] >= 90:
             color = 0x00FF00  # Green
@@ -158,7 +158,7 @@ nodes:
         else:
             color = 0xFF0000  # Red
             status = "❌ Needs Improvement"
-        
+
         result = {
             "stats": test_stats,
             "color": color,
@@ -214,28 +214,28 @@ nodes:
       code: |
         summary = f"""
         ✅ Discord Integration Test Complete!
-        
+
         📋 Test Results:
         1. ✓ Sent welcome message (ID: {message_info['message_id']})
-        
+
         2. ✓ Created thread: {thread_info['thread_name']}
            Thread ID: {thread_info['thread_id']}
-        
+
         3. ✓ Sent status embed with test results
            - Tests Run: {status_data['stats']['tests_run']}
            - Success Rate: {status_data['stats']['success_rate']}%
            - Status: {status_data['status']}
-        
+
         4. ✓ Added reaction to welcome message
-        
+
         🎯 All Discord API operations completed successfully!
-        
+
         Configuration Used:
         - Guild ID: {discord_config['guild_id']}
         - Channel ID: {discord_config['channel_id']}
         - Bot Name: {discord_config['bot_name']}
         """
-        
+
         print(summary)
         result = {"summary": summary}
 

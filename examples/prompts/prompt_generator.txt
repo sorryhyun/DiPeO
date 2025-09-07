@@ -1,4 +1,4 @@
-You are creating a comprehensive prompt for a frontend code generator. 
+You are creating a comprehensive prompt for a frontend code generator.
 
 Target: {{prompt_type}}
 Framework: {{target_framework}}

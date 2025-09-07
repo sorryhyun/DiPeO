@@ -272,7 +272,7 @@ def get_container() -> Container:
 
 
 def initialize_container() -> Container:
-    global _container  # noqa: PLW0603
+    global _container
 
     if _container is None:
         # Initializing server with simplified container system
@@ -292,7 +292,7 @@ def initialize_container() -> Container:
 
 async def initialize_container_async() -> Container:
     """Async version of initialize_container for use within async contexts."""
-    global _container  # noqa: PLW0603
+    global _container
 
     if _container is None:
         # Initializing server with simplified container system

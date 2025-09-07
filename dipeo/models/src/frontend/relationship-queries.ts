@@ -12,7 +12,7 @@ export const createRelationshipField = (
   config: RelationshipConfig
 ): QueryField => {
   const baseFields = config.defaultFields || ['id', 'name'];
-  
+
   return {
     name: config.field,
     required: false,

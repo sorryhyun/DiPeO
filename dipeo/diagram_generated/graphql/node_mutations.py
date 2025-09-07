@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-05T16:04:28.723812
+Generated at: 2025-09-07T20:07:05.550565
 """
 
 import strawberry
@@ -13,8 +13,8 @@ from strawberry.types import *
 from .strawberry_nodes import *
 
 # Import base types
-from dipeo.application.graphql.types.domain_types import *
-from dipeo.application.graphql.types.inputs import *
+from dipeo.diagram_generated.graphql.domain_types import *
+from dipeo.diagram_generated.graphql.inputs import *
 
 # Import services and keys
 from dipeo.application.registry import *
@@ -32,7 +32,7 @@ class CreateApiJobInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateApiJobInput:
     """Input for updating a API Job node"""
     # TODO: Add node-specific fields from spec
@@ -50,7 +50,7 @@ class CreateCodeJobInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateCodeJobInput:
     """Input for updating a Code Job node"""
     # TODO: Add node-specific fields from spec
@@ -68,7 +68,7 @@ class CreateConditionInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateConditionInput:
     """Input for updating a Condition node"""
     # TODO: Add node-specific fields from spec
@@ -86,7 +86,7 @@ class CreateDBInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateDBInput:
     """Input for updating a Database node"""
     # TODO: Add node-specific fields from spec
@@ -104,7 +104,7 @@ class CreateEndpointInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateEndpointInput:
     """Input for updating a End Node node"""
     # TODO: Add node-specific fields from spec
@@ -122,7 +122,7 @@ class CreateHookInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateHookInput:
     """Input for updating a Hook node"""
     # TODO: Add node-specific fields from spec
@@ -140,7 +140,7 @@ class CreateIntegratedApiInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateIntegratedApiInput:
     """Input for updating a Integrated API node"""
     # TODO: Add node-specific fields from spec
@@ -158,27 +158,9 @@ class CreateJsonSchemaValidatorInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateJsonSchemaValidatorInput:
     """Input for updating a JSON Schema Validator node"""
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: Optional[strawberry.scalars.JSON] = None
-    position: Optional[Vec2Input] = None
-
-
-@strawberry.input
-class CreatePersonBatchJobInput:
-    """Input for creating a Person Batch Job node"""
-    diagram_id: str
-    position: Vec2Input
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: strawberry.scalars.JSON
-
-@strawberry.input  
-class UpdatePersonBatchJobInput:
-    """Input for updating a Person Batch Job node"""
     # TODO: Add node-specific fields from spec
     # For now, we accept a generic data dict that will be validated
     data: Optional[strawberry.scalars.JSON] = None
@@ -194,7 +176,7 @@ class CreatePersonJobInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdatePersonJobInput:
     """Input for updating a Person Job node"""
     # TODO: Add node-specific fields from spec
@@ -212,7 +194,7 @@ class CreateStartInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateStartInput:
     """Input for updating a Start Node node"""
     # TODO: Add node-specific fields from spec
@@ -230,7 +212,7 @@ class CreateSubDiagramInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateSubDiagramInput:
     """Input for updating a Sub-Diagram node"""
     # TODO: Add node-specific fields from spec
@@ -248,7 +230,7 @@ class CreateTemplateJobInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateTemplateJobInput:
     """Input for updating a Template Job node"""
     # TODO: Add node-specific fields from spec
@@ -266,7 +248,7 @@ class CreateTypescriptAstInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateTypescriptAstInput:
     """Input for updating a TypeScript AST Parser node"""
     # TODO: Add node-specific fields from spec
@@ -284,7 +266,7 @@ class CreateUserResponseInput:
     # For now, we accept a generic data dict that will be validated
     data: strawberry.scalars.JSON
 
-@strawberry.input  
+@strawberry.input
 class UpdateUserResponseInput:
     """Input for updating a User Response node"""
     # TODO: Add node-specific fields from spec
@@ -298,7 +280,7 @@ class UpdateUserResponseInput:
 @strawberry.type
 class NodeMutations:
     """Type-safe mutations for node operations"""
-    
+
 
     @strawberry.mutation
     async def create_api_job_node(
@@ -308,7 +290,7 @@ class NodeMutations:
     ) -> ApiJobDataType:
         """Create a Api Job node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -316,17 +298,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -345,11 +327,11 @@ class NodeMutations:
     ) -> ApiJobDataType:
         """Update a Api Job node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -357,7 +339,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -376,7 +358,7 @@ class NodeMutations:
     ) -> CodeJobDataType:
         """Create a Code Job node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -384,17 +366,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -413,11 +395,11 @@ class NodeMutations:
     ) -> CodeJobDataType:
         """Update a Code Job node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -425,7 +407,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -444,7 +426,7 @@ class NodeMutations:
     ) -> ConditionDataType:
         """Create a Condition node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -452,17 +434,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -481,11 +463,11 @@ class NodeMutations:
     ) -> ConditionDataType:
         """Update a Condition node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -493,7 +475,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -512,7 +494,7 @@ class NodeMutations:
     ) -> DBDataType:
         """Create a Db node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -520,17 +502,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -549,11 +531,11 @@ class NodeMutations:
     ) -> DBDataType:
         """Update a Db node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -561,7 +543,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -580,7 +562,7 @@ class NodeMutations:
     ) -> EndpointDataType:
         """Create a Endpoint node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -588,17 +570,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -617,11 +599,11 @@ class NodeMutations:
     ) -> EndpointDataType:
         """Update a Endpoint node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -629,7 +611,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -648,7 +630,7 @@ class NodeMutations:
     ) -> HookDataType:
         """Create a Hook node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -656,17 +638,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -685,11 +667,11 @@ class NodeMutations:
     ) -> HookDataType:
         """Update a Hook node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -697,7 +679,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -716,7 +698,7 @@ class NodeMutations:
     ) -> IntegratedApiDataType:
         """Create a Integrated Api node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -724,17 +706,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -753,11 +735,11 @@ class NodeMutations:
     ) -> IntegratedApiDataType:
         """Update a Integrated Api node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -765,7 +747,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -784,7 +766,7 @@ class NodeMutations:
     ) -> JsonSchemaValidatorDataType:
         """Create a Json Schema Validator node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -792,17 +774,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -821,11 +803,11 @@ class NodeMutations:
     ) -> JsonSchemaValidatorDataType:
         """Update a Json Schema Validator node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -833,75 +815,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
-        # Convert to GraphQL type
-        # For now, return the DomainNodeType directly
-        return DomainNodeType(
-            id=domain_node.id,
-            type=domain_node.type,
-            position=domain_node.position,
-            data=domain_node.data
-        )
 
-
-    @strawberry.mutation
-    async def create_person_batch_job_node(
-        self,
-        info: Info,
-        input: CreatePersonBatchJobInput
-    ) -> PersonBatchJobDataType:
-        """Create a Person Batch Job node"""
-        registry: ServiceRegistry = info.context["registry"]
-        
-        
-        # Prepare node data
-        node_data = {
-            "type": "person_batch_job",
-            "position": input.position,
-            "data": input.data
-        }
-        
-        # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_PORT)
-        
-        # Create the node
-        domain_node = await integrated_service.create_node(
-            diagram_id=input.diagram_id,
-            node_data=node_data
-        )
-        
-        
-        # Convert to GraphQL type
-        # For now, return the DomainNodeType directly
-        return DomainNodeType(
-            id=domain_node.id,
-            type=domain_node.type,
-            position=domain_node.position,
-            data=domain_node.data
-        )
-
-
-    @strawberry.mutation
-    async def update_person_batch_job_node(
-        self,
-        info: Info,
-        id: str, input: UpdatePersonBatchJobInput
-    ) -> PersonBatchJobDataType:
-        """Update a Person Batch Job node"""
-        registry: ServiceRegistry = info.context["registry"]
-        
-        
-        # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_PORT)
-        
-        # Update the node
-        domain_node = await integrated_service.update_node(
-            diagram_id=None,  # TODO: Need diagram_id from somewhere
-            node_id=id,
-            data=input.data
-        )
-        
-        
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -920,7 +834,7 @@ class NodeMutations:
     ) -> PersonJobDataType:
         """Create a Person Job node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -928,17 +842,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -957,11 +871,11 @@ class NodeMutations:
     ) -> PersonJobDataType:
         """Update a Person Job node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -969,7 +883,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -988,7 +902,7 @@ class NodeMutations:
     ) -> StartDataType:
         """Create a Start node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -996,17 +910,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -1025,11 +939,11 @@ class NodeMutations:
     ) -> StartDataType:
         """Update a Start node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -1037,7 +951,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -1056,7 +970,7 @@ class NodeMutations:
     ) -> SubDiagramDataType:
         """Create a Sub Diagram node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -1064,17 +978,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -1093,11 +1007,11 @@ class NodeMutations:
     ) -> SubDiagramDataType:
         """Update a Sub Diagram node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -1105,7 +1019,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -1124,7 +1038,7 @@ class NodeMutations:
     ) -> TemplateJobDataType:
         """Create a Template Job node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -1132,17 +1046,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -1161,11 +1075,11 @@ class NodeMutations:
     ) -> TemplateJobDataType:
         """Update a Template Job node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -1173,7 +1087,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -1192,7 +1106,7 @@ class NodeMutations:
     ) -> TypescriptAstDataType:
         """Create a Typescript Ast node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -1200,17 +1114,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -1229,11 +1143,11 @@ class NodeMutations:
     ) -> TypescriptAstDataType:
         """Update a Typescript Ast node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -1241,7 +1155,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -1260,7 +1174,7 @@ class NodeMutations:
     ) -> UserResponseDataType:
         """Create a User Response node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Prepare node data
         node_data = {
@@ -1268,17 +1182,17 @@ class NodeMutations:
             "position": input.position,
             "data": input.data
         }
-        
+
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Create the node
         domain_node = await integrated_service.create_node(
             diagram_id=input.diagram_id,
             node_data=node_data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -1297,11 +1211,11 @@ class NodeMutations:
     ) -> UserResponseDataType:
         """Update a User Response node"""
         registry: ServiceRegistry = info.context["registry"]
-        
+
         
         # Get diagram service
         integrated_service = registry.resolve(DIAGRAM_PORT)
-        
+
         # Update the node
         domain_node = await integrated_service.update_node(
             diagram_id=None,  # TODO: Need diagram_id from somewhere
@@ -1309,7 +1223,7 @@ class NodeMutations:
             data=input.data
         )
         
-        
+
         # Convert to GraphQL type
         # For now, return the DomainNodeType directly
         return DomainNodeType(
@@ -1349,9 +1263,6 @@ __all__ = [
 
     'CreateJsonSchemaValidatorInput',
     'UpdateJsonSchemaValidatorInput',
-
-    'CreatePersonBatchJobInput',
-    'UpdatePersonBatchJobInput',
 
     'CreatePersonJobInput',
     'UpdatePersonJobInput',

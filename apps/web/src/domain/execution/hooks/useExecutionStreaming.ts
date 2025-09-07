@@ -14,8 +14,8 @@ interface UseExecutionStreamingProps {
  */
 export function useExecutionStreaming({ executionId, skip = false, onConnectionLoss }: UseExecutionStreamingProps) {
   // Use GraphQL subscriptions for all execution types
-  const graphqlResult = useExecutionGraphQL({ 
-    executionId, 
+  const graphqlResult = useExecutionGraphQL({
+    executionId,
     skip
   });
 
@@ -27,13 +27,13 @@ export function useExecutionStreaming({ executionId, skip = false, onConnectionL
 
     const checkConnection = setInterval(() => {
       const { isConnected } = getConnectionStatus();
-      
+
       // If connection was lost and we had an active execution
       if (lastConnectionStatus.current && !isConnected) {
         console.log('[ExecutionStreaming] WebSocket connection lost during execution');
         onConnectionLoss?.();
       }
-      
+
       lastConnectionStatus.current = isConnected;
     }, 500); // Check every 500ms for faster response
 
@@ -47,12 +47,12 @@ export function useExecutionStreaming({ executionId, skip = false, onConnectionL
     executeDiagram: graphqlResult.executeDiagram,
     controlExecution: graphqlResult.controlExecution,
     submitInteractiveResponse: graphqlResult.submitInteractiveResponse,
-    
+
     // Subscription data from GraphQL
     executionUpdates: graphqlResult.executionUpdates,
     nodeUpdates: graphqlResult.nodeUpdates,
     interactivePrompts: graphqlResult.interactivePrompts,
-    
+
     // Connection status based on actual WebSocket state
     isConnected,
     connectionError: !isConnected ? 'WebSocket disconnected' : null,

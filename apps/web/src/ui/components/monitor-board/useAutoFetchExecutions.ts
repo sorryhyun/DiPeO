@@ -43,7 +43,7 @@ export function useAutoFetchExecutions({
 
   useEffect(() => {
     if (!enabled || loading || error) return;
-    
+
     if (data?.executions) {
       // Filter to get relevant executions
       const relevantExecutions = data.executions.filter((exec: any) => {
@@ -52,32 +52,32 @@ export function useAutoFetchExecutions({
         if (exec.id && exec.id.includes('_batch_')) {
           return false;
         }
-        
+
         // Include running executions always
         if (exec.status === 'RUNNING' || exec.status === 'PENDING') return true;
-        
+
         // Include recently completed executions if requested (within last 5 minutes)
         if (includeCompleted && exec.status === 'COMPLETED') {
           const endedAt = new Date(exec.ended_at);
           const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
           return endedAt > fiveMinutesAgo;
         }
-        
+
         // Include recent failures (within last 10 minutes)
         if (exec.status === 'FAILED' && exec.ended_at) {
           const endedAt = new Date(exec.ended_at);
           const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
           return endedAt > tenMinutesAgo;
         }
-        
+
         return false;
       }) as Array<{ id: string }>;
-      
+
       // Deduplicate IDs in case the backend returns duplicates
       const ids = [...new Set(relevantExecutions.map(e => e.id))];
       onExecutionsFetched(ids);
     }
   }, [data, enabled, loading, error, onExecutionsFetched, includeCompleted]);
-  
+
   return { loading, error, executionCount: data?.executions?.length || 0 };
 }

@@ -1,4 +1,4 @@
-import { 
+import {
   parseHandleId as domainParseHandleId,
   createHandleId as domainCreateHandleId,
   diagramArraysToMaps,
@@ -52,10 +52,10 @@ import type {
 
 /**
  * Centralized Conversion Service
- * 
+ *
  * This service provides all type conversions and transformations used across the frontend.
  * It centralizes conversion logic to reduce duplication and ensure consistency.
- * 
+ *
  * Categories:
  * - ID Type Conversions: Safe casting between string and branded types
  * - Domain Conversions: GraphQL ↔ Domain ↔ Store transformations
@@ -65,7 +65,7 @@ import type {
  */
 export class Converters {
   // ===== ID Type Conversions =====
-  
+
   /**
    * Safely cast string to NodeID
    * Reduces repetitive 'as NodeID' casting
@@ -73,7 +73,7 @@ export class Converters {
   static toNodeId(id: string): NodeID {
     return nodeId(id);
   }
-  
+
   /**
    * Safely cast string to ArrowID
    * Reduces repetitive 'as ArrowID' casting
@@ -81,7 +81,7 @@ export class Converters {
   static toArrowId(id: string): ArrowID {
     return arrowId(id);
   }
-  
+
   /**
    * Safely cast string to PersonID
    * Reduces repetitive 'as PersonID' casting
@@ -89,7 +89,7 @@ export class Converters {
   static toPersonId(id: string): PersonID {
     return personId(id);
   }
-  
+
   /**
    * Safely cast string to HandleID
    * Reduces repetitive 'as HandleID' casting
@@ -97,44 +97,44 @@ export class Converters {
   static toHandleId(id: string): HandleID {
     return handleId(id);
   }
-  
+
   /**
    * Safely cast string to ApiKeyID
    */
   static toApiKeyId(id: string): ApiKeyID {
     return apiKeyId(id);
   }
-  
+
   /**
    * Safely cast string to DiagramID
    */
   static toDiagramId(id: string): DiagramID {
     return diagramId(id);
   }
-  
+
   /**
    * Safely cast string to ExecutionID
    */
   static toExecutionId(id: string): ExecutionID {
     return executionId(id);
   }
-  
+
   // ===== Handle ID Operations =====
-  
+
   /**
    * Parse handle ID into components
    * Centralizes handle ID parsing logic
    */
   static parseHandleId = domainParseHandleId;
-  
+
   /**
    * Create handle ID from components
    * Centralizes handle ID creation logic
    */
   static createHandleId = domainCreateHandleId;
-  
+
   // ===== Array/Set/Map Transformations =====
-  
+
   /**
    * Convert array to Set of unique values based on property
    * Reduces repetitive pattern: new Set(array.map(item => item.prop).filter(Boolean))
@@ -143,13 +143,13 @@ export class Converters {
     const values = array.map(selector).filter((value): value is K => value !== undefined && value !== null);
     return new Set(values);
   }
-  
+
   /**
    * Convert array to Map keyed by property
    * Reduces repetitive reduce pattern
    */
   static arrayToMap<T, K extends string | number | symbol>(
-    array: T[], 
+    array: T[],
     keySelector: (item: T) => K
   ): Map<K, T> {
     const map = new Map<K, T>();
@@ -158,13 +158,13 @@ export class Converters {
     });
     return map;
   }
-  
+
   /**
    * Convert array to object keyed by property
    * Reduces repetitive reduce pattern
    */
   static arrayToObject<T, K extends string | number>(
-    array: T[], 
+    array: T[],
     keySelector: (item: T) => K
   ): Record<K, T> {
     return array.reduce((acc, item) => {
@@ -172,20 +172,20 @@ export class Converters {
       return acc;
     }, {} as Record<K, T>);
   }
-  
+
   /**
    * Map array with spread to add/modify properties
    * Reduces repetitive map spread pattern
    */
   static mapWithUpdate<T, U extends Partial<T>>(
-    array: T[], 
+    array: T[],
     updater: (item: T) => U
   ): Array<T & U> {
     return array.map(item => ({ ...item, ...updater(item) }));
   }
-  
+
   // ===== Collection Utilities =====
-  
+
   /**
    * Check if collection is empty
    * Works with arrays, Maps, Sets, and objects
@@ -197,19 +197,19 @@ export class Converters {
     if (typeof collection === 'object') return Object.keys(collection).length === 0;
     return false;
   }
-  
+
   /**
    * Get unique values from array
    */
   static unique<T>(array: T[]): T[] {
     return Array.from(new Set(array));
   }
-  
+
   /**
    * Group array items by key
    */
   static groupBy<T, K extends string | number>(
-    array: T[], 
+    array: T[],
     keySelector: (item: T) => K
   ): Record<K, T[]> {
     return array.reduce((groups, item) => {
@@ -219,9 +219,9 @@ export class Converters {
       return groups;
     }, {} as Record<K, T[]>);
   }
-  
+
   // ===== Data Transformations =====
-  
+
   /**
    * Convert tools array to comma-separated string
    * Centralizes this common transformation
@@ -230,7 +230,7 @@ export class Converters {
     if (!tools || !Array.isArray(tools)) return '';
     return tools.map(tool => tool.type).join(', ');
   }
-  
+
   /**
    * Convert comma-separated string to tools array
    * Centralizes this common transformation
@@ -242,9 +242,9 @@ export class Converters {
       enabled: true
     }));
   }
-  
+
   // ===== Domain Conversions =====
-  
+
   /**
    * Convert diagram with arrays to diagram with maps for efficient lookups
    * Centralizes the conversion logic from @dipeo/models
@@ -257,7 +257,7 @@ export class Converters {
   } {
     return diagramArraysToMaps(diagram);
   }
-  
+
   /**
    * Convert diagram with maps back to arrays for storage/transmission
    * Centralizes the conversion logic from @dipeo/models
@@ -270,7 +270,7 @@ export class Converters {
   }): DomainDiagram {
     return diagramMapsToArrays(maps) as DomainDiagram;
   }
-  
+
   /**
    * Check if two handles are compatible for connection
    * Centralizes handle compatibility logic from @dipeo/models
@@ -278,7 +278,7 @@ export class Converters {
   static areHandlesCompatible(source: DomainHandle, target: DomainHandle): boolean {
     return areHandlesCompatible(source, target);
   }
-  
+
   /**
    * Convert GraphQL person response to domain person model
    * Centralizes GraphQL conversion logic
@@ -286,7 +286,7 @@ export class Converters {
   static convertGraphQLPerson(person: any): DomainPerson {
     return convertGraphQLPersonToDomain(person);
   }
-  
+
   /**
    * Convert GraphQL diagram response to domain diagram model
    * Centralizes GraphQL conversion logic
@@ -294,7 +294,7 @@ export class Converters {
   static convertGraphQLDiagram(diagram: any): Partial<DomainDiagram> {
     return convertGraphQLDiagramToDomain(diagram);
   }
-  
+
   /**
    * Convert node type enum to string representation
    * Uses the reverse map from @dipeo/models
@@ -302,7 +302,7 @@ export class Converters {
   static nodeTypeToString(type: NodeType): string {
     return domainTypeToNodeKind(type);
   }
-  
+
   /**
    * Convert string to node type enum
    * Uses the node type map from @dipeo/models
@@ -310,9 +310,9 @@ export class Converters {
   static stringToNodeType(str: string): NodeType {
     return nodeKindToDomainType(str);
   }
-  
+
   // ===== GraphQL to Domain Conversions =====
-  
+
   /**
    * Convert GraphQL node to domain node
    */
@@ -324,7 +324,7 @@ export class Converters {
       data: node.data || {}
     };
   }
-  
+
   /**
    * Convert domain node to GraphQL format
    */
@@ -336,7 +336,7 @@ export class Converters {
       data: node.data
     };
   }
-  
+
   /**
    * Convert GraphQL arrow to domain arrow
    */
@@ -350,7 +350,7 @@ export class Converters {
       data: arrow.data || null
     };
   }
-  
+
   /**
    * Convert domain arrow to GraphQL format
    */
@@ -364,7 +364,7 @@ export class Converters {
       data: arrow.data
     };
   }
-  
+
   /**
    * Convert GraphQL handle to domain handle
    */
@@ -378,7 +378,7 @@ export class Converters {
       position: handle.position
     };
   }
-  
+
   /**
    * Convert domain handle to GraphQL format
    */
@@ -392,7 +392,7 @@ export class Converters {
       position: handle.position
     };
   }
-  
+
   /**
    * Convert GraphQL API key to domain
    */
@@ -404,9 +404,9 @@ export class Converters {
       key: ''
     };
   }
-  
+
   // ===== Execution State Conversions =====
-  
+
   /**
    * Convert GraphQL execution state to domain
    */
@@ -426,7 +426,7 @@ export class Converters {
         }
       });
     }
-    
+
     return {
       id: this.toExecutionId(execution.id),
       status: execution.status as Status,
@@ -442,7 +442,7 @@ export class Converters {
       executed_nodes: []
     };
   }
-  
+
   /**
    * Convert GraphQL execution update to domain
    */
@@ -454,37 +454,37 @@ export class Converters {
       timestamp: update.timestamp
     };
   }
-  
+
   // ===== Batch Conversions =====
-  
+
   /**
    * Convert array of GraphQL nodes to domain nodes
    */
   static graphQLNodesToDomain(nodes: DomainNodeType[]): DomainNode[] {
     return nodes.map(node => this.graphQLNodeToDomain(node));
   }
-  
+
   /**
    * Convert array of GraphQL arrows to domain arrows
    */
   static graphQLArrowsToDomain(arrows: DomainArrowType[]): DomainArrow[] {
     return arrows.map(arrow => this.graphQLArrowToDomain(arrow));
   }
-  
+
   /**
    * Convert array of GraphQL handles to domain handles
    */
   static graphQLHandlesToDomain(handles: DomainHandleType[]): DomainHandle[] {
     return handles.map(handle => this.graphQLHandleToDomain(handle));
   }
-  
+
   /**
    * Convert array of GraphQL persons to domain persons
    */
   static graphQLPersonsToDomain(persons: DomainPersonType[]): DomainPerson[] {
     return persons.map(person => this.convertGraphQLPerson(person));
   }
-  
+
   /**
    * Convert complete GraphQL diagram to domain with Maps
    */
@@ -497,7 +497,7 @@ export class Converters {
   } {
     const domainDiagram = this.convertGraphQLDiagram(diagram);
     const maps = diagramArraysToMaps(domainDiagram);
-    
+
     return {
       ...maps,
       metadata: diagram.metadata as DiagramMetadata | undefined

@@ -7,9 +7,9 @@ from .ollama import OllamaAdapter
 from .openai import OpenAIAdapter
 
 __all__ = [
-    "OpenAIAdapter",
     "AnthropicAdapter",
     "ClaudeCodeAdapter",
     "GoogleAdapter",
     "OllamaAdapter",
+    "OpenAIAdapter",
 ]

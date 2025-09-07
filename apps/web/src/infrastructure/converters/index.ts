@@ -1,6 +1,6 @@
 /**
  * Centralized Converter Modules
- * 
+ *
  * These modules provide structured conversion functions organized by domain.
  * Each converter module handles bidirectional transformations between:
  * - GraphQL types (from API)

@@ -1,0 +1,138 @@
+# Generate Static Node Classes from Domain Models - Simplified
+# Uses simplified extractors that work directly with DB glob results
+# Generates Python static node classes from TypeScript domain model interfaces
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 300}
+    props:
+      custom_data:
+        message: Starting static nodes generation from cached AST data
+
+  # Load cached codegen mappings AST
+  - label: Load Mappings AST
+    type: db
+    position: {x: 400, y: 150}
+    props:
+      operation: read
+      sub_type: file
+      file: temp/codegen/mappings.ts.json
+
+  # Extract mappings
+  - label: Extract Mappings
+    type: code_job
+    position: {x: 600, y: 150}
+    props:
+      language: python
+      filePath: projects/codegen/code/shared/extract_mappings.py
+      functionName: main
+
+  # NEW: Load all node data AST files dynamically using glob patterns
+  - label: Load All Node Data AST
+    type: db
+    position: {x: 400, y: 300}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      glob: true  # Enable glob pattern expansion
+      file:
+        # Dynamic discovery of all node SPECIFICATION files (replacing *.data.ts files)
+        - "temp/nodes/*.spec.ts.json"
+
+  # Load cached diagram AST for BaseNodeData
+  - label: Load Diagram AST
+    type: db
+    position: {x: 400, y: 450}
+    props:
+      operation: read
+      sub_type: file
+      file:
+        - temp/core/diagram.ts.json
+
+  # Extract BaseNodeData interface
+  - label: Extract Base Interface
+    type: code_job
+    position: {x: 600, y: 450}
+    props:
+      language: python
+      filePath: projects/codegen/code/models/extract_base_interface.py
+      functionName: extract_base_interface
+
+  # Extract node data using simplified extractor
+  - label: Extract Node Data
+    type: code_job
+    position: {x: 600, y: 300}
+    props:
+      language: python
+      filePath: projects/codegen/code/shared/simplified_extractors.py
+      functionName: extract_node_data_from_glob
+
+  # Generate static nodes from all parsed data
+  - label: Generate Static Nodes
+    type: code_job
+    position: {x: 800, y: 300}
+    props:
+      language: python
+      filePath: projects/codegen/code/models/generate_static_nodes.py
+      functionName: generate_static_nodes
+
+  # Generate Python code using template
+  # COMMENTED OUT - Phase 1 refactoring: Using compatibility shim instead of monolithic file
+  # - label: Generate Python Code
+  #   type: template_job
+  #   position: {x: 1000, y: 300}
+  #   props:
+  #     engine: jinja2
+  #     template_path: projects/codegen/templates/models/static_nodes_all.j2
+  #     output_path: dipeo/diagram_generated_staged/generated_nodes.py
+  #     # Template will automatically receive inputs from connections
+  #     # Enum fields mapping will be passed via input connections instead
+
+  # Generate success summary
+  - label: Generate Summary
+    type: code_job
+    position: {x: 1200, y: 300}
+    props:
+      language: python
+      filePath: projects/codegen/code/shared/generators/summary_generator.py
+      functionName: main
+
+  - label: End
+    type: endpoint
+    position: {x: 1400, y: 300}
+    props:
+      save_to_file: false
+
+connections:
+  # Load cached data after parsing
+  - {from: Start, to: Load Mappings AST}
+  - {from: Start, to: Load All Node Data AST}
+  - {from: Start, to: Load Diagram AST}
+
+  # Extract mappings
+  - {from: Load Mappings AST, to: Extract Mappings, content_type: object}
+
+  # Extract node data from loaded AST files
+  - {from: Load All Node Data AST, to: Extract Node Data, content_type: object}
+
+  # Extract base interface
+  - {from: Load Diagram AST, to: Extract Base Interface, label: diagram_ast, content_type: object}
+
+  # Generate static nodes with all inputs
+  - {from: Extract Node Data, to: Generate Static Nodes, label: node_data, content_type: object}
+  - {from: Extract Mappings, to: Generate Static Nodes, label: mappings, content_type: object}
+  - {from: Extract Base Interface, to: Generate Static Nodes, label: base_data, content_type: object}
+
+  # Generate Python code
+  # COMMENTED OUT - Phase 1 refactoring: Using compatibility shim instead of monolithic file
+  # - {from: Generate Static Nodes, to: Generate Python Code, label: static_nodes_data, content_type: object}
+
+  # Summary and End
+  - {from: Generate Static Nodes, to: Generate Summary, label: static_nodes_data}
+  # COMMENTED OUT - Phase 1 refactoring
+  # - {from: Generate Python Code, to: End}
+  - {from: Generate Summary, to: End}

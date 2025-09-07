@@ -16,7 +16,7 @@ export function registerNodeConfig(config: UnifiedNodeConfig<any>): void {
     console.error('Cannot register node config without nodeType:', config);
     return;
   }
-  
+
   // Ensure we store using the string value
   const nodeTypeStr = typeof config.nodeType === 'string' ? config.nodeType : String(config.nodeType);
   dynamicNodeConfigs.set(nodeTypeStr, config);

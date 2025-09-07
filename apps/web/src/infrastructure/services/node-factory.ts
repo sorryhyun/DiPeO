@@ -42,7 +42,7 @@ export interface ValidationError {
 /**
  * Result type for operations that can fail
  */
-export type Result<T, E> = 
+export type Result<T, E> =
   | { success: true; data: T }
   | { success: false; error: E };
 
@@ -57,23 +57,23 @@ export class NodeFactory {
   static createNode(type: NodeType, position: { x: number; y: number }, data?: Partial<Record<string, any>>): DomainNode;
   static createNode(type: NodeType, options: CreateNodeOptions): DomainNode;
   static createNode(
-    type: NodeType, 
-    positionOrOptions: { x: number; y: number } | CreateNodeOptions, 
+    type: NodeType,
+    positionOrOptions: { x: number; y: number } | CreateNodeOptions,
     data?: Partial<Record<string, any>>
   ): DomainNode {
     // Normalize arguments to options format
-    const options: CreateNodeOptions = 
-      'position' in positionOrOptions 
-        ? positionOrOptions 
+    const options: CreateNodeOptions =
+      'position' in positionOrOptions
+        ? positionOrOptions
         : { position: positionOrOptions, data };
     const nodeSpec = getNodeSpecification(type);
     if (!nodeSpec) {
       throw new Error(`Unknown node type: ${type}`);
     }
-    
+
     const nodeId = options.id || this.generateNodeId();
     const defaultData = this.getDefaultDataFromSpec(nodeSpec);
-    
+
     return {
       id: nodeId,
       type,
@@ -84,7 +84,7 @@ export class NodeFactory {
       },
     };
   }
-  
+
   /**
    * Create handles for a node based on its specification
    */
@@ -93,9 +93,9 @@ export class NodeFactory {
     if (!nodeSpec) {
       return [];
     }
-    
+
     const handles: DomainHandle[] = [];
-    
+
     // Create input handles
     if (nodeSpec.handles && nodeSpec.handles.inputs) {
       nodeSpec.handles.inputs.forEach((handleName: string) => {
@@ -111,7 +111,7 @@ export class NodeFactory {
         });
       });
     }
-    
+
     // Create output handles
     if (nodeSpec.handles && nodeSpec.handles.outputs) {
       nodeSpec.handles.outputs.forEach((handleName: string) => {
@@ -127,10 +127,10 @@ export class NodeFactory {
         });
       });
     }
-    
+
     return handles;
   }
-  
+
   /**
    * Get output data type from specification
    */
@@ -147,7 +147,7 @@ export class NodeFactory {
    */
   private static getDefaultDataFromSpec(spec: any): Record<string, any> {
     const defaultData: Record<string, any> = {};
-    
+
     if (spec.fields) {
       spec.fields.forEach((field: any) => {
         if (field.defaultValue !== undefined) {
@@ -158,10 +158,10 @@ export class NodeFactory {
         }
       });
     }
-    
+
     return defaultData;
   }
-  
+
   /**
    * Get default value for a field type
    */
@@ -181,7 +181,7 @@ export class NodeFactory {
         return null;
     }
   }
-  
+
   /**
    * Map specification type to handle type
    */
@@ -202,14 +202,14 @@ export class NodeFactory {
         return DataType.ANY;
     }
   }
-  
+
   /**
    * Generate a unique node ID
    */
   private static generateNodeId(): NodeID {
     return `node_${Math.random().toString(36).substring(2, 10)}` as NodeID;
   }
-  
+
   /**
    * Clone a node with a new ID
    */
@@ -224,7 +224,7 @@ export class NodeFactory {
       data: { ...node.data },
     };
   }
-  
+
   /**
    * Get node display information from specification
    */
@@ -245,7 +245,7 @@ export class NodeFactory {
         description: 'Unknown node type',
       };
     }
-    
+
     return {
       name: spec.displayName,
       icon: spec.icon || '📦',
@@ -254,13 +254,13 @@ export class NodeFactory {
       description: spec.description,
     };
   }
-  
+
   /**
    * Get all available node types grouped by category
    */
   static getNodeTypesByCategory(): Map<string, NodeType[]> {
     const categories = new Map<string, NodeType[]>();
-    
+
     Object.entries(nodeSpecificationRegistry).forEach(([key, spec]) => {
       const category = spec.category;
       if (!categories.has(category)) {
@@ -268,10 +268,10 @@ export class NodeFactory {
       }
       categories.get(category)!.push(spec.nodeType);
     });
-    
+
     return categories;
   }
-  
+
   /**
    * Validate node data against specification
    */
@@ -286,21 +286,21 @@ export class NodeFactory {
         errors: [`Unknown node type: ${type}`],
       };
     }
-    
+
     const errors: string[] = [];
-    
+
     // Validate required fields
     if (spec.fields) {
       spec.fields.forEach((field: any) => {
         if (field.required && (data[field.name] === undefined || data[field.name] === null)) {
           errors.push(`Required field '${field.name}' is missing`);
         }
-        
+
         // Type validation
         if (data[field.name] !== undefined) {
           const actualType = typeof data[field.name];
           const expectedType = field.type;
-          
+
           if (expectedType === 'number' && actualType !== 'number') {
             errors.push(`Field '${field.name}' must be a number`);
           } else if (expectedType === 'string' && actualType !== 'string') {
@@ -309,7 +309,7 @@ export class NodeFactory {
             errors.push(`Field '${field.name}' must be a boolean`);
           }
         }
-        
+
         // Enum validation
         if (field.validation?.allowedValues && data[field.name] !== undefined) {
           if (!field.validation.allowedValues.includes(data[field.name])) {
@@ -318,13 +318,13 @@ export class NodeFactory {
         }
       });
     }
-    
+
     return {
       valid: errors.length === 0,
       errors,
     };
   }
-  
+
   /**
    * Get field metadata for a node type
    */
@@ -332,7 +332,7 @@ export class NodeFactory {
     const spec = getNodeSpecification(type);
     return spec?.fields || [];
   }
-  
+
   /**
    * Check if nodes can be connected
    */
@@ -344,33 +344,33 @@ export class NodeFactory {
   ): boolean {
     const sourceSpec = getNodeSpecification(sourceType);
     const targetSpec = getNodeSpecification(targetType);
-    
+
     if (!sourceSpec || !targetSpec) {
       return false;
     }
-    
+
     // Check if source has the output handle
     if (!sourceSpec.handles?.outputs?.includes(sourceOutput)) {
       return false;
     }
-    
+
     // Check if target has the input handle
     if (!targetSpec.handles?.inputs?.includes(targetInput)) {
       return false;
     }
-    
+
     // Get output type from source spec
     const outputType = sourceSpec.outputs?.[sourceOutput]?.type || 'any';
-    
+
     // Input types are generally 'any' for now since handles.inputs is just strings
     // In the future, we might want to add input specifications
     const inputType = 'any';
-    
+
     // Check type compatibility
     if (outputType === 'any' || inputType === 'any') {
       return true;
     }
-    
+
     return outputType === inputType;
   }
 
@@ -392,10 +392,10 @@ export class NodeFactory {
 
       // Validate the node data
       const validationResult = ValidationService.validateNodeData(type, node.data);
-      
+
       if (!validationResult.success) {
         const errors: ValidationError[] = [];
-        
+
         if ('error' in validationResult && validationResult.error) {
           const zodError = validationResult.error as any;
           if (zodError.issues) {
@@ -451,11 +451,11 @@ export class NodeFactory {
   ): Result<DomainNode[], Map<number, ValidationError[]>> {
     const nodes: DomainNode[] = [];
     const errors = new Map<number, ValidationError[]>();
-    
+
     for (let i = 0; i < specs.length; i++) {
       const spec = specs[i];
       const result = spec ? this.createNodeWithValidation(spec.type, spec.position, spec.data) : { success: false, error: [{ message: 'Invalid spec' }] };
-      
+
       if ('data' in result && result.success) {
         nodes.push(result.data);
       } else {

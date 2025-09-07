@@ -1,0 +1,47 @@
+"""
+Strawberry GraphQL scalar types for DiPeO.
+Auto-generated from TypeScript branded types.
+
+Generated at: {{ generated_at }}
+"""
+
+import strawberry
+from typing import Any, NewType
+from strawberry.scalars import ID
+
+# Import the base domain types
+from dipeo.diagram_generated.domain_models import (
+{%- for scalar in scalars %}
+    {{ scalar.name }},
+{%- endfor %}
+)
+
+
+# Generate Strawberry scalar types for branded IDs
+{%- for scalar in scalars %}
+
+# {{ scalar.description }}
+{{ scalar.scalar_name }} = strawberry.scalar(
+    {{ scalar.name }},
+    name="{{ scalar.name }}",
+    description="{{ scalar.description }}",
+    serialize=lambda v: str(v) if v is not None else None,
+    parse_value=lambda v: {{ scalar.name }}(v) if v is not None else None,
+)
+{%- endfor %}
+
+
+# Export all scalar types
+__all__ = [
+{%- for scalar in scalars %}
+    "{{ scalar.scalar_name }}",
+{%- endfor %}
+]
+
+
+# Convenience dictionary for looking up scalars by name
+SCALAR_MAP = {
+{%- for scalar in scalars %}
+    "{{ scalar.name }}": {{ scalar.scalar_name }},
+{%- endfor %}
+}

@@ -1,9 +1,9 @@
 """Integrated API service and providers."""
 
-from .service import IntegratedApiService
 from .providers.base_provider import BaseApiProvider
+from .service import IntegratedApiService
 
 __all__ = [
-    "IntegratedApiService",
     "BaseApiProvider",
+    "IntegratedApiService",
 ]

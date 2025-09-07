@@ -2,20 +2,20 @@
 
 import logging
 from datetime import UTC, datetime
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from dipeo.infrastructure.shared.keys.drivers import APIKeyService as APIKeyDomainService
+from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 from dipeo.domain.base import BaseService
 from dipeo.domain.diagram.models import ExecutableDiagram
-from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
+from dipeo.infrastructure.shared.keys.drivers import APIKeyService as APIKeyDomainService
 
 if TYPE_CHECKING:
-    from dipeo.application.registry import ServiceRegistry
     from dipeo.application.diagram.use_cases import (
+        CompileDiagramUseCase,
         LoadDiagramUseCase,
         ValidateDiagramUseCase,
-        CompileDiagramUseCase,
     )
+    from dipeo.application.registry import ServiceRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -31,34 +31,39 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         super().__init__()
         self.api_key_service = api_key_service
         self.service_registry = service_registry
-        
+
         # Lazy-loaded use cases
-        self._load_diagram_use_case: Optional["LoadDiagramUseCase"] = None
-        self._validate_diagram_use_case: Optional["ValidateDiagramUseCase"] = None  
-        self._compile_diagram_use_case: Optional["CompileDiagramUseCase"] = None
+        self._load_diagram_use_case: LoadDiagramUseCase | None = None
+        self._validate_diagram_use_case: ValidateDiagramUseCase | None = None
+        self._compile_diagram_use_case: CompileDiagramUseCase | None = None
 
     async def initialize(self) -> None:
         # No longer need to initialize diagram service directly
         pass
-    
+
     def _get_load_diagram_use_case(self) -> "LoadDiagramUseCase":
         """Get or resolve the LoadDiagramUseCase."""
         if self._load_diagram_use_case is None and self.service_registry:
             from dipeo.application.registry.keys import LOAD_DIAGRAM_USE_CASE
+
             self._load_diagram_use_case = self.service_registry.resolve(LOAD_DIAGRAM_USE_CASE)
         return self._load_diagram_use_case
-    
+
     def _get_validate_diagram_use_case(self) -> "ValidateDiagramUseCase":
         """Get or resolve the ValidateDiagramUseCase."""
         if self._validate_diagram_use_case is None and self.service_registry:
             from dipeo.application.registry.keys import VALIDATE_DIAGRAM_USE_CASE
-            self._validate_diagram_use_case = self.service_registry.resolve(VALIDATE_DIAGRAM_USE_CASE)
+
+            self._validate_diagram_use_case = self.service_registry.resolve(
+                VALIDATE_DIAGRAM_USE_CASE
+            )
         return self._validate_diagram_use_case
-    
+
     def _get_compile_diagram_use_case(self) -> "CompileDiagramUseCase":
         """Get or resolve the CompileDiagramUseCase."""
         if self._compile_diagram_use_case is None and self.service_registry:
             from dipeo.application.registry.keys import COMPILE_DIAGRAM_USE_CASE
+
             self._compile_diagram_use_case = self.service_registry.resolve(COMPILE_DIAGRAM_USE_CASE)
         return self._compile_diagram_use_case
 
@@ -114,9 +119,7 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         api_keys = self._extract_api_keys_from_domain(domain_diagram)
 
         # Step 4: Update metadata if needed
-        if diagram_id and (
-            not domain_diagram.metadata or not domain_diagram.metadata.id
-        ):
+        if diagram_id and (not domain_diagram.metadata or not domain_diagram.metadata.id):
             if not domain_diagram.metadata:
                 domain_diagram.metadata = DiagramMetadata(
                     id=diagram_id,
@@ -136,58 +139,70 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         executable_diagram = compile_use_case.compile(domain_diagram)
         # Add API keys to metadata
         executable_diagram.metadata["api_keys"] = api_keys
-        
+
         # Store persons in metadata for sub_diagram execution
-        if hasattr(domain_diagram, 'persons') and domain_diagram.persons:
+        if hasattr(domain_diagram, "persons") and domain_diagram.persons:
             persons_dict = {}
             # Handle both dict and list formats
-            persons_list = list(domain_diagram.persons.values()) if isinstance(domain_diagram.persons, dict) else domain_diagram.persons
+            persons_list = (
+                list(domain_diagram.persons.values())
+                if isinstance(domain_diagram.persons, dict)
+                else domain_diagram.persons
+            )
             for person in persons_list:
-                person_id = str(person.id) if hasattr(person, 'id') else str(person.name)
+                person_id = str(person.id) if hasattr(person, "id") else str(person.name)
                 person_config = {}
-                
+
                 # Extract LLM config
-                if hasattr(person, 'llm_config'):
+                if hasattr(person, "llm_config"):
                     llm_config = person.llm_config
                     # Extract the enum value (not the string representation)
-                    service_value = llm_config.service if hasattr(llm_config, 'service') else "openai"
+                    service_value = (
+                        llm_config.service if hasattr(llm_config, "service") else "openai"
+                    )
                     # If it's an enum, get its value, otherwise use as-is
-                    if hasattr(service_value, 'value'):
+                    if hasattr(service_value, "value"):
                         person_config["service"] = service_value.value
                     else:
                         person_config["service"] = str(service_value)
-                    
-                    person_config["model"] = str(llm_config.model) if hasattr(llm_config, 'model') else "gpt-5-nano-2025-08-07"
-                    person_config["api_key_id"] = str(llm_config.api_key_id) if hasattr(llm_config, 'api_key_id') else "default"
-                    
+
+                    person_config["model"] = (
+                        str(llm_config.model)
+                        if hasattr(llm_config, "model")
+                        else "gpt-5-nano-2025-08-07"
+                    )
+                    person_config["api_key_id"] = (
+                        str(llm_config.api_key_id)
+                        if hasattr(llm_config, "api_key_id")
+                        else "default"
+                    )
+
                     # Add system prompt if available
-                    if hasattr(llm_config, 'system_prompt') and llm_config.system_prompt:
+                    if hasattr(llm_config, "system_prompt") and llm_config.system_prompt:
                         person_config["system_prompt"] = llm_config.system_prompt
-                
+
                 persons_dict[person_id] = person_config
-                
+
             executable_diagram.metadata["persons"] = persons_dict
             logger.debug(f"Added {len(persons_dict)} persons to executable diagram metadata")
-        
+
         # Store the diagram ID in metadata for tracking
         if diagram_id:
             executable_diagram.metadata["diagram_id"] = diagram_id
-        
+
         # Store the diagram source path for prompt resolution
         if diagram_source_path:
             executable_diagram.metadata["diagram_source_path"] = diagram_source_path
             # Also store as diagram_id if not already set
             if not diagram_id:
                 executable_diagram.metadata["diagram_id"] = diagram_source_path
-        
+
         return executable_diagram
-
-
 
     def _extract_api_keys_from_domain(self, diagram: DomainDiagram) -> dict[str, str]:
         """Extract API keys needed for execution from DomainDiagram."""
         keys = {}
-        
+
         # Get all available API keys
         all_keys = {
             info["id"]: self.api_key_service.get_api_key(info["id"])["key"]
@@ -195,14 +210,18 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         }
 
         # Extract API keys from persons
-        if hasattr(diagram, 'persons') and diagram.persons:
+        if hasattr(diagram, "persons") and diagram.persons:
             # Handle both dict and list formats
-            persons_list = list(diagram.persons.values()) if isinstance(diagram.persons, dict) else diagram.persons
+            persons_list = (
+                list(diagram.persons.values())
+                if isinstance(diagram.persons, dict)
+                else diagram.persons
+            )
             for person in persons_list:
                 # Get api_key_id from llm_config
-                if hasattr(person, 'llm_config') and hasattr(person.llm_config, 'api_key_id'):
+                if hasattr(person, "llm_config") and hasattr(person.llm_config, "api_key_id"):
                     api_key_id = str(person.llm_config.api_key_id)
-                    
+
                     # Add the API key to the keys dict if it exists
                     if api_key_id in all_keys:
                         keys[api_key_id] = all_keys[api_key_id]
@@ -210,4 +229,3 @@ class PrepareDiagramForExecutionUseCase(BaseService):
                         logger.warning(f"API key {api_key_id} not found in available keys")
 
         return keys
-

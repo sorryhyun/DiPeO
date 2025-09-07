@@ -6,7 +6,7 @@ export const startFields: UnifiedFieldDefinition[] = [
     name: 'trigger_mode',
     type: 'select',
     label: 'Trigger mode',
-    required: true,
+    required: false,
     defaultValue: "none",
     description: 'How this start node is triggered',
     options: [

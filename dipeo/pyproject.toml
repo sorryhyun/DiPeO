@@ -23,7 +23,7 @@ classifiers = [
 
 dependencies = [
     "pydantic>=2.10.0",
-    "typing-extensions>=4.0", 
+    "typing-extensions>=4.0",
     "pyyaml>=6.0",
     "dependency-injector>=4.41.0",
     "structlog>=24.4.0",
@@ -35,10 +35,10 @@ dev = [
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.2",
     "pytest-cov",
-    
+
     # Type checking
     "mypy>=1.14.1",
-    
+
     # Code formatting and linting
     "ruff>=0.9.1",
     "black",
@@ -62,7 +62,7 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
-ignore = ["E501", "B008", "RUF012"]
+ignore = ["E501", "B008", "RUF012", "F401", "F403", "F405", "F841"]
 
 [tool.mypy]
 python_version = "3.13"

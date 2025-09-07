@@ -20,12 +20,12 @@ export const nodeQueries: EntityQueryDefinitions = {
           ],
           fields: [
             { name: 'success' },
-            { 
+            {
               name: 'node',
               fields: [
                 { name: 'id' },
                 { name: 'type' },
-                { 
+                {
                   name: 'position',
                   fields: [
                     { name: 'x' },

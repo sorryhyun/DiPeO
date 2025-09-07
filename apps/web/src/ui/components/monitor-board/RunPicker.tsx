@@ -45,17 +45,17 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
   // Filter executions based on search term and exclude already added ones
   const filteredExecutions = useMemo(() => {
     if (!data?.executions) return [];
-    
+
     return data.executions.filter((exec: Execution) => {
       // Exclude batch executions (sub-executions created by PersonBatchJobNode)
       if (exec.id && exec.id.includes('_batch_')) return false;
-      
+
       // Exclude already added executions
       if (existingIds.includes(exec.id)) return false;
-      
+
       // Apply search filter
       if (!searchTerm) return true;
-      
+
       const searchLower = searchTerm.toLowerCase();
       return (
         exec.id.toLowerCase().includes(searchLower) ||
@@ -92,13 +92,13 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
 
   const handleManualAdd = () => {
     const trimmedId = manualId.trim();
-    
+
     // Prevent adding batch execution IDs
     if (trimmedId.includes('_batch_')) {
       alert('Batch executions cannot be added directly. Please add the parent execution instead.');
       return;
     }
-    
+
     if (trimmedId && !existingIds.includes(trimmedId)) {
       onSelect(trimmedId);
       setManualId('');
@@ -164,13 +164,13 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
               <div className="text-gray-500">Loading executions...</div>
             </div>
           )}
-          
+
           {error && (
             <div className="flex items-center justify-center py-8">
               <div className="text-red-400">Failed to load executions</div>
             </div>
           )}
-          
+
           {!loading && !error && filteredExecutions.length === 0 && (
             <div className="flex items-center justify-center py-8">
               <div className="text-gray-500">
@@ -178,7 +178,7 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
               </div>
             </div>
           )}
-          
+
           {!loading && !error && filteredExecutions.length > 0 && (
             <div className="space-y-2">
               {filteredExecutions.map((execution: Execution) => (

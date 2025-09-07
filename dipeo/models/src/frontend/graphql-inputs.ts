@@ -1,6 +1,6 @@
 /**
  * GraphQL Input Types
- * 
+ *
  * This file defines all GraphQL input types used in mutations and queries.
  * These types are shared between the generated GraphQL types and query definitions.
  */
@@ -11,13 +11,13 @@ import { APIServiceType } from '../core/enums/integrations';
 import type { DiagramFormat } from '../core/enums/diagram';
 import type { Status } from '../core/enums/execution';
 import type { ExecutionID } from '../core/execution';
-import type { 
-  NodeID, 
-  PersonID, 
-  DiagramID, 
-  ApiKeyID, 
-  ArrowID, 
-  HandleID 
+import type {
+  NodeID,
+  PersonID,
+  DiagramID,
+  ApiKeyID,
+  ArrowID,
+  HandleID
 } from '../core/diagram';
 
 // Re-export enums for convenience

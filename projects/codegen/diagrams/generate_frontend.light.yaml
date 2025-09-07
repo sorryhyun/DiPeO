@@ -21,8 +21,8 @@ nodes:
       sub_type: file
       format: json
       glob: true
-      source_details:
-        - "temp/specifications/nodes/*.spec.ts.json"
+      file:
+        - "temp/nodes/*.spec.ts.json"
 
   - label: Prepare Node List
     type: code_job
@@ -87,7 +87,7 @@ nodes:
       language: python
       code: |
         import json
-        
+
         # Collect generation results
         results = {
             "status": "completed",
@@ -99,18 +99,18 @@ nodes:
                 "Field configs"
             ]
         }
-        
+
         print("\n✅ Frontend code generation completed successfully!")
         print("\nGenerated:")
         for item in results["generated"]:
             print(f"  • {item}")
-        
+
         print("\nNext steps:")
         print("  1. Review generated code in apps/web/src/__generated__/")
         print("  2. Run 'make apply-syntax-only' to apply changes")
         print("  3. Run 'make graphql-schema' to update GraphQL types")
         print("  4. Run 'pnpm typecheck' to verify TypeScript compilation")
-        
+
         return results
 
   - label: End
@@ -126,17 +126,17 @@ connections:
   - {from: Start, to: Generate GraphQL Queries}
   - {from: Start, to: Generate Zod Schemas}
   - {from: Start, to: Generate Field Configs}
-  
+
   # Frontend batch processing chain
   - {from: Discover Node Specs, to: Prepare Node List, content_type: object}
   - {from: Prepare Node List, to: Batch Generate Frontend, content_type: object}
-  
+
   # All generation tasks converge to Summary
   - {from: Batch Generate Frontend, to: Summary}
   - {from: Generate Frontend Registry, to: Summary}
   - {from: Generate GraphQL Queries, to: Summary}
   - {from: Generate Zod Schemas, to: Summary}
   - {from: Generate Field Configs, to: Summary}
-  
+
   # Summary to End
   - {from: Summary, to: End}

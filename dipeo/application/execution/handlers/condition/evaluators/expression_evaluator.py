@@ -2,12 +2,8 @@ import ast
 import operator
 from typing import Any
 
-from dipeo.diagram_generated import DomainDiagram, NodeType
-
 
 class ConditionEvaluator:
-
-    
     def check_nodes_executed(
         self,
         target_node_ids: list[str],
@@ -15,15 +11,14 @@ class ConditionEvaluator:
     ) -> bool:
         if not target_node_ids or not node_outputs:
             return False
-            
+
         all_executed = set()
         for output in node_outputs.values():
-            if hasattr(output, 'executed_nodes') and output.executed_nodes:
+            if hasattr(output, "executed_nodes") and output.executed_nodes:
                 all_executed.update(output.executed_nodes)
-        
+
         return all(node_id in all_executed for node_id in target_node_ids)
 
-    
     def evaluate_custom_expression(
         self,
         expression: str,
@@ -33,7 +28,7 @@ class ConditionEvaluator:
             return False
 
         return self.safe_evaluate_expression_with_context(expression, context_values)
-    
+
     def safe_evaluate_expression(self, expression: str) -> Any:
         allowed_operators = {
             ast.Eq: operator.eq,
@@ -48,32 +43,32 @@ class ConditionEvaluator:
             ast.In: lambda x, y: x in y,
             ast.NotIn: lambda x, y: x not in y,
         }
-        
+
         # Whitelist of safe built-in functions
         allowed_functions = {
-            'len': len,
-            'abs': abs,
-            'min': min,
-            'max': max,
-            'sum': sum,
-            'all': all,
-            'any': any,
-            'bool': bool,
-            'int': int,
-            'float': float,
-            'str': str,
-            'list': list,
-            'dict': dict,
-            'tuple': tuple,
-            'set': set,
-            'round': round,
+            "len": len,
+            "abs": abs,
+            "min": min,
+            "max": max,
+            "sum": sum,
+            "all": all,
+            "any": any,
+            "bool": bool,
+            "int": int,
+            "float": float,
+            "str": str,
+            "list": list,
+            "dict": dict,
+            "tuple": tuple,
+            "set": set,
+            "round": round,
         }
-        
+
         try:
-            tree = ast.parse(expression, mode='eval')
+            tree = ast.parse(expression, mode="eval")
         except SyntaxError:
             return False
-        
+
         def eval_node(node):
             if isinstance(node, ast.Expression):
                 return eval_node(node.body)
@@ -125,13 +120,15 @@ class ConditionEvaluator:
                     raise ValueError("Only simple function calls are supported")
             else:
                 raise ValueError(f"Unsupported node type: {type(node).__name__}")
-        
+
         try:
             return eval_node(tree)
         except Exception:
             return False
-    
-    def safe_evaluate_expression_with_context(self, expression: str, context: dict[str, Any]) -> Any:
+
+    def safe_evaluate_expression_with_context(
+        self, expression: str, context: dict[str, Any]
+    ) -> Any:
         allowed_operators = {
             ast.Eq: operator.eq,
             ast.NotEq: operator.ne,
@@ -145,32 +142,32 @@ class ConditionEvaluator:
             ast.In: lambda x, y: x in y,
             ast.NotIn: lambda x, y: x not in y,
         }
-        
+
         # Whitelist of safe built-in functions
         allowed_functions = {
-            'len': len,
-            'abs': abs,
-            'min': min,
-            'max': max,
-            'sum': sum,
-            'all': all,
-            'any': any,
-            'bool': bool,
-            'int': int,
-            'float': float,
-            'str': str,
-            'list': list,
-            'dict': dict,
-            'tuple': tuple,
-            'set': set,
-            'round': round,
+            "len": len,
+            "abs": abs,
+            "min": min,
+            "max": max,
+            "sum": sum,
+            "all": all,
+            "any": any,
+            "bool": bool,
+            "int": int,
+            "float": float,
+            "str": str,
+            "list": list,
+            "dict": dict,
+            "tuple": tuple,
+            "set": set,
+            "round": round,
         }
-        
+
         try:
-            tree = ast.parse(expression, mode='eval')
+            tree = ast.parse(expression, mode="eval")
         except SyntaxError:
             return False
-        
+
         def eval_node(node):
             if isinstance(node, ast.Expression):
                 return eval_node(node.body)
@@ -233,15 +230,21 @@ class ConditionEvaluator:
                     raise ValueError("Only simple function calls are supported")
             else:
                 raise ValueError(f"Unsupported node type: {type(node).__name__}")
-        
+
         try:
             result = eval_node(tree)
             import logging
+
             logger = logging.getLogger(__name__)
-            logger.debug(f"safe_evaluate_expression_with_context: expression='{expression}' -> result={result}")
+            logger.debug(
+                f"safe_evaluate_expression_with_context: expression='{expression}' -> result={result}"
+            )
             return result
         except Exception as e:
             import logging
+
             logger = logging.getLogger(__name__)
-            logger.debug(f"safe_evaluate_expression_with_context: expression='{expression}' failed with error: {e}")
+            logger.debug(
+                f"safe_evaluate_expression_with_context: expression='{expression}' failed with error: {e}"
+            )
             return False

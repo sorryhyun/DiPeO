@@ -24,7 +24,7 @@
     ],
     "mock_api_endpoints": [
       "/api/dashboard/metrics",
-      "/api/dashboard/data", 
+      "/api/dashboard/data",
       "/api/dashboard/charts"
     ],
     "disable_websocket_in_dev": true,

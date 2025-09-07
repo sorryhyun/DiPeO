@@ -24,11 +24,11 @@ export function createNodeConfig<T extends Record<string, unknown>>(
   options: NodeConfigOptions<T>
 ): UnifiedNodeConfig<T> {
   const { nodeType, ...rest } = options;
-  
+
   // For now, use domain model fields synchronously
   // TODO: Update to use async getBestFieldConfig when the app supports it
   const customFields = mergeFieldConfigs(nodeType);
-  
+
   return {
     nodeType,
     customFields,
@@ -44,10 +44,10 @@ export async function createNodeConfigAsync<T extends Record<string, unknown>>(
   options: NodeConfigOptions<T>
 ): Promise<UnifiedNodeConfig<T>> {
   const { nodeType, ...rest } = options;
-  
+
   // Get best available fields (spec-based or domain model)
   const customFields = await getBestFieldConfig(nodeType) as UnifiedFieldDefinition<T>[];
-  
+
   return {
     nodeType,
     customFields,

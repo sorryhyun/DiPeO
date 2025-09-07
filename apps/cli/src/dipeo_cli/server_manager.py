@@ -6,6 +6,7 @@ import time
 from typing import Any
 
 import requests
+
 from dipeo.config import BASE_DIR
 
 from .graphql_queries import GraphQLQueries
@@ -49,15 +50,16 @@ class ServerManager:
                 BASE_DIR
             ),  # Ensure server uses correct base directory
             # Ensure PYTHONPATH includes the project root for module imports
-            "PYTHONPATH": str(BASE_DIR) + (
-                ";" + subprocess.os.environ.get("PYTHONPATH", "") 
+            "PYTHONPATH": str(BASE_DIR)
+            + (
+                ";" + subprocess.os.environ.get("PYTHONPATH", "")
                 if sys.platform == "win32" and subprocess.os.environ.get("PYTHONPATH")
-                else ":" + subprocess.os.environ.get("PYTHONPATH", "") 
+                else ":" + subprocess.os.environ.get("PYTHONPATH", "")
                 if subprocess.os.environ.get("PYTHONPATH")
                 else ""
             ),
         }
-        
+
         # On Windows, ensure virtual environment paths are preserved
         if sys.platform == "win32":
             # Preserve VIRTUAL_ENV if it exists
@@ -91,7 +93,7 @@ class ServerManager:
             print("🛑 Stopping server...")
             process = self.process
             self.process = None  # Mark as stopped immediately to prevent double-stop
-            
+
             process.terminate()
             try:
                 # Wait up to 5 seconds for graceful shutdown

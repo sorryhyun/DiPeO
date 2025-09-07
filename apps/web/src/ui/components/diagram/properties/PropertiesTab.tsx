@@ -6,39 +6,39 @@ const PropertyPanel = React.lazy(() => import('./PropertyPanel').then(module => 
 
 export const PropertiesTab: React.FC = () => {
   const canvasState = useCanvasState();
-  const { 
-    selectedNodeId, 
-    selectedArrowId, 
+  const {
+    selectedNodeId,
+    selectedArrowId,
     selectedPersonId,
     nodes,
     arrows,
-    personsWithUsage 
+    personsWithUsage
   } = canvasState;
-  
+
   const selectedPerson = selectedPersonId ? canvasState.persons.get(selectedPersonId) : null;
   const selectedNode = selectedNodeId ? nodes.get(selectedNodeId) : null;
   const selectedArrow = selectedArrowId ? arrows.get(selectedArrowId) : null;
-  
+
   const entityData = useMemo(() => {
     if (selectedPerson) {
       return { ...selectedPerson, type: 'person' as const };
     }
-    
+
     if (selectedNode) {
       const nodeData = selectedNode.data || {};
       return { ...nodeData, type: selectedNode.type || 'unknown' };
     }
-    
+
     if (selectedArrow) {
       const [sourceNodeId, ...sourceHandleParts] = selectedArrow.source.split(':');
       const sourceHandleName = sourceHandleParts.join(':');
-      
+
       const sourceNode = sourceNodeId ? nodes.get(sourceNodeId as any) : undefined;
       const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
-      
+
       return {
         ...(selectedArrow.data || {}),
-        content_type: selectedArrow.content_type 
+        content_type: selectedArrow.content_type
           ? typeof selectedArrow.content_type === 'string'
             ? selectedArrow.content_type.toLowerCase()
             : selectedArrow.content_type
@@ -50,13 +50,13 @@ export const PropertiesTab: React.FC = () => {
         _isFromConditionBranch: isFromConditionBranch
       };
     }
-    
+
     return null;
   }, [selectedPerson, selectedNode, selectedArrow, nodes]);
-  
+
   const selectedEntity = useMemo(() => {
     if (!entityData) return null;
-    
+
     if (selectedPersonId && entityData.type === 'person') {
       return {
         type: 'person' as const,
@@ -65,7 +65,7 @@ export const PropertiesTab: React.FC = () => {
         title: `${selectedPerson?.label || 'Person'} Properties`
       };
     }
-    
+
     if (selectedNodeId && selectedNode) {
       return {
         type: 'node' as const,
@@ -74,7 +74,7 @@ export const PropertiesTab: React.FC = () => {
         title: `${selectedNode.data?.label || 'Block'} Properties`
       };
     }
-    
+
     if (selectedArrowId) {
       return {
         type: 'arrow' as const,
@@ -83,13 +83,13 @@ export const PropertiesTab: React.FC = () => {
         title: 'Arrow Properties'
       };
     }
-    
+
     return null;
   }, [selectedPersonId, selectedNodeId, selectedArrowId, entityData, selectedPerson, selectedNode]);
-  
+
   const showWrapperHeader = !selectedEntity;
   const title = selectedEntity?.title || 'Properties';
-  
+
   return (
     <div className="h-full flex flex-col">
       {showWrapperHeader && (
@@ -100,9 +100,9 @@ export const PropertiesTab: React.FC = () => {
       <div className="flex-1 overflow-y-auto">
         {selectedEntity ? (
           <Suspense fallback={<LoadingFallback />}>
-            <PropertyPanel 
-              entityId={selectedEntity.id} 
-              data={selectedEntity.data} 
+            <PropertyPanel
+              entityId={selectedEntity.id}
+              data={selectedEntity.data}
             />
           </Suspense>
         ) : (

@@ -2,7 +2,7 @@
 import { z } from 'zod';
 
 export interface DbNodeData {
-  file?: string;
+  file?: any;
   collection?: string;
   sub_type: 'fixed_prompt' | 'file' | 'code' | 'api_tool';
   operation: string;
@@ -14,7 +14,7 @@ export interface DbNodeData {
 
 // Zod schema for validation
 export const DbNodeDataSchema = z.object({
-  file: z.string().optional(),
+  file: z.any().optional(),
   collection: z.string().optional(),
   sub_type: z.enum(["fixed_prompt", "file", "code", "api_tool"]),
   operation: z.string(),

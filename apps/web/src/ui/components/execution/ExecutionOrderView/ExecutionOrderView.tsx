@@ -41,16 +41,16 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
   const { execution } = operations.executionOps;
   const currentExecutionId = providedExecutionId || (execution?.executionId ? executionId(execution.executionId) : undefined);
   const [executionOrder, setExecutionOrder] = useState<ExecutionOrderData | null>(null);
-  
+
   // Determine if we should poll based on execution status
   const shouldPoll = executionOrder ? isExecutionActive(executionOrder.status as any) : true;
-  
+
   // Dynamic poll interval based on execution status
   const pollInterval = useMemo(() => {
     if (!currentExecutionId) return 0;
     return shouldPoll ? 1000 : 0;  // Reduced from 2000ms to 1000ms for more responsive updates
   }, [currentExecutionId, shouldPoll]);
-  
+
   const { data, loading, error, refetch } = useGetExecutionOrderQuery({
     variables: { execution_id: currentExecutionId! },
     skip: !currentExecutionId,
@@ -59,21 +59,21 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
       if (data?.execution_order) {
         // Debug: log raw data structure
         console.log('Raw execution order data:', data.execution_order);
-        
+
         // Handle case where data might be a string (JSONScalar)
         let parsedData;
         try {
-          parsedData = typeof data.execution_order === 'string' 
+          parsedData = typeof data.execution_order === 'string'
             ? JSON.parse(data.execution_order)
             : data.execution_order;
         } catch (error) {
           console.error('Failed to parse execution order data:', error);
           return;
         }
-        
+
         // Debug: log parsed data
         console.log('Parsed execution order data:', parsedData);
-        
+
         // Ensure nodes is an array
         if (parsedData && typeof parsedData === 'object') {
           if (!parsedData.nodes) {
@@ -82,16 +82,16 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
             console.warn('Nodes is not an array, converting:', parsedData.nodes);
             parsedData.nodes = [];
           }
-          
+
           // Debug: log final nodes array
           console.log('Final nodes array:', parsedData.nodes);
         }
-        
+
         setExecutionOrder(parsedData);
       }
     },
   });
-  
+
   const refreshExecutionOrder = async () => {
     if (currentExecutionId) {
       await refetch({ execution_id: currentExecutionId });
@@ -183,7 +183,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
       </div>
     );
   }
-  
+
   // Debug: Show raw execution order state
   if (!executionOrder) {
     return (
@@ -241,7 +241,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
                 <p>Started at: {new Date(executionOrder.startedAt).toLocaleTimeString()}</p>
               )}
             </div>
-            <button 
+            <button
               onClick={refreshExecutionOrder}
               className="mt-4 px-3 py-1 text-xs bg-gray-600 hover:bg-gray-500 text-white rounded"
             >
@@ -274,7 +274,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
                         </span>
                       )}
                     </div>
-                    
+
                     {/* Timestamps */}
                     <div className="mt-1 text-xs text-gray-500">
                       {step.startedAt && (

@@ -29,25 +29,25 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
-  /** Unique identifier for API keys */
+  /** Unique identifier type for apikey entities */
   ApiKeyID: { input: ApiKeyID; output: ApiKeyID; }
-  /** Unique identifier for arrows */
+  /** Unique identifier type for arrow entities */
   ArrowID: { input: ArrowID; output: ArrowID; }
   /** Date with time (isoformat) */
   DateTime: { input: any; output: any; }
-  /** Unique identifier for diagrams */
+  /** Unique identifier type for diagram entities */
   DiagramID: { input: DiagramID; output: DiagramID; }
-  /** Unique identifier for executions */
+  /** Unique identifier type for execution entities */
   ExecutionID: { input: ExecutionID; output: ExecutionID; }
-  /** Unique identifier for handles */
+  /** Unique identifier type for handle entities */
   HandleID: { input: HandleID; output: HandleID; }
   /** Unique identifier for hooks */
   HookID: { input: any; output: any; }
   /** The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf). */
   JSON: { input: any; output: any; }
-  /** Unique identifier for nodes */
+  /** Unique identifier type for node entities */
   NodeID: { input: NodeID; output: NodeID; }
-  /** Unique identifier for persons */
+  /** Unique identifier type for person entities */
   PersonID: { input: PersonID; output: PersonID; }
   /** Unique identifier for tasks */
   TaskID: { input: any; output: any; }

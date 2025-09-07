@@ -8,7 +8,6 @@ from .exceptions import ValidationError
 
 
 class BaseService(ABC):
-
     def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
 
@@ -16,18 +15,12 @@ class BaseService(ABC):
     async def initialize(self) -> None:
         pass
 
-    def validate_required_fields(
-        self, data: dict[str, Any], required_fields: list[str]
-    ) -> None:
+    def validate_required_fields(self, data: dict[str, Any], required_fields: list[str]) -> None:
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
-            raise ValidationError(
-                f"Missing required fields: {', '.join(missing_fields)}"
-            )
+            raise ValidationError(f"Missing required fields: {', '.join(missing_fields)}")
 
-    def validate_file_path(
-        self, file_path: str, allowed_base: Path | None = None
-    ) -> Path:
+    def validate_file_path(self, file_path: str, allowed_base: Path | None = None) -> Path:
         rel_path = Path(file_path)
 
         if allowed_base is None:
@@ -36,8 +29,8 @@ class BaseService(ABC):
         full_path = (allowed_base / rel_path).resolve()
         try:
             full_path.relative_to(allowed_base)
-        except ValueError:
-            raise ValidationError(f"Access to {full_path} is forbidden")
+        except ValueError as e:
+            raise ValidationError(f"Access to {full_path} is forbidden") from e
 
         return full_path
 

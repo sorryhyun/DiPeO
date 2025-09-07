@@ -34,10 +34,10 @@ const getServiceDisplayName = (service: string): string => {
 const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
   // Use GraphQL operations for API key management
   const graphQLOperations = useApiKeyOperations();
-  
+
   // Convert Map to array for display
   const apiKeysArray = graphQLOperations.apiKeys;
-    
+
   const [newKeyForm, setNewKeyForm] = useState<{ label: string; service: string; key: string }>({
     label: '',
     service: '',
@@ -61,26 +61,26 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
 
   const handleAddKey = async () => {
     setErrors({});
-    
+
     if (!newKeyForm.label?.trim()) {
       setErrors({ label: 'Name is required' });
       return;
     }
-    
+
     if (!newKeyForm.service?.trim()) {
       setErrors({ service: 'Service is required' });
       return;
     }
-    
+
     // Special handling for Ollama - accept 'ollama' or 'OLLAMA' as the API key
     const serviceUpper = newKeyForm.service.trim().toUpperCase();
     const isOllama = serviceUpper === 'OLLAMA';
-    
+
     if (!newKeyForm.key?.trim()) {
       setErrors({ key: 'API key is required' });
       return;
     }
-    
+
     // For Ollama, if user types 'ollama' or 'OLLAMA' as the key, treat it as valid
     const apiKey = isOllama && (newKeyForm.key.trim().toLowerCase() === 'ollama' || newKeyForm.key.trim().toUpperCase() === 'OLLAMA')
       ? 'ollama' // Use a placeholder for Ollama
@@ -93,7 +93,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
         serviceUpper,
         apiKey
       );
-      
+
       // Reset form
       setNewKeyForm({
         label: '',
@@ -201,7 +201,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
               />
               {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Service
@@ -217,7 +217,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
                 Available: OPENAI, ANTHROPIC, GEMINI, DEEPSEEK, OLLAMA, NOTION, GOOGLE_SEARCH, SLACK, GITHUB, JIRA, BEDROCK, VERTEX
               </p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 API Key
@@ -236,7 +236,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
                 </p>
               )}
             </div>
-            
+
             <Button
               onClick={handleAddKey}
               className="w-full"

@@ -1,7 +1,7 @@
-import { 
-  DocumentNode, 
-  useQuery, 
-  useMutation, 
+import {
+  DocumentNode,
+  useQuery,
+  useMutation,
   useSubscription,
   QueryHookOptions,
   MutationHookOptions,
@@ -19,30 +19,30 @@ import { useCallback } from 'react';
 export interface EntityQueryConfig<TData = any, TVariables extends OperationVariables = OperationVariables> {
   // Entity name for error messages and logging
   entityName: string;
-  
+
   // GraphQL document
   document: DocumentNode;
-  
+
   // Options for the specific operation type
-  options?: QueryHookOptions<TData, TVariables> | 
-           MutationHookOptions<TData, TVariables> | 
+  options?: QueryHookOptions<TData, TVariables> |
+           MutationHookOptions<TData, TVariables> |
            SubscriptionHookOptions<TData, TVariables>;
-  
+
   // Success handling
   onSuccess?: (data: TData) => void;
-  
+
   // Error handling override (if not provided, uses default toast)
   onError?: (error: ApolloError) => void;
-  
+
   // Custom success message (for mutations)
   successMessage?: string | ((data: TData) => string);
-  
+
   // Custom error message
   errorMessage?: string | ((error: ApolloError) => string);
-  
+
   // Disable automatic error toasts
   silent?: boolean;
-  
+
   // Cache configuration
   cacheStrategy?: 'cache-first' | 'cache-and-network' | 'network-only' | 'no-cache' | 'cache-only';
 }
@@ -51,8 +51,8 @@ export interface EntityQueryConfig<TData = any, TVariables extends OperationVari
  * Standard error handler with toast notifications
  */
 const handleError = (
-  error: ApolloError, 
-  entityName: string, 
+  error: ApolloError,
+  entityName: string,
   operation: string,
   customMessage?: string | ((error: ApolloError) => string),
   silent?: boolean
@@ -63,25 +63,25 @@ const handleError = (
     error.message.includes('NetworkError') ||
     error.message.includes('fetch failed')
   );
-  
+
   // Check if we're in CLI monitor mode
   const params = new URLSearchParams(window.location.search);
   const isCliMonitorMode = params.get('monitor') === 'true' && params.get('no-auto-exit') === 'true';
-  
+
   // Suppress errors if server is shutting down in CLI mode
   if (isServerShutdown && isCliMonitorMode) {
     console.log(`[${entityName}] Server appears to be shutting down, suppressing error`);
     return;
   }
-  
-  const message = typeof customMessage === 'function' 
+
+  const message = typeof customMessage === 'function'
     ? customMessage(error)
     : customMessage || `Failed to ${operation} ${entityName}: ${error.message}`;
-  
+
   if (!silent) {
     toast.error(message);
   }
-  
+
   console.error(`[${entityName}] ${operation} error:`, error);
 };
 
@@ -96,7 +96,7 @@ const handleSuccess = <TData>(
   silent?: boolean
 ) => {
   if (!silent && customMessage) {
-    const message = typeof customMessage === 'function' 
+    const message = typeof customMessage === 'function'
       ? customMessage(data)
       : customMessage;
     toast.success(message);
@@ -168,7 +168,7 @@ export function createEntityMutation<TData = any, TVariables extends OperationVa
     };
 
     const [mutationFn, result] = useMutation<TData, TVariables>(config.document, mergedOptions);
-    
+
     // Wrap mutation function to handle errors consistently
     const wrappedMutation = useCallback(async (options?: Parameters<typeof mutationFn>[0]) => {
       return await mutationFn(options);
@@ -190,7 +190,7 @@ export function createEntitySubscription<TData = any, TVariables extends Operati
       ...overrideOptions,
       variables: variables || config.options?.variables,
       // Remove cache-and-network if it was set, as it's not valid for subscriptions
-      fetchPolicy: config.cacheStrategy === 'cache-and-network' ? 'network-only' : 
+      fetchPolicy: config.cacheStrategy === 'cache-and-network' ? 'network-only' :
                    (config.cacheStrategy as any) || config.options?.fetchPolicy || overrideOptions?.fetchPolicy,
       onError: (error) => {
         if (config.onError) {

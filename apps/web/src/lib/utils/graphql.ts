@@ -5,7 +5,7 @@
 // Known enum fields that need case conversion
 const ENUM_FIELDS = new Set([
   'label',
-  'direction', 
+  'direction',
   'data_type',
   'type',
   'status',
@@ -59,7 +59,7 @@ export function stripTypenames<T>(obj: T): T {
     for (const key in obj) {
       if (key !== '__typename' && obj.hasOwnProperty(key)) {
         let value = (obj as any)[key];
-        
+
         // Convert enum values
         if (typeof value === 'string') {
           if (UPPERCASE_ENUM_FIELDS.has(key)) {
@@ -75,7 +75,7 @@ export function stripTypenames<T>(obj: T): T {
             }
           }
         }
-        
+
         result[key] = stripTypenames(value);
       }
     }

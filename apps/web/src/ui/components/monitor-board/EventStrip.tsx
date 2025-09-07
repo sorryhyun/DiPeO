@@ -25,7 +25,7 @@ export function EventStrip({ executionId, store }: EventStripProps) {
   // Generate events from execution and node events
   const events = useMemo(() => {
     const eventList: Event[] = [];
-    
+
     // Add execution start event
     if (startedAt) {
       eventList.push({
@@ -35,12 +35,12 @@ export function EventStrip({ executionId, store }: EventStripProps) {
         message: 'Execution started',
       });
     }
-    
+
     // Add node events from the chronological events array
     nodeEvents.forEach((event, index) => {
       // Use index and timestamp to ensure unique IDs for nodes that run multiple times
       const baseId = `node-${event.nodeId}-${event.timestamp}-${index}`;
-      
+
       if (event.status === 'running') {
         eventList.push({
           id: baseId,
@@ -68,7 +68,7 @@ export function EventStrip({ executionId, store }: EventStripProps) {
         });
       }
     });
-    
+
     // Add execution end event
     if (finishedAt) {
       const hasFailed = Array.from(nodeStates.values()).some(s => s.status === 'failed');
@@ -79,7 +79,7 @@ export function EventStrip({ executionId, store }: EventStripProps) {
         message: hasFailed ? 'Execution failed' : 'Execution completed',
       });
     }
-    
+
     // Sort by timestamp (should already be sorted, but ensure it)
     return eventList.sort((a, b) => a.timestamp - b.timestamp);
   }, [startedAt, finishedAt, nodeEvents, nodeStates]);
@@ -98,7 +98,7 @@ export function EventStrip({ executionId, store }: EventStripProps) {
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { 
+    return date.toLocaleTimeString('en-US', {
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',
@@ -145,7 +145,7 @@ export function EventStrip({ executionId, store }: EventStripProps) {
         {events.map((event) => {
           const isExpanded = expandedEvents.has(event.id);
           const hasError = !!event.error;
-          
+
           return (
             <div
               key={event.id}
@@ -160,7 +160,7 @@ export function EventStrip({ executionId, store }: EventStripProps) {
                 <div className="flex-shrink-0">
                   {getEventIcon(event.type)}
                 </div>
-                
+
                 {/* Timestamp */}
                 <div className="flex-shrink-0 text-gray-500 font-mono text-[10px]">
                   {formatTime(event.timestamp)}
@@ -168,12 +168,12 @@ export function EventStrip({ executionId, store }: EventStripProps) {
                     {formatRelativeTime(event.timestamp)}
                   </span>
                 </div>
-                
+
                 {/* Message */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1">
                     {hasError && (
-                      <ChevronRight 
+                      <ChevronRight
                         className={`w-3 h-3 text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                       />
                     )}
@@ -182,7 +182,7 @@ export function EventStrip({ executionId, store }: EventStripProps) {
                     </span>
                   </div>
                 </div>
-                
+
                 {/* Node ID badge */}
                 {event.nodeId && (
                   <div className="flex-shrink-0">
@@ -192,7 +192,7 @@ export function EventStrip({ executionId, store }: EventStripProps) {
                   </div>
                 )}
               </div>
-              
+
               {/* Expanded error details */}
               {hasError && isExpanded && event.error && (
                 <div className="mt-1 pl-5 pr-2 py-1 bg-red-900/10 rounded text-[10px] text-red-300/80 font-mono break-all">

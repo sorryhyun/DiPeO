@@ -59,7 +59,7 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
     options: async (formData: unknown) => {
       const data = formData as Record<string, unknown>;
       const apiKeyId = data['llm_config.api_key_id'] as string;
-      
+
       // Ensure API key is not empty string
       if (!apiKeyId || apiKeyId === '') {
         return [];
@@ -74,7 +74,7 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
         if (!selectedKey) {
           return [];
         }
-        
+
         const { data: modelsData } = await apolloClient.query({
           query: GetAvailableModelsDocument,
           variables: {
@@ -83,7 +83,7 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
           },
           fetchPolicy: 'network-only'
         });
-        
+
         if (!modelsData || !modelsData.available_models) {
           console.warn('No models data received from API');
           return [];

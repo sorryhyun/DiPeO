@@ -37,42 +37,42 @@ function parseTypeScript(
         noEmit: true
       }
     })
-    
+
     const fileName = mode === 'module' ? 'temp.ts' : 'temp-script.ts'
     const sourceFile = project.createSourceFile(fileName, source)
-    
+
     const result: ParseResult = {
       ast: {},
       interfaces: [],
       types: [],
       enums: []
     }
-    
+
     // Extract based on requested patterns using modular extractors
     if (extractPatterns.includes('interface')) {
       result.interfaces = parseInterfaces(sourceFile, includeJSDoc)
     }
-    
+
     if (extractPatterns.includes('type')) {
       result.types = parseTypeAliases(sourceFile, includeJSDoc)
     }
-    
+
     if (extractPatterns.includes('enum')) {
       result.enums = parseEnums(sourceFile, includeJSDoc)
     }
-    
+
     if (extractPatterns.includes('class')) {
       result.classes = parseClasses(sourceFile, includeJSDoc)
     }
-    
+
     if (extractPatterns.includes('function')) {
       result.functions = parseFunctions(sourceFile, includeJSDoc)
     }
-    
+
     if (extractPatterns.includes('const') || extractPatterns.includes('constants')) {
       result.constants = parseConstants(sourceFile, includeJSDoc)
     }
-    
+
     // Simple AST representation (for debugging/visualization)
     result.ast = {
       kind: sourceFile.getKindName(),
@@ -84,7 +84,7 @@ function parseTypeScript(
       hasFunctions: (result.functions?.length || 0) > 0,
       hasConstants: (result.constants?.length || 0) > 0
     }
-    
+
     return result
   } catch (error) {
     return {
@@ -114,11 +114,11 @@ function processBatchInput(
       processingTimeMs: 0
     }
   }
-  
+
   // Process each source
   for (const [key, source] of Object.entries(input.sources)) {
     results.metadata!.totalFiles++
-    
+
     try {
       // Check if source is a file path or TypeScript content
       let sourceContent: string
@@ -132,11 +132,11 @@ function processBatchInput(
         // Assume it's TypeScript content
         sourceContent = source
       }
-      
+
       const parseResult = parseTypeScript(
-        sourceContent, 
-        options.patterns, 
-        options.includeJSDoc, 
+        sourceContent,
+        options.patterns,
+        options.includeJSDoc,
         options.mode
       )
       results.results[key] = parseResult
@@ -152,7 +152,7 @@ function processBatchInput(
       results.metadata!.failureCount++
     }
   }
-  
+
   results.metadata!.processingTimeMs = Date.now() - startTime
   return results
 }
@@ -191,7 +191,7 @@ const options = args.reduce((acc, arg) => {
 if (options.batchMode || options.batchInputFile) {
   try {
     let batchInput: BatchInput
-    
+
     if (options.batchInputFile) {
       // Read batch input from JSON file
       const inputData = fs.readFileSync(options.batchInputFile, 'utf8')
@@ -250,7 +250,7 @@ if (options.batchMode || options.batchInputFile) {
         processingTimeMs: 0
       }
     }
-    
+
     for (const filePath of filePaths) {
       try {
         const source = fs.readFileSync(filePath, 'utf8')
@@ -268,7 +268,7 @@ if (options.batchMode || options.batchInputFile) {
         results.metadata!.failureCount++
       }
     }
-    
+
     results.metadata!.processingTimeMs = Date.now() - startTime
     console.log(JSON.stringify(results, null, 2))
   } else {

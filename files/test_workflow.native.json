@@ -1,0 +1,111 @@
+{
+  "nodes": [
+    {
+      "id": "node_xx434wf0",
+      "type": "start",
+      "position": {
+        "x": 400,
+        "y": 870
+      },
+      "data": {
+        "trigger_mode": "none",
+        "label": "start",
+        "custom_data": {},
+        "output_data_structure": {}
+      }
+    },
+    {
+      "id": "node_69dxgli3",
+      "type": "person_job",
+      "position": {
+        "x": 480,
+        "y": 920
+      },
+      "data": {
+        "first_only_prompt": "",
+        "max_iteration": 100,
+        "tools": [
+          {
+            "type": "none",
+            "enabled": true
+          }
+        ],
+        "label": "person_job"
+      }
+    },
+    {
+      "id": "node_mt8hv927",
+      "type": "code_job",
+      "position": {
+        "x": 480,
+        "y": 920
+      },
+      "data": {
+        "language": null,
+        "label": "code_job"
+      }
+    }
+  ],
+  "arrows": [],
+  "persons": [],
+  "handles": [
+    {
+      "id": "node_xx434wf0_default_output",
+      "node_id": "node_xx434wf0",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_69dxgli3_default_input",
+      "node_id": "node_69dxgli3",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_69dxgli3_first_input",
+      "node_id": "node_69dxgli3",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_69dxgli3_default_output",
+      "node_id": "node_69dxgli3",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_mt8hv927_default_input",
+      "node_id": "node_mt8hv927",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_mt8hv927_default_output",
+      "node_id": "node_mt8hv927",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    }
+  ],
+  "metadata": {
+    "name": "test_workflow.light.yaml",
+    "description": null,
+    "author": null,
+    "tags": null,
+    "created": "2025-09-06T08:21:22.797Z",
+    "modified": "2025-09-06T08:21:22.797Z",
+    "version": "1.0.0",
+    "id": null
+  }
+}

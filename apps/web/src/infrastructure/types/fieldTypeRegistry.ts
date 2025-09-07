@@ -1,31 +1,31 @@
 import { FIELD_TYPES, FieldType } from './panel'
 
 // Domain field types as used in TypeScript models
-export type DomainFieldType = 
-  | 'string' 
-  | 'number' 
-  | 'boolean' 
-  | 'select' 
-  | 'textarea' 
+export type DomainFieldType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'select'
+  | 'textarea'
   | 'person';
 
 // Extended field types for properties editor
-export type ExtendedFieldType = 
-  | DomainFieldType 
-  | 'json' 
-  | 'array' 
-  | 'object' 
-  | 'email' 
+export type ExtendedFieldType =
+  | DomainFieldType
+  | 'json'
+  | 'array'
+  | 'object'
+  | 'email'
   | 'url'
   | 'code'
   | 'filepath'
   | 'password';
 
 // Legacy field type names that need to be maintained for backward compatibility
-export type LegacyFieldType = 
-  | 'checkbox' 
-  | 'iteration-count' 
-  | 'person-select' 
+export type LegacyFieldType =
+  | 'checkbox'
+  | 'iteration-count'
+  | 'person-select'
   | 'variable-textarea';
 
 // All possible field type inputs

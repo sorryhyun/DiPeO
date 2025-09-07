@@ -28,32 +28,32 @@ export function useFormValidation({
     value?: any
   ): Promise<ValidationResult> => {
     const validator = validatorsRef.current[field];
-    
+
     if (!validator) {
       return { valid: true, errors: [] };
     }
 
     const fieldValue = value ?? formState.data[field];
-    
+
     try {
       setValidating(true);
       const result = await validator(fieldValue, formState.data);
-      
+
       if (!result.valid && result.errors.length > 0) {
         setFieldError(field, result.errors[0] || null);
       } else {
         setFieldError(field, null);
       }
-      
+
       return result;
     } catch (error) {
       const validationError: ValidationError = {
         field,
         message: error instanceof Error ? error.message : 'Validation failed',
       };
-      
+
       setFieldError(field, validationError);
-      
+
       return {
         valid: false,
         errors: [validationError],
@@ -70,12 +70,12 @@ export function useFormValidation({
 
     try {
       setValidating(true);
-      
+
       const validationPromises = Object.entries(validatorsRef.current).map(
         async ([field, validator]) => {
           try {
             const result = await validator(formState.data[field], formState.data);
-            
+
             if (!result.valid && result.errors.length > 0) {
               errors[field] = result.errors;
               allErrors.push(...result.errors);
@@ -86,7 +86,7 @@ export function useFormValidation({
               field,
               message: error instanceof Error ? error.message : 'Validation failed',
             };
-            
+
             errors[field] = [validationError];
             allErrors.push(validationError);
             isValid = false;

@@ -35,10 +35,10 @@ export const IntegrationConfigEditor: React.FC<IntegrationConfigEditorProps> = (
     // Parse request body schema if available
     if (schema.request_body) {
       try {
-        const bodySchema = typeof schema.request_body === 'string' 
-          ? JSON.parse(schema.request_body) 
+        const bodySchema = typeof schema.request_body === 'string'
+          ? JSON.parse(schema.request_body)
           : schema.request_body;
-        
+
         if (bodySchema.properties) {
           Object.entries(bodySchema.properties).forEach(([key, prop]: [string, any]) => {
             extractedFields.push({
@@ -62,7 +62,7 @@ export const IntegrationConfigEditor: React.FC<IntegrationConfigEditorProps> = (
         const querySchema = typeof schema.query_params === 'string'
           ? JSON.parse(schema.query_params)
           : schema.query_params;
-        
+
         if (querySchema.properties) {
           Object.entries(querySchema.properties).forEach(([key, prop]: [string, any]) => {
             // Avoid duplicates

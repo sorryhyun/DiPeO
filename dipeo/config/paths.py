@@ -4,9 +4,8 @@ import os
 import sys
 from pathlib import Path
 
-
 # Check if we're running as a PyInstaller bundle
-if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     BASE_DIR: Path = Path(sys.executable).parent.resolve()
 else:
     # Find project root by looking for root pyproject.toml
