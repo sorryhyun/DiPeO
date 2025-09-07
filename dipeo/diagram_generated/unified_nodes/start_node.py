@@ -41,9 +41,9 @@ class StartNode(BaseModel):
     
     output_data_structure: Dict[str, Any] = Field(default_factory=dict, description="Expected output data structure")
     
-    hook_event: str = Field(default=None, description="Event name to listen for")
+    hook_event: Optional[str] = Field(default=None, description="Event name to listen for")
     
-    hook_filters: Dict[str, Any] = Field(default_factory=dict, description="Filters to apply to incoming events")
+    hook_filters: Optional[Dict[str, Any]] = Field(default=None, description="Filters to apply to incoming events")
 
     class Config:
         # Make the instance immutable after creation

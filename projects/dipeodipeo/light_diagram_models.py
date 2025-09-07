@@ -8,17 +8,17 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 
-from dipeo.diagram_generated.domain_models import ApiJobNodeData as _ApiJobNodeData
-from dipeo.diagram_generated.domain_models import CodeJobNodeData as _CodeJobNodeData
-from dipeo.diagram_generated.domain_models import ConditionNodeData as _ConditionNodeData
-from dipeo.diagram_generated.domain_models import DBNodeData as _DBNodeData
-from dipeo.diagram_generated.domain_models import EndpointNodeData as _EndpointNodeData
-from dipeo.diagram_generated.domain_models import PersonJobNodeData as _PersonJobNodeData
-from dipeo.diagram_generated.domain_models import StartNodeData as _StartNodeData
-from dipeo.diagram_generated.domain_models import SubDiagramNodeData as _SubDiagramNodeData
-from dipeo.diagram_generated.domain_models import TemplateJobNodeData as _TemplateJobNodeData
-from dipeo.diagram_generated.domain_models import UserResponseNodeData as _UserResponseNodeData
 from dipeo.diagram_generated.enums import ContentType
+from dipeo.diagram_generated.unified_nodes import ApiJobNode as _ApiJobNodeData
+from dipeo.diagram_generated.unified_nodes import CodeJobNode as _CodeJobNodeData
+from dipeo.diagram_generated.unified_nodes import ConditionNode as _ConditionNodeData
+from dipeo.diagram_generated.unified_nodes import DbNode as _DBNodeData
+from dipeo.diagram_generated.unified_nodes import EndpointNode as _EndpointNodeData
+from dipeo.diagram_generated.unified_nodes import PersonJobNode as _PersonJobNodeData
+from dipeo.diagram_generated.unified_nodes import StartNode as _StartNodeData
+from dipeo.diagram_generated.unified_nodes import SubDiagramNode as _SubDiagramNodeData
+from dipeo.diagram_generated.unified_nodes import TemplateJobNode as _TemplateJobNodeData
+from dipeo.diagram_generated.unified_nodes import UserResponseNode as _UserResponseNodeData
 
 # ============================================================================
 # Helper function to exclude label field from node data models

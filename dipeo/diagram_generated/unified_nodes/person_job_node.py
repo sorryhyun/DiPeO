@@ -51,7 +51,7 @@ class PersonJobNode(BaseModel):
     
     at_most: float = Field(default=None, description="Select at most N messages to keep (system messages may be preserved in addition).")
     
-    tools: List[ToolConfig] = Field(default=None, description="Tools available to the AI agent")
+    tools: Optional[List[ToolConfig]] = Field(default=None, description="Tools available to the AI agent")
     
     text_format: str = Field(default=None, description="JSON schema or response format for structured outputs")
     

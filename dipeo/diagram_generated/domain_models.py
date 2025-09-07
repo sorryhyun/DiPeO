@@ -20,6 +20,7 @@ from dipeo.domain.type_defs import JsonDict, JsonList, JsonPrimitive, JsonValue
 from .enums import *
 from .integrations import *
 
+
 # NewType declarations
 ApiKeyID = NewType('ApiKeyID', str)
 ArrowID = NewType('ArrowID', str)
@@ -396,238 +397,9 @@ class LLMRequestOptions(BaseModel):
     response_format: Any | None = Field(default=None)
 
 
-class BaseNodeData(BaseModel):
-    """Base node data interface that all node types extend"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    label: str
-    flipped: bool | None = Field(default=None)
-
-
-class ApiJobNodeData(BaseNodeData):
-    """ApiJobNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    url: str
-    method: HttpMethod
-    headers: dict[str, str] | None = Field(default=None)
-    params: JsonDict | None = Field(default=None)
-    body: JsonValue | None = Field(default=None)
-    timeout: int | None = Field(default=None)
-    auth_type: AuthType | None = Field(default=None)
-    auth_config: dict[str, str] | None = Field(default=None)
-
-
-class CodeJobNodeData(BaseNodeData):
-    """Configuration data for CodeJob nodes that execute code"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    language: SupportedLanguage = Field(description="Programming language: python, typescript, bash, or shell")
-    file_path: str | None = Field(alias='filePath', default=None,
-                                  description="External code file path (e.g., \u0027files/code/processor.py\u0027)")
-    code: str | None = Field(default=None, description="Inline code or path to external file")
-    function_name: str | None = Field(alias='functionName', default=None,
-                                      description="Function to call in external file (required with filePath)")
-    timeout: int | None = Field(default=None, description="Execution timeout in seconds (default: 60)")
-
-
-class ConditionNodeData(BaseNodeData):
-    """Configuration data for Condition nodes that handle conditional branching"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    condition_type: ConditionType | None = Field(default=None,
-                                                 description="Condition type: detect_max_iterations, nodes_executed, custom, or llm_decision")
-    expression: str | None = Field(default=None,
-                                   description="Python expression for custom type (access to all variables)")
-    node_indices: list[str] | None = Field(default=None,
-                                           description="List of node indices for nodes_executed condition type")
-    expose_index_as: str | None = Field(default=None,
-                                        description="Variable name to expose the condition node\u0027s execution count (0-based index) to downstream nodes")
-    skippable: bool | None = Field(default=None,
-                                   description="When true, downstream nodes can execute even if this condition hasn\u0027t been evaluated yet")
-    person: PersonID | None = Field(default=None, description="AI agent to use (when condition_type is LLM_DECISION)")
-    judge_by: str | None = Field(default=None, description="The prompt/criteria for LLM to judge")
-    judge_by_file: str | None = Field(default=None, description="External prompt file in {subdirectory}/prompts/")
-    memorize_to: str | None = Field(default=None,
-                                    description="Memory control (e.g., \"GOLDFISH\" for fresh evaluation)")
-    at_most: float | None = Field(default=None, description="Max messages to keep in memory")
-
-
-class DBNodeData(BaseNodeData):
-    """Configuration data for DB nodes that handle file system operations"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    file: list[str] | None = Field(default=None, description="File path(s) - single string or list for multiple files")
-    collection: str | None = Field(default=None, description="Database collection name (for database operations)")
-    sub_type: DBBlockSubType = Field(description="Storage type: file or database")
-    operation: str = Field(description="Operation type: read or write")
-    query: str | None = Field(default=None, description="Database query (for database operations)")
-    data: JsonDict | None = Field(default=None, description="Data to write (for write operations)")
-    serialize_json: bool | None = Field(default=None, description="Auto-parse JSON files when reading (default: false)")
-    glob: bool | None = Field(default=None, description="Enable glob pattern expansion for paths (default: false)")
-    format: str | None = Field(default=None, description="Data format: json, yaml, csv, text, etc.")
-
-
-class EndpointNodeData(BaseNodeData):
-    """EndpointNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    save_to_file: bool
-    file_name: str | None = Field(default=None)
-
-
-class HookNodeData(BaseNodeData):
-    """HookNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    hook_type: HookType
-    command: str | None = Field(default=None)
-    args: list[str] | None = Field(default=None)
-    env: dict[str, str] | None = Field(default=None)
-    cwd: str | None = Field(default=None)
-    url: str | None = Field(default=None)
-    method: HttpMethod | None = Field(default=None)
-    headers: dict[str, str] | None = Field(default=None)
-    script: str | None = Field(default=None)
-    function_name: str | None = Field(default=None)
-    file_path: str | None = Field(default=None)
-    format: Literal["json", "yaml", "text"] | None = Field(default=None)
-    timeout: int | None = Field(default=None)
-    retry_count: float | None = Field(default=None)
-    retry_delay: float | None = Field(default=None)
-
-
-class IntegratedApiNodeData(BaseNodeData):
-    """IntegratedApiNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    provider: str = Field(
-        description="Provider id from the dynamic registry (e.g., \u0027notion\u0027, \u0027slack\u0027)")
-    operation: str = Field(
-        description="The operation to perform (provider-specific)\nThis is a string to allow dynamic operations per provider")
-    config: JsonDict | None = Field(default=None,
-                                    description="Provider-specific configuration\nStructure depends on the selected provider and operation")
-    resource_id: str | None = Field(default=None,
-                                    description="Optional resource ID (e.g., page_id for Notion, channel_id for Slack)")
-    timeout: int | None = Field(default=None, description="Request timeout in seconds")
-    max_retries: float | None = Field(default=None, description="Maximum number of retries for failed requests")
-
-
-class JsonSchemaValidatorNodeData(BaseNodeData):
-    """JsonSchemaValidatorNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    schema_path: str | None = Field(default=None)
-    json_schema: JsonDict | None = Field(default=None)
-    data_path: str | None = Field(default=None)
-    strict_mode: bool | None = Field(default=None)
-    error_on_extra: bool | None = Field(default=None)
-
-
-class PersonJobNodeData(BaseNodeData):
-    """Configuration data for PersonJob nodes that execute LLM agents"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    person: PersonID | None = Field(default=None,
-                                    description="Reference to agent defined in \u0027persons\u0027 section")
-    first_only_prompt: str = Field(description="Special prompt for first iteration only, supports {{variable}} syntax")
-    first_prompt_file: str | None = Field(default=None,
-                                          description="External prompt file for first iteration only (overrides first_only_prompt)")
-    default_prompt: str | None = Field(default=None,
-                                       description="Prompt template using {{variable}} syntax for subsequent iterations")
-    prompt_file: str | None = Field(default=None,
-                                    description="External prompt file in files/prompts/ (overrides inline prompts)")
-    max_iteration: float = Field(description="Maximum conversation turns (default: 1)")
-    memorize_to: str
-    at_most: float
-    tools: ToolSelection | None = Field(default=None, description="LLM tools to enable (web_search_preview, etc.)")
-    text_format: str | None = Field(default=None, description="Pydantic model name for structured output")
-    text_format_file: str | None = Field(default=None,
-                                         description="External Python file with Pydantic models (overrides text_format)")
-    batch: bool | None = Field(default=None, description="Enable batch processing for arrays")
-    batch_input_key: str | None = Field(default=None, description="Array variable name for batch processing")
-    batch_parallel: bool | None = Field(default=None, description="Execute batch items in parallel")
-    max_concurrent: float | None = Field(default=None, description="Maximum concurrent batch executions")
-
-
-class StartNodeData(BaseNodeData):
-    """StartNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    trigger_mode: HookTriggerMode
-    custom_data: dict[str, str | float | bool] | None = Field(default=None)
-    output_data_structure: dict[str, str] | None = Field(default=None)
-    hook_event: str | None = Field(default=None)
-    hook_filters: JsonDict | None = Field(default=None)
-
-
-class SubDiagramNodeData(BaseNodeData):
-    """Configuration data for SubDiagram nodes that execute other diagrams"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    diagram_name: str | None = Field(default=None, description="Path to sub-diagram file")
-    diagram_format: DiagramFormat | None = Field(default=None,
-                                                 description="Diagram format: light or native (default: light)")
-    diagram_data: JsonDict | None = Field(default=None, description="Pass all current variables to sub-diagram")
-    pass_input_data: bool | None = Field(alias='passInputData', default=None,
-                                         description="Whether to pass input data from parent to sub-diagram (default: false)")
-    batch: bool | None = Field(default=None, description="Enable batch processing for arrays")
-    batch_input_key: str | None = Field(default=None, description="Array variable name for batch processing")
-    batch_parallel: bool | None = Field(default=None, description="Execute batch items in parallel")
-    ignore_if_sub: bool | None = Field(alias='ignoreIfSub', default=None,
-                                       description="Skip if already running as sub-diagram")
-
-
-class TemplatePreprocessor(BaseModel):
-    """Configuration for template preprocessor"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    module: str = Field(description="Python module path, e.g. \"projects.codegen.code.shared.context_builders\"")
-    function: str = Field(description="Function name to call, e.g. \"build_context_from_ast\"")
-    args: JsonDict | None = Field(default=None, description="Optional arguments passed as kwargs to the function")
-
-
-class TemplateJobNodeData(BaseNodeData):
-    """TemplateJobNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    template_path: str | None = Field(default=None)
-    template_content: str | None = Field(default=None)
-    output_path: str | None = Field(default=None, description="Single-file path; can contain template expressions")
-    variables: JsonDict | None = Field(default=None,
-                                       description="Simple key\u2192value map passed to template; string values are resolved")
-    engine: TemplateEngine | None = Field(default=None)
-    foreach: dict[str, Any] | None = Field(default=None,
-                                           description="Render a template for each item and write many files")
-    preprocessor: TemplatePreprocessor | None = Field(default=None,
-                                                      description="Optional Python preprocessor that returns extra context for the template")
-
-
-class TypescriptAstNodeData(BaseNodeData):
-    """TypescriptAstNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    source: str | None = Field(default=None)
-    extract_patterns: list[str] | None = Field(alias='extractPatterns', default=None)
-    include_js_doc: bool | None = Field(alias='includeJSDoc', default=None)
-    parse_mode: Literal["module", "script"] | None = Field(alias='parseMode', default=None)
-    batch: bool | None = Field(default=None)
-    sources: dict[str, str] | None = Field(default=None)
-    batch_input_key: str | None = Field(alias='batchInputKey', default=None)
-
-
-class UserResponseNodeData(BaseNodeData):
-    """UserResponseNodeData model"""
-    model_config = ConfigDict(extra='forbid', populate_by_name=True)
-
-    prompt: str
-    timeout: int
-
-
 # Type aliases that reference models
 SerializedNodeOutput = SerializedEnvelope
 PersonMemoryMessage = Message
-PersonBatchJobNodeData = PersonJobNodeData
 
 
 def parse_handle_id(handle_id: str) -> tuple[NodeID, str, str]:
@@ -804,84 +576,27 @@ def is_llm_request_options(obj: Any) -> bool:
     return isinstance(obj, LLMRequestOptions)
 
 
-def is_base_node_data(obj: Any) -> bool:
-    """Check if object is a BaseNodeData."""
-    return isinstance(obj, BaseNodeData)
+# Validation-related models moved from validation/ directory
+# These are used by strawberry_domain.py for GraphQL type registration
+
+class JsonDictValidation(BaseModel):
+    """Empty model used as JSON container for validation"""
+    model_config = ConfigDict(extra='forbid')
 
 
-def is_api_job_node_data(obj: Any) -> bool:
-    """Check if object is a ApiJobNodeData."""
-    return isinstance(obj, ApiJobNodeData)
+class RecordStringString(BaseModel):
+    """Empty model for string-to-string mappings"""
+    model_config = ConfigDict(extra='forbid')
 
 
-def is_code_job_node_data(obj: Any) -> bool:
-    """Check if object is a CodeJobNodeData."""
-    return isinstance(obj, CodeJobNodeData)
+class TemplatePreprocessor(BaseModel):
+    """Configuration for template preprocessor"""
+    model_config = ConfigDict(extra='forbid')
 
-
-def is_condition_node_data(obj: Any) -> bool:
-    """Check if object is a ConditionNodeData."""
-    return isinstance(obj, ConditionNodeData)
-
-
-def is_db_node_data(obj: Any) -> bool:
-    """Check if object is a DBNodeData."""
-    return isinstance(obj, DBNodeData)
-
-
-def is_endpoint_node_data(obj: Any) -> bool:
-    """Check if object is a EndpointNodeData."""
-    return isinstance(obj, EndpointNodeData)
-
-
-def is_hook_node_data(obj: Any) -> bool:
-    """Check if object is a HookNodeData."""
-    return isinstance(obj, HookNodeData)
-
-
-def is_integrated_api_node_data(obj: Any) -> bool:
-    """Check if object is a IntegratedApiNodeData."""
-    return isinstance(obj, IntegratedApiNodeData)
-
-
-def is_json_schema_validator_node_data(obj: Any) -> bool:
-    """Check if object is a JsonSchemaValidatorNodeData."""
-    return isinstance(obj, JsonSchemaValidatorNodeData)
-
-
-def is_person_job_node_data(obj: Any) -> bool:
-    """Check if object is a PersonJobNodeData."""
-    return isinstance(obj, PersonJobNodeData)
-
-
-def is_start_node_data(obj: Any) -> bool:
-    """Check if object is a StartNodeData."""
-    return isinstance(obj, StartNodeData)
-
-
-def is_sub_diagram_node_data(obj: Any) -> bool:
-    """Check if object is a SubDiagramNodeData."""
-    return isinstance(obj, SubDiagramNodeData)
-
-
-def is_template_preprocessor(obj: Any) -> bool:
-    """Check if object is a TemplatePreprocessor."""
-    return isinstance(obj, TemplatePreprocessor)
-
-
-def is_template_job_node_data(obj: Any) -> bool:
-    """Check if object is a TemplateJobNodeData."""
-    return isinstance(obj, TemplateJobNodeData)
-
-
-def is_typescript_ast_node_data(obj: Any) -> bool:
-    """Check if object is a TypescriptAstNodeData."""
-    return isinstance(obj, TypescriptAstNodeData)
-
-
-def is_user_response_node_data(obj: Any) -> bool:
-    """Check if object is a UserResponseNodeData."""
-    return isinstance(obj, UserResponseNodeData)
+    function: str = Field(..., description='Function name to call, e.g. "build_context_from_ast"')
+    module: str = Field(..., description='Python module path, e.g. "projects.codegen.code.shared.context_builders"')
+    args: Optional['JsonDictValidation'] = Field(None,
+                                                 description='Optional arguments passed as kwargs to the function')
 
 
 # Constants from TypeScript

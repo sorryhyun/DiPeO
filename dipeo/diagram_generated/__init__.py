@@ -9,13 +9,12 @@ from .conversions import (
     node_kind_to_domain_type,
     normalize_node_id,
 )
-
 # Re-export all domain models
 from .domain_models import (
     ApiKeyID,
     ArrowID,
     # Other models
-    BaseNodeData,
+    ContentType,
     ChatResult,
     Conversation,
     ConversationMetadata,

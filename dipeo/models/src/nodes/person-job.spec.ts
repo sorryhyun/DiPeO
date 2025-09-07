@@ -115,7 +115,6 @@ export const personJobSpec: NodeSpecification = {
       type: "string",
       required: false,
       description: "Tools available to the AI agent",
-      defaultValue: "none",
       uiConfig: {
         column: 1,
         inputType: "select",

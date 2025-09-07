@@ -93,7 +93,6 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     type: 'select',
     label: 'Tools',
     required: false,
-    defaultValue: "none",
     description: 'Tools available to the AI agent',
     column: 1,
     options: [
