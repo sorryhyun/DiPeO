@@ -194,7 +194,7 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
     // Count person usage in nodes
     nodesMap.forEach((node: any) => {
       const personId = node.data?.person || node.data?.personId;
-      if (personId && (node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB)) {
+      if (personId && node.type === NodeType.PERSON_JOB) {
         usageMap.set(personId as PersonID, (usageMap.get(personId as PersonID) || 0) + 1);
       }
     });

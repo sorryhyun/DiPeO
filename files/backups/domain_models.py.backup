@@ -33,7 +33,7 @@ TaskID = NewType('TaskID', str)
 class Vec2(BaseModel):
     """Vec2 model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     x: int
     y: int
 
@@ -41,7 +41,7 @@ class Vec2(BaseModel):
 class DomainHandle(BaseModel):
     """DomainHandle model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: HandleID
     node_id: NodeID
     label: HandleLabel
@@ -53,7 +53,7 @@ class DomainHandle(BaseModel):
 class DomainNode(BaseModel):
     """DomainNode model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: NodeID
     type: NodeType
     position: Vec2
@@ -63,7 +63,7 @@ class DomainNode(BaseModel):
 class DomainArrow(BaseModel):
     """DomainArrow model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: ArrowID
     source: HandleID
     target: HandleID
@@ -77,7 +77,7 @@ class DomainArrow(BaseModel):
 class PersonLLMConfig(BaseModel):
     """PersonLLMConfig model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     service: LLMService
     model: str
     api_key_id: ApiKeyID
@@ -88,7 +88,7 @@ class PersonLLMConfig(BaseModel):
 class DomainPerson(BaseModel):
     """DomainPerson model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: PersonID
     label: str
     llm_config: PersonLLMConfig
@@ -98,7 +98,7 @@ class DomainPerson(BaseModel):
 class DomainApiKey(BaseModel):
     """DomainApiKey model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: ApiKeyID
     label: str
     service: APIServiceType
@@ -108,7 +108,7 @@ class DomainApiKey(BaseModel):
 class DiagramMetadata(BaseModel):
     """DiagramMetadata model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: DiagramID | None = Field(default=None)
     name: str | None = Field(default=None)
     description: str | None = Field(default=None)
@@ -123,7 +123,7 @@ class DiagramMetadata(BaseModel):
 class DomainDiagram(BaseModel):
     """DomainDiagram model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     nodes: list[DomainNode]
     handles: list[DomainHandle]
     arrows: list[DomainArrow]
@@ -134,7 +134,7 @@ class DomainDiagram(BaseModel):
 class LLMUsage(BaseModel):
     """LLMUsage model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     input: int
     output: int
     cached: int | None = Field(default=None)
@@ -144,7 +144,7 @@ class LLMUsage(BaseModel):
 class NodeState(BaseModel):
     """NodeState model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     status: Status
     started_at: str | None = Field(default=None)
     ended_at: str | None = Field(default=None)
@@ -156,7 +156,7 @@ class NodeState(BaseModel):
 class NodeMetrics(BaseModel):
     """NodeMetrics model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     node_id: str
     node_type: str
     start_time: float
@@ -171,7 +171,7 @@ class NodeMetrics(BaseModel):
 class Bottleneck(BaseModel):
     """Bottleneck model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     node_id: str
     node_type: str
     duration_ms: float
@@ -181,7 +181,7 @@ class Bottleneck(BaseModel):
 class ExecutionMetrics(BaseModel):
     """ExecutionMetrics model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     execution_id: ExecutionID
     start_time: float
     end_time: float | None = Field(default=None)
@@ -195,7 +195,7 @@ class ExecutionMetrics(BaseModel):
 class EnvelopeMeta(BaseModel):
     """EnvelopeMeta model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     node_id: str | None = Field(default=None)
     llm_usage: LLMUsage | None = Field(default=None)
     execution_time: float | None = Field(default=None)
@@ -208,7 +208,7 @@ class EnvelopeMeta(BaseModel):
 class SerializedEnvelope(BaseModel):
     """SerializedEnvelope model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     envelope_format: Literal[True]
     id: str
     trace_id: str
@@ -224,7 +224,7 @@ class SerializedEnvelope(BaseModel):
 class ExecutionState(BaseModel):
     """ExecutionState model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: ExecutionID
     status: Status
     diagram_id: DiagramID | None = Field(default=None)
@@ -246,7 +246,7 @@ class ExecutionState(BaseModel):
 class ExecutionOptions(BaseModel):
     """ExecutionOptions model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     mode: Literal["normal", "debug", "monitor"] | None = Field(default=None)
     timeout: int | None = Field(default=None)
     variables: JsonDict | None = Field(default=None)
@@ -256,7 +256,7 @@ class ExecutionOptions(BaseModel):
 class InteractivePromptData(BaseModel):
     """InteractivePromptData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     node_id: NodeID
     prompt: str
     timeout: int | None = Field(default=None)
@@ -266,7 +266,7 @@ class InteractivePromptData(BaseModel):
 class InteractiveResponse(BaseModel):
     """InteractiveResponse model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     node_id: NodeID
     response: str
     timestamp: str
@@ -275,7 +275,7 @@ class InteractiveResponse(BaseModel):
 class ExecutionUpdate(BaseModel):
     """ExecutionUpdate model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     type: EventType
     execution_id: ExecutionID
     node_id: NodeID | None = Field(default=None)
@@ -292,7 +292,7 @@ class ExecutionUpdate(BaseModel):
 class NodeDefinition(BaseModel):
     """NodeDefinition model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     type: str
     node_schema: Any
     handler: Any
@@ -304,7 +304,7 @@ class Message(BaseModel):
     """Base message interface for conversations
 Used by both execution (PersonMemory) and person domains"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     id: str | None = Field(default=None)
     from_person_id: PersonID | Literal["system"]
     to_person_id: PersonID
@@ -318,7 +318,7 @@ Used by both execution (PersonMemory) and person domains"""
 class ConversationMetadata(BaseModel):
     """ConversationMetadata model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     started_at: str
     last_message_at: str
     total_tokens: float
@@ -329,7 +329,7 @@ class ConversationMetadata(BaseModel):
 class Conversation(BaseModel):
     """Conversation model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     messages: list[Message]
     metadata: ConversationMetadata | None = Field(default=None)
 
@@ -337,7 +337,7 @@ class Conversation(BaseModel):
 class ToolConfig(BaseModel):
     """ToolConfig model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     type: ToolType
     enabled: bool | None = Field(default=None)
     config: dict[str, Any] | None = Field(default=None)
@@ -346,7 +346,7 @@ class ToolConfig(BaseModel):
 class WebSearchResult(BaseModel):
     """WebSearchResult model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     url: str
     title: str
     snippet: str
@@ -356,7 +356,7 @@ class WebSearchResult(BaseModel):
 class ImageGenerationResult(BaseModel):
     """ImageGenerationResult model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     image_data: str
     format: str
     width: int | None = Field(default=None)
@@ -366,7 +366,7 @@ class ImageGenerationResult(BaseModel):
 class ToolOutput(BaseModel):
     """ToolOutput model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     type: ToolType
     result: list[WebSearchResult] | ImageGenerationResult | Any
     raw_response: Any | None = Field(default=None)
@@ -375,7 +375,7 @@ class ToolOutput(BaseModel):
 class ChatResult(BaseModel):
     """ChatResult model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     text: str
     llm_usage: LLMUsage | None = Field(default=None)
     raw_response: Any | None = Field(default=None)
@@ -385,7 +385,7 @@ class ChatResult(BaseModel):
 class LLMRequestOptions(BaseModel):
     """LLMRequestOptions model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     temperature: float | None = Field(default=None)
     max_tokens: float | None = Field(default=None)
     top_p: float | None = Field(default=None)
@@ -397,7 +397,7 @@ class LLMRequestOptions(BaseModel):
 class BaseNodeData(BaseModel):
     """Base node data interface that all node types extend"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     label: str
     flipped: bool | None = Field(default=None)
 
@@ -405,7 +405,7 @@ class BaseNodeData(BaseModel):
 class ApiJobNodeData(BaseNodeData):
     """ApiJobNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     url: str
     method: HttpMethod
     headers: dict[str, str] | None = Field(default=None)
@@ -419,7 +419,7 @@ class ApiJobNodeData(BaseNodeData):
 class CodeJobNodeData(BaseNodeData):
     """Configuration data for CodeJob nodes that execute code"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     language: SupportedLanguage = Field(description="Programming language: python, typescript, bash, or shell")
     file_path: str | None = Field(alias='filePath', default=None, description="External code file path (e.g., \u0027files/code/processor.py\u0027)")
     code: str | None = Field(default=None, description="Inline code or path to external file")
@@ -430,7 +430,7 @@ class CodeJobNodeData(BaseNodeData):
 class ConditionNodeData(BaseNodeData):
     """Configuration data for Condition nodes that handle conditional branching"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     condition_type: ConditionType | None = Field(default=None, description="Condition type: detect_max_iterations, nodes_executed, custom, or llm_decision")
     expression: str | None = Field(default=None, description="Python expression for custom type (access to all variables)")
     node_indices: list[str] | None = Field(default=None, description="List of node indices for nodes_executed condition type")
@@ -446,7 +446,7 @@ class ConditionNodeData(BaseNodeData):
 class DBNodeData(BaseNodeData):
     """Configuration data for DB nodes that handle file system operations"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     file: list[str] | None = Field(default=None, description="File path(s) - single string or list for multiple files")
     collection: str | None = Field(default=None, description="Database collection name (for database operations)")
     sub_type: DBBlockSubType = Field(description="Storage type: file or database")
@@ -461,7 +461,7 @@ class DBNodeData(BaseNodeData):
 class EndpointNodeData(BaseNodeData):
     """EndpointNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     save_to_file: bool
     file_name: str | None = Field(default=None)
 
@@ -469,7 +469,7 @@ class EndpointNodeData(BaseNodeData):
 class HookNodeData(BaseNodeData):
     """HookNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     hook_type: HookType
     command: str | None = Field(default=None)
     args: list[str] | None = Field(default=None)
@@ -490,7 +490,7 @@ class HookNodeData(BaseNodeData):
 class IntegratedApiNodeData(BaseNodeData):
     """IntegratedApiNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     provider: str = Field(description="Provider id from the dynamic registry (e.g., \u0027notion\u0027, \u0027slack\u0027)")
     operation: str = Field(description="The operation to perform (provider-specific)\nThis is a string to allow dynamic operations per provider")
     config: JsonDict | None = Field(default=None, description="Provider-specific configuration\nStructure depends on the selected provider and operation")
@@ -502,7 +502,7 @@ class IntegratedApiNodeData(BaseNodeData):
 class JsonSchemaValidatorNodeData(BaseNodeData):
     """JsonSchemaValidatorNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     schema_path: str | None = Field(default=None)
     json_schema: JsonDict | None = Field(default=None)
     data_path: str | None = Field(default=None)
@@ -513,7 +513,7 @@ class JsonSchemaValidatorNodeData(BaseNodeData):
 class PersonJobNodeData(BaseNodeData):
     """Configuration data for PersonJob nodes that execute LLM agents"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     person: PersonID | None = Field(default=None, description="Reference to agent defined in \u0027persons\u0027 section")
     first_only_prompt: str = Field(description="Special prompt for first iteration only, supports {{variable}} syntax")
     first_prompt_file: str | None = Field(default=None, description="External prompt file for first iteration only (overrides first_only_prompt)")
@@ -534,7 +534,7 @@ class PersonJobNodeData(BaseNodeData):
 class StartNodeData(BaseNodeData):
     """StartNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     trigger_mode: HookTriggerMode
     custom_data: dict[str, str | float | bool] | None = Field(default=None)
     output_data_structure: dict[str, str] | None = Field(default=None)
@@ -545,7 +545,7 @@ class StartNodeData(BaseNodeData):
 class SubDiagramNodeData(BaseNodeData):
     """Configuration data for SubDiagram nodes that execute other diagrams"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     diagram_name: str | None = Field(default=None, description="Path to sub-diagram file")
     diagram_format: DiagramFormat | None = Field(default=None, description="Diagram format: light or native (default: light)")
     diagram_data: JsonDict | None = Field(default=None, description="Pass all current variables to sub-diagram")
@@ -559,7 +559,7 @@ class SubDiagramNodeData(BaseNodeData):
 class TemplatePreprocessor(BaseModel):
     """Configuration for template preprocessor"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     module: str = Field(description="Python module path, e.g. \"projects.codegen.code.shared.context_builders\"")
     function: str = Field(description="Function name to call, e.g. \"build_context_from_ast\"")
     args: JsonDict | None = Field(default=None, description="Optional arguments passed as kwargs to the function")
@@ -568,7 +568,7 @@ class TemplatePreprocessor(BaseModel):
 class TemplateJobNodeData(BaseNodeData):
     """TemplateJobNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     template_path: str | None = Field(default=None)
     template_content: str | None = Field(default=None)
     output_path: str | None = Field(default=None, description="Single-file path; can contain template expressions")
@@ -581,7 +581,7 @@ class TemplateJobNodeData(BaseNodeData):
 class TypescriptAstNodeData(BaseNodeData):
     """TypescriptAstNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     source: str | None = Field(default=None)
     extract_patterns: list[str] | None = Field(alias='extractPatterns', default=None)
     include_js_doc: bool | None = Field(alias='includeJSDoc', default=None)
@@ -594,7 +594,7 @@ class TypescriptAstNodeData(BaseNodeData):
 class UserResponseNodeData(BaseNodeData):
     """UserResponseNodeData model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
-    
+
     prompt: str
     timeout: int
 

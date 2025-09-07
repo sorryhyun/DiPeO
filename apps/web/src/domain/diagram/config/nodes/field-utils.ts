@@ -13,7 +13,6 @@ const specFieldImports: Record<string, () => Promise<{ default?: UnifiedFieldDef
   'hook': () => import('@/__generated__/fields/HookFields').then(m => m.hookFields),
   'integrated_api': () => import('@/__generated__/fields/IntegratedApiFields').then(m => m.integratedApiFields),
   'json_schema_validator': () => import('@/__generated__/fields/JsonSchemaValidatorFields').then(m => m.jsonSchemaValidatorFields),
-  'person_batch_job': () => import('@/__generated__/fields/PersonBatchJobFields').then(m => m.personBatchJobFields),
   'person_job': () => import('@/__generated__/fields/PersonJobFields').then(m => m.personJobFields),
   'start': () => import('@/__generated__/fields/StartFields').then(m => m.startFields),
   'sub_diagram': () => import('@/__generated__/fields/SubDiagramFields').then(m => m.subDiagramFields),

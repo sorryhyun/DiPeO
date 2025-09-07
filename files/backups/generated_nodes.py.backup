@@ -29,7 +29,7 @@ class BaseExecutableNode:
     # Required fields only - no defaults in base class
     id: NodeID
     position: Vec2
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert node to dictionary representation."""
         result = {
@@ -739,7 +739,7 @@ def create_executable_node(
             auth_type=data.get("auth_type"),
             auth_config=data.get("auth_config"),
         )
-    
+
 
     if node_type == NodeType.CODE_JOB:
         return CodeJobNode(
@@ -756,7 +756,7 @@ def create_executable_node(
             functionName=data.get("functionName"),
             timeout=data.get("timeout"),
         )
-    
+
 
     if node_type == NodeType.CONDITION:
         return ConditionNode(
@@ -778,7 +778,7 @@ def create_executable_node(
             memorize_to=data.get("memorize_to", "GOLDFISH"),
             at_most=data.get("at_most"),
         )
-    
+
 
     if node_type == NodeType.DB:
         return DBNode(
@@ -799,7 +799,7 @@ def create_executable_node(
             glob=data.get("glob"),
             format=data.get("format", "json"),
         )
-    
+
 
     if node_type == NodeType.ENDPOINT:
         return EndpointNode(
@@ -813,7 +813,7 @@ def create_executable_node(
             save_to_file=data.get("save_to_file"),
             file_name=data.get("file_name"),
         )
-    
+
 
     if node_type == NodeType.HOOK:
         return HookNode(
@@ -840,7 +840,7 @@ def create_executable_node(
             retry_count=data.get("retry_count", 0),
             retry_delay=data.get("retry_delay"),
         )
-    
+
 
     if node_type == NodeType.INTEGRATED_API:
         return IntegratedApiNode(
@@ -858,7 +858,7 @@ def create_executable_node(
             timeout=data.get("timeout"),
             max_retries=data.get("max_retries"),
         )
-    
+
 
     if node_type == NodeType.JSON_SCHEMA_VALIDATOR:
         return JsonSchemaValidatorNode(
@@ -875,7 +875,7 @@ def create_executable_node(
             strict_mode=data.get("strict_mode"),
             error_on_extra=data.get("error_on_extra"),
         )
-    
+
 
     if node_type == NodeType.PERSON_JOB:
         return PersonJobNode(
@@ -902,7 +902,7 @@ def create_executable_node(
             batch_parallel=data.get("batch_parallel"),
             max_concurrent=data.get("max_concurrent"),
         )
-    
+
 
     if node_type == NodeType.START:
         return StartNode(
@@ -919,7 +919,7 @@ def create_executable_node(
             hook_event=data.get("hook_event"),
             hook_filters=data.get("hook_filters"),
         )
-    
+
 
     if node_type == NodeType.SUB_DIAGRAM:
         return SubDiagramNode(
@@ -939,7 +939,7 @@ def create_executable_node(
             batch_parallel=data.get("batch_parallel", False),
             ignoreIfSub=data.get("ignoreIfSub", False),
         )
-    
+
 
     if node_type == NodeType.TEMPLATE_JOB:
         return TemplateJobNode(
@@ -958,7 +958,7 @@ def create_executable_node(
             foreach=data.get("foreach"),
             preprocessor=data.get("preprocessor"),
         )
-    
+
 
     if node_type == NodeType.TYPESCRIPT_AST:
         return TypescriptAstNode(
@@ -977,7 +977,7 @@ def create_executable_node(
             sources=data.get("sources"),
             batchInputKey=data.get("batchInputKey"),
         )
-    
+
 
     if node_type == NodeType.USER_RESPONSE:
         return UserResponseNode(
@@ -991,7 +991,7 @@ def create_executable_node(
             prompt=data.get("prompt"),
             timeout=data.get("timeout", 300),
         )
-    
+
 
     if node_type == NodeType.PERSON_BATCH_JOB:
         return PersonBatchJobNode(
@@ -1018,5 +1018,5 @@ def create_executable_node(
             batch_parallel=data.get("batch_parallel"),
             max_concurrent=data.get("max_concurrent"),
         )
-    
+
     raise ValueError(f"Unknown node type: {node_type}")

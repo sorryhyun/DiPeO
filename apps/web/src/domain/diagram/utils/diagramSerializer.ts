@@ -63,15 +63,6 @@ function cleanNodeData(node: DomainNode): DomainNode {
         nodeData.tools = nodeData.tools ? Converters.stringToToolsArray(nodeData.tools) : null;
       }
       break;
-    case NodeType.PERSON_BATCH_JOB:
-      nodeData.first_only_prompt = nodeData.first_only_prompt || '';
-      nodeData.max_iteration = typeof nodeData.max_iteration === 'number'
-        ? nodeData.max_iteration
-        : (Number(nodeData.max_iteration) || 1);
-      if (typeof nodeData.tools === 'string') {
-        nodeData.tools = nodeData.tools ? Converters.stringToToolsArray(nodeData.tools) : null;
-      }
-      break;
     case NodeType.ENDPOINT:
       nodeData.save_to_file = nodeData.save_to_file ?? false;
       break;

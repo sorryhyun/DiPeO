@@ -416,7 +416,7 @@ export const createDiagramSlice = (
 
     // Add additional person assignment check
     state.nodes.forEach(node => {
-      if ((node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && !node.data?.person) {
+      if (node.type === NodeType.PERSON_JOB && !node.data?.person) {
         errors.push(`Node ${node.data?.label || node.id} requires a person to be assigned`);
       }
     });

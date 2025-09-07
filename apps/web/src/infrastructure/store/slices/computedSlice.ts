@@ -300,7 +300,7 @@ export const createComputedSlice = (
     const usedPersonIds = new Set<PersonID>();
 
     state.nodes.forEach(node => {
-      if ((node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && node.data.person_id) {
+      if (node.type === NodeType.PERSON_JOB && node.data.person_id) {
         usedPersonIds.add(node.data.person_id as PersonID);
       }
     });
@@ -313,14 +313,14 @@ export const createComputedSlice = (
   isPersonInUse: (personId) => {
     const state = get();
     return Array.from(state.nodes.values()).some(
-      node => (node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && node.data.person_id === personId
+      node => node.type === NodeType.PERSON_JOB && node.data.person_id === personId
     );
   },
 
   canDeletePerson: (personId) => {
     const state = get();
     return !Array.from(state.nodes.values()).some(
-      node => (node.type === NodeType.PERSON_JOB || node.type === NodeType.PERSON_BATCH_JOB) && node.data.person_id === personId
+      node => node.type === NodeType.PERSON_JOB && node.data.person_id === personId
     );
   },
 

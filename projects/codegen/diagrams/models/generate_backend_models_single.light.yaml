@@ -121,23 +121,6 @@ nodes:
 
         result = context
 
-  # Generate backend code using template_job nodes
-#  - label: Generate Pydantic Model
-#    type: template_job
-#    position: {x: 900, y: 100}
-#    props:
-#      engine: jinja2
-#      template_path: projects/codegen/templates/backend/pydantic_single_model.j2
-#      output_path: dipeo/diagram_generated_staged/models/{{ node_type }}_model.py
-
-#  - label: Generate Static Node
-#    type: template_job
-#    position: {x: 900, y: 200}
-#    props:
-#      engine: jinja2
-#      template_path: projects/codegen/templates/backend/static_nodes.j2
-#      output_path: dipeo/diagram_generated_staged/nodes/{{ node_type }}_node.py
-
   - label: Generate Unified Model
     type: template_job
     position: {x: 900, y: 300}
@@ -174,11 +157,6 @@ connections:
   - {from: Parse Node Type, to: Prepare Context, label: node_type}
 
   # Pass context to template_job nodes
-#  - {from: Prepare Context, to: Generate Pydantic Model, content_type: object}
-#  - {from: Prepare Context, to: Generate Static Node, content_type: object}
   - {from: Prepare Context, to: Generate Unified Model, content_type: object}
 
-  # Connect all generation nodes to End
-#  - {from: Generate Pydantic Model, to: End}
-#  - {from: Generate Static Node, to: End}
   - {from: Generate Unified Model, to: End}

@@ -116,7 +116,6 @@ export class ValidationService {
   ): void {
     switch (node.type) {
       case NodeType.PERSON_JOB:
-      case NodeType.PERSON_BATCH_JOB:
         // Warn if no person is selected
         if (!node.data.person) {
           warnings.push({

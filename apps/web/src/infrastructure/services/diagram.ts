@@ -135,11 +135,6 @@ export class DiagramService {
         prompt: '',
         timeout: 300,
       },
-      [NodeType.PERSON_BATCH_JOB]: {
-        person: null,
-        batch_size: 1,
-        mode: 'parallel',
-      },
       [NodeType.HOOK]: {
         hook_type: 'before',
         target_node: '',

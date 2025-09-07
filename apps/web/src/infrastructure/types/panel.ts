@@ -68,6 +68,7 @@ export interface BasePanelFieldConfig {
 export interface TypedPanelFieldConfig<T = unknown> extends BasePanelFieldConfig {
   name?: keyof T & string;
   disabled?: boolean | ((formData: T) => boolean);
+  hidden?: boolean;
   options?: OptionsConfig<T>;
   dependsOn?: Array<keyof T & string>;
   conditional?: ConditionalConfig<T>;
