@@ -187,9 +187,12 @@ class ParallelExecutionManager:
             if task.node_id == node_id:
                 if task.error:
                     # Return error envelope
-                    return EnvelopeFactory.json(
-                        {"error": str(task.error)}, produced_by=node_id
-                    ).with_meta(execution_status="failed", error_type=type(task.error).__name__)
+                    return EnvelopeFactory.create(
+                        body={"error": str(task.error)},
+                        produced_by=node_id,
+                        error=type(task.error).__name__,
+                        meta={"execution_status": "failed"},
+                    )
                 return None
 
         # Wait for completion
@@ -213,10 +216,11 @@ class ParallelExecutionManager:
                 for task in self.failed_tasks:
                     if task.node_id == node_id:
                         if task.error:
-                            return EnvelopeFactory.json(
-                                {"error": str(task.error)}, produced_by=node_id
-                            ).with_meta(
-                                execution_status="failed", error_type=type(task.error).__name__
+                            return EnvelopeFactory.create(
+                                body={"error": str(task.error)},
+                                produced_by=node_id,
+                                error=type(task.error).__name__,
+                                meta={"execution_status": "failed"},
                             )
                         return None
 
@@ -245,9 +249,12 @@ class ParallelExecutionManager:
 
         for task in self.failed_tasks:
             if task.error:
-                results[task.node_id] = EnvelopeFactory.json(
-                    {"error": str(task.error)}, produced_by=task.node_id
-                ).with_meta(execution_status="failed", error_type=type(task.error).__name__)
+                results[task.node_id] = EnvelopeFactory.create(
+                    body={"error": str(task.error)},
+                    produced_by=task.node_id,
+                    error=type(task.error).__name__,
+                    meta={"execution_status": "failed"},
+                )
 
         return results
 

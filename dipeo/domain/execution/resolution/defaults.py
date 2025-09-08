@@ -57,9 +57,9 @@ def apply_defaults(
                 default_value = get_node_default(node, required_input)
                 if default_value is not None:
                     if isinstance(default_value, str):
-                        final_inputs[required_input] = EnvelopeFactory.text(default_value)
+                        final_inputs[required_input] = EnvelopeFactory.create(body=default_value)
                     else:
-                        final_inputs[required_input] = EnvelopeFactory.json(default_value)
+                        final_inputs[required_input] = EnvelopeFactory.create(body=default_value)
                 else:
                     raise InputResolutionError(
                         f"Missing required input '{required_input}' for node '{node.id}' of type '{node.type}'"
@@ -158,6 +158,6 @@ def apply_port_defaults(node: ExecutableNode, inputs: dict[str, Envelope]) -> No
             if "default" in port:
                 default_val = port["default"]
                 if isinstance(default_val, str):
-                    inputs[port_name] = EnvelopeFactory.text(default_val)
+                    inputs[port_name] = EnvelopeFactory.create(body=default_val)
                 else:
-                    inputs[port_name] = EnvelopeFactory.json(default_val)
+                    inputs[port_name] = EnvelopeFactory.create(body=default_val)

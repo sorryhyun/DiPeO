@@ -273,12 +273,12 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         if getattr(node, "batch", False):
             # Convert batch result to envelope
             if hasattr(result, "value"):
-                output_envelope = EnvelopeFactory.json(
-                    result.value, produced_by=node.id, trace_id=trace_id
+                output_envelope = EnvelopeFactory.create(
+                    body=result.value, produced_by=node.id, trace_id=trace_id
                 ).with_meta(batch_mode=True, person_id=node.person)
             else:
-                output_envelope = EnvelopeFactory.text(
-                    str(result), produced_by=node.id, trace_id=trace_id
+                output_envelope = EnvelopeFactory.create(
+                    body=str(result), produced_by=node.id, trace_id=trace_id
                 )
             return output_envelope
         else:
@@ -293,8 +293,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             else:
                 # Fallback for unexpected result format (shouldn't happen)
                 logger.warning(f"Unexpected result type from single_executor: {type(result)}")
-                output_envelope = EnvelopeFactory.text(
-                    str(result), produced_by=node.id, trace_id=trace_id
+                output_envelope = EnvelopeFactory.create(
+                    body=str(result), produced_by=node.id, trace_id=trace_id
                 )
                 return output_envelope
 
@@ -308,18 +308,16 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         if isinstance(error, ValueError):
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Validation error in person job: {error}")
-            return EnvelopeFactory.error(
-                f"ValidationError: {error}",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={"error": f"ValidationError: {error}", "type": "ValueError"},
                 produced_by=request.node.id,
                 trace_id=trace_id,
             )
 
         # For other errors, log them
         logger.error(f"Error executing person job: {error}")
-        return EnvelopeFactory.error(
-            str(error),
-            error_type=error.__class__.__name__,
+        return EnvelopeFactory.create(
+            body={"error": str(error), "type": error.__class__.__name__},
             produced_by=request.node.id,
             trace_id=trace_id,
         )

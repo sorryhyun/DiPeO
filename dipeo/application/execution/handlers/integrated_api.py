@@ -71,15 +71,15 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         api_key_service = request.services.resolve(API_KEY_SERVICE)
 
         if not integrated_api_service:
-            return EnvelopeFactory.error(
-                "Integrated API service not available",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={"error": "Integrated API service not available", "type": "ValueError"},
                 produced_by=str(node.id),
             )
 
         if not api_key_service:
-            return EnvelopeFactory.error(
-                "API key service not available", error_type="ValueError", produced_by=str(node.id)
+            return EnvelopeFactory.create(
+                body={"error": "API key service not available", "type": "ValueError"},
+                produced_by=str(node.id),
             )
 
         # Get the API key for the provider
@@ -96,9 +96,11 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         provider_summary = next((k for k in api_keys if k["service"] == provider), None)
 
         if not provider_summary:
-            return EnvelopeFactory.error(
-                f"No API key configured for provider '{provider}'",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={
+                    "error": f"No API key configured for provider '{provider}'",
+                    "type": "ValueError",
+                },
                 produced_by=str(node.id),
             )
 
@@ -113,16 +115,20 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
                 provider=provider, operation=operation, config=config
             )
         except Exception as e:
-            return EnvelopeFactory.error(
-                f"Validation error for provider '{provider}' op '{operation}': {e}",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={
+                    "error": f"Validation error for provider '{provider}' op '{operation}': {e}",
+                    "type": "ValueError",
+                },
                 produced_by=str(node.id),
             )
 
         if not is_valid:
-            return EnvelopeFactory.error(
-                f"Unsupported provider/operation or invalid config: {provider}.{operation}",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={
+                    "error": f"Unsupported provider/operation or invalid config: {provider}.{operation}",
+                    "type": "ValueError",
+                },
                 produced_by=str(node.id),
             )
 
@@ -144,9 +150,9 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         envelope_inputs = {}
         for key, value in inputs.items():
             if isinstance(value, dict):
-                envelope_inputs[key] = EnvelopeFactory.json(value, produced_by="input")
+                envelope_inputs[key] = EnvelopeFactory.create(body=value, produced_by="input")
             else:
-                envelope_inputs[key] = EnvelopeFactory.text(str(value), produced_by="input")
+                envelope_inputs[key] = EnvelopeFactory.create(body=str(value), produced_by="input")
 
         # Use existing implementation
         result_envelope = await self._execute_api_operation(request, envelope_inputs)
@@ -227,8 +233,8 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
             # Successfully executed operation
 
             # Create output envelope
-            output_envelope = EnvelopeFactory.json(
-                result if isinstance(result, dict) else {"default": result},
+            output_envelope = EnvelopeFactory.create(
+                body=result if isinstance(result, dict) else {"default": result},
                 produced_by=node.id,
                 trace_id=trace_id,
             ).with_meta(provider=provider, operation=operation)
@@ -238,21 +244,25 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         except ValueError as e:
             # Configuration or validation errors
             # Validation error
-            error_envelope = EnvelopeFactory.text(
-                str(e), produced_by=node.id, trace_id=trace_id
+            error_envelope = EnvelopeFactory.create(
+                body=str(e), produced_by=node.id, trace_id=trace_id
             ).with_meta(error_type="ValidationError", provider=provider, operation=operation)
-            return EnvelopeFactory.error(
-                str(e), error_type="ValidationError", produced_by=str(node.id), trace_id=trace_id
+            return EnvelopeFactory.create(
+                body={"error": str(e), "type": "ValidationError"},
+                produced_by=str(node.id),
+                trace_id=trace_id,
             )
 
         except Exception as e:
             # Other errors
             # API operation failed
-            error_envelope = EnvelopeFactory.text(
-                str(e), produced_by=node.id, trace_id=trace_id
+            error_envelope = EnvelopeFactory.create(
+                body=str(e), produced_by=node.id, trace_id=trace_id
             ).with_meta(error_type=type(e).__name__, provider=provider, operation=operation)
-            return EnvelopeFactory.error(
-                str(e), error_type=e.__class__.__name__, produced_by=str(node.id), trace_id=trace_id
+            return EnvelopeFactory.create(
+                body={"error": str(e), "type": e.__class__.__name__},
+                produced_by=str(node.id),
+                trace_id=trace_id,
             )
 
     async def prepare_inputs(

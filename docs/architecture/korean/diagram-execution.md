@@ -137,7 +137,7 @@ class NodeHandler:
     
     def execute_with_envelopes(request, inputs):
         # 입력을 처리하고 Envelope를 반환합니다
-        return EnvelopeFactory.json(result)
+        return EnvelopeFactory.create(result)
     
     # 출력은 엔진이 자동으로 토큰으로 발행합니다
 ```

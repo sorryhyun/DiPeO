@@ -150,12 +150,17 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         output_data = result.get("data", {})
         message = result.get("message", "Simple start point")
 
-        # Create envelope output
-        output_envelope = EnvelopeFactory.json(
-            output_data, produced_by=node.id, trace_id=trace_id
-        ).with_meta(
-            trigger_mode=str(self._current_trigger_mode) if self._current_trigger_mode else "none",
-            message=message,
+        # Create envelope with natural data output - auto-detect content type
+        output_envelope = EnvelopeFactory.create(
+            body=output_data,  # Natural dict output - let factory auto-detect
+            produced_by=node.id,
+            trace_id=trace_id,
+            meta={
+                "trigger_mode": str(self._current_trigger_mode)
+                if self._current_trigger_mode
+                else "none",
+                "message": message,
+            },
         )
 
         return output_envelope

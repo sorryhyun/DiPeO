@@ -30,15 +30,8 @@ class TextFormatHandler:
             logger.debug(f"[TextFormatHandler] No text_format content found for node {node.id}")
             return None
 
-        logger.debug(
-            f"[TextFormatHandler] Loading text_format for node {node.id}, content length: {len(text_format_content)}"
-        )
         model = self._compile_pydantic_model(text_format_content)
-        if model:
-            logger.debug(
-                f"[TextFormatHandler] Successfully compiled Pydantic model: {model.__name__}"
-            )
-        else:
+        if not model:
             logger.warning(
                 f"[TextFormatHandler] Failed to compile Pydantic model for node {node.id}"
             )
@@ -127,19 +120,6 @@ class TextFormatHandler:
         """
         if not has_text_format:
             return None
-
-        logger.debug(
-            f"[TextFormatHandler] Processing structured output, result type: {type(result)}"
-        )
-        if hasattr(result, "text"):
-            logger.debug(
-                f"[TextFormatHandler] Result text preview (first 200 chars): {result.text[:200] if result.text else 'None'}"
-            )
-        if hasattr(result, "raw_response"):
-            logger.debug(
-                f"[TextFormatHandler] Result has raw_response, type: {type(result.raw_response)}"
-            )
-
         # First try to parse from the text field if it contains JSON
         # This is because the OpenAI adapter converts Pydantic models to JSON strings
         if hasattr(result, "text") and result.text:
@@ -149,9 +129,6 @@ class TextFormatHandler:
                 # Try to parse the text as JSON first
                 parsed = json.loads(result.text)
                 if isinstance(parsed, dict):
-                    logger.debug(
-                        "[TextFormatHandler] Successfully parsed structured output from text field"
-                    )
                     return parsed
             except (json.JSONDecodeError, TypeError) as e:
                 # Not valid JSON, continue to other methods

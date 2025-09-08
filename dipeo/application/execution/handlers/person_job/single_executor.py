@@ -198,7 +198,7 @@ class SinglePersonJobExecutor:
             )
             logger.warning(f"node.prompt_file: {getattr(node, 'prompt_file', None)}")
             logger.warning(f"filesystem_adapter: {self._filesystem_adapter}")
-            return EnvelopeFactory.text("", produced_by=str(node.id), trace_id=trace_id)
+            return EnvelopeFactory.create(body="", produced_by=str(node.id), trace_id=trace_id)
 
         # Execute LLM call
         # Only pass tools if they are configured
@@ -407,61 +407,33 @@ class SinglePersonJobExecutor:
         llm_usage,
         trace_id,
     ):
-        """Determine primary envelope for backward compatibility."""
+        """Create envelope using natural data output pattern."""
+        # Determine the natural body content based on what downstream nodes need
+        natural_body = text_repr  # Default to text representation
+
         # Check if conversation output is needed (backward compatibility)
         if self._conversation_handler.needs_conversation_output(str(node.id), diagram):
-            # Return conversation envelope
-            conversation_state = (
+            natural_body = (
                 conversation_repr if conversation_repr else {"messages": [], "last_message": None}
             )
-            envelope = EnvelopeFactory.conversation(
-                conversation_state, produced_by=str(node.id), trace_id=trace_id
-            )
-            # Add representations for downstream compatibility
-            envelope = envelope.with_representations(
-                {
-                    "text": text_repr,
-                    "conversation": conversation_state,
-                    "object": object_repr if object_repr is not None else conversation_state,
-                }
-            )
-            return envelope.with_meta(
-                person_id=person_id,
-                conversation_id=conversation_id,
-                model=model,
-                llm_usage=llm_usage.model_dump() if llm_usage else None,
-            )
 
-        # Check if we have structured data
-        if object_repr is not None:
-            # Return JSON envelope for structured data with representations
-            envelope = EnvelopeFactory.json(
-                object_repr, produced_by=str(node.id), trace_id=trace_id
-            )
-            # Add both text and object representations for downstream compatibility
-            envelope = envelope.with_representations(
-                {
-                    "text": text_repr,
-                    "object": object_repr,
-                }
-            )
-            return envelope.with_meta(
-                person_id=person_id,
-                model=model,
-                is_structured=True,
-                llm_usage=llm_usage.model_dump() if llm_usage else None,
-            )
+        # Check if structured data is available and should be primary
+        elif object_repr is not None:
+            natural_body = object_repr
 
-        # Default: return text output with representations
-        envelope = EnvelopeFactory.text(text_repr, produced_by=str(node.id), trace_id=trace_id)
-        # Add text representation for consistency
-        envelope = envelope.with_representations(
-            {
-                "text": text_repr,
-            }
+        # Single path: Use EnvelopeFactory.create() with auto-detection
+        envelope = EnvelopeFactory.create(
+            body=natural_body,
+            produced_by=str(node.id),
+            trace_id=trace_id,
+            meta={
+                "person_id": person_id,
+                "conversation_id": conversation_id,
+                "model": model,
+                "llm_usage": llm_usage.model_dump() if llm_usage else None,
+                "preview": text_repr[:200] if text_repr else None,
+                "is_structured": object_repr is not None,
+            },
         )
-        return envelope.with_meta(
-            person_id=person_id,
-            model=model,
-            llm_usage=llm_usage.model_dump() if llm_usage else None,
-        )
+
+        return envelope

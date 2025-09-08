@@ -90,9 +90,13 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
             logger.error(f"Error executing sub-diagram node {node.id}: {e}", exc_info=True)
             error_data = {"error": str(e)}
             # Return error envelope directly
-            return EnvelopeFactory.json(
-                error_data, produced_by=node.id, trace_id=trace_id
-            ).with_meta(execution_status="failed", error_type=type(e).__name__)
+            return EnvelopeFactory.create(
+                body=error_data,
+                produced_by=node.id,
+                trace_id=trace_id,
+                error=type(e).__name__,
+                meta={"execution_status": "failed"},
+            )
 
     def _create_execution_use_case(
         self, request: ExecutionRequest[SubDiagramNode]
@@ -161,25 +165,20 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         if execution_error:
             error_data = {"error": execution_error}
             # Return error envelope directly
-            return EnvelopeFactory.json(
-                error_data, produced_by=node.id, trace_id=trace_id
-            ).with_meta(sub_execution_id=sub_execution_id, execution_status="failed")
+            return EnvelopeFactory.create(
+                body=error_data,
+                produced_by=node.id,
+                trace_id=trace_id,
+                meta={"sub_execution_id": sub_execution_id, "execution_status": "failed"},
+            )
 
         # Process output mapping
         output_value = self._process_output_mapping(node, execution_results)
 
-        # Determine envelope type and create it directly
-        if isinstance(output_value, dict):
-            envelope = EnvelopeFactory.json(output_value, produced_by=node.id, trace_id=trace_id)
-        elif isinstance(output_value, str):
-            envelope = EnvelopeFactory.text(output_value, produced_by=node.id, trace_id=trace_id)
-        else:
-            # Default to JSON for complex types
-            envelope = EnvelopeFactory.json(
-                output_value if isinstance(output_value, dict | list) else {"value": output_value},
-                produced_by=node.id,
-                trace_id=trace_id,
-            )
+        # Create envelope with auto-detection of content type
+        envelope = EnvelopeFactory.create(
+            body=output_value, produced_by=node.id, trace_id=trace_id, meta={}
+        )
 
         # Add execution metadata to envelope
         return envelope.with_meta(

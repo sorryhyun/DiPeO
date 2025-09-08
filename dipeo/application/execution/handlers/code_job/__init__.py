@@ -88,11 +88,11 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         executor = self._executors.get(language)
         if not executor:
             supported = ", ".join(self._executors.keys())
-            return EnvelopeFactory.error(
-                f"Unsupported language: {language}. Supported: {supported}",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body=f"Unsupported language: {language}. Supported: {supported}",
                 produced_by=node.id,
                 trace_id=request.execution_id or "",
+                error="ValueError",
             )
 
         # 3. Runtime validation: Resolve and check file path if needed
@@ -105,19 +105,19 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
 
             # Check file exists at runtime
             if not file_path.exists():
-                return EnvelopeFactory.error(
-                    f"File not found: {node.file_path}",
-                    error_type="FileNotFoundError",
+                return EnvelopeFactory.create(
+                    body=f"File not found: {node.file_path}",
                     produced_by=node.id,
                     trace_id=request.execution_id or "",
+                    error="FileNotFoundError",
                 )
 
             if not file_path.is_file():
-                return EnvelopeFactory.error(
-                    f"Path is not a file: {node.file_path}",
-                    error_type="ValueError",
+                return EnvelopeFactory.create(
+                    body=f"Path is not a file: {node.file_path}",
                     produced_by=node.id,
                     trace_id=request.execution_id or "",
+                    error="ValueError",
                 )
 
         # 4. Store all validated data in instance variables for execute_request
@@ -286,24 +286,15 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         # Build multi-representation output
         output = self._build_node_output(result, request)
 
-        # Determine content type based on primary value
+        # Use natural data output with auto-detection
         primary = output["primary"]
-        if isinstance(primary, str):
-            output_envelope = EnvelopeFactory.text(primary, produced_by=node.id, trace_id=trace_id)
-        elif isinstance(primary, dict | list):
-            output_envelope = EnvelopeFactory.json(primary, produced_by=node.id, trace_id=trace_id)
-        elif isinstance(primary, bytes):
-            output_envelope = EnvelopeFactory.binary(
-                primary, produced_by=node.id, trace_id=trace_id
-            )
-        else:
-            output_envelope = EnvelopeFactory.text(
-                str(primary), produced_by=node.id, trace_id=trace_id
-            )
+        output_envelope = EnvelopeFactory.create(
+            body=primary,  # Let auto-detection handle the content type
+            produced_by=node.id,
+            trace_id=trace_id,
+        )
 
-        # Add representations to envelope
-        if "representations" in output:
-            output_envelope = output_envelope.with_representations(output["representations"])
+        # Representations no longer needed - removed deprecated with_representations() call
 
         # Add metadata
         if "meta" in output:
@@ -333,9 +324,9 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     async def on_error(
         self, request: ExecutionRequest[CodeJobNode], error: Exception
     ) -> Envelope | None:
-        return EnvelopeFactory.error(
-            str(error),
-            error_type=error.__class__.__name__,
+        return EnvelopeFactory.create(
+            body=str(error),
             produced_by=request.node.id,
             trace_id=request.execution_id or "",
+            error=error.__class__.__name__,
         )

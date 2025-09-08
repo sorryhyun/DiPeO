@@ -144,11 +144,6 @@ nodes:
         import json
         from pathlib import Path
 
-        # Save kernel data for reference
-        kernel_json_path = Path("projects/frontend_auto/generated/core_kernel_data.json")
-        with open(kernel_json_path, 'w', encoding='utf-8') as f:
-            json.dump(kernel, f, indent=2)
-
         # Get sections and sort by priority
         sections = sections_data.get('sections', [])
         sections.sort(key=lambda x: (x.get('priority', 2), x.get('id', '')))

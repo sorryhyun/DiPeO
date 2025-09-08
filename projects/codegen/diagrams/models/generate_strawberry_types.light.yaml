@@ -44,7 +44,7 @@ nodes:
     position: {x: 500, y: 200}
     props:
       engine: jinja2
-      template_path: projects/codegen/templates/models/strawberry_types.j2
+      template_path: projects/codegen/templates/strawberry/strawberry_types.j2
       output_path: dipeo/diagram_generated_staged/graphql/strawberry_nodes.py
       variables:
         module_name: "strawberry_nodes"
@@ -78,7 +78,7 @@ nodes:
     position: {x: 500, y: 400}
     props:
       engine: jinja2
-      template_path: projects/codegen/templates/models/strawberry_scalars.j2
+      template_path: projects/codegen/templates/strawberry/strawberry_scalars.j2
       output_path: dipeo/diagram_generated_staged/graphql/scalars.py
       variables:
         module_name: "scalars"
@@ -99,7 +99,7 @@ nodes:
     position: {x: 500, y: 600}
     props:
       engine: jinja2
-      template_path: projects/codegen/templates/models/strawberry_domain_full.j2
+      template_path: projects/codegen/templates/strawberry/strawberry_domain_full.j2
       output_path: dipeo/diagram_generated_staged/graphql/domain_types.py
       variables:
         module_name: "domain_types"
@@ -132,7 +132,7 @@ nodes:
     position: {x: 500, y: 800}
     props:
       engine: jinja2
-      template_path: projects/codegen/templates/models/strawberry_inputs.j2
+      template_path: projects/codegen/templates/strawberry/strawberry_inputs.j2
       output_path: dipeo/diagram_generated_staged/graphql/inputs.py
       variables:
         module_name: "inputs"
@@ -165,7 +165,7 @@ nodes:
     position: {x: 500, y: 1000}
     props:
       engine: jinja2
-      template_path: projects/codegen/templates/models/strawberry_enums.j2
+      template_path: projects/codegen/templates/strawberry/strawberry_enums.j2
       output_path: dipeo/diagram_generated_staged/graphql/enums.py
       variables:
         module_name: "enums"

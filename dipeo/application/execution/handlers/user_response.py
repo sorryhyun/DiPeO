@@ -119,13 +119,13 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
 
         if has_handler:
             # Create output envelope with response
-            output_envelope = EnvelopeFactory.text(
-                response, produced_by=node.id, trace_id=trace_id
+            output_envelope = EnvelopeFactory.create(
+                body=response, produced_by=node.id, trace_id=trace_id
             ).with_meta(user_response=response)
         else:
             # Return empty response when no handler available
-            output_envelope = EnvelopeFactory.text(
-                "", produced_by=node.id, trace_id=trace_id
+            output_envelope = EnvelopeFactory.create(
+                body="", produced_by=node.id, trace_id=trace_id
             ).with_meta(warning="No interactive handler available", user_response="")
 
         return output_envelope

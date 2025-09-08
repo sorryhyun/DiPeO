@@ -157,7 +157,7 @@ Envelopes are typed data containers that flow between nodes:
 - **Structure**: `{body, content_type, produced_by, trace_id, metadata}`
 - **Content Types**: `raw_text`, `object` (JSON), `conversation_state`, `error`
 - **Purpose**: Type-safe data passing with provenance tracking
-- **Factory**: `EnvelopeFactory.text()`, `.json()`, `.error()`, `.conversation()`
+- **Factory**: `EnvelopeFactory.create()` with auto-detection (deprecates `.text()`, `.json()`, `.error()` methods)
 - **Migration Complete**: All NodeOutput references migrated to Envelope pattern (`SerializedNodeOutput` is now an alias for `SerializedEnvelope`)
 
 ### Key Handler Examples

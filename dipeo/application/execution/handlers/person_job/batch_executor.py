@@ -62,10 +62,9 @@ class BatchPersonJobExecutor:
         }
 
         # Create envelope with representations
-        envelope = EnvelopeFactory.json(empty_result, produced_by=node.id, trace_id=trace_id)
+        envelope = EnvelopeFactory.create(body=empty_result, produced_by=node.id, trace_id=trace_id)
 
-        # Add representations
-        envelope = envelope.with_representations(representations)
+        # Representations no longer needed - removed deprecated with_representations() call
 
         # Add metadata
         envelope = envelope.with_meta(
@@ -158,11 +157,11 @@ class BatchPersonJobExecutor:
         output = self._build_batch_output(batch_items, results, errors, batch_config)
 
         # Create envelope with primary body for backward compatibility
-        envelope = EnvelopeFactory.json(output["primary"], produced_by=node.id, trace_id=trace_id)
+        envelope = EnvelopeFactory.create(
+            body=output["primary"], produced_by=node.id, trace_id=trace_id
+        )
 
-        # Add representations
-        if "representations" in output:
-            envelope = envelope.with_representations(output["representations"])
+        # Representations no longer needed - removed deprecated with_representations() call
 
         # Add metadata including person_id
         meta = output.get("meta", {})

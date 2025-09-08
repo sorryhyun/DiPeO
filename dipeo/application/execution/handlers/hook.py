@@ -74,9 +74,8 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         # Validate hook type
         valid_hook_types = {HookType.SHELL, HookType.WEBHOOK, HookType.PYTHON, HookType.FILE}
         if node.hook_type not in valid_hook_types:
-            return EnvelopeFactory.error(
-                f"Unknown hook type: {node.hook_type}",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={"error": f"Unknown hook type: {node.hook_type}", "type": "ValueError"},
                 produced_by=str(node.id),
             )
 
@@ -85,38 +84,39 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
 
         if node.hook_type == HookType.SHELL:
             if not config.get("command"):
-                return EnvelopeFactory.error(
-                    "Shell hook requires 'command' in config",
-                    error_type="ValueError",
+                return EnvelopeFactory.create(
+                    body={"error": "Shell hook requires 'command' in config", "type": "ValueError"},
                     produced_by=str(node.id),
                 )
         elif node.hook_type == HookType.WEBHOOK:
             if not config.get("url"):
-                return EnvelopeFactory.error(
-                    "Webhook hook requires 'url' in config",
-                    error_type="ValueError",
+                return EnvelopeFactory.create(
+                    body={"error": "Webhook hook requires 'url' in config", "type": "ValueError"},
                     produced_by=str(node.id),
                 )
         elif node.hook_type == HookType.PYTHON:
             if not config.get("script"):
-                return EnvelopeFactory.error(
-                    "Python hook requires 'script' in config",
-                    error_type="ValueError",
+                return EnvelopeFactory.create(
+                    body={"error": "Python hook requires 'script' in config", "type": "ValueError"},
                     produced_by=str(node.id),
                 )
         elif node.hook_type == HookType.FILE:
             if not config.get("file_path"):
-                return EnvelopeFactory.error(
-                    "File hook requires 'file_path' in config",
-                    error_type="ValueError",
+                return EnvelopeFactory.create(
+                    body={
+                        "error": "File hook requires 'file_path' in config",
+                        "type": "ValueError",
+                    },
                     produced_by=str(node.id),
                 )
             # Get filesystem adapter for file hooks
             filesystem_adapter = request.services.resolve(FILESYSTEM_ADAPTER)
             if not filesystem_adapter:
-                return EnvelopeFactory.error(
-                    "Filesystem adapter is required for file hooks",
-                    error_type="ValueError",
+                return EnvelopeFactory.create(
+                    body={
+                        "error": "Filesystem adapter is required for file hooks",
+                        "type": "ValueError",
+                    },
                     produced_by=str(node.id),
                 )
             # Store in instance variable for execute_request
@@ -231,17 +231,17 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         primary_type = output.get("primary_type", "text")
 
         if primary_type == "json" and isinstance(primary, dict):
-            output_envelope = EnvelopeFactory.json(primary, produced_by=node.id, trace_id=trace_id)
+            output_envelope = EnvelopeFactory.create(
+                body=primary, produced_by=node.id, trace_id=trace_id
+            )
         else:
-            output_envelope = EnvelopeFactory.text(
-                str(primary) if not isinstance(primary, dict) else json.dumps(primary),
+            output_envelope = EnvelopeFactory.create(
+                body=str(primary) if not isinstance(primary, dict) else json.dumps(primary),
                 produced_by=node.id,
                 trace_id=trace_id,
             )
 
-        # Add representations
-        if "representations" in output:
-            output_envelope = output_envelope.with_representations(output["representations"])
+        # Representations no longer needed - removed deprecated with_representations() call
 
         # Add metadata
         if "meta" in output:

@@ -115,11 +115,15 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
 
             # Validate required services
             if not all([state_store, message_router, diagram_service]):
-                return EnvelopeFactory.error(
-                    "Required services not available for sub-diagram execution",
-                    error_type="ValueError",
+                return EnvelopeFactory.create(
+                    body={"error": "Required services not available for sub-diagram execution"},
                     produced_by=request.node.id,
                     trace_id=request.execution_id or "",
+                    meta={
+                        "error_type": "ValueError",
+                        "is_error": True,
+                        "execution_status": "failed",
+                    },
                 )
 
             # Set services on executors
@@ -184,17 +188,18 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 f"Skipping sub-diagram '{node.diagram_name}' (node: {node.id}) due to ignoreIfSub=true (parent: {request.metadata.get('parent_diagram', 'unknown')})"
             )
             # Return empty result envelope
-            return EnvelopeFactory.json(
-                {
+            return EnvelopeFactory.create(
+                body={
                     "skipped": True,
                     "reason": "ignoreIfSub flag is set and already in sub-diagram context",
                 },
                 produced_by=node.id,
                 trace_id=request.execution_id or "",
-            ).with_meta(
-                diagram_name=node.diagram_name or "inline",
-                execution_mode="skipped",
-                parent_diagram=request.metadata.get("parent_diagram", "unknown"),
+                meta={
+                    "diagram_name": node.diagram_name or "inline",
+                    "execution_mode": "skipped",
+                    "parent_diagram": request.metadata.get("parent_diagram", "unknown"),
+                },
             )
 
         # Update request inputs for executors
@@ -300,18 +305,13 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         # Build multi-representation output
         output = self._build_node_output(result, request)
 
-        # Determine content type based on primary value
+        # Create envelope with auto-detection of content type
         primary = output["primary"]
-        if isinstance(primary, dict):
-            output_envelope = EnvelopeFactory.json(primary, produced_by=node.id, trace_id=trace_id)
-        else:
-            output_envelope = EnvelopeFactory.text(
-                str(primary), produced_by=node.id, trace_id=trace_id
-            )
+        output_envelope = EnvelopeFactory.create(
+            body=primary, produced_by=node.id, trace_id=trace_id, meta={}
+        )
 
-        # Add representations
-        if "representations" in output:
-            output_envelope = output_envelope.with_representations(output["representations"])
+        # Representations no longer needed - removed deprecated with_representations() call
 
         # Add metadata
         if "meta" in output:
@@ -331,11 +331,15 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             # For other errors, log them
             logger.error(f"Error executing sub-diagram: {error}")
 
-        return EnvelopeFactory.error(
-            str(error),
-            error_type=error.__class__.__name__,
+        return EnvelopeFactory.create(
+            body={"error": str(error)},
             produced_by=request.node.id,
             trace_id=request.execution_id or "",
+            meta={
+                "error_type": error.__class__.__name__,
+                "is_error": True,
+                "execution_status": "failed",
+            },
         )
 
     def post_execute(self, request: ExecutionRequest[SubDiagramNode], output: Envelope) -> Envelope:

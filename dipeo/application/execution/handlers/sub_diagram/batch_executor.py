@@ -60,10 +60,11 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         logger.warning(
             f"Batch mode enabled but no items found for key '{batch_config['input_key']}'"
         )
-        return EnvelopeFactory.json(
-            {"total_items": 0, "successful": 0, "failed": 0, "results": [], "errors": None},
+        return EnvelopeFactory.create(
+            body={"total_items": 0, "successful": 0, "failed": 0, "results": [], "errors": None},
             produced_by=str(node.id),
-        ).with_meta(batch_parallel=batch_config["parallel"])
+            meta={"batch_parallel": batch_config["parallel"]},
+        )
 
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope:
         """Execute sub-diagram for each item in the batch."""
@@ -138,13 +139,17 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         # SEAC: Support both pure_list and rich_object output modes
         if output_mode == "pure_list":
             # Pure list mode: envelope body is just the array
-            return EnvelopeFactory.json(materialized_results, produced_by=str(node.id)).with_meta(
-                total_items=len(batch_items),
-                successful=len(results),
-                failed=len(errors),
-                batch_parallel=batch_config["parallel"],
-                diagram=node.diagram_name or "inline",
-                errors=errors if errors else None,
+            return EnvelopeFactory.create(
+                body=materialized_results,
+                produced_by=str(node.id),
+                meta={
+                    "total_items": len(batch_items),
+                    "successful": len(results),
+                    "failed": len(errors),
+                    "batch_parallel": batch_config["parallel"],
+                    "diagram": node.diagram_name or "inline",
+                    "errors": errors if errors else None,
+                },
             )
         else:
             # Rich object mode: legacy wrapped output
@@ -157,8 +162,13 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
                 "errors": errors if errors else None,
             }
 
-            return EnvelopeFactory.json(batch_output, produced_by=str(node.id)).with_meta(
-                batch_parallel=batch_config["parallel"], diagram=node.diagram_name or "inline"
+            return EnvelopeFactory.create(
+                body=batch_output,
+                produced_by=str(node.id),
+                meta={
+                    "batch_parallel": batch_config["parallel"],
+                    "diagram": node.diagram_name or "inline",
+                },
             )
 
     def _extract_batch_items(

@@ -82,9 +82,11 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         # Check filesystem adapter availability
         filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
-            return EnvelopeFactory.error(
-                "Filesystem adapter is required for JSON schema validation",
-                error_type="RuntimeError",
+            return EnvelopeFactory.create(
+                body={
+                    "error": "Filesystem adapter is required for JSON schema validation",
+                    "type": "RuntimeError",
+                },
                 produced_by=str(node.id),
             )
 
@@ -242,8 +244,8 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         data = result["data"]
 
         # Create success envelope
-        output_envelope = EnvelopeFactory.json(
-            data if isinstance(data, dict) else {"default": data},
+        output_envelope = EnvelopeFactory.create(
+            body=data if isinstance(data, dict) else {"default": data},
             produced_by=node.id,
             trace_id=trace_id,
         ).with_meta(

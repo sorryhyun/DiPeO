@@ -96,11 +96,9 @@ def prepare_factory_context(inputs: dict[str, Any]) -> dict[str, Any]:
     # Sort for consistent output
     nodes.sort(key=lambda x: x['node_type'])
 
-    # Wrap in 'default' to prevent unwrapping by runtime resolver
+    # Return nodes directly - template_job will handle the context properly
     result = {
-        'default': {
-            'nodes': nodes
-        }
+        'nodes': nodes
     }
 
     return result

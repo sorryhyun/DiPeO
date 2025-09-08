@@ -341,8 +341,8 @@ class TypedExecutionEngine:
         )
 
         # Create empty output with MAXITER_REACHED status
-        output = EnvelopeFactory.text(
-            "", node_id=str(node_id), meta={"status": Status.MAXITER_REACHED.value}
+        output = EnvelopeFactory.create(
+            body="", produced_by=str(node_id), meta={"status": Status.MAXITER_REACHED.value}
         )
 
         # Transition state
