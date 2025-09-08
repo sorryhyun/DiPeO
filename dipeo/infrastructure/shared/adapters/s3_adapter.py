@@ -5,17 +5,19 @@ import logging
 from collections.abc import AsyncIterator
 from typing import BinaryIO
 
-from dipeo.domain.base import BaseService, StorageError
+from dipeo.domain.base import StorageError
+from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.base.storage_port import BlobStorePort
 
 logger = logging.getLogger(__name__)
 
 
-class S3Adapter(BaseService, BlobStorePort):
+class S3Adapter(LoggingMixin, InitializationMixin, BlobStorePort):
     """AWS S3 implementation of BlobStorePort."""
 
     def __init__(self, bucket: str, client=None, region: str = "us-east-1"):
-        super().__init__()
+        # Initialize mixins
+        InitializationMixin.__init__(self)
         self.bucket = bucket
         self.region = region
         self._client = client

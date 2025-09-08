@@ -14,7 +14,7 @@ from dipeo.application.registry import (
     STATE_STORE,
 )
 from dipeo.diagram_generated.enums import Status
-from dipeo.domain.base import BaseService
+from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ExecuteDiagramUseCase(BaseService):
+class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
     def __init__(
         self,
         service_registry: "ServiceRegistry",
@@ -38,7 +38,8 @@ class ExecuteDiagramUseCase(BaseService):
         diagram_service: Optional["DiagramService"] = None,
         container: Optional["Container"] = None,
     ):
-        super().__init__()
+        # Initialize mixins
+        InitializationMixin.__init__(self)
         self.service_registry = service_registry
         self.container = container
 

@@ -65,7 +65,7 @@ INPUT FORMAT
   A preview of the upcoming task/prompt that will be executed
 - CRITERIA:
   Natural language criteria for selecting relevant messages
-- CONSTRAINT (optional):
+- CONSTRAINT (Must be kept):
   "Select at most N messages that best match the criteria."
 
 SELECTION RULES (NARROW)
@@ -83,7 +83,7 @@ Return a JSON array of message IDs only:
 ["45b137", "08ac58", "m_123"]
 
 IMPORTANT:
-- Return ONLY the JSON array, no additional text or explanation
+- Return ONLY the JSON array, no additional text, no greetings, nor explanation
 - System messages are preserved automatically by the caller; do not re-list them
 - Favor precision over recall; choose the smallest set that satisfies the criteria
 - If uncertain or no messages match criteria, return an empty array: []

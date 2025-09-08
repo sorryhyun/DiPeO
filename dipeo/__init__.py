@@ -29,11 +29,10 @@ try:
         NodeExecutionError,
         ValidationError,
     )
-    from .domain.base.service import BaseService
     from .domain.type_defs import Error, Result
 
     _imported_modules.extend(
-        ["BaseService", "Result", "Error", "DiPeOError", "ValidationError", "NodeExecutionError"]
+        ["Result", "Error", "DiPeOError", "ValidationError", "NodeExecutionError"]
     )
 except ImportError as e:
     warnings.warn(f"Could not import some domain base items: {e}", ImportWarning, stacklevel=2)

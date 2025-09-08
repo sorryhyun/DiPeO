@@ -229,7 +229,7 @@ class PhaseHandler:
                                 decision = True
                             elif content_lower.startswith("no"):
                                 decision = False
-                            return DecisionOutput(decision=decision, reasoning=content[:200])
+                            return DecisionOutput(decision=decision)
 
         # Fallback: parse from text
         content = None
@@ -244,7 +244,7 @@ class PhaseHandler:
             logging.error(
                 "Received ResponseTextConfig instead of actual response in decision evaluation"
             )
-            return DecisionOutput(decision=False, reasoning="Error: Invalid response object")
+            return DecisionOutput(decision=False)
 
         # Only convert to string if we don't have content yet and it's not a config object
         if content is None:
@@ -261,7 +261,7 @@ class PhaseHandler:
         else:
             reasoning_text = "Unable to parse response"
 
-        return DecisionOutput(decision=decision, reasoning=reasoning_text)
+        return DecisionOutput(decision=decision)
 
     def validate_phase_transition(
         self, from_phase: ExecutionPhase, to_phase: ExecutionPhase

@@ -37,7 +37,6 @@ nodes:
     props:
       person: Frontend Generator
       max_iteration: 100
-      memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
       at_most: 4
       prompt_file: frontend_generator.txt
 

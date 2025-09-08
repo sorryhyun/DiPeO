@@ -59,7 +59,6 @@ class LLMDecisionAdapter:
             "- If the system supports structured output, provide:\n"
             "  - decision: true for YES/affirmative/valid/approved\n"
             "  - decision: false for NO/negative/invalid/rejected\n"
-            "  - reasoning: brief explanation (optional)\n"
             "- Otherwise, respond with YES or NO at the start, followed by optional explanation.\n"
             "- Be decisive and clear in your judgment."
         )
@@ -236,7 +235,7 @@ class LLMDecisionAdapter:
                 # Check if structured output has a decision field
                 if isinstance(structured, DecisionOutput):
                     decision = structured.decision
-                    reasoning = structured.reasoning
+                    # reasoning field is deprecated in DecisionOutput
                 elif hasattr(structured, "decision"):
                     # Custom Pydantic model with decision field
                     decision = bool(structured.decision)
@@ -249,9 +248,12 @@ class LLMDecisionAdapter:
                 decision = self._parse_text_decision(response_text)
 
             # Single concise debug log
-            logger.debug(
-                f"LLM Decision: {decision} (reasoning: {reasoning[:50] + '...' if reasoning and len(reasoning) > 50 else reasoning})"
-            )
+            if reasoning:
+                logger.debug(
+                    f"LLM Decision: {decision} (reasoning: {reasoning[:50] + '...' if len(reasoning) > 50 else reasoning})"
+                )
+            else:
+                logger.debug(f"LLM Decision: {decision}")
 
             metadata = {
                 "response": response_text,

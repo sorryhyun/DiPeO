@@ -7,14 +7,16 @@ from pathlib import Path
 
 from dipeo.config import VALID_LLM_SERVICES, normalize_service_name
 from dipeo.diagram_generated import APIServiceType
-from dipeo.domain.base import APIKeyError, BaseService
+from dipeo.domain.base import APIKeyError
 from dipeo.domain.base.exceptions import ValidationError
+from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin, ValidationMixin
 from dipeo.domain.integrations.ports import APIKeyPort
 
 
-class APIKeyService(BaseService, APIKeyPort):
+class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPort):
     def __init__(self, file_path: Path | None = None):
-        super().__init__()
+        # Initialize mixins
+        InitializationMixin.__init__(self)
         if file_path is None:
             file_path = Path.home() / ".dipeo" / "apikeys.json"
         self.file_path = Path(file_path)

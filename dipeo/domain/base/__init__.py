@@ -21,7 +21,6 @@ from .exceptions import (
     ValidationError,
     get_exception_by_code,
 )
-from .service import BaseService
 from .validator import BaseValidator
 
 __all__ = [
@@ -31,7 +30,6 @@ __all__ = [
     "APIKeyError",
     "APIKeyNotFoundError",
     # Base classes
-    "BaseService",
     "BaseValidator",
     "ConfigurationError",
     "DependencyError",

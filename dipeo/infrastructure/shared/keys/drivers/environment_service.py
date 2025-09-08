@@ -3,11 +3,12 @@
 import os
 
 from dipeo.config import VALID_LLM_SERVICES, normalize_service_name
-from dipeo.domain.base import APIKeyError, BaseService, ValidationError
+from dipeo.domain.base import APIKeyError, ValidationError
+from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.integrations.ports import APIKeyPort
 
 
-class EnvironmentAPIKeyService(BaseService, APIKeyPort):
+class EnvironmentAPIKeyService(LoggingMixin, InitializationMixin, APIKeyPort):
     """API Key service that reads from environment variables.
 
     This adapter allows applications to use environment variables for API key management,
@@ -27,7 +28,8 @@ class EnvironmentAPIKeyService(BaseService, APIKeyPort):
     }
 
     def __init__(self):
-        super().__init__()
+        # Initialize mixins
+        InitializationMixin.__init__(self)
         self._cached_keys: dict[str, dict] = {}
         self._load_from_env()
 

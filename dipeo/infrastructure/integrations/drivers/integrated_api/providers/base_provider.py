@@ -4,17 +4,19 @@ import logging
 from abc import abstractmethod
 from typing import Any
 
-from dipeo.domain.base import BaseService, ServiceError
+from dipeo.domain.base import ServiceError
+from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.integrations.ports import ApiProvider as ApiProviderPort
 
 logger = logging.getLogger(__name__)
 
 
-class BaseApiProvider(BaseService, ApiProviderPort):
+class BaseApiProvider(LoggingMixin, InitializationMixin, ApiProviderPort):
     """Base class for API provider implementations."""
 
     def __init__(self, provider_name: str, supported_operations: list[str]):
-        super().__init__()
+        # Initialize mixins
+        InitializationMixin.__init__(self)
         self._provider_name = provider_name
         self._supported_operations = supported_operations
 

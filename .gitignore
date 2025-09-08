@@ -31,6 +31,7 @@ docs/deprecated
 plan.md
 *.tsbuildinfo
 .ruff_cache/
+.playwright-mcp/DiPeO-dev/.pyinstaller_hooks/*
 
 # Staging directories
 dipeo/diagram_generated_staged/
