@@ -1,5 +1,6 @@
 """Process generated DiPeO diagrams to clean up and format the output."""
 
+import re
 from io import StringIO
 from typing import Any
 
@@ -100,6 +101,106 @@ def _format_yaml_output(ordered_diagram: dict) -> str:
     )  # Wider lines for better code formatting
 
     return stream.getvalue()
+
+
+def _extract_person_definitions(person_output: dict) -> dict:
+    """Extract person definitions from the person generator output."""
+    persons = {}
+
+    # Handle the LLM output structure
+    if "output" in person_output:
+        # Extract from LLM response structure
+        content = person_output["output"][1]["content"][0]["text"]
+        person_data = yaml.safe_load(content)
+
+        # Build persons dictionary
+        for person in person_data.get("persons", []):
+            identifier = person["identifier"]
+            persons[identifier] = {
+                "service": person.get("service", "openai"),
+                "model": person.get("model", "gpt-5-nano-2025-08-07"),
+                "api_key_id": person.get("api_key_id", "APIKEY_52609F"),
+                "system_prompt": person["system_prompt"],
+            }
+
+    return persons
+
+
+def _replace_person_placeholders(diagram: dict, persons: dict) -> dict:
+    """Replace {{person:identifier}} placeholders with actual person names."""
+    if "nodes" in diagram:
+        for node in diagram["nodes"]:
+            if node.get("type") == "person_job" and "props" in node:
+                props = node["props"]
+                if "person" in props and isinstance(props["person"], str):
+                    # Check for placeholder pattern {{person:identifier}}
+                    match = re.match(r"\{\{person:(\w+)\}\}", props["person"])
+                    if match:
+                        identifier = match.group(1)
+                        # Replace with actual person name (same as identifier for simplicity)
+                        props["person"] = identifier
+
+    return diagram
+
+
+def _extract_diagram_structure(structure_output: dict) -> dict:
+    """Extract diagram structure from the structure generator output."""
+    if "output" in structure_output:
+        # Extract from LLM response structure
+        content = structure_output["output"][1]["content"][0]["text"]
+        diagram_data = yaml.safe_load(content)
+        return diagram_data.get("diagram", diagram_data)
+
+    return structure_output
+
+
+def consolidate_parallel_generation(inputs: dict[str, Any]) -> str:
+    """
+    Consolidate parallel generation outputs: person definitions and diagram structure.
+
+    Args:
+        inputs: Dictionary containing:
+            - person_definitions: Output from person generator
+            - diagram_structure: Output from structure generator
+            - workflow_description: Original workflow description
+
+    Returns:
+        String with the formatted YAML output
+    """
+    # Extract person definitions
+    persons = _extract_person_definitions(inputs.get("person_definitions", {}))
+
+    # Extract diagram structure
+    diagram = _extract_diagram_structure(inputs.get("diagram_structure", {}))
+
+    # Add persons to diagram
+    if persons:
+        diagram["persons"] = persons
+
+    # Replace person placeholders in nodes
+    diagram = _replace_person_placeholders(diagram, persons)
+
+    # Add metadata if not present
+    if "version" not in diagram:
+        diagram["version"] = "light"
+
+    if "name" not in diagram:
+        diagram["name"] = "generated_diagram"
+
+    if "description" not in diagram and "workflow_description" in inputs:
+        diagram["description"] = f"Generated from: {inputs['workflow_description'][:100]}..."
+
+    # Clean up the diagram
+    diagram = _remove_nulls_and_empty(diagram)
+
+    # Fix code fields for proper formatting
+    diagram = _fix_code_fields(diagram)
+
+    # Create ordered diagram
+    ordered_diagram = _create_ordered_diagram(diagram)
+
+    # Format as YAML
+    return _format_yaml_output(ordered_diagram)
 
 
 def process_diagram(inputs: dict[str, Any]) -> str:

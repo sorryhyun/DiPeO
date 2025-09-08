@@ -1,0 +1,150 @@
+version: light
+
+name: parallel_llm_diagram_generator
+description: Generate DiPeO light diagrams using parallel LLM generation with specialized agents
+
+persons:
+  person_architect:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are an expert in designing LLM agents for workflow automation.
+      You analyze workflow requirements and create optimized person definitions with specific system prompts.
+      Focus on creating agents that are specialized, efficient, and have clear responsibilities.
+      Always provide structured output in the specified format.
+
+  structure_architect:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are an expert DiPeO diagram architect. You create well-structured light format diagrams
+      focusing on node layout, connections, and workflow logic.
+      Use placeholder person references like {{person:identifier}} for person_job nodes.
+      Always ensure proper node positioning with x-coordinates incrementing by 200-300 for readability.
+      IMPORTANT: Never use 'empty' content_type - always use 'raw_text', 'object', or 'conversation_state'.
+
+  test_data_creator:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: |
+      You are a test data generation expert. You create realistic, well-structured test data
+      in various formats (CSV, JSON, etc.) that can be used to test the generated diagrams.
+      Always ensure the data is meaningful and follows best practices for testing.
+
+nodes:
+  - label: start
+    type: start
+    position: {x: 100, y: 200}
+
+  - label: load_request
+    type: code_job
+    position: {x: 300, y: 200}
+    props:
+      language: python
+      code: |
+        def main(user_requirements=None, workflow_description=None):
+            # If input variables are provided, use them
+            if user_requirements:
+                return user_requirements
+            # Otherwise, read from file
+            try:
+                with open('projects/dipeodipeo/request.txt', 'r') as f:
+                    return f.read().strip()
+            except FileNotFoundError:
+                return "Create a simple data processing diagram"
+
+  # PARALLEL GENERATION - Person prompts and diagram structure
+  - label: generate_persons
+    type: person_job
+    position: {x: 500, y: 100}
+    props:
+      person: person_architect
+      prompt_file: person_prompt_generator.txt
+      max_iteration: 1
+      text_format_file: projects/dipeodipeo/person_models.py
+
+  - label: generate_test_data
+    type: person_job
+    position: {x: 500, y: 200}
+    props:
+      person: test_data_creator
+      prompt_file: test_data_generator.txt
+      max_iteration: 1
+      text_format_file: projects/dipeodipeo/test_data_models.py
+
+  - label: extract_person_types
+    type: code_job
+    position: {x: 700, y: 100}
+    props:
+      language: python
+      code: |
+        # Extract person type identifiers for use in structure generation
+        person_types = person_definitions.get('person_types', [])
+        result = ', '.join(person_types) if person_types else "data_validator, analyzer, generator"
+
+  - label: generate_structure
+    type: person_job
+    position: {x: 900, y: 300}
+    props:
+      person: structure_architect
+      prompt_file: diagram_structure_generator.txt
+      max_iteration: 1
+      text_format_file: projects/dipeodipeo/light_diagram_models.py
+
+  # CONSOLIDATION PHASE
+  - label: consolidate_diagram
+    type: code_job
+    position: {x: 1200, y: 200}
+    props:
+      language: python
+      filePath: projects/dipeodipeo/process.py
+      functionName: consolidate_parallel_generation
+
+  # SAVE OUTPUTS
+  - label: save_test_data
+    type: db
+    position: {x: 700, y: 400}
+    props:
+      operation: write
+      sub_type: file
+      format: csv
+      source_details: projects/dipeodipeo/generated/test_data.csv
+
+  - label: save_diagram
+    type: db
+    position: {x: 1400, y: 200}
+    props:
+      operation: write
+      sub_type: file
+      format: yaml
+      source_details: projects/dipeodipeo/generated/diagram.light.yaml
+
+connections:
+  # Initial load
+  - {from: start, to: load_request, content_type: object}
+
+  # Parallel generation branches
+  - {from: load_request, to: generate_persons, label: workflow_description, content_type: raw_text}
+  - {from: load_request, to: generate_test_data, label: workflow_description, content_type: raw_text}
+
+  # Person types extraction for structure generation
+  - {from: generate_persons, to: extract_person_types, label: person_definitions, content_type: object}
+
+  # Structure generation with all inputs
+  - {from: load_request, to: generate_structure, label: workflow_description, content_type: raw_text}
+  - {from: generate_test_data, to: generate_structure, label: sample_test_data, content_type: raw_text}
+  - {from: extract_person_types, to: generate_structure, label: person_types, content_type: raw_text}
+
+  # Save test data
+  - {from: generate_test_data, to: save_test_data, content_type: object}
+
+  # Consolidation with all inputs
+  - {from: generate_persons, to: consolidate_diagram, label: person_definitions, content_type: object}
+  - {from: generate_structure, to: consolidate_diagram, label: diagram_structure, content_type: object}
+  - {from: load_request, to: consolidate_diagram, label: workflow_description, content_type: raw_text}
+
+  # Save final diagram
+  - {from: consolidate_diagram, to: save_diagram, label: diagram_output, content_type: raw_text}

@@ -196,7 +196,6 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
 
         # 1. Any → RAW_TEXT conversion (always allowed)
         if desired == ContentType.RAW_TEXT:
-            logger.debug(f"Converting {actual} → RAW_TEXT")
             if actual in (ContentType.OBJECT, ContentType.CONVERSATION_STATE):
                 # Pretty-print JSON data
                 try:
@@ -212,7 +211,6 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
         # 2. RAW_TEXT → OBJECT conversion (parse JSON)
         if desired == ContentType.OBJECT:
             if actual == ContentType.RAW_TEXT and isinstance(body, str):
-                logger.debug("Converting RAW_TEXT → OBJECT via JSON parsing")
                 try:
                     # Try to parse JSON string
                     parsed = json.loads(body)
@@ -223,7 +221,6 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
                     return {"text": body}
             elif actual == ContentType.CONVERSATION_STATE:
                 # Conversation state is already a dict/object
-                logger.debug("Converting CONVERSATION_STATE → OBJECT (pass-through)")
                 return body
             elif not STRICT_IO:
                 logger.debug(f"Loose mode: allowing {actual} → OBJECT")
@@ -231,7 +228,6 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
 
         # 3. Any → CONVERSATION_STATE conversion
         if desired == ContentType.CONVERSATION_STATE:
-            logger.debug(f"Converting {actual} → CONVERSATION_STATE")
             if actual == ContentType.CONVERSATION_STATE:
                 return body
             elif actual == ContentType.OBJECT and isinstance(body, dict):

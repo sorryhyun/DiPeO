@@ -1,0 +1,152 @@
+Generate a DiPeO light format diagram STRUCTURE based on the workflow description. Focus on node layout, connections, and workflow logic. Use placeholder references for person nodes.
+
+WORKFLOW DESCRIPTION:
+{{workflow_description}}
+
+{% if sample_test_data %}
+SAMPLE TEST DATA:
+{{sample_test_data}}
+Use this to understand the expected data format and structure.
+{% endif %}
+
+{% if person_types %}
+AVAILABLE PERSON TYPES:
+{{person_types}}
+Use these person type identifiers as placeholders in person_job nodes.
+{% endif %}
+
+DIAGRAM STRUCTURE REQUIREMENTS:
+
+1. NODE POSITIONING RULES:
+   - Start node: Always at {x: 100, y: 200}
+   - Main flow: Increment x by 200-300, keep y at 200
+   - Branches: Use y: 400 for alternative paths
+   - End nodes: Align with final processing step
+
+2. NODE TYPE SELECTION:
+   - **start**: Entry point (always first)
+   - **db**: File I/O operations (read/write)
+   - **code_job**: Data processing, validation, transformation
+   - **person_job**: LLM tasks (use placeholder person references)
+   - **condition**: Branching logic
+   - **endpoint**: Final output/save
+
+3. PERSON_JOB PLACEHOLDER FORMAT:
+   ```yaml
+   - label: [Descriptive Label]
+     type: person_job
+     position: {x: [value], y: [value]}
+     props:
+       person: "{{person:type_identifier}}"  # Placeholder
+       default_prompt: "Process: {{input_variable}}"
+       max_iteration: 1
+   ```
+
+4. CODE_JOB PATTERNS:
+   ```yaml
+   # Data Processing
+   - label: process_data
+     type: code_job
+     position: {x: [value], y: 200}
+     props:
+       language: python
+       code: |
+         # Access input variables by connection labels
+         processed = transform(input_data)
+         result = processed
+
+   # Parallel Processing (NO sub_diagram)
+   - label: parallel_process
+     type: code_job
+     position: {x: [value], y: 200}
+     props:
+       language: python
+       code: |
+         import asyncio
+
+         async def process_item(item):
+             return process(item)
+
+         async def main():
+             tasks = [process_item(item) for item in items]
+             return await asyncio.gather(*tasks)
+
+         result = asyncio.run(main())
+   ```
+
+5. CONNECTION RULES:
+   - **Labels**: Become variable names in target nodes
+   - **Content Types**:
+     - `raw_text`: Plain text, CSV, unstructured
+     - `object`: JSON, dictionaries, structured data
+     - `conversation_state`: LLM conversation context
+   - **Condition Outputs**: Use `[label]_condtrue` and `[label]_condfalse`
+
+6. WORKFLOW PATTERNS:
+
+   **Linear Processing**:
+   ```
+   start -> load -> validate -> process -> save -> endpoint
+   ```
+
+   **Conditional Flow**:
+   ```
+   start -> load -> validate -> condition
+                                  ├─(true)─> process -> save
+                                  └─(false)-> error_handler
+   ```
+
+   **Parallel Processing** (use code_job with asyncio):
+   ```
+   start -> load -> split_data -> parallel_process -> aggregate -> save
+   ```
+
+7. CRITICAL RULES:
+   - NO sub_diagram nodes (use asyncio in code_job)
+   - NO 'empty' content_type
+   - ALWAYS label connections meaningfully
+   - Condition nodes require _condtrue/_condfalse handles
+   - Person references use placeholder format: "{{person:identifier}}"
+
+8. DATA FLOW BEST PRACTICES:
+   - Validate early (right after loading)
+   - Handle errors explicitly with conditions
+   - Use descriptive variable names in connections
+   - Keep processing logic in code_job nodes
+   - Reserve person_job for genuine LLM tasks
+
+9. FILE OPERATIONS:
+   ```yaml
+   # Reading
+   - label: load_data
+     type: db
+     props:
+       operation: read
+       sub_type: file
+       source_details: "path/to/file.csv"
+       glob: true  # For pattern matching
+
+   # Writing
+   - label: save_results
+     type: db
+     props:
+       operation: write
+       sub_type: file
+       format: json
+       source_details: "path/to/output.json"
+   ```
+
+10. PLACEHOLDER EXAMPLES:
+    - `{{person:data_validator}}` - For validation tasks
+    - `{{person:analyzer}}` - For analysis tasks
+    - `{{person:generator}}` - For generation tasks
+    - `{{person:reviewer}}` - For review tasks
+
+FOCUS ON:
+- Clear workflow structure and logic
+- Proper node positioning for readability
+- Meaningful connection labels
+- Appropriate node type selection
+- Placeholder person references (not full definitions)
+
+Generate a complete diagram structure that implements the workflow efficiently. The structure should be ready for person definition injection during consolidation.

@@ -23,23 +23,42 @@ Executes prompts with LLM agents, supporting iteration and memory management.
     default_prompt: 'Analyze {{data}}'
     first_only_prompt: 'Start analysis of {{data}}'  # First iteration only
     max_iteration: 5
-    memory_profile: FOCUSED         # Options: FULL, FOCUSED, MINIMAL, GOLDFISH, CUSTOM
+    memorize_to: "requirements, key insights"  # Criteria for selecting messages (empty = all)
+    at_most: 20                     # Maximum messages to keep (1-500)
 ```
 
 **Key Features:**
 - `first_only_prompt`: Used only on first iteration
 - `default_prompt`: Used for all subsequent iterations
 - Connections with `_first` suffix are used ONLY on first iteration
-- Memory profiles control conversation history retention
+- `memorize_to`: Controls which messages to retain:
+  - Empty or unspecified: memorize all messages
+  - `"GOLDFISH"`: minimal memory mode (like goldfish)
+  - Custom criteria: comma-separated list like `"requirements, API keys, acceptance criteria"`
+- `at_most`: Limits number of messages retained (optional, 1-500)
 
 ### CONDITION Node
-Controls flow based on boolean expressions or built-in conditions.
+Controls flow based on boolean expressions, built-in conditions, or LLM decisions.
+
+**Boolean Expression:**
 ```yaml
 - label: Check Valid
   type: condition
   props:
     condition_type: custom
     expression: score >= 70 and len(errors) == 0
+```
+
+**LLM Decision:**
+```yaml
+- label: Check Quality
+  type: condition
+  props:
+    condition_type: llm_decision
+    person: Quality Checker      # AI agent to make the decision
+    judge_by: |
+      Is the generated code syntactically valid and complete?
+      Return YES if valid, NO if there are critical issues.
 ```
 
 **Connection Handles:**
@@ -132,7 +151,7 @@ CRITICAL REQUIREMENTS:
      - `_first` labeled connections are used ONLY on the first iteration
      - All other connections are used on every iteration
    - Use `first_only_prompt` for initial context, `default_prompt` for iterations
-   - Memory profiles: FOCUSED (default), FULL, MINIMAL, GOLDFISH, CUSTOM
+   - Use `memorize_to` to control message retention and `at_most` to limit message count
 
 6. DATA FLOW:
    - Always label connections with meaningful variable names
@@ -206,6 +225,45 @@ connections:
   - {from: Check Valid_condfalse, to: Handle Errors, label: errors, content_type: object}
 ```
 
+For LLM-based decision making:
+```yaml
+- label: Quality Check
+  type: condition
+  props:
+    condition_type: llm_decision
+    person: Code Reviewer
+    memorize_to: GOLDFISH  # Fresh perspective for each check
+    judge_by: |
+      Review the following generated code for quality:
+      {{generated_code}}
+
+      Check for:
+      - Syntax correctness
+      - Complete implementation (no TODOs or placeholders)
+      - Proper error handling
+
+      Return YES if the code meets quality standards, NO if it needs fixes.
+
+- label: Deploy Code
+  type: code_job
+  props:
+    code: |
+      # Deploy the validated code
+      result = deploy(generated_code)
+
+- label: Request Fixes
+  type: person_job
+  props:
+    person: Code Fixer
+    default_prompt: "Fix the following issues in the code: {{generated_code}}"
+    memorize_to: "errors, requirements"
+
+connections:
+  - {from: Generate Code, to: Quality Check, label: generated_code, content_type: raw_text}
+  - {from: Quality Check_condtrue, to: Deploy Code, label: generated_code, content_type: raw_text}
+  - {from: Quality Check_condfalse, to: Request Fixes, label: generated_code, content_type: raw_text}
+```
+
 For person_job iterations with _first input:
 ```yaml
 - label: Analyze Iteratively
@@ -215,7 +273,8 @@ For person_job iterations with _first input:
     first_only_prompt: "Initial analysis of: {{initial_context}}"
     default_prompt: "Continue refining based on: {{feedback}}"
     max_iteration: 3
-    memory_profile: FOCUSED
+    memorize_to: "key findings, requirements"
+    at_most: 30
 
 connections:
   # Connection with '_first' suffix used only on first iteration
@@ -297,6 +356,22 @@ For validation with proper content types:
 connections:
   - {from: parse_csv, to: validate_data, label: input_data, content_type: object}
   - {from: validate_data, to: process_valid, label: validation_result, content_type: object}
+```
+
+For minimal memory (GOLDFISH mode) processing:
+```yaml
+- label: Generate Fresh Ideas
+  type: person_job
+  props:
+    person: Creative Writer
+    default_prompt: |
+      Generate a unique creative idea based on: {{topic}}
+      Don't repeat previous ideas.
+    max_iteration: 5
+    memorize_to: GOLDFISH  # Each iteration starts fresh
+
+connections:
+  - {from: Get Topic, to: Generate Fresh Ideas, label: topic, content_type: raw_text}
 ```
 
 For external code (recommended for complex logic):

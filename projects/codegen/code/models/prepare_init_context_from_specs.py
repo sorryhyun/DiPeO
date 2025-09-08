@@ -61,11 +61,21 @@ def prepare_init_context_from_specs(inputs: dict[str, Any]) -> dict[str, Any]:
     # Sort for consistent output
     node_types.sort()
 
+    # Convert node types to template format
+    nodes = []
+    for node_type in node_types:
+        # Convert snake_case to PascalCase for class name
+        parts = node_type.split('_')
+        node_name = ''.join(part.capitalize() for part in parts)
+
+        nodes.append({
+            'node_type': node_type,
+            'node_name': node_name
+        })
+
     # Wrap in 'default' to prevent unwrapping by runtime resolver
     result = {
-        'default': {
-            'node_types': node_types
-        }
+        'nodes': nodes
     }
 
     return result

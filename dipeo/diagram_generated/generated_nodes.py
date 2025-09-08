@@ -199,10 +199,6 @@ def create_executable_node(
             text_format_file=data.get('text_format_file', ''),
             resolved_prompt=data.get('resolved_prompt', ''),
             resolved_first_prompt=data.get('resolved_first_prompt', ''),
-            batch=data.get('batch', None),
-            batch_input_key=data.get('batch_input_key', None),
-            batch_parallel=data.get('batch_parallel', None),
-            max_concurrent=data.get('max_concurrent', None),
         )
 
     elif node_type == NodeType.START:

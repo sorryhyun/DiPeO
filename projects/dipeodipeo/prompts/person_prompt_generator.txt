@@ -1,0 +1,148 @@
+Generate optimized person definitions (LLM agents) for the DiPeO workflow based on the provided description.
+
+WORKFLOW DESCRIPTION:
+{{workflow_description}}
+
+{% if sample_test_data %}
+SAMPLE TEST DATA:
+{{sample_test_data}}
+
+Use this data to understand the expected inputs and tailor person prompts accordingly.
+{% endif %}
+
+PERSON GENERATION GUIDELINES:
+
+1. ANALYZE THE WORKFLOW:
+   - Identify tasks that require LLM intelligence (analysis, decision-making, text generation)
+   - Determine the types of agents needed (validators, analyzers, generators, reviewers)
+   - Consider which tasks are better suited for code_job vs person_job
+
+2. PERSON TYPES TO CONSIDER:
+
+   **Data Validator**:
+   - Reviews data quality and completeness
+   - Identifies patterns and anomalies
+   - Provides structured validation reports
+
+   **Data Analyzer**:
+   - Extracts insights from processed data
+   - Generates summaries and statistics
+   - Identifies trends and correlations
+
+   **Code Generator**:
+   - Creates code snippets or scripts
+   - Implements specific algorithms
+   - Generates configurations
+
+   **Quality Reviewer**:
+   - Reviews generated content for quality
+   - Checks for completeness and accuracy
+   - Provides improvement suggestions
+
+   **Decision Maker**:
+   - Makes intelligent routing decisions
+   - Evaluates conditions beyond simple logic
+   - Provides reasoning for choices
+
+3. SYSTEM PROMPT REQUIREMENTS:
+
+   Each person should have:
+   - **Clear Role Definition**: Specify exactly what this agent does
+   - **Input/Output Format**: Define expected formats
+   - **Decision Criteria**: For decision-making agents
+   - **Constraints**: Any limitations or rules to follow
+   - **Examples**: Include 1-2 inline examples when helpful
+
+4. SYSTEM PROMPT TEMPLATE:
+
+   ```
+   You are a [role] specializing in [domain].
+
+   Your responsibilities:
+   - [Primary responsibility]
+   - [Secondary responsibility]
+   - [Additional responsibilities...]
+
+   Input format: [Describe expected input]
+   Output format: [Describe required output]
+
+   Guidelines:
+   - [Specific guideline 1]
+   - [Specific guideline 2]
+   - [Quality criteria]
+
+   [Include example if helpful]
+   ```
+
+5. OPTIMIZATION STRATEGIES:
+
+   - **Specificity**: Be precise about the agent's role and capabilities
+   - **Context**: Provide relevant domain knowledge
+   - **Format**: Specify exact output structure (JSON, CSV, plain text)
+   - **Constraints**: Set clear boundaries and limitations
+   - **Examples**: Use concrete examples for complex tasks
+
+6. COMMON PATTERNS:
+
+   **For Validation Tasks**:
+   ```
+   You are a data validation expert. Review the provided data and identify:
+   - Missing required fields
+   - Invalid formats or types
+   - Logical inconsistencies
+   - Data quality issues
+
+   Return a structured report with:
+   - is_valid: boolean
+   - errors: list of specific issues
+   - warnings: list of potential concerns
+   ```
+
+   **For Analysis Tasks**:
+   ```
+   You are a data analyst specializing in [domain].
+
+   Analyze the provided data and generate:
+   - Key insights and patterns
+   - Statistical summaries
+   - Actionable recommendations
+
+   Format your response as structured JSON with clear sections.
+   ```
+
+   **For Decision Tasks**:
+   ```
+   You are a decision-making agent for [context].
+
+   Evaluate the input based on:
+   - [Criterion 1]
+   - [Criterion 2]
+
+   Return YES/TRUE for [positive condition], NO/FALSE for [negative condition].
+   Include a brief explanation of your reasoning.
+   ```
+
+7. NAMING CONVENTIONS:
+
+   Use descriptive, action-oriented names:
+   - data_validator
+   - quality_analyzer
+   - code_generator
+   - format_converter
+   - decision_maker
+
+8. MODEL SELECTION:
+
+   Recommend appropriate models based on task complexity:
+   - Simple validation/formatting: gpt-5-nano-2025-08-07
+   - Complex analysis/generation: gpt-5-mini-2025-08-07
+   - Creative or nuanced tasks: gpt-5-2025-08-07
+
+IMPORTANT:
+- Only create persons for tasks that genuinely benefit from LLM intelligence
+- Keep system prompts concise but comprehensive (100-300 words ideal)
+- Avoid creating persons for tasks better suited to code_job nodes
+- Each person should have a single, well-defined responsibility
+- Use the default model (gpt-5-nano-2025-08-07) unless task complexity requires more
+
+Generate a complete set of optimized person definitions that will enable the workflow to execute successfully.
