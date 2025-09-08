@@ -90,6 +90,7 @@ export type CliSession = {
   diagram_name: Scalars['String']['output'];
   execution_id: Scalars['String']['output'];
   is_active: Scalars['Boolean']['output'];
+  node_states?: Maybe<Scalars['JSON']['output']>;
   session_id: Scalars['String']['output'];
   started_at: Scalars['DateTime']['output'];
 };
@@ -1120,7 +1121,7 @@ export type ProviderOpsQuery = { __typename?: 'Query', provider_operations: Arra
 export type ActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ActiveCliSessionQuery = { __typename?: 'Query', active_cli_session?: { __typename?: 'CliSession', session_id: string, execution_id: string, diagram_name: string, diagram_format: string, started_at: any, is_active: boolean, diagram_data?: string | null } | null };
+export type ActiveCliSessionQuery = { __typename?: 'Query', active_cli_session?: { __typename?: 'CliSession', session_id: string, execution_id: string, diagram_name: string, diagram_format: string, started_at: any, is_active: boolean, diagram_data?: string | null, node_states?: any | null } | null };
 
 export type GetExecutionStateQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2995,6 +2996,7 @@ export const ActiveCliSessionDocument = gql`
     started_at
     is_active
     diagram_data
+    node_states
   }
 }
     `;

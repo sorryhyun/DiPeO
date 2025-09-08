@@ -37,17 +37,17 @@ class DbNode(BaseModel):
 
     # Optional node-specific fields
     
-    file: Any = Field(default=None, description="File path or array of file paths")
+    file: Optional[Any] = Field(default=None, description="File path or array of file paths")
     
-    collection: str = Field(default=None, description="Database collection name")
+    collection: Optional[str] = Field(default=None, description="Database collection name")
     
-    query: str = Field(default=None, description="Query configuration")
+    query: Optional[str] = Field(default=None, description="Query configuration")
     
-    data: Dict[str, Any] = Field(default_factory=dict, description="Data configuration")
+    data: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Data configuration")
     
-    serialize_json: bool = Field(default=None, description="Serialize structured data to JSON string (for backward compatibility)")
+    serialize_json: Optional[bool] = Field(default=None, description="Serialize structured data to JSON string (for backward compatibility)")
     
-    format: str = Field(default=None, description="Data format (json, yaml, csv, text, etc.)")
+    format: Optional[str] = Field(default=None, description="Data format (json, yaml, csv, text, etc.)")
 
     class Config:
         # Make the instance immutable after creation

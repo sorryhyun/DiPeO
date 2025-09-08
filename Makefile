@@ -67,6 +67,7 @@ install-dev: install
 	@echo "Development dependencies installed!"
 
 # Parse TypeScript models to generate AST cache
+# Parse TypeScript specs to prepare for code generation
 parse-typescript:
 	@echo "Cleaning TypeScript AST cache..."
 	@rm -rf temp/core temp/specifications temp/frontend temp/codegen temp/utilities temp/*.json 2>/dev/null || true
@@ -79,6 +80,7 @@ parse-typescript:
 	@echo "✓ TypeScript parsing complete"
 
 # Primary code generation command (SAFE - stages changes for review)
+# Generates Python code from TypeScript specs to staging directory
 codegen: parse-typescript
 	@echo "Starting code generation..."
 	@if command -v dipeo >/dev/null 2>&1; then \
@@ -89,6 +91,7 @@ codegen: parse-typescript
 	@echo "✓ Code generation complete. Next: make diff-staged → make apply-syntax-only → make graphql-schema"
 
 # Automatic code generation with auto-apply (DANGEROUS - use with caution!)
+# Runs entire workflow: parse → generate → apply → update GraphQL
 codegen-auto: parse-typescript
 	@echo "⚠️  WARNING: Auto-applying all changes!"
 	@if command -v dipeo >/dev/null 2>&1; then \
@@ -193,6 +196,7 @@ format:
 	done
 
 # Staging Commands
+# Compare staged generated code with active generated code
 diff-staged:
 	@echo "======================================"
 	@echo "Comparing staged vs active generated files..."
@@ -240,6 +244,7 @@ validate-staged-syntax:
 		(echo "Python compilation check failed!" && exit 1)
 	@echo "Python syntax validation passed!"
 
+# Apply staged changes with full type checking validation
 apply: validate-staged
 	@echo "Applying staged changes to active directory..."
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
@@ -250,6 +255,7 @@ apply: validate-staged
 	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
 	@echo "Staged changes applied successfully!"
 
+# Apply staged changes with syntax checking only (faster)
 apply-syntax-only: validate-staged-syntax
 	@echo "Applying staged changes to active directory (syntax validation only)..."
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
@@ -266,7 +272,7 @@ backup-generated:
 	@tar -czf .backups/diagram_generated.backup.$$(date +%Y%m%d_%H%M%S).tar.gz dipeo/diagram_generated/
 	@echo "Backup created in .backups/"
 
-# Clean staged files only
+# Clean staged files only (removes staging directory)
 clean-staged:
 	@echo "Cleaning staged generated files..."
 	@rm -rf dipeo/diagram_generated_staged

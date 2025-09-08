@@ -1,5 +1,11 @@
 You are a frontend code generator. Generate the implementation for the specified file.
 
+### File to implement:
+Path: {{file_paths[current_index]}}
+
+### Dependencies
+{{dependencies[current_index]}}
+
 ## Core Kernel Foundation
 Import domain types, contracts, and utilities from Core Kernel:
 - Types: `import { User, Patient, Appointment, ApiResult } from '@/core/contracts'`
@@ -17,15 +23,6 @@ Import symbols must exist in Core Kernel OR an already-planned file:
 
 Put section-local helpers inside this file.
 
-## File Splitting
-If output won't fit, split into contiguous chunks:
-// FILE:{path} CHUNK 1/3
-...first part...
-// FILE:{path} CHUNK 2/3
-...second part...
-// FILE:{path} CHUNK 3/3
-...last part...
-
 ## Context
 
 ### Architecture:
@@ -34,12 +31,11 @@ If output won't fit, split into contiguous chunks:
 ### Core Kernel Specifications:
 {{kernel_specs}}
 
-### File to implement:
-Path: {{file_paths[current_index]}}
-Description: {{descriptions[current_index]}}
-
 ### Section details:
 {{sections[current_index]}}
+
+### Description
+Description: {{descriptions[current_index]}}
 
 For kernel files (core/contracts.ts, app/config.ts, core/events.ts), use kernel_specs to guide implementation.
 

@@ -138,6 +138,17 @@ export const personJobSpec: NodeSpecification = {
         adjustable: true
       }
     },
+    {
+      name: "text_format_file",
+      type: "string",
+      required: false,
+      description: "Path to Python file containing Pydantic models for structured outputs",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "path/to/models.py",
+        column: 2
+      }
+    },
     // Internal fields for compile-time prompt resolution
     {
       name: "resolved_prompt",

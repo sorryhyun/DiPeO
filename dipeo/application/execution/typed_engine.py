@@ -17,7 +17,7 @@ from dipeo.application.execution.typed_execution_context import TypedExecutionCo
 from dipeo.config import get_settings
 from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
-from dipeo.domain.events import EventBus
+from dipeo.domain.events.unified_ports import EventBus
 from dipeo.domain.execution import DomainDynamicOrderCalculator
 
 if TYPE_CHECKING:

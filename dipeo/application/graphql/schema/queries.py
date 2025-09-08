@@ -462,6 +462,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
                         started_at=session_data.started_at,
                         is_active=session_data.is_active,
                         diagram_data=session_data.diagram_data,
+                        node_states=session_data.node_states,  # Include initial node states
                     )
 
             return None

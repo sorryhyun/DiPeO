@@ -224,7 +224,14 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
     def _create_in_memory_state(
         self, diagram: "ExecutableDiagram", inputs: dict[str, Any]
     ) -> ExecutionState:
-        """Create a minimal in-memory execution state."""
+        """Create a minimal in-memory execution state.
+
+        Note: This implementation uses deep-copy isolation rather than scope-based
+        isolation. Each sub-diagram gets a completely separate execution context
+        with deep-copied variables, preventing any variable pollution between
+        parent and child executions. Only explicitly declared outputs are returned
+        to the parent context.
+        """
         # Create node states for all nodes
         node_states = {}
         all_nodes = diagram.get_nodes_by_type(None) or diagram.nodes

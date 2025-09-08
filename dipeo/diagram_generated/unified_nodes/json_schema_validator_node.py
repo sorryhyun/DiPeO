@@ -35,15 +35,15 @@ class JsonSchemaValidatorNode(BaseModel):
 
     # Optional node-specific fields
     
-    schema_path: str = Field(default=None, description="Path to JSON schema file")
+    schema_path: Optional[str] = Field(default=None, description="Path to JSON schema file")
     
-    schema: Dict[str, Any] = Field(default_factory=dict, description="Inline JSON schema")
+    schema: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Inline JSON schema")
     
-    data_path: str = Field(default=None, description="Data Path configuration")
+    data_path: Optional[str] = Field(default=None, description="Data Path configuration")
     
-    strict_mode: bool = Field(default=None, description="Strict Mode configuration")
+    strict_mode: Optional[bool] = Field(default=None, description="Strict Mode configuration")
     
-    error_on_extra: bool = Field(default=None, description="Error On Extra configuration")
+    error_on_extra: Optional[bool] = Field(default=None, description="Error On Extra configuration")
 
     class Config:
         # Make the instance immutable after creation

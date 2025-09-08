@@ -1,10 +1,25 @@
 """Domain-level dynamic order calculator for execution flow.
 
+DEPRECATED: This module is being phased out in favor of the token-based scheduler
+in dipeo.application.execution.scheduler, which is now the single source of truth
+for node readiness and execution order.
+
+The scheduler (NodeScheduler) implements:
+- Token-based readiness checks
+- Join policies (all, any, k_of_n)
+- Skippable edge handling
+- Loop iteration limits
+- Priority-based execution
+
+This calculator is retained temporarily for backward compatibility but should not
+be used for new code. Use the scheduler directly instead.
+
 This calculator determines node execution order based on runtime context,
 handling loops, conditionals, and dynamic dependencies.
 """
 
 import logging
+import warnings
 from collections import defaultdict
 from typing import Any
 
@@ -29,6 +44,13 @@ class DomainDynamicOrderCalculator:
 
     def __init__(self):
         """Initialize the dynamic order calculator with a reachability cache."""
+        warnings.warn(
+            "DomainDynamicOrderCalculator is deprecated. Use NodeScheduler from "
+            "dipeo.application.execution.scheduler instead, which provides "
+            "token-based scheduling with proper join policies.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._reachability_cache: dict[tuple[int, str, str], bool] = {}
 
     def _has_path(self, diagram: ExecutableDiagram, src_id: str, dst_id: str) -> bool:
@@ -200,9 +222,11 @@ class DomainDynamicOrderCalculator:
         # Check if all conditional dependencies are satisfied
         for edge in incoming_edges:
             # If edge is from a condition node, check if branch is active
-            if edge.source_output in ["condtrue", "condfalse"]:
-                if not self._is_dependency_satisfied(edge, node_states, context, diagram):
-                    return False
+            if edge.source_output in [
+                "condtrue",
+                "condfalse",
+            ] and not self._is_dependency_satisfied(edge, node_states, context, diagram):
+                return False
 
         return True
 

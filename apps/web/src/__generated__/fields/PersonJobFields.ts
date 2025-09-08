@@ -113,6 +113,15 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     adjustable: true,
   },
   {
+    name: 'text_format_file',
+    type: 'text',
+    label: 'Text format file',
+    required: false,
+    placeholder: 'path/to/models.py',
+    description: 'Path to Python file containing Pydantic models for structured outputs',
+    column: 2,
+  },
+  {
     name: 'resolved_prompt',
     type: 'textarea',
     label: 'Resolved prompt',

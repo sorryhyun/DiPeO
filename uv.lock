@@ -365,7 +365,7 @@ wheels = [
 
 [[package]]
 name = "dipeo"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "dipeo" }
 dependencies = [
     { name = "dependency-injector" },
@@ -405,7 +405,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "dipeo-cli"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "apps/cli" }
 dependencies = [
     { name = "pyyaml" },
@@ -435,7 +435,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "dipeo-monorepo"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -662,7 +662,7 @@ dev = []
 
 [[package]]
 name = "dipeo-server"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "apps/server" }
 dependencies = [
     { name = "aiofiles" },

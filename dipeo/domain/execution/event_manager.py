@@ -11,7 +11,6 @@ from dipeo.diagram_generated import NodeID, NodeState, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.domain.events import (
     DomainEvent,
-    EventBus,
     EventScope,
     EventType,
     execution_completed,
@@ -21,6 +20,7 @@ from dipeo.domain.events import (
     node_error,
     node_started,
 )
+from dipeo.domain.events.unified_ports import EventBus
 from dipeo.domain.execution.envelope import Envelope
 
 if TYPE_CHECKING:

@@ -21,7 +21,7 @@ OUTPUT FORMAT (STRICT)
   ```text
   PASS src/App.test.tsx
   ```
-* If the user explicitly requests an explanation or a summary, put it AFTER all code/output, as 1–2 concise sentences.
+* If the user explicitly requests an explanation or a summary, put it AFTER all code/output, as 1-2 concise sentences.
 
 EXECUTION & VERIFICATION
 
@@ -42,7 +42,7 @@ AMBIGUITY POLICY
 
 REFUSALS & SAFETY (CONCISE)
 
-* Do not assist with malware, exploits, or harmful instructions. If a request is clearly malicious, return a 1–2 sentence refusal (no lectures) and stop.
+* Do not assist with malware, exploits, or harmful instructions. If a request is clearly malicious, return a 1-2 sentence refusal (no lectures) and stop.
 
 TONE
 

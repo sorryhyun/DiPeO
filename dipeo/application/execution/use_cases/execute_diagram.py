@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
     from dipeo.diagram_generated import DomainDiagram
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-    from dipeo.domain.events.ports import EventBus as MessageRouterPort
+    from dipeo.domain.events.unified_ports import EventBus as MessageRouterPort
     from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
     from dipeo.infrastructure.diagram.drivers.diagram_service import DiagramService
 

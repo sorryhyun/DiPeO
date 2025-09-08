@@ -37,17 +37,17 @@ class ApiJobNode(BaseModel):
 
     # Optional node-specific fields
     
-    headers: Dict[str, Any] = Field(default_factory=dict, description="HTTP headers")
+    headers: Optional[Dict[str, Any]] = Field(default_factory=dict, description="HTTP headers")
     
-    params: Dict[str, Any] = Field(default_factory=dict, description="Query parameters")
+    params: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Query parameters")
     
-    body: Dict[str, Any] = Field(default_factory=dict, description="Request body")
+    body: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Request body")
     
-    timeout: int = Field(default=None, description="Request timeout in seconds")
+    timeout: Optional[int] = Field(default=None, description="Request timeout in seconds")
     
-    auth_type: Literal["none", "bearer", "basic", "api_key"] = Field(default=None, description="Authentication type")
+    auth_type: Optional[Literal["none", "bearer", "basic", "api_key"]] = Field(default=None, description="Authentication type")
     
-    auth_config: Dict[str, Any] = Field(default_factory=dict, description="Authentication configuration")
+    auth_config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Authentication configuration")
 
     class Config:
         # Make the instance immutable after creation

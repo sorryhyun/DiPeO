@@ -89,7 +89,11 @@ class ApplicationContainer:
 
         from dipeo.application.execution.use_cases import CliSessionService
 
-        self.registry.register(CLI_SESSION_SERVICE, CliSessionService())
+        # Pass state store to CliSessionService for fetching initial node states
+        self.registry.register(
+            CLI_SESSION_SERVICE,
+            lambda: CliSessionService(state_store=self.registry.resolve(STATE_STORE)),
+        )
 
         # DiagramService is already wired by wire_all_diagram_services
         # Just register it with the old key for backward compatibility

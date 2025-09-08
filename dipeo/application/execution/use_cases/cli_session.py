@@ -22,6 +22,7 @@ class CliSessionData:
     started_at: datetime
     is_active: bool
     diagram_data: str | None = None
+    node_states: dict[str, Any] | None = None  # Initial node states for immediate highlighting
 
 
 logger = logging.getLogger(__name__)
@@ -30,9 +31,10 @@ logger = logging.getLogger(__name__)
 class CliSessionService:
     """Manages active CLI execution sessions."""
 
-    def __init__(self):
+    def __init__(self, state_store=None):
         self._active_session: CliSessionData | None = None
         self._lock = asyncio.Lock()
+        self._state_store = state_store  # Optional dependency for fetching node states
 
     async def start_cli_session(
         self,
@@ -100,6 +102,49 @@ class CliSessionService:
                     # Fall back to original data
                     converted_data = diagram_data
 
+            # Fetch initial node states if state store is available
+            node_states = None
+            if self._state_store:
+                try:
+                    from dipeo.diagram_generated import ExecutionID
+
+                    # Fetch execution state
+                    execution_state = await self._state_store.get_execution(
+                        ExecutionID(execution_id)
+                    )
+                    if execution_state and hasattr(execution_state, "node_states"):
+                        # Convert node states to serializable format
+                        node_states = {}
+                        for node_id, state in execution_state.node_states.items():
+                            # Handle datetime objects properly
+                            started_at = None
+                            if hasattr(state, "started_at") and state.started_at:
+                                if hasattr(state.started_at, "isoformat"):
+                                    started_at = state.started_at.isoformat()
+                                else:
+                                    started_at = str(state.started_at)
+
+                            ended_at = None
+                            if hasattr(state, "ended_at") and state.ended_at:
+                                if hasattr(state.ended_at, "isoformat"):
+                                    ended_at = state.ended_at.isoformat()
+                                else:
+                                    ended_at = str(state.ended_at)
+
+                            node_states[str(node_id)] = {
+                                "status": state.status.value
+                                if hasattr(state.status, "value")
+                                else str(state.status),
+                                "started_at": started_at,
+                                "ended_at": ended_at,
+                                "error": state.error if hasattr(state, "error") else None,
+                            }
+                        logger.info(
+                            f"Fetched {len(node_states)} node states for execution {execution_id}"
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to fetch initial node states: {e}")
+
             # Create new session
             self._active_session = CliSessionData(
                 execution_id=execution_id,
@@ -108,6 +153,7 @@ class CliSessionService:
                 started_at=datetime.utcnow(),
                 is_active=True,
                 diagram_data=json.dumps(converted_data) if converted_data else None,
+                node_states=node_states,
             )
 
             return self._active_session

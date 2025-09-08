@@ -80,7 +80,6 @@ class SinglePersonJobExecutor:
 
         # Use inputs directly
         transformed_inputs = inputs
-        logger.debug(f"[PersonJob {node.label or node.id}] Raw inputs keys: {list(inputs.keys())}")
 
         # Extract values from Envelope objects for template processing
         # The execution engine passes Envelope objects, but PromptBuilder expects plain values
@@ -91,9 +90,6 @@ class SinglePersonJobExecutor:
             else:
                 extracted_inputs[key] = value
         transformed_inputs = extracted_inputs
-        logger.debug(
-            f"[PersonJob {node.label or node.id}] Extracted inputs keys: {list(extracted_inputs.keys())}"
-        )
 
         # Handle conversation inputs
         has_conversation_input = self._conversation_handler.has_conversation_input(
@@ -418,9 +414,18 @@ class SinglePersonJobExecutor:
             conversation_state = (
                 conversation_repr if conversation_repr else {"messages": [], "last_message": None}
             )
-            return EnvelopeFactory.conversation(
+            envelope = EnvelopeFactory.conversation(
                 conversation_state, produced_by=str(node.id), trace_id=trace_id
-            ).with_meta(
+            )
+            # Add representations for downstream compatibility
+            envelope = envelope.with_representations(
+                {
+                    "text": text_repr,
+                    "conversation": conversation_state,
+                    "object": object_repr if object_repr is not None else conversation_state,
+                }
+            )
+            return envelope.with_meta(
                 person_id=person_id,
                 conversation_id=conversation_id,
                 model=model,
@@ -429,20 +434,33 @@ class SinglePersonJobExecutor:
 
         # Check if we have structured data
         if object_repr is not None:
-            # Return JSON envelope for structured data
-            return EnvelopeFactory.json(
+            # Return JSON envelope for structured data with representations
+            envelope = EnvelopeFactory.json(
                 object_repr, produced_by=str(node.id), trace_id=trace_id
-            ).with_meta(
+            )
+            # Add both text and object representations for downstream compatibility
+            envelope = envelope.with_representations(
+                {
+                    "text": text_repr,
+                    "object": object_repr,
+                }
+            )
+            return envelope.with_meta(
                 person_id=person_id,
                 model=model,
                 is_structured=True,
                 llm_usage=llm_usage.model_dump() if llm_usage else None,
             )
 
-        # Default: return text output
-        return EnvelopeFactory.text(
-            text_repr, produced_by=str(node.id), trace_id=trace_id
-        ).with_meta(
+        # Default: return text output with representations
+        envelope = EnvelopeFactory.text(text_repr, produced_by=str(node.id), trace_id=trace_id)
+        # Add text representation for consistency
+        envelope = envelope.with_representations(
+            {
+                "text": text_repr,
+            }
+        )
+        return envelope.with_meta(
             person_id=person_id,
             model=model,
             llm_usage=llm_usage.model_dump() if llm_usage else None,

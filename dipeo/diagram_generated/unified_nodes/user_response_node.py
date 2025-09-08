@@ -36,7 +36,7 @@ class UserResponseNode(BaseModel):
 
     # Optional node-specific fields
     
-    timeout: int = Field(default=None, description="Response timeout in seconds")
+    timeout: Optional[int] = Field(default=None, description="Response timeout in seconds")
 
     class Config:
         # Make the instance immutable after creation
