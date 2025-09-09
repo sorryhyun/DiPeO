@@ -66,7 +66,7 @@ class QueryClientWrapper:
             SESSION_POOL_ENABLED
             and hasattr(self.options, "system_prompt")
             and self.options.system_prompt
-            and (str(self.execution_phase or "").lower() not in {"direct_execution"})
+            # and (str(self.execution_phase or "").lower() not in {"direct_execution"})
         ):
             try:
                 from .transport.warm_wrapper import SessionQueryWrapper

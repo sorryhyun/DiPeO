@@ -211,6 +211,37 @@ class SinglePersonJobExecutor:
             "max_tokens": PERSON_JOB_MAX_TOKENS,
             "execution_phase": "direct_execution",  # Set phase for Claude Code adapter
         }
+        # === Claude Code specific execution options ===
+        # Keep Claude Code's file watchers away from the whole monorepo.
+
+        try:
+            from dipeo.diagram_generated.enums import ExecutionPhase, LLMService
+        except Exception:
+            # LLMService = None  #
+            from dipeo.diagram_generated.enums import ExecutionPhase  # type: ignore
+
+        try:
+            svc_name = (
+                person.llm_config.service.value
+                if hasattr(person.llm_config.service, "value")
+                else str(person.llm_config.service)
+            ).lower()
+        except Exception:
+            svc_name = str(person.llm_config.service).lower()
+
+        # Always set phase; restrict workspace only for Claude Code.
+        complete_kwargs["execution_phase"] = ExecutionPhase.DIRECT_EXECUTION
+
+        if "claude-code" in svc_name:
+            import os
+            from pathlib import Path
+
+            root = os.getenv(
+                "DIPEO_CLAUDE_WORKSPACES", os.path.join(os.getcwd(), ".dipeo", "workspaces")
+            )
+            workspace_dir = Path(root) / f"exec_{trace_id or 'default'}"
+            workspace_dir.mkdir(parents=True, exist_ok=True)
+            complete_kwargs["cwd"] = str(workspace_dir)
 
         # Handle tools configuration
         if hasattr(node, "tools") and node.tools and node.tools != "none":

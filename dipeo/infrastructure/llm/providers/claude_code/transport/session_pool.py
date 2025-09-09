@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Session pool configuration
 SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() == "true"
 SESSION_REUSE_LIMIT = int(os.getenv("DIPEO_SESSION_REUSE_LIMIT", "5"))
-SESSION_IDLE_TTL = float(os.getenv("DIPEO_SESSION_IDLE_TTL", "25"))  # seconds
+SESSION_IDLE_TTL = float(os.getenv("DIPEO_SESSION_IDLE_TTL", "10"))  # seconds
 SESSION_MAX_POOLS = int(os.getenv("DIPEO_SESSION_MAX_POOLS", "3"))
 SESSION_CONNECTION_TIMEOUT = float(os.getenv("DIPEO_SESSION_CONNECTION_TIMEOUT", "10"))
 
