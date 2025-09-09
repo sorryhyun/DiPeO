@@ -89,6 +89,15 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     },
   },
   {
+    name: 'ignore_person',
+    type: 'text',
+    label: 'Ignore person',
+    required: false,
+    placeholder: 'e.g., assistant, user2',
+    description: 'Comma-separated list of person IDs whose messages should be excluded from memory selection.',
+    column: 2,
+  },
+  {
     name: 'tools',
     type: 'select',
     label: 'Tools',

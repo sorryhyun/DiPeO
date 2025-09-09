@@ -17,7 +17,6 @@ from .types import (
     StreamConfig,
     StreamingMode,
     TimeoutError,
-    TokenUsage,
 )
 
 __all__ = [
@@ -45,6 +44,5 @@ __all__ = [
     "StreamingMode",
     "SyncAdapter",
     "TimeoutError",
-    "TokenUsage",
     "UnifiedAdapter",
 ]

@@ -4,7 +4,17 @@ import logging
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
-from dipeo.config.llm import ANTHROPIC_DEFAULT_MAX_TOKENS
+from dipeo.config.llm import (
+    ANTHROPIC_MAX_CONTEXT_LENGTH,
+    ANTHROPIC_MAX_OUTPUT_TOKENS,
+    DEFAULT_MAX_TOKENS,
+)
+from dipeo.config.provider_capabilities import (
+    ProviderType as ConfigProviderType,
+)
+from dipeo.config.provider_capabilities import (
+    get_provider_capabilities_object,
+)
 from dipeo.diagram_generated import Message, ToolConfig
 
 from ...capabilities import (
@@ -25,7 +35,7 @@ from ...core.types import (
     StreamConfig,
     StreamingMode,
 )
-from ...processors import MessageProcessor, ResponseProcessor, TokenCounter
+from ...processors import MessageProcessor, ResponseProcessor
 from .client import (
     AnthropicClientWrapper,
     AsyncAnthropicClientWrapper,
@@ -65,35 +75,13 @@ class AnthropicAdapter(UnifiedAdapter):
         # Initialize processors
         self.message_processor = MessageProcessor(ProviderType.ANTHROPIC)
         self.response_processor = ResponseProcessor(ProviderType.ANTHROPIC)
-        self.token_counter = TokenCounter(ProviderType.ANTHROPIC)
 
     def _get_capabilities(self) -> ProviderCapabilities:
-        """Get Anthropic provider capabilities."""
-        return ProviderCapabilities(
-            supports_async=True,
-            supports_streaming=True,
-            supports_tools=True,
-            supports_structured_output=True,
-            supports_vision=True,
-            supports_web_search=False,  # Not native, but can be added via tools
-            supports_image_generation=False,
-            supports_computer_use=False,  # Computer use is only for Claude Code
-            max_context_length=200000,  # Claude 3.5 default
-            max_output_tokens=8192,
-            supported_models={
-                "claude-3-5-sonnet-latest",
-                "claude-3-5-sonnet-20241022",
-                "claude-3-5-haiku-latest",
-                "claude-3-5-haiku-20241022",
-                "claude-3-opus-latest",
-                "claude-3-opus-20240229",
-                "claude-3-sonnet-20240229",
-                "claude-3-haiku-20240307",
-                "claude-2.1",
-                "claude-2.0",
-                "claude-instant-1.2",
-            },
-            streaming_modes={StreamingMode.NONE, StreamingMode.SSE},
+        """Get Anthropic provider capabilities from centralized config."""
+        return get_provider_capabilities_object(
+            ConfigProviderType.ANTHROPIC,
+            max_context_length=ANTHROPIC_MAX_CONTEXT_LENGTH,
+            max_output_tokens=ANTHROPIC_MAX_OUTPUT_TOKENS,
         )
 
     def _create_sync_client(self):
@@ -142,16 +130,14 @@ class AnthropicAdapter(UnifiedAdapter):
         """Execute synchronous chat completion with retry logic."""
         temperature = temperature or self.config.temperature
         max_tokens = (
-            max_tokens or self.config.max_tokens or ANTHROPIC_DEFAULT_MAX_TOKENS
+            max_tokens or self.config.max_tokens or DEFAULT_MAX_TOKENS
         )  # Anthropic requires max_tokens
         execution_phase = execution_phase or self.config.execution_phase
 
         # Prepare messages and extract system prompt
         prepared_messages, system_prompt = self.prepare_messages(messages)
 
-        # Validate token limit
-        if not self.token_counter.validate_token_limit(prepared_messages, self.model, max_tokens):
-            raise ValueError("Messages exceed model's context limit")
+        # Token validation is now handled by the API itself
 
         # Prepare tools
         api_tools = self._prepare_tools(tools) if tools else None
@@ -226,15 +212,13 @@ class AnthropicAdapter(UnifiedAdapter):
     ) -> LLMResponse:
         """Execute asynchronous chat completion with retry logic."""
         temperature = temperature or self.config.temperature
-        max_tokens = max_tokens or self.config.max_tokens or ANTHROPIC_DEFAULT_MAX_TOKENS
+        max_tokens = max_tokens or self.config.max_tokens or DEFAULT_MAX_TOKENS
         execution_phase = execution_phase or self.config.execution_phase
 
         # Prepare messages and extract system prompt
         prepared_messages, system_prompt = self.prepare_messages(messages)
 
-        # Validate token limit
-        if not self.token_counter.validate_token_limit(prepared_messages, self.model, max_tokens):
-            raise ValueError("Messages exceed model's context limit")
+        # Token validation is now handled by the API itself
 
         # Prepare tools
         api_tools = self._prepare_tools(tools) if tools else None
@@ -307,7 +291,7 @@ class AnthropicAdapter(UnifiedAdapter):
     ) -> Iterator[str]:
         """Stream synchronous chat completion."""
         temperature = temperature or self.config.temperature
-        max_tokens = max_tokens or self.config.max_tokens or ANTHROPIC_DEFAULT_MAX_TOKENS
+        max_tokens = max_tokens or self.config.max_tokens or DEFAULT_MAX_TOKENS
 
         # Prepare messages and extract system prompt
         prepared_messages, system_prompt = self.prepare_messages(messages)
@@ -343,7 +327,7 @@ class AnthropicAdapter(UnifiedAdapter):
     ) -> AsyncIterator[str]:
         """Stream asynchronous chat completion."""
         temperature = temperature or self.config.temperature
-        max_tokens = max_tokens or self.config.max_tokens or ANTHROPIC_DEFAULT_MAX_TOKENS
+        max_tokens = max_tokens or self.config.max_tokens or DEFAULT_MAX_TOKENS
 
         # Prepare messages and extract system prompt
         prepared_messages, system_prompt = self.prepare_messages(messages)

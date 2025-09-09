@@ -7,6 +7,11 @@ replacing the hardcoded rules in validation_rules.py.
 
 from dataclasses import dataclass
 
+from dipeo.config.execution import (
+    DIAGRAM_MAX_PARALLEL_NODES,
+    DIAGRAM_MAX_RECURSION_DEPTH,
+    DIAGRAM_MAX_TOTAL_NODES,
+)
 from dipeo.diagram_generated import HandleLabel, NodeType
 
 
@@ -134,10 +139,10 @@ class GeneratedConstraints:
         ),
     }
 
-    # Execution constraints (unchanged from validation_rules.py)
-    MAX_PARALLEL_NODES = 10
-    MAX_RECURSION_DEPTH = 50
-    MAX_TOTAL_NODES = 1000
+    # Execution constraints from configuration
+    MAX_PARALLEL_NODES = DIAGRAM_MAX_PARALLEL_NODES
+    MAX_RECURSION_DEPTH = DIAGRAM_MAX_RECURSION_DEPTH
+    MAX_TOTAL_NODES = DIAGRAM_MAX_TOTAL_NODES
 
     @classmethod
     def get_constraint(cls, node_type: NodeType) -> NodeConstraint:

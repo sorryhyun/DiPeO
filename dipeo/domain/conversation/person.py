@@ -288,6 +288,7 @@ class Person:
         candidate_messages: list[Message],
         prompt_preview: str,
         memorize_to: str | None,
+        ignore_person: str | None,
         at_most: int | None,
         llm_service=None,
         **kwargs,
@@ -313,6 +314,7 @@ class Person:
                 candidate_messages=candidate_messages,
                 prompt_preview=prompt_preview,
                 memorize_to=memorize_to,
+                ignore_person=ignore_person,
                 at_most=at_most,
                 llm_service=llm_service,
                 **kwargs,
@@ -347,6 +349,7 @@ class Person:
         llm_service: "LLMServicePort",
         from_person_id: PersonID | str = "system",
         memorize_to: str | None = None,
+        ignore_person: str | None = None,
         at_most: int | None = None,
         prompt_preview: str | None = None,
         **llm_options: Any,
@@ -362,6 +365,7 @@ class Person:
             llm_service: The LLM service to use
             from_person_id: The ID of the person sending the prompt
             memorize_to: Optional memory selection criteria (e.g., "recent", "important", "GOLDFISH")
+            ignore_person: Optional comma-separated list of person IDs whose messages to exclude
             at_most: Optional maximum number of messages to select
             prompt_preview: Optional preview of the task for better memory selection
             **llm_options: Additional options for the LLM
@@ -385,6 +389,7 @@ class Person:
                 candidate_messages=all_messages,
                 prompt_preview=preview,
                 memorize_to=memorize_to,
+                ignore_person=ignore_person,
                 at_most=at_most,
                 llm_service=llm_service,
             )

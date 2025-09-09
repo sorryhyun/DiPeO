@@ -4,7 +4,15 @@ import logging
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
+from dipeo.config.llm import OLLAMA_DEFAULT_MAX_CONTEXT_LENGTH, OLLAMA_DEFAULT_MAX_OUTPUT_TOKENS
+from dipeo.config.provider_capabilities import (
+    ProviderType as ConfigProviderType,
+)
+from dipeo.config.provider_capabilities import (
+    get_provider_capabilities_object,
+)
 from dipeo.diagram_generated import Message, ToolConfig
+from dipeo.diagram_generated.domain_models import LLMUsage
 
 from ...capabilities import (
     RetryHandler,
@@ -21,7 +29,7 @@ from ...core.types import (
     StreamConfig,
     StreamingMode,
 )
-from ...processors import MessageProcessor, ResponseProcessor, TokenCounter
+from ...processors import MessageProcessor, ResponseProcessor
 from .client import AsyncOllamaClientWrapper, OllamaClientWrapper
 
 logger = logging.getLogger(__name__)
@@ -61,46 +69,13 @@ class OllamaAdapter(UnifiedAdapter):
         # Initialize processors
         self.message_processor = MessageProcessor(ProviderType.OLLAMA)
         self.response_processor = ResponseProcessor(ProviderType.OLLAMA)
-        self.token_counter = TokenCounter(ProviderType.OLLAMA)
 
     def _get_capabilities(self) -> ProviderCapabilities:
-        """Get Ollama provider capabilities."""
-        return ProviderCapabilities(
-            supports_async=True,
-            supports_streaming=True,
-            supports_tools=False,  # Ollama doesn't support function calling yet
-            supports_structured_output=False,
-            supports_vision=True,  # Some models like llava support vision
-            supports_web_search=False,
-            supports_image_generation=False,
-            supports_computer_use=False,
-            max_context_length=128000,  # Varies by model
-            max_output_tokens=4096,  # Varies by model
-            supported_models={
-                # Popular Ollama models
-                "llama3.3",
-                "llama3.2",
-                "llama3.1",
-                "llama3",
-                "llama2",
-                "mistral",
-                "mixtral",
-                "gemma",
-                "gemma2",
-                "phi",
-                "phi3",
-                "qwen",
-                "qwen2",
-                "vicuna",
-                "orca",
-                "neural-chat",
-                "starling",
-                "codellama",
-                "deepseek-coder",
-                "llava",  # Vision model
-                "bakllava",  # Vision model
-            },
-            streaming_modes={StreamingMode.SSE},
+        """Get Ollama provider capabilities from centralized config."""
+        return get_provider_capabilities_object(
+            ConfigProviderType.OLLAMA,
+            max_context_length=OLLAMA_DEFAULT_MAX_CONTEXT_LENGTH,  # Varies by model
+            max_output_tokens=OLLAMA_DEFAULT_MAX_OUTPUT_TOKENS,  # Varies by model
         )
 
     def _create_sync_client(self):
@@ -184,13 +159,10 @@ class OllamaAdapter(UnifiedAdapter):
             prompt_tokens = raw_response.get("prompt_eval_count", 0)
             completion_tokens = raw_response.get("eval_count", 0)
             if prompt_tokens or completion_tokens:
-                token_usage = self.token_counter.extract_token_usage(
-                    {
-                        "prompt_eval_count": prompt_tokens,
-                        "eval_count": completion_tokens,
-                        "total_count": prompt_tokens + completion_tokens,
-                    },
-                    self.model,
+                token_usage = LLMUsage(
+                    input=prompt_tokens,
+                    output=completion_tokens,
+                    total=prompt_tokens + completion_tokens,
                 )
 
         response = LLMResponse(text=text, raw_response=raw_response, token_usage=token_usage)
@@ -247,13 +219,10 @@ class OllamaAdapter(UnifiedAdapter):
             prompt_tokens = raw_response.get("prompt_eval_count", 0)
             completion_tokens = raw_response.get("eval_count", 0)
             if prompt_tokens or completion_tokens:
-                token_usage = self.token_counter.extract_token_usage(
-                    {
-                        "prompt_eval_count": prompt_tokens,
-                        "eval_count": completion_tokens,
-                        "total_count": prompt_tokens + completion_tokens,
-                    },
-                    self.model,
+                token_usage = LLMUsage(
+                    input=prompt_tokens,
+                    output=completion_tokens,
+                    total=prompt_tokens + completion_tokens,
                 )
 
         response = LLMResponse(text=text, raw_response=raw_response, token_usage=token_usage)

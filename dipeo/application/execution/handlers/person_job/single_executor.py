@@ -157,6 +157,7 @@ class SinglePersonJobExecutor:
         # Handle memorize_to feature - unified memory management
         memorize_to = getattr(node, "memorize_to", None)
         at_most = getattr(node, "at_most", None)
+        ignore_person = getattr(node, "ignore_person", None)
 
         # Prepare template values for prompt building
         input_values = self._prompt_builder.prepare_template_values(transformed_inputs)
@@ -247,6 +248,7 @@ class SinglePersonJobExecutor:
         result, incoming_msg, response_msg, selected_messages = await person.complete_with_memory(
             all_messages=all_messages,
             memorize_to=memorize_to,
+            ignore_person=ignore_person,
             at_most=at_most,
             prompt_preview=task_preview,
             **complete_kwargs,

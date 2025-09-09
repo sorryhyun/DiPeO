@@ -44,12 +44,12 @@ persons:
       Every file must be immediately usable with no placeholders or TODOs.
 
   Frontend Generator:
-    service: openai
-    model: gpt-5-mini-2025-08-07
-    api_key_id: APIKEY_52609F
-#    service: claude-code
-#    model: claude-code
-#    api_key_id: APIKEY_CLAUDE
+#    service: openai
+#    model: gpt-5-mini-2025-08-07
+#    api_key_id: APIKEY_52609F
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
 
@@ -62,13 +62,13 @@ persons:
 
 
   Frontend Verdict:
-    service: openai
-    model: gpt-5-mini-2025-08-07
-    api_key_id: APIKEY_52609F
-  #   service: claude-code
-  #   model: claude-code
-  #   api_key_id: APIKEY_CLAUDE
-    system_prompt: |
+#    service: openai
+#    model: gpt-5-mini-2025-08-07
+#    api_key_id: APIKEY_52609F
+     service: claude-code
+     model: claude-code
+     api_key_id: APIKEY_CLAUDE
+     system_prompt: |
       You are an expert React/TypeScript engineer.
 
 nodes:
@@ -221,13 +221,14 @@ nodes:
 
   - label: Generate Frontend Code
     type: person_job
-    position: {x: 2200, y: 800}
+    position: {x: 2100, y: 850}
     props:
       person: Frontend Generator
       max_iteration: 100
       memorize_to: "Only prior sections that this file imports or explicitly depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
       at_most: 7
       prompt_file: frontend_generator.txt
+      ignore_person: Frontend Verdict
 
   - label: Check Output Quality
     type: condition
@@ -250,7 +251,7 @@ nodes:
 
   - label: load code for revise
     type: db
-    position: { x: 2600, y: 800 }
+    position: { x: 2600, y: 850 }
     props:
       operation: read
       sub_type: file
@@ -269,7 +270,7 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 2200, y: 1000}
+    position: {x: 2100, y: 1000}
     props:
       operation: write
       sub_type: file
@@ -290,7 +291,7 @@ nodes:
 
   - label: load Data more
     type: db
-    position: {x: 2600, y: 800}
+    position: {x: 2800, y: 500}
     props:
       operation: read
       sub_type: file
@@ -299,7 +300,7 @@ nodes:
 
   - label: load Data wow
     type: db
-    position: {x: 2600, y: 800}
+    position: {x: 2400, y: 500}
     props:
       operation: read
       sub_type: file
@@ -308,7 +309,7 @@ nodes:
 
   - label: Rename Files
     type: code_job
-    position: {x: 3000, y: 1200}
+    position: {x: 2000, y: 1200}
     props:
       language: python
       filePath: projects/frontend_auto/rename_generated_files.py
@@ -316,7 +317,7 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 3300, y: 1200}
+    position: {x: 2200, y: 1200}
     props:
       save_to_file: false
 

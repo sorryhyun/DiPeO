@@ -201,6 +201,7 @@ def create_executable_node(
             max_iteration=data.get('max_iteration', None),
             memorize_to=data.get('memorize_to', None),
             at_most=data.get('at_most', None),
+            ignore_person=data.get('ignore_person', None),
             tools=data.get('tools', None),
             text_format=data.get('text_format', None),
             text_format_file=data.get('text_format_file', None),

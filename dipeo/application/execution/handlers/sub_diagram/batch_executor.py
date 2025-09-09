@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
+from dipeo.config.execution import SUB_DIAGRAM_BATCH_SIZE, SUB_DIAGRAM_MAX_CONCURRENT
 from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -29,8 +30,8 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
     """Executor for batch sub-diagram execution with optimizations for parallel processing."""
 
     # Default configuration for batch execution
-    DEFAULT_MAX_CONCURRENT = 10  # Maximum concurrent executions
-    DEFAULT_BATCH_SIZE = 100  # Maximum items to process in one batch
+    DEFAULT_MAX_CONCURRENT = SUB_DIAGRAM_MAX_CONCURRENT  # Maximum concurrent executions
+    DEFAULT_BATCH_SIZE = SUB_DIAGRAM_BATCH_SIZE  # Maximum items to process in one batch
 
     def __init__(self):
         """Initialize executor."""

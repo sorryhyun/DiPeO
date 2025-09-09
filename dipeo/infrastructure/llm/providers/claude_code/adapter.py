@@ -5,7 +5,17 @@ import re
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
+from claude_code_sdk import ClaudeCodeOptions
+
+from dipeo.config.llm import CLAUDE_MAX_CONTEXT_LENGTH, CLAUDE_MAX_OUTPUT_TOKENS
+from dipeo.config.provider_capabilities import (
+    ProviderType as ConfigProviderType,
+)
+from dipeo.config.provider_capabilities import (
+    get_provider_capabilities_object,
+)
 from dipeo.diagram_generated import Message, ToolConfig
+from dipeo.diagram_generated.domain_models import LLMUsage
 
 from ...capabilities import (
     RetryHandler,
@@ -21,10 +31,9 @@ from ...core.types import (
     RetryConfig,
     StreamConfig,
     StreamingMode,
-    TokenUsage,
 )
-from ...processors import MessageProcessor, ResponseProcessor, TokenCounter
-from .client import AsyncClaudeCodeClientWrapper, ClaudeCodeClientWrapper
+from ...processors import MessageProcessor, ResponseProcessor
+from .client import ClientType, QueryClientWrapper
 from .prompts import DIRECT_EXECUTION_PROMPT, LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -35,11 +44,10 @@ class ClaudeCodeAdapter(UnifiedAdapter):
 
     def __init__(self, config: AdapterConfig):
         """Initialize Claude Code adapter."""
-        # Initialize clients first (needed by parent __init__)
-        self.sync_client_wrapper = ClaudeCodeClientWrapper(config)
-        self.async_client_wrapper = AsyncClaudeCodeClientWrapper(config)
+        # Store config for QueryClientWrapper creation
+        self.adapter_config = config
 
-        # Now call parent __init__ which will use _create_sync_client and _create_async_client
+        # Now call parent __init__
         super().__init__(config)
 
         # Initialize capabilities (limited compared to standard Anthropic)
@@ -58,35 +66,24 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         # Initialize processors
         self.message_processor = MessageProcessor(ProviderType.ANTHROPIC)
         self.response_processor = ResponseProcessor(ProviderType.ANTHROPIC)
-        self.token_counter = TokenCounter(ProviderType.ANTHROPIC)
 
     def _get_capabilities(self) -> ProviderCapabilities:
-        """Get Claude Code provider capabilities."""
-        return ProviderCapabilities(
-            supports_async=True,
-            supports_streaming=True,
-            supports_tools=False,  # Claude Code SDK doesn't support tools in the same way
-            supports_structured_output=False,  # Limited structured output support
-            supports_vision=False,
-            supports_web_search=False,
-            supports_image_generation=False,
-            supports_computer_use=True,  # Claude Code specific capability
-            max_context_length=200000,
-            max_output_tokens=8192,
-            supported_models={
-                "claude-code",
-                "claude-code-sdk",
-            },
-            streaming_modes={StreamingMode.SSE},
+        """Get Claude Code provider capabilities from centralized config."""
+        return get_provider_capabilities_object(
+            ConfigProviderType.CLAUDE_CODE,
+            max_context_length=CLAUDE_MAX_CONTEXT_LENGTH,
+            max_output_tokens=CLAUDE_MAX_OUTPUT_TOKENS,
         )
 
     def _create_sync_client(self):
         """Create synchronous client."""
-        return self.sync_client_wrapper
+        # QueryClientWrapper is created per request
+        return None
 
     async def _create_async_client(self):
         """Create asynchronous client."""
-        return self.async_client_wrapper
+        # QueryClientWrapper is created per request
+        return None
 
     def validate_model(self, model: str) -> bool:
         """Validate if model is supported."""
@@ -135,6 +132,28 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         else:
             return ""
 
+    def _format_messages_as_query(self, messages: list[dict[str, Any]]) -> str:
+        """Format messages as a query string for Claude Code SDK."""
+        if not messages:
+            return ""
+
+        # If there's only one message, return its content directly
+        if len(messages) == 1:
+            msg = messages[0]
+            return msg.get("content", "")
+
+        # For multiple messages, format as conversation
+        formatted_parts = []
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role == "assistant":
+                formatted_parts.append(f"Assistant: {content}")
+            else:
+                formatted_parts.append(f"Human: {content}")
+
+        return "\n\n".join(formatted_parts)
+
     def prepare_messages(self, messages: list[Message]) -> tuple[list[dict[str, Any]], str | None]:
         """Prepare messages for Claude Code SDK, extracting system prompt."""
         # Extract system prompt
@@ -172,8 +191,9 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         # Prepare messages and extract system prompt
         prepared_messages, user_system_prompt = self.prepare_messages(messages)
 
-        # Build complete system prompt with phase
-        system_prompt = self._build_system_prompt(user_system_prompt, execution_phase)
+        # For Claude Code, we'll pass the execution phase and let the client handle the system prompt
+        # This allows proper client reuse with fixed system prompts
+        system_prompt = user_system_prompt  # Pass user system prompt directly
 
         # Log phase usage
         if execution_phase and execution_phase != ExecutionPhase.DEFAULT:
@@ -191,40 +211,29 @@ class ClaudeCodeAdapter(UnifiedAdapter):
             )
             kwargs["execution_phase"] = phase_value
 
-        # Execute with retry
-        @self.retry_handler.with_retry
-        def _execute():
-            return self.sync_client_wrapper.chat_completion(
-                messages=prepared_messages,
-                model=self.model,
+        # Note: Synchronous execution not supported with QueryClientWrapper
+        # Claude Code SDK's query() is async-only
+        import asyncio
+
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If we're already in an async context, we can't use sync
+            raise RuntimeError(
+                "Synchronous chat not supported in async context. Use async_chat instead."
+            )
+
+        # Run the async version synchronously
+        return loop.run_until_complete(
+            self.async_chat(
+                messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                system=system_prompt,
+                tools=tools,
+                response_format=response_format,
+                execution_phase=execution_phase,
                 **kwargs,
             )
-
-        raw_response = _execute()
-
-        # Extract token usage from response
-        token_usage = None
-        if "usage" in raw_response:
-            usage_data = raw_response["usage"]
-            token_usage = TokenUsage(
-                input_tokens=usage_data.get("prompt_tokens", 0),
-                output_tokens=usage_data.get("completion_tokens", 0),
-                total_tokens=usage_data.get("total_tokens", 0),
-            )
-
-        # Process response
-        response = LLMResponse(
-            content=raw_response.get("content", ""),
-            model=self.model,
-            provider=ProviderType.ANTHROPIC,
-            usage=token_usage,
-            raw_response=raw_response.get("metadata"),
         )
-
-        return response
 
     async def async_chat(
         self,
@@ -244,8 +253,9 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         # Prepare messages and extract system prompt
         prepared_messages, user_system_prompt = self.prepare_messages(messages)
 
-        # Build complete system prompt with phase
-        system_prompt = self._build_system_prompt(user_system_prompt, execution_phase)
+        # For Claude Code, we'll pass the execution phase and let the client handle the system prompt
+        # This allows proper client reuse with fixed system prompts
+        system_prompt = user_system_prompt  # Pass user system prompt directly
 
         # Log phase usage
         if execution_phase and execution_phase != ExecutionPhase.DEFAULT:
@@ -263,37 +273,80 @@ class ClaudeCodeAdapter(UnifiedAdapter):
             )
             kwargs["execution_phase"] = phase_value
 
-        # Execute with retry
+        # Determine client type based on execution phase
+        client_type = ClientType.DEFAULT
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+            client_type = ClientType.MEMORY_SELECTION
+        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            client_type = ClientType.DECISION_EVALUATION
+        elif execution_phase == ExecutionPhase.DIRECT_EXECUTION:
+            client_type = ClientType.DIRECT_EXECUTION
+
+        # Build system prompt based on phase
+        final_system_prompt = self._build_system_prompt(system_prompt, execution_phase)
+
+        # Create ClaudeCodeOptions
+        options_dict = {}
+        if final_system_prompt:
+            options_dict["system_prompt"] = final_system_prompt
+        options_dict["max_turns"] = kwargs.get("max_turns", 1)
+        options_dict["continue_conversation"] = False
+        options = ClaudeCodeOptions(**options_dict)
+
+        # Format messages as query
+        query = self._format_messages_as_query(prepared_messages)
+
+        # Execute with QueryClientWrapper
+        full_text = ""
+        input_tokens = 0
+        output_tokens = 0
+        metadata = {}
+
         @self.retry_handler.with_async_retry
         async def _execute():
-            return await self.async_client_wrapper.chat_completion(
-                messages=prepared_messages,
-                model=self.model,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                system=system_prompt,
-                **kwargs,
-            )
+            nonlocal full_text, input_tokens, output_tokens, metadata
+            async with QueryClientWrapper(options, execution_phase=client_type.value) as wrapper:
+                async for message in wrapper.query(query):
+                    # Extract content
+                    if hasattr(message, "content"):
+                        for block in message.content:
+                            if hasattr(block, "text"):
+                                full_text += block.text
 
-        raw_response = await _execute()
+                    # Extract token usage
+                    if hasattr(message, "usage"):
+                        if hasattr(message.usage, "input_tokens"):
+                            input_tokens = message.usage.input_tokens
+                        if hasattr(message.usage, "output_tokens"):
+                            output_tokens = message.usage.output_tokens
 
-        # Extract token usage from response
+                    # Capture metadata
+                    if type(message).__name__ == "ResultMessage":
+                        if hasattr(message, "total_cost_usd"):
+                            metadata["cost"] = message.total_cost_usd
+                        if hasattr(message, "duration_ms"):
+                            metadata["duration_ms"] = message.duration_ms
+
+            return full_text
+
+        await _execute()
+
+        # Create token usage
         token_usage = None
-        if "usage" in raw_response:
-            usage_data = raw_response["usage"]
-            token_usage = TokenUsage(
-                input_tokens=usage_data.get("prompt_tokens", 0),
-                output_tokens=usage_data.get("completion_tokens", 0),
-                total_tokens=usage_data.get("total_tokens", 0),
+        if input_tokens or output_tokens:
+            token_usage = LLMUsage(
+                input=input_tokens,
+                output=output_tokens,
+                total=input_tokens + output_tokens,
             )
 
         # Process response
         response = LLMResponse(
-            content=raw_response.get("content", ""),
+            content=full_text,
             model=self.model,
             provider=ProviderType.ANTHROPIC,
             usage=token_usage,
-            raw_response=raw_response.get("metadata"),
+            raw_response=metadata,
         )
 
         return response

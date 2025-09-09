@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from dipeo.config.llm import DEFAULT_TEMPERATURE
+from dipeo.diagram_generated.domain_models import LLMUsage
 from dipeo.diagram_generated.enums import ExecutionPhase
 
 
@@ -65,31 +66,13 @@ class AdapterConfig:
 
 
 @dataclass
-class TokenUsage:
-    """Token usage statistics."""
-
-    input_tokens: int = 0
-    output_tokens: int = 0
-    total_tokens: int = 0
-
-    def __post_init__(self):
-        if self.total_tokens == 0:
-            self.total_tokens = self.input_tokens + self.output_tokens
-
-    @property
-    def total(self) -> int:
-        """Compatibility property for code expecting 'total' attribute."""
-        return self.total_tokens
-
-
-@dataclass
 class LLMResponse:
     """Unified LLM response structure."""
 
     content: str
     model: str
     provider: ProviderType
-    usage: TokenUsage | None = None
+    usage: LLMUsage | None = None
     tool_outputs: list[Any] | None = None
     structured_output: Any | None = None
     raw_response: Any | None = None
@@ -101,7 +84,7 @@ class LLMResponse:
         return self.content
 
     @property
-    def token_usage(self) -> TokenUsage | None:
+    def token_usage(self) -> LLMUsage | None:
         """Compatibility property for code expecting 'token_usage' attribute."""
         return self.usage
 

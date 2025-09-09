@@ -51,6 +51,8 @@ class PersonJobNode(BaseModel):
     
     at_most: Optional[float] = Field(default=None, description="Select at most N messages to keep (system messages may be preserved in addition).")
     
+    ignore_person: Optional[str] = Field(default=None, description="Comma-separated list of person IDs whose messages should be excluded from memory selection.")
+    
     tools: Optional[List[ToolConfig]] = Field(default=None, description="Tools available to the AI agent")
     
     text_format: Optional[str] = Field(default=None, description="JSON schema or response format for structured outputs")
@@ -100,6 +102,7 @@ class PersonJobNode(BaseModel):
         data["max_iteration"] = self.max_iteration
         data["memorize_to"] = self.memorize_to
         data["at_most"] = self.at_most
+        data["ignore_person"] = self.ignore_person
         data["tools"] = self.tools
         data["text_format"] = self.text_format
         data["text_format_file"] = self.text_format_file

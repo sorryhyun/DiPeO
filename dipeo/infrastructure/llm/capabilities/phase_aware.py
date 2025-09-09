@@ -3,7 +3,11 @@
 import logging
 from typing import Any
 
-from dipeo.config.llm import MEMORY_SELECTION_MAX_TOKENS, MEMORY_SELECTION_TEMPERATURE
+from dipeo.config.llm import (
+    DECISION_EVALUATION_MAX_TOKENS,
+    MEMORY_SELECTION_MAX_TOKENS,
+    MEMORY_SELECTION_TEMPERATURE,
+)
 from dipeo.diagram_generated import Message
 
 from ..core.types import DecisionOutput, ExecutionPhase, MemorySelectionOutput, ProviderType
@@ -128,7 +132,7 @@ class PhaseHandler:
         elif phase == ExecutionPhase.DECISION_EVALUATION:
             # Decision evaluation needs structured output for binary decisions
             params["temperature"] = 0  # Deterministic decisions
-            params["max_tokens"] = 8000  # Decisions should be concise
+            params["max_tokens"] = DECISION_EVALUATION_MAX_TOKENS  # Decisions should be concise
 
             if self.provider == ProviderType.OPENAI:
                 # OpenAI will use DecisionOutput model via structured_output.py
@@ -191,45 +195,10 @@ class PhaseHandler:
 
         if self.provider == ProviderType.OPENAI:
             # OpenAI structured output from parse() API
-            if hasattr(response, "output_parsed") and response.output_parsed:
-                # output_parsed is already a DecisionOutput instance
-                if isinstance(response.output_parsed, DecisionOutput):
-                    return response.output_parsed
-                # If it's a dict, convert to DecisionOutput
-                elif isinstance(response.output_parsed, dict):
-                    return DecisionOutput(
-                        decision=response.output_parsed.get("decision", False),
-                        reasoning=response.output_parsed.get("reasoning", None),
-                    )
-                # If it's another Pydantic model with decision field
-                elif hasattr(response.output_parsed, "decision"):
-                    return DecisionOutput(
-                        decision=response.output_parsed.decision,
-                        reasoning=getattr(response.output_parsed, "reasoning", None),
-                    )
-            # Fallback to old format for compatibility
-            elif hasattr(response, "parsed") and response.parsed:
-                return DecisionOutput(
-                    decision=response.parsed.get("decision", False),
-                    reasoning=response.parsed.get("reasoning", None),
-                )
-            # Handle new OpenAI response format
-            elif hasattr(response, "output") and isinstance(response.output, list):
-                # Extract text from new format response
-                for message in response.output:
-                    if hasattr(message, "content") and isinstance(message.content, list):
-                        text_parts = []
-                        for content_block in message.content:
-                            if hasattr(content_block, "text"):
-                                text_parts.append(content_block.text)
-                        if text_parts:
-                            content = "".join(text_parts)
-                            content_lower = content.lower().strip()
-                            if content_lower.startswith("yes"):
-                                decision = True
-                            elif content_lower.startswith("no"):
-                                decision = False
-                            return DecisionOutput(decision=decision)
+            if hasattr(response, "output_parsed") and isinstance(
+                response.output_parsed, DecisionOutput
+            ):
+                return response.output_parsed
 
         # Fallback: parse from text
         content = None

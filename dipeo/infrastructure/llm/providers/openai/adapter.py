@@ -4,6 +4,13 @@ import logging
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
+from dipeo.config.llm import OPENAI_MAX_CONTEXT_LENGTH, OPENAI_MAX_OUTPUT_TOKENS
+from dipeo.config.provider_capabilities import (
+    ProviderType as ConfigProviderType,
+)
+from dipeo.config.provider_capabilities import (
+    get_provider_capabilities_object,
+)
 from dipeo.diagram_generated import Message, ToolConfig
 
 from ...capabilities import (
@@ -24,7 +31,7 @@ from ...core.types import (
     StreamConfig,
     StreamingMode,
 )
-from ...processors import MessageProcessor, ResponseProcessor, TokenCounter
+from ...processors import MessageProcessor, ResponseProcessor
 from .client import AsyncOpenAIClientWrapper, OpenAIClientWrapper
 
 logger = logging.getLogger(__name__)
@@ -61,32 +68,13 @@ class OpenAIAdapter(UnifiedAdapter):
         # Initialize processors
         self.message_processor = MessageProcessor(ProviderType.OPENAI)
         self.response_processor = ResponseProcessor(ProviderType.OPENAI)
-        self.token_counter = TokenCounter(ProviderType.OPENAI)
 
     def _get_capabilities(self) -> ProviderCapabilities:
-        """Get OpenAI provider capabilities."""
-        return ProviderCapabilities(
-            supports_async=True,
-            supports_streaming=True,
-            supports_tools=True,
-            supports_structured_output=True,
-            supports_vision=True,
-            supports_web_search=True,
-            supports_image_generation=True,
-            supports_computer_use=False,
-            max_context_length=128000,  # GPT-4o default
-            max_output_tokens=4096,
-            supported_models={
-                "gpt-5-nano-2025-08-07",
-                "gpt-4o",
-                "gpt-4o-mini",
-                "gpt-4-turbo",
-                "gpt-4",
-                "gpt-3.5-turbo",
-                "o3",
-                "o3-mini",
-            },
-            streaming_modes={StreamingMode.NONE, StreamingMode.SSE},
+        """Get OpenAI provider capabilities from centralized config."""
+        return get_provider_capabilities_object(
+            ConfigProviderType.OPENAI,
+            max_context_length=OPENAI_MAX_CONTEXT_LENGTH,
+            max_output_tokens=OPENAI_MAX_OUTPUT_TOKENS,
         )
 
     def _create_sync_client(self):

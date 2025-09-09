@@ -6,7 +6,15 @@ from typing import Any
 
 from google.genai import types
 
+from dipeo.config.llm import GOOGLE_MAX_CONTEXT_LENGTH, GOOGLE_MAX_OUTPUT_TOKENS
+from dipeo.config.provider_capabilities import (
+    ProviderType as ConfigProviderType,
+)
+from dipeo.config.provider_capabilities import (
+    get_provider_capabilities_object,
+)
 from dipeo.diagram_generated import Message, ToolConfig
+from dipeo.diagram_generated.domain_models import LLMUsage
 
 from ...capabilities import (
     RetryHandler,
@@ -25,7 +33,7 @@ from ...core.types import (
     StreamConfig,
     StreamingMode,
 )
-from ...processors import MessageProcessor, ResponseProcessor, TokenCounter
+from ...processors import MessageProcessor, ResponseProcessor
 from .client import AsyncGoogleClientWrapper, GoogleClientWrapper
 
 logger = logging.getLogger(__name__)
@@ -61,33 +69,13 @@ class GoogleAdapter(UnifiedAdapter):
         # Initialize processors
         self.message_processor = MessageProcessor(ProviderType.GOOGLE)
         self.response_processor = ResponseProcessor(ProviderType.GOOGLE)
-        self.token_counter = TokenCounter(ProviderType.GOOGLE)
 
     def _get_capabilities(self) -> ProviderCapabilities:
-        """Get Google provider capabilities."""
-        return ProviderCapabilities(
-            supports_async=True,
-            supports_streaming=True,
-            supports_tools=True,
-            supports_structured_output=True,
-            supports_vision=True,
-            supports_web_search=True,  # Via tools
-            supports_image_generation=True,  # Via Imagen
-            supports_computer_use=False,
-            max_context_length=1048576,  # Gemini 1.5 Pro context window
-            max_output_tokens=8192,
-            supported_models={
-                "gemini-1.5-pro",
-                "gemini-1.5-pro-latest",
-                "gemini-1.5-flash",
-                "gemini-1.5-flash-latest",
-                "gemini-2.0-flash-exp",
-                "gemini-pro",
-                "gemini-pro-vision",
-                "text-bison-001",
-                "chat-bison-001",
-            },
-            streaming_modes={StreamingMode.NONE, StreamingMode.SSE},
+        """Get Google provider capabilities from centralized config."""
+        return get_provider_capabilities_object(
+            ConfigProviderType.GOOGLE,
+            max_context_length=GOOGLE_MAX_CONTEXT_LENGTH,
+            max_output_tokens=GOOGLE_MAX_OUTPUT_TOKENS,
         )
 
     def _create_sync_client(self):
@@ -196,8 +184,7 @@ class GoogleAdapter(UnifiedAdapter):
         prepared_messages, system_prompt = self.prepare_messages(messages)
 
         # Validate token limit
-        if not self.token_counter.validate_token_limit(prepared_messages, self.model, max_tokens):
-            raise ValueError("Messages exceed model's context limit")
+        # Token validation is now handled by the API itself
 
         # Prepare tools
         api_tools = self._prepare_tools(tools) if tools else None
@@ -239,16 +226,10 @@ class GoogleAdapter(UnifiedAdapter):
         if hasattr(raw_response, "usage_metadata"):
             usage = raw_response.usage_metadata
             if hasattr(usage, "prompt_token_count") and hasattr(usage, "candidates_token_count"):
-                token_usage = self.token_counter.extract_token_usage(
-                    {
-                        "usage_metadata": {
-                            "prompt_token_count": usage.prompt_token_count,
-                            "candidates_token_count": usage.candidates_token_count,
-                            "total_token_count": usage.prompt_token_count
-                            + usage.candidates_token_count,
-                        }
-                    },
-                    self.model,
+                token_usage = LLMUsage(
+                    input=usage.prompt_token_count,
+                    output=usage.candidates_token_count,
+                    total=usage.prompt_token_count + usage.candidates_token_count,
                 )
 
         response = LLMResponse(
@@ -278,8 +259,7 @@ class GoogleAdapter(UnifiedAdapter):
         prepared_messages, system_prompt = self.prepare_messages(messages)
 
         # Validate token limit
-        if not self.token_counter.validate_token_limit(prepared_messages, self.model, max_tokens):
-            raise ValueError("Messages exceed model's context limit")
+        # Token validation is now handled by the API itself
 
         # Prepare tools
         api_tools = self._prepare_tools(tools) if tools else None
@@ -321,16 +301,10 @@ class GoogleAdapter(UnifiedAdapter):
         if hasattr(raw_response, "usage_metadata"):
             usage = raw_response.usage_metadata
             if hasattr(usage, "prompt_token_count") and hasattr(usage, "candidates_token_count"):
-                token_usage = self.token_counter.extract_token_usage(
-                    {
-                        "usage_metadata": {
-                            "prompt_token_count": usage.prompt_token_count,
-                            "candidates_token_count": usage.candidates_token_count,
-                            "total_token_count": usage.prompt_token_count
-                            + usage.candidates_token_count,
-                        }
-                    },
-                    self.model,
+                token_usage = LLMUsage(
+                    input=usage.prompt_token_count,
+                    output=usage.candidates_token_count,
+                    total=usage.prompt_token_count + usage.candidates_token_count,
                 )
 
         response = LLMResponse(

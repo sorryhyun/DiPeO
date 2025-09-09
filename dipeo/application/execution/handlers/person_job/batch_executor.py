@@ -5,6 +5,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.config.execution import BATCH_MAX_CONCURRENT, BATCH_SIZE
 from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
@@ -20,8 +21,8 @@ class BatchPersonJobExecutor:
     """Executor for batch person job execution with optimizations for parallel processing."""
 
     # Default configuration for batch execution
-    DEFAULT_MAX_CONCURRENT = 10  # Maximum concurrent executions
-    DEFAULT_BATCH_SIZE = 100  # Maximum items to process in one batch
+    DEFAULT_MAX_CONCURRENT = BATCH_MAX_CONCURRENT  # Maximum concurrent executions
+    DEFAULT_BATCH_SIZE = BATCH_SIZE  # Maximum items to process in one batch
 
     def __init__(self):
         """Initialize the batch executor."""

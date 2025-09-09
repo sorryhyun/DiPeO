@@ -202,18 +202,8 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
                 if isinstance(result, ChatResult):
                     return result
 
-                # Convert token usage from infrastructure TokenUsage to domain LLMUsage
-                llm_usage = None
-                if hasattr(result, "usage") and result.usage:
-                    # Import the domain LLMUsage model
-                    from dipeo.diagram_generated.domain_models import LLMUsage
-
-                    # Convert infrastructure TokenUsage (dataclass) to domain LLMUsage (Pydantic)
-                    llm_usage = LLMUsage(
-                        input=result.usage.input_tokens,
-                        output=result.usage.output_tokens,
-                        total=result.usage.total_tokens,
-                    )
+                # Extract LLMUsage directly (no conversion needed)
+                llm_usage = result.usage if hasattr(result, "usage") else None
 
                 # Convert LLMResponse to ChatResult
                 chat_result = ChatResult(

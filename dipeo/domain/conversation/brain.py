@@ -6,6 +6,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional, TypedDict
 
+from dipeo.config.memory import (
+    MEMORY_CONTENT_KEY_LENGTH,
+    MEMORY_DECAY_FACTOR,
+    MEMORY_HARD_CAP,
+    MEMORY_SCORING_WEIGHTS,
+    MEMORY_WORD_OVERLAP_THRESHOLD,
+)
 from dipeo.diagram_generated.domain_models import Message, PersonID
 
 if TYPE_CHECKING:
@@ -26,17 +33,10 @@ class ScoringWeights(TypedDict):
 class MemorySelectionConfig:
     """Configuration for memory selection behavior."""
 
-    hard_cap: int = 150  # Maximum messages to show in listing
-    decay_factor: int = 3600  # 1 hour in seconds for recency decay
-    default_weights: ScoringWeights = field(
-        default_factory=lambda: {
-            "recency": 0.7,  # 60% weight on recency
-            "frequency": 0.3,  # 40% weight on frequency
-            "relevance": 0.0,  # Not used currently
-            "position": 0.0,  # Not used currently
-        }
-    )
-    word_overlap_threshold: float = 0.8  # 80% word overlap for deduplication
+    hard_cap: int = MEMORY_HARD_CAP  # Maximum messages to show in listing
+    decay_factor: int = MEMORY_DECAY_FACTOR  # Seconds for recency decay
+    default_weights: ScoringWeights = field(default_factory=lambda: MEMORY_SCORING_WEIGHTS.copy())
+    word_overlap_threshold: float = MEMORY_WORD_OVERLAP_THRESHOLD  # Word overlap for deduplication
 
 
 class MessageScorer:
@@ -162,7 +162,7 @@ class MessageDeduplicator:
                 continue
 
             # Get content for deduplication check
-            content_key = (message.content or "")[:400].strip()
+            content_key = (message.content or "")[:MEMORY_CONTENT_KEY_LENGTH].strip()
 
             # Check if this message is a duplicate of an existing one
             is_duplicate = False
@@ -217,6 +217,7 @@ class CognitiveBrain:
         candidate_messages: Sequence[Message],
         prompt_preview: str,
         memorize_to: str | None,
+        ignore_person: str | None,
         at_most: int | None,
         **kwargs,
     ) -> list[Message] | None:
@@ -227,6 +228,7 @@ class CognitiveBrain:
             candidate_messages: Messages to select from
             prompt_preview: Preview of the upcoming task
             memorize_to: Selection criteria (GOLDFISH for empty, string for LLM selection)
+            ignore_person: Comma-separated list of person IDs whose messages to exclude
             at_most: Maximum messages to select
             **kwargs: Additional parameters for the memory selector
 
@@ -245,7 +247,13 @@ class CognitiveBrain:
         # Preprocess messages: deduplicate, score, sort, and take top candidates
         current_time = datetime.now()
 
-        # Filter out selector facet messages
+        # Parse ignore_person list if provided
+        ignored_persons = set()
+        if ignore_person:
+            # Split by comma and strip whitespace
+            ignored_persons = {p.strip() for p in ignore_person.split(",") if p.strip()}
+
+        # Filter out selector facet messages and ignored persons
         filtered_candidates = []
 
         for msg in candidate_messages:
@@ -254,6 +262,13 @@ class CognitiveBrain:
                 continue
             if msg.to_person_id and ".__selector" in str(msg.to_person_id):
                 continue
+
+            # Skip messages from ignored persons
+            if ignored_persons and msg.from_person_id:
+                # Convert PersonID to string for comparison
+                from_person_str = str(msg.from_person_id)
+                if from_person_str in ignored_persons:
+                    continue
 
             # Include all other messages (including system messages) as candidates
             filtered_candidates.append(msg)

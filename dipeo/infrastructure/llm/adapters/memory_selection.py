@@ -6,6 +6,12 @@ import re
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+from dipeo.config.llm import MEMORY_SELECTION_MAX_TOKENS
+from dipeo.config.memory import (
+    MEMORY_CONTENT_SNIPPET_LENGTH,
+    MEMORY_CRITERIA_MAX_LENGTH,
+    MEMORY_TASK_PREVIEW_MAX_LENGTH,
+)
 from dipeo.config.services import LLMServiceName, normalize_service_name
 from dipeo.diagram_generated.domain_models import Message, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
@@ -153,8 +159,8 @@ class LLMMemorySelectionAdapter:
         facet = self._get_or_create_selector_facet(person_id, llm_service)
 
         # Build a compact selection prompt
-        preview = (task_preview or "")[:1200]
-        crit = (criteria or "").strip()[:750]
+        preview = (task_preview or "")[:MEMORY_TASK_PREVIEW_MAX_LENGTH]
+        crit = (criteria or "").strip()[:MEMORY_CRITERIA_MAX_LENGTH]
 
         # Create listing from candidate messages
         # If preprocessed=True, messages are already deduplicated, scored, and sorted
@@ -168,7 +174,7 @@ class LLMMemorySelectionAdapter:
                 continue
 
             # Get content snippet
-            content_key = (msg.content or "")[:250].strip()
+            content_key = (msg.content or "")[:MEMORY_CONTENT_SNIPPET_LENGTH].strip()
             snippet = content_key.replace("\n", " ")
 
             # Get sender name/label
@@ -191,9 +197,7 @@ class LLMMemorySelectionAdapter:
         # Build prompt with at_most constraint if specified
         constraint_text = ""
         if at_most and at_most > 0:
-            constraint_text = (
-                f"\nCONSTRAINT: Select at most {at_most} messages that best match the criteria.\n"
-            )
+            constraint_text = f"\nCONSTRAINT: Select at most {int(at_most)} messages that best match the criteria.\n"
 
         prompt = (
             "CANDIDATE MESSAGES (id (sender): snippet):\n"
@@ -212,7 +216,7 @@ class LLMMemorySelectionAdapter:
             "all_messages": [],  # Empty list - selector doesn't need conversation context
             "llm_service": llm_service,
             "temperature": 0,
-            "max_tokens": 8000,
+            "max_tokens": MEMORY_SELECTION_MAX_TOKENS,
         }
 
         # Always pass phase; adapters that care will use it
@@ -279,5 +283,5 @@ class LLMMemorySelectionAdapter:
                 else:
                     # No IDs found - treat as empty selection
                     ids = []
-
+        logger.info(f"[MemorySelector] Extracted memory ids: {ids}")
         return ids

@@ -111,6 +111,17 @@ export const personJobSpec: NodeSpecification = {
       }
     },
     {
+      name: "ignore_person",
+      type: "string",
+      required: false,
+      description: "Comma-separated list of person IDs whose messages should be excluded from memory selection.",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "e.g., assistant, user2",
+        column: 2
+      }
+    },
+    {
       name: "tools",
       type: "string",
       required: false,
