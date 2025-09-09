@@ -61,10 +61,12 @@ class QueryClientWrapper:
     async def __aenter__(self):
         """Enter context - create appropriate wrapper based on configuration."""
         # Try session pooling if enabled and system prompt is in options
+        # Note: Pooling is disabled for direct_execution phase to avoid file watcher accumulation
         if (
             SESSION_POOL_ENABLED
             and hasattr(self.options, "system_prompt")
             and self.options.system_prompt
+            and (str(self.execution_phase or "").lower() not in {"direct_execution"})
         ):
             try:
                 from .transport.warm_wrapper import SessionQueryWrapper
@@ -82,9 +84,12 @@ class QueryClientWrapper:
                 logger.warning(f"[QueryClientWrapper] Failed to initialize session pool: {e}")
                 self._wrapper = None
         else:
-            logger.debug(
-                "[QueryClientWrapper] Using default transport (pooling disabled or no system prompt)"
-            )
+            reason = "pooling disabled or no system prompt"
+            if str(self.execution_phase or "").lower() == "direct_execution":
+                reason = (
+                    "direct_execution phase (pooling disabled to prevent file watcher accumulation)"
+                )
+            logger.debug(f"[QueryClientWrapper] Using default transport ({reason})")
 
         return self
 
