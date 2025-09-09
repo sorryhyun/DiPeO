@@ -133,6 +133,17 @@ class QueryClientWrapper:
             ):
                 yield message
 
+    async def force_cleanup(self):
+        """Force cleanup of the session and subprocess on timeout.
+
+        This is called when a query times out to ensure proper cleanup.
+        """
+        if self._wrapper and hasattr(self._wrapper, "force_cleanup"):
+            await self._wrapper.force_cleanup()
+        # If no wrapper or no force_cleanup method, just clean up normally
+        elif self._wrapper:
+            await self.__aexit__(None, None, None)
+
     async def receive_messages(self):
         """Compatibility method for ClaudeSDKClient interface.
 

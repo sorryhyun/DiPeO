@@ -340,12 +340,11 @@ class ClaudeCodeAdapter(UnifiedAdapter):
                 # Cleanup the wrapper if it was created
                 if wrapper:
                     try:
-                        # Try to access the inner wrapper (SessionQueryWrapper)
-                        if hasattr(wrapper, "_wrapper") and wrapper._wrapper:
-                            # Force cleanup of the session and subprocess
-                            await wrapper._wrapper.force_cleanup()
+                        # Force cleanup of the session and subprocess
+                        if hasattr(wrapper, "force_cleanup"):
+                            await wrapper.force_cleanup()
                         else:
-                            # If no inner wrapper, still try to cleanup the QueryClientWrapper
+                            # Fall back to normal exit if no force_cleanup method
                             await wrapper.__aexit__(None, None, None)
                     except Exception as e:
                         logger.warning(f"Error during timeout cleanup: {e}")

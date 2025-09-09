@@ -131,16 +131,23 @@ class SessionClient:
             # Send the query
             await self.client.query(prompt, session_id=self.session_id)
 
-            # Stream responses
-            async for message in self.client.receive_messages():
-                yield message
+            # Stream responses with cancellation support
+            try:
+                async for message in self.client.receive_messages():
+                    yield message
 
-                # Check for completion
-                if hasattr(message, "result"):
-                    logger.debug(
-                        f"[SessionClient] Query {self.query_count} completed for session {self.session_id}"
-                    )
-                    break
+                    # Check for completion
+                    if hasattr(message, "result"):
+                        logger.debug(
+                            f"[SessionClient] Query {self.query_count} completed for session {self.session_id}"
+                        )
+                        break
+            except asyncio.CancelledError:
+                logger.warning(
+                    f"[SessionClient] Query cancelled for session {self.session_id} (query {self.query_count})"
+                )
+                # Re-raise to propagate cancellation
+                raise
 
         finally:
             self.is_busy = False
@@ -163,51 +170,86 @@ class SessionClient:
                 )
 
     async def force_disconnect(self) -> None:
-        """Force disconnect the client and kill only this session's subprocess."""
+        """Force disconnect gracefully: SDK disconnect → SIGTERM (wait) → SIGKILL."""
+        import asyncio
+        import os
+
         import psutil
 
-        logger.warning(f"[SessionClient] Force disconnecting session {self.session_id}")
+        # Check if we should proceed with disconnect
+        if self.is_busy:
+            logger.warning(
+                f"[SessionClient] Attempted to force disconnect busy session {self.session_id} - skipping"
+            )
+            return
 
-        # First try normal disconnect
+        logger.warning(
+            f"[SessionClient] Force disconnecting session {self.session_id} "
+            f"(connected={self.is_connected}, queries={self.query_count}/{self.max_queries})"
+        )
+
+        # Try SDK disconnect regardless of our local flag state
         try:
-            await self.disconnect()
+            await self.client.disconnect()
         except Exception as e:
             logger.debug(f"[SessionClient] Normal disconnect failed: {e}")
 
-        # Track if we killed the process
+        # Small grace for the SDK's message reader to drain
+        with contextlib.suppress(Exception):
+            await asyncio.sleep(float(os.getenv("DIPEO_SESSION_DISCONNECT_GRACE", "0.25")))
+
         killed = False
 
-        # Only kill the specific subprocess PID we tracked for this session
-        if hasattr(self, "subprocess_pid") and self.subprocess_pid:
+        pid = getattr(self, "subprocess_pid", None)
+        if pid:
             try:
-                proc = psutil.Process(self.subprocess_pid)
+                proc = psutil.Process(pid)
                 if proc.is_running():
+                    # Verify this is still our subprocess before terminating
+                    term_timeout = float(os.getenv("DIPEO_SESSION_TERM_TIMEOUT", "2.0"))
+                    kill_pg = os.getenv("DIPEO_SESSION_KILL_PG", "false").lower() == "true"
                     logger.warning(
-                        f"[SessionClient] Force killing tracked subprocess PID {self.subprocess_pid} for session {self.session_id}"
+                        f"[SessionClient] Terminating PID {pid} for session {self.session_id} "
+                        f"(timeout={term_timeout}s)"
                     )
-                    proc.kill()
-                    killed = True
+                    try:
+                        if kill_pg and hasattr(os, "killpg"):
+                            import os as _os
+                            import signal
+
+                            _os.killpg(_os.getpgid(pid), signal.SIGTERM)
+                        else:
+                            proc.terminate()
+                        proc.wait(timeout=term_timeout)
+                    except psutil.TimeoutExpired:
+                        logger.warning(f"[SessionClient] PID {pid} didn't exit; sending SIGKILL")
+                        if kill_pg and hasattr(os, "killpg"):
+                            import os as _os
+                            import signal
+
+                            _os.killpg(_os.getpgid(pid), signal.SIGKILL)
+                        else:
+                            proc.kill()
+                        killed = True
+                    except Exception as e:
+                        logger.debug(f"[SessionClient] terminate() raised: {e}; killing")
+                        proc.kill()
+                        killed = True
                 else:
-                    logger.debug(
-                        f"[SessionClient] Subprocess PID {self.subprocess_pid} already terminated"
-                    )
+                    logger.debug(f"[SessionClient] Subprocess PID {pid} already terminated")
             except psutil.NoSuchProcess:
-                logger.debug(
-                    f"[SessionClient] Subprocess PID {self.subprocess_pid} no longer exists"
-                )
+                logger.debug(f"[SessionClient] Subprocess PID {pid} no longer exists")
             except psutil.AccessDenied:
-                logger.warning(f"[SessionClient] Access denied to kill PID {self.subprocess_pid}")
+                logger.warning(f"[SessionClient] Access denied to control PID {pid}")
             except Exception as e:
-                logger.warning(
-                    f"[SessionClient] Error killing tracked PID {self.subprocess_pid}: {e}"
-                )
-        else:
-            logger.debug(f"[SessionClient] No subprocess PID tracked for session {self.session_id}")
+                logger.warning(f"[SessionClient] Error handling PID {pid}: {e}")
 
         self.is_connected = False
         if killed:
-            logger.info(
-                f"[SessionClient] Force disconnected session {self.session_id} and killed subprocess PID {self.subprocess_pid}"
+            logger.info(f"[SessionClient] Force disconnected session {self.session_id} (SIGKILL)")
+        else:
+            logger.debug(
+                f"[SessionClient] Force disconnected session {self.session_id} without SIGKILL"
             )
 
     def can_reuse(self) -> bool:
@@ -266,6 +308,7 @@ class SessionPool:
         self._stats = SessionStats()
         self._lock = asyncio.Lock()
         self._closed = False
+        self._cleanup_tasks: dict[str, asyncio.Task] = {}  # Track cleanup tasks by session_id
 
         logger.info(f"[SessionPool] Initialized pool '{pool_key}' with max_sessions={max_sessions}")
 
@@ -358,18 +401,21 @@ class SessionPool:
 
         self._sessions = active
 
-        # Remove expired sessions from pool and force disconnect
+        # Remove expired sessions from pool and schedule tracked cleanup
         for session in expired:
             logger.debug(
                 f"[SessionPool] Removed expired session {session.session_id} from pool '{self.pool_key}'"
             )
-            # Mark session as not connected to prevent reuse attempts
-            session.is_connected = False
-            # Force disconnect to kill subprocess
-            try:
-                await session.force_disconnect()
-            except Exception as e:
-                logger.debug(f"[SessionPool] Ignoring disconnect error for expired session: {e}")
+            # Cancel any existing cleanup task for this session
+            if session.session_id in self._cleanup_tasks:
+                self._cleanup_tasks[session.session_id].cancel()
+
+            # Create and track new cleanup task for expired sessions
+            # These need grace period since they may have been idle mid-stream
+            task = asyncio.create_task(
+                self._delayed_force_disconnect(session, SESSION_GRACE_PERIOD)
+            )
+            self._cleanup_tasks[session.session_id] = task
 
     async def _cleanup_unusable(self) -> None:
         """Remove sessions that can no longer be reused from the pool."""
@@ -385,19 +431,40 @@ class SessionPool:
 
         self._sessions = active
 
-        # Remove unusable sessions from pool and force disconnect
+        # Remove unusable sessions from pool with minimal delay for SDK cleanup
         for session in unusable:
             logger.debug(
                 f"[SessionPool] Removed unusable session {session.session_id} from pool '{self.pool_key}' "
                 f"(completed {session.query_count}/{session.max_queries} queries)"
             )
-            # Mark session as not connected to prevent reuse attempts
-            session.is_connected = False
-            # Force disconnect to kill subprocess
-            try:
+            # Cancel any existing cleanup task for this session
+            if session.session_id in self._cleanup_tasks:
+                self._cleanup_tasks[session.session_id].cancel()
+
+            # Schedule cleanup with minimal delay (0.5s) to let SDK finish its async context
+            # This is much shorter than expired sessions since the query just completed
+            task = asyncio.create_task(self._delayed_force_disconnect(session, 0.5))
+            self._cleanup_tasks[session.session_id] = task
+
+    async def _delayed_force_disconnect(self, session: SessionClient, delay: float) -> None:
+        """Avoid racing the SDK: wait a bit, then disconnect/terminate."""
+        try:
+            await asyncio.sleep(delay)
+            # Only proceed if session is still not busy and not in pool
+            if not session.is_busy and session not in self._sessions:
                 await session.force_disconnect()
-            except Exception as e:
-                logger.debug(f"[SessionPool] Error force disconnecting unusable session: {e}")
+            else:
+                logger.debug(
+                    f"[SessionPool] Skipping delayed cleanup for {session.session_id} "
+                    f"(is_busy={session.is_busy}, in_pool={session in self._sessions})"
+                )
+        except asyncio.CancelledError:
+            logger.debug(f"[SessionPool] Cleanup task cancelled for session {session.session_id}")
+        except Exception as e:
+            logger.debug(f"[SessionPool] Error (ignored) during delayed force_disconnect: {e}")
+        finally:
+            # Remove from tracked tasks
+            self._cleanup_tasks.pop(session.session_id, None)
 
     async def _disconnect_session(self, session: SessionClient) -> None:
         """Disconnect a session safely."""
@@ -431,6 +498,11 @@ class SessionPool:
         self._closed = True
 
         async with self._lock:
+            # Cancel all pending cleanup tasks
+            for task in self._cleanup_tasks.values():
+                task.cancel()
+            self._cleanup_tasks.clear()
+
             # Disconnect all sessions
             for session in self._sessions:
                 await self._disconnect_session(session)
