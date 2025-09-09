@@ -33,7 +33,7 @@ from ...core.types import (
     StreamingMode,
 )
 from ...processors import MessageProcessor, ResponseProcessor
-from .client import ClientType, QueryClientWrapper
+from .client import SESSION_POOL_ENABLED, QueryClientWrapper
 from .prompts import DIRECT_EXECUTION_PROMPT, LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -133,26 +133,32 @@ class ClaudeCodeAdapter(UnifiedAdapter):
             return ""
 
     def _format_messages_as_query(self, messages: list[dict[str, Any]]) -> str:
-        """Format messages as a query string for Claude Code SDK."""
+        """Format messages as JSONL for Claude Code SDK."""
         if not messages:
             return ""
 
-        # If there's only one message, return its content directly
-        if len(messages) == 1:
-            msg = messages[0]
-            return msg.get("content", "")
+        import json
 
-        # For multiple messages, format as conversation
-        formatted_parts = []
+        # Format each message as JSONL (one JSON object per line)
+        jsonl_lines = []
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
-            if role == "assistant":
-                formatted_parts.append(f"Assistant: {content}")
-            else:
-                formatted_parts.append(f"Human: {content}")
 
-        return "\n\n".join(formatted_parts)
+            # Map role to Claude Code SDK format
+            message_type = "assistant" if role == "assistant" else "user"
+
+            # Create the JSON object in Claude Code SDK format
+            json_obj = {
+                "type": message_type,
+                "message": {"role": role, "content": [{"type": "text", "text": content}]},
+            }
+
+            # Convert to JSON and add to lines
+            jsonl_lines.append(json.dumps(json_obj))
+
+        # Return JSONL format (one JSON object per line)
+        return "\n".join(jsonl_lines)
 
     def prepare_messages(self, messages: list[Message]) -> tuple[list[dict[str, Any]], str | None]:
         """Prepare messages for Claude Code SDK, extracting system prompt."""
@@ -195,13 +201,7 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         # This allows proper client reuse with fixed system prompts
         system_prompt = user_system_prompt  # Pass user system prompt directly
 
-        # Log phase usage
-        if execution_phase and execution_phase != ExecutionPhase.DEFAULT:
-            # Handle both string and ExecutionPhase enum
-            phase_value = (
-                execution_phase.value if hasattr(execution_phase, "value") else execution_phase
-            )
-            logger.debug(f"Claude Code adapter using {phase_value} phase")
+        # Phase usage handled silently
 
         # Add execution phase to kwargs for client
         if execution_phase:
@@ -257,13 +257,7 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         # This allows proper client reuse with fixed system prompts
         system_prompt = user_system_prompt  # Pass user system prompt directly
 
-        # Log phase usage
-        if execution_phase and execution_phase != ExecutionPhase.DEFAULT:
-            # Handle both string and ExecutionPhase enum
-            phase_value = (
-                execution_phase.value if hasattr(execution_phase, "value") else execution_phase
-            )
-            logger.debug(f"Claude Code adapter using {phase_value} phase")
+        # Phase usage handled silently
 
         # Add execution phase to kwargs for client
         if execution_phase:
@@ -272,15 +266,6 @@ class ClaudeCodeAdapter(UnifiedAdapter):
                 execution_phase.value if hasattr(execution_phase, "value") else execution_phase
             )
             kwargs["execution_phase"] = phase_value
-
-        # Determine client type based on execution phase
-        client_type = ClientType.DEFAULT
-        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-            client_type = ClientType.MEMORY_SELECTION
-        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
-            client_type = ClientType.DECISION_EVALUATION
-        elif execution_phase == ExecutionPhase.DIRECT_EXECUTION:
-            client_type = ClientType.DIRECT_EXECUTION
 
         # Build system prompt based on phase
         final_system_prompt = self._build_system_prompt(system_prompt, execution_phase)
@@ -296,6 +281,15 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         # Format messages as query
         query = self._format_messages_as_query(prepared_messages)
 
+        # Log if session pooling will be used
+        if SESSION_POOL_ENABLED and execution_phase in [
+            ExecutionPhase.MEMORY_SELECTION,
+            ExecutionPhase.DIRECT_EXECUTION,
+        ]:
+            logger.debug(
+                f"[ClaudeCodeAdapter] Session pooling eligible for phase {execution_phase}"
+            )
+
         # Execute with QueryClientWrapper
         full_text = ""
         input_tokens = 0
@@ -305,7 +299,10 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         @self.retry_handler.with_async_retry
         async def _execute():
             nonlocal full_text, input_tokens, output_tokens, metadata
-            async with QueryClientWrapper(options, execution_phase=client_type.value) as wrapper:
+            async with QueryClientWrapper(
+                options,
+                execution_phase=phase_value if execution_phase else "default",
+            ) as wrapper:
                 async for message in wrapper.query(query):
                     # Extract content
                     if hasattr(message, "content"):
@@ -394,7 +391,20 @@ class ClaudeCodeAdapter(UnifiedAdapter):
 
         stream = await _execute()
 
-        # Process stream chunks
+        # Process stream chunks from SDK (Message objects) or raw dicts
         async for chunk in stream:
-            if isinstance(chunk, dict) and "delta" in chunk and "content" in chunk["delta"]:
-                yield chunk["delta"]["content"]
+            # SDK Message object
+            if (
+                hasattr(chunk, "delta")
+                and isinstance(chunk.delta, dict)
+                and "content" in chunk.delta
+            ):
+                yield chunk.delta["content"]
+            elif hasattr(chunk, "content") and isinstance(chunk.content, str) and chunk.content:
+                yield chunk.content
+            # Raw dict fallback
+            elif isinstance(chunk, dict):
+                delta = chunk.get("delta") or {}
+                content = delta.get("content") or chunk.get("content")
+                if isinstance(content, str) and content:
+                    yield content

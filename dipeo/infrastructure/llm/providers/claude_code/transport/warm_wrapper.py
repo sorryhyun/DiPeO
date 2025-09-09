@@ -1,6 +1,7 @@
-"""Warm pool wrapper for Claude Code queries.
+"""Session pool wrapper for Claude Code queries.
 
-Uses WarmPool to maintain pre-connected clients, avoiding subprocess reuse issues.
+Supports session-based pooling for memory selection and system prompt persistence.
+Falls back to default SDK query when session pooling is disabled.
 """
 
 import logging
@@ -8,71 +9,71 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from claude_code_sdk import ClaudeCodeOptions
+from claude_code_sdk import query as sdk_query
 
-from .warm_pool import get_global_manager
+from .session_pool import (
+    SESSION_POOL_ENABLED,
+    get_global_session_manager,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class WarmQueryWrapper:
-    """Wrapper that uses warm pool for Claude Code queries.
+class SessionQueryWrapper:
+    """Wrapper that uses session-based pooling for Claude Code queries.
 
-    Each query gets a fresh client from the pool, avoiding
-    subprocess reuse issues while maintaining performance benefits.
+    Maintains connected sessions with system prompt configured in options
+    for efficient multi-query conversations with memory selection support.
     """
 
     def __init__(
         self,
         options: ClaudeCodeOptions,
         execution_phase: str = "default",
-        pool_size: int = 2,
     ):
-        """Initialize warm query wrapper.
+        """Initialize session query wrapper.
 
         Args:
-            options: Claude Code options
+            options: Claude Code options (includes system_prompt)
             execution_phase: Execution phase for pool key
-            pool_size: Size of warm pool
         """
         self.options = options
         self.execution_phase = execution_phase
-        self.pool_size = pool_size
+        self._session = None
         self._pool = None
-        self._client = None
-
-        logger.debug(
-            f"[WarmQueryWrapper] Created for phase={execution_phase}, " f"pool_size={pool_size}"
-        )
 
     async def __aenter__(self):
-        """Enter context - get pool and borrow client."""
-        # Get or create pool for this phase
-        manager = await get_global_manager()
-        self._pool = await manager.get_pool(self.options, self.execution_phase, self.pool_size)
+        """Enter context - get session pool and borrow session."""
+        # Get or create pool for this configuration
+        manager = await get_global_session_manager()
+        self._pool = await manager.get_or_create_pool(
+            options=self.options,
+            execution_phase=self.execution_phase,
+        )
 
-        # Borrow a client from the pool
-        self._client_context = self._pool.borrow()
-        self._client = await self._client_context.__aenter__()
+        # Borrow a session from the pool (will connect on-demand)
+        self._session = await self._pool.borrow()
 
         logger.debug(
-            f"[WarmQueryWrapper] Acquired client from pool " f"(phase={self.execution_phase})"
+            f"[SessionQueryWrapper] Borrowed session {self._session.session_id} "
+            f"for phase '{self.execution_phase}'"
         )
 
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Exit context - return client to pool."""
-        if self._client_context:
-            await self._client_context.__aexit__(exc_type, exc_val, exc_tb)
-            self._client = None
-            self._client_context = None
-
+        """Exit context - session automatically returns to pool."""
+        # Sessions are automatically returned to pool (no explicit return needed)
+        # They remain connected for reuse
+        if self._session:
             logger.debug(
-                f"[WarmQueryWrapper] Released client to pool " f"(phase={self.execution_phase})"
+                f"[SessionQueryWrapper] Released session {self._session.session_id} "
+                f"(queries: {self._session.query_count}/{self._session.max_queries})"
             )
+            self._session = None
 
     async def query(self, prompt: str) -> AsyncIterator[Any]:
-        """Execute query using warm client.
+        """Execute query using session.
 
         Args:
             prompt: The prompt to send
@@ -80,28 +81,18 @@ class WarmQueryWrapper:
         Yields:
             Messages from the query response
         """
-        if not self._client:
-            raise RuntimeError("WarmQueryWrapper not in context")
-
-        logger.debug(f"[WarmQueryWrapper] Executing query " f"(phase={self.execution_phase})")
+        if not self._session:
+            raise RuntimeError("SessionQueryWrapper not in context")
 
         try:
-            # Send the query
-            await self._client.query(prompt, session_id="default")
-
-            # Stream responses
-            async for message in self._client.receive_response():
+            # Execute query on the session
+            async for message in self._session.query(prompt):
                 yield message
 
-                # Check for completion
-                if hasattr(message, "result"):
-                    logger.debug(
-                        f"[WarmQueryWrapper] Query completed " f"(phase={self.execution_phase})"
-                    )
-                    break
-
         except Exception as e:
-            logger.error(f"[WarmQueryWrapper] Query failed " f"(phase={self.execution_phase}): {e}")
+            logger.error(
+                f"[SessionQueryWrapper] Query failed on session {self._session.session_id}: {e}"
+            )
             raise
 
 
@@ -111,19 +102,30 @@ async def warm_query(
     options: ClaudeCodeOptions,
     execution_phase: str = "default",
 ) -> str:
-    """Execute a single query using warm pool.
+    """Execute a single query using session pool or default SDK.
 
     Args:
         prompt: The prompt to send
-        options: Claude Code options
+        options: Claude Code options (may include system_prompt)
         execution_phase: Execution phase for pool key
 
     Returns:
         The result text from the query
     """
-    async with WarmQueryWrapper(options, execution_phase) as wrapper:
+    # Use session pooling if enabled and system prompt is in options
+    if SESSION_POOL_ENABLED and hasattr(options, "system_prompt") and options.system_prompt:
+        async with SessionQueryWrapper(options, execution_phase) as wrapper:
+            result = ""
+            async for message in wrapper.query(prompt):
+                if hasattr(message, "result"):
+                    result = message.result
+                    break
+            return result
+    else:
+        # Use default SDK query (no pooling)
+        logger.debug(f"[warm_query] Using default SDK query for phase '{execution_phase}'")
         result = ""
-        async for message in wrapper.query(prompt):
+        async for message in sdk_query(prompt, options):
             if hasattr(message, "result"):
                 result = message.result
                 break

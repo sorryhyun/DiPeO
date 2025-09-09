@@ -1,0 +1,528 @@
+"""Session-based pooling for Claude Code SDK clients.
+
+This module provides session-based client pooling that maintains connected
+ClaudeSDKClient instances across multiple queries, enabling memory selection
+and system prompt persistence while avoiding subprocess reuse issues.
+"""
+
+import asyncio
+import contextlib
+import hashlib
+import logging
+import os
+import time
+from collections import OrderedDict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any
+
+from claude_code_sdk import ClaudeCodeOptions, ClaudeSDKClient
+
+logger = logging.getLogger(__name__)
+
+# Session pool configuration
+SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() == "true"
+SESSION_REUSE_LIMIT = int(os.getenv("DIPEO_SESSION_REUSE_LIMIT", "5"))
+SESSION_IDLE_TTL = float(os.getenv("DIPEO_SESSION_IDLE_TTL", "30"))  # seconds
+SESSION_MAX_POOLS = int(os.getenv("DIPEO_SESSION_MAX_POOLS", "3"))
+SESSION_CONNECTION_TIMEOUT = float(os.getenv("DIPEO_SESSION_CONNECTION_TIMEOUT", "10"))
+
+logger.info(
+    f"[SessionPool] Configuration: ENABLED={SESSION_POOL_ENABLED}, "
+    f"REUSE_LIMIT={SESSION_REUSE_LIMIT}, IDLE_TTL={SESSION_IDLE_TTL}s, "
+    f"MAX_POOLS={SESSION_MAX_POOLS}"
+)
+
+
+@dataclass
+class SessionStats:
+    """Statistics for a session pool."""
+
+    total_created: int = 0
+    total_borrowed: int = 0
+    total_queries: int = 0
+    total_reused: int = 0
+    expired_sessions: int = 0
+    failed_creates: int = 0
+    avg_queries_per_session: float = 0.0
+
+
+@dataclass
+class SessionClient:
+    """Wrapper for a connected ClaudeSDKClient with session state.
+
+    Maintains a persistent connection to Claude with system prompt configured
+    in ClaudeCodeOptions and supports multiple queries through the same connection.
+    """
+
+    client: ClaudeSDKClient
+    options: ClaudeCodeOptions
+    session_id: str
+    created_at: datetime
+    last_used_at: datetime | None = None
+    query_count: int = 0
+    max_queries: int = SESSION_REUSE_LIMIT
+    is_connected: bool = False
+    is_busy: bool = False
+
+    async def connect(self) -> None:
+        """Connect the client with None (empty initial stream).
+
+        The system prompt is already configured in ClaudeCodeOptions.
+        """
+        if self.is_connected:
+            return
+
+        try:
+            # Connect with None - system prompt is in options
+            await self.client.connect(None)
+            self.is_connected = True
+            self.last_used_at = datetime.now()
+
+            # Log connection with system prompt info from options
+            system_prompt_preview = None
+            if hasattr(self.options, "system_prompt") and self.options.system_prompt:
+                system_prompt_preview = self.options.system_prompt[:100] + "..."
+
+            logger.debug(
+                f"[SessionClient] Connected session {self.session_id} "
+                f"(system_prompt: {system_prompt_preview or 'None'})"
+            )
+
+        except Exception as e:
+            logger.error(f"[SessionClient] Failed to connect session {self.session_id}: {e}")
+            raise
+
+    async def query(self, prompt: str):
+        """Execute a query on this session.
+
+        Args:
+            prompt: The prompt to send
+
+        Yields:
+            Messages from the response
+        """
+        if not self.is_connected:
+            raise RuntimeError(f"Session {self.session_id} not connected")
+
+        if self.is_busy:
+            raise RuntimeError(f"Session {self.session_id} is already processing a query")
+
+        self.is_busy = True
+        self.query_count += 1
+        self.last_used_at = datetime.now()
+
+        try:
+            # Send the query
+            await self.client.query(prompt, session_id=self.session_id)
+
+            # Stream responses
+            async for message in self.client.receive_messages():
+                yield message
+
+                # Check for completion
+                if hasattr(message, "result"):
+                    logger.debug(
+                        f"[SessionClient] Query {self.query_count} completed for session {self.session_id}"
+                    )
+                    break
+
+        finally:
+            self.is_busy = False
+
+    async def disconnect(self) -> None:
+        """Disconnect the client."""
+        if self.is_connected:
+            try:
+                await self.client.disconnect()
+                self.is_connected = False
+                logger.debug(
+                    f"[SessionClient] Disconnected session {self.session_id} "
+                    f"after {self.query_count} queries"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[SessionClient] Error disconnecting session {self.session_id}: {e}"
+                )
+
+    def can_reuse(self) -> bool:
+        """Check if this session can be reused for another query."""
+        if not self.is_connected or self.is_busy:
+            return False
+
+        # Check query limit
+        if self.query_count >= self.max_queries:
+            return False
+
+        # Check idle timeout
+        idle_time = (datetime.now() - self.last_used_at).total_seconds()
+        if idle_time > SESSION_IDLE_TTL:
+            return False
+
+        return True
+
+    def is_expired(self) -> bool:
+        """Check if this session has expired."""
+        idle_time = (datetime.now() - self.last_used_at).total_seconds()
+        return idle_time > SESSION_IDLE_TTL
+
+
+class SessionPool:
+    """Pool of session clients for a specific configuration.
+
+    Maintains a pool of SessionClient instances that can be reused
+    for multiple queries with the same system prompt (configured in options).
+    Clients are connected on-demand when borrowed.
+    """
+
+    def __init__(
+        self,
+        options: ClaudeCodeOptions,
+        pool_key: str,
+        max_sessions: int = 2,
+    ):
+        """Initialize session pool.
+
+        Args:
+            options: Claude Code options (includes system_prompt)
+            pool_key: Unique key for this pool
+            max_sessions: Maximum number of sessions to maintain
+        """
+        self.options = options
+        self.pool_key = pool_key
+        self.max_sessions = max_sessions
+        self._sessions: list[SessionClient] = []
+        self._stats = SessionStats()
+        self._lock = asyncio.Lock()
+        self._closed = False
+
+        logger.info(f"[SessionPool] Initialized pool '{pool_key}' with max_sessions={max_sessions}")
+
+    async def borrow(self) -> SessionClient:
+        """Borrow a session from the pool, creating and connecting if necessary.
+
+        Returns:
+            A connected SessionClient ready for queries
+        """
+        if self._closed:
+            raise RuntimeError(f"Pool '{self.pool_key}' is closed")
+
+        async with self._lock:
+            # Clean up expired and non-reusable sessions
+            await self._cleanup_expired()
+            await self._cleanup_unusable()
+
+            # Find an available session
+            for session in self._sessions:
+                if session.can_reuse():
+                    # Ensure session is connected
+                    if not session.is_connected:
+                        await session.connect()
+
+                    self._stats.total_borrowed += 1
+                    self._stats.total_reused += 1
+                    logger.debug(
+                        f"[SessionPool] Reusing session {session.session_id} "
+                        f"(query {session.query_count + 1}/{session.max_queries})"
+                    )
+                    return session
+
+            # Create new session if under limit
+            if len(self._sessions) < self.max_sessions:
+                session = await self._create_session()
+                # Connect the session before returning
+                await session.connect()
+                self._sessions.append(session)
+                self._stats.total_borrowed += 1
+                return session
+
+            # No available sessions and at limit
+            raise RuntimeError(
+                f"No available sessions in pool '{self.pool_key}' "
+                f"({len(self._sessions)}/{self.max_sessions} sessions)"
+            )
+
+    async def _create_session(self) -> SessionClient:
+        """Create a new session client (not yet connected).
+
+        Returns:
+            A new SessionClient instance (unconnected)
+        """
+        try:
+            # Generate session ID
+            session_id = f"{self.pool_key}_{self._stats.total_created}_{int(time.time())}"
+
+            # Create session client (not connected yet)
+            session = SessionClient(
+                client=ClaudeSDKClient(options=self.options),
+                options=self.options,
+                session_id=session_id,
+                created_at=datetime.now(),
+            )
+
+            self._stats.total_created += 1
+            logger.info(
+                f"[SessionPool] Created session {session_id} for pool '{self.pool_key}' (not connected)"
+            )
+
+            return session
+
+        except Exception as e:
+            self._stats.failed_creates += 1
+            logger.error(f"[SessionPool] Failed to create session for pool '{self.pool_key}': {e}")
+            raise
+
+    async def _cleanup_expired(self) -> None:
+        """Remove expired sessions from the pool."""
+        expired = []
+        active = []
+
+        for session in self._sessions:
+            if session.is_expired():
+                expired.append(session)
+                self._stats.expired_sessions += 1
+            else:
+                active.append(session)
+
+        self._sessions = active
+
+        # Remove expired sessions from pool
+        for session in expired:
+            logger.debug(
+                f"[SessionPool] Removed expired session {session.session_id} from pool '{self.pool_key}'"
+            )
+            # Mark session as not connected to prevent reuse attempts
+            session.is_connected = False
+            # Try to disconnect but don't fail if there's a cancel scope error
+            try:
+                await self._disconnect_session(session)
+            except Exception as e:
+                logger.debug(f"[SessionPool] Ignoring disconnect error for expired session: {e}")
+
+    async def _cleanup_unusable(self) -> None:
+        """Remove sessions that can no longer be reused from the pool."""
+        unusable = []
+        active = []
+
+        for session in self._sessions:
+            # Remove sessions that are not busy but can't be reused (e.g., reached max queries)
+            if not session.is_busy and not session.can_reuse():
+                unusable.append(session)
+            else:
+                active.append(session)
+
+        self._sessions = active
+
+        # Remove unusable sessions from pool without disconnecting
+        # (they'll be garbage collected and cleaned up naturally)
+        for session in unusable:
+            logger.debug(
+                f"[SessionPool] Removed unusable session {session.session_id} from pool '{self.pool_key}' "
+                f"(completed {session.query_count}/{session.max_queries} queries)"
+            )
+            # Mark session as not connected to prevent reuse attempts
+            session.is_connected = False
+
+    async def _disconnect_session(self, session: SessionClient) -> None:
+        """Disconnect a session safely."""
+        try:
+            await session.disconnect()
+        except Exception as e:
+            logger.warning(f"[SessionPool] Error disconnecting session {session.session_id}: {e}")
+
+    async def shutdown(self) -> None:
+        """Shutdown the pool and disconnect all sessions."""
+        logger.info(f"[SessionPool] Shutting down pool '{self.pool_key}'")
+        self._closed = True
+
+        async with self._lock:
+            # Disconnect all sessions
+            for session in self._sessions:
+                await self._disconnect_session(session)
+
+            self._sessions.clear()
+
+        # Calculate final stats
+        if self._stats.total_created > 0:
+            self._stats.avg_queries_per_session = (
+                self._stats.total_queries / self._stats.total_created
+            )
+
+        logger.info(
+            f"[SessionPool] Pool '{self.pool_key}' shutdown. Stats: "
+            f"created={self._stats.total_created}, "
+            f"reused={self._stats.total_reused}, "
+            f"expired={self._stats.expired_sessions}, "
+            f"avg_queries={self._stats.avg_queries_per_session:.1f}"
+        )
+
+    def get_stats(self) -> dict[str, Any]:
+        """Get pool statistics.
+
+        Returns:
+            Dictionary with pool stats
+        """
+        return {
+            "pool_key": self.pool_key,
+            "active_sessions": len(self._sessions),
+            "max_sessions": self.max_sessions,
+            "total_created": self._stats.total_created,
+            "total_borrowed": self._stats.total_borrowed,
+            "total_reused": self._stats.total_reused,
+            "expired_sessions": self._stats.expired_sessions,
+            "failed_creates": self._stats.failed_creates,
+            "avg_queries_per_session": round(self._stats.avg_queries_per_session, 2),
+        }
+
+
+class SessionPoolManager:
+    """Manager for multiple session pools keyed by configuration.
+
+    Uses LRU eviction to prevent unbounded pool growth.
+    """
+
+    def __init__(self, max_pools: int = SESSION_MAX_POOLS):
+        """Initialize session pool manager.
+
+        Args:
+            max_pools: Maximum number of pools to maintain
+        """
+        self.max_pools = max_pools
+        self._pools: OrderedDict[str, SessionPool] = OrderedDict()
+        self._lock = asyncio.Lock()
+        self._closed = False
+
+        logger.info(f"[SessionPoolManager] Initialized with max_pools={max_pools}")
+
+    def _generate_pool_key(
+        self,
+        execution_phase: str,
+        options: ClaudeCodeOptions,
+    ) -> str:
+        """Generate a unique pool key based on execution phase and system prompt.
+
+        Args:
+            execution_phase: The execution phase
+            options: Claude Code options containing system prompt
+
+        Returns:
+            A composite key for the pool
+        """
+        # Extract system prompt from options if present
+        system_prompt = getattr(options, "system_prompt", None)
+
+        if system_prompt:
+            # Include system prompt hash in key
+            prompt_hash = hashlib.sha256(system_prompt.encode()).hexdigest()[:8]
+            return f"{execution_phase}:{prompt_hash}"
+        return execution_phase
+
+    async def get_or_create_pool(
+        self,
+        options: ClaudeCodeOptions,
+        execution_phase: str = "default",
+    ) -> SessionPool:
+        """Get or create a session pool for the given configuration.
+
+        Args:
+            options: Claude Code options (includes system_prompt)
+            execution_phase: Execution phase identifier
+
+        Returns:
+            SessionPool instance
+        """
+        if self._closed:
+            raise RuntimeError("SessionPoolManager is closed")
+
+        # Generate pool key based on phase and system prompt in options
+        pool_key = self._generate_pool_key(execution_phase, options)
+
+        async with self._lock:
+            # Check if pool exists (LRU update)
+            if pool_key in self._pools:
+                pool = self._pools.pop(pool_key)
+                self._pools[pool_key] = pool  # Move to end (most recent)
+                return pool
+
+            # Evict LRU pool if at limit
+            if len(self._pools) >= self.max_pools:
+                evict_key, evicted = self._pools.popitem(last=False)
+                logger.info(f"[SessionPoolManager] Evicting LRU pool '{evict_key}'")
+                # Shutdown evicted pool directly (await instead of background task)
+                await evicted.shutdown()
+
+            # Create new pool
+            pool = SessionPool(
+                options=options,
+                pool_key=pool_key,
+                max_sessions=2,  # Keep small to avoid resource issues
+            )
+            self._pools[pool_key] = pool
+
+            logger.info(
+                f"[SessionPoolManager] Created pool '{pool_key}'. "
+                f"Active pools: {len(self._pools)}/{self.max_pools}"
+            )
+
+            return pool
+
+    async def shutdown_all(self) -> None:
+        """Shutdown all pools."""
+        logger.info("[SessionPoolManager] Shutting down all session pools")
+        self._closed = True
+
+        async with self._lock:
+            # Shutdown all pools
+            for key, pool in list(self._pools.items()):
+                try:
+                    await pool.shutdown()
+                except Exception as e:
+                    logger.error(f"[SessionPoolManager] Error shutting down pool '{key}': {e}")
+
+            self._pools.clear()
+
+        logger.info("[SessionPoolManager] All session pools shut down")
+
+    def get_all_stats(self) -> dict[str, Any]:
+        """Get statistics for all pools.
+
+        Returns:
+            Dictionary with stats for each pool
+        """
+        return {
+            "pools": [pool.get_stats() for pool in self._pools.values()],
+            "total_pools": len(self._pools),
+            "max_pools": self.max_pools,
+        }
+
+
+# Global session pool manager
+_global_session_manager: SessionPoolManager | None = None
+_session_manager_lock = asyncio.Lock()
+
+
+async def get_global_session_manager() -> SessionPoolManager:
+    """Get the global session pool manager, creating if needed.
+
+    Returns:
+        Global SessionPoolManager instance
+    """
+    global _global_session_manager
+
+    async with _session_manager_lock:
+        if _global_session_manager is None:
+            _global_session_manager = SessionPoolManager()
+            logger.info("[SessionPoolManager] Created global session manager")
+
+        return _global_session_manager
+
+
+async def shutdown_global_session_manager() -> None:
+    """Shutdown the global session pool manager."""
+    global _global_session_manager
+
+    async with _session_manager_lock:
+        if _global_session_manager is not None:
+            await _global_session_manager.shutdown_all()
+            _global_session_manager = None
+            logger.info("[SessionPoolManager] Global session manager shut down")

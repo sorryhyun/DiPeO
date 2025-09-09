@@ -44,8 +44,8 @@ help:
 install:
 	@echo "Installing dependencies..."
 	@command -v uv >/dev/null 2>&1 || (echo "Installing uv..." && curl -LsSf https://astral.sh/uv/install.sh | sh)
-	@export PATH="$$HOME/.local/bin:$$PATH" && uv venv --python 3.13 || true
-	@export PATH="$$HOME/.local/bin:$$PATH" && uv pip install -r requirements.txt
+	@export PATH="$$HOME/.local/bin:$$PATH" && uv sync
+	@export PATH="$$HOME/.local/bin:$$PATH" && uv pip install -e dipeo -e apps/server -e apps/cli
 	pnpm install
 	@echo "All dependencies installed!"
 	@echo "Activate the virtual environment with: source .venv/bin/activate"

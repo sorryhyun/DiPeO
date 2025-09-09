@@ -60,7 +60,6 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
     """Wire messaging services."""
 
     from dipeo.infrastructure.events.adapters import InMemoryEventBus
-    from dipeo.infrastructure.execution.messaging.message_router import MessageRouter
 
     # Choose event bus implementation based on config
     event_bus_backend = os.getenv("DIPEO_EVENT_BUS_BACKEND", "adapter").lower()
@@ -86,8 +85,36 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
             enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true",
         )
 
-    # Create message router and register under both keys for compatibility
-    router = MessageRouter()
+    # Choose message router implementation based on Redis availability
+    redis_url = os.getenv("DIPEO_REDIS_URL")
+    if redis_url:
+        # Use Redis-backed router for multi-worker support
+        try:
+            from dipeo.infrastructure.execution.messaging.redis_message_router import (
+                RedisMessageRouter,
+            )
+
+            router = RedisMessageRouter()
+            logger.info("Using RedisMessageRouter for multi-worker subscription support")
+        except ImportError as e:
+            logger.warning(f"Failed to import RedisMessageRouter (missing redis dependency?): {e}")
+            logger.warning("Falling back to in-memory MessageRouter")
+            from dipeo.infrastructure.execution.messaging.message_router import MessageRouter
+
+            router = MessageRouter()
+    else:
+        # Use in-memory router for single-worker deployments
+        from dipeo.infrastructure.execution.messaging.message_router import MessageRouter
+
+        router = MessageRouter()
+        workers = int(os.getenv("DIPEO_WORKERS", "1"))
+        if workers > 1:
+            logger.warning(
+                "Running with multiple workers without Redis. "
+                "GraphQL subscriptions require Redis for multi-worker support. "
+                "Set DIPEO_REDIS_URL to enable Redis-backed message routing."
+            )
+
     registry.register(MESSAGE_ROUTER, router)
     registry.register(MESSAGE_BUS, router)  # Legacy alias
     registry.register(DOMAIN_EVENT_BUS, domain_event_bus)

@@ -57,7 +57,23 @@ class Container:
             await initialize_service(diagram_service)
 
     async def shutdown(self):
-        pass
+        """Shutdown resources including warm pools."""
+        # Shutdown Claude Code warm pool if it's being used
+        try:
+            from dipeo.infrastructure.llm.providers.claude_code.transport.warm_pool import (
+                shutdown_global_manager,
+            )
+
+            await shutdown_global_manager()
+        except ImportError:
+            # Claude Code SDK not installed, skip
+            pass
+        except Exception as e:
+            # Log error but don't fail shutdown
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error shutting down warm pool manager: {e}")
 
     def create_sub_container(self, execution_id: str) -> "Container":
         """Create a sub-container for isolated execution.

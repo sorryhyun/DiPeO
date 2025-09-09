@@ -1,49 +1,55 @@
 """Claude Code client wrapper implementation using claude-code-sdk.
 
-This module provides efficient query execution with optional warm pooling
+This module provides efficient query execution with optional session pooling
 for improved performance when making multiple queries with the same system prompt.
-Uses a warm pool of pre-connected clients to avoid subprocess reuse issues.
 """
 
 import logging
 import os
-from enum import Enum
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# Feature flags
-ENABLE_WARM_POOL = os.getenv("DIPEO_ENABLE_WARM_POOL", "true").lower() == "true"
-USE_QUERY_MODE = os.getenv("DIPEO_USE_QUERY_MODE", "false").lower() == "true"
-WARM_POOL_SIZE = int(os.getenv("DIPEO_WARM_POOL_SIZE", "2"))
+# Session pooling configuration
+SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() == "true"
 
-logger.info(
-    f"[ClaudeCode] Feature flags: ENABLE_WARM_POOL={ENABLE_WARM_POOL}, USE_QUERY_MODE={USE_QUERY_MODE}, POOL_SIZE={WARM_POOL_SIZE}"
-)
+# Deprecated environment variables (kept for backward compatibility warnings)
+# These are no longer used but we check them to warn users
+_DEPRECATED_ENV_VARS = {
+    "DIPEO_ENABLE_WARM_POOL": "Warm pooling has been removed. Use session pooling instead.",
+    "DIPEO_WARM_POOL_SIZE": "Warm pool size configuration has been removed.",
+    "DIPEO_CONNECTED_TRANSPORT": "Connected transport has been removed.",
+    "DIPEO_CONNECTED_REUSE": "Connected transport configuration has been removed.",
+    "DIPEO_CONNECTED_IDLE_TTL": "Connected transport configuration has been removed.",
+    "DIPEO_USE_QUERY_MODE": "Query mode flag has been removed.",
+}
 
+# Check for deprecated environment variables and warn
+for env_var, message in _DEPRECATED_ENV_VARS.items():
+    if os.getenv(env_var):
+        logger.warning(f"[ClaudeCode] DEPRECATED: {env_var} is no longer used. {message}")
 
-class ClientType(Enum):
-    """Types of specialized Claude Code clients."""
-
-    DEFAULT = "default"
-    MEMORY_SELECTION = "memory_selection"
-    DIRECT_EXECUTION = "direct_execution"
-    DECISION_EVALUATION = "decision_evaluation"
+logger.info(f"[ClaudeCode] Configuration: SESSION_POOL_ENABLED={SESSION_POOL_ENABLED}")
 
 
 class QueryClientWrapper:
-    """Wrapper around SDK's query() function with optional warm pool support.
+    """Wrapper around SDK's query() function with optional session pool support.
 
-    This wrapper provides efficient query execution with automatic warm pooling
-    when enabled, falling back to SDK's default transport when pooling is disabled.
-    Uses a warm pool of pre-connected clients to avoid subprocess reuse issues.
+    This wrapper provides efficient query execution with automatic pooling:
+    - Session pooling: When enabled and system_prompt provided, maintains connected sessions
+    - Default: Falls back to SDK's default transport when pooling is disabled or unavailable
     """
 
-    def __init__(self, options: Any, pool_key: str = "default", execution_phase: str | None = None):
+    def __init__(
+        self,
+        options: Any,
+        pool_key: str = "default",
+        execution_phase: str | None = None,
+    ):
         """Initialize the query wrapper.
 
         Args:
-            options: ClaudeCodeOptions for the query
+            options: ClaudeCodeOptions for the query (may include system_prompt)
             pool_key: Key for transport pool (deprecated, use execution_phase)
             execution_phase: Execution phase for pool key determination
         """
@@ -53,39 +59,46 @@ class QueryClientWrapper:
         self._wrapper = None
 
     async def __aenter__(self):
-        """Enter context - create warm pool wrapper if enabled."""
-        if ENABLE_WARM_POOL:
+        """Enter context - create appropriate wrapper based on configuration."""
+        # Try session pooling if enabled and system prompt is in options
+        if (
+            SESSION_POOL_ENABLED
+            and hasattr(self.options, "system_prompt")
+            and self.options.system_prompt
+        ):
             try:
-                from .transport.warm_wrapper import WarmQueryWrapper
+                from .transport.warm_wrapper import SessionQueryWrapper
 
-                self._wrapper = WarmQueryWrapper(
+                self._wrapper = SessionQueryWrapper(
                     options=self.options,
                     execution_phase=self.execution_phase,
-                    pool_size=WARM_POOL_SIZE,
                 )
                 await self._wrapper.__aenter__()
                 logger.debug(
-                    f"[QueryClientWrapper] Using warm pool (phase={self.execution_phase}, size={WARM_POOL_SIZE})"
+                    f"[QueryClientWrapper] Using session pool for {self.execution_phase} "
+                    f"with system prompt from options"
                 )
             except Exception as e:
-                logger.warning(f"[QueryClientWrapper] Failed to initialize warm pool: {e}")
+                logger.warning(f"[QueryClientWrapper] Failed to initialize session pool: {e}")
                 self._wrapper = None
         else:
-            logger.debug("[QueryClientWrapper] Warm pool disabled")
+            logger.debug(
+                "[QueryClientWrapper] Using default transport (pooling disabled or no system prompt)"
+            )
 
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Exit context - cleanup warm pool wrapper if used."""
+        """Exit context - cleanup session wrapper if used."""
         if self._wrapper:
             try:
                 await self._wrapper.__aexit__(exc_type, exc_val, exc_tb)
             except Exception as e:
-                logger.error(f"[QueryClientWrapper] Error releasing warm pool wrapper: {e}")
+                logger.error(f"[QueryClientWrapper] Error releasing session wrapper: {e}")
             self._wrapper = None
 
     async def query(self, prompt: str):
-        """Execute query using warm pool or default transport.
+        """Execute query using session pool or default transport.
 
         Args:
             prompt: The prompt to send
@@ -94,21 +107,24 @@ class QueryClientWrapper:
             Messages from the query response
         """
         if self._wrapper:
-            # Use warm pool wrapper
+            # Use session pool wrapper
             async for message in self._wrapper.query(prompt):
                 yield message
         else:
-            # Fall back to SDK's default transport
+            # Fall back to SDK's default query
             try:
                 from claude_code_sdk import query
             except ImportError as e:
                 logger.error("claude-code-sdk not installed")
                 raise ImportError("claude-code-sdk is required") from e
 
+            # Use default SDK query function
+            logger.debug("[QueryClientWrapper] Using default transport")
+
             async for message in query(
                 prompt=prompt,
                 options=self.options,
-                transport=None,  # Let SDK create SubprocessCLITransport
+                transport=None,  # Use default transport
             ):
                 yield message
 
