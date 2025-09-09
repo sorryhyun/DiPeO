@@ -72,6 +72,21 @@ class SessionQueryWrapper:
             )
             self._session = None
 
+    async def force_cleanup(self):
+        """Force cleanup of the session and its subprocess on timeout."""
+        if self._session:
+            logger.warning(
+                f"[SessionQueryWrapper] Force cleanup of session {self._session.session_id}"
+            )
+            # Force disconnect the session (this should kill the subprocess)
+            await self._session.force_disconnect()
+
+            # Remove session from pool if possible
+            if self._pool:
+                await self._pool.remove_session(self._session)
+
+            self._session = None
+
     async def query(self, prompt: str) -> AsyncIterator[Any]:
         """Execute query using session.
 

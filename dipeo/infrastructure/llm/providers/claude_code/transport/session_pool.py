@@ -23,9 +23,12 @@ logger = logging.getLogger(__name__)
 # Session pool configuration
 SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() == "true"
 SESSION_REUSE_LIMIT = int(os.getenv("DIPEO_SESSION_REUSE_LIMIT", "5"))
-SESSION_IDLE_TTL = float(os.getenv("DIPEO_SESSION_IDLE_TTL", "10"))  # seconds
-SESSION_MAX_POOLS = int(os.getenv("DIPEO_SESSION_MAX_POOLS", "3"))
-SESSION_CONNECTION_TIMEOUT = float(os.getenv("DIPEO_SESSION_CONNECTION_TIMEOUT", "10"))
+SESSION_IDLE_TTL = float(os.getenv("DIPEO_SESSION_IDLE_TTL", "30"))  # seconds
+SESSION_MAX_POOLS = int(os.getenv("DIPEO_SESSION_MAX_POOLS", "5"))
+SESSION_CONNECTION_TIMEOUT = float(os.getenv("DIPEO_SESSION_CONNECTION_TIMEOUT", "30"))
+SESSION_GRACE_PERIOD = float(
+    os.getenv("DIPEO_SESSION_GRACE_PERIOD", "3")
+)  # Grace period after query completion
 
 logger.info(
     f"[SessionPool] Configuration: ENABLED={SESSION_POOL_ENABLED}, "
@@ -64,6 +67,7 @@ class SessionClient:
     max_queries: int = SESSION_REUSE_LIMIT
     is_connected: bool = False
     is_busy: bool = False
+    subprocess_pid: int | None = None
 
     async def connect(self) -> None:
         """Connect the client with None (empty initial stream).
@@ -78,6 +82,16 @@ class SessionClient:
             await self.client.connect(None)
             self.is_connected = True
             self.last_used_at = datetime.now()
+
+            # Store the subprocess PID for targeted cleanup
+            if hasattr(self.client, "_transport") and hasattr(self.client._transport, "_process"):
+                try:
+                    self.subprocess_pid = self.client._transport._process.pid
+                    logger.debug(
+                        f"[SessionClient] Tracked subprocess PID {self.subprocess_pid} for session {self.session_id}"
+                    )
+                except Exception as e:
+                    logger.debug(f"[SessionClient] Could not get subprocess PID: {e}")
 
             # Log connection with system prompt info from options
             system_prompt_preview = None
@@ -108,9 +122,10 @@ class SessionClient:
         if self.is_busy:
             raise RuntimeError(f"Session {self.session_id} is already processing a query")
 
+        # Update timestamp immediately when query starts (before marking busy)
+        self.last_used_at = datetime.now()
         self.is_busy = True
         self.query_count += 1
-        self.last_used_at = datetime.now()
 
         try:
             # Send the query
@@ -129,6 +144,8 @@ class SessionClient:
 
         finally:
             self.is_busy = False
+            # Update timestamp after query completes
+            self.last_used_at = datetime.now()
 
     async def disconnect(self) -> None:
         """Disconnect the client."""
@@ -144,6 +161,54 @@ class SessionClient:
                 logger.warning(
                     f"[SessionClient] Error disconnecting session {self.session_id}: {e}"
                 )
+
+    async def force_disconnect(self) -> None:
+        """Force disconnect the client and kill only this session's subprocess."""
+        import psutil
+
+        logger.warning(f"[SessionClient] Force disconnecting session {self.session_id}")
+
+        # First try normal disconnect
+        try:
+            await self.disconnect()
+        except Exception as e:
+            logger.debug(f"[SessionClient] Normal disconnect failed: {e}")
+
+        # Track if we killed the process
+        killed = False
+
+        # Only kill the specific subprocess PID we tracked for this session
+        if hasattr(self, "subprocess_pid") and self.subprocess_pid:
+            try:
+                proc = psutil.Process(self.subprocess_pid)
+                if proc.is_running():
+                    logger.warning(
+                        f"[SessionClient] Force killing tracked subprocess PID {self.subprocess_pid} for session {self.session_id}"
+                    )
+                    proc.kill()
+                    killed = True
+                else:
+                    logger.debug(
+                        f"[SessionClient] Subprocess PID {self.subprocess_pid} already terminated"
+                    )
+            except psutil.NoSuchProcess:
+                logger.debug(
+                    f"[SessionClient] Subprocess PID {self.subprocess_pid} no longer exists"
+                )
+            except psutil.AccessDenied:
+                logger.warning(f"[SessionClient] Access denied to kill PID {self.subprocess_pid}")
+            except Exception as e:
+                logger.warning(
+                    f"[SessionClient] Error killing tracked PID {self.subprocess_pid}: {e}"
+                )
+        else:
+            logger.debug(f"[SessionClient] No subprocess PID tracked for session {self.session_id}")
+
+        self.is_connected = False
+        if killed:
+            logger.info(
+                f"[SessionClient] Force disconnected session {self.session_id} and killed subprocess PID {self.subprocess_pid}"
+            )
 
     def can_reuse(self) -> bool:
         """Check if this session can be reused for another query."""
@@ -163,8 +228,14 @@ class SessionClient:
 
     def is_expired(self) -> bool:
         """Check if this session has expired."""
+        # Never mark busy sessions as expired - they're actively processing
+        if self.is_busy:
+            return False
+
+        # Check idle timeout only for non-busy sessions
+        # Add grace period to prevent cleanup immediately after query completion
         idle_time = (datetime.now() - self.last_used_at).total_seconds()
-        return idle_time > SESSION_IDLE_TTL
+        return idle_time > (SESSION_IDLE_TTL + SESSION_GRACE_PERIOD)
 
 
 class SessionPool:
@@ -278,7 +349,8 @@ class SessionPool:
         active = []
 
         for session in self._sessions:
-            if session.is_expired():
+            # Double-check: Never clean up busy sessions even if marked as expired
+            if session.is_expired() and not session.is_busy:
                 expired.append(session)
                 self._stats.expired_sessions += 1
             else:
@@ -286,16 +358,16 @@ class SessionPool:
 
         self._sessions = active
 
-        # Remove expired sessions from pool
+        # Remove expired sessions from pool and force disconnect
         for session in expired:
             logger.debug(
                 f"[SessionPool] Removed expired session {session.session_id} from pool '{self.pool_key}'"
             )
             # Mark session as not connected to prevent reuse attempts
             session.is_connected = False
-            # Try to disconnect but don't fail if there's a cancel scope error
+            # Force disconnect to kill subprocess
             try:
-                await self._disconnect_session(session)
+                await session.force_disconnect()
             except Exception as e:
                 logger.debug(f"[SessionPool] Ignoring disconnect error for expired session: {e}")
 
@@ -313,8 +385,7 @@ class SessionPool:
 
         self._sessions = active
 
-        # Remove unusable sessions from pool without disconnecting
-        # (they'll be garbage collected and cleaned up naturally)
+        # Remove unusable sessions from pool and force disconnect
         for session in unusable:
             logger.debug(
                 f"[SessionPool] Removed unusable session {session.session_id} from pool '{self.pool_key}' "
@@ -322,6 +393,11 @@ class SessionPool:
             )
             # Mark session as not connected to prevent reuse attempts
             session.is_connected = False
+            # Force disconnect to kill subprocess
+            try:
+                await session.force_disconnect()
+            except Exception as e:
+                logger.debug(f"[SessionPool] Error force disconnecting unusable session: {e}")
 
     async def _disconnect_session(self, session: SessionClient) -> None:
         """Disconnect a session safely."""
@@ -329,6 +405,25 @@ class SessionPool:
             await session.disconnect()
         except Exception as e:
             logger.warning(f"[SessionPool] Error disconnecting session {session.session_id}: {e}")
+
+    async def remove_session(self, session: SessionClient) -> None:
+        """Remove a specific session from the pool (e.g., on timeout)."""
+        async with self._lock:
+            if session in self._sessions:
+                self._sessions.remove(session)
+                logger.warning(
+                    f"[SessionPool] Forcefully removed session {session.session_id} from pool '{self.pool_key}' "
+                    f"(was_busy={session.is_busy}, query_count={session.query_count})"
+                )
+                # Mark session as not busy to allow force disconnect
+                session.is_busy = False
+                # Force disconnect to ensure subprocess is killed
+                await session.force_disconnect()
+            else:
+                logger.debug(
+                    f"[SessionPool] Session {session.session_id} not found in pool '{self.pool_key}' "
+                    f"(may have been already cleaned up)"
+                )
 
     async def shutdown(self) -> None:
         """Shutdown the pool and disconnect all sessions."""

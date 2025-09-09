@@ -60,11 +60,11 @@ class Container:
         """Shutdown resources including warm pools."""
         # Shutdown Claude Code warm pool if it's being used
         try:
-            from dipeo.infrastructure.llm.providers.claude_code.transport.warm_pool import (
-                shutdown_global_manager,
+            from dipeo.infrastructure.llm.providers.claude_code.transport.session_pool import (
+                shutdown_global_session_manager,
             )
 
-            await shutdown_global_manager()
+            await shutdown_global_session_manager()
         except ImportError:
             # Claude Code SDK not installed, skip
             pass

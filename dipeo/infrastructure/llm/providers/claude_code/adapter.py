@@ -1,5 +1,6 @@
 """Claude Code adapter implementation using claude-code-sdk."""
 
+import asyncio
 import logging
 import re
 from collections.abc import AsyncIterator, Iterator
@@ -222,7 +223,7 @@ class ClaudeCodeAdapter(UnifiedAdapter):
                 "Synchronous chat not supported in async context. Use async_chat instead."
             )
 
-        # Run the async version synchronously
+        # Run the async version synchronously (timeout will be handled in async_chat)
         return loop.run_until_complete(
             self.async_chat(
                 messages=messages,
@@ -231,7 +232,7 @@ class ClaudeCodeAdapter(UnifiedAdapter):
                 tools=tools,
                 response_format=response_format,
                 execution_phase=execution_phase,
-                **kwargs,
+                **kwargs,  # This includes timeout if provided
             )
         )
 
@@ -249,6 +250,10 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         temperature = temperature or self.config.temperature
         max_tokens = max_tokens or self.config.max_tokens
         execution_phase = execution_phase or self.config.execution_phase
+
+        # Extract timeout from kwargs or config, default to 100 seconds
+        timeout = kwargs.get("timeout") or getattr(self.config, "timeout", 100)
+        logger.debug(f"[ClaudeCodeAdapter] Using timeout of {timeout} seconds")
 
         # Prepare messages and extract system prompt
         prepared_messages, user_system_prompt = self.prepare_messages(messages)
@@ -276,6 +281,7 @@ class ClaudeCodeAdapter(UnifiedAdapter):
             options_dict["system_prompt"] = final_system_prompt
         options_dict["max_turns"] = kwargs.get("max_turns", 1)
         options_dict["continue_conversation"] = False
+        # Note: timeout handled at asyncio level, not in SDK options
         options = ClaudeCodeOptions(**options_dict)
 
         # Format messages as query
@@ -299,30 +305,51 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         @self.retry_handler.with_async_retry
         async def _execute():
             nonlocal full_text, input_tokens, output_tokens, metadata
-            async with QueryClientWrapper(
-                options,
-                execution_phase=phase_value if execution_phase else "default",
-            ) as wrapper:
-                async for message in wrapper.query(query):
-                    # Extract content
-                    if hasattr(message, "content"):
-                        for block in message.content:
-                            if hasattr(block, "text"):
-                                full_text += block.text
+            wrapper = None
 
-                    # Extract token usage
-                    if hasattr(message, "usage"):
-                        if hasattr(message.usage, "input_tokens"):
-                            input_tokens = message.usage.input_tokens
-                        if hasattr(message.usage, "output_tokens"):
-                            output_tokens = message.usage.output_tokens
+            # Use asyncio.timeout to enforce timeout
+            try:
+                async with asyncio.timeout(timeout):
+                    wrapper = QueryClientWrapper(
+                        options,
+                        execution_phase=phase_value if execution_phase else "default",
+                    )
+                    async with wrapper:
+                        async for message in wrapper.query(query):
+                            # Extract content
+                            if hasattr(message, "content"):
+                                for block in message.content:
+                                    if hasattr(block, "text"):
+                                        full_text += block.text
 
-                    # Capture metadata
-                    if type(message).__name__ == "ResultMessage":
-                        if hasattr(message, "total_cost_usd"):
-                            metadata["cost"] = message.total_cost_usd
-                        if hasattr(message, "duration_ms"):
-                            metadata["duration_ms"] = message.duration_ms
+                            # Extract token usage
+                            if hasattr(message, "usage"):
+                                if hasattr(message.usage, "input_tokens"):
+                                    input_tokens = message.usage.input_tokens
+                                if hasattr(message.usage, "output_tokens"):
+                                    output_tokens = message.usage.output_tokens
+
+                            # Capture metadata
+                            if type(message).__name__ == "ResultMessage":
+                                if hasattr(message, "total_cost_usd"):
+                                    metadata["cost"] = message.total_cost_usd
+                                if hasattr(message, "duration_ms"):
+                                    metadata["duration_ms"] = message.duration_ms
+            except TimeoutError:
+                logger.error(f"Claude Code query timed out after {timeout} seconds")
+                # Cleanup the wrapper if it was created
+                if wrapper:
+                    try:
+                        # Try to access the inner wrapper (SessionQueryWrapper)
+                        if hasattr(wrapper, "_wrapper") and wrapper._wrapper:
+                            # Force cleanup of the session and subprocess
+                            await wrapper._wrapper.force_cleanup()
+                        else:
+                            # If no inner wrapper, still try to cleanup the QueryClientWrapper
+                            await wrapper.__aexit__(None, None, None)
+                    except Exception as e:
+                        logger.warning(f"Error during timeout cleanup: {e}")
+                raise TimeoutError(f"Claude Code query timed out after {timeout} seconds")
 
             return full_text
 

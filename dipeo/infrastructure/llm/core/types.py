@@ -56,7 +56,7 @@ class AdapterConfig:
     base_url: str | None = None
     temperature: float = DEFAULT_TEMPERATURE
     max_tokens: int | None = None
-    timeout: int = 300
+    timeout: int = 100
     max_retries: int = 3
     retry_delay: float = 1.0
     retry_backoff: float = 2.0
