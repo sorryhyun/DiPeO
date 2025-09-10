@@ -58,7 +58,6 @@ class APIBusinessLogic:
         max_retries: int,
         retryable_status_codes: list[int] | None = None,
     ) -> bool:
-        """Legacy method for backward compatibility."""
         if attempt >= max_retries - 1:
             return False
 
@@ -74,7 +73,6 @@ class APIBusinessLogic:
         max_delay: float = 60.0,
         retry_after: float | None = None,
     ) -> float:
-        """Legacy method for backward compatibility."""
         if retry_after is not None:
             return min(retry_after, max_delay)
 
@@ -83,10 +81,9 @@ class APIBusinessLogic:
 
     def substitute_variables(self, data: Any, context: dict[str, Any]) -> Any:
         if isinstance(data, str):
-            # Use TemplateProcessor for single brace variable substitution if available
             if self._template_processor:
                 return self._template_processor.process_single_brace(data, context)
-            return data  # Return unchanged if no processor available
+            return data
 
         if isinstance(data, dict):
             return {k: self.substitute_variables(v, context) for k, v in data.items()}

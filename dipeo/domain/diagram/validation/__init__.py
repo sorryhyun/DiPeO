@@ -3,7 +3,6 @@
 
 # Lazy imports to avoid circular dependency with domain_compiler
 def __getattr__(name):
-    """Lazy import to avoid circular dependency."""
     if name in [
         "collect_diagnostics",
         "validate_diagram",

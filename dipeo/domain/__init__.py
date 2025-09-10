@@ -24,7 +24,6 @@ __all__ = [
     "api_service_type_to_llm_service",
     "get_llm_service_types",
     "get_non_llm_service_types",
-    # Service utilities
     "is_llm_service",
     "is_valid_api_service_type",
     "is_valid_llm_service",

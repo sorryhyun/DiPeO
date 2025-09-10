@@ -16,12 +16,9 @@ class EventScope:
     """Scope information for an event."""
 
     execution_id: str
-    node_id: str | None = None  # when node-scoped
-    connection_id: str | None = None  # GraphQL / client socket, optional
-    parent_execution_id: str | None = None  # sub-diagrams
-
-
-# --- Payloads (typed, tiny) --------------------------------------------------
+    node_id: str | None = None
+    connection_id: str | None = None
+    parent_execution_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,7 +57,7 @@ class NodeStartedPayload:
     state: NodeState
     node_type: str | None = None
     inputs: dict[str, Any] | None = None
-    iteration: int | None = None  # For loop nodes
+    iteration: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,18 +97,13 @@ class MetricsCollectedPayload:
     """Payload for metrics collected event."""
 
     metrics: dict[str, Any] = field(default_factory=dict)
-    # Example metrics:
-    # - avg_node_duration_ms
-    # - total_tokens_used
-    # - parallel_execution_efficiency
-    # - memory_usage_mb
 
 
 @dataclass(frozen=True, slots=True)
 class OptimizationSuggestedPayload:
     """Payload for optimization suggested event."""
 
-    suggestion_type: str  # e.g., "parallelize_nodes", "reduce_context"
+    suggestion_type: str
     affected_nodes: list[str] = field(default_factory=list)
     expected_improvement: str | None = None
     description: str = ""
@@ -122,7 +114,7 @@ class WebhookReceivedPayload:
     """Payload for webhook received event."""
 
     webhook_id: str
-    source: str  # e.g., "github", "slack"
+    source: str
     payload: dict[str, Any] = field(default_factory=dict)
     headers: dict[str, str] = field(default_factory=dict)
 
@@ -131,13 +123,12 @@ class WebhookReceivedPayload:
 class ExecutionLogPayload:
     """Payload for execution log event."""
 
-    level: str  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    level: str
     message: str
     logger_name: str
     extra_fields: dict[str, Any] = field(default_factory=dict)
 
 
-# Union type for all payloads
 EventPayload = (
     ExecutionStartedPayload
     | ExecutionCompletedPayload
@@ -152,7 +143,6 @@ EventPayload = (
     | ExecutionLogPayload
 )
 
-# Optional: mapping to validate at creation time
 PAYLOAD_BY_TYPE: dict[EventType, type[EventPayload]] = {
     EventType.EXECUTION_STARTED: ExecutionStartedPayload,
     EventType.EXECUTION_COMPLETED: ExecutionCompletedPayload,
@@ -181,11 +171,10 @@ class DomainEvent:
     scope: EventScope
     payload: EventPayload | None = None
 
-    meta: dict[str, Any] = field(default_factory=dict)  # freeform tags
+    meta: dict[str, Any] = field(default_factory=dict)
 
-    # Legacy fields for traceability
-    correlation_id: str | None = None  # For tracing related events
-    causation_id: str | None = None  # ID of the event that caused this one
+    correlation_id: str | None = None
+    causation_id: str | None = None
 
     def __post_init__(self):
         """Validate payload matches event type."""
@@ -196,9 +185,6 @@ class DomainEvent:
                     f"Payload type {type(self.payload).__name__} does not match "
                     f"expected type {expected_type.__name__} for event type {self.type}"
                 )
-
-
-# === Convenience Factory Functions ===
 
 
 def execution_started(execution_id: str, **kwargs) -> DomainEvent:

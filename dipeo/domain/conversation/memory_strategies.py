@@ -75,14 +75,12 @@ class DefaultMemoryStrategy(MemorySelectionStrategy):
         at_most: int | None,
         **kwargs,
     ) -> list[Message] | None:
-        """Return all candidate messages without filtering."""
         if not memorize_to:
             return None
 
         if memorize_to.strip().upper() == "GOLDFISH":
             return []
 
-        # Return all messages up to the limit
         if at_most:
             return list(candidate_messages[:at_most])
         return list(candidate_messages)
@@ -96,7 +94,6 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
         memory_selector: Optional["MemorySelectionPort"] = None,
         config: MemoryConfig | None = None,
     ):
-        """Initialize with memory selector port and configuration."""
         self.config = config or MemoryConfig()
         self.memory_selector = memory_selector
 
@@ -109,7 +106,6 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
         at_most: int | None,
         **kwargs,
     ) -> list[Message] | None:
-        """Select memories using intelligent filtering and LLM selection."""
         if not memorize_to or not memorize_to.strip():
             return None
 
@@ -119,24 +115,17 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
         if not self.memory_selector:
             return None
 
-        # Preprocess messages
         filtered_candidates = self._filter_messages(candidate_messages, ignore_person)
 
-        # Deduplicate
         unique_messages, frequencies = self._deduplicate_messages(filtered_candidates)
 
-        # Score and rank
         scored_messages = self._score_and_rank_messages(
             unique_messages, frequencies, datetime.now()
         )
 
-        # Take top candidates
         top_candidates = [msg for msg, score in scored_messages[: self.config.hard_cap]]
 
-        # Use LLM selector if available
-        person_id = kwargs.pop(
-            "person_id", PersonID("system")
-        )  # Remove from kwargs to avoid duplicate
+        person_id = kwargs.pop("person_id", PersonID("system"))
         selected_ids = await self.memory_selector.select_memories(
             person_id=person_id,
             candidate_messages=top_candidates,
@@ -150,27 +139,23 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
         if selected_ids is None:
             return None
 
-        # Map IDs back to messages
         idset = set(selected_ids)
         return [m for m in filtered_candidates if m.id and m.id in idset]
 
     def _filter_messages(
         self, messages: Sequence[Message], ignore_person: str | None
     ) -> list[Message]:
-        """Filter out selector facets and ignored persons."""
         ignored_persons = set()
         if ignore_person:
             ignored_persons = {p.strip() for p in ignore_person.split(",") if p.strip()}
 
         filtered = []
         for msg in messages:
-            # Skip selector facet messages
             if msg.from_person_id and ".__selector" in str(msg.from_person_id):
                 continue
             if msg.to_person_id and ".__selector" in str(msg.to_person_id):
                 continue
 
-            # Skip ignored persons
             if ignored_persons and msg.from_person_id:
                 if str(msg.from_person_id) in ignored_persons:
                     continue
@@ -182,7 +167,6 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
     def _deduplicate_messages(
         self, messages: Sequence[Message]
     ) -> tuple[list[Message], dict[str, int]]:
-        """Deduplicate similar messages and return frequencies."""
         unique_messages = []
         frequencies = {}
         seen_contents = []
@@ -208,7 +192,6 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
         return unique_messages, frequencies
 
     def _calculate_word_overlap(self, text1: str, text2: str) -> bool:
-        """Check if two texts have sufficient word overlap."""
         words1 = set(text1.lower().split())
         words2 = set(text2.lower().split())
 
@@ -226,7 +209,6 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
         frequencies: dict[str, int],
         current_time: datetime,
     ) -> list[tuple[Message, float]]:
-        """Score messages and return them ranked by score."""
         scored_messages = []
 
         for msg in messages:
@@ -245,11 +227,9 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
         frequency_count: int,
         current_time: datetime,
     ) -> float:
-        """Calculate a composite score for a message."""
         weights = self.config.default_weights
         scores = {}
 
-        # Recency score
         if message.timestamp and current_time:
             try:
                 msg_time = datetime.fromisoformat(message.timestamp.replace("Z", "+00:00"))
@@ -260,14 +240,11 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
         else:
             scores["recency"] = 50
 
-        # Frequency/importance score
         scores["frequency"] = min(100, 30 + (frequency_count - 1) * 20)
 
-        # Boost system messages
         if message.from_person_id == PersonID("system"):
             scores["frequency"] = min(100, scores["frequency"] + 30)
 
-        # Calculate weighted composite
         total_score = sum(scores.get(factor, 0) * weight for factor, weight in weights.items())
 
         return total_score
@@ -277,7 +254,6 @@ class SimpleMemoryStrategy(MemorySelectionStrategy):
     """Simple memory strategy with basic filtering rules."""
 
     def __init__(self, max_messages: int = 10):
-        """Initialize with a maximum message limit."""
         self.max_messages = max_messages
 
     async def select_memories(
@@ -289,13 +265,11 @@ class SimpleMemoryStrategy(MemorySelectionStrategy):
         at_most: int | None,
         **kwargs,
     ) -> list[Message] | None:
-        """Select most recent messages up to limit."""
         if not memorize_to:
             return None
 
         if memorize_to.strip().upper() == "GOLDFISH":
             return []
 
-        # Take most recent messages
         limit = at_most or self.max_messages
         return list(candidate_messages[-limit:])

@@ -16,7 +16,6 @@ class Conversation:
         if not message.timestamp:
             message.timestamp = datetime.utcnow().isoformat()
 
-        # Generate ID if not present
         if not message.id:
             message.id = str(uuid4())[:6]
 

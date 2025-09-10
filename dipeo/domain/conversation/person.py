@@ -33,7 +33,6 @@ class Person:
         self.name = name
         self.llm_config = llm_config
 
-        # Memory selection strategy (optional)
         self._memory_strategy = memory_strategy
 
     def get_memory_config(self) -> dict[str, Any]:
@@ -74,7 +73,6 @@ class Person:
         Returns:
             Tuple of (ChatResult, incoming_message, response_message)
         """
-        # Create the incoming message
         incoming = Message(
             from_person_id=from_person_id,  # type: ignore[arg-type]
             to_person_id=self.id,
@@ -82,13 +80,10 @@ class Person:
             message_type="person_to_person" if from_person_id != "system" else "system_to_person",
         )
 
-        # Use provided messages directly (already filtered by caller) and add the incoming message
         person_messages = [*all_messages, incoming]
 
-        # Format messages for LLM consumption
         formatted_messages = self._format_messages_for_llm(person_messages)
 
-        # Call LLM service with formatted messages
         result = await llm_service.complete(
             messages=formatted_messages,
             model=self.llm_config.model,
@@ -97,7 +92,6 @@ class Person:
             **llm_options,
         )
 
-        # Create the response message
         response_message = Message(
             from_person_id=self.id,
             to_person_id=from_person_id,  # type: ignore[arg-type]
@@ -119,12 +113,10 @@ class Person:
         """
         llm_messages = []
 
-        # Add system prompt if configured
         system_prompt = self.llm_config.system_prompt
         if system_prompt:
             llm_messages.append({"role": "system", "content": system_prompt})
 
-        # Convert domain messages to LLM format
         for msg in messages:
             role = self._determine_message_role(msg)
             llm_messages.append({"role": role, "content": msg.content})
@@ -140,13 +132,10 @@ class Person:
         Returns:
             The role string ("user" or "assistant")
         """
-        # If the message is from this person, they are the assistant
         if message.from_person_id == self.id:
             return "assistant"
-        # If the message is to this person, the sender is the user
         elif message.to_person_id == self.id:
             return "user"
-        # Default to user for other cases
         else:
             return "user"
 
@@ -182,16 +171,12 @@ class Person:
             Tuple of (ChatResult, incoming_message, response_message, selected_messages)
             The selected_messages can be None if no selection criteria was provided
         """
-        # Determine which messages to use for completion
         selected_messages = None
         messages_for_completion = all_messages
 
-        # Apply memory selection if criteria provided
         if memorize_to and self._memory_strategy:
-            # Use prompt_preview if provided, otherwise use the actual prompt
             preview = prompt_preview or prompt
 
-            # Perform memory selection directly using strategy
             selected_messages = await self._memory_strategy.select_memories(
                 candidate_messages=all_messages,
                 prompt_preview=preview,
@@ -202,11 +187,9 @@ class Person:
                 llm_service=llm_service,
             )
 
-            # Use selected messages if selection was performed
             if selected_messages is not None:
                 messages_for_completion = selected_messages
 
-        # Now complete with the messages
         result, incoming, response = await self.complete(
             prompt=prompt,
             all_messages=messages_for_completion,
@@ -215,7 +198,6 @@ class Person:
             **llm_options,
         )
 
-        # Return everything including the selected messages for transparency
         return result, incoming, response, selected_messages
 
     def __repr__(self) -> str:

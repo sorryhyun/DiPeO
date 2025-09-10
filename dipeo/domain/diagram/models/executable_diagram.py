@@ -68,11 +68,9 @@ class ExecutableEdgeV2:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def get_transform_rule(self, rule_type: str) -> Any | None:
-        """Get a specific transformation rule."""
         return self.transform_rules.get(rule_type)
 
     def has_transform_rule(self, rule_type: str) -> bool:
-        """Check if a transformation rule exists."""
         return rule_type in self.transform_rules
 
     def __repr__(self) -> str:
@@ -83,27 +81,17 @@ class NodeOutputProtocolV2(Protocol):
     """Enhanced protocol for node outputs with consistent access patterns."""
 
     @property
-    def value(self) -> Any:
-        """Primary output value."""
-        ...
+    def value(self) -> Any: ...
 
     @property
-    def outputs(self) -> dict[str, Any]:
-        """Named outputs dictionary."""
-        ...
+    def outputs(self) -> dict[str, Any]: ...
 
     @property
-    def metadata(self) -> dict[str, Any]:
-        """Output metadata."""
-        ...
+    def metadata(self) -> dict[str, Any]: ...
 
-    def get_output(self, name: str = "default") -> Any:
-        """Get a specific named output or default value."""
-        ...
+    def get_output(self, name: str = "default") -> Any: ...
 
-    def has_output(self, name: str) -> bool:
-        """Check if a named output exists."""
-        ...
+    def has_output(self, name: str) -> bool: ...
 
 
 class ExecutableDiagram:

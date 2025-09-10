@@ -68,24 +68,19 @@ class StandardTransformationEngine(TransformationEngine):
         if not rules:
             return value
 
-        # Handle TransformRules object
         if isinstance(rules, TransformRules):
             rules_to_apply = rules.rules.get("transforms", [])
             if not rules_to_apply:
-                # Check for direct rules
                 rules_to_apply = list(rules.rules.values())
-        # Handle string rules (legacy format)
         elif isinstance(rules, str):
             if rules == "default":
                 return value
             return value
-        # Handle list of rules
         elif isinstance(rules, list):
             rules_to_apply = rules
         else:
             return value
 
-        # Apply each rule in sequence
         result = value
         for rule in rules_to_apply:
             if not rule:
@@ -109,25 +104,21 @@ class StandardTransformationEngine(TransformationEngine):
         rule_type = rule.get("type")
 
         if rule_type == "extract":
-            # Extract a field from a dict
             if isinstance(value, dict):
                 field = rule.get("field")
                 if field:
                     return value.get(field)
 
         elif rule_type == "wrap":
-            # Wrap value in a dict
             key = rule.get("key", "value")
             return {key: value}
 
         elif rule_type == "map":
-            # Map values
             mapping = rule.get("mapping", {})
             if value in mapping:
                 return mapping[value]
 
         elif rule_type == "template":
-            # Apply template transformation
             template = rule.get("template", "")
             if isinstance(value, dict):
                 return template.format(**value)
@@ -135,7 +126,6 @@ class StandardTransformationEngine(TransformationEngine):
                 return template.format(value=value)
 
         elif rule_type == "json":
-            # Parse JSON string
             import json
 
             if isinstance(value, str):
@@ -144,5 +134,4 @@ class StandardTransformationEngine(TransformationEngine):
                 except json.JSONDecodeError:
                     return value
 
-        # Default: return value unchanged
         return value

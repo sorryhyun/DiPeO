@@ -17,7 +17,6 @@ from .models import (
 
 __all__ = [
     "BaseExecutableNode",
-    # Models
     "ExecutableDiagram",
     "ExecutableEdgeV2",
     "ExecutableNode",

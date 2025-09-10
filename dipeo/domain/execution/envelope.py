@@ -18,7 +18,6 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
-# Counters for tracking fallback conversions
 _fallback_counters = defaultdict(int)
 logger = logging.getLogger(__name__)
 
@@ -27,53 +26,37 @@ logger = logging.getLogger(__name__)
 class Envelope:
     """Immutable message envelope for inter-node communication."""
 
-    # Identity
     id: str = field(default_factory=lambda: str(uuid4()))
     trace_id: str = field(default="")
-
-    # Source
     produced_by: str = field(default="system")
-
-    # Content
     content_type: ContentType = field(default="raw_text")
     schema_id: str | None = field(default=None)
-    serialization_format: str | None = field(default=None)  # "numpy", "msgpack", "pickle", etc.
+    serialization_format: str | None = field(default=None)
     body: Any = field(default=None)
-
-    # Metadata
     meta: dict[str, Any] = field(default_factory=dict)
-
-    # Multiple representations (deprecated: UI should derive previews from body)
-    representations: dict[str, Any] = field(default_factory=dict)  # will be removed in v1
+    representations: dict[str, Any] = field(default_factory=dict)  # deprecated
 
     def with_meta(self, **kwargs) -> Envelope:
-        """Create new envelope with updated metadata"""
         new_meta = {**self.meta, **kwargs}
         return replace(self, meta=new_meta)
 
     def with_representations(self, representations: dict[str, Any]) -> Envelope:
-        """Create new envelope with representations"""
         return replace(self, representations=representations)
 
     def with_iteration(self, iteration: int) -> Envelope:
-        """Tag with iteration number"""
         return self.with_meta(iteration=iteration)
 
     def with_branch(self, branch_id: str) -> Envelope:
-        """Tag with branch identifier"""
         return self.with_meta(branch_id=branch_id)
 
     @property
     def error(self) -> str | None:
-        """Get error message if present."""
         return self.meta.get("error")
 
     def has_error(self) -> bool:
-        """Check if envelope represents an error."""
         return "error" in self.meta and self.meta["error"] is not None
 
     def as_text(self) -> str:
-        """Extract text content - strict version."""
         if self.content_type == ContentType.RAW_TEXT:
             return str(self.body) if self.body is not None else ""
         else:
@@ -82,7 +65,6 @@ class Envelope:
             )
 
     def as_json(self, model: type[T] | None = None) -> T | dict | list:
-        """Extract and optionally validate JSON content - strict version."""
         if self.content_type != ContentType.OBJECT:
             raise ValueError(
                 f"Cannot extract JSON from {self.content_type} - use to_json() for strict checking"
@@ -103,7 +85,6 @@ class Envelope:
         return data
 
     def as_bytes(self) -> bytes:
-        """Extract binary content - strict version."""
         if self.content_type == ContentType.BINARY:
             if isinstance(self.body, bytes):
                 return self.body
@@ -115,12 +96,10 @@ class Envelope:
             )
 
     def as_conversation(self) -> dict:
-        """Extract conversation state."""
         if self.content_type != ContentType.CONVERSATION_STATE:
             raise ValueError(f"Expected conversation_state, got {self.content_type}")
         return self.body
 
-    # Strict conversion methods (no implicit conversions)
     def to_text(self) -> str:
         """Extract text content - strict version without fallbacks.
 
@@ -150,11 +129,6 @@ class Envelope:
         return self.body
 
     def to_bytes(self) -> bytes:
-        """Extract binary content - strict version without fallbacks.
-
-        Raises:
-            TypeError: If envelope is not BINARY content type
-        """
         if self.content_type is not ContentType.BINARY:
             raise TypeError(f"Envelope is not BINARY, got {self.content_type}")
         if not isinstance(self.body, bytes | bytearray | memoryview):
@@ -163,11 +137,8 @@ class Envelope:
 
 
 class EnvelopeFactory:
-    """Factory for creating envelopes with backward compatibility support"""
-
     @staticmethod
     def text(content: str, node_id: str | None = None, **kwargs) -> Envelope:
-        """Create text envelope with optional node_id for compatibility"""
         warnings.warn(
             "EnvelopeFactory.text() is deprecated. Use EnvelopeFactory.create() instead.",
             DeprecationWarning,
@@ -176,7 +147,6 @@ class EnvelopeFactory:
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
-        # Support node_id parameter for backward compatibility
         if node_id:
             kwargs.setdefault("produced_by", node_id)
 
@@ -186,7 +156,6 @@ class EnvelopeFactory:
     def json(
         data: Any, schema_id: str | None = None, node_id: str | None = None, **kwargs
     ) -> Envelope:
-        """Create JSON envelope with optional node_id for compatibility"""
         warnings.warn(
             "EnvelopeFactory.json() is deprecated. Use EnvelopeFactory.create() instead.",
             DeprecationWarning,
@@ -195,7 +164,6 @@ class EnvelopeFactory:
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
-        # Support node_id parameter for backward compatibility
         if node_id:
             kwargs.setdefault("produced_by", node_id)
 
@@ -205,7 +173,6 @@ class EnvelopeFactory:
 
     @staticmethod
     def conversation(state: dict, node_id: str | None = None, **kwargs) -> Envelope:
-        """Create conversation envelope with optional node_id for compatibility"""
         warnings.warn(
             "EnvelopeFactory.conversation() is deprecated. Use EnvelopeFactory.create() instead.",
             DeprecationWarning,
@@ -214,7 +181,6 @@ class EnvelopeFactory:
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
-        # Support node_id parameter for backward compatibility
         if node_id:
             kwargs.setdefault("produced_by", node_id)
 
@@ -224,10 +190,8 @@ class EnvelopeFactory:
 
     @staticmethod
     def numpy_array(array: np.ndarray, **kwargs) -> Envelope:
-        """Create envelope for numpy array with safe serialization"""
         import numpy as np
 
-        # Use numpy's safe format instead of pickle
         buffer = io.BytesIO()
         np.save(buffer, array, allow_pickle=False)  # type: ignore[arg-type]
 
@@ -246,7 +210,6 @@ class EnvelopeFactory:
 
     @staticmethod
     def binary(data: bytes, format: str = "raw", **kwargs) -> Envelope:
-        """Create envelope for generic binary data"""
         warnings.warn(
             "EnvelopeFactory.binary() is deprecated. Use EnvelopeFactory.create() instead.",
             DeprecationWarning,
@@ -267,7 +230,6 @@ class EnvelopeFactory:
     def error(
         error_msg: str, error_type: str = "ExecutionError", node_id: str | None = None, **kwargs
     ) -> Envelope:
-        """Create error envelope for backward compatibility"""
         warnings.warn(
             "EnvelopeFactory.error() is deprecated. Use EnvelopeFactory.create() instead.",
             DeprecationWarning,
@@ -279,7 +241,6 @@ class EnvelopeFactory:
         meta["error_type"] = error_type
         meta["is_error"] = True
 
-        # Support node_id parameter for backward compatibility
         if node_id:
             kwargs.setdefault("produced_by", node_id)
 
@@ -308,20 +269,16 @@ class EnvelopeFactory:
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
-        # Support node_id parameter for backward compatibility
         if node_id:
             kwargs.setdefault("produced_by", node_id)
 
-        # Handle error metadata if error type provided
         if error:
             meta["is_error"] = True
             meta["error"] = body if isinstance(body, str) else str(body)
             meta["error_type"] = error
-            # Default to RAW_TEXT for errors if not specified
             if content_type is None:
                 content_type = ContentType.RAW_TEXT
 
-        # Auto-detect ContentType from body if not explicitly provided
         if content_type is None:
             if isinstance(body, str):
                 content_type = ContentType.RAW_TEXT
@@ -330,7 +287,6 @@ class EnvelopeFactory:
             elif isinstance(body, dict | list):
                 content_type = ContentType.OBJECT
             else:
-                # Default to OBJECT for unknowns (can be serialized as JSON usually)
                 content_type = ContentType.OBJECT
 
         return Envelope(content_type=content_type, body=body, meta=meta, **kwargs)
@@ -348,10 +304,6 @@ class StrictEnvelopeFactory:
 
     @staticmethod
     def _make_meta(meta: dict[str, Any] | None, *_unused) -> dict[str, Any]:
-        """
-        Create metadata with only minimal required fields.
-        NOTE: Do NOT duplicate top-level fields (produced_by, trace_id) here.
-        """
         result = meta.copy() if meta else {}
         result["timestamp"] = result.get("timestamp", time.time())
         return result
@@ -524,11 +476,6 @@ class StrictEnvelopeFactory:
 
 
 def get_envelope_factory() -> type[EnvelopeFactory] | type[StrictEnvelopeFactory]:
-    """Get the appropriate envelope factory based on environment configuration.
-
-    Returns:
-        StrictEnvelopeFactory if DIPEO_STRICT_ENVELOPE=1, else EnvelopeFactory
-    """
     if os.getenv("DIPEO_STRICT_ENVELOPE") == "1":
         logger.info("Using StrictEnvelopeFactory (DIPEO_STRICT_ENVELOPE=1)")
         return StrictEnvelopeFactory
@@ -536,23 +483,16 @@ def get_envelope_factory() -> type[EnvelopeFactory] | type[StrictEnvelopeFactory
 
 
 def get_fallback_stats() -> dict[str, int]:
-    """Get current fallback conversion statistics.
-
-    Returns:
-        Dictionary with conversion type as key and count as value
-    """
     return dict(_fallback_counters)
 
 
 def reset_fallback_stats() -> None:
-    """Reset fallback conversion counters."""
     global _fallback_counters
     _fallback_counters = defaultdict(int)
     logger.info("Fallback conversion counters reset")
 
 
 def log_fallback_stats() -> None:
-    """Log current fallback conversion statistics."""
     if not _fallback_counters:
         logger.info("No fallback conversions recorded")
         return
@@ -566,13 +506,8 @@ def log_fallback_stats() -> None:
 
 
 def serialize_protocol(output: Envelope) -> dict[str, Any]:
-    """Serialize envelope for storage.
-
-    Always produces consistent Envelope format.
-    """
-    # Direct serialization for Envelope instances
     return {
-        "envelope_format": True,  # Discriminator for deserialization
+        "envelope_format": True,
         "id": output.id,
         "trace_id": output.trace_id,
         "produced_by": output.produced_by,
@@ -583,29 +518,20 @@ def serialize_protocol(output: Envelope) -> dict[str, Any]:
         "serialization_format": output.serialization_format,
         "body": output.body,
         "meta": output.meta,
-        "representations": output.representations,  # NEW: Add representations field
+        "representations": output.representations,
     }
 
 
 def deserialize_protocol(data: dict[str, Any]) -> Envelope:
-    """Reconstruct envelope from stored data.
-
-    Only handles the standard Envelope format now that legacy support has been removed.
-    """
-
-    # Envelope format (with discriminator check for safety)
     if not (data.get("envelope_format") or data.get("_envelope_format")):
         raise ValueError("Invalid envelope data: missing envelope_format discriminator")
 
     content_type_val = data.get("content_type", "raw_text")
 
-    # Handle content_type conversion
     if isinstance(content_type_val, str):
         try:
-            # Try to convert to ContentType enum
             content_type = ContentType(content_type_val)
         except (ValueError, KeyError):
-            # If not a valid enum value, default to RAW_TEXT
             content_type = ContentType.RAW_TEXT
     else:
         content_type = content_type_val
@@ -619,5 +545,5 @@ def deserialize_protocol(data: dict[str, Any]) -> Envelope:
         serialization_format=data.get("serialization_format"),
         body=data.get("body"),
         meta=data.get("meta", {}),
-        representations=data.get("representations", {}),  # NEW: Add representations field
+        representations=data.get("representations", {}),
     )

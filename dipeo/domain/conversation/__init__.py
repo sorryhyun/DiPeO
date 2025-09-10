@@ -10,9 +10,7 @@ from .memory_strategies import (
 from .person import Person
 
 __all__ = [
-    # Dynamic objects
     "Conversation",
-    # Memory strategies
     "DefaultMemoryStrategy",
     "IntelligentMemoryStrategy",
     "MemoryConfig",

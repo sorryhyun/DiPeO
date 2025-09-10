@@ -13,21 +13,9 @@ from dipeo.domain.diagram.compilation.domain_compiler import (
 def collect_diagnostics(
     diagram: DomainDiagram, stop_after: CompilationPhase | None = None
 ) -> CompilationResult:
-    """Collect validation diagnostics using the domain compiler.
-
-    This function uses the domain compiler as the single source of truth for
-    validation, ensuring consistency across the entire system.
-
-    Args:
-        diagram: The domain diagram to validate
-        stop_after: Optional phase to stop after (defaults to all phases)
-
-    Returns:
-        CompilationResult with errors and warnings
-    """
+    """Collect validation diagnostics using the domain compiler as single source of truth."""
     compiler = DomainDiagramCompiler()
 
-    # If not specified, just run validation phase for pure validation
     if stop_after is None:
         stop_after = CompilationPhase.VALIDATION
 
@@ -35,52 +23,16 @@ def collect_diagnostics(
 
 
 def validate_diagram(diagram: DomainDiagram) -> CompilationResult:
-    """Validate a diagram through all compilation phases.
-
-    This performs a full compilation to catch all possible errors,
-    not just structural validation.
-
-    Args:
-        diagram: The domain diagram to validate
-
-    Returns:
-        CompilationResult with complete diagnostics
-    """
+    """Perform full compilation to catch all possible errors, not just structural validation."""
     compiler = DomainDiagramCompiler()
     return compiler.compile_with_diagnostics(diagram)
 
 
 def validate_structure_only(diagram: DomainDiagram) -> CompilationResult:
-    """Validate only the structural aspects of a diagram.
-
-    This stops after the validation phase, checking for:
-    - Missing nodes
-    - Duplicate IDs
-    - Invalid node types
-    - Basic structural integrity
-
-    Args:
-        diagram: The domain diagram to validate
-
-    Returns:
-        CompilationResult with structural validation results
-    """
+    """Validate structural aspects: missing nodes, duplicate IDs, invalid types, basic integrity."""
     return collect_diagnostics(diagram, stop_after=CompilationPhase.VALIDATION)
 
 
 def validate_connections(diagram: DomainDiagram) -> CompilationResult:
-    """Validate diagram including connection resolution.
-
-    This validates through the connection resolution phase, checking:
-    - All structural validation
-    - Node transformation
-    - Arrow/handle resolution
-    - Connection validity
-
-    Args:
-        diagram: The domain diagram to validate
-
-    Returns:
-        CompilationResult with connection validation results
-    """
+    """Validate through connection resolution phase: structure, transformation, handles, validity."""
     return collect_diagnostics(diagram, stop_after=CompilationPhase.CONNECTION_RESOLUTION)

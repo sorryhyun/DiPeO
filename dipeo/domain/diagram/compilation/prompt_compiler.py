@@ -25,18 +25,11 @@ class PromptFileCompiler:
     """
 
     def __init__(self, base_dir: str | None = None, filesystem_reader: Any | None = None):
-        """Initialize the prompt compiler.
-
-        Args:
-            base_dir: Base directory for resolving relative paths
-            filesystem_reader: Optional filesystem reader for testing
-        """
         self._base_dir = base_dir or os.getenv("DIPEO_BASE_DIR", os.getcwd())
         self._filesystem_reader = filesystem_reader or self._default_file_reader
         self._resolved_cache: dict[str, str] = {}
 
     def _default_file_reader(self, path: Path) -> str:
-        """Default file reader using standard library."""
         try:
             return path.read_text(encoding="utf-8")
         except Exception as e:
@@ -46,15 +39,6 @@ class PromptFileCompiler:
     def resolve_prompt_files(
         self, nodes: list[dict[str, Any]], diagram_path: str | None = None
     ) -> list[dict[str, Any]]:
-        """Resolve all prompt file references in a list of nodes.
-
-        Args:
-            nodes: List of node dictionaries
-            diagram_path: Path to the diagram file for relative resolution
-
-        Returns:
-            Updated nodes with resolved prompt content
-        """
         diagram_dir = None
         if diagram_path:
             if not os.path.isabs(diagram_path):
@@ -68,19 +52,15 @@ class PromptFileCompiler:
             if node_type not in ["person_job", "PersonJob", NodeType.PERSON_JOB]:
                 continue
 
-            # Get node data
             data = node.get("data", {})
 
-            # Resolve prompt_file if present
             if data.get("prompt_file"):
                 resolved_content = self._resolve_single_prompt(
                     data["prompt_file"], diagram_dir, node.get("label", node.get("id", "unknown"))
                 )
                 if resolved_content:
-                    # Store resolved content in a special field
                     data["resolved_prompt"] = resolved_content
 
-            # Resolve first_prompt_file if present
             if data.get("first_prompt_file"):
                 resolved_content = self._resolve_single_prompt(
                     data["first_prompt_file"],
@@ -88,7 +68,6 @@ class PromptFileCompiler:
                     node.get("label", node.get("id", "unknown")),
                 )
                 if resolved_content:
-                    # Store resolved content in a special field
                     data["resolved_first_prompt"] = resolved_content
 
         return nodes
@@ -96,17 +75,6 @@ class PromptFileCompiler:
     def _resolve_single_prompt(
         self, prompt_filename: str, diagram_dir: Path | None, node_label: str
     ) -> str | None:
-        """Resolve a single prompt file to its content.
-
-        Args:
-            prompt_filename: Name or path of the prompt file
-            diagram_dir: Directory of the diagram for relative resolution
-            node_label: Label of the node for logging
-
-        Returns:
-            Content of the prompt file, or None if not found
-        """
-        # Check cache first
         cache_key = f"{diagram_dir}:{prompt_filename}" if diagram_dir else prompt_filename
         if cache_key in self._resolved_cache:
             logger.debug(
@@ -114,13 +82,11 @@ class PromptFileCompiler:
             )
             return self._resolved_cache[cache_key]
 
-        # Try to resolve the path
         prompt_path = self._resolve_prompt_path(prompt_filename, diagram_dir)
 
         if prompt_path and prompt_path.exists():
             try:
                 content = self._filesystem_reader(prompt_path)
-                # Cache the result
                 self._resolved_cache[cache_key] = content
                 return content
             except Exception as e:
@@ -135,33 +101,22 @@ class PromptFileCompiler:
             return None
 
     def _resolve_prompt_path(self, prompt_filename: str, diagram_dir: Path | None) -> Path | None:
-        """Resolve the full path to a prompt file.
-
-        Resolution order:
-        1. If path starts with 'projects/' or 'files/', treat as relative to base directory
-        2. Relative to diagram directory (diagram_dir/prompts/filename)
-        3. Global prompts directory (DIPEO_BASE_DIR/files/prompts/filename)
-        """
         base_path = Path(self._base_dir)
 
-        # Check if path is already relative to base directory
         if prompt_filename.startswith(("projects/", "files/")):
             full_path = base_path / prompt_filename
             if full_path.exists():
                 return full_path
 
-        # Try relative to diagram directory
         if diagram_dir:
             local_path = diagram_dir / "prompts" / prompt_filename
             if local_path.exists():
                 return local_path
 
-        # Fall back to global prompts directory
         global_path = base_path / "files" / "prompts" / prompt_filename
         if global_path.exists():
             return global_path
 
-        # Try as absolute path
         abs_path = Path(prompt_filename)
         if abs_path.is_absolute() and abs_path.exists():
             return abs_path
@@ -171,15 +126,6 @@ class PromptFileCompiler:
     def compile_domain_nodes(
         self, domain_nodes: list[DomainNode], diagram_path: str | None = None
     ) -> list[DomainNode]:
-        """Resolve prompt files in DomainNode objects.
-
-        Args:
-            domain_nodes: List of DomainNode objects
-            diagram_path: Path to the diagram file
-
-        Returns:
-            Updated DomainNode objects with resolved prompts
-        """
         diagram_dir = None
         if diagram_path:
             if not os.path.isabs(diagram_path):
@@ -192,11 +138,9 @@ class PromptFileCompiler:
             if node.type != NodeType.PERSON_JOB:
                 continue
 
-            # Access data dictionary
             if not node.data:
                 continue
 
-            # Resolve prompt_file if present
             if node.data.get("prompt_file"):
                 resolved_content = self._resolve_single_prompt(
                     node.data["prompt_file"], diagram_dir, node.data.get("label", str(node.id))
@@ -204,7 +148,6 @@ class PromptFileCompiler:
                 if resolved_content:
                     node.data["resolved_prompt"] = resolved_content
 
-            # Resolve first_prompt_file if present
             if node.data.get("first_prompt_file"):
                 resolved_content = self._resolve_single_prompt(
                     node.data["first_prompt_file"],

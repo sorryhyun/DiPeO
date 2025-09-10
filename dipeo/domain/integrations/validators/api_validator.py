@@ -20,28 +20,22 @@ class APIValidator(BaseValidator):
     """Validates API configurations, requests, and API keys using the unified framework."""
 
     def _perform_validation(self, target: Any, result: ValidationResult) -> None:
-        """Perform API configuration validation."""
         if isinstance(target, dict):
-            # Check if it's an API key validation
             if "service" in target and "key" in target:
                 self._validate_api_key(target, result)
             else:
                 self._validate_api_config(target, result)
         elif isinstance(target, str):
-            # If it's just a URL string
             self._validate_url(target, result)
         else:
             result.add_error(ValidationError("Target must be an API config dict or URL string"))
 
     def _validate_api_config(self, config: dict[str, Any], result: ValidationResult) -> None:
-        """Validate complete API configuration."""
-        # Validate URL
         if "url" in config:
             self._validate_url(config["url"], result)
         else:
             result.add_error(ValidationError("URL is required", details={"field": "url"}))
 
-        # Validate method
         if "method" in config:
             self._validate_method(config["method"], result)
         else:
@@ -49,11 +43,9 @@ class APIValidator(BaseValidator):
                 ValidationError("HTTP method is required", details={"field": "method"})
             )
 
-        # Validate headers
         if "headers" in config:
             self._validate_headers(config["headers"], result)
 
-        # Validate body
         if "body" in config:
             content_type = None
             if "headers" in config and isinstance(config["headers"], dict):
@@ -62,20 +54,16 @@ class APIValidator(BaseValidator):
                 )
             self._validate_body(config["body"], content_type, config.get("method"), result)
 
-        # Validate auth
         if "auth" in config:
             self._validate_auth(config["auth"], result)
 
-        # Validate timeout
         if "timeout" in config:
             self._validate_timeout(config["timeout"], result)
 
-        # Validate retry config
         if "retry" in config:
             self._validate_retry(config["retry"], result)
 
     def _validate_url(self, url: str, result: ValidationResult) -> None:
-        """Validate URL format."""
         if not url:
             result.add_error(ValidationError("URL is required"))
             return
@@ -91,7 +79,6 @@ class APIValidator(BaseValidator):
             if not parsed.netloc:
                 result.add_error(ValidationError("URL must include domain/host"))
 
-            # Check for common URL issues
             if " " in url:
                 result.add_error(ValidationError("URL contains spaces"))
 
@@ -104,7 +91,6 @@ class APIValidator(BaseValidator):
             result.add_error(ValidationError(f"Invalid URL format: {e!s}"))
 
     def _validate_method(self, method: str, result: ValidationResult) -> None:
-        """Validate HTTP method."""
         valid_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
 
         if not method:
@@ -113,12 +99,10 @@ class APIValidator(BaseValidator):
             result.add_error(ValidationError(f"Invalid HTTP method: {method}"))
 
     def _validate_headers(self, headers: dict[str, str], result: ValidationResult) -> None:
-        """Validate HTTP headers."""
         if not isinstance(headers, dict):
             result.add_error(ValidationError("Headers must be a dictionary"))
             return
 
-        # Validate header names and values
         for name, value in headers.items():
             if not isinstance(name, str):
                 result.add_error(ValidationError(f"Header name must be string: {name}"))
@@ -133,21 +117,17 @@ class APIValidator(BaseValidator):
     def _validate_body(
         self, body: Any, content_type: str | None, method: str | None, result: ValidationResult
     ) -> None:
-        """Validate request body."""
-        # GET requests shouldn't have body
         if method and method.upper() == "GET" and body:
             result.add_warning(ValidationWarning("GET requests typically should not have a body"))
 
         if not body:
             return
 
-        # Validate based on content type
         if content_type:
             if "application/json" in content_type:
                 if not isinstance(body, dict | list):
                     result.add_error(ValidationError("JSON body must be dict or list"))
                 else:
-                    # Try to serialize to check validity
                     try:
                         json.dumps(body)
                     except Exception as e:
@@ -157,7 +137,6 @@ class APIValidator(BaseValidator):
                 if not isinstance(body, dict):
                     result.add_error(ValidationError("Form body must be a dictionary"))
                 else:
-                    # Check all values are simple types
                     for key, value in body.items():
                         if not isinstance(value, str | int | float | bool):
                             result.add_error(
@@ -168,7 +147,6 @@ class APIValidator(BaseValidator):
                 result.add_error(ValidationError("Text body must be a string"))
 
     def _validate_auth(self, auth_config: dict[str, Any], result: ValidationResult) -> None:
-        """Validate authentication configuration."""
         if not auth_config:
             return
 
@@ -177,7 +155,6 @@ class APIValidator(BaseValidator):
             result.add_error(ValidationError("Auth type is required"))
             return
 
-        # Validate based on auth type
         if auth_type == "bearer":
             if "token" not in auth_config:
                 result.add_error(ValidationError("Bearer auth requires 'token'"))
@@ -210,7 +187,6 @@ class APIValidator(BaseValidator):
             result.add_error(ValidationError(f"Unknown auth type: {auth_type}"))
 
     def _validate_timeout(self, timeout: Any, result: ValidationResult) -> None:
-        """Validate timeout configuration."""
         if not isinstance(timeout, int | float):
             result.add_error(ValidationError("Timeout must be a number"))
         elif timeout <= 0:
@@ -219,7 +195,6 @@ class APIValidator(BaseValidator):
             result.add_warning(ValidationWarning("Timeout is very high (>300 seconds)"))
 
     def _validate_retry(self, retry: dict[str, Any], result: ValidationResult) -> None:
-        """Validate retry configuration."""
         if not isinstance(retry, dict):
             result.add_error(ValidationError("Retry must be a dictionary"))
             return
@@ -238,9 +213,7 @@ class APIValidator(BaseValidator):
             elif retry["backoff_factor"] < 0:
                 result.add_error(ValidationError("Retry backoff_factor must be non-negative"))
 
-    # API Key validation methods (consolidated from apikey_validators)
     def _validate_api_key(self, key_info: dict[str, Any], result: ValidationResult) -> None:
-        """Validate API key configuration."""
         service = key_info.get("service")
         key = key_info.get("key")
 
@@ -252,7 +225,6 @@ class APIValidator(BaseValidator):
             result.add_error(ValidationError("API key is required"))
             return
 
-        # Validate service name
         try:
             normalized_service = self.validate_service_name(service)
             key_info["service"] = normalized_service
@@ -260,7 +232,6 @@ class APIValidator(BaseValidator):
             result.add_error(e)
             return
 
-        # Validate key format
         try:
             self.validate_api_key_format(key, normalized_service)
         except ValidationError as e:
@@ -268,7 +239,6 @@ class APIValidator(BaseValidator):
 
     @staticmethod
     def validate_service_name(service: str) -> str:
-        """Validate and normalize service name."""
         normalized = normalize_service_name(service)
 
         if normalized not in VALID_SERVICES:
@@ -280,7 +250,6 @@ class APIValidator(BaseValidator):
 
     @staticmethod
     def validate_api_key_format(key: str, service: str) -> None:
-        """Validate API key format based on service requirements."""
         if not key or not key.strip():
             raise ValidationError("API key cannot be empty")
 

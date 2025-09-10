@@ -10,7 +10,6 @@ from .handle_utils import extract_node_id_from_handle
 def find_edges_from(
     edges: list[dict[str, Any] | DomainArrow], node_id: str
 ) -> list[dict[str, Any] | DomainArrow]:
-    # Find all edges originating from a specific node
     result = []
     for edge in edges:
         source = edge.get("source") if isinstance(edge, dict) else edge.source
@@ -24,7 +23,6 @@ def find_edges_from(
 def find_edges_to(
     edges: list[dict[str, Any] | DomainArrow], node_id: str
 ) -> list[dict[str, Any] | DomainArrow]:
-    # Find all edges targeting a specific node
     result = []
     for edge in edges:
         target = edge.get("target") if isinstance(edge, dict) else edge.target
@@ -38,7 +36,6 @@ def find_edges_to(
 def find_connected_nodes(
     edges: list[dict[str, Any] | DomainArrow], node_id: str
 ) -> dict[str, list[str]]:
-    # Find all nodes connected to a specific node
     incoming = []
     outgoing = []
 
@@ -62,7 +59,6 @@ def find_connected_nodes(
 
 
 def count_node_connections(edges: list[dict[str, Any] | DomainArrow]) -> dict[str, dict[str, int]]:
-    # Count incoming and outgoing connections for all nodes in the graph
     connection_counts = {}
 
     for edge in edges:
@@ -87,7 +83,6 @@ def count_node_connections(edges: list[dict[str, Any] | DomainArrow]) -> dict[st
 def find_orphan_nodes(
     nodes: list[dict[str, Any] | Any], edges: list[dict[str, Any] | DomainArrow]
 ) -> list[str]:
-    # Find nodes that have no connections
     node_ids = set()
     for node in nodes:
         if isinstance(node, dict):
@@ -106,7 +101,6 @@ def find_orphan_nodes(
 
 
 def is_dag(nodes: list[dict[str, Any] | Any], edges: list[dict[str, Any] | DomainArrow]) -> bool:
-    # Check if the graph is a Directed Acyclic Graph using DFS
     adjacency = {}
     for edge in edges:
         source = edge.get("source") if isinstance(edge, dict) else edge.source

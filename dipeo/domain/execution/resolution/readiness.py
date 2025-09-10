@@ -25,14 +25,12 @@ def edge_is_ready(edge: ExecutableEdgeV2, node: ExecutableNode, ctx: ExecutionCo
     Returns:
         True if the edge should be processed, False otherwise
     """
-    # Check if source node has completed successfully
     src_id = edge.source_node_id
     src_state = ctx.state.get_node_state(src_id)
 
     if not src_state:
         return False
 
-    # Check if source node has completed - check status field
     from dipeo.diagram_generated import Status
 
     is_completed = hasattr(src_state, "status") and src_state.status == Status.COMPLETED
@@ -40,7 +38,6 @@ def edge_is_ready(edge: ExecutableEdgeV2, node: ExecutableNode, ctx: ExecutionCo
     if not is_completed:
         return False
 
-    # Edge is ready from a basic completion perspective - check source didn't fail
     return not (hasattr(src_state, "status") and src_state.status == Status.FAILED)
 
 
@@ -58,21 +55,16 @@ def edge_matches_iteration_context(
         True if edge matches iteration context, False otherwise
     """
     if not envelope or not isinstance(envelope, Envelope):
-        return True  # No envelope metadata to check
+        return True
 
-    # Check iteration match
     if "iteration" in envelope.meta:
-        # Get current iteration for target node
         target_state = ctx.state.get_node_state(edge.target_node_id)
         if target_state and hasattr(target_state, "iteration_count"):
             current_iteration = target_state.iteration_count
             if envelope.meta["iteration"] != current_iteration:
                 return False
 
-    # Check branch match
     if "branch_id" in envelope.meta:
-        # Check if target node is in a conditional branch
-        # and if the branch matches
         target_state = ctx.state.get_node_state(edge.target_node_id)
         if target_state and hasattr(target_state, "active_branch"):
             active_branch = target_state.active_branch
@@ -101,9 +93,8 @@ def should_process_special_input(
     from dipeo.diagram_generated import NodeType
 
     if not has_special_inputs:
-        return True  # No special input filtering needed
+        return True
 
-    # PersonJob special handling for 'first' inputs
     if node.type == NodeType.PERSON_JOB:
         return edge.target_input == "first" or edge.target_input.startswith("first.")
 

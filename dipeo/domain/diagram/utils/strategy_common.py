@@ -37,11 +37,8 @@ class NodeFieldMapper:
                 if "code_type" in props:
                     props["language"] = props.pop("code_type")
         elif node_type == NodeType.CODE_JOB.value:
-            # Map old field names to new ones
             if "code_type" in props and "language" not in props:
                 props["language"] = props.pop("code_type")
-            # Keep both code and filePath as separate fields
-            # Don't map code to filePath - they are different fields
         elif node_type == NodeType.DB.value:
             if "source_details" in props and "file" not in props:
                 props["file"] = props.pop("source_details")
@@ -83,11 +80,8 @@ class NodeFieldMapper:
         if node_type == NodeType.ENDPOINT.value and "file_name" in props:
             props["file_path"] = props.pop("file_name")
         elif node_type == NodeType.CODE_JOB.value:
-            # Map field names for light format compatibility if needed
             if "language" in props and "code_type" not in props:
                 props["code_type"] = props["language"]
-            # Keep both code and filePath as they are - don't map between them
-            # Keep functionName as is - it's a new field
         elif node_type == NodeType.DB.value and "file" in props:
             props["source_details"] = props.pop("file")
         elif node_type == NodeType.JSON_SCHEMA_VALIDATOR.value:
@@ -95,12 +89,10 @@ class NodeFieldMapper:
             if "strict_mode" in props and "strict" not in props:
                 props["strict"] = props["strict_mode"]
         elif node_type == NodeType.PERSON_JOB.value:
-            # Remove deprecated memory fields during export
             if "memory_config" in props:
                 props.pop("memory_config")
             if "memory_settings" in props:
                 props.pop("memory_settings")
-            # Keep memorize_to and at_most as is - they're the new approach
 
         return props
 
@@ -122,16 +114,13 @@ class HandleParser:
         if label_raw not in label2id and "_" in label_raw:
             parts = label_raw.split("_")
 
-            # Check for labels with spaces by replacing underscores
             for i in range(len(parts) - 1, 0, -1):
-                # Try with underscores
                 potential_label = "_".join(parts[:i])
                 if potential_label in label2id:
                     label = potential_label
                     handle_from_split = "_".join(parts[i:])
                     break
 
-                # Try with spaces instead of underscores
                 potential_label_with_spaces = " ".join(parts[:i])
                 if potential_label_with_spaces in label2id:
                     label = potential_label_with_spaces
@@ -150,13 +139,11 @@ class HandleParser:
     ) -> str:
         """Determine the handle name from split or arrow data."""
         if handle_from_split:
-            # Keep the "_first" as "first" for handle ID creation
-            # The handle needs to distinguish between default and first inputs
+            # _first becomes first to distinguish from default inputs
             if handle_from_split == "_first":
                 return "first"
             return handle_from_split
         elif is_source and arrow_data and "branch" in arrow_data:
-            # For condition nodes, use branch data
             branch_value = arrow_data.get("branch")
             return (
                 "condtrue"
@@ -175,7 +162,7 @@ class HandleParser:
         source_handle: str = "default",
         target_handle: str = "default",
     ) -> tuple[str, str]:
-        """Create proper handle IDs for source and target."""
+        """Create handle IDs for source and target."""
         try:
             src_handle_enum = HandleLabel(source_handle)
         except ValueError:
@@ -203,17 +190,14 @@ class HandleParser:
         handles_dict: dict[str, Any],
         arrow: dict[str, Any],
     ) -> None:
-        """Ensure a handle exists, creating it if necessary."""
-        # Check if it's already a full handle ID
+        """Ensure handle exists, creating if needed."""
         parts = handle_ref.split("_")
         if len(parts) >= 3 and parts[-1] in ["input", "output"]:
             return
 
-        # Parse light format handle reference
         node_id = None
         handle_name = "default"
 
-        # Try to match against node labels
         for nid, node in nodes_dict.items():
             node_label = node.get("data", {}).get("label", nid) if "data" in node else nid
             for possible_handle in ["first", "default", "condtrue", "condfalse"]:
@@ -224,7 +208,6 @@ class HandleParser:
             if node_id:
                 break
 
-        # Fall back to simple split
         if not node_id:
             parts = handle_ref.rsplit("_", 1)
             if len(parts) == 2:
@@ -242,7 +225,6 @@ class HandleParser:
                 node_id = handle_ref
                 handle_name = "default"
 
-        # Validate and create handle if needed
         if handle_name in ["input", "output"]:
             handle_name = "default"
 
@@ -251,12 +233,10 @@ class HandleParser:
         except ValueError:
             handle_label = handle_name
 
-        # Find actual node ID (case-insensitive)
         actual_node_id = next(
             (n_id for n_id in nodes_dict if n_id.lower() == node_id.lower()), node_id
         )
 
-        # Ensure handle_label is a HandleLabel enum
         if not isinstance(handle_label, HandleLabel):
             try:
                 handle_label = HandleLabel(str(handle_label))
@@ -265,7 +245,6 @@ class HandleParser:
         expected_handle_id = create_handle_id(NodeID(actual_node_id), handle_label, direction)
 
         if expected_handle_id not in handles_dict:
-            # Create the handle
             log.debug(
                 f"Creating handle: handle_ref={handle_ref}, handle_name={handle_name}, handle_label={handle_label}, type={type(handle_label)}"
             )
@@ -278,7 +257,6 @@ class HandleParser:
                 "position": "right" if direction == HandleDirection.OUTPUT else "left",
             }
 
-        # Update arrow to use the correct handle ID
         if direction == HandleDirection.OUTPUT:
             arrow["source"] = expected_handle_id
         else:
@@ -307,8 +285,7 @@ class PersonExtractor:
                 llm_config["prompt_file"] = person_config["prompt_file"]
 
             if is_light_format:
-                # In light format, the key is the label
-                # Use the label directly as the person_id (no prefix needed)
+                # Light format: key is label, used directly as person_id
                 person_id = person_config.get("id", person_key)
                 person_dict = {
                     "id": person_id,
@@ -317,7 +294,6 @@ class PersonExtractor:
                     "llm_config": llm_config,
                 }
             else:
-                # Regular format
                 person_id = person_key
                 person_dict = {
                     "id": person_id,
@@ -337,13 +313,11 @@ class PersonExtractor:
 
         for person_item in persons_data:
             if isinstance(person_item, dict):
-                # Check if it's a flat person object (from frontend)
                 if "id" in person_item and "llm_config" in person_item:
-                    # Native array format from frontend
                     person_id = person_item["id"]
                     persons_dict[person_id] = person_item
                 else:
-                    # Readable format: Each item should have one key (the person name)
+                    # Readable format with person name as key
                     for person_name, person_config in person_item.items():
                         llm_config = {
                             "service": person_config.get("service", "openai"),
@@ -355,7 +329,6 @@ class PersonExtractor:
                         if "prompt_file" in person_config:
                             llm_config["prompt_file"] = person_config["prompt_file"]
 
-                        # Generate a consistent person ID
                         person_id = f"person_{person_name}"
 
                         person_dict = {
@@ -381,7 +354,7 @@ class ArrowDataProcessor:
         content_type: str | None = None,
         label: str | None = None,
     ) -> dict[str, Any]:
-        """Build a standard arrow dictionary."""
+        """Build arrow dictionary."""
         arrow_dict = {
             "id": arrow_id,
             "source": source_handle_id,
@@ -397,7 +370,6 @@ class ArrowDataProcessor:
         if label:
             arrow_dict["label"] = label
 
-        # Set default content type if not specified
         if "content_type" not in arrow_dict and arrow_dict.get("content_type") is None:
             arrow_dict["content_type"] = ContentType.RAW_TEXT.value
 
@@ -405,8 +377,7 @@ class ArrowDataProcessor:
 
     @staticmethod
     def should_include_branch_data(source_handle: str, arrow_data: dict[str, Any]) -> bool:
-        """Determine if branch data should be included in arrow data."""
-        # Skip 'branch' if the handle name already contains the branch info
+        """Check if branch data should be included."""
         return "branch" in arrow_data and source_handle not in ["condtrue", "condfalse"]
 
 

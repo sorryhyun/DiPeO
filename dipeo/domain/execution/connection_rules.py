@@ -6,7 +6,6 @@ from dipeo.diagram_generated import NodeType
 class NodeConnectionRules:
     @staticmethod
     def can_connect(source_type: NodeType, target_type: NodeType) -> bool:
-        """Start nodes cannot have inputs, endpoint nodes cannot have outputs."""
         if target_type == NodeType.START:
             return False
 
@@ -28,7 +27,6 @@ class NodeConnectionRules:
 
     @staticmethod
     def get_connection_constraints(node_type: NodeType) -> dict[str, list[NodeType]]:
-        """Returns 'can_receive_from' and 'can_send_to' lists."""
         all_types = list(NodeType)
 
         if node_type == NodeType.START:
