@@ -29,6 +29,8 @@ SESSION_CONNECTION_TIMEOUT = float(os.getenv("DIPEO_SESSION_CONNECTION_TIMEOUT",
 SESSION_GRACE_PERIOD = float(
     os.getenv("DIPEO_SESSION_GRACE_PERIOD", "3")
 )  # Grace period after query completion
+SESSION_DISCONNECT_GRACE = float(os.getenv("DIPEO_SESSION_DISCONNECT_GRACE", "0.25"))
+SESSION_TERM_TIMEOUT = float(os.getenv("DIPEO_SESSION_TERM_TIMEOUT", "2.0"))
 
 logger.info(
     f"[SessionPool] Configuration: ENABLED={SESSION_POOL_ENABLED}, "
@@ -68,6 +70,7 @@ class SessionClient:
     is_connected: bool = False
     is_busy: bool = False
     subprocess_pid: int | None = None
+    owner_task: asyncio.Task | None = None
 
     async def connect(self) -> None:
         """Connect the client with None (empty initial stream).
@@ -82,6 +85,7 @@ class SessionClient:
             await self.client.connect(None)
             self.is_connected = True
             self.last_used_at = datetime.now()
+            self.owner_task = asyncio.current_task()
 
             # Store the subprocess PID for targeted cleanup
             if hasattr(self.client, "_transport") and hasattr(self.client._transport, "_process"):
@@ -155,25 +159,37 @@ class SessionClient:
             self.last_used_at = datetime.now()
 
     async def disconnect(self) -> None:
-        """Disconnect the client."""
-        if self.is_connected:
+        """Disconnect the client with timeout protection and task verification."""
+        if not self.is_connected:
+            return
+
+        # Only allow graceful disconnect from the same task that did connect()
+        same_task = self.owner_task is None or asyncio.current_task() is self.owner_task
+        if same_task:
             try:
-                await self.client.disconnect()
+                await asyncio.wait_for(self.client.disconnect(), timeout=SESSION_DISCONNECT_GRACE)
                 self.is_connected = False
                 logger.debug(
                     f"[SessionClient] Disconnected session {self.session_id} "
                     f"after {self.query_count} queries"
                 )
+                return
+            except TimeoutError:
+                logger.warning(
+                    f"[SessionClient] Disconnect timed out for session {self.session_id}"
+                )
+                # Fall through to raise error
             except Exception as e:
                 logger.warning(
                     f"[SessionClient] Error disconnecting session {self.session_id}: {e}"
                 )
+                # Fall through to raise error
+
+        # Different task or timed out - let force_disconnect handle kill
+        raise RuntimeError("Skip graceful disconnect (task mismatch or timeout)")
 
     async def force_disconnect(self) -> None:
         """Force disconnect gracefully: SDK disconnect → SIGTERM (wait) → SIGKILL."""
-        import asyncio
-        import os
-
         import psutil
 
         # Check if we should proceed with disconnect
@@ -188,15 +204,12 @@ class SessionClient:
             f"(connected={self.is_connected}, queries={self.query_count}/{self.max_queries})"
         )
 
-        # Try SDK disconnect regardless of our local flag state
+        # Best-effort graceful disconnect (may have already failed above)
         try:
-            await self.client.disconnect()
+            await self.disconnect()
         except Exception as e:
-            logger.debug(f"[SessionClient] Normal disconnect failed: {e}")
-
-        # Small grace for the SDK's message reader to drain
-        with contextlib.suppress(Exception):
-            await asyncio.sleep(float(os.getenv("DIPEO_SESSION_DISCONNECT_GRACE", "0.25")))
+            # Expected if task mismatch or timeout - proceed to kill
+            logger.debug(f"[SessionClient] Graceful disconnect skipped: {e}")
 
         killed = False
 
@@ -206,7 +219,7 @@ class SessionClient:
                 proc = psutil.Process(pid)
                 if proc.is_running():
                     # Verify this is still our subprocess before terminating
-                    term_timeout = float(os.getenv("DIPEO_SESSION_TERM_TIMEOUT", "2.0"))
+                    term_timeout = SESSION_TERM_TIMEOUT
                     kill_pg = os.getenv("DIPEO_SESSION_KILL_PG", "false").lower() == "true"
                     logger.warning(
                         f"[SessionClient] Terminating PID {pid} for session {self.session_id} "
@@ -308,7 +321,7 @@ class SessionPool:
         self._stats = SessionStats()
         self._lock = asyncio.Lock()
         self._closed = False
-        self._cleanup_tasks: dict[str, asyncio.Task] = {}  # Track cleanup tasks by session_id
+        self._pending_cleanup: list[SessionClient] = []  # Sessions pending cleanup
 
         logger.info(f"[SessionPool] Initialized pool '{pool_key}' with max_sessions={max_sessions}")
 
@@ -321,10 +334,18 @@ class SessionPool:
         if self._closed:
             raise RuntimeError(f"Pool '{self.pool_key}' is closed")
 
+        # Collect sessions to clean up while holding lock
+        pending_cleanup = []
+        session_to_return = None
+
         async with self._lock:
             # Clean up expired and non-reusable sessions
             await self._cleanup_expired()
             await self._cleanup_unusable()
+
+            # Move pending cleanup to local list and clear
+            pending_cleanup = self._pending_cleanup[:]
+            self._pending_cleanup.clear()
 
             # Find an available session
             for session in self._sessions:
@@ -339,22 +360,33 @@ class SessionPool:
                         f"[SessionPool] Reusing session {session.session_id} "
                         f"(query {session.query_count + 1}/{session.max_queries})"
                     )
-                    return session
+                    session_to_return = session
+                    break
 
-            # Create new session if under limit
-            if len(self._sessions) < self.max_sessions:
+            # Create new session if under limit and no session found
+            if not session_to_return and len(self._sessions) < self.max_sessions:
                 session = await self._create_session()
                 # Connect the session before returning
                 await session.connect()
                 self._sessions.append(session)
                 self._stats.total_borrowed += 1
-                return session
+                session_to_return = session
 
-            # No available sessions and at limit
-            raise RuntimeError(
-                f"No available sessions in pool '{self.pool_key}' "
-                f"({len(self._sessions)}/{self.max_sessions} sessions)"
-            )
+        # Cleanup outside the lock
+        for session in pending_cleanup:
+            try:
+                await session.force_disconnect()
+            except Exception as e:
+                logger.debug(f"[SessionPool] Error during pending cleanup: {e}")
+
+        if session_to_return:
+            return session_to_return
+
+        # No available sessions and at limit
+        raise RuntimeError(
+            f"No available sessions in pool '{self.pool_key}' "
+            f"({len(self._sessions)}/{self.max_sessions} sessions)"
+        )
 
     async def _create_session(self) -> SessionClient:
         """Create a new session client (not yet connected).
@@ -401,21 +433,12 @@ class SessionPool:
 
         self._sessions = active
 
-        # Remove expired sessions from pool and schedule tracked cleanup
+        # Add expired sessions to pending cleanup list
         for session in expired:
             logger.debug(
                 f"[SessionPool] Removed expired session {session.session_id} from pool '{self.pool_key}'"
             )
-            # Cancel any existing cleanup task for this session
-            if session.session_id in self._cleanup_tasks:
-                self._cleanup_tasks[session.session_id].cancel()
-
-            # Create and track new cleanup task for expired sessions
-            # These need grace period since they may have been idle mid-stream
-            task = asyncio.create_task(
-                self._delayed_force_disconnect(session, SESSION_GRACE_PERIOD)
-            )
-            self._cleanup_tasks[session.session_id] = task
+            self._pending_cleanup.append(session)
 
     async def _cleanup_unusable(self) -> None:
         """Remove sessions that can no longer be reused from the pool."""
@@ -431,40 +454,13 @@ class SessionPool:
 
         self._sessions = active
 
-        # Remove unusable sessions from pool with minimal delay for SDK cleanup
+        # Add unusable sessions to pending cleanup list
         for session in unusable:
             logger.debug(
                 f"[SessionPool] Removed unusable session {session.session_id} from pool '{self.pool_key}' "
                 f"(completed {session.query_count}/{session.max_queries} queries)"
             )
-            # Cancel any existing cleanup task for this session
-            if session.session_id in self._cleanup_tasks:
-                self._cleanup_tasks[session.session_id].cancel()
-
-            # Schedule cleanup with minimal delay (0.5s) to let SDK finish its async context
-            # This is much shorter than expired sessions since the query just completed
-            task = asyncio.create_task(self._delayed_force_disconnect(session, 0.5))
-            self._cleanup_tasks[session.session_id] = task
-
-    async def _delayed_force_disconnect(self, session: SessionClient, delay: float) -> None:
-        """Avoid racing the SDK: wait a bit, then disconnect/terminate."""
-        try:
-            await asyncio.sleep(delay)
-            # Only proceed if session is still not busy and not in pool
-            if not session.is_busy and session not in self._sessions:
-                await session.force_disconnect()
-            else:
-                logger.debug(
-                    f"[SessionPool] Skipping delayed cleanup for {session.session_id} "
-                    f"(is_busy={session.is_busy}, in_pool={session in self._sessions})"
-                )
-        except asyncio.CancelledError:
-            logger.debug(f"[SessionPool] Cleanup task cancelled for session {session.session_id}")
-        except Exception as e:
-            logger.debug(f"[SessionPool] Error (ignored) during delayed force_disconnect: {e}")
-        finally:
-            # Remove from tracked tasks
-            self._cleanup_tasks.pop(session.session_id, None)
+            self._pending_cleanup.append(session)
 
     async def _disconnect_session(self, session: SessionClient) -> None:
         """Disconnect a session safely."""
@@ -498,16 +494,16 @@ class SessionPool:
         self._closed = True
 
         async with self._lock:
-            # Cancel all pending cleanup tasks
-            for task in self._cleanup_tasks.values():
-                task.cancel()
-            self._cleanup_tasks.clear()
-
             # Disconnect all sessions
             for session in self._sessions:
                 await self._disconnect_session(session)
 
+            # Clean up pending sessions
+            for session in self._pending_cleanup:
+                await session.force_disconnect()
+
             self._sessions.clear()
+            self._pending_cleanup.clear()
 
         # Calculate final stats
         if self._stats.total_created > 0:

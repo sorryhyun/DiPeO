@@ -1,7 +1,8 @@
-"""Session pool wrapper for Claude Code queries.
+"""Session wrapper for Claude Code queries with pooling support.
 
-Supports session-based pooling for memory selection and system prompt persistence.
-Falls back to default SDK query when session pooling is disabled.
+Provides SessionQueryWrapper that manages session lifecycle from the session pool,
+enabling efficient reuse of connected sessions for multiple queries with the same
+system prompt configuration.
 """
 
 import logging
@@ -9,12 +10,8 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from claude_code_sdk import ClaudeCodeOptions
-from claude_code_sdk import query as sdk_query
 
-from .session_pool import (
-    SESSION_POOL_ENABLED,
-    get_global_session_manager,
-)
+from .session_pool import get_global_session_manager
 
 logger = logging.getLogger(__name__)
 
@@ -62,15 +59,23 @@ class SessionQueryWrapper:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Exit context - session automatically returns to pool."""
-        # Sessions are automatically returned to pool (no explicit return needed)
-        # They remain connected for reuse
+        """Exit context - clean up non-reusable sessions in same context."""
         if self._session:
-            logger.debug(
-                f"[SessionQueryWrapper] Released session {self._session.session_id} "
-                f"(queries: {self._session.query_count}/{self._session.max_queries})"
-            )
-            self._session = None
+            # If the session cannot be reused (reached REUSE_LIMIT) or is expired,
+            # remove it here so disconnect runs in the same task that used it.
+            try:
+                if (not self._session.can_reuse()) or self._session.is_expired():
+                    logger.debug(
+                        f"[SessionQueryWrapper] Removing non-reusable session {self._session.session_id} "
+                        f"(queries: {self._session.query_count}/{self._session.max_queries})"
+                    )
+                    await self._pool.remove_session(self._session)
+            finally:
+                logger.debug(
+                    f"[SessionQueryWrapper] Released session {self._session.session_id} "
+                    f"(queries: {self._session.query_count}/{self._session.max_queries})"
+                )
+                self._session = None
 
     async def force_cleanup(self):
         """Force cleanup of the session and its subprocess on timeout."""
@@ -109,39 +114,3 @@ class SessionQueryWrapper:
                 f"[SessionQueryWrapper] Query failed on session {self._session.session_id}: {e}"
             )
             raise
-
-
-# Convenience function for single queries
-async def warm_query(
-    prompt: str,
-    options: ClaudeCodeOptions,
-    execution_phase: str = "default",
-) -> str:
-    """Execute a single query using session pool or default SDK.
-
-    Args:
-        prompt: The prompt to send
-        options: Claude Code options (may include system_prompt)
-        execution_phase: Execution phase for pool key
-
-    Returns:
-        The result text from the query
-    """
-    # Use session pooling if enabled and system prompt is in options
-    if SESSION_POOL_ENABLED and hasattr(options, "system_prompt") and options.system_prompt:
-        async with SessionQueryWrapper(options, execution_phase) as wrapper:
-            result = ""
-            async for message in wrapper.query(prompt):
-                if hasattr(message, "result"):
-                    result = message.result
-                    break
-            return result
-    else:
-        # Use default SDK query (no pooling)
-        logger.debug(f"[warm_query] Using default SDK query for phase '{execution_phase}'")
-        result = ""
-        async for message in sdk_query(prompt, options):
-            if hasattr(message, "result"):
-                result = message.result
-                break
-        return result

@@ -13,22 +13,6 @@ logger = logging.getLogger(__name__)
 # Session pooling configuration
 SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() == "true"
 
-# Deprecated environment variables (kept for backward compatibility warnings)
-# These are no longer used but we check them to warn users
-_DEPRECATED_ENV_VARS = {
-    "DIPEO_ENABLE_WARM_POOL": "Warm pooling has been removed. Use session pooling instead.",
-    "DIPEO_WARM_POOL_SIZE": "Warm pool size configuration has been removed.",
-    "DIPEO_CONNECTED_TRANSPORT": "Connected transport has been removed.",
-    "DIPEO_CONNECTED_REUSE": "Connected transport configuration has been removed.",
-    "DIPEO_CONNECTED_IDLE_TTL": "Connected transport configuration has been removed.",
-    "DIPEO_USE_QUERY_MODE": "Query mode flag has been removed.",
-}
-
-# Check for deprecated environment variables and warn
-for env_var, message in _DEPRECATED_ENV_VARS.items():
-    if os.getenv(env_var):
-        logger.warning(f"[ClaudeCode] DEPRECATED: {env_var} is no longer used. {message}")
-
 logger.info(f"[ClaudeCode] Configuration: SESSION_POOL_ENABLED={SESSION_POOL_ENABLED}")
 
 
@@ -43,19 +27,16 @@ class QueryClientWrapper:
     def __init__(
         self,
         options: Any,
-        pool_key: str = "default",
-        execution_phase: str | None = None,
+        execution_phase: str = "default",
     ):
         """Initialize the query wrapper.
 
         Args:
             options: ClaudeCodeOptions for the query (may include system_prompt)
-            pool_key: Key for transport pool (deprecated, use execution_phase)
             execution_phase: Execution phase for pool key determination
         """
         self.options = options
-        self.pool_key = pool_key  # Keep for backward compatibility
-        self.execution_phase = execution_phase or pool_key
+        self.execution_phase = execution_phase
         self._wrapper = None
 
     async def __aenter__(self):
@@ -69,7 +50,7 @@ class QueryClientWrapper:
             # and (str(self.execution_phase or "").lower() not in {"direct_execution"})
         ):
             try:
-                from .transport.warm_wrapper import SessionQueryWrapper
+                from .transport.session_wrapper import SessionQueryWrapper
 
                 self._wrapper = SessionQueryWrapper(
                     options=self.options,
@@ -143,14 +124,3 @@ class QueryClientWrapper:
         # If no wrapper or no force_cleanup method, just clean up normally
         elif self._wrapper:
             await self.__aexit__(None, None, None)
-
-    async def receive_messages(self):
-        """Compatibility method for ClaudeSDKClient interface.
-
-        This method should not be used with QueryClientWrapper.
-        Use the query() method directly instead.
-        """
-        raise NotImplementedError(
-            "QueryClientWrapper doesn't support receive_messages(). "
-            "Use async for msg in wrapper.query(prompt) instead."
-        )

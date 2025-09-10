@@ -77,13 +77,21 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         )
 
     def _create_sync_client(self):
-        """Create synchronous client."""
-        # QueryClientWrapper is created per request
+        """Create synchronous client.
+
+        Note: Claude Code SDK uses QueryClientWrapper which is created per request,
+        not a persistent client instance. Returns None as client creation happens
+        in chat/async_chat methods.
+        """
         return None
 
     async def _create_async_client(self):
-        """Create asynchronous client."""
-        # QueryClientWrapper is created per request
+        """Create asynchronous client.
+
+        Note: Claude Code SDK uses QueryClientWrapper which is created per request,
+        not a persistent client instance. Returns None as client creation happens
+        in chat/async_chat methods.
+        """
         return None
 
     def validate_model(self, model: str) -> bool:
@@ -383,7 +391,11 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         **kwargs,
     ) -> Iterator[str]:
         """Stream synchronous chat completion."""
-        raise NotImplementedError("Synchronous streaming not supported for Claude Code SDK")
+        raise NotImplementedError(
+            "Streaming is not supported for Claude Code SDK. "
+            "The SDK uses a query-based interface that doesn't support traditional streaming. "
+            "Use chat() or async_chat() instead."
+        )
 
     async def async_stream(
         self,
@@ -394,43 +406,8 @@ class ClaudeCodeAdapter(UnifiedAdapter):
         **kwargs,
     ) -> AsyncIterator[str]:
         """Stream asynchronous chat completion."""
-        temperature = temperature or self.config.temperature
-        max_tokens = max_tokens or self.config.max_tokens
-
-        # Prepare messages and extract system prompt
-        prepared_messages, user_system_prompt = self.prepare_messages(messages)
-
-        # Build system prompt (no execution phase for streaming)
-        system_prompt = self._build_system_prompt(user_system_prompt, None)
-
-        # Execute with retry
-        @self.retry_handler.with_async_retry
-        async def _execute():
-            return await self.async_client_wrapper.stream_chat_completion(
-                messages=prepared_messages,
-                model=self.model,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                system=system_prompt,
-                **kwargs,
-            )
-
-        stream = await _execute()
-
-        # Process stream chunks from SDK (Message objects) or raw dicts
-        async for chunk in stream:
-            # SDK Message object
-            if (
-                hasattr(chunk, "delta")
-                and isinstance(chunk.delta, dict)
-                and "content" in chunk.delta
-            ):
-                yield chunk.delta["content"]
-            elif hasattr(chunk, "content") and isinstance(chunk.content, str) and chunk.content:
-                yield chunk.content
-            # Raw dict fallback
-            elif isinstance(chunk, dict):
-                delta = chunk.get("delta") or {}
-                content = delta.get("content") or chunk.get("content")
-                if isinstance(content, str) and content:
-                    yield content
+        raise NotImplementedError(
+            "Streaming is not supported for Claude Code SDK. "
+            "The SDK uses a query-based interface that doesn't support traditional streaming. "
+            "Use chat() or async_chat() instead."
+        )
