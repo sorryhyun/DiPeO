@@ -5,13 +5,14 @@ delegates responsibilities to specialized managers.
 """
 
 import logging
+from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from dipeo.diagram_generated import NodeID, NodeType, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-from dipeo.domain.events import EventBus
+from dipeo.domain.events.unified_ports import EventBus
 from dipeo.domain.execution.envelope import Envelope
 from dipeo.domain.execution.event_manager import EventManager
 from dipeo.domain.execution.execution_context import ExecutionContext as ExecutionContextProtocol
@@ -50,6 +51,10 @@ class TypedExecutionContext(ExecutionContextProtocol):
     _metadata: dict[str, Any] = field(default_factory=dict)
     _current_node_id: NodeID | None = None
     _parent_metadata: dict[str, Any] = field(default_factory=dict)  # For nested sub-diagrams
+
+    # Scope management for sub-diagrams
+    _scope_stack: list[str] = field(default_factory=list)
+    _scoped_vars: dict[str, dict[str, Any]] = field(default_factory=lambda: defaultdict(dict))
 
     # Services (optional)
     service_registry: "ServiceRegistry | None" = None
@@ -156,27 +161,81 @@ class TypedExecutionContext(ExecutionContextProtocol):
 
         return self._token_manager.has_new_inputs(node_id, epoch, join_policy)
 
+    # ========== Scope Management ==========
+
+    @contextmanager
+    def enter_scope(self, name: str):
+        """Enter a new variable scope for sub-diagram execution.
+
+        This creates an isolated namespace for variables that prevents
+        sub-diagrams from overwriting parent context variables.
+
+        Args:
+            name: The scope name (typically "sub:{node_id}")
+        """
+        self._scope_stack.append(name)
+        try:
+            yield
+        finally:
+            self._scope_stack.pop()
+            # Clean up scoped variables when exiting scope
+            self._scoped_vars.pop(name, None)
+
+    def set_var(self, key: str, value: Any) -> None:
+        """Set a variable in the current scope.
+
+        If in a scope, the variable is isolated to that scope.
+        Otherwise, it's set in the global variables.
+
+        Args:
+            key: Variable name
+            value: Variable value
+        """
+        scope = self._scope_stack[-1] if self._scope_stack else ""
+        if scope:
+            self._scoped_vars[scope][key] = value
+        else:
+            self._variables[key] = value
+
     # ========== Variables ==========
 
     def get_variable(self, name: str) -> Any:
-        """Get a variable value."""
+        """Get a variable value, checking scoped variables first."""
         # Check for branch decisions first
         if name.startswith("branch[") and name.endswith("]"):
             node_id = NodeID(name[7:-1])
             return self._token_manager.get_branch_decision(node_id)
+
+        # Check current scope first
+        if self._scope_stack:
+            scope = self._scope_stack[-1]
+            if scope in self._scoped_vars and name in self._scoped_vars[scope]:
+                return self._scoped_vars[scope][name]
+
+        # Fall back to global variables
         return self._variables.get(name)
 
     def set_variable(self, name: str, value: Any) -> None:
-        """Set a variable value."""
-        self._variables[name] = value
+        """Set a variable value in the appropriate scope."""
+        # Use set_var for consistent scope handling
+        self.set_var(name, value)
 
     def get_variables(self) -> dict[str, Any]:
-        """Get all variables."""
-        return dict(self._variables)
+        """Get all variables including scoped ones."""
+        result = dict(self._variables)
+
+        # Overlay current scope variables if in a scope
+        if self._scope_stack:
+            scope = self._scope_stack[-1]
+            if scope in self._scoped_vars:
+                result.update(self._scoped_vars[scope])
+
+        return result
 
     def set_variables(self, variables: dict[str, Any]) -> None:
-        """Set multiple variables."""
-        self._variables.update(variables)
+        """Set multiple variables in the current scope."""
+        for key, value in variables.items():
+            self.set_var(key, value)
 
     # ========== Metadata ==========
 
@@ -264,6 +323,9 @@ class TypedExecutionContext(ExecutionContextProtocol):
         It provides both namespaced access (globals.var, inputs.var, local.var) and
         flat access (var) for ergonomic template syntax.
 
+        When in a scope (e.g., sub-diagram execution), the scope overlay takes precedence
+        to ensure proper variable isolation.
+
         Args:
             inputs: Input values from the node
             locals_: Local variables (e.g., foreach loop variables)
@@ -276,7 +338,13 @@ class TypedExecutionContext(ExecutionContextProtocol):
 
         inputs = inputs or {}
         locals_ = locals_ or {}
-        globals_ = self.get_variables()
+        globals_ = self.get_variables()  # This already includes scope overlay
+
+        # Get scope overlay if in a scope
+        scope_overlay = {}
+        if self._scope_stack:
+            scope = self._scope_stack[-1]
+            scope_overlay = self._scoped_vars.get(scope, {})
 
         # Namespaced copies to avoid collisions in templates if desired
         merged = {
@@ -286,9 +354,11 @@ class TypedExecutionContext(ExecutionContextProtocol):
         }
 
         # Flat root for ergonomic {{ var }} access:
-        flat = (
-            {**inputs, **locals_, **globals_} if globals_win else {**globals_, **inputs, **locals_}
-        )
+        # Compose context from globals + inputs + locals + scope overlay
+        if globals_win:
+            flat = {**inputs, **locals_, **globals_, **scope_overlay}
+        else:
+            flat = {**globals_, **inputs, **locals_, **scope_overlay}
 
         merged.update(flat)
         return merged

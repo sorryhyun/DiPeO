@@ -38,6 +38,7 @@ type CliSession {
   started_at: DateTime!
   is_active: Boolean!
   diagram_data: String
+  node_states: JSON
   session_id: String!
 }
 

@@ -1,9 +1,10 @@
-"""Factory for creating LLM adapters."""
+"""Factory for creating LLM clients directly."""
+
+from typing import Any
 
 from dipeo.config.services import LLMServiceName, normalize_service_name
 
-from ..core.types import AdapterConfig, ProviderType
-from .base import BaseLLMAdapter
+from ..drivers.types import AdapterConfig, ProviderType
 
 
 def create_adapter(
@@ -12,9 +13,11 @@ def create_adapter(
     api_key: str,
     base_url: str | None = None,
     async_mode: bool = False,
-) -> BaseLLMAdapter:
+) -> Any:
     """
-    Create an LLM adapter for the specified provider.
+    Create an LLM client for the specified provider.
+
+    This function returns unified clients directly for all providers.
 
     Args:
         provider: The LLM provider name
@@ -24,79 +27,52 @@ def create_adapter(
         async_mode: If True, returns async adapter; if False, returns sync adapter
 
     Returns:
-        An LLM adapter instance (sync or async based on async_mode)
+        A unified LLM client instance
     """
     provider = normalize_service_name(provider)
 
-    # Use new refactored providers when available
+    # Create config for all providers
+    config = AdapterConfig(
+        provider_type=ProviderType.OPENAI,  # Will be overridden below
+        model=model_name,
+        api_key=api_key,
+        base_url=base_url,
+    )
+
+    # Return unified clients for all providers
     if provider == LLMServiceName.ANTHROPIC.value:
-        # Use new refactored Anthropic provider
-        from ..providers.anthropic import AnthropicAdapter
+        # Use unified Anthropic client directly
+        from ..providers.anthropic.unified_client import UnifiedAnthropicClient
 
-        config = AdapterConfig(
-            provider_type=ProviderType.ANTHROPIC,
-            model=model_name,
-            api_key=api_key,
-            base_url=base_url,
-        )
-        adapter = AnthropicAdapter(config)
-        adapter.model = model_name
-        return adapter
-
-    if provider == LLMServiceName.CLAUDE_CODE.value:
-        # Use new separated Claude Code provider
-        from ..providers.claude_code import ClaudeCodeAdapter
-
-        config = AdapterConfig(
-            provider_type=ProviderType.ANTHROPIC,  # Claude Code uses Anthropic provider type
-            model=model_name,
-            api_key=api_key,
-            base_url=base_url,
-        )
-        adapter = ClaudeCodeAdapter(config)
-        adapter.model = model_name
-        return adapter
+        config.provider_type = ProviderType.ANTHROPIC
+        return UnifiedAnthropicClient(config)
 
     if provider == LLMServiceName.OPENAI.value:
-        # Use new refactored OpenAI provider
-        from ..providers.openai import OpenAIAdapter
+        # Use unified OpenAI client directly
+        from ..providers.openai.unified_client import UnifiedOpenAIClient
 
-        config = AdapterConfig(
-            provider_type=ProviderType.OPENAI,
-            model=model_name,
-            api_key=api_key,
-            base_url=base_url,
-        )
-        adapter = OpenAIAdapter(config)
-        adapter.model = model_name
-        return adapter
+        config.provider_type = ProviderType.OPENAI
+        return UnifiedOpenAIClient(config)
+
+    if provider == LLMServiceName.CLAUDE_CODE.value:
+        # Use unified Claude Code client directly
+        from ..providers.claude_code.unified_client import UnifiedClaudeCodeClient
+
+        config.provider_type = ProviderType.ANTHROPIC  # Claude Code uses Anthropic provider type
+        return UnifiedClaudeCodeClient(config)
 
     if provider in [LLMServiceName.GOOGLE.value, LLMServiceName.GEMINI.value]:
-        # Use new refactored Google provider
-        from ..providers.google import GoogleAdapter
+        # Use unified Google client directly
+        from ..providers.google.unified_client import UnifiedGoogleClient
 
-        config = AdapterConfig(
-            provider_type=ProviderType.GOOGLE,
-            model=model_name,
-            api_key=api_key,
-            base_url=base_url,
-        )
-        adapter = GoogleAdapter(config)
-        adapter.model = model_name
-        return adapter
+        config.provider_type = ProviderType.GOOGLE
+        return UnifiedGoogleClient(config)
 
     if provider == LLMServiceName.OLLAMA.value:
-        # Use new refactored Ollama provider
-        from ..providers.ollama import OllamaAdapter
+        # Use unified Ollama client directly
+        from ..providers.ollama.unified_client import UnifiedOllamaClient
 
-        config = AdapterConfig(
-            provider_type=ProviderType.OLLAMA,
-            model=model_name,
-            api_key=api_key,
-            base_url=base_url,
-        )
-        adapter = OllamaAdapter(config)
-        adapter.model = model_name
-        return adapter
+        config.provider_type = ProviderType.OLLAMA
+        return UnifiedOllamaClient(config)
 
     raise ValueError(f"Unsupported provider: {provider}")

@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
+from dipeo.config.execution import SUB_DIAGRAM_BATCH_SIZE, SUB_DIAGRAM_MAX_CONCURRENT
 from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -29,8 +30,8 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
     """Executor for batch sub-diagram execution with optimizations for parallel processing."""
 
     # Default configuration for batch execution
-    DEFAULT_MAX_CONCURRENT = 10  # Maximum concurrent executions
-    DEFAULT_BATCH_SIZE = 100  # Maximum items to process in one batch
+    DEFAULT_MAX_CONCURRENT = SUB_DIAGRAM_MAX_CONCURRENT  # Maximum concurrent executions
+    DEFAULT_BATCH_SIZE = SUB_DIAGRAM_BATCH_SIZE  # Maximum items to process in one batch
 
     def __init__(self):
         """Initialize executor."""
@@ -60,10 +61,11 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         logger.warning(
             f"Batch mode enabled but no items found for key '{batch_config['input_key']}'"
         )
-        return EnvelopeFactory.json(
-            {"total_items": 0, "successful": 0, "failed": 0, "results": [], "errors": None},
+        return EnvelopeFactory.create(
+            body={"total_items": 0, "successful": 0, "failed": 0, "results": [], "errors": None},
             produced_by=str(node.id),
-        ).with_meta(batch_parallel=batch_config["parallel"])
+            meta={"batch_parallel": batch_config["parallel"]},
+        )
 
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope:
         """Execute sub-diagram for each item in the batch."""
@@ -138,13 +140,17 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         # SEAC: Support both pure_list and rich_object output modes
         if output_mode == "pure_list":
             # Pure list mode: envelope body is just the array
-            return EnvelopeFactory.json(materialized_results, produced_by=str(node.id)).with_meta(
-                total_items=len(batch_items),
-                successful=len(results),
-                failed=len(errors),
-                batch_parallel=batch_config["parallel"],
-                diagram=node.diagram_name or "inline",
-                errors=errors if errors else None,
+            return EnvelopeFactory.create(
+                body=materialized_results,
+                produced_by=str(node.id),
+                meta={
+                    "total_items": len(batch_items),
+                    "successful": len(results),
+                    "failed": len(errors),
+                    "batch_parallel": batch_config["parallel"],
+                    "diagram": node.diagram_name or "inline",
+                    "errors": errors if errors else None,
+                },
             )
         else:
             # Rich object mode: legacy wrapped output
@@ -157,8 +163,13 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
                 "errors": errors if errors else None,
             }
 
-            return EnvelopeFactory.json(batch_output, produced_by=str(node.id)).with_meta(
-                batch_parallel=batch_config["parallel"], diagram=node.diagram_name or "inline"
+            return EnvelopeFactory.create(
+                body=batch_output,
+                produced_by=str(node.id),
+                meta={
+                    "batch_parallel": batch_config["parallel"],
+                    "diagram": node.diagram_name or "inline",
+                },
             )
 
     def _extract_batch_items(

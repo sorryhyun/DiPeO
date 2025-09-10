@@ -35,29 +35,29 @@ class SubDiagramNode(BaseModel):
 
     # Optional node-specific fields
     
-    diagram_name: str = Field(default=None, description="Name of the diagram to execute (e.g., 'workflow/process')")
+    diagram_name: Optional[str] = Field(default=None, description="Name of the diagram to execute (e.g., 'workflow/process')")
     
-    diagram_data: Dict[str, Any] = Field(default_factory=dict, description="Inline diagram data (alternative to diagram_name)")
+    diagram_data: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Inline diagram data (alternative to diagram_name)")
     
-    input_mapping: Dict[str, Any] = Field(default_factory=dict, description="Map node inputs to sub-diagram variables")
+    input_mapping: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Map node inputs to sub-diagram variables")
     
-    output_mapping: Dict[str, Any] = Field(default_factory=dict, description="Map sub-diagram outputs to node outputs")
+    output_mapping: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Map sub-diagram outputs to node outputs")
     
-    timeout: int = Field(default=None, description="Execution timeout in seconds")
+    timeout: Optional[int] = Field(default=None, description="Execution timeout in seconds")
     
-    wait_for_completion: bool = Field(default=None, description="Whether to wait for sub-diagram completion")
+    wait_for_completion: Optional[bool] = Field(default=None, description="Whether to wait for sub-diagram completion")
     
-    isolate_conversation: bool = Field(default=None, description="Create isolated conversation context for sub-diagram")
+    isolate_conversation: Optional[bool] = Field(default=None, description="Create isolated conversation context for sub-diagram")
     
-    ignore_if_sub: bool = Field(default=None, alias="ignoreIfSub", description="Skip execution if this diagram is being run as a sub-diagram")
+    ignore_if_sub: Optional[bool] = Field(default=None, alias="ignoreIfSub", description="Skip execution if this diagram is being run as a sub-diagram")
     
-    diagram_format: DiagramFormat = Field(default=None, description="Format of the diagram file (yaml, json, or light)")
+    diagram_format: Optional[DiagramFormat] = Field(default=None, description="Format of the diagram file (yaml, json, or light)")
     
-    batch: bool = Field(default=None, description="Execute sub-diagram in batch mode for multiple inputs")
+    batch: Optional[bool] = Field(default=None, description="Execute sub-diagram in batch mode for multiple inputs")
     
-    batch_input_key: str = Field(default=None, description="Key in inputs containing the array of items for batch processing")
+    batch_input_key: Optional[str] = Field(default=None, description="Key in inputs containing the array of items for batch processing")
     
-    batch_parallel: bool = Field(default=None, description="Execute batch items in parallel")
+    batch_parallel: Optional[bool] = Field(default=None, description="Execute batch items in parallel")
 
     class Config:
         # Make the instance immutable after creation

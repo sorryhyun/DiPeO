@@ -1,15 +1,15 @@
 """LLM provider implementations."""
 
-from .anthropic import AnthropicAdapter
-from .claude_code import ClaudeCodeAdapter
-from .google import GoogleAdapter
-from .ollama import OllamaAdapter
-from .openai import OpenAIAdapter
+from .anthropic import UnifiedAnthropicClient
+from .claude_code import UnifiedClaudeCodeClient
+from .google import UnifiedGoogleClient
+from .ollama import UnifiedOllamaClient
+from .openai import UnifiedOpenAIClient
 
 __all__ = [
-    "AnthropicAdapter",
-    "ClaudeCodeAdapter",
-    "GoogleAdapter",
-    "OllamaAdapter",
-    "OpenAIAdapter",
+    "UnifiedAnthropicClient",
+    "UnifiedClaudeCodeClient",
+    "UnifiedGoogleClient",
+    "UnifiedOllamaClient",
+    "UnifiedOpenAIClient",
 ]

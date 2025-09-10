@@ -470,18 +470,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         # Build multi-representation output
         output = self._build_node_output(result, request)
 
-        # Create envelope based on primary type
-        primary = output["primary"]
-        primary_type = output.get("primary_type", "text")
+        # Create envelope with auto-detection
+        envelope = factory.create(body=output["primary"], produced_by=node.id, trace_id=trace_id)
 
-        if primary_type == "json":
-            envelope = factory.json(primary, produced_by=node.id, trace_id=trace_id)
-        else:
-            envelope = factory.text(str(primary), produced_by=node.id, trace_id=trace_id)
-
-        # Add representations
-        if "representations" in output:
-            envelope = envelope.with_representations(output["representations"])
+        # Representations no longer needed - removed deprecated with_representations() call
 
         # Add metadata
         if "meta" in output:

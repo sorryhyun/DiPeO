@@ -31,6 +31,7 @@ docs/deprecated
 plan.md
 *.tsbuildinfo
 .ruff_cache/
+.playwright-mcp/DiPeO-dev/.pyinstaller_hooks/*
 
 # Staging directories
 dipeo/diagram_generated_staged/
@@ -148,7 +149,7 @@ yarn.lock
 /apps/desktop/src-tauri/Cargo.lock
 /apps/desktop/TROUBLESHOOTING_INSTALLER.md
 /apps/desktop/test-build-backend.ps1
-/apps/desktop/DiPeO_0.1.0_x64-setup.exe
+/apps/desktop/DiPeO_1.0.0_x64-setup.exe
 /apps/desktop/INTEGRATED_INSTALLER_README.md
 /apps/desktop/diagnose-pyinstaller.ps1
 /apps/desktop/QUICKSTART_INTEGRATED.md

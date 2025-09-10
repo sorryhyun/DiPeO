@@ -5,6 +5,7 @@ orchestrating all the domain resolution functions.
 """
 
 import logging
+import os
 from typing import Any
 
 from dipeo.diagram_generated import ContentType
@@ -19,6 +20,7 @@ from .selectors import compute_special_inputs, select_incoming_edges
 from .transformation_engine import StandardTransformationEngine
 
 logger = logging.getLogger(__name__)
+STRICT_IO = os.getenv("DIPEO_LOOSE_EDGE_VALUE", "0") != "1"
 
 
 def resolve_inputs(
@@ -57,9 +59,9 @@ def resolve_inputs(
     for key, value in special.items():
         # Special inputs don't override explicit edge inputs
         if isinstance(value, str):
-            transformed.setdefault(key, EnvelopeFactory.text(value))
+            transformed.setdefault(key, EnvelopeFactory.create(body=value))
         else:
-            transformed.setdefault(key, EnvelopeFactory.json(value))
+            transformed.setdefault(key, EnvelopeFactory.create(body=value))
 
     # 4) Apply defaults for missing required inputs
     final_inputs = apply_defaults(node, transformed)
@@ -151,9 +153,9 @@ def transform_edge_values(
             transformed_value
             if isinstance(transformed_value, Envelope)
             else (
-                EnvelopeFactory.text(transformed_value)
+                EnvelopeFactory.create(body=transformed_value)
                 if isinstance(transformed_value, str)
-                else EnvelopeFactory.json(transformed_value)
+                else EnvelopeFactory.create(body=transformed_value)
             )
         )
         transformed[key] = env
@@ -162,12 +164,12 @@ def transform_edge_values(
 
 
 def extract_edge_value(source_output: Any, edge: Any) -> Any:
-    """Extract the actual value from a source node's output.
+    """Extract the value from a source node's output with smart conversions.
 
-    Priority order:
-    1. Envelope representations (if content_type specified)
-    2. Envelope body based on content_type
-    3. Raw dict/value (backward compatibility)
+    Handles natural data flow with automatic conversions based on edge needs:
+    - Any → RAW_TEXT (via str() or json.dumps())
+    - JSON string → OBJECT (via json.loads())
+    - Any → CONVERSATION_STATE (wrap if needed)
 
     Args:
         source_output: The output from the source node
@@ -176,47 +178,96 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
     Returns:
         The extracted value, or None if not available
     """
-    # Handle Envelope format (PREFERRED)
+    import json
+
     if isinstance(source_output, Envelope):
-        # Priority 1: Use representations when available and content_type specified
-        if hasattr(edge, "content_type") and edge.content_type:
-            if source_output.representations:
-                # Map ContentType to representation key
-                repr_mapping = {
-                    ContentType.RAW_TEXT: "text",
-                    ContentType.OBJECT: "object",
-                    ContentType.CONVERSATION_STATE: "conversation",
+        desired = getattr(edge, "content_type", None)
+        actual = source_output.content_type
+        body = source_output.body
+
+        if desired is None:
+            return body
+
+        # Exact match - no conversion needed
+        if desired == actual:
+            return body
+
+        # Smart conversions based on edge needs
+
+        # 1. Any → RAW_TEXT conversion (always allowed)
+        if desired == ContentType.RAW_TEXT:
+            if actual in (ContentType.OBJECT, ContentType.CONVERSATION_STATE):
+                # Pretty-print JSON data
+                try:
+                    return (
+                        json.dumps(body, indent=2) if isinstance(body, dict | list) else str(body)
+                    )
+                except (TypeError, ValueError):
+                    return str(body)
+            else:
+                # Any other type can be converted to text
+                return str(body) if body is not None else ""
+
+        # 2. RAW_TEXT → OBJECT conversion (parse JSON)
+        if desired == ContentType.OBJECT:
+            if actual == ContentType.RAW_TEXT and isinstance(body, str):
+                try:
+                    # Try to parse JSON string
+                    parsed = json.loads(body)
+                    return parsed
+                except (json.JSONDecodeError, ValueError):
+                    # If not valid JSON, wrap in dict
+                    logger.debug("RAW_TEXT is not valid JSON, wrapping in dict")
+                    return {"text": body}
+            elif actual == ContentType.CONVERSATION_STATE:
+                # Conversation state is already a dict/object
+                return body
+            elif not STRICT_IO:
+                logger.debug(f"Loose mode: allowing {actual} → OBJECT")
+                return body
+
+        # 3. Any → CONVERSATION_STATE conversion
+        if desired == ContentType.CONVERSATION_STATE:
+            if actual == ContentType.CONVERSATION_STATE:
+                return body
+            elif actual == ContentType.OBJECT and isinstance(body, dict):
+                # Object that's already a dict can be used as conversation state
+                return body
+            else:
+                # Wrap any other type in conversation structure
+                logger.debug(f"Wrapping {actual} in conversation structure")
+                return {
+                    "messages": [{"role": "assistant", "content": str(body)}] if body else [],
+                    "context": {},
                 }
 
-                repr_key = repr_mapping.get(edge.content_type)
-                if repr_key and repr_key in source_output.representations:
-                    return source_output.representations[repr_key]
-                elif repr_key:
-                    # Log warning for missing expected representation
-                    logger.warning(
-                        f"Edge requested '{repr_key}' representation but envelope "
-                        f"only has: {list(source_output.representations.keys())}. "
-                        f"Falling back to body."
-                    )
+        # 4. BINARY type - no automatic conversions
+        if desired == ContentType.BINARY or actual == ContentType.BINARY:
+            if desired != actual:
+                raise TypeError(
+                    f"Cannot convert between BINARY and {actual if desired == ContentType.BINARY else desired}. "
+                    f"Binary data must be explicitly handled."
+                )
 
-        # Priority 2: Fallback to body based on envelope content_type
-        if source_output.content_type == "raw_text":
-            return str(source_output.body)
-        elif (
-            source_output.content_type == "object"
-            or source_output.content_type == "conversation_state"
-        ):
-            return source_output.body
+        # If no conversion was applied and we're in strict mode, raise error
+        if STRICT_IO:
+            raise TypeError(
+                f"Edge expects {desired}, but upstream produced {actual}. "
+                f"Cannot auto-convert in strict mode. "
+                f"To allow legacy coercions, set DIPEO_LOOSE_EDGE_VALUE=1."
+            )
         else:
-            # Unknown content type - return body as-is
-            return source_output.body
+            # Loose mode fallback
+            logger.debug(f"Loose mode: allowing {actual} → {desired} (returning body as-is)")
+            return body
 
-    # Handle dict format (backward compatibility)
+    # Legacy dicts: only if loose mode is enabled
     if isinstance(source_output, dict):
-        if "value" in source_output:
-            return source_output["value"]
-        # Return dict as-is
-        return source_output
+        if not STRICT_IO:
+            logger.debug("Loose mode: handling legacy dict output")
+            return source_output.get("value", source_output)
+        raise TypeError("Expected Envelope; got raw dict. Wrap outputs in Envelope.")
 
     # Return raw value
+    logger.debug(f"Returning raw value of type {type(source_output)}")
     return source_output

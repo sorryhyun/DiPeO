@@ -153,11 +153,10 @@ class PersonRepository(Protocol):
 
 
 class MemorySelectionPort(Protocol):
-    """Port for memory selection strategies.
+    """Simplified port for memory selection implementations.
 
-    This port defines the interface for intelligent memory selection,
-    allowing different implementations (LLM-based, rule-based, etc.)
-    to be plugged in without affecting the domain logic.
+    This simplified interface focuses on the core responsibility of
+    selecting relevant message IDs based on criteria.
     """
 
     async def select_memories(
@@ -169,19 +168,19 @@ class MemorySelectionPort(Protocol):
         criteria: str,
         at_most: int | None = None,
         **kwargs,
-    ) -> list[str]:
+    ) -> list[str] | None:
         """Select relevant message IDs based on criteria.
 
         Args:
             person_id: The person for whom we're selecting memories
-            candidate_messages: Messages to select from
+            candidate_messages: Pre-filtered and scored messages to select from
             task_preview: Preview of the upcoming task for context
             criteria: Selection criteria (natural language)
             at_most: Maximum number of messages to select
             **kwargs: Additional implementation-specific parameters
 
         Returns:
-            List of selected message IDs
+            List of selected message IDs, or None if selection not performed
         """
         ...
 

@@ -5,7 +5,7 @@ This package contains the shared domain models for the DiPeO project.
 These models are auto-generated from TypeScript definitions.
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 # Re-export service utilities from config for backward compatibility
 from dipeo.config import (

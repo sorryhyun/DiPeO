@@ -17,8 +17,7 @@ from dipeo.application.execution.typed_execution_context import TypedExecutionCo
 from dipeo.config import get_settings
 from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
-from dipeo.domain.events import EventBus
-from dipeo.domain.execution import DomainDynamicOrderCalculator
+from dipeo.domain.events.unified_ports import EventBus
 
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
@@ -40,11 +39,9 @@ class TypedExecutionEngine:
     def __init__(
         self,
         service_registry: "ServiceRegistry",
-        order_calculator: Any | None = None,
         event_bus: EventBus | None = None,
     ):
         self.service_registry = service_registry
-        self.order_calculator = order_calculator or DomainDynamicOrderCalculator()
         self._settings = get_settings()
         self._managed_event_bus = False
         self._scheduler: NodeScheduler | None = None
@@ -125,7 +122,7 @@ class TypedExecutionEngine:
             )
 
             # Initialize scheduler for this execution
-            self._scheduler = NodeScheduler(diagram, self.order_calculator, context)
+            self._scheduler = NodeScheduler(diagram, context)
 
             # Set scheduler reference in context for token events
             context.scheduler = self._scheduler
@@ -290,7 +287,7 @@ class TypedExecutionEngine:
 
             # Process completion
             duration_ms = (time.time() - start_time) * 1000
-            token_usage = self._extract_token_usage(output)
+            llm_usage = self._extract_llm_usage(output)
 
             # Mark node as completed
             await self._handle_node_completion(node, output, context)
@@ -301,7 +298,7 @@ class TypedExecutionEngine:
 
             # Emit completion event
             await self._emit_node_completed(
-                context, node, output, duration_ms, start_time, token_usage
+                context, node, output, duration_ms, start_time, llm_usage
             )
 
             # Return formatted result
@@ -341,8 +338,8 @@ class TypedExecutionEngine:
         )
 
         # Create empty output with MAXITER_REACHED status
-        output = EnvelopeFactory.text(
-            "", node_id=str(node_id), meta={"status": Status.MAXITER_REACHED.value}
+        output = EnvelopeFactory.create(
+            body="", produced_by=str(node_id), meta={"status": Status.MAXITER_REACHED.value}
         )
 
         # Transition state
@@ -421,11 +418,19 @@ class TypedExecutionEngine:
             parent_registry=self.service_registry,
         )
 
-    def _extract_token_usage(self, output: Any) -> dict | None:
-        """Extract token usage from output metadata."""
-        if hasattr(output, "metadata") and output.metadata and hasattr(output, "get_metadata_dict"):
-            metadata_dict = output.get_metadata_dict()
-            return metadata_dict.get("token_usage")
+    def _extract_llm_usage(self, output: Any) -> dict | None:
+        """Extract LLM usage from envelope metadata."""
+        if hasattr(output, "meta") and isinstance(output.meta, dict):
+            llm_usage = output.meta.get("llm_usage")
+            if llm_usage:
+                # Convert LLMUsage object to dict if needed
+                if hasattr(llm_usage, "model_dump"):
+                    usage_dict = llm_usage.model_dump()
+                    logger.debug(f"[TypedEngine] Extracted LLM usage from envelope: {usage_dict}")
+                    return usage_dict
+                elif isinstance(llm_usage, dict):
+                    logger.debug(f"[TypedEngine] Extracted LLM usage from envelope: {llm_usage}")
+                    return llm_usage
         return None
 
     async def _emit_node_started(
@@ -441,14 +446,14 @@ class TypedExecutionEngine:
         envelope: Any,  # Should be Envelope but keeping Any for now
         duration_ms: float,
         start_time: float,
-        token_usage: dict | None,
+        llm_usage: dict | None,
     ) -> None:
         """Emit node completed event."""
         # Add timing metadata to envelope if it's an Envelope
         if hasattr(envelope, "meta") and isinstance(envelope.meta, dict):
             envelope.meta["execution_time_ms"] = duration_ms
-            if token_usage:
-                envelope.meta["token_usage"] = token_usage
+            if llm_usage:
+                envelope.meta["token_usage"] = llm_usage
 
         exec_count = context.state.get_node_execution_count(node.id)
         await context.events.emit_node_completed(node, envelope, exec_count)

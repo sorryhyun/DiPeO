@@ -39,33 +39,37 @@ class PersonJobNode(BaseModel):
 
     # Optional node-specific fields
     
-    person: str = Field(default=None, description="AI person to use")
+    person: Optional[str] = Field(default=None, description="AI person to use")
     
-    first_prompt_file: str = Field(default=None, description="External prompt file for first iteration only")
+    first_prompt_file: Optional[str] = Field(default=None, description="External prompt file for first iteration only")
     
-    default_prompt: str = Field(default=None, description="Default prompt template")
+    default_prompt: Optional[str] = Field(default=None, description="Default prompt template")
     
-    prompt_file: str = Field(default=None, description="Path to prompt file in /files/prompts/")
+    prompt_file: Optional[str] = Field(default=None, description="Path to prompt file in /files/prompts/")
     
-    memorize_to: str = Field(default=None, description="Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria.")
+    memorize_to: Optional[str] = Field(default=None, description="Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria.")
     
-    at_most: float = Field(default=None, description="Select at most N messages to keep (system messages may be preserved in addition).")
+    at_most: Optional[float] = Field(default=None, description="Select at most N messages to keep (system messages may be preserved in addition).")
+    
+    ignore_person: Optional[str] = Field(default=None, description="Comma-separated list of person IDs whose messages should be excluded from memory selection.")
     
     tools: Optional[List[ToolConfig]] = Field(default=None, description="Tools available to the AI agent")
     
-    text_format: str = Field(default=None, description="JSON schema or response format for structured outputs")
+    text_format: Optional[str] = Field(default=None, description="JSON schema or response format for structured outputs")
     
-    resolved_prompt: str = Field(default=None, description="Pre-resolved prompt content from compile-time")
+    text_format_file: Optional[str] = Field(default=None, description="Path to Python file containing Pydantic models for structured outputs")
     
-    resolved_first_prompt: str = Field(default=None, description="Pre-resolved first prompt content from compile-time")
+    resolved_prompt: Optional[str] = Field(default=None, description="Pre-resolved prompt content from compile-time")
     
-    batch: bool = Field(default=None, description="Enable batch mode for processing multiple items")
+    resolved_first_prompt: Optional[str] = Field(default=None, description="Pre-resolved first prompt content from compile-time")
     
-    batch_input_key: str = Field(default=None, description="Key containing the array to iterate over in batch mode")
+    batch: Optional[bool] = Field(default=None, description="Enable batch mode for processing multiple items")
     
-    batch_parallel: bool = Field(default=None, description="Execute batch items in parallel")
+    batch_input_key: Optional[str] = Field(default=None, description="Key containing the array to iterate over in batch mode")
     
-    max_concurrent: float = Field(default=None, description="Maximum concurrent executions in batch mode")
+    batch_parallel: Optional[bool] = Field(default=None, description="Execute batch items in parallel")
+    
+    max_concurrent: Optional[float] = Field(default=None, description="Maximum concurrent executions in batch mode")
 
     class Config:
         # Make the instance immutable after creation
@@ -98,8 +102,10 @@ class PersonJobNode(BaseModel):
         data["max_iteration"] = self.max_iteration
         data["memorize_to"] = self.memorize_to
         data["at_most"] = self.at_most
+        data["ignore_person"] = self.ignore_person
         data["tools"] = self.tools
         data["text_format"] = self.text_format
+        data["text_format_file"] = self.text_format_file
         data["resolved_prompt"] = self.resolved_prompt
         data["resolved_first_prompt"] = self.resolved_first_prompt
         data["batch"] = self.batch

@@ -9,7 +9,7 @@ repos:
     rev: v0.8.0
     hooks:
       - id: ruff
-        args: ["--fix", "--config=pyproject.toml"]  # Explicitly use pyproject.toml configuration
+        args: ["--fix", "--config=pyproject.toml", "--unsafe-fixes"]  # Explicitly use pyproject.toml configuration
         exclude: |
           (?x)^(
             dipeo/diagram_generated/.*|

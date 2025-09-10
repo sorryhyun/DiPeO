@@ -6,17 +6,19 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
-from dipeo.domain.base import BaseService, StorageError
+from dipeo.domain.base import StorageError
+from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.base.storage_port import Artifact, ArtifactRef, ArtifactStorePort, BlobStorePort
 
 logger = logging.getLogger(__name__)
 
 
-class ArtifactStoreAdapter(BaseService, ArtifactStorePort):
+class ArtifactStoreAdapter(LoggingMixin, InitializationMixin, ArtifactStorePort):
     """High-level artifact management built on BlobStorePort."""
 
     def __init__(self, blob_store: BlobStorePort, metadata_prefix: str = ".metadata"):
-        super().__init__()
+        # Initialize mixins
+        InitializationMixin.__init__(self)
         self.blob_store = blob_store
         self.metadata_prefix = metadata_prefix
         self._initialized = False

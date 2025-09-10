@@ -133,7 +133,7 @@ class NodeHandler:
     
     def execute_with_envelopes(request, inputs):
         # Process inputs, return Envelope
-        return EnvelopeFactory.json(result)
+        return EnvelopeFactory.create(result)
     
     # Engine emits outputs as tokens automatically
 ```

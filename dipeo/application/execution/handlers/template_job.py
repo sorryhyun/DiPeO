@@ -90,9 +90,11 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Get filesystem adapter from services or use injected one
         filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
-            return EnvelopeFactory.error(
-                "Filesystem adapter is required for template job execution",
-                error_type="RuntimeError",
+            return EnvelopeFactory.create(
+                body={
+                    "error": "Filesystem adapter is required for template job execution",
+                    "type": "RuntimeError",
+                },
                 produced_by=str(node.id),
             )
 
@@ -102,9 +104,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Validate template engine
         engine = node.engine or "internal"
         if engine not in ["internal", "jinja2"]:
-            return EnvelopeFactory.error(
-                f"Unsupported template engine: {engine}",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={"error": f"Unsupported template engine: {engine}", "type": "ValueError"},
                 produced_by=str(node.id),
             )
         self._current_engine = engine
@@ -114,8 +115,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             template_service = self._get_template_service()
             self._current_template_service = template_service
         except Exception as e:
-            return EnvelopeFactory.error(
-                str(e), error_type=e.__class__.__name__, produced_by=str(node.id)
+            return EnvelopeFactory.create(
+                body={"error": str(e), "type": e.__class__.__name__}, produced_by=str(node.id)
             )
 
         # Template processor no longer needed - using Jinja2 for everything
@@ -459,12 +460,12 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Build multi-representation output
         output = self._build_node_output(result, request)
 
-        # Create envelope with primary body for backward compatibility
-        envelope = EnvelopeFactory.text(output["primary"], produced_by=node.id, trace_id=trace_id)
+        # Create envelope with auto-detection
+        envelope = EnvelopeFactory.create(
+            body=output["primary"], produced_by=node.id, trace_id=trace_id
+        )
 
-        # Add representations to envelope
-        if "representations" in output:
-            envelope = envelope.with_representations(output["representations"])
+        # Representations no longer needed - removed deprecated with_representations() call
 
         # Add metadata
         if "meta" in output:

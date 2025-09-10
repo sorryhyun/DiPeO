@@ -21,6 +21,7 @@ Your response MUST include:
 
 REQUIREMENTS:
 - Order sections by priority and dependencies
+  * It's recommended to mention less-dependent sections first
 - Include ALL SOURCE FILES that will exist in the app (src/* only)
 - EXCLUDE configuration files - these are provided as base infrastructure:
   * DO NOT include: package.json, tsconfig.json, vite.config.ts, tailwind.config.js

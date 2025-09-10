@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import time
+import warnings
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -42,8 +43,8 @@ class Envelope:
     # Metadata
     meta: dict[str, Any] = field(default_factory=dict)
 
-    # Multiple representations
-    representations: dict[str, Any] = field(default_factory=dict)
+    # Multiple representations (deprecated: UI should derive previews from body)
+    representations: dict[str, Any] = field(default_factory=dict)  # will be removed in v1
 
     def with_meta(self, **kwargs) -> Envelope:
         """Create new envelope with updated metadata"""
@@ -167,6 +168,11 @@ class EnvelopeFactory:
     @staticmethod
     def text(content: str, node_id: str | None = None, **kwargs) -> Envelope:
         """Create text envelope with optional node_id for compatibility"""
+        warnings.warn(
+            "EnvelopeFactory.text() is deprecated. Use EnvelopeFactory.create() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
@@ -181,6 +187,11 @@ class EnvelopeFactory:
         data: Any, schema_id: str | None = None, node_id: str | None = None, **kwargs
     ) -> Envelope:
         """Create JSON envelope with optional node_id for compatibility"""
+        warnings.warn(
+            "EnvelopeFactory.json() is deprecated. Use EnvelopeFactory.create() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
@@ -195,6 +206,11 @@ class EnvelopeFactory:
     @staticmethod
     def conversation(state: dict, node_id: str | None = None, **kwargs) -> Envelope:
         """Create conversation envelope with optional node_id for compatibility"""
+        warnings.warn(
+            "EnvelopeFactory.conversation() is deprecated. Use EnvelopeFactory.create() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
@@ -231,6 +247,11 @@ class EnvelopeFactory:
     @staticmethod
     def binary(data: bytes, format: str = "raw", **kwargs) -> Envelope:
         """Create envelope for generic binary data"""
+        warnings.warn(
+            "EnvelopeFactory.binary() is deprecated. Use EnvelopeFactory.create() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
@@ -247,6 +268,11 @@ class EnvelopeFactory:
         error_msg: str, error_type: str = "ExecutionError", node_id: str | None = None, **kwargs
     ) -> Envelope:
         """Create error envelope for backward compatibility"""
+        warnings.warn(
+            "EnvelopeFactory.error() is deprecated. Use EnvelopeFactory.create() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
         meta["error"] = error_msg
@@ -261,15 +287,51 @@ class EnvelopeFactory:
 
     @staticmethod
     def create(
-        content_type: ContentType, body: Any, node_id: str | None = None, **kwargs
+        body: Any,
+        content_type: ContentType | None = None,
+        node_id: str | None = None,
+        error: str | None = None,
+        **kwargs,
     ) -> Envelope:
-        """Generic factory method for creating envelopes"""
+        """Generic factory method for creating envelopes with auto-detection.
+
+        Args:
+            body: The content to wrap in the envelope
+            content_type: Optional explicit content type. If None, will auto-detect from body
+            node_id: Optional node ID for backward compatibility
+            error: Optional error type. If provided, creates an error envelope
+            **kwargs: Additional envelope attributes
+
+        Returns:
+            Envelope with appropriate content type
+        """
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
         # Support node_id parameter for backward compatibility
         if node_id:
             kwargs.setdefault("produced_by", node_id)
+
+        # Handle error metadata if error type provided
+        if error:
+            meta["is_error"] = True
+            meta["error"] = body if isinstance(body, str) else str(body)
+            meta["error_type"] = error
+            # Default to RAW_TEXT for errors if not specified
+            if content_type is None:
+                content_type = ContentType.RAW_TEXT
+
+        # Auto-detect ContentType from body if not explicitly provided
+        if content_type is None:
+            if isinstance(body, str):
+                content_type = ContentType.RAW_TEXT
+            elif isinstance(body, bytes | bytearray | memoryview):
+                content_type = ContentType.BINARY
+            elif isinstance(body, dict | list):
+                content_type = ContentType.OBJECT
+            else:
+                # Default to OBJECT for unknowns (can be serialized as JSON usually)
+                content_type = ContentType.OBJECT
 
         return Envelope(content_type=content_type, body=body, meta=meta, **kwargs)
 
@@ -285,16 +347,13 @@ class StrictEnvelopeFactory:
     """
 
     @staticmethod
-    def _make_meta(
-        meta: dict[str, Any] | None, produced_by: str | None, trace_id: str | None
-    ) -> dict[str, Any]:
-        """Create metadata with required fields."""
+    def _make_meta(meta: dict[str, Any] | None, *_unused) -> dict[str, Any]:
+        """
+        Create metadata with only minimal required fields.
+        NOTE: Do NOT duplicate top-level fields (produced_by, trace_id) here.
+        """
         result = meta.copy() if meta else {}
         result["timestamp"] = result.get("timestamp", time.time())
-        if produced_by:
-            result["produced_by"] = produced_by
-        if trace_id:
-            result["trace_id"] = trace_id
         return result
 
     @staticmethod

@@ -143,7 +143,7 @@ def create_config_files(app_path: Path, files: dict[str, str], app_name: str = "
     # Create package.json
     package_json = {
         "name": app_name,
-        "version": "0.1.0",
+        "version": "1.0.0",
         "private": True,
         "scripts": {
             "dev": "vite",

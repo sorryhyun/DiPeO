@@ -11,7 +11,6 @@ from dipeo.diagram_generated import NodeID, NodeState, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.domain.events import (
     DomainEvent,
-    EventBus,
     EventScope,
     EventType,
     execution_completed,
@@ -21,6 +20,7 @@ from dipeo.domain.events import (
     node_error,
     node_started,
 )
+from dipeo.domain.events.unified_ports import EventBus
 from dipeo.domain.execution.envelope import Envelope
 
 if TYPE_CHECKING:
@@ -182,6 +182,7 @@ class EventManager:
         # Extract output for event
         output = None
         output_summary = None
+        token_usage = None
         if envelope:
             output = envelope.body
             # Create a brief summary for the event
@@ -192,6 +193,25 @@ class EventManager:
             elif isinstance(output, list):
                 output_summary = f"Array with {len(output)} items"
 
+            # Extract token usage from envelope metadata
+            if hasattr(envelope, "meta") and isinstance(envelope.meta, dict):
+                # Check for both token_usage and llm_usage keys
+                llm_usage = envelope.meta.get("llm_usage") or envelope.meta.get("token_usage")
+                if llm_usage:
+                    # Convert to dict format if needed
+                    if hasattr(llm_usage, "model_dump"):
+                        token_usage = llm_usage.model_dump()
+                    elif isinstance(llm_usage, dict):
+                        token_usage = llm_usage
+
+                    if token_usage:
+                        import logging
+
+                        logger = logging.getLogger(__name__)
+                        logger.debug(
+                            f"[EventManager] Emitting NODE_COMPLETED with token_usage: {token_usage}"
+                        )
+
         event = node_completed(
             execution_id=self.execution_id,
             node_id=str(node.id),
@@ -199,6 +219,7 @@ class EventManager:
             output=output,
             duration_ms=duration_ms,
             output_summary=output_summary,
+            token_usage=token_usage,
         )
         await self._publish(event)
 

@@ -66,9 +66,11 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
             filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
 
             if not filesystem_adapter:
-                return EnvelopeFactory.error(
-                    "Filesystem adapter is required when save_to_file is enabled",
-                    error_type="ValueError",
+                return EnvelopeFactory.create(
+                    body={
+                        "error": "Filesystem adapter is required when save_to_file is enabled",
+                        "type": "ValueError",
+                    },
                     produced_by=str(node.id),
                 )
 
@@ -178,9 +180,9 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         result_data = result.get("data", {})
         saved_to = result.get("saved_to")
 
-        # Create output envelope
-        output_envelope = EnvelopeFactory.json(
-            result_data if isinstance(result_data, dict) else {"default": result_data},
+        # Create output envelope with auto-detection
+        output_envelope = EnvelopeFactory.create(
+            body=result_data if isinstance(result_data, dict) else {"default": result_data},
             produced_by=node.id,
             trace_id=trace_id,
         )

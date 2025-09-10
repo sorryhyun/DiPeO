@@ -43,7 +43,7 @@ def wire_execution(registry: ServiceRegistry) -> None:
         PERSON_REPOSITORY,
         PROMPT_LOADING_SERVICE,
     )
-    from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
+    from dipeo.infrastructure.llm.domain_adapters import LLMMemorySelectionAdapter
 
     def create_execution_orchestrator() -> ExecutionOrchestrator:
         """Factory for execution orchestrator with all dependencies."""

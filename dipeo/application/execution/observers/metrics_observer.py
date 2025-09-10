@@ -85,10 +85,48 @@ class MetricsObserver(EventBus):
     def __init__(self, event_bus: EventBus | None = None):
         self._metrics_buffer: dict[str, ExecutionMetrics] = {}
         self._node_dependencies: dict[str, dict[str, set[str]]] = {}  # exec_id -> node_id -> deps
+        self._completed_metrics: dict[
+            str, ExecutionMetrics
+        ] = {}  # Keep last N completed executions
         self.event_bus = event_bus
         self._analysis_threshold_ms = 1000  # Nodes taking > 1s are potential bottlenecks
         self._cleanup_task: asyncio.Task | None = None
         self._running = False
+        self._max_completed_metrics = 10  # Keep last 10 completed executions
+
+    def get_execution_metrics(self, execution_id: str) -> ExecutionMetrics | None:
+        """Get metrics for a specific execution."""
+        # Check active buffer first, then completed metrics
+        return self._metrics_buffer.get(execution_id) or self._completed_metrics.get(execution_id)
+
+    def get_all_metrics(self) -> dict[str, ExecutionMetrics]:
+        """Get all current metrics in the buffer."""
+        return self._metrics_buffer.copy()
+
+    def get_metrics_summary(self, execution_id: str) -> dict[str, Any] | None:
+        """Get a summary of metrics for an execution."""
+        metrics = self._metrics_buffer.get(execution_id) or self._completed_metrics.get(
+            execution_id
+        )
+        if not metrics:
+            return None
+
+        total_token_usage = {"input": 0, "output": 0, "total": 0}
+        for node_metrics in metrics.node_metrics.values():
+            if node_metrics.token_usage:
+                total_token_usage["input"] += node_metrics.token_usage.get("input", 0)
+                total_token_usage["output"] += node_metrics.token_usage.get("output", 0)
+                total_token_usage["total"] += node_metrics.token_usage.get("total", 0)
+
+        return {
+            "execution_id": metrics.execution_id,
+            "total_duration_ms": metrics.total_duration_ms,
+            "node_count": len(metrics.node_metrics),
+            "total_token_usage": total_token_usage,
+            "bottlenecks": metrics.bottlenecks,
+            "critical_path_length": len(metrics.critical_path),
+            "parallelizable_groups": len(metrics.parallelizable_groups),
+        }
 
     async def start(self) -> None:
         """Start the metrics observer."""
@@ -181,6 +219,9 @@ class MetricsObserver(EventBus):
 
         if payload.token_usage:
             node_metrics.token_usage = payload.token_usage
+            logger.debug(
+                f"[MetricsObserver] Recorded token usage for {node_id}: {payload.token_usage}"
+            )
 
     async def _handle_node_failed(self, event: DomainEvent) -> None:
         """Track node failures."""
@@ -213,7 +254,16 @@ class MetricsObserver(EventBus):
         # Analyze and emit metrics
         await self._analyze_execution(metrics, event.scope)
 
-        # Clean up
+        # Store in completed metrics before cleanup
+        self._completed_metrics[execution_id] = metrics
+
+        # Limit the size of completed metrics
+        if len(self._completed_metrics) > self._max_completed_metrics:
+            # Remove oldest (first) item
+            oldest_id = next(iter(self._completed_metrics))
+            del self._completed_metrics[oldest_id]
+
+        # Clean up from active buffer
         del self._metrics_buffer[execution_id]
         if execution_id in self._node_dependencies:
             del self._node_dependencies[execution_id]

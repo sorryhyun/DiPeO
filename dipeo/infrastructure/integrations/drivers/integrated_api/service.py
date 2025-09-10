@@ -3,7 +3,8 @@
 import logging
 from typing import Any
 
-from dipeo.domain.base import BaseService, ServiceError
+from dipeo.domain.base import ServiceError
+from dipeo.domain.base.mixins import ConfigurationMixin, InitializationMixin, LoggingMixin
 from dipeo.domain.integrations.ports import ApiInvoker as IntegratedApiServicePort
 from dipeo.domain.integrations.ports import APIKeyPort
 from dipeo.domain.integrations.ports import ApiProvider as ApiProviderPort
@@ -14,15 +15,18 @@ from .registry import ProviderRegistry
 logger = logging.getLogger(__name__)
 
 
-class IntegratedApiService(BaseService, IntegratedApiServicePort):
+class IntegratedApiService(
+    LoggingMixin, InitializationMixin, ConfigurationMixin, IntegratedApiServicePort
+):
     """Service that manages multiple API providers through a unified interface."""
 
     def __init__(self, api_service=None, api_key_port: APIKeyPort | None = None):
-        super().__init__()
+        # Initialize mixins
+        InitializationMixin.__init__(self)
+        ConfigurationMixin.__init__(self, {})
         self._api_service = api_service  # For providers that need APIService
         self._api_key_port = api_key_port  # For resolving API keys
         self.provider_registry = ProviderRegistry()
-        self._initialized = False
 
     async def initialize(self) -> None:
         """Initialize the service and register default providers."""

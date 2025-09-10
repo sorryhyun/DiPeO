@@ -195,23 +195,22 @@ class TypedNodeHandler[T](TokenHandlerMixin, ABC):
                 )
 
             # JSON envelope for dictionaries
-            return EnvelopeFactory.json(result, produced_by=node.id, trace_id=trace_id)
+            return EnvelopeFactory.create(body=result, produced_by=node.id, trace_id=trace_id)
         elif isinstance(result, list | tuple):
             # Wrap lists/tuples in JSON envelope
-            return EnvelopeFactory.json(
-                {"default": result}, produced_by=node.id, trace_id=trace_id
+            return EnvelopeFactory.create(
+                body={"default": result}, produced_by=node.id, trace_id=trace_id
             ).with_meta(wrapped_list=True)
         elif isinstance(result, Exception):
             # Error envelope for exceptions
-            return EnvelopeFactory.error(
-                str(result),
-                error_type=result.__class__.__name__,
+            return EnvelopeFactory.create(
+                body={"error": str(result), "type": result.__class__.__name__},
                 produced_by=str(node.id),
                 trace_id=trace_id,
             )
         else:
             # Text envelope for everything else
-            return EnvelopeFactory.text(str(result), produced_by=node.id, trace_id=trace_id)
+            return EnvelopeFactory.create(body=str(result), produced_by=node.id, trace_id=trace_id)
 
     async def execute_with_envelopes(
         self, request: ExecutionRequest[T], inputs: dict[str, Envelope]
@@ -254,9 +253,8 @@ class TypedNodeHandler[T](TokenHandlerMixin, ABC):
             custom_error = await self.on_error(request, exc)
             if custom_error:
                 return custom_error
-            return EnvelopeFactory.error(
-                str(exc),
-                error_type=exc.__class__.__name__,
+            return EnvelopeFactory.create(
+                body={"error": str(exc), "type": exc.__class__.__name__},
                 produced_by=str(request.node.id),
                 trace_id=request.execution_id or "",
             )

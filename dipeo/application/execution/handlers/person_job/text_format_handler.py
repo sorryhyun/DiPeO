@@ -27,9 +27,15 @@ class TextFormatHandler:
         text_format_content = self._load_text_format_content(node)
 
         if not text_format_content:
+            logger.debug(f"[TextFormatHandler] No text_format content found for node {node.id}")
             return None
 
-        return self._compile_pydantic_model(text_format_content)
+        model = self._compile_pydantic_model(text_format_content)
+        if not model:
+            logger.warning(
+                f"[TextFormatHandler] Failed to compile Pydantic model for node {node.id}"
+            )
+        return model
 
     def _load_text_format_content(self, node: Any) -> str | None:
         """Load text format content from file or inline configuration.
@@ -49,7 +55,6 @@ class TextFormatHandler:
         # Fall back to inline text_format
         if hasattr(node, "text_format") and node.text_format:
             return node.text_format
-
         return None
 
     def _load_from_file(self, file_path: str) -> str | None:
@@ -115,7 +120,6 @@ class TextFormatHandler:
         """
         if not has_text_format:
             return None
-
         # First try to parse from the text field if it contains JSON
         # This is because the OpenAI adapter converts Pydantic models to JSON strings
         if hasattr(result, "text") and result.text:
@@ -125,11 +129,10 @@ class TextFormatHandler:
                 # Try to parse the text as JSON first
                 parsed = json.loads(result.text)
                 if isinstance(parsed, dict):
-                    logger.debug("Successfully parsed structured output from text field")
                     return parsed
-            except (json.JSONDecodeError, TypeError):
+            except (json.JSONDecodeError, TypeError) as e:
                 # Not valid JSON, continue to other methods
-                pass
+                logger.debug(f"[TextFormatHandler] Failed to parse text as JSON: {e}")
 
         # Check raw_response for parsed output
         if hasattr(result, "raw_response") and result.raw_response:

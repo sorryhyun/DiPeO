@@ -3,8 +3,8 @@
 from collections.abc import Callable
 from typing import Any
 
-from dipeo.domain.events import EventBus
 from dipeo.domain.events.contracts import DomainEvent
+from dipeo.domain.events.unified_ports import EventBus
 
 
 class NullEventBus(EventBus):

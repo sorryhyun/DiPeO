@@ -14,8 +14,8 @@ from datetime import datetime, timedelta
 
 from dipeo.config import get_settings
 from dipeo.domain.events.contracts import DomainEvent
-from dipeo.domain.events.ports import EventBus as MessageRouterPort
-from dipeo.domain.events.ports import EventHandler
+from dipeo.domain.events.unified_ports import EventBus as MessageRouterPort
+from dipeo.domain.events.unified_ports import EventHandler
 from dipeo.infrastructure.events.serialize import event_to_json_payload
 
 logger = logging.getLogger(__name__)

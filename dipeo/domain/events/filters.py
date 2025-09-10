@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 
 from .contracts import DomainEvent
-from .ports import EventFilter
 from .types import EventType
+from .unified_ports import EventFilter
 
 
 @dataclass

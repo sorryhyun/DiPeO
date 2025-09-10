@@ -36,13 +36,13 @@ class CodeJobNode(BaseModel):
 
     # Optional node-specific fields
     
-    file_path: str = Field(default=None, alias="filePath", description="Path to code file")
+    file_path: Optional[str] = Field(default=None, alias="filePath", description="Path to code file")
     
-    code: str = Field(default=None, description="Inline code to execute (alternative to filePath)")
+    code: Optional[str] = Field(default=None, description="Inline code to execute (alternative to filePath)")
     
-    function_name: str = Field(default=None, alias="functionName", description="Function to execute")
+    function_name: Optional[str] = Field(default=None, alias="functionName", description="Function to execute")
     
-    timeout: int = Field(default=None, description="Execution timeout in seconds")
+    timeout: Optional[int] = Field(default=None, description="Execution timeout in seconds")
 
     class Config:
         # Make the instance immutable after creation

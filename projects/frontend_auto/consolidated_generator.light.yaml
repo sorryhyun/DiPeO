@@ -62,9 +62,9 @@ persons:
 
 
   Frontend Verdict:
-#    service: openai
-#    model: gpt-5-mini-2025-08-07
-#    api_key_id: APIKEY_52609F
+#   service: openai
+#   model: gpt-5-mini-2025-08-07
+#   api_key_id: APIKEY_52609F
     service: claude-code
     model: claude-code
     api_key_id: APIKEY_CLAUDE
@@ -80,7 +80,7 @@ nodes:
       custom_data:
         # Default config file path - can be overridden via --input-data
         config_file: projects/frontend_auto/variants/nothing_landing_config.json
-
+#
 #  - label: Load Config
 #    type: db
 #    position: {x: 300, y: 240}
@@ -144,11 +144,6 @@ nodes:
 #        import json
 #        from pathlib import Path
 #
-#        # Save kernel data for reference
-#        kernel_json_path = Path("projects/frontend_auto/generated/core_kernel_data.json")
-#        with open(kernel_json_path, 'w', encoding='utf-8') as f:
-#            json.dump(kernel, f, indent=2)
-#
 #        # Get sections and sort by priority
 #        sections = sections_data.get('sections', [])
 #        sections.sort(key=lambda x: (x.get('priority', 2), x.get('id', '')))
@@ -174,6 +169,7 @@ nodes:
 #        # Extract file paths and descriptions from sorted sections
 #        file_paths = [section['file_path'] for section in sections]
 #        descriptions = [section.get('description', '') for section in sections]
+#        dependencies = [section['dependencies'] for section in sections]
 #
 #        # Return merged data with kernel overview (without duplicate files array)
 #        result = {
@@ -182,6 +178,7 @@ nodes:
 #            'sections': sections,  # Now contains merged kernel details
 #            'file_paths': file_paths,
 #            'descriptions': descriptions,
+#            'dependencies': dependencies,
 #            'total_files': len(sections)
 #        }
 #
@@ -224,13 +221,14 @@ nodes:
 
   - label: Generate Frontend Code
     type: person_job
-    position: {x: 2200, y: 800}
+    position: {x: 2100, y: 850}
     props:
       person: Frontend Generator
       max_iteration: 100
-      memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
+      memorize_to: "Only prior sections that this file imports or explicitly depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
       at_most: 7
       prompt_file: frontend_generator.txt
+      ignore_person: Frontend Verdict
 
   - label: Check Output Quality
     type: condition
@@ -253,7 +251,7 @@ nodes:
 
   - label: load code for revise
     type: db
-    position: { x: 2600, y: 800 }
+    position: { x: 2600, y: 850 }
     props:
       operation: read
       sub_type: file
@@ -272,7 +270,7 @@ nodes:
 
   - label: Write Section Result
     type: db
-    position: {x: 2200, y: 1000}
+    position: {x: 2100, y: 1000}
     props:
       operation: write
       sub_type: file
@@ -293,7 +291,7 @@ nodes:
 
   - label: load Data more
     type: db
-    position: {x: 2600, y: 800}
+    position: {x: 2800, y: 500}
     props:
       operation: read
       sub_type: file
@@ -302,7 +300,7 @@ nodes:
 
   - label: load Data wow
     type: db
-    position: {x: 2600, y: 800}
+    position: {x: 2400, y: 500}
     props:
       operation: read
       sub_type: file
@@ -311,7 +309,7 @@ nodes:
 
   - label: Rename Files
     type: code_job
-    position: {x: 3000, y: 1200}
+    position: {x: 2000, y: 1200}
     props:
       language: python
       filePath: projects/frontend_auto/rename_generated_files.py
@@ -319,7 +317,7 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 3300, y: 1200}
+    position: {x: 2200, y: 1200}
     props:
       save_to_file: false
 

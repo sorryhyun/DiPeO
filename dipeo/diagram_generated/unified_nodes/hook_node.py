@@ -36,13 +36,13 @@ class HookNode(BaseModel):
 
     # Optional node-specific fields
     
-    command: str = Field(default=None, description="Shell command to run (for shell hooks)")
+    command: Optional[str] = Field(default=None, description="Shell command to run (for shell hooks)")
     
-    url: str = Field(default=None, description="Webhook URL (for HTTP hooks)")
+    url: Optional[str] = Field(default=None, description="Webhook URL (for HTTP hooks)")
     
-    timeout: int = Field(default=None, description="Execution timeout in seconds")
+    timeout: Optional[int] = Field(default=None, description="Execution timeout in seconds")
     
-    retry_count: float = Field(default=None, description="Number of retries on failure")
+    retry_count: Optional[float] = Field(default=None, description="Number of retries on failure")
 
     class Config:
         # Make the instance immutable after creation

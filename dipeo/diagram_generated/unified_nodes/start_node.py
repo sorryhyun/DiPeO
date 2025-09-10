@@ -35,15 +35,15 @@ class StartNode(BaseModel):
 
     # Optional node-specific fields
     
-    trigger_mode: HookTriggerMode = Field(default=None, description="How this start node is triggered")
+    trigger_mode: Optional[HookTriggerMode] = Field(default=None, description="How this start node is triggered")
     
-    custom_data: Any = Field(default=None, description="Custom data to pass when manually triggered")
+    custom_data: Optional[Any] = Field(default=None, description="Custom data to pass when manually triggered")
     
-    output_data_structure: Dict[str, Any] = Field(default_factory=dict, description="Expected output data structure")
+    output_data_structure: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Expected output data structure")
     
     hook_event: Optional[str] = Field(default=None, description="Event name to listen for")
     
-    hook_filters: Optional[Dict[str, Any]] = Field(default=None, description="Filters to apply to incoming events")
+    hook_filters: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Filters to apply to incoming events")
 
     class Config:
         # Make the instance immutable after creation

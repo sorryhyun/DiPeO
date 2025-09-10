@@ -159,7 +159,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
 * **구조**: `{body, content_type, produced_by, trace_id, metadata}`
 * **콘텐츠 타입**: `raw_text`, `object`(JSON), `conversation_state`, `error`
 * **목적**: 출처 추적이 가능한 타입-세이프 데이터 전달
-* **팩토리**: `EnvelopeFactory.text()`, `.json()`, `.error()`, `.conversation()`
+* **팩토리**: `EnvelopeFactory.create()` 자동 감지 (`.text()`, `.json()`, `.error()` 메서드는 폐기됨)
 
 ### 주요 핸들러 예시
 

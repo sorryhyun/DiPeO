@@ -1,101 +1,16 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "dipeo_cli"
-version = "0.1.0"
-authors = [{name = "sorryhyun"}]
-description = "Simplified DiPeO CLI - thin orchestration layer"
-readme = "README.md"
+version = "1.0.0"
+description = "DiPeO CLI - Command-line interface"
 requires-python = ">=3.13"
-license = {text = "Apache-2.0"}
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
-]
-dependencies = [
-    "pyyaml>=6.0",      # For YAML parsing
-    "requests>=2.28.0", # Simple HTTP for GraphQL
-    # Note: dipeo dependency removed - only needed for convert command
-    # If convert is critical, we can add it back with minimal imports
-]
-keywords = ["dipeo", "cli", "diagram", "workflow", "automation"]
-
-[project.urls]
-Homepage = "https://github.com/sorryhyun/DiPeO/apps/cli"
-Repository = "https://github.com/sorryhyun/DiPeO/apps/cli"
-Documentation = "https://github.com/sorryhyun/DiPeO/apps/cli/README.md"
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "pytest-asyncio>=0.21.0",
-    "black>=23.0",
-    "mypy>=1.0",
-    "ruff>=0.8.0",
-]
+dependencies = []  # Dependencies managed by root pyproject.toml
 
 [project.scripts]
-# New simplified command
 dipeo = "dipeo_cli.__main__:main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.black]
-line-length = 88
-target-version = ['py313']
-include = '\.pyi?$'
-
-[tool.mypy]
-python_version = "3.13"
-warn_return_any = true
-warn_unused_configs = true
-no_implicit_optional = true
-disable_error_code = ["misc"]
-
-[tool.ruff]
-line-length = 88
-target-version = "py313"
-exclude = [
-    "__generated__",
-    "generated",
-    "migrations",
-    "venv",
-    ".git",
-    "__pycache__",
-    ".mypy_cache",
-    ".ruff_cache",
-]
-
-[tool.ruff.lint]
-select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "N",  # pep8-naming
-    "UP", # pyupgrade
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "RET", # flake8-return
-    "SIM", # flake8-simplify
-    "PTH", # flake8-use-pathlib
-    "RUF", # ruff-specific rules
-]
-
-ignore = [
-    "E501",  # line too long (handled by formatter)
-    "B008",  # do not perform function calls in argument defaults
-    "F401",  # imported but unused
-    "F403",  # `from module import *` used; unable to detect undefined names
-    "F405",  # name may be undefined, or defined from star imports
-    "F841",  # local variable is assigned to but never used
-]
-
-[tool.ruff.lint.isort]
-known-first-party = ["dipeo_cli", "src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/dipeo_cli"]

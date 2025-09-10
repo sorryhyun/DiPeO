@@ -23,7 +23,7 @@ class LLMSettings(BaseSettings):
         description="Default LLM model to use",
     )
     timeout_s: int = Field(
-        default=300, env="DIPEO_LLM_TIMEOUT", description="LLM request timeout in seconds"
+        default=100, env="DIPEO_LLM_TIMEOUT", description="LLM request timeout in seconds"
     )
     max_retries: int = Field(
         default=3,
@@ -61,7 +61,7 @@ class ExecutionSettings(BaseSettings):
         default=3600, env="DIPEO_EXECUTION_TIMEOUT", description="Maximum execution time in seconds"
     )
     node_timeout_s: int = Field(
-        default=300, env="DIPEO_NODE_TIMEOUT", description="Per-node execution timeout in seconds"
+        default=100, env="DIPEO_NODE_TIMEOUT", description="Per-node execution timeout in seconds"
     )
     parallelism: int = Field(
         default=15,
@@ -72,7 +72,7 @@ class ExecutionSettings(BaseSettings):
         default=True, env="DIPEO_PARALLEL_EXECUTION", description="Enable parallel node execution"
     )
     max_iterations: int = Field(
-        default=100, env="DIPEO_MAX_ITERATIONS", description="Maximum iterations for loop nodes"
+        default=150, env="DIPEO_MAX_ITERATIONS", description="Maximum iterations for loop nodes"
     )
 
     class Config:

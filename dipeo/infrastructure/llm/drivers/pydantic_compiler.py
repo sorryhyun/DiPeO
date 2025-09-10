@@ -23,7 +23,7 @@ def compile_pydantic_model(code_str: str) -> type[BaseModel] | None:
         # Check if imports are already present, if not add them
         if "from pydantic import" not in code_str and "import pydantic" not in code_str:
             # Prepend necessary imports
-            auto_imports = """from pydantic import BaseModel, Field
+            auto_imports = """from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any, Union
 from enum import Enum
 from dipeo.domain.type_defs import JsonValue, JsonDict, JsonList, SimpleJsonValue
@@ -35,12 +35,16 @@ from dipeo.domain.type_defs import JsonValue, JsonDict, JsonList, SimpleJsonValu
         namespace = {
             "BaseModel": BaseModel,
             "Field": __import__("pydantic").Field,
+            "ConfigDict": __import__("pydantic").ConfigDict,
             "Enum": __import__("enum").Enum,
             "List": __import__("typing").List,
             "Optional": __import__("typing").Optional,
             "Dict": __import__("typing").Dict,
             "Any": __import__("typing").Any,
             "Union": __import__("typing").Union,
+            # Built-in types for modern Python syntax
+            "list": list,
+            "dict": dict,
             "str": str,
             "int": int,
             "float": float,
@@ -107,9 +111,12 @@ def is_pydantic_code(text_format: str) -> bool:
         ": int",
         ": float",
         ": bool",
-        ": List[",  # List type hint
-        ": Optional[",  # Optional type hint
-        ": Dict[",  # Dict type hint
+        ": List[",  # Old-style List type hint
+        ": list[",  # Modern list type hint
+        ": Optional[",  # Old-style Optional type hint
+        "| None",  # Modern optional syntax
+        ": Dict[",  # Old-style Dict type hint
+        ": dict[",  # Modern dict type hint
         "model_rebuild()",  # Pydantic specific method
         "from pydantic",  # Explicit import
         "from enum import",  # Enum import
@@ -125,8 +132,11 @@ def is_pydantic_code(text_format: str) -> bool:
             ": float",
             ": bool",
             ": List[",
+            ": list[",  # Modern list syntax
             ": Optional[",
+            "| None",  # Modern optional syntax
             ": Dict[",
+            ": dict[",  # Modern dict syntax
         ]
     )
 

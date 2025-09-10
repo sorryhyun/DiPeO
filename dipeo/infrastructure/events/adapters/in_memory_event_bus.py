@@ -9,12 +9,14 @@ from uuid import uuid4
 
 from dipeo.domain.events import (
     DomainEvent,
-    EventBus,
-    EventFilter,
-    EventHandler,
     EventPriority,
     EventSubscription,
     EventType,
+)
+from dipeo.domain.events.unified_ports import (
+    EventBus,
+    EventFilter,
+    EventHandler,
 )
 
 logger = logging.getLogger(__name__)

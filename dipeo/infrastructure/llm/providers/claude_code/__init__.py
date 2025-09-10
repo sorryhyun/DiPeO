@@ -1,6 +1,5 @@
 """Claude Code provider for DiPeO using claude-code-sdk."""
 
-from .adapter import ClaudeCodeAdapter
-from .client import ClaudeCodeClientWrapper
+from .unified_client import UnifiedClaudeCodeClient
 
-__all__ = ["ClaudeCodeAdapter", "ClaudeCodeClientWrapper"]
+__all__ = ["UnifiedClaudeCodeClient"]

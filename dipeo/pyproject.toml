@@ -1,72 +1,13 @@
 [build-system]
-requires = ["setuptools>=45", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "dipeo"
-version = "0.1.0"
-description = "DiPeO - Diagrammed People & Organizations: Visual programming for AI agent workflows"
-authors = [
-    {name = "sorryhyun", email = "standingbehindnv@gmail.com"},
-]
-readme = "README.md"
-license = {text = "Apache-2.0"}
+version = "1.0.0"
+description = "DiPeO core library"
 requires-python = ">=3.13"
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
+dependencies = []  # Dependencies managed by root pyproject.toml
 
-dependencies = [
-    "pydantic>=2.10.0",
-    "typing-extensions>=4.0",
-    "pyyaml>=6.0",
-    "dependency-injector>=4.41.0",
-    "structlog>=24.4.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    # Testing
-    "pytest>=8.3.4",
-    "pytest-asyncio>=0.25.2",
-    "pytest-cov",
-
-    # Type checking
-    "mypy>=1.14.1",
-
-    # Code formatting and linting
-    "ruff>=0.9.1",
-    "black",
-    "isort",
-]
-
-[project.urls]
-homepage = "https://github.com/sorryhyun/DiPeO"
-repository = "https://github.com/sorryhyun/DiPeO"
-documentation = "https://dipeo.readthedocs.io"
-
-[tool.setuptools]
-packages = ["dipeo"]
-
-[tool.setuptools.package-dir]
-dipeo = "."
-
-[tool.ruff]
-target-version = "py313"
-line-length = 100
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
-ignore = ["E501", "B008", "RUF012", "F401", "F403", "F405", "F841"]
-
-[tool.mypy]
-python_version = "3.13"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false
-ignore_missing_imports = true
+[tool.hatch.build.targets.wheel]
+packages = ["."]

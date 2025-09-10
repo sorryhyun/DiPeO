@@ -334,6 +334,11 @@ class BackendFilters:
         """Convert field type to Python type with context awareness."""
         field_name = field.get("name", "")
         field_type = field.get("type", "string")
+        is_required = field.get("required", False)
+        default_value = field.get("default")
+
+        # Get the base type first
+        base_type = None
 
         # Special handling for specific field names based on node type
         context_mappings = {
@@ -349,75 +354,93 @@ class BackendFilters:
 
         # Check for context-specific mappings
         if field_name in context_mappings:
-            return context_mappings[field_name]
-
+            base_type = context_mappings[field_name]
         # Check if type exists in provided mappings
-        if mappings and "ts_to_py_type" in mappings and field_type in mappings["ts_to_py_type"]:
-            return str(mappings["ts_to_py_type"][field_type])
-
+        elif mappings and "ts_to_py_type" in mappings and field_type in mappings["ts_to_py_type"]:
+            base_type = str(mappings["ts_to_py_type"][field_type])
         # Special handling for PersonJob fields
-        if node_type == "person_job":
+        elif node_type == "person_job":
             if field_name == "person_id":
-                return "PersonID"
+                base_type = "PersonID"
             elif field_name == "llm_config":
-                return "PersonLLMConfig"
+                base_type = "PersonLLMConfig"
             elif field_name == "memory_settings":
-                return "MemorySettings"
+                base_type = "MemorySettings"
             elif field_name == "memory_profile":
                 # memory_profile is a string identifier, not a MemoryProfile type
-                return "str"
+                base_type = "str"
             elif field_name == "tools":
-                return "List[ToolConfig]"
+                base_type = "List[ToolConfig]"
 
-        # Check camelCase to underscore variations
-        if field_name == "maxIteration" or field_name == "max_iteration":
-            return "int"
+        # If no special case matched, determine type from field_type
+        if base_type is None:
+            # Check camelCase to underscore variations
+            if field_name == "maxIteration" or field_name == "max_iteration":
+                base_type = "int"
+            # Handle complex types
+            elif field_type == "object" or field_type == "dict":
+                base_type = "Dict[str, Any]"
+            elif field_type == "array" or field_type == "list":
+                base_type = "List[Any]"
+            elif field_type == "string":
+                base_type = "str"
+            elif field_type == "number":
+                # Check if it should be int
+                if field_name in {
+                    "maxIteration",
+                    "max_iteration",
+                    "sequence",
+                    "messageCount",
+                    "timeout",
+                    "timeoutSeconds",
+                    "durationSeconds",
+                    "maxTokens",
+                    "statusCode",
+                    "port",
+                    "x",
+                    "y",
+                    "width",
+                    "height",
+                }:
+                    base_type = "int"
+                else:
+                    base_type = "float"
+            elif field_type == "boolean":
+                base_type = "bool"
+            elif field_type == "enum":
+                # Generate Literal type from enum values
+                # Check both 'values' and 'validation.allowedValues' for enum values
+                values = field.get("values", [])
+                if not values and field.get("validation"):
+                    values = field.get("validation", {}).get("allowedValues", [])
 
-        # Handle complex types
-        if field_type == "object" or field_type == "dict":
-            return "Dict[str, Any]"
-        elif field_type == "array" or field_type == "list":
-            return "List[Any]"
-        elif field_type == "string":
-            return "str"
-        elif field_type == "number":
-            # Check if it should be int
-            if field_name in {
-                "maxIteration",
-                "max_iteration",
-                "sequence",
-                "messageCount",
-                "timeout",
-                "timeoutSeconds",
-                "durationSeconds",
-                "maxTokens",
-                "statusCode",
-                "port",
-                "x",
-                "y",
-                "width",
-                "height",
-            }:
-                return "int"
-            return "float"
-        elif field_type == "boolean":
-            return "bool"
-        elif field_type == "enum":
-            # Generate Literal type from enum values
-            # Check both 'values' and 'validation.allowedValues' for enum values
-            values = field.get("values", [])
-            if not values and field.get("validation"):
-                values = field.get("validation", {}).get("allowedValues", [])
+                if values:
+                    quoted_values = ", ".join(f'"{v}"' for v in values)
+                    base_type = f"Literal[{quoted_values}]"
+                else:
+                    base_type = "str"
+            elif field_type == "any":
+                base_type = "Any"
+            else:
+                # Default to the type as-is (might be a custom type)
+                base_type = field_type
 
-            if values:
-                quoted_values = ", ".join(f'"{v}"' for v in values)
-                return f"Literal[{quoted_values}]"
-            return "str"
-        elif field_type == "any":
-            return "Any"
-        else:
-            # Default to the type as-is (might be a custom type)
-            return field_type
+        # Wrap in Optional if field is not required
+        # Check if field will have None as default (either explicit or implicit)
+        if not is_required:
+            # Even Dict or List types need Optional if they can receive None
+            # They use default_factory for the default, but still need to accept None
+            if field_type in ["object", "dict", "array", "list"]:
+                # These use default_factory but should still accept None
+                return f"Optional[{base_type}]"
+            # Check if field has an explicit non-None default
+            if "default" in field and field["default"] is not None:
+                # Has a non-None default, don't wrap in Optional
+                return base_type
+            # Field is optional and will have None as default, wrap in Optional
+            return f"Optional[{base_type}]"
+
+        return base_type
 
     @staticmethod
     def python_default(field: dict[str, Any]) -> str:

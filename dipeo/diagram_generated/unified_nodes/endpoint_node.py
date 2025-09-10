@@ -36,7 +36,7 @@ class EndpointNode(BaseModel):
 
     # Optional node-specific fields
     
-    file_name: str = Field(default=None, description="Output filename")
+    file_name: Optional[str] = Field(default=None, description="Output filename")
 
     class Config:
         # Make the instance immutable after creation

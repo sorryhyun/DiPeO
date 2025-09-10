@@ -187,7 +187,7 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                                 data = {k: v for k, v in data.items() if v is not None}
                             elif event_type == "NODE_STATUS_CHANGED":
                                 # Handle NODE_STATUS_CHANGED events
-                                # node_id is at top level, status and other data in payload
+                                # node_id and status are in the data payload
                                 event_data = event.get("data", {})
                                 if event_data is None:
                                     event_data = {}
@@ -197,10 +197,10 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                                     except Exception:
                                         event_data = {}
 
-                                # Combine top-level node_id with data payload
+                                # Extract node_id and status from data payload
                                 data = {
-                                    "node_id": event.get("node_id"),  # From top level
-                                    "status": event_data.get("status"),
+                                    "node_id": event_data.get("node_id"),  # From data payload
+                                    "status": event_data.get("status"),  # From data payload
                                     "timestamp": event_data.get("timestamp")
                                     or event.get("timestamp"),
                                     **{

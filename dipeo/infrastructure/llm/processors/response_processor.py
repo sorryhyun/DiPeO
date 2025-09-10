@@ -4,7 +4,9 @@ import json
 import logging
 from typing import Any
 
-from ..core.types import LLMResponse, ProviderType, TokenUsage
+from dipeo.diagram_generated.domain_models import LLMUsage
+
+from ..drivers.types import LLMResponse, ProviderType
 
 logger = logging.getLogger(__name__)
 
@@ -102,17 +104,17 @@ class ResponseProcessor:
         if hasattr(response, "usage"):
             # Try new format first
             if hasattr(response.usage, "input_tokens"):
-                usage = TokenUsage(
-                    input_tokens=response.usage.input_tokens,
-                    output_tokens=response.usage.output_tokens,
-                    total_tokens=response.usage.total_tokens,
+                usage = LLMUsage(
+                    input=response.usage.input_tokens,
+                    output=response.usage.output_tokens,
+                    total=response.usage.total_tokens,
                 )
             # Fallback to old format
             elif hasattr(response.usage, "prompt_tokens"):
-                usage = TokenUsage(
-                    input_tokens=response.usage.prompt_tokens,
-                    output_tokens=response.usage.completion_tokens,
-                    total_tokens=response.usage.total_tokens,
+                usage = LLMUsage(
+                    input=response.usage.prompt_tokens,
+                    output=response.usage.completion_tokens,
+                    total=response.usage.total_tokens,
                 )
 
         # Extract model info
@@ -169,9 +171,7 @@ class ResponseProcessor:
 
         # Extract usage
         if hasattr(response, "usage"):
-            usage = TokenUsage(
-                input_tokens=response.usage.input_tokens, output_tokens=response.usage.output_tokens
-            )
+            usage = LLMUsage(input=response.usage.input_tokens, output=response.usage.output_tokens)
 
         # Extract metadata
         if hasattr(response, "id"):
@@ -227,10 +227,10 @@ class ResponseProcessor:
 
         # Extract usage (if available)
         if hasattr(response, "usage_metadata"):
-            usage = TokenUsage(
-                input_tokens=response.usage_metadata.prompt_token_count,
-                output_tokens=response.usage_metadata.candidates_token_count,
-                total_tokens=response.usage_metadata.total_token_count,
+            usage = LLMUsage(
+                input=response.usage_metadata.prompt_token_count,
+                output=response.usage_metadata.candidates_token_count,
+                total=response.usage_metadata.total_token_count,
             )
 
         return LLMResponse(
@@ -254,9 +254,7 @@ class ResponseProcessor:
 
             # Extract usage if available
             if "eval_count" in response and "prompt_eval_count" in response:
-                usage = TokenUsage(
-                    input_tokens=response["prompt_eval_count"], output_tokens=response["eval_count"]
-                )
+                usage = LLMUsage(input=response["prompt_eval_count"], output=response["eval_count"])
 
             # Extract metadata
             if "model" in response:

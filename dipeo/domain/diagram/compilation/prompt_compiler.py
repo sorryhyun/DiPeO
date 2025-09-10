@@ -122,9 +122,6 @@ class PromptFileCompiler:
                 content = self._filesystem_reader(prompt_path)
                 # Cache the result
                 self._resolved_cache[cache_key] = content
-                logger.info(
-                    f"[PromptCompiler] Resolved prompt file for {node_label}: {prompt_filename}"
-                )
                 return content
             except Exception as e:
                 logger.error(

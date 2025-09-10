@@ -5,7 +5,7 @@ import logging
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
-from ..core.types import ProviderType, StreamConfig, StreamingMode
+from ..drivers.types import ProviderType, StreamConfig, StreamingMode
 
 logger = logging.getLogger(__name__)
 

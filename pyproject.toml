@@ -1,6 +1,6 @@
 [project]
 name = "dipeo-monorepo"
-version = "0.1.0"
+version = "1.0.0"
 description = "DiPeO - Diagrammed People & Organizations: Visual programming for AI agent workflows"
 authors = [
     {name = "sorryhyun", email = "standingbehindnv@gmail.com"},
@@ -86,6 +86,7 @@ dependencies = [
     "python-multipart==0.0.20",
     "pytz==2025.2",
     "PyYAML==6.0.2",
+    "redis~=5.2.0",
     "requests==2.32.4",
     "requests-toolbelt==1.0.0",
     "rsa==4.9.1",
@@ -107,6 +108,7 @@ dependencies = [
     "yarl==1.20.1",
     "datamodel-code-generator>=0.21.0",
     "ollama>=0.5.0",
+    "claude-code-sdk>=0.0.21",
 ]
 
 [project.optional-dependencies]
@@ -147,11 +149,7 @@ dev-dependencies = [
 [tool.uv.workspace]
 members = ["dipeo", "apps/server", "apps/cli"]
 
-[tool.uv.sources]
-# Local editable installs for workspace packages
-dipeo = { workspace = true }
-dipeo-server = { workspace = true }
-dipeo_cli = { workspace = true }
+# UV workspace members are automatically installed as editable
 
 # Tool configurations (inherited from existing configs)
 [tool.ruff]

@@ -4,9 +4,9 @@ Problematic output:
 {{generated_output}}
 
 If the output contains explanatory text like "let me analyze", "I'll help", "Here's the implementation", or any non-code content, then GENERATE THE ACTUAL CODE based on:
-- File to implement: {{default.file_paths[current_index]}}
-- Description: {{default.descriptions[current_index]}}
-- Current section data: {{default.sections[current_index]}}
+- File to implement: {{file_paths[current_index]}}
+- Description: {{descriptions[current_index]}}
+- Current section data: {{sections[current_index]}}
 
 Requirements:
 - If output already contains valid code: return it as-is (removing only markdown backticks if present)

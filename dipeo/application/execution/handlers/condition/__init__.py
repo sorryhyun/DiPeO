@@ -101,22 +101,22 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Get the currently executing diagram from the context
         diagram = request.context.diagram if request.context else None
         if diagram is None:
-            return EnvelopeFactory.error(
-                "Executable diagram not available in context",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body="Executable diagram not available in context",
                 produced_by=node.id,
                 trace_id=request.execution_id or "",
+                error="ValueError",
             )
 
         # Select and validate evaluator
         evaluator = self._evaluators.get(condition_type)
         if not evaluator:
             logger.error(f"No evaluator found for condition type: {condition_type}")
-            return EnvelopeFactory.error(
-                f"No evaluator for condition type: {condition_type}",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body=f"No evaluator for condition type: {condition_type}",
                 produced_by=node.id,
                 trace_id=request.execution_id or "",
+                meta={"error_type": "ValueError", "is_error": True},
             )
 
         # Store evaluator in instance variable for execute_request
@@ -219,18 +219,13 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Store branch decision for downstream nodes that need it
         context.set_variable(f"branch[{node.id}]", active_branch)  # e.g., "condtrue" | "condfalse"
 
-        # Return envelope with just the branch data
+        # Return envelope with just the branch data using auto-detection
         # The actual branch routing is handled by emitting on the correct port
-        if isinstance(branch_data, dict):
-            output = EnvelopeFactory.json(
-                branch_data, produced_by=str(node.id), trace_id=request.execution_id or ""
-            )
-        else:
-            output = EnvelopeFactory.text(
-                str(branch_data) if branch_data is not None else "",
-                produced_by=str(node.id),
-                trace_id=request.execution_id or "",
-            )
+        output = EnvelopeFactory.create(
+            body=branch_data if branch_data is not None else "",  # Natural data output
+            produced_by=str(node.id),
+            trace_id=request.execution_id or "",
+        )
 
         # Store the branch decision for post_execute to use
         self._active_branch = active_branch
@@ -259,9 +254,9 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         self, request: ExecutionRequest[ConditionNode], error: Exception
     ) -> Envelope | None:
         # Return error envelope - condition defaults to false on error
-        return EnvelopeFactory.error(
-            str(error),
-            error_type=error.__class__.__name__,
+        return EnvelopeFactory.create(
+            body=str(error),
             produced_by=request.node.id,
             trace_id=request.execution_id or "",
+            meta={"error_type": error.__class__.__name__, "is_error": True},
         )

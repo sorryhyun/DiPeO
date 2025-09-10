@@ -11,7 +11,7 @@ from dipeo.diagram_generated import (
     WebSearchResult,
 )
 
-from ..core.types import ProviderType
+from ..drivers.types import ProviderType
 
 logger = logging.getLogger(__name__)
 

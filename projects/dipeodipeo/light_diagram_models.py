@@ -50,7 +50,7 @@ SubDiagramNodeData = exclude_label_field(_SubDiagramNodeData)
 EndpointNodeData = exclude_label_field(_EndpointNodeData)
 TemplateJobNodeData = exclude_label_field(_TemplateJobNodeData)
 ApiJobNodeData = exclude_label_field(_ApiJobNodeData)
-UserResponseNodeData = exclude_label_field(_UserResponseNodeData)
+# UserResponseNodeData = exclude_label_field(_UserResponseNodeData)
 
 
 # ============================================================================
@@ -70,7 +70,7 @@ class LightNodeType(str, Enum):
     ENDPOINT = "endpoint"
     TEMPLATE_JOB = "template_job"
     API_JOB = "api_job"
-    USER_RESPONSE = "user_response"
+    # USER_RESPONSE = "user_response"
 
 
 # ============================================================================
@@ -198,15 +198,15 @@ class ApiJobNode(BaseModel):
     props: ApiJobNodeData
 
 
-class UserResponseNode(BaseModel):
-    """User interaction node in light diagram format."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    label: str = Field(description="Unique identifier for this node")
-    type: Literal[LightNodeType.USER_RESPONSE] = LightNodeType.USER_RESPONSE
-    position: Position = Field(default_factory=Position)
-    props: UserResponseNodeData
+# class UserResponseNode(BaseModel):
+#     """User interaction node in light diagram format."""
+#
+#     model_config = ConfigDict(extra="forbid")
+#
+#     label: str = Field(description="Unique identifier for this node")
+#     type: Literal[LightNodeType.USER_RESPONSE] = LightNodeType.USER_RESPONSE
+#     position: Position = Field(default_factory=Position)
+#     props: UserResponseNodeData
 
 
 # Union type for all possible nodes
@@ -220,7 +220,7 @@ LightNode = (
     | EndpointNode
     | TemplateJobNode
     | ApiJobNode
-    | UserResponseNode
+    # | UserResponseNode
 )
 
 

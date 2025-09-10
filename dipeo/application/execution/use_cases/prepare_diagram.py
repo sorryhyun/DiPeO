@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Optional
 
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
-from dipeo.domain.base import BaseService
+from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.diagram.models import ExecutableDiagram
 from dipeo.infrastructure.shared.keys.drivers import APIKeyService as APIKeyDomainService
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class PrepareDiagramForExecutionUseCase(BaseService):
+class PrepareDiagramForExecutionUseCase(LoggingMixin, InitializationMixin):
     """Prepares diagrams for execution by the engine."""
 
     def __init__(
@@ -28,7 +28,8 @@ class PrepareDiagramForExecutionUseCase(BaseService):
         api_key_service: APIKeyDomainService,
         service_registry: Optional["ServiceRegistry"] = None,
     ):
-        super().__init__()
+        # Initialize mixins
+        InitializationMixin.__init__(self)
         self.api_key_service = api_key_service
         self.service_registry = service_registry
 

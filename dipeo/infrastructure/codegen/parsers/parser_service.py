@@ -4,14 +4,21 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from dipeo.domain.base import BaseService
+from dipeo.domain.base.mixins import (
+    CachingMixin,
+    ConfigurationMixin,
+    InitializationMixin,
+    LoggingMixin,
+)
 from dipeo.domain.integrations.ports import ASTParserPort
 from dipeo.infrastructure.codegen.parsers.typescript.parser import TypeScriptParser
 
 logger = logging.getLogger(__name__)
 
 
-class ParserService(BaseService, ASTParserPort):
+class ParserService(
+    LoggingMixin, InitializationMixin, ConfigurationMixin, CachingMixin, ASTParserPort
+):
     """TypeScript-only parser service.
 
     This service provides AST parsing specifically for TypeScript/JavaScript
@@ -26,7 +33,10 @@ class ParserService(BaseService, ASTParserPort):
                 - project_root: Project root directory path
                 - cache_enabled: Whether to enable AST caching (default: True)
         """
-        super().__init__(config)
+        # Initialize mixins
+        InitializationMixin.__init__(self)
+        ConfigurationMixin.__init__(self, config)
+        CachingMixin.__init__(self)
         self._project_root = self.get_config_value("project_root")
         self._cache_enabled = self.get_config_value("cache_enabled", True)
         self._ts_parser: TypeScriptParser | None = None

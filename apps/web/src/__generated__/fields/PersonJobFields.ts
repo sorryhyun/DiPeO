@@ -89,6 +89,15 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     },
   },
   {
+    name: 'ignore_person',
+    type: 'text',
+    label: 'Ignore person',
+    required: false,
+    placeholder: 'e.g., assistant, user2',
+    description: 'Comma-separated list of person IDs whose messages should be excluded from memory selection.',
+    column: 2,
+  },
+  {
     name: 'tools',
     type: 'select',
     label: 'Tools',
@@ -111,6 +120,15 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     rows: 6,
     column: 2,
     adjustable: true,
+  },
+  {
+    name: 'text_format_file',
+    type: 'text',
+    label: 'Text format file',
+    required: false,
+    placeholder: 'path/to/models.py',
+    description: 'Path to Python file containing Pydantic models for structured outputs',
+    column: 2,
   },
   {
     name: 'resolved_prompt',

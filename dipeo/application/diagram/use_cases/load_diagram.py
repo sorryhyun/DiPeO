@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from dipeo.diagram_generated import DomainDiagram
-from dipeo.domain.diagram.ports import DiagramPort
+from dipeo.domain.diagram.segregated_ports import UnifiedDiagramPortAdapter as DiagramPort
 
 logger = logging.getLogger(__name__)
 

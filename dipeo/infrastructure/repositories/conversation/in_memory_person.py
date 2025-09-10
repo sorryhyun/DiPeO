@@ -50,23 +50,41 @@ class InMemoryPersonRepository(PersonRepository):
         name: str,
         llm_config: PersonLLMConfig,
     ) -> Person:
-        """Create a new person with brain component wired up.
+        """Create a new person with memory strategy configured.
 
         Returns:
-            The created Person instance with cognitive components
+            The created Person instance with memory selection strategy
         """
-        person = Person(id=person_id, name=name, llm_config=llm_config)
+        # Create person with strategy support
+        from dipeo.domain.conversation.memory_strategies import (
+            DefaultMemoryStrategy,
+            IntelligentMemoryStrategy,
+        )
 
-        # Wire up brain component if orchestrator is available
+        memory_strategy = None
+
+        # Wire up intelligent memory strategy if orchestrator is available
         if self._orchestrator:
-            from dipeo.domain.conversation.brain import CognitiveBrain
-            from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
+            from dipeo.infrastructure.llm.domain_adapters import LLMMemorySelectionAdapter
 
             # Create memory selector implementation
             memory_selector = LLMMemorySelectionAdapter(self._orchestrator)
 
-            # Wire brain with memory selector
-            person.brain = CognitiveBrain(memory_selector=memory_selector)
+            # Create intelligent strategy with LLM selector
+            memory_strategy = IntelligentMemoryStrategy(memory_selector=memory_selector)
+        else:
+            # Use default strategy if no orchestrator
+            memory_strategy = DefaultMemoryStrategy()
+
+        # Create person with strategy
+        person = Person(
+            id=person_id,
+            name=name,
+            llm_config=llm_config,
+            memory_strategy=memory_strategy,
+        )
+
+        # Brain wiring removed - now handled by memory_strategy directly
 
         self.save(person)
         return person

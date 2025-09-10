@@ -66,14 +66,15 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         # Check service availability
         api_service = request.services.resolve(API_INVOKER)
         if not api_service:
-            return EnvelopeFactory.error(
-                "API service not available", error_type="RuntimeError", produced_by=str(node.id)
+            return EnvelopeFactory.create(
+                body={"error": "API service not available", "type": "RuntimeError"},
+                produced_by=str(node.id),
             )
 
         # Validate URL
         if not node.url:
-            return EnvelopeFactory.error(
-                "No URL provided", error_type="ValueError", produced_by=str(node.id)
+            return EnvelopeFactory.create(
+                body={"error": "No URL provided", "type": "ValueError"}, produced_by=str(node.id)
             )
 
         # Convert and validate HTTP method
@@ -82,9 +83,8 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             try:
                 method = HttpMethod(method.upper())
             except ValueError:
-                return EnvelopeFactory.error(
-                    f"Invalid HTTP method: {method}",
-                    error_type="ValueError",
+                return EnvelopeFactory.create(
+                    body={"error": f"Invalid HTTP method: {method}", "type": "ValueError"},
                     produced_by=str(node.id),
                 )
 
@@ -96,8 +96,8 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
 
         parsed_data = self._parse_json_inputs(headers, params, body, auth_config)
         if "error" in parsed_data:
-            return EnvelopeFactory.error(
-                parsed_data["error"], error_type="ValueError", produced_by=str(node.id)
+            return EnvelopeFactory.create(
+                body={"error": parsed_data["error"], "type": "ValueError"}, produced_by=str(node.id)
             )
 
         # Store validated data in instance variables for execute_request to use
@@ -230,61 +230,43 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
 
         return response_dict
 
-    def _build_node_output(
-        self, result: Any, request: ExecutionRequest[ApiJobNode]
-    ) -> dict[str, Any]:
-        """Build multi-representation output for API response."""
-        # Extract metadata if present
-        meta = result.pop("_api_meta", {}) if isinstance(result, dict) else {}
-
-        # Build representations
-        representations = {
-            "text": str(result) if not isinstance(result, dict) else json.dumps(result, indent=2),
-            "object": result,
-            "headers": meta.get("response_headers", {}),
-            "full_response": {
-                "status": meta.get("status_code", 200),
-                "headers": meta.get("response_headers", {}),
-                "body": result,
-                "url": meta.get("url", ""),
-                "method": meta.get("method", ""),
-            },
-        }
-
-        # Include request details for debugging
-        if meta.get("request_headers"):
-            representations["request_details"] = {
-                "headers": meta.get("request_headers", {}),
-                "url": meta.get("url", ""),
-                "method": meta.get("method", ""),
-            }
-
-        return {
-            "primary": result,  # For backward compatibility
-            "representations": representations,
-            "meta": meta,
-        }
-
-    def serialize_output(self, result: Any, request: ExecutionRequest[ApiJobNode]) -> Envelope:
-        """Serialize API response to multi-representation envelope."""
+    def _build_node_output(self, result: Any, request: ExecutionRequest[ApiJobNode]) -> Envelope:
+        """
+        Build a single-envelope output for API responses.
+        Uses auto-detection to determine the appropriate content type.
+        """
         node = request.node
         trace_id = request.execution_id or ""
 
-        # Build multi-representation output
-        output = self._build_node_output(result, request)
+        # Extract metadata if present
+        meta = result.pop("_api_meta", {}) if isinstance(result, dict) else {}
 
-        # Create envelope with primary body for backward compatibility
-        envelope = EnvelopeFactory.json(output["primary"], produced_by=node.id, trace_id=trace_id)
+        # Prepare HTTP metadata
+        http_meta = {
+            "status": meta.get("status_code", 200),
+            "url": meta.get("url", node.url),
+            "method": meta.get(
+                "method",
+                str(self._current_method)
+                if hasattr(self, "_current_method")
+                else getattr(node, "method", None),
+            ),
+            "request_headers": meta.get("request_headers"),
+            "response_headers": meta.get("response_headers"),
+        }
 
-        # Add representations to envelope
-        if "representations" in output:
-            envelope = envelope.with_representations(output["representations"])
+        # Use EnvelopeFactory.create() with auto-detection
+        env = EnvelopeFactory.create(
+            body=result,  # Let EnvelopeFactory auto-detect the content type
+            produced_by=str(node.id),
+            trace_id=trace_id,
+            meta={"http": http_meta},
+        )
+        return env
 
-        # Add metadata
-        if "meta" in output:
-            envelope = envelope.with_meta(**output["meta"])
-
-        return envelope
+    def serialize_output(self, result: Any, request: ExecutionRequest[ApiJobNode]) -> Envelope:
+        """Return a single Envelope with typed meta."""
+        return self._build_node_output(result, request)
 
     def _parse_json_inputs(
         self, headers: Any, params: Any, body: Any, auth_config: Any
@@ -383,6 +365,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             str(self._current_method) if self._current_method else request.node.method or "unknown"
         )
 
-        return EnvelopeFactory.error(
-            str(error), error_type=error.__class__.__name__, produced_by=str(request.node.id)
+        return EnvelopeFactory.create(
+            body={"error": str(error), "type": error.__class__.__name__},
+            produced_by=str(request.node.id),
         )

@@ -139,7 +139,7 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             retry=retry_if_exception_type((ConnectionError, TimeoutError)),
         ):
             with attempt:
-                # Check if this is a new UnifiedAdapter (has async_chat method)
+                # Check if this is a unified client (has async_chat method)
                 if hasattr(client, "async_chat"):
                     return await client.async_chat(messages=messages, **kwargs)
                 # Check if this is an old async adapter (has chat_async method)
@@ -202,18 +202,8 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
                 if isinstance(result, ChatResult):
                     return result
 
-                # Convert token usage from infrastructure TokenUsage to domain LLMUsage
-                llm_usage = None
-                if hasattr(result, "usage") and result.usage:
-                    # Import the domain LLMUsage model
-                    from dipeo.diagram_generated.domain_models import LLMUsage
-
-                    # Convert infrastructure TokenUsage (dataclass) to domain LLMUsage (Pydantic)
-                    llm_usage = LLMUsage(
-                        input=result.usage.input_tokens,
-                        output=result.usage.output_tokens,
-                        total=result.usage.total_tokens,
-                    )
+                # Extract LLMUsage directly (no conversion needed)
+                llm_usage = result.usage if hasattr(result, "usage") else None
 
                 # Convert LLMResponse to ChatResult
                 chat_result = ChatResult(

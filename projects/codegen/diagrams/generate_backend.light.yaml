@@ -61,6 +61,24 @@ nodes:
       template_path: projects/codegen/templates/backend/unified_nodes_init.j2
       output_path: dipeo/diagram_generated_staged/unified_nodes/__init__.py
 
+  # Prepare context for node factory
+  - label: Prepare Factory Context
+    type: code_job
+    position: {x: 550, y: 300}
+    props:
+      language: python
+      filePath: projects/codegen/code/models/prepare_factory_context.py
+      functionName: prepare_factory_context
+
+  # Generate node factory
+  - label: Generate Node Factory
+    type: template_job
+    position: {x: 850, y: 300}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/backend/node_factory.j2
+      output_path: dipeo/diagram_generated_staged/node_factory.py
+
   # Generate Enums
   - label: Generate Enums
     type: sub_diagram
@@ -143,6 +161,7 @@ nodes:
                 "Models __init__.py",
                 "Unified node models",
                 "Unified nodes __init__.py",
+                "Node factory",
                 "Python models",
                 "Enums",
                 "Integrations",
@@ -194,9 +213,14 @@ connections:
   - {from: Discover Node Specs, to: Prepare Init Context, content_type: object}
   - {from: Prepare Init Context, to: Generate Unified Nodes Init, content_type: object}
 
+  # Node factory generation chain
+  - {from: Discover Node Specs, to: Prepare Factory Context, content_type: object}
+  - {from: Prepare Factory Context, to: Generate Node Factory, content_type: object}
+
   # All generation tasks converge to Summary
   - {from: Batch Generate Backend Models, to: Summary}
   - {from: Generate Unified Nodes Init, to: Summary}
+  - {from: Generate Node Factory, to: Summary}
   - {from: Generate Enums, to: Summary}
   - {from: Generate Integrations, to: Summary}
   - {from: Generate Conversions, to: Summary}

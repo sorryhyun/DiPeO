@@ -10,8 +10,10 @@ export interface PersonJobNodeData {
   max_iteration: number;
   memorize_to?: string;
   at_most?: number;
+  ignore_person?: string;
   tools?: string;
   text_format?: string;
+  text_format_file?: string;
   resolved_prompt?: string;
   resolved_first_prompt?: string;
   batch?: boolean;
@@ -30,8 +32,10 @@ export const PersonJobNodeDataSchema = z.object({
   max_iteration: z.number(),
   memorize_to: z.string().optional(),
   at_most: z.number().min(1).max(500).optional(),
+  ignore_person: z.string().optional(),
   tools: z.string().optional(),
   text_format: z.string().optional(),
+  text_format_file: z.string().optional(),
   resolved_prompt: z.string().optional(),
   resolved_first_prompt: z.string().optional(),
   batch: z.boolean().optional(),

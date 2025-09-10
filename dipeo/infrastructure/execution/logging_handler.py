@@ -3,8 +3,9 @@
 import contextlib
 import logging
 
-from dipeo.domain.events import DomainEvent, EventBus, EventScope, EventType
+from dipeo.domain.events import DomainEvent, EventScope, EventType
 from dipeo.domain.events.contracts import ExecutionLogPayload
+from dipeo.domain.events.unified_ports import EventBus
 
 
 class ExecutionLogHandler(logging.Handler):

@@ -409,15 +409,17 @@ class AsyncQueueStateStore(StateStorePort):
             from dipeo.domain.execution.envelope import EnvelopeFactory
 
             if is_exception:
-                wrapped_output = EnvelopeFactory.error(
-                    str(output),
-                    error_type=type(output).__name__
-                    if hasattr(output, "__class__")
-                    else "Exception",
-                    node_id=str(node_id),
+                wrapped_output = EnvelopeFactory.create(
+                    body={
+                        "error": str(output),
+                        "type": type(output).__name__
+                        if hasattr(output, "__class__")
+                        else "Exception",
+                    },
+                    produced_by=str(node_id),
                 )
             else:
-                wrapped_output = EnvelopeFactory.text(str(output), node_id=str(node_id))
+                wrapped_output = EnvelopeFactory.create(body=str(output), produced_by=str(node_id))
             serialized_output = serialize_protocol(wrapped_output)
 
         # Update cache immediately

@@ -111,6 +111,17 @@ export const personJobSpec: NodeSpecification = {
       }
     },
     {
+      name: "ignore_person",
+      type: "string",
+      required: false,
+      description: "Comma-separated list of person IDs whose messages should be excluded from memory selection.",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "e.g., assistant, user2",
+        column: 2
+      }
+    },
+    {
       name: "tools",
       type: "string",
       required: false,
@@ -136,6 +147,17 @@ export const personJobSpec: NodeSpecification = {
         column: 2,
         rows: 6,
         adjustable: true
+      }
+    },
+    {
+      name: "text_format_file",
+      type: "string",
+      required: false,
+      description: "Path to Python file containing Pydantic models for structured outputs",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "path/to/models.py",
+        column: 2
       }
     },
     // Internal fields for compile-time prompt resolution

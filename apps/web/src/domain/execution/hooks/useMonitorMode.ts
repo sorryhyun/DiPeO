@@ -25,6 +25,7 @@ const ACTIVE_CLI_SESSION_QUERY = gql`
       started_at
       is_active
       diagram_data
+      node_states
     }
   }
 `;
@@ -108,79 +109,115 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
         // console.log('[Monitor] CLI execution:', activeSession.execution_id);
         toast.info(`Connected to CLI execution: ${activeSession.diagram_name}`);
 
-        // Load diagram if data is provided
+        // Parse diagram data once
+        let diagramData: any = null;
+        let nodeCount = 0;
         if (activeSession.diagram_data) {
           try {
-            const diagramData = JSON.parse(activeSession.diagram_data);
-            loadDiagramFromData(diagramData);
+            diagramData = JSON.parse(activeSession.diagram_data);
+            nodeCount = diagramData.nodes?.length || 0;
           } catch (e) {
             console.error('[Monitor] Failed to parse diagram data:', e);
           }
         }
 
+        // Apply node states immediately if available in CLI session
+        if (activeSession.node_states && typeof activeSession.node_states === 'object') {
+          const store = useUnifiedStore.getState();
+          Object.entries(activeSession.node_states).forEach(([nodeIdStr, state]: [string, any]) => {
+            if (state?.status) {
+              // Map status to the appropriate action
+              if (state.status === 'RUNNING') {
+                store.updateNodeExecution(nodeId(nodeIdStr), {
+                  status: Status.RUNNING,
+                  timestamp: Date.now()
+                });
+              } else if (state.status === 'COMPLETED') {
+                store.updateNodeExecution(nodeId(nodeIdStr), {
+                  status: Status.COMPLETED,
+                  timestamp: Date.now()
+                });
+              } else if (state.status === 'FAILED') {
+                store.updateNodeExecution(nodeId(nodeIdStr), {
+                  status: Status.FAILED,
+                  timestamp: Date.now(),
+                  error: state.error
+                });
+              }
+            }
+          });
+          // console.log('[Monitor] Applied immediate node states from CLI session:', Object.keys(activeSession.node_states).length);
+        }
+
+        // Start three operations in parallel:
+        // 1. Load diagram
+        // 2. Connect to execution
+        // 3. Fetch initial execution state (only if not already provided by CLI session)
+        const parallelOps = Promise.all([
+          // Load diagram if data is provided
+          diagramData ? loadDiagramFromData(diagramData) : Promise.resolve(),
+
+          // Connect to execution immediately (no delay)
+          (async () => {
+            // console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
+            execution.connectToExecution(activeSession.execution_id, nodeCount);
+            hasStartedRef.current = true;
+          })(),
+
+          // Only fetch execution state if node states weren't provided by CLI session
+          !activeSession.node_states ?
+            fetchExecutionState({
+              variables: { id: activeSession.execution_id }
+            }).catch(error => {
+              console.error('[Monitor] Failed to fetch initial execution state:', error);
+              return null;
+            }) : Promise.resolve(null)
+        ]);
+
         // Switch to execution canvas
         setActiveCanvas('execution');
 
-        // Add a small delay to ensure React Flow has time to initialize nodes/handles
-        // This prevents the "Couldn't create edge" error
-        setTimeout(async () => {
-          // Connect to the CLI execution directly (no URL params needed)
-          const nodeCount = activeSession.diagram_data ?
-            JSON.parse(activeSession.diagram_data).nodes?.length || 0 :
-            0;
+        // Process results when all operations complete
+        parallelOps.then(([, , executionStateResult]) => {
+          if (executionStateResult?.data?.execution?.node_states) {
+            // Pre-populate node states for immediate highlighting
+            const nodeStates = executionStateResult.data.execution.node_states;
+            if (nodeStates && typeof nodeStates === 'object') {
+              // Access the store directly to update node states
+              const store = useUnifiedStore.getState();
 
-          // console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
-          execution.connectToExecution(activeSession.execution_id, nodeCount);
-          hasStartedRef.current = true;
-
-          // Immediately fetch current execution state to pre-populate node states
-          try {
-            const { data } = await fetchExecutionState({
-              variables: { id: activeSession.execution_id }
-            });
-
-            if (data?.execution?.node_states) {
-              // Pre-populate node states for immediate highlighting
-              const nodeStates = data.execution.node_states;
-              if (nodeStates && typeof nodeStates === 'object') {
-                // Access the store directly to update node states
-                const store = useUnifiedStore.getState();
-
-                // Process each node state and update the store
-                Object.entries(nodeStates).forEach(([nodeIdStr, state]: [string, any]) => {
-                  if (state?.status) {
-                    // Map status to the appropriate action
-                    if (state.status === 'RUNNING') {
-                      store.updateNodeExecution(nodeId(nodeIdStr), {
-                        status: Status.RUNNING,
-                        timestamp: Date.now()
-                      });
-                    } else if (state.status === 'COMPLETED') {
-                      store.updateNodeExecution(nodeId(nodeIdStr), {
-                        status: Status.COMPLETED,
-                        timestamp: Date.now()
-                      });
-                    } else if (state.status === 'FAILED') {
-                      store.updateNodeExecution(nodeId(nodeIdStr), {
-                        status: Status.FAILED,
-                        timestamp: Date.now(),
-                        error: state.error
-                      });
-                    }
+              // Process each node state and update the store
+              Object.entries(nodeStates).forEach(([nodeIdStr, state]: [string, any]) => {
+                if (state?.status) {
+                  // Map status to the appropriate action
+                  if (state.status === 'RUNNING') {
+                    store.updateNodeExecution(nodeId(nodeIdStr), {
+                      status: Status.RUNNING,
+                      timestamp: Date.now()
+                    });
+                  } else if (state.status === 'COMPLETED') {
+                    store.updateNodeExecution(nodeId(nodeIdStr), {
+                      status: Status.COMPLETED,
+                      timestamp: Date.now()
+                    });
+                  } else if (state.status === 'FAILED') {
+                    store.updateNodeExecution(nodeId(nodeIdStr), {
+                      status: Status.FAILED,
+                      timestamp: Date.now(),
+                      error: state.error
+                    });
                   }
-                });
-                // console.log('[Monitor] Pre-populated node states:', Object.keys(nodeStates).length);
-              }
+                }
+              });
+              // console.log('[Monitor] Pre-populated node states:', Object.keys(nodeStates).length);
             }
-
-            // Slow down polling after initial connection
-            setTimeout(() => {
-              initialConnectionRef.current = false;
-            }, 1000); // Keep fast polling for 1 second
-          } catch (error) {
-            console.error('[Monitor] Failed to fetch initial execution state:', error);
           }
-        }, 50); // 50ms delay for React Flow to initialize
+
+          // Slow down polling after initial connection (extend to 2 seconds for better coverage)
+          setTimeout(() => {
+            initialConnectionRef.current = false;
+          }, 2000); // Keep fast polling for 2 seconds instead of 1
+        });
       }
     } else if (lastSessionIdRef.current) {
       // CLI session ended

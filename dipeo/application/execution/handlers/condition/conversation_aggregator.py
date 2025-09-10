@@ -45,9 +45,6 @@ class ConversationAggregator:
                 messages = value["conversation"]
                 aggregated["messages"].extend(messages)
 
-        logger.debug(
-            f"ConversationAggregator: Total aggregated messages: {len(aggregated['messages'])}"
-        )
         return aggregated
 
     def get_latest_conversation(

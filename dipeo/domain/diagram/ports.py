@@ -145,77 +145,13 @@ class FormatStrategy(ABC):
             return False
 
 
-# ============================================================================
-# Unified Diagram Port
-# ============================================================================
-
-
-class DiagramPort(Protocol):
-    """Protocol for all diagram operations - single source of truth.
-
-    This interface provides:
-    - CRUD operations (create, get, update, delete)
-    - Loading operations (from file or string)
-    - Format operations (detect, serialize/deserialize)
-    - Compilation (compile to ExecutableDiagram)
-    - Query operations (exists, list)
-    """
-
-    # Format operations
-    def detect_format(self, content: str) -> "DiagramFormat":
-        """Detect the format of diagram content."""
-        ...
-
-    def serialize(self, diagram: "DomainDiagram", format_type: str) -> str:
-        """Serialize a DomainDiagram to string."""
-        ...
-
-    def deserialize(self, content: str, format_type: str | None = None) -> "DomainDiagram":
-        """Deserialize string content to DomainDiagram."""
-        ...
-
-    def load_from_string(self, content: str, format_type: str | None = None) -> "DomainDiagram":
-        """Load a diagram from string content."""
-        ...
-
-    # File operations
-    async def load_from_file(self, file_path: str) -> "DomainDiagram":
-        """Load diagram from file."""
-        ...
-
-    # Query operations
-    async def exists(self, diagram_id: str) -> bool:
-        """Check if a diagram exists."""
-        ...
-
-    async def list_diagrams(self, format_type: str | None = None) -> list["DiagramInfo"]:
-        """List all diagrams, optionally filtered by format."""
-        ...
-
-    # CRUD operations
-    async def create_diagram(
-        self, name: str, diagram: "DomainDiagram", format_type: str = "native"
-    ) -> str:
-        """Create a new diagram with a unique ID."""
-        ...
-
-    async def get_diagram(self, diagram_id: str) -> "DomainDiagram | None":
-        """Get a diagram by its ID."""
-        ...
-
-    async def update_diagram(self, diagram_id: str, diagram: "DomainDiagram") -> None:
-        """Update an existing diagram."""
-        ...
-
-    async def delete_diagram(self, diagram_id: str) -> None:
-        """Delete a diagram from storage."""
-        ...
-
-    # Compilation
-    def compile(self, domain_diagram: "DomainDiagram") -> "ExecutableDiagram":
-        """Compile a DomainDiagram to ExecutableDiagram."""
-        ...
-
+# Note: DiagramPort has been replaced with segregated interfaces.
+# See dipeo.domain.diagram.segregated_ports for the new interfaces:
+# - DiagramFilePort: File I/O operations
+# - DiagramFormatPort: Format detection and conversion
+# - DiagramRepositoryPort: CRUD and query operations
+# - DiagramCompiler: Compilation (remains here)
+# Use UnifiedDiagramPortAdapter for backward compatibility.
 
 # ============================================================================
 # Template Processing Port

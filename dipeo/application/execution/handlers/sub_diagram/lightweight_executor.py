@@ -224,7 +224,14 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
     def _create_in_memory_state(
         self, diagram: "ExecutableDiagram", inputs: dict[str, Any]
     ) -> ExecutionState:
-        """Create a minimal in-memory execution state."""
+        """Create a minimal in-memory execution state.
+
+        Note: This implementation uses deep-copy isolation rather than scope-based
+        isolation. Each sub-diagram gets a completely separate execution context
+        with deep-copied variables, preventing any variable pollution between
+        parent and child executions. Only explicitly declared outputs are returned
+        to the parent context.
+        """
         # Create node states for all nodes
         node_states = {}
         all_nodes = diagram.get_nodes_by_type(None) or diagram.nodes
@@ -399,18 +406,10 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         # Process output mapping
         output_value = self._process_output_mapping(node, execution_results)
 
-        # Determine envelope type and create it directly
-        if isinstance(output_value, dict):
-            envelope = EnvelopeFactory.json(output_value, produced_by=node.id, trace_id=trace_id)
-        elif isinstance(output_value, str):
-            envelope = EnvelopeFactory.text(output_value, produced_by=node.id, trace_id=trace_id)
-        else:
-            # Default to JSON for complex types
-            envelope = EnvelopeFactory.json(
-                output_value if isinstance(output_value, dict | list) else {"value": output_value},
-                produced_by=node.id,
-                trace_id=trace_id,
-            )
+        # Create envelope with auto-detection of content type
+        envelope = EnvelopeFactory.create(
+            body=output_value, produced_by=node.id, trace_id=trace_id, meta={}
+        )
 
         # Build metadata including error summary
         metadata = {
@@ -529,9 +528,14 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
             error_data["execution_errors"] = execution_errors
 
         # Create error envelope
-        return EnvelopeFactory.json(error_data, produced_by=node.id, trace_id=trace_id).with_meta(
-            execution_mode="lightweight",
-            execution_status="failed",
-            error_type=error_type,
-            has_sub_errors=bool(execution_errors),
+        return EnvelopeFactory.create(
+            body=error_data,
+            produced_by=node.id,
+            trace_id=trace_id,
+            meta={
+                "execution_mode": "lightweight",
+                "execution_status": "failed",
+                "error_type": error_type,
+                "has_sub_errors": bool(execution_errors),
+            },
         )
