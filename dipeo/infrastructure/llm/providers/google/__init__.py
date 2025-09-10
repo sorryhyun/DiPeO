@@ -1,6 +1,5 @@
 """Google AI provider for DiPeO."""
 
-from .adapter import GoogleAdapter
-from .client import AsyncGoogleClientWrapper, GoogleClientWrapper
+from .unified_client import UnifiedGoogleClient
 
-__all__ = ["AsyncGoogleClientWrapper", "GoogleAdapter", "GoogleClientWrapper"]
+__all__ = ["UnifiedGoogleClient"]

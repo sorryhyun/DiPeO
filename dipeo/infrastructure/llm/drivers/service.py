@@ -139,7 +139,7 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             retry=retry_if_exception_type((ConnectionError, TimeoutError)),
         ):
             with attempt:
-                # Check if this is a new UnifiedAdapter (has async_chat method)
+                # Check if this is a unified client (has async_chat method)
                 if hasattr(client, "async_chat"):
                     return await client.async_chat(messages=messages, **kwargs)
                 # Check if this is an old async adapter (has chat_async method)

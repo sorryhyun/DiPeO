@@ -2,16 +2,27 @@
 
 import logging
 import os
+from collections.abc import AsyncIterator
 from typing import Any
 
 import anthropic
 from pydantic import BaseModel
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from dipeo.config.llm import DEFAULT_TEMPERATURE
+from dipeo.config.llm import (
+    DECISION_EVALUATION_MAX_TOKENS,
+    DEFAULT_TEMPERATURE,
+    MEMORY_SELECTION_MAX_TOKENS,
+)
+from dipeo.config.provider_capabilities import get_provider_capabilities_object
 from dipeo.diagram_generated import Message, ToolConfig
 from dipeo.diagram_generated.domain_models import LLMUsage
-from dipeo.infrastructure.llm.core.types import AdapterConfig, ExecutionPhase, LLMResponse
+from dipeo.infrastructure.llm.core.types import (
+    AdapterConfig,
+    ExecutionPhase,
+    LLMResponse,
+    ProviderCapabilities,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +34,8 @@ class UnifiedAnthropicClient:
         """Initialize unified client with configuration."""
         self.config = config
         self.model = config.model
-        self.api_key = config.api_key or os.getenv("ANTHROPIC_API_KEY")
+        self.api_key = config.api_key
+        self.provider_type = "anthropic"
 
         if not self.api_key:
             raise ValueError("Anthropic API key not provided")
@@ -46,6 +58,36 @@ class UnifiedAnthropicClient:
         self.max_retries = config.max_retries or 3
         self.retry_delay = config.retry_delay or 1.0
         self.retry_backoff = config.retry_backoff or 2.0
+
+        # Get provider capabilities from config
+        self._capabilities = get_provider_capabilities_object(
+            "anthropic",
+            max_context_length=200000,  # Claude's context window
+            max_output_tokens=4096,  # Claude's default max output
+        )
+
+    @property
+    def capabilities(self) -> ProviderCapabilities:
+        """Get provider capabilities."""
+        return self._capabilities
+
+    def supports_feature(self, feature: str) -> bool:
+        """Check if provider supports a specific feature."""
+        return getattr(self._capabilities, f"supports_{feature}", False)
+
+    def validate_model(self, model: str) -> bool:
+        """Validate if model is supported by provider."""
+        # Check against supported models in capabilities
+        if hasattr(self._capabilities, "supported_models") and self._capabilities.supported_models:
+            return model in self._capabilities.supported_models
+        # Fallback to prefix checking
+        model_lower = model.lower()
+        return (
+            "claude" in model_lower
+            or "haiku" in model_lower
+            or "sonnet" in model_lower
+            or "opus" in model_lower
+        )
 
     def _prepare_messages(self, messages: list[Message]) -> tuple[str | None, list[dict[str, Any]]]:
         """Convert Message objects to Anthropic format (system prompt + messages)."""
@@ -141,18 +183,6 @@ class UnifiedAnthropicClient:
             )
         return None
 
-    def _get_phase_specific_params(self, execution_phase: ExecutionPhase) -> dict:
-        """Get phase-specific parameters."""
-        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-            return {
-                "max_tokens": 1000,  # Reduced for memory selection
-            }
-        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
-            return {
-                "max_tokens": 100,  # Small for YES/NO decisions
-            }
-        return {}
-
     async def async_chat(
         self,
         messages: list[Message],
@@ -188,10 +218,11 @@ class UnifiedAnthropicClient:
         if tools:
             params["tools"] = self._prepare_tools(tools)
 
-        # Add phase-specific parameters
-        if execution_phase:
-            phase_params = self._get_phase_specific_params(execution_phase)
-            params.update(phase_params)
+        # Override max_tokens for specific execution phases
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+            params["max_tokens"] = MEMORY_SELECTION_MAX_TOKENS
+        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            params["max_tokens"] = DECISION_EVALUATION_MAX_TOKENS
 
         # Add remaining kwargs (but filter out ones we handle)
         kwargs_filtered = {
@@ -211,17 +242,18 @@ class UnifiedAnthropicClient:
                 response = await self.async_client.messages.create(**params)
                 return self._parse_response(response)
 
-    def chat(
+    async def stream(
         self,
         messages: list[Message],
         temperature: float | None = None,
         max_tokens: int | None = None,
         tools: list[ToolConfig] | None = None,
-        response_format: Any | None = None,
-        execution_phase: ExecutionPhase | None = None,
         **kwargs,
-    ) -> LLMResponse:
-        """Execute sync chat completion."""
+    ) -> AsyncIterator[str]:
+        """Stream async chat completion."""
+        if not self.capabilities.supports_streaming:
+            raise NotImplementedError(f"{self.provider_type} does not support streaming")
+
         # Prepare messages
         system_prompt, prepared_messages = self._prepare_messages(messages)
 
@@ -230,6 +262,7 @@ class UnifiedAnthropicClient:
             "model": self.model,
             "messages": prepared_messages,
             "max_tokens": max_tokens or self.config.max_tokens or 4096,
+            "stream": True,
         }
 
         # Add system prompt if present
@@ -246,12 +279,7 @@ class UnifiedAnthropicClient:
         if tools:
             params["tools"] = self._prepare_tools(tools)
 
-        # Add phase-specific parameters
-        if execution_phase:
-            phase_params = self._get_phase_specific_params(execution_phase)
-            params.update(phase_params)
-
-        # Add remaining kwargs
+        # Add remaining kwargs (but filter out ones we handle)
         kwargs_filtered = {
             k: v
             for k, v in kwargs.items()
@@ -259,6 +287,45 @@ class UnifiedAnthropicClient:
         }
         params.update(kwargs_filtered)
 
-        # Execute (simplified without retry for sync)
-        response = self.sync_client.messages.create(**params)
-        return self._parse_response(response)
+        # Execute with retry
+        async for attempt in AsyncRetrying(
+            stop=stop_after_attempt(self.max_retries),
+            wait=wait_exponential(multiplier=self.retry_delay, max=10),
+            retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+        ):
+            with attempt:
+                stream = await self.async_client.messages.create(**params)
+                async for chunk in stream:
+                    if hasattr(chunk, "delta") and hasattr(chunk.delta, "text"):
+                        yield chunk.delta.text
+                    elif hasattr(chunk, "content_block") and hasattr(chunk.content_block, "text"):
+                        yield chunk.content_block.text
+
+    async def batch_chat(
+        self,
+        messages_list: list[list[Message]],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        tools: list[ToolConfig] | None = None,
+        response_format: Any | None = None,
+        execution_phase: ExecutionPhase | None = None,
+        **kwargs,
+    ) -> list[LLMResponse]:
+        """Execute batch chat completion.
+
+        Args:
+            messages_list: List of message lists for batch processing
+            temperature: Temperature for generation
+            max_tokens: Maximum tokens to generate
+            tools: Tool configurations
+            response_format: Response format specification
+            execution_phase: Execution phase context
+            **kwargs: Additional parameters
+
+        Returns:
+            List of LLM responses
+
+        Raises:
+            NotImplementedError: Batch chat is not yet implemented
+        """
+        raise NotImplementedError("Batch chat is not yet implemented for Anthropic")

@@ -1,10 +1,5 @@
 """OpenAI provider implementation."""
 
-from .adapter import OpenAIAdapter
-from .client import AsyncOpenAIClientWrapper, OpenAIClientWrapper
+from .unified_client import UnifiedOpenAIClient
 
-__all__ = [
-    "AsyncOpenAIClientWrapper",
-    "OpenAIAdapter",
-    "OpenAIClientWrapper",
-]
+__all__ = ["UnifiedOpenAIClient"]

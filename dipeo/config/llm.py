@@ -15,7 +15,7 @@ MEMORY_SELECTION_MAX_TOKENS = 32000  # Memory selection responses are concise
 
 # Decision evaluation phase (binary decisions)
 DECISION_EVALUATION_TEMPERATURE = 0.0
-DECISION_EVALUATION_MAX_TOKENS = 32000  # Decisions should be concise
+DECISION_EVALUATION_MAX_TOKENS = 32000  # Decisions should be concise (YES/NO)
 
 # Temperature ranges
 MIN_TEMPERATURE = 0.0
@@ -43,5 +43,5 @@ GOOGLE_MAX_CONTEXT_LENGTH = 1048576  # Gemini 1.5 Pro context window
 GOOGLE_MAX_OUTPUT_TOKENS = 128000
 
 # Ollama (defaults - varies by model)
-OLLAMA_DEFAULT_MAX_CONTEXT_LENGTH = 128000
-OLLAMA_DEFAULT_MAX_OUTPUT_TOKENS = 4096
+OLLAMA_MAX_CONTEXT_LENGTH = 128000
+OLLAMA_MAX_OUTPUT_TOKENS = 4096
