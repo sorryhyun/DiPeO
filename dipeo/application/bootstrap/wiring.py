@@ -134,10 +134,19 @@ def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) ->
 
             api_key_service = EnvironmentAPIKeyService()
 
-    # Create LLM infrastructure service (now directly implements both LLMClient and LLMService)
-    from dipeo.infrastructure.llm.drivers.service import LLMInfraService
+    # Check if simplified LLM service is enabled
+    use_simplified = os.getenv("DIPEO_USE_SIMPLIFIED_LLM", "true").lower() == "true"
 
-    llm_infra = LLMInfraService(api_key_service)
+    if use_simplified:
+        # Use simplified LLM service (Phase 3 refactoring)
+        from dipeo.infrastructure.llm.simplified_service import SimplifiedLLMService
+
+        llm_infra = SimplifiedLLMService(api_key_service)
+    else:
+        # Use original LLM infrastructure service (fallback)
+        from dipeo.infrastructure.llm.drivers.service import LLMInfraService
+
+        llm_infra = LLMInfraService(api_key_service)
 
     # Multi-provider support - all use the same service for now
     # Could be registered as a provider registry if needed:

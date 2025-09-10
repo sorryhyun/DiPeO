@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.diagram_generated import (
     ChatResult,
@@ -13,23 +13,30 @@ from dipeo.diagram_generated import (
 from dipeo.diagram_generated.domain_models import PersonID
 
 if TYPE_CHECKING:
+    from dipeo.domain.conversation.memory_strategies import MemorySelectionStrategy
     from dipeo.domain.integrations.ports import LLMService as LLMServicePort
 
 
 class Person:
-    """LLM agent with flexible message filtering.
+    """LLM agent with integrated memory selection strategies.
 
-    This entity represents an agent but delegates memory filtering
-    to external components for maximum flexibility.
+    This refactored version integrates memory selection directly into Person,
+    using a strategy pattern instead of a separate Brain component.
     """
 
-    def __init__(self, id: PersonID, name: str, llm_config: PersonLLMConfig):
+    def __init__(
+        self,
+        id: PersonID,
+        name: str,
+        llm_config: PersonLLMConfig,
+        memory_strategy: Optional["MemorySelectionStrategy"] = None,
+    ):
         self.id = id
         self.name = name
         self.llm_config = llm_config
 
-        # Brain component - wired up at runtime by executor
-        self.brain = None
+        # Memory selection strategy (optional)
+        self._memory_strategy = memory_strategy
 
     def get_messages(self, all_messages: list[Message]) -> list[Message]:
         """Get filtered messages from the provided message list.
@@ -59,25 +66,6 @@ class Person:
         messages = self.get_messages(all_messages)
         return messages[-1] if messages else None
 
-    def reset_memory(self) -> None:
-        """Reset memory to forget all messages.
-
-        This is used for GOLDFISH mode. Brain should handle this.
-        """
-        # Memory reset is now handled by Brain component
-        pass
-
-    def get_message_count(self, all_messages: list[Message]) -> int:
-        """Get count of messages visible to this person.
-
-        Args:
-            all_messages: The complete list of messages
-
-        Returns:
-            Number of messages visible to this person
-        """
-        return len(self.get_messages(all_messages))
-
     def get_memory_config(self) -> dict[str, Any]:
         """Get memory configuration information.
 
@@ -85,8 +73,12 @@ class Person:
             Dictionary with memory configuration details
         """
         return {
-            "has_brain": self.brain is not None,
-            "description": "Brain-based filtering" if self.brain else "Default ALL_INVOLVED filter",
+            "has_strategy": self._memory_strategy is not None,
+            "description": (
+                "Strategy-based memory selection"
+                if self._memory_strategy
+                else "Default ALL_INVOLVED filter"
+            ),
         }
 
     async def complete(
@@ -232,57 +224,6 @@ class Person:
                 return None
         return None
 
-    def get_conversation_context(self, all_messages: list[Message]) -> dict[str, Any]:
-        """Get this person's view of the conversation, formatted for templates.
-
-        This method respects the person's memory filters and limits,
-        providing a consistent view of the conversation that can be used
-        in prompts and templates.
-
-        Args:
-            all_messages: The complete conversation history
-        """
-        messages = self.get_messages(all_messages)  # Uses memory filters
-
-        # Format messages for template use
-        formatted_messages = [
-            {
-                "from": str(msg.from_person_id) if msg.from_person_id else "",
-                "to": str(msg.to_person_id) if msg.to_person_id else "",
-                "content": msg.content,
-                "type": msg.message_type,
-            }
-            for msg in messages
-        ]
-
-        # Build person-specific conversation views
-        person_conversations = {}
-        for msg in messages:
-            # Add to sender's view
-            if msg.from_person_id != "system":
-                person_id = str(msg.from_person_id)
-                if person_id not in person_conversations:
-                    person_conversations[person_id] = []
-                person_conversations[person_id].append(
-                    {"role": "assistant", "content": msg.content}
-                )
-
-            # Add to recipient's view
-            if msg.to_person_id != "system":
-                person_id = str(msg.to_person_id)
-                if person_id not in person_conversations:
-                    person_conversations[person_id] = []
-                person_conversations[person_id].append({"role": "user", "content": msg.content})
-
-        return {
-            "global_conversation": formatted_messages,
-            "global_message_count": len(messages),
-            "person_conversations": person_conversations,
-            "last_message": messages[-1].content if messages else None,
-            "last_message_from": str(messages[-1].from_person_id) if messages else None,
-            "last_message_to": str(messages[-1].to_person_id) if messages else None,
-        }
-
     async def select_memories(
         self,
         candidate_messages: list[Message],
@@ -293,54 +234,35 @@ class Person:
         llm_service=None,
         **kwargs,
     ) -> list[Message] | None:
-        """Select relevant memories using brain's cognitive capabilities.
+        """Select relevant memories using configured strategy.
 
-        Delegates to brain if available, providing a clean API at the Person level.
+        Uses memory strategy if available, falls back to brain for backward compatibility.
 
         Args:
             candidate_messages: Messages to select from
             prompt_preview: Preview of the upcoming task
             memorize_to: Selection criteria
+            ignore_person: Comma-separated list of person IDs to exclude
             at_most: Maximum messages to select
             llm_service: LLM service for intelligent selection
-            **kwargs: Additional parameters for the brain
+            **kwargs: Additional parameters
 
         Returns:
-            Selected messages or None if brain not available
+            Selected messages or None if no selection performed
         """
-        if self.brain:
-            return await self.brain.select_memories(
-                person=self,
+        # Use strategy if available
+        if self._memory_strategy:
+            kwargs["person_id"] = self.id  # Add person ID for strategy
+            kwargs["llm_service"] = llm_service  # Ensure llm_service is passed
+            return await self._memory_strategy.select_memories(
                 candidate_messages=candidate_messages,
                 prompt_preview=prompt_preview,
                 memorize_to=memorize_to,
                 ignore_person=ignore_person,
                 at_most=at_most,
-                llm_service=llm_service,
                 **kwargs,
             )
         return None
-
-    def score_message(
-        self, message: Message, frequency_count: int = 1, current_time: Any | None = None
-    ) -> float:
-        """Score a message based on various factors.
-
-        Delegates to brain if available.
-
-        Args:
-            message: The message to score
-            frequency_count: How many similar messages exist
-            current_time: Current time for recency calculation
-
-        Returns:
-            Float score between 0-100, or 0 if brain not available
-        """
-        if self.brain:
-            return self.brain.score_message(
-                message, frequency_count=frequency_count, current_time=current_time
-            )
-        return 0.0
 
     async def complete_with_memory(
         self,
@@ -357,7 +279,7 @@ class Person:
         """Complete prompt with intelligent memory selection.
 
         This method consolidates memory selection and completion into a single call,
-        using the brain's cognitive capabilities to filter messages before completion.
+        using the configured memory strategy to filter messages before completion.
 
         Args:
             prompt: The prompt to complete
@@ -376,16 +298,14 @@ class Person:
         """
         # Determine which messages to use for completion
         selected_messages = None
-        messages_for_completion = all_messages
 
         # Apply memory selection if criteria provided
-        if memorize_to and self.brain:
+        if memorize_to and self._memory_strategy:
             # Use prompt_preview if provided, otherwise use the actual prompt
             preview = prompt_preview or prompt
 
-            # Perform memory selection through brain
-            selected_messages = await self.brain.select_memories(
-                person=self,
+            # Perform memory selection
+            selected_messages = await self.select_memories(
                 candidate_messages=all_messages,
                 prompt_preview=preview,
                 memorize_to=memorize_to,
@@ -398,7 +318,7 @@ class Person:
             if selected_messages is not None:
                 messages_for_completion = selected_messages
             else:
-                # Fallback to default filtering if brain couldn't select
+                # Fallback to default filtering if selection couldn't be performed
                 messages_for_completion = self.get_messages(all_messages)
         else:
             # No memory criteria - use default person filtering
@@ -417,10 +337,9 @@ class Person:
         return result, incoming, response, selected_messages
 
     def __repr__(self) -> str:
-        brain_info = "with_brain" if self.brain else "no_brain"
-        hand_info = "with_hand" if self.hand else "no_hand"
+        memory_info = "with_strategy" if self._memory_strategy else "no_memory"
         return (
             f"Person(id={self.id}, name={self.name}, "
-            f"{brain_info}, {hand_info}, "
+            f"{memory_info}, "
             f"llm={self.llm_config.service}:{self.llm_config.model})"
         )

@@ -15,7 +15,7 @@ from dipeo.config.memory import (
 from dipeo.config.services import LLMServiceName, normalize_service_name
 from dipeo.diagram_generated.domain_models import Message, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
-from dipeo.domain.conversation.brain import MemorySelectionConfig
+from dipeo.domain.conversation.memory_strategies import MemoryConfig
 
 if TYPE_CHECKING:
     from dipeo.application.execution.orchestrators.execution_orchestrator import (
@@ -34,12 +34,10 @@ class LLMMemorySelectionAdapter:
     Implements the MemorySelectionPort protocol.
     """
 
-    def __init__(
-        self, orchestrator: "ExecutionOrchestrator", config: MemorySelectionConfig | None = None
-    ):
+    def __init__(self, orchestrator: "ExecutionOrchestrator", config: MemoryConfig | None = None):
         self._orchestrator = orchestrator
         self._facet_cache: dict[str, Person] = {}
-        self._config = config or MemorySelectionConfig()
+        self._config = config or MemoryConfig()
 
     def _selector_id(self, person_id: PersonID, service: str | None = None) -> PersonID:
         svc = normalize_service_name(service) if service else ""
