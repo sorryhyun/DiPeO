@@ -6,7 +6,7 @@ from typing import Any
 
 from dipeo.diagram_generated.domain_models import LLMUsage
 
-from ..core.types import LLMResponse, ProviderType
+from ..drivers.types import LLMResponse, ProviderType
 
 logger = logging.getLogger(__name__)
 

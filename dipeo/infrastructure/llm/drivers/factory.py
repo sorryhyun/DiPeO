@@ -4,7 +4,7 @@ from typing import Any
 
 from dipeo.config.services import LLMServiceName, normalize_service_name
 
-from ..core.types import AdapterConfig, ProviderType
+from ..drivers.types import AdapterConfig, ProviderType
 
 
 def create_adapter(

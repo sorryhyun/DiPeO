@@ -5,7 +5,7 @@ from typing import Any
 
 from dipeo.diagram_generated import Message
 
-from ..core.types import ProviderType
+from ..drivers.types import ProviderType
 
 logger = logging.getLogger(__name__)
 

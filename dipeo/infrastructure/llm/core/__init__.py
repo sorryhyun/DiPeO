@@ -1,6 +1,6 @@
-"""Core LLM infrastructure components."""
+"""Core LLM infrastructure components - re-exported from drivers for backward compatibility."""
 
-from .types import (
+from dipeo.infrastructure.llm.drivers.types import (
     AdapterConfig,
     AuthenticationError,
     DecisionOutput,

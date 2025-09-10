@@ -19,7 +19,7 @@ from dipeo.config.llm import (
 from dipeo.config.provider_capabilities import get_provider_capabilities_object
 from dipeo.diagram_generated import Message, ToolConfig
 from dipeo.diagram_generated.domain_models import LLMUsage
-from dipeo.infrastructure.llm.core.types import (
+from dipeo.infrastructure.llm.drivers.types import (
     AdapterConfig,
     ExecutionPhase,
     LLMResponse,

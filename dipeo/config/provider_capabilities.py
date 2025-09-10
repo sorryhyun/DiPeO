@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import Any
 
-from dipeo.infrastructure.llm.core.types import ProviderCapabilities, StreamingMode
+from dipeo.infrastructure.llm.drivers.types import ProviderCapabilities, StreamingMode
 
 
 class ProviderType(str, Enum):

@@ -10,7 +10,7 @@ from dipeo.config.llm import (
 )
 from dipeo.diagram_generated import Message
 
-from ..core.types import DecisionOutput, ExecutionPhase, MemorySelectionOutput, ProviderType
+from ..drivers.types import DecisionOutput, ExecutionPhase, MemorySelectionOutput, ProviderType
 
 logger = logging.getLogger(__name__)
 

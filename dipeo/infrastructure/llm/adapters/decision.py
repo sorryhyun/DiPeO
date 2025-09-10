@@ -5,8 +5,9 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from dipeo.diagram_generated.domain_models import PersonID, PersonLLMConfig
+from dipeo.diagram_generated.enums import ExecutionPhase
 from dipeo.domain.conversation import Person
-from dipeo.infrastructure.llm.core.types import DecisionOutput, ExecutionPhase
+from dipeo.infrastructure.llm.drivers.types import DecisionOutput
 
 if TYPE_CHECKING:
     from dipeo.application.execution.orchestrators.execution_orchestrator import (

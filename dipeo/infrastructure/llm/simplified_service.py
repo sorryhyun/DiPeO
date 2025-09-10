@@ -12,7 +12,7 @@ from dipeo.domain.base import APIKeyError, LLMServiceError
 from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.integrations.ports import APIKeyPort
 from dipeo.domain.integrations.ports import LLMService as LLMServicePort
-from dipeo.infrastructure.llm.core.types import AdapterConfig, LLMResponse
+from dipeo.infrastructure.llm.drivers.types import AdapterConfig, LLMResponse
 from dipeo.infrastructure.shared.drivers.utils import SingleFlightCache
 
 
@@ -84,7 +84,7 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
         self, provider: str, model: str, api_key: str, base_url: str | None = None
     ) -> Any:
         """Create a unified provider client."""
-        from dipeo.infrastructure.llm.core.types import ProviderType
+        from dipeo.infrastructure.llm.drivers.types import ProviderType
 
         # Map provider name to ProviderType
         provider_type_map = {

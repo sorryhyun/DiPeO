@@ -8,7 +8,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import TypeVar
 
-from ..core.types import (
+from ..drivers.types import (
     AuthenticationError,
     ProviderType,
     RateLimitError,
