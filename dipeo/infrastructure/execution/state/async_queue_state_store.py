@@ -64,19 +64,10 @@ class AsyncQueueStateStore(StateStorePort):
         if self._initialized:
             return
 
-        # Create database directory
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-
-        # Connect to database
         await self._connect()
-
-        # Initialize schema
         await self._init_schema()
-
-        # Start cache
         await self._execution_cache.start()
-
-        # Start writer task
         self._writer_task = asyncio.create_task(self._writer_loop())
 
         self._initialized = True
@@ -86,17 +77,12 @@ class AsyncQueueStateStore(StateStorePort):
         """Cleanup resources."""
         self._shutdown = True
 
-        # Stop cache
         await self._execution_cache.stop()
-
-        # Signal writer to stop
         await self._write_queue.put(None)
 
-        # Wait for writer to finish
         if self._writer_task:
             await self._writer_task
 
-        # Close database connection
         if self._conn:
             await self._conn.close()
             self._conn = None
@@ -111,13 +97,12 @@ class AsyncQueueStateStore(StateStorePort):
             isolation_level=None,  # Autocommit mode
         )
 
-        # Enable WAL mode for better concurrency
         await self._conn.execute("PRAGMA journal_mode=WAL")
-        await self._conn.execute("PRAGMA busy_timeout=10000")  # 10 second timeout
-        await self._conn.execute("PRAGMA synchronous=NORMAL")  # Better performance with WAL
-        await self._conn.execute("PRAGMA temp_store=MEMORY")  # Use memory for temp tables
-        await self._conn.execute("PRAGMA mmap_size=268435456")  # Use memory-mapped I/O (256MB)
-        await self._conn.execute("PRAGMA cache_size=-64000")  # 64MB cache
+        await self._conn.execute("PRAGMA busy_timeout=10000")
+        await self._conn.execute("PRAGMA synchronous=NORMAL")
+        await self._conn.execute("PRAGMA temp_store=MEMORY")
+        await self._conn.execute("PRAGMA mmap_size=268435456")
+        await self._conn.execute("PRAGMA cache_size=-64000")
 
         logger.debug("Database connection established with WAL mode")
 
@@ -149,7 +134,6 @@ class AsyncQueueStateStore(StateStorePort):
         await self._conn.executescript(schema)
         await self._conn.commit()
 
-        # Try to add metrics column if it doesn't exist (migration)
         try:
             cursor = await self._conn.execute("PRAGMA table_info(execution_states)")
             columns = await cursor.fetchall()
@@ -169,14 +153,11 @@ class AsyncQueueStateStore(StateStorePort):
 
         while not self._shutdown:
             try:
-                # Get next write operation from queue
                 operation = await self._write_queue.get()
 
-                # None signals shutdown
                 if operation is None:
                     break
 
-                # Execute the operation
                 try:
                     await operation()
                 except Exception as e:
@@ -194,7 +175,6 @@ class AsyncQueueStateStore(StateStorePort):
         if self._shutdown:
             raise RuntimeError("StateStore is shutting down")
 
-        # Create a future to wait for completion
         future = asyncio.Future()
 
         async def wrapped_operation():
@@ -204,10 +184,7 @@ class AsyncQueueStateStore(StateStorePort):
             except Exception as e:
                 future.set_exception(e)
 
-        # Add to queue
         await self._write_queue.put(wrapped_operation)
-
-        # Wait for completion
         return await future
 
     async def create_execution(
@@ -242,11 +219,9 @@ class AsyncQueueStateStore(StateStorePort):
             executed_nodes=[],
         )
 
-        # Cache first for fast access
         cache = await self._execution_cache.get_cache(exec_id)
         await cache.set_state(state)
 
-        # Then persist to DB via queue
         async def persist():
             await self._persist_state_internal(state)
 
@@ -289,12 +264,10 @@ class AsyncQueueStateStore(StateStorePort):
         if not self._initialized:
             raise RuntimeError("StateStore not initialized - call initialize() first")
 
-        # Update cache immediately
         if state.is_active:
             cache = await self._execution_cache.get_cache(state.id)
             await cache.set_state(state)
 
-        # Persist to DB via queue
         async def persist():
             await self._persist_state_internal(state)
 
@@ -305,13 +278,10 @@ class AsyncQueueStateStore(StateStorePort):
         if not self._initialized:
             raise RuntimeError("StateStore not initialized - call initialize() first")
 
-        # Try cache first
         cache = await self._execution_cache.get_cache(execution_id)
         cached_state = await cache.get_state()
         if cached_state:
             return cached_state
-
-        # Fall back to DB
         cursor = await self._conn.execute(
             """
             SELECT execution_id, status, diagram_id, started_at, ended_at,
@@ -327,14 +297,12 @@ class AsyncQueueStateStore(StateStorePort):
         if not row:
             return None
 
-        # Parse node_outputs
         raw_outputs = json.loads(row[6]) if row[6] else {}
         node_outputs = {}
         for node_id, output_data in raw_outputs.items():
             if isinstance(output_data, dict):
                 node_outputs[node_id] = output_data
             else:
-                # Fallback for unexpected non-dict data
                 node_outputs[node_id] = {
                     "envelope_format": True,
                     "id": str(uuid4()),
@@ -388,17 +356,14 @@ class AsyncQueueStateStore(StateStorePort):
         llm_usage: LLMUsage | dict | None = None,
     ) -> None:
         """Update node output."""
-        # Get from cache for fast update
         cache = await self._execution_cache.get_cache(execution_id)
         state = await cache.get_state()
 
         if not state:
-            # Fall back to DB
             state = await self.get_state(execution_id)
             if not state:
                 raise ValueError(f"Execution {execution_id} not found")
 
-        # Handle Envelope outputs
         if hasattr(output, "__class__") and hasattr(output, "to_dict"):
             serialized_output = serialize_protocol(output)
         elif isinstance(output, dict) and (
@@ -422,17 +387,12 @@ class AsyncQueueStateStore(StateStorePort):
                 wrapped_output = EnvelopeFactory.create(body=str(output), produced_by=str(node_id))
             serialized_output = serialize_protocol(wrapped_output)
 
-        # Update cache immediately
         await cache.set_node_output(node_id, serialized_output)
-
-        # Update state
         state.node_outputs[node_id] = serialized_output
 
-        # Update LLM usage if provided
         if llm_usage:
             await self.add_llm_usage(execution_id, llm_usage)
 
-        # Persist to DB
         await self.save_state(state)
 
     async def update_node_status(
@@ -443,7 +403,6 @@ class AsyncQueueStateStore(StateStorePort):
         error: str | None = None,
     ):
         """Update node status."""
-        # Get from cache
         cache = await self._execution_cache.get_cache(execution_id)
         state = await cache.get_state()
 
@@ -454,7 +413,6 @@ class AsyncQueueStateStore(StateStorePort):
 
         now = datetime.now().isoformat()
 
-        # Add node to executed_nodes list when it starts executing
         if status == Status.RUNNING and node_id not in state.executed_nodes:
             state.executed_nodes.append(node_id)
 
@@ -476,21 +434,15 @@ class AsyncQueueStateStore(StateStorePort):
         if error:
             state.node_states[node_id].error = error
 
-        # Update cache
         await cache.set_node_status(node_id, status, error)
-
-        # Persist
         await self.save_state(state)
 
     async def get_node_output(self, execution_id: str, node_id: str) -> dict[str, Any] | None:
         """Get node output."""
-        # Try cache first
         cache = await self._execution_cache.get_cache(execution_id)
         output = await cache.get_node_output(node_id)
         if output is not None:
             return output
-
-        # Fall back to full state
         state = await self.get_state(execution_id)
         if not state:
             return None
@@ -504,7 +456,6 @@ class AsyncQueueStateStore(StateStorePort):
 
         state.variables.update(variables)
 
-        # Update cache
         cache = await self._execution_cache.get_cache(execution_id)
         await cache.update_variables(variables)
 
@@ -521,7 +472,6 @@ class AsyncQueueStateStore(StateStorePort):
 
     async def add_llm_usage(self, execution_id: str, usage: LLMUsage | dict):
         """Add LLM usage."""
-        # Convert dict to LLMUsage if needed
         if isinstance(usage, dict):
             usage = LLMUsage(
                 input=usage.get("input", 0),
@@ -585,7 +535,6 @@ class AsyncQueueStateStore(StateStorePort):
 
         executions = []
         for row in rows:
-            # Parse node_outputs
             raw_outputs = json.loads(row[6]) if row[6] else {}
             node_outputs = {}
             for node_id, output_data in raw_outputs.items():

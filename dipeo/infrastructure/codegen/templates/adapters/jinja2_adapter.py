@@ -40,25 +40,20 @@ class Jinja2Adapter(TemplateEngineAdapter):
         self._env: Environment | None = None
         self._template_cache: dict[str, Template] = {}
 
-        # Initialize the environment
         self._setup_environment()
 
     def _setup_environment(self) -> None:
         """Set up the Jinja2 environment with loaders."""
-        # Create file loaders for directories
         file_loaders = []
         for dir_path in self._template_dirs:
             path = Path(dir_path)
             if path.exists():
                 file_loaders.append(FileSystemLoader(str(path)))
 
-        # Create dict loader for base templates
         dict_loader = DictLoader(self._base_templates)
 
-        # Combine loaders
         loader = ChoiceLoader([dict_loader, *file_loaders]) if file_loaders else dict_loader
 
-        # Create environment
         self._env = Environment(
             loader=loader,
             trim_blocks=False,
@@ -67,7 +62,6 @@ class Jinja2Adapter(TemplateEngineAdapter):
             keep_trailing_newline=True,
         )
 
-        # Apply registered filters
         for name, func in self._filters.items():
             self._env.filters[name] = func
 
@@ -84,12 +78,9 @@ class Jinja2Adapter(TemplateEngineAdapter):
         if not self._env:
             raise RuntimeError("Jinja2 environment not initialized")
 
-        # Get template (uses cache if available)
         template = self._env.get_template(template_path)
 
-        # Render in executor to avoid blocking
         loop = asyncio.get_event_loop()
-        # IMPORTANT: pass context as kwargs, not a single positional dict
         result = await loop.run_in_executor(None, lambda: template.render(**context))
         return result
 
@@ -106,17 +97,13 @@ class Jinja2Adapter(TemplateEngineAdapter):
         if not self._env:
             raise RuntimeError("Jinja2 environment not initialized")
 
-        # Add macros to template string if any
         if self._macros:
             macro_defs = "\n".join(self._macros.values())
             template_str = macro_defs + "\n" + template_str
 
-        # Create template from string
         template = self._env.from_string(template_str)
 
-        # Render in executor to avoid blocking
         loop = asyncio.get_event_loop()
-        # Keep per-render isolation; no env.globals updates per request
         result = await loop.run_in_executor(None, lambda: template.render(**context))
         return result
 
@@ -152,7 +139,6 @@ class Jinja2Adapter(TemplateEngineAdapter):
 
         self._template_dirs.append(directory)
 
-        # Update the environment's loader
         if self._env:
             current_loader = self._env.loader
             new_file_loader = FileSystemLoader(str(directory))
@@ -176,7 +162,6 @@ class Jinja2Adapter(TemplateEngineAdapter):
             content: Template content
         """
         self._base_templates[name] = content
-        # Reinitialize environment to pick up new base template
         self._setup_environment()
 
     def register_filter_collection(self, filters: dict[str, Callable]) -> None:

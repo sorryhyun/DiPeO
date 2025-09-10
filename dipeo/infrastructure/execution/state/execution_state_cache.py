@@ -26,9 +26,9 @@ class ExecutionCache:
         self.node_errors: dict[str, str] = {}
         self.variables: dict[str, Any] = {}
         self.llm_usage: LLMUsage | None = None
-        self._local_lock = asyncio.Lock()  # Per-execution lock
+        self._local_lock = asyncio.Lock()
         self._last_access = time.time()
-        self._dirty = False  # Track if cache needs persistence
+        self._dirty = False
 
     async def get_state(self) -> ExecutionState | None:
         """Get the cached execution state."""
@@ -93,7 +93,6 @@ class ExecutionCache:
             if self.llm_usage is None:
                 self.llm_usage = usage
             else:
-                # Add usage counts
                 self.llm_usage = LLMUsage(
                     input=self.llm_usage.input + usage.input,
                     output=self.llm_usage.output + usage.output,
@@ -123,7 +122,7 @@ class ExecutionStateCache:
 
     def __init__(self, ttl_seconds: int = 3600):
         self._caches: dict[str, ExecutionCache] = {}
-        self._cache_lock = asyncio.Lock()  # Only for cache creation/deletion
+        self._cache_lock = asyncio.Lock()
         self._ttl_seconds = ttl_seconds
         self._cleanup_task: asyncio.Task | None = None
         self._running = False
@@ -145,19 +144,15 @@ class ExecutionStateCache:
             with contextlib.suppress(asyncio.CancelledError):
                 await self._cleanup_task
 
-        # Clear all caches
         async with self._cache_lock:
             self._caches.clear()
 
     async def get_cache(self, execution_id: str) -> ExecutionCache:
         """Get or create a cache for an execution."""
-        # Fast path: check if cache exists
         if execution_id in self._caches:
             return self._caches[execution_id]
 
-        # Slow path: create cache with lock
         async with self._cache_lock:
-            # Double-check after acquiring lock
             if execution_id not in self._caches:
                 self._caches[execution_id] = ExecutionCache(execution_id)
 
@@ -176,7 +171,7 @@ class ExecutionStateCache:
 
     async def _cleanup_loop(self) -> None:
         """Periodically clean up expired caches."""
-        cleanup_interval = min(300, self._ttl_seconds / 10)  # Check every 5 min or 10% of TTL
+        cleanup_interval = min(300, self._ttl_seconds / 10)
 
         while self._running:
             try:
@@ -193,7 +188,6 @@ class ExecutionStateCache:
         current_time = time.time()
         expired_executions = []
 
-        # Find expired caches
         async with self._cache_lock:
             for exec_id, cache in self._caches.items():
                 if current_time - cache.get_last_access_time() > self._ttl_seconds:
@@ -204,7 +198,6 @@ class ExecutionStateCache:
                         )
                     expired_executions.append(exec_id)
 
-        # Remove expired caches
         for exec_id in expired_executions:
             await self.remove_cache(exec_id)
 

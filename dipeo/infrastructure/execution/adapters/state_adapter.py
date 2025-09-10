@@ -32,7 +32,6 @@ class StateServiceAdapter(ExecutionStateService):
     ) -> ExecutionState:
         await self._repository.create_execution(execution_id, diagram_id, variables)
         await self._repository.update_status(str(execution_id), Status.RUNNING)
-        # Re-fetch to get updated status
         updated_state = await self._repository.get_execution(str(execution_id))
         return updated_state
 
@@ -60,11 +59,9 @@ class StateServiceAdapter(ExecutionStateService):
         await self._repository.update_node_status(execution_id, node_id, status, error)
 
     async def append_llm_usage(self, execution_id: str, usage: LLMUsage) -> None:
-        # Use the store's add_llm_usage directly if available
         if hasattr(self._repository, "add_llm_usage"):
             await self._repository.add_llm_usage(execution_id, usage)
         else:
-            # Fallback: fetch state, update, save
             state = await self._repository.get_execution(execution_id)
             if state and state.llm_usage:
                 state.llm_usage.input += usage.input
@@ -85,7 +82,6 @@ class StateCacheAdapter(ExecutionCachePort):
         self._store = state_store or EventBasedStateStore()
 
     async def get_state_from_cache(self, execution_id: str) -> ExecutionState | None:
-        # Use the execution cache directly
         if hasattr(self._store, "_execution_cache"):
             cache = await self._store._execution_cache.get_cache(execution_id)
             return await cache.get_state()
@@ -97,7 +93,6 @@ class StateCacheAdapter(ExecutionCachePort):
         diagram_id: DiagramID | None = None,
         variables: dict[str, Any] | None = None,
     ) -> ExecutionState:
-        # Create in store which automatically caches
         return await self._store.create_execution(
             execution_id=execution_id,
             diagram_id=diagram_id,
@@ -105,5 +100,4 @@ class StateCacheAdapter(ExecutionCachePort):
         )
 
     async def persist_final_state(self, state: ExecutionState) -> None:
-        # Use the store's persist_final_state which handles cache removal
         await self._store.persist_final_state(state)

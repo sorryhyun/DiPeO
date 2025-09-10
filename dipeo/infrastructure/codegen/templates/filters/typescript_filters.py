@@ -12,9 +12,7 @@ from typing import Any
 
 
 def get_infrastructure_type_transformer():
-    """Dynamically import type transformer from infrastructure."""
     try:
-        # Ensure DIPEO_BASE_DIR is in path
         base_dir = os.environ.get("DIPEO_BASE_DIR", "/home/soryhyun/DiPeO")
         if base_dir not in sys.path:
             sys.path.append(base_dir)
@@ -29,8 +27,6 @@ def get_infrastructure_type_transformer():
 class TypeScriptToPythonFilters:
     """Collection of filters for TypeScript to Python type conversion."""
 
-    # Fallback type mapping (only used if infrastructure import fails)
-    # This should eventually be removed once infrastructure is always available
     FALLBACK_TYPE_MAP = {
         "string": "str",
         "number": "float",
@@ -44,12 +40,10 @@ class TypeScriptToPythonFilters:
         "bigint": "int",
         "symbol": "str",
         "never": "Any",
-        # Map deprecated execution status types to unified Status enum
         "ExecutionStatus": "Status",
         "NodeExecutionStatus": "Status",
     }
 
-    # Fields that should be integers instead of floats
     INTEGER_FIELDS = {
         "maxIteration",
         "sequence",
@@ -84,7 +78,6 @@ class TypeScriptToPythonFilters:
         "version",
     }
 
-    # Branded ID types
     BRANDED_IDS = {
         "NodeID",
         "ArrowID",
@@ -102,7 +95,6 @@ class TypeScriptToPythonFilters:
         "FileID",
     }
 
-    # Cache for converted types to improve performance
     _type_cache: dict[str, str] = {}
 
     @classmethod
@@ -124,15 +116,12 @@ class TypeScriptToPythonFilters:
         if not ts_type:
             return "Any"
 
-        # Check cache
         cache_key = f"{ts_type}:{field_name}"
         if cache_key in cls._type_cache:
             return cls._type_cache[cache_key]
 
-        # Clean the type
         ts_type = cls.strip_inline_comments(ts_type).strip()
 
-        # Handle boolean literals first (before infrastructure transformer)
         if ts_type == "true":
             result = "Literal[True]"
             cls._type_cache[cache_key] = result
@@ -142,51 +131,37 @@ class TypeScriptToPythonFilters:
             cls._type_cache[cache_key] = result
             return result
 
-        # Check for complex object types first (before infrastructure transformer)
-        # These need special handling that infrastructure doesn't provide
         ts_type_stripped = ts_type.strip()
         if ts_type_stripped.startswith("{") and ts_type_stripped.endswith("}"):
-            # Complex object literal - convert to Dict[str, Any]
             result = "Dict[str, Any]"
             cls._type_cache[cache_key] = result
             return result
 
-        # Try to use infrastructure's type transformer for simple types
         infrastructure_transformer = get_infrastructure_type_transformer()
         if infrastructure_transformer:
             try:
-                # Use infrastructure's centralized type mapping
                 result = infrastructure_transformer(ts_type)
 
-                # Apply field-specific overrides (e.g., integer fields)
                 if result == "float" and field_name in cls.INTEGER_FIELDS:
                     result = "int"
 
-                # Handle deprecated types that infrastructure might not know about
                 if result in ["ExecutionStatus", "NodeExecutionStatus"]:
                     result = "Status"
 
-                # Check if the result is still unconverted TypeScript
-                # If it contains TypeScript syntax, it wasn't properly converted
                 if result == ts_type:
-                    # Infrastructure couldn't convert it, fall through to legacy handling
                     pass
                 else:
-                    # Successfully converted
                     cls._type_cache[cache_key] = result
                     return result
             except Exception:
-                # Fall through to legacy implementation if infrastructure fails
                 pass
 
         # Legacy implementation (fallback)
-        # Handle complex object types with properties
         if ts_type.startswith("{") and ts_type.endswith("}"):
             result = "Dict[str, Any]"
             cls._type_cache[cache_key] = result
             return result
 
-        # Handle optional types
         is_optional = False
         if ts_type.endswith(" | undefined") or ts_type.endswith(" | null"):
             base_type = ts_type.replace(" | undefined", "").replace(" | null", "").strip()
@@ -197,7 +172,6 @@ class TypeScriptToPythonFilters:
             cls._type_cache[cache_key] = result
             return result
 
-        # Handle arrays
         array_match = re.match(r"^(.+)\[\]$", ts_type)
         if array_match:
             inner_type = cls.ts_to_python_type(array_match.group(1), field_name, context)
@@ -205,15 +179,11 @@ class TypeScriptToPythonFilters:
             cls._type_cache[cache_key] = result
             return result
 
-        # Handle Array<T>
         generic_array_match = re.match(r"^Array<(.+)>$", ts_type, re.DOTALL)
         if generic_array_match:
             inner_type_str = generic_array_match.group(1).strip()
 
-            # Special handling for inline object definitions with properties
             if inner_type_str.startswith("{") and inner_type_str.endswith("}"):
-                # For complex inline objects, convert to Dict[str, Any]
-                # This is a simplification since Python doesn't have inline type definitions
                 result = "List[Dict[str, Any]]"
             else:
                 inner_type = cls.ts_to_python_type(inner_type_str, field_name, context)
@@ -221,7 +191,6 @@ class TypeScriptToPythonFilters:
             cls._type_cache[cache_key] = result
             return result
 
-        # Handle Map/Record types
         map_match = re.match(r"^(Map|Record)<([^,]+),\s*(.+)>$", ts_type)
         if map_match:
             key_type = (
@@ -234,14 +203,12 @@ class TypeScriptToPythonFilters:
             cls._type_cache[cache_key] = result
             return result
 
-        # Handle literal types
         if re.match(r'^["\'\`].*["\'\`]$', ts_type) and "|" not in ts_type:
             literal_value = ts_type.strip("'\"`")
             result = f'Literal["{literal_value}"]'
             cls._type_cache[cache_key] = result
             return result
 
-        # Handle union types
         if "|" in ts_type and not ts_type.startswith("("):
             parts = [cls.strip_inline_comments(p.strip()) for p in ts_type.split("|")]
             parts = [p for p in parts if p not in ["undefined", "null"]]
@@ -251,7 +218,6 @@ class TypeScriptToPythonFilters:
             if len(parts) == 1:
                 return cls.ts_to_python_type(parts[0], field_name, context)
 
-            # Check if all parts are string literals
             all_literals = all(re.match(r'^["\'\`].*["\'\`]$', p.strip()) for p in parts)
             all_numeric = all(p.strip().replace("-", "").replace(".", "").isdigit() for p in parts)
 
@@ -273,12 +239,10 @@ class TypeScriptToPythonFilters:
             cls._type_cache[cache_key] = result
             return result
 
-        # Handle branded types
         if ts_type in cls.BRANDED_IDS:
             cls._type_cache[cache_key] = ts_type
             return ts_type
 
-        # Handle basic types using fallback map
         if ts_type in cls.FALLBACK_TYPE_MAP:
             if ts_type == "number" and field_name in cls.INTEGER_FIELDS:
                 result = "int"
@@ -287,9 +251,7 @@ class TypeScriptToPythonFilters:
             cls._type_cache[cache_key] = result
             return result
 
-        # Handle empty object literal
         if ts_type == "{}":
-            # Context-aware conversion for empty objects
             if field_name and context:
                 result = cls.infer_empty_object_type(field_name, context)
             else:
@@ -297,13 +259,11 @@ class TypeScriptToPythonFilters:
             cls._type_cache[cache_key] = result
             return result
 
-        # Default to the type name (likely a custom type)
         cls._type_cache[cache_key] = ts_type
         return ts_type
 
     @staticmethod
     def strip_inline_comments(type_str: str) -> str:
-        """Remove inline comments from TypeScript type strings."""
         if "//" in type_str:
             type_str = type_str.split("//")[0].strip()
         if "/*" in type_str and "*/" in type_str:
@@ -315,7 +275,6 @@ class TypeScriptToPythonFilters:
         """Infer the appropriate type for empty object based on field name."""
         field_lower = field_name.lower()
 
-        # Check for list-like fields
         if "indices" in field_lower and "node" in field_lower:
             return "List[int]"
         elif any(x in field_lower for x in ["tools", "tags", "args", "env", "params", "headers"]):
@@ -334,7 +293,6 @@ class TypeScriptToPythonFilters:
             "elements",
         ]:
             return "List[Any]"
-        # Check for mapping fields
         elif any(
             x in field_lower
             for x in [
@@ -406,7 +364,6 @@ class TypeScriptToPythonFilters:
             "None": "None",
         }
 
-        # Handle complex types
         if py_type.startswith("List["):
             return "[]"
         elif py_type.startswith("Dict["):
@@ -460,23 +417,18 @@ class TypeScriptToPythonFilters:
             "void": "void",
         }
 
-        # Handle array types
         if field_type.endswith("[]"):
             inner_type = field_type[:-2]
             return f"{cls.typescript_type({'type': inner_type})}[]"
 
-        # Handle enum types without values
         if field_type.lower() == "enum":
-            # Check if field has validation.allowedValues
             validation = field.get("validation", {})
             allowed_values = validation.get("allowedValues", [])
 
-            # If allowedValues is a string (like "Object.values(MemoryProfile)"), try uiConfig.options
             if isinstance(allowed_values, str) and "uiConfig" in field:
                 ui_config = field.get("uiConfig", {})
                 options = ui_config.get("options", [])
                 if options and isinstance(options, list):
-                    # Extract values from options
                     values = [
                         opt.get("value")
                         for opt in options
@@ -485,7 +437,6 @@ class TypeScriptToPythonFilters:
                     if values:
                         return " | ".join(f"'{v}'" for v in values)
             elif allowed_values and isinstance(allowed_values, list):
-                # Generate union type from allowed values
                 return " | ".join(f"'{v}'" for v in allowed_values)
 
             return "string"  # Fallback if no values specified
@@ -499,7 +450,6 @@ class TypeScriptToPythonFilters:
         if "inputType" in ui_config:
             return str(ui_config["inputType"])
 
-        # Map field type to UI type
         field_type = field.get("type", "string")
         type_ui_map = {
             "string": "text",
@@ -537,26 +487,21 @@ class TypeScriptToPythonFilters:
 
         # Special handling for enum fields
         if field_type == "enum":
-            # First check if field has direct values
             if "values" in field:
                 values = field.get("values", [])
                 if values:
-                    # Generate z.enum() for enum fields
                     enum_values = ", ".join(f'"{v}"' for v in values)
                     base_schema = f"z.enum([{enum_values}])"
                 else:
                     base_schema = "z.string()"
             else:
-                # Check validation.allowedValues
                 validation = field.get("validation", {})
                 allowed_values = validation.get("allowedValues", [])
 
-                # If allowedValues is a string (like "Object.values(MemoryProfile)"), try uiConfig.options
                 if isinstance(allowed_values, str) and "uiConfig" in field:
                     ui_config = field.get("uiConfig", {})
                     options = ui_config.get("options", [])
                     if options and isinstance(options, list):
-                        # Extract values from options
                         values = [
                             opt.get("value")
                             for opt in options
@@ -570,13 +515,11 @@ class TypeScriptToPythonFilters:
                     else:
                         base_schema = "z.string()"
                 elif allowed_values and isinstance(allowed_values, list):
-                    # Generate z.enum() from allowed values
                     enum_values = ", ".join(f'"{v}"' for v in allowed_values)
                     base_schema = f"z.enum([{enum_values}])"
                 else:
                     base_schema = "z.string()"
         else:
-            # Base schemas for other types
             schema_map = {
                 "string": "z.string()",
                 "str": "z.string()",
@@ -598,7 +541,6 @@ class TypeScriptToPythonFilters:
 
             base_schema = schema_map.get(field_type, "z.any()")
 
-        # Add validation
         validations = []
         if field.get("validation"):
             val = field["validation"]
@@ -607,13 +549,11 @@ class TypeScriptToPythonFilters:
             if "max" in val:
                 validations.append(f'.max({val["max"]})')
             if "pattern" in val:
-                # Escape forward slashes in the pattern for JavaScript regex literal
                 escaped_pattern = val["pattern"].replace("/", "\\/")
                 validations.append(f".regex(/{escaped_pattern}/)")
 
         schema = base_schema + "".join(validations)
 
-        # Handle optional
         if not required:
             schema += ".optional()"
 

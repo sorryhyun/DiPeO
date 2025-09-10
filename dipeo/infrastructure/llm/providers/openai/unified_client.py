@@ -30,10 +30,9 @@ logger = logging.getLogger(__name__)
 
 
 class UnifiedOpenAIClient:
-    """Unified OpenAI client that combines adapter and wrapper functionality."""
+    """Unified OpenAI client combining adapter and wrapper functionality."""
 
     def __init__(self, config: AdapterConfig):
-        """Initialize unified client with configuration."""
         self.config = config
         self.model = config.model
         self.api_key = config.api_key
@@ -42,26 +41,23 @@ class UnifiedOpenAIClient:
         if not self.api_key:
             raise ValueError("OpenAI API key not provided")
 
-        # Create clients
         self.sync_client = OpenAI(
             api_key=self.api_key,
             base_url=config.base_url,
             timeout=config.timeout,
-            max_retries=0,  # We handle retries ourselves
+            max_retries=0,
         )
         self.async_client = AsyncOpenAI(
             api_key=self.api_key,
             base_url=config.base_url,
             timeout=config.timeout,
-            max_retries=0,  # We handle retries ourselves
+            max_retries=0,
         )
 
-        # Retry configuration
         self.max_retries = config.max_retries or 3
         self.retry_delay = config.retry_delay or 1.0
         self.retry_backoff = config.retry_backoff or 2.0
 
-        # Get provider capabilities from config
         self._capabilities = get_provider_capabilities_object(
             "openai",
             max_context_length=OPENAI_MAX_CONTEXT_LENGTH,
@@ -70,32 +66,24 @@ class UnifiedOpenAIClient:
 
     @property
     def capabilities(self) -> ProviderCapabilities:
-        """Get provider capabilities."""
         return self._capabilities
 
     def supports_feature(self, feature: str) -> bool:
-        """Check if provider supports a specific feature."""
         return getattr(self._capabilities, f"supports_{feature}", False)
 
     def validate_model(self, model: str) -> bool:
-        """Validate if model is supported by provider."""
-        # Check against supported models in capabilities
         if hasattr(self._capabilities, "supported_models") and self._capabilities.supported_models:
             return model in self._capabilities.supported_models
-        # Fallback to prefix checking
         model_lower = model.lower()
         valid_prefixes = ["gpt", "o1", "o3", "dall-e", "whisper", "text-embedding", "embedding"]
         return any(model_lower.startswith(prefix) for prefix in valid_prefixes)
 
     def _prepare_messages(self, messages: list[Message]) -> list[dict[str, Any]]:
-        """Convert Message objects to API format."""
         result = []
         for msg in messages:
-            # Messages should already be dictionaries with proper structure
             if not msg.get("content"):
                 continue
 
-            # Convert "system" role to "developer" for OpenAI's new API
             role = msg.get("role", "user")
             if role == "system":
                 role = "developer"
@@ -105,7 +93,6 @@ class UnifiedOpenAIClient:
                 "content": msg["content"],
             }
 
-            # Add name if present
             if msg.get("name"):
                 message_dict["name"] = msg["name"]
 
@@ -113,7 +100,6 @@ class UnifiedOpenAIClient:
         return result
 
     def _prepare_tools(self, tools: list[ToolConfig]) -> list[dict[str, Any]]:
-        """Convert tool configs to API format."""
         if not tools:
             return None
 
@@ -132,8 +118,6 @@ class UnifiedOpenAIClient:
         return api_tools
 
     def _parse_response(self, response: Any) -> LLMResponse:
-        """Parse API response to LLMResponse."""
-        # Handle structured output (Pydantic models)
         if hasattr(response, "parsed"):
             return LLMResponse(
                 content=response.parsed,
@@ -143,9 +127,7 @@ class UnifiedOpenAIClient:
                 model=self.model,
             )
 
-        # Handle regular response from new responses API
         if hasattr(response, "output_text"):
-            # New responses API structure: response.output[0].content[0].text
             output = response.output_text if response.output_text else None
             if output and hasattr(output, "content"):
                 content_item = output.content[0] if output.content else None
@@ -164,7 +146,6 @@ class UnifiedOpenAIClient:
                 model=self.model,
             )
 
-        # Last resort
         return LLMResponse(
             content=str(response),
             raw_response=response,
@@ -174,15 +155,12 @@ class UnifiedOpenAIClient:
         )
 
     def _extract_usage(self, response: Any) -> LLMUsage | None:
-        """Extract token usage from response using new OpenAI responses API format."""
         if hasattr(response, "usage"):
             usage = response.usage
-            # New OpenAI responses API uses input_tokens and output_tokens
             input_tokens = getattr(usage, "input_tokens", 0)
             output_tokens = getattr(usage, "output_tokens", 0)
             total_tokens = getattr(usage, "total_tokens", input_tokens + output_tokens)
 
-            # Log for debugging
             logger.debug(
                 f"OpenAI usage - input: {input_tokens}, output: {output_tokens}, total: {total_tokens}"
             )

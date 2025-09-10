@@ -28,17 +28,14 @@ class EnvironmentAPIKeyService(LoggingMixin, InitializationMixin, APIKeyPort):
     }
 
     def __init__(self):
-        # Initialize mixins
         InitializationMixin.__init__(self)
         self._cached_keys: dict[str, dict] = {}
         self._load_from_env()
 
     async def initialize(self) -> None:
-        """Initialize the API key service."""
         pass
 
     def _load_from_env(self) -> None:
-        """Load API keys from environment variables."""
         for service, env_var in self.ENV_VAR_MAPPING.items():
             api_key = os.getenv(env_var)
             if api_key:
@@ -51,7 +48,6 @@ class EnvironmentAPIKeyService(LoggingMixin, InitializationMixin, APIKeyPort):
                 }
 
     def _get_provider_from_model(self, model: str) -> str:
-        """Determine provider from model name."""
         model_lower = model.lower()
 
         if "gpt" in model_lower or "o1" in model_lower or "o3" in model_lower:
@@ -65,7 +61,6 @@ class EnvironmentAPIKeyService(LoggingMixin, InitializationMixin, APIKeyPort):
         return "openai"
 
     def get_api_key(self, key_id: str) -> dict:
-        """Get API key details by ID, service name, or model name."""
         if key_id in self._cached_keys:
             return self._cached_keys[key_id]
 
@@ -112,18 +107,15 @@ class EnvironmentAPIKeyService(LoggingMixin, InitializationMixin, APIKeyPort):
         )
 
     def list_api_keys(self) -> list[dict]:
-        """List all available API keys from environment."""
         return list(self._cached_keys.values())
 
     def create_api_key(self, label: str, service: str, key: str) -> dict:
-        """Create API key (not supported in environment mode)."""
         raise NotImplementedError(
             "Cannot create API keys in environment mode. "
             "Please set the appropriate environment variable instead."
         )
 
     def delete_api_key(self, key_id: str) -> None:
-        """Delete API key (not supported in environment mode)."""
         raise NotImplementedError(
             "Cannot delete API keys in environment mode. "
             "Please unset the appropriate environment variable instead."
@@ -136,14 +128,12 @@ class EnvironmentAPIKeyService(LoggingMixin, InitializationMixin, APIKeyPort):
         service: str | None = None,
         key: str | None = None,
     ) -> dict:
-        """Update API key (not supported in environment mode)."""
         raise NotImplementedError(
             "Cannot update API keys in environment mode. "
             "Please modify the appropriate environment variable instead."
         )
 
     def _validate_service(self, service: str) -> None:
-        """Validate service name."""
         normalized_service = normalize_service_name(service)
         if normalized_service not in self.VALID_SERVICES:
             raise ValidationError(f"Invalid service. Must be one of: {self.VALID_SERVICES}")

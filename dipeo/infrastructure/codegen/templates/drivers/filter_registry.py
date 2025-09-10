@@ -117,22 +117,16 @@ class FilterRegistry:
 
     def _initialize_default_profiles(self) -> None:
         """Initialize default filter profiles."""
-        # Full profile with all filters
         self.create_profile("full", ["base", "backend", "graphql", "typescript"])
 
-        # Codegen profile for code generation
         self.create_profile("codegen", ["base", "backend", "graphql", "typescript"])
 
-        # Minimal profile with just base filters
         self.create_profile("minimal", ["base"])
 
-        # Backend-only profile
         self.create_profile("backend", ["base", "backend"])
 
-        # Frontend-only profile
         self.create_profile("frontend", ["base", "typescript"])
 
-        # API profile
         self.create_profile("api", ["base", "graphql"])
 
 
@@ -151,7 +145,6 @@ def create_filter_registry() -> FilterRegistry:
 
     registry = FilterRegistry()
 
-    # Register standard filter collections
     registry.register_collection("base", BaseFilters.get_all_filters())
     registry.register_collection("backend", BackendFilters.get_all_filters())
     registry.register_collection("graphql", TypeScriptToGraphQLFilters.get_all_filters())

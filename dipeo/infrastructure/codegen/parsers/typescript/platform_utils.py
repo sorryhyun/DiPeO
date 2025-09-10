@@ -51,17 +51,14 @@ def _get_windows_tsx_command(project_root: Path) -> list[str]:
     Raises:
         RuntimeError: If no suitable runner is found
     """
-    # Strategy 1: Try pnpm in PATH
     pnpm_cmd = _find_pnpm_command()
     if pnpm_cmd:
         return [pnpm_cmd, "tsx"]
 
-    # Strategy 2: Try npx as fallback
     npx_cmd = _find_npx_command()
     if npx_cmd:
         return [npx_cmd, "tsx"]
 
-    # Strategy 3: Try node directly with tsx from node_modules
     node_cmd = _find_node_with_tsx(project_root)
     if node_cmd:
         return node_cmd
@@ -78,15 +75,12 @@ def _find_pnpm_command() -> str | None:
     Returns:
         Path to pnpm command or None if not found
     """
-    # Try pnpm.CMD first (standard Windows installation)
     if shutil.which("pnpm.CMD"):
         return "pnpm.CMD"
 
-    # Try pnpm without extension
     if shutil.which("pnpm"):
         return "pnpm"
 
-    # Try common installation locations
     common_paths = [
         os.path.expanduser("~\\AppData\\Local\\pnpm\\pnpm.CMD"),
         os.path.expanduser("~\\AppData\\Roaming\\npm\\pnpm.CMD"),
@@ -127,10 +121,8 @@ def _find_node_with_tsx(project_root: Path) -> list[str] | None:
     """
     node_cmd = shutil.which("node") or "node"
 
-    # Try to find tsx in node_modules
     tsx_path = project_root / "node_modules" / ".bin" / "tsx"
     if not tsx_path.exists():
-        # Try Windows-specific tsx.CMD
         tsx_path = project_root / "node_modules" / ".bin" / "tsx.CMD"
 
     if tsx_path.exists():
@@ -162,7 +154,6 @@ def setup_github_actions_env(env: dict[str, str]) -> dict[str, str]:
                 current_path = env.get("PATH", "")
                 env["PATH"] = os.pathsep.join([*additional_paths, current_path])
         except Exception:
-            # If we can't read GITHUB_PATH, just continue with original env
             pass
 
     return env

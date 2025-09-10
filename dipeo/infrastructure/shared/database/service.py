@@ -9,10 +9,7 @@ from dipeo.infrastructure.integrations.adapters import DBOperationsAdapter
 
 
 class DBOperationsDomainService:
-    """
-    Backward compatibility wrapper for DBOperationsDomainService.
-    This class maintains the same interface but delegates to the new architecture.
-    """
+    """Backward compatibility wrapper for DBOperationsDomainService."""
 
     ALLOWED_OPERATIONS = ["prompt", "read", "write", "append"]
 

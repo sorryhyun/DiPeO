@@ -17,7 +17,6 @@ class ArtifactStoreAdapter(LoggingMixin, InitializationMixin, ArtifactStorePort)
     """High-level artifact management built on BlobStorePort."""
 
     def __init__(self, blob_store: BlobStorePort, metadata_prefix: str = ".metadata"):
-        # Initialize mixins
         InitializationMixin.__init__(self)
         self.blob_store = blob_store
         self.metadata_prefix = metadata_prefix

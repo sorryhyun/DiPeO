@@ -39,17 +39,15 @@ class EventBasedStateStore(StateStorePort):
     ):
         self.db_path = db_path or os.getenv("STATE_STORE_PATH", str(STATE_DB_PATH))
         self._conn: sqlite3.Connection | None = None
-        self._executor = ThreadPoolExecutor(
-            max_workers=1
-        )  # Single worker to avoid threading issues
-        self._executor_shutdown = False  # Track executor state ourselves
+        self._executor = ThreadPoolExecutor(max_workers=1)
+        self._executor_shutdown = False
         self._thread_id: int | None = None
         self.message_store = message_store
         self._execution_cache = ExecutionStateCache(ttl_seconds=3600)
-        self._reconnect_lock = asyncio.Lock()  # Separate lock for reconnection
+        self._reconnect_lock = asyncio.Lock()
         self._initialized = False
-        self._db_lock = asyncio.Lock()  # Only for DB schema operations
-        self._conn_lock = threading.Lock()  # Thread-safe connection access
+        self._db_lock = asyncio.Lock()
+        self._conn_lock = threading.Lock()
 
     async def initialize(self):
         """Initialize the state store."""
@@ -67,10 +65,8 @@ class EventBasedStateStore(StateStorePort):
 
     async def cleanup(self):
         """Cleanup resources."""
-        # Stop cache first
         await self._execution_cache.stop()
 
-        # Close DB connection
         async with self._db_lock:
             if self._conn:
                 import contextlib
@@ -93,34 +89,29 @@ class EventBasedStateStore(StateStorePort):
 
         def _connect_sync():
             self._thread_id = threading.get_ident()
-            # Use thread-safe mode for SQLite
             conn = sqlite3.connect(
                 self.db_path,
-                check_same_thread=False,  # Allow multi-threaded access
+                check_same_thread=False,
                 isolation_level=None,
-                timeout=30.0,  # 30 second timeout
+                timeout=30.0,
             )
             conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("PRAGMA busy_timeout=10000")  # 10 second timeout for locks
-            conn.execute("PRAGMA synchronous=NORMAL")  # Better performance with WAL
-            conn.execute("PRAGMA temp_store=MEMORY")  # Use memory for temp tables
-            conn.execute("PRAGMA mmap_size=268435456")  # Use memory-mapped I/O (256MB)
+            conn.execute("PRAGMA busy_timeout=10000")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            conn.execute("PRAGMA temp_store=MEMORY")
+            conn.execute("PRAGMA mmap_size=268435456")
             return conn
 
-        # Recreate executor if it was shut down
         if self._executor_shutdown:
             self._executor = ThreadPoolExecutor(max_workers=1)
             self._executor_shutdown = False
 
         try:
-            # Create new connection
             new_conn = await loop.run_in_executor(self._executor, _connect_sync)
 
-            # Swap connections atomically
             old_conn = self._conn
             self._conn = new_conn
 
-            # Close old connection if any (after setting new one)
             if old_conn:
                 import contextlib
 
@@ -135,13 +126,11 @@ class EventBasedStateStore(StateStorePort):
         if self._conn is None:
             raise RuntimeError("Database connection not established")
 
-        # Check if executor is still valid
         if self._executor_shutdown:
             raise RuntimeError("Executor has been shut down - reinitialize the store")
 
         loop = asyncio.get_event_loop()
 
-        # Retry logic for connection issues
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -153,21 +142,17 @@ class EventBasedStateStore(StateStorePort):
                 sqlite3.ProgrammingError,
                 sqlite3.OperationalError,
             ) as e:
-                # These errors typically indicate connection issues
                 if attempt < max_retries - 1:
                     logger.warning(
                         f"SQLite error (attempt {attempt + 1}/{max_retries}): {e}, reconnecting..."
                     )
                     async with self._reconnect_lock:
-                        # Only reconnect if connection is still the same one that failed
                         await self._connect()
-                    # Small delay before retry
                     await asyncio.sleep(0.1 * (attempt + 1))
                 else:
                     logger.error(f"SQLite error after {max_retries} attempts: {e}")
                     raise
             except Exception as e:
-                # Other errors should not trigger reconnection
                 logger.error(f"Unexpected database error: {e}")
                 raise
 
@@ -205,7 +190,6 @@ class EventBasedStateStore(StateStorePort):
 
         loop = asyncio.get_event_loop()
 
-        # Retry logic for schema initialization
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -227,9 +211,7 @@ class EventBasedStateStore(StateStorePort):
                     logger.error(f"Failed to initialize schema after {max_retries} attempts: {e}")
                     raise
 
-        # Try to add metrics column to existing tables (migration)
         try:
-            # Check if metrics column exists first
             cursor = await self._execute_internal("PRAGMA table_info(execution_states)")
             columns = await loop.run_in_executor(self._executor, cursor.fetchall)
             has_metrics = any(col[1] == "metrics" for col in columns)
@@ -239,7 +221,6 @@ class EventBasedStateStore(StateStorePort):
                     "ALTER TABLE execution_states ADD COLUMN metrics TEXT DEFAULT NULL"
                 )
         except Exception as e:
-            # Log but don't fail - column might already exist
             logger.debug(f"Could not add metrics column (may already exist): {e}")
 
     async def create_execution(
@@ -271,23 +252,18 @@ class EventBasedStateStore(StateStorePort):
             executed_nodes=[],
         )
 
-        # Cache first for fast access
         cache = await self._execution_cache.get_cache(exec_id)
         await cache.set_state(state)
-
-        # Then persist to DB
         await self._persist_state(state)
 
         return state
 
     async def save_state(self, state: ExecutionState):
         """Save execution state."""
-        # Update cache
         if state.is_active:
             cache = await self._execution_cache.get_cache(state.id)
             await cache.set_state(state)
 
-        # Persist to DB (no global lock needed)
         await self._persist_state(state)
 
     async def _persist_state(self, state: ExecutionState):
@@ -321,13 +297,10 @@ class EventBasedStateStore(StateStorePort):
 
     async def get_state(self, execution_id: str) -> ExecutionState | None:
         """Get execution state, preferring cache."""
-        # Try cache first
         cache = await self._execution_cache.get_cache(execution_id)
         cached_state = await cache.get_state()
         if cached_state:
             return cached_state
-
-        # Fall back to DB
         cursor = await self._execute(
             """
             SELECT execution_id, status, diagram_id, started_at, ended_at,
@@ -343,16 +316,12 @@ class EventBasedStateStore(StateStorePort):
         if not row:
             return None
 
-        # Parse node_outputs - they should be in proper SerializedNodeOutput format
         raw_outputs = json.loads(row[6]) if row[6] else {}
         node_outputs = {}
         for node_id, output_data in raw_outputs.items():
             if isinstance(output_data, dict):
-                # The data should already be in the correct format from serialize_protocol
-                # Just store it as-is for now (will be properly typed when used)
                 node_outputs[node_id] = output_data
             else:
-                # Fallback for unexpected non-dict data
                 node_outputs[node_id] = {
                     "envelope_format": True,
                     "id": str(uuid4()),
@@ -410,29 +379,23 @@ class EventBasedStateStore(StateStorePort):
         llm_usage: LLMUsage | dict | None = None,
     ) -> None:
         """Update node output."""
-        # Get from cache for fast update
         cache = await self._execution_cache.get_cache(execution_id)
         state = await cache.get_state()
 
         if not state:
-            # Fall back to DB
             state = await self.get_state(execution_id)
             if not state:
                 raise ValueError(f"Execution {execution_id} not found")
 
-        # Handle Envelope outputs
         if hasattr(output, "__class__") and hasattr(output, "to_dict"):
-            # It's an Envelope protocol output
             serialized_output = serialize_protocol(output)
         elif isinstance(output, dict) and (
             output.get("envelope_format") or output.get("_envelope_format")
         ):
-            # Already serialized Envelope, use as-is
             serialized_output = output
         else:
             from dipeo.domain.execution.envelope import EnvelopeFactory
 
-            # Create an envelope for outputs that don't have the protocol interface
             if is_exception:
                 wrapped_output = EnvelopeFactory.create(
                     body={
@@ -447,21 +410,14 @@ class EventBasedStateStore(StateStorePort):
                 wrapped_output = EnvelopeFactory.create(body=str(output), produced_by=str(node_id))
             serialized_output = serialize_protocol(wrapped_output)
 
-        # The serialized_output is already in the correct format
-        # No need for additional conversion
         serialized_node_output = serialized_output
 
-        # Update cache immediately
         await cache.set_node_output(node_id, serialized_output)
-
-        # Update state
         state.node_outputs[node_id] = serialized_node_output
 
-        # Update LLM usage if provided
         if llm_usage:
             await self.add_llm_usage(execution_id, llm_usage)
 
-        # Persist to DB
         await self._persist_state(state)
 
     async def update_node_status(
@@ -472,7 +428,6 @@ class EventBasedStateStore(StateStorePort):
         error: str | None = None,
     ):
         """Update node status."""
-        # Get from cache
         cache = await self._execution_cache.get_cache(execution_id)
         state = await cache.get_state()
 
@@ -483,7 +438,6 @@ class EventBasedStateStore(StateStorePort):
 
         now = datetime.now().isoformat()
 
-        # Add node to executed_nodes list when it starts executing
         if status == Status.RUNNING and node_id not in state.executed_nodes:
             state.executed_nodes.append(node_id)
 
@@ -509,21 +463,15 @@ class EventBasedStateStore(StateStorePort):
         if error:
             state.node_states[node_id].error = error
 
-        # Update cache
         await cache.set_node_status(node_id, status, error)
-
-        # Persist
         await self.save_state(state)
 
     async def get_node_output(self, execution_id: str, node_id: str) -> dict[str, Any] | None:
         """Get node output."""
-        # Try cache first
         cache = await self._execution_cache.get_cache(execution_id)
         output = await cache.get_node_output(node_id)
         if output is not None:
             return output
-
-        # Fall back to full state
         state = await self.get_state(execution_id)
         if not state:
             return None
@@ -537,7 +485,6 @@ class EventBasedStateStore(StateStorePort):
 
         state.variables.update(variables)
 
-        # Update cache
         cache = await self._execution_cache.get_cache(execution_id)
         await cache.update_variables(variables)
 
@@ -554,7 +501,6 @@ class EventBasedStateStore(StateStorePort):
 
     async def add_llm_usage(self, execution_id: str, usage: LLMUsage | dict):
         """Add LLM usage."""
-        # Convert dict to LLMUsage if needed
         if isinstance(usage, dict):
             usage = LLMUsage(
                 input=usage.get("input", 0),
@@ -586,14 +532,11 @@ class EventBasedStateStore(StateStorePort):
         state.is_active = False
         await self._persist_state(state)
 
-        # Keep the cache for 10 seconds after completion to allow CLI to read final state
-        # This avoids race condition where CLI polls but cache is already removed
         async def delayed_cache_removal():
-            await asyncio.sleep(10)  # Wait 10 seconds
+            await asyncio.sleep(10)
             await self._execution_cache.remove_cache(state.id)
             logger.debug(f"Removed cache for completed execution {state.id}")
 
-        # Schedule cache removal without blocking
         _ = asyncio.create_task(delayed_cache_removal())
 
     async def list_executions(
@@ -628,15 +571,12 @@ class EventBasedStateStore(StateStorePort):
 
         executions = []
         for row in rows:
-            # Parse node_outputs - they should be in proper format from serialize_protocol
             raw_outputs = json.loads(row[6]) if row[6] else {}
             node_outputs = {}
             for node_id, output_data in raw_outputs.items():
                 if isinstance(output_data, dict):
-                    # The data should already be in the correct format
                     node_outputs[node_id] = output_data
                 else:
-                    # Fallback for unexpected non-dict data
                     node_outputs[node_id] = {
                         "envelope_format": True,
                         "id": str(uuid4()),
@@ -683,7 +623,6 @@ class EventBasedStateStore(StateStorePort):
 
         await self._execute("VACUUM")
 
-    # Alias methods for ExecutionStateRepository protocol compatibility
     async def get_execution(self, execution_id: str) -> ExecutionState | None:
         """Get execution state - alias for get_state."""
         return await self.get_state(execution_id)

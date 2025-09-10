@@ -16,7 +16,6 @@ class S3Adapter(LoggingMixin, InitializationMixin, BlobStorePort):
     """AWS S3 implementation of BlobStorePort."""
 
     def __init__(self, bucket: str, client=None, region: str = "us-east-1"):
-        # Initialize mixins
         InitializationMixin.__init__(self)
         self.bucket = bucket
         self.region = region

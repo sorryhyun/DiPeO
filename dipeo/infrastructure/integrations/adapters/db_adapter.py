@@ -52,10 +52,7 @@ class DBOperationsAdapter:
 
     async def _get_db_file_path(self, db_name: str) -> Path:
         db_path = self.domain_service.construct_db_path(db_name)
-        # Convert to Path object - will be resolved by FileSystemAdapter
         path = Path(db_path)
-        # If it's a relative path, leave it as-is for FileSystemAdapter to resolve
-        # against its base_path. If absolute, use as-is.
         return path
 
     async def _read_db(self, file_path: Path) -> dict[str, Any]:
@@ -74,7 +71,6 @@ class DBOperationsAdapter:
 
             content = raw_content.decode("utf-8")
 
-            # Try to parse as JSON, fall back to plain text
             try:
                 data = self.domain_service.validate_json_data(content, str(file_path))
             except ValidationError:
@@ -92,7 +88,6 @@ class DBOperationsAdapter:
 
     async def _write_db(self, file_path: Path, value: Any) -> dict[str, Any]:
         try:
-            # Check if this is a code file (non-JSON) and value is already a string
             is_code_file = any(
                 str(file_path).endswith(ext)
                 for ext in [

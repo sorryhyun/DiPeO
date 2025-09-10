@@ -65,16 +65,13 @@ class BaseAuthStrategy(ABC):
             Secret values dictionary
         """
         if not self.api_key_port:
-            # If no APIKeyPort, assume the api_key is the actual secret
             return {"token": api_key, "api_key": api_key}
 
         try:
-            # Get API key details from port
             key_data = await self.api_key_port.get_api_key(api_key)
             if not key_data:
                 raise ServiceError(f"API key not found: {api_key}")
 
-            # Extract secret values
             return {
                 "token": key_data.get("secret", api_key),
                 "api_key": key_data.get("secret", api_key),
@@ -86,7 +83,6 @@ class BaseAuthStrategy(ABC):
             }
         except Exception as e:
             logger.error(f"Failed to resolve API key: {e}")
-            # Fallback to using api_key as the secret
             return {"token": api_key, "api_key": api_key}
 
 
@@ -114,14 +110,11 @@ class ApiKeyHeaderStrategy(BaseAuthStrategy):
         if not api_key:
             raise ServiceError("API key required for authentication")
 
-        # Resolve secret
         secret = await self.resolve_secret(api_key)
         context["secret"] = secret
 
-        # Get header name (default to X-API-Key)
         header_name = self.auth_config.header or "X-API-Key"
 
-        # Format the value if template is provided
         if self.auth_config.format:
             template = Template(self.auth_config.format)
             header_value = template.render(**context)
@@ -147,14 +140,11 @@ class ApiKeyQueryStrategy(BaseAuthStrategy):
         if not api_key:
             raise ServiceError("API key required for authentication")
 
-        # Resolve secret
         secret = await self.resolve_secret(api_key)
         context["secret"] = secret
 
-        # Get parameter name (default to api_key)
         param_name = self.auth_config.query_param or "api_key"
 
-        # Format the value if template is provided
         if self.auth_config.format:
             template = Template(self.auth_config.format)
             param_value = template.render(**context)
@@ -184,14 +174,11 @@ class OAuth2BearerStrategy(BaseAuthStrategy):
         if not api_key:
             raise ServiceError("API key (token) required for OAuth2 authentication")
 
-        # Resolve secret
         secret = await self.resolve_secret(api_key)
         context["secret"] = secret
 
-        # Get header name (default to Authorization)
         header_name = self.auth_config.header or "Authorization"
 
-        # Format the value
         if self.auth_config.format:
             template = Template(self.auth_config.format)
             header_value = template.render(**context)
@@ -218,25 +205,20 @@ class BasicAuthStrategy(BaseAuthStrategy):
         if not api_key:
             raise ServiceError("Credentials required for Basic authentication")
 
-        # Resolve secret
         secret = await self.resolve_secret(api_key)
         context["secret"] = secret
 
-        # Get username and password
         username = secret.get("username", "")
         password = secret.get("password", "")
 
         if not username or not password:
             raise ServiceError("Username and password required for Basic authentication")
 
-        # Encode credentials
         credentials = f"{username}:{password}"
         encoded = base64.b64encode(credentials.encode()).decode()
 
-        # Get header name (default to Authorization)
         header_name = self.auth_config.header or "Authorization"
 
-        # Format the value
         if self.auth_config.format:
             context["secret"]["encoded"] = encoded
             template = Template(self.auth_config.format)
@@ -273,25 +255,19 @@ class OAuth2ClientCredentialsStrategy(BaseAuthStrategy):
         if not api_key:
             raise ServiceError("Client credentials required for OAuth2 authentication")
 
-        # Resolve secret
         secret = await self.resolve_secret(api_key)
 
-        # Check if we have a cached token
         cache_key = f"{secret.get('client_id')}:{self.auth_config.token_endpoint}"
         if cache_key in self._token_cache:
-            # In production, check expiry here
             access_token = self._token_cache[cache_key]
         else:
-            # Exchange credentials for token
             access_token = await self._exchange_for_token(secret)
             self._token_cache[cache_key] = access_token
 
         context["secret"] = {**secret, "access_token": access_token}
 
-        # Get header name (default to Authorization)
         header_name = self.auth_config.header or "Authorization"
 
-        # Format the value
         if self.auth_config.format:
             template = Template(self.auth_config.format)
             header_value = template.render(**context)
@@ -309,8 +285,6 @@ class OAuth2ClientCredentialsStrategy(BaseAuthStrategy):
         Returns:
             Access token
         """
-        # This is a placeholder implementation
-        # Full implementation would make HTTP request to token endpoint
         logger.warning(
             "OAuth2 Client Credentials flow not fully implemented. " "Using client_secret as token."
         )
@@ -333,11 +307,9 @@ class CustomAuthStrategy(BaseAuthStrategy):
         if not self.auth_config.custom_handler:
             raise ServiceError("Custom handler not configured")
 
-        # Resolve secret
         secret = await self.resolve_secret(api_key)
         context["secret"] = secret
 
-        # Import and call custom handler
         try:
             import importlib.util
 

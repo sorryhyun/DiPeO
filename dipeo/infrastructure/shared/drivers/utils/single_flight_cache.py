@@ -30,7 +30,6 @@ class SingleFlightCache:
     """
 
     def __init__(self):
-        """Initialize the single-flight cache."""
         self._lock = asyncio.Lock()
         self._futures: dict[str, asyncio.Future] = {}
         self._permanent_cache: dict[str, Any] = {}
@@ -51,52 +50,42 @@ class SingleFlightCache:
         Raises:
             Any exception raised by the factory function
         """
-        # Check permanent cache first
         if cache_result and key in self._permanent_cache:
             return self._permanent_cache[key]
 
-        # Acquire lock to check/modify futures dict
         async with self._lock:
             fut = self._futures.get(key)
             if fut is None:
-                # First coroutine becomes the leader
                 fut = self._futures[key] = asyncio.get_event_loop().create_future()
                 is_leader = True
             else:
-                # Subsequent coroutines become followers
                 is_leader = False
 
         if is_leader:
             try:
-                # Leader executes the factory function
                 result = await factory()
 
-                # Cache the result if requested
                 if cache_result:
                     self._permanent_cache[key] = result
 
-                # Set result for all followers
                 fut.set_result(result)
             except Exception as exc:
-                # Set exception for all followers
                 fut.set_exception(exc)
                 logger.error(f"SingleFlightCache: Leader failed for {key}: {exc}")
                 raise
             finally:
-                # Clean up the future after some time to allow stragglers
+
                 async def cleanup():
-                    await asyncio.sleep(0.1)  # Small delay for any stragglers
+                    await asyncio.sleep(0.1)
                     async with self._lock:
                         if key in self._futures and self._futures[key] is fut:
                             del self._futures[key]
 
                 task = asyncio.create_task(cleanup())
-                # Prevent task from being garbage collected
                 task.add_done_callback(lambda t: None)
 
             return result
         else:
-            # Followers wait for the leader's result
             try:
                 result = await fut
                 return result
@@ -104,11 +93,7 @@ class SingleFlightCache:
                 raise
 
     def clear(self, key: str | None = None):
-        """Clear cached results.
-
-        Args:
-            key: If provided, clear only this key. Otherwise clear all.
-        """
+        """Clear cached results for specific key or all keys."""
         if key:
             self._permanent_cache.pop(key, None)
         else:
