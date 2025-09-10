@@ -141,6 +141,19 @@ class UnifiedClaudeCodeClient:
         # Get system prompt based on execution phase
         system_prompt = self._get_system_prompt(execution_phase)
 
+        # Set up workspace directory for claude-code
+        if "cwd" not in kwargs:
+            import os
+            from pathlib import Path
+
+            trace_id = kwargs.get("trace_id", "default")
+            root = os.getenv(
+                "DIPEO_CLAUDE_WORKSPACES", os.path.join(os.getcwd(), ".dipeo", "workspaces")
+            )
+            workspace_dir = Path(root) / f"exec_{trace_id}"
+            workspace_dir.mkdir(parents=True, exist_ok=True)
+            kwargs["cwd"] = str(workspace_dir)
+
         # Create Claude Code options
         options = ClaudeCodeOptions(
             message=message_text,
@@ -195,6 +208,19 @@ class UnifiedClaudeCodeClient:
 
         # Get system prompt based on execution phase
         system_prompt = self._get_system_prompt(execution_phase)
+
+        # Set up workspace directory for claude-code
+        if "cwd" not in kwargs:
+            import os
+            from pathlib import Path
+
+            trace_id = kwargs.get("trace_id", "default")
+            root = os.getenv(
+                "DIPEO_CLAUDE_WORKSPACES", os.path.join(os.getcwd(), ".dipeo", "workspaces")
+            )
+            workspace_dir = Path(root) / f"exec_{trace_id}"
+            workspace_dir.mkdir(parents=True, exist_ok=True)
+            kwargs["cwd"] = str(workspace_dir)
 
         # Create Claude Code options with streaming enabled
         options = ClaudeCodeOptions(

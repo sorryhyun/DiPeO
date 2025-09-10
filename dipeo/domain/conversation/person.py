@@ -1,7 +1,5 @@
 """Person dynamic object representing an LLM agent with evolving conversation state."""
 
-import os
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.diagram_generated import (
@@ -38,34 +36,6 @@ class Person:
         # Memory selection strategy (optional)
         self._memory_strategy = memory_strategy
 
-    def get_messages(self, all_messages: list[Message]) -> list[Message]:
-        """Get filtered messages from the provided message list.
-
-        Args:
-            all_messages: The complete list of messages
-
-        Returns:
-            Filtered messages based on person's view
-        """
-
-        return [
-            msg
-            for msg in all_messages
-            if msg.from_person_id == self.id or msg.to_person_id == self.id
-        ]
-
-    def get_latest_message(self, all_messages: list[Message]) -> Message | None:
-        """Get the latest message from person's filtered view.
-
-        Args:
-            all_messages: The complete list of messages
-
-        Returns:
-            The latest message or None if no messages
-        """
-        messages = self.get_messages(all_messages)
-        return messages[-1] if messages else None
-
     def get_memory_config(self) -> dict[str, Any]:
         """Get memory configuration information.
 
@@ -77,7 +47,7 @@ class Person:
             "description": (
                 "Strategy-based memory selection"
                 if self._memory_strategy
-                else "Default ALL_INVOLVED filter"
+                else "No memory filtering"
             ),
         }
 
@@ -150,11 +120,9 @@ class Person:
         llm_messages = []
 
         # Add system prompt if configured
-        system_prompt = self._get_system_prompt()
+        system_prompt = self.llm_config.system_prompt
         if system_prompt:
-            # Determine system role based on service
-            system_role = "developer" if self.llm_config.service == LLMService.OPENAI else "system"
-            llm_messages.append({"role": system_role, "content": system_prompt})
+            llm_messages.append({"role": "system", "content": system_prompt})
 
         # Convert domain messages to LLM format
         for msg in messages:
@@ -181,88 +149,6 @@ class Person:
         # Default to user for other cases
         else:
             return "user"
-
-    def _get_system_prompt(self) -> str | None:
-        """Get the system prompt from configuration.
-
-        Follows priority:
-        1. prompt_file if specified and exists
-        2. system_prompt if directly configured
-
-        Returns:
-            The system prompt content, or None if not configured
-        """
-        # Check if prompt_file is specified
-        if self.llm_config.prompt_file:
-            prompt_content = self._load_prompt_from_file(self.llm_config.prompt_file)
-            if prompt_content is not None:
-                return prompt_content
-
-        # Use system_prompt if available
-        return self.llm_config.system_prompt
-
-    def _load_prompt_from_file(self, prompt_file: str) -> str | None:
-        """Load prompt content from a file.
-
-        Args:
-            prompt_file: Path to the prompt file
-
-        Returns:
-            The file content, or None if file cannot be read
-        """
-        # Resolve path relative to DIPEO_BASE_DIR if not absolute
-        prompt_path = Path(prompt_file)
-        if not prompt_path.is_absolute():
-            base_dir = os.environ.get("DIPEO_BASE_DIR", os.getcwd())
-            prompt_path = Path(base_dir) / prompt_path
-
-        # Read prompt from file if it exists
-        if prompt_path.exists():
-            try:
-                return prompt_path.read_text(encoding="utf-8")
-            except Exception:
-                return None
-        return None
-
-    async def select_memories(
-        self,
-        candidate_messages: list[Message],
-        prompt_preview: str,
-        memorize_to: str | None,
-        ignore_person: str | None,
-        at_most: int | None,
-        llm_service=None,
-        **kwargs,
-    ) -> list[Message] | None:
-        """Select relevant memories using configured strategy.
-
-        Uses memory strategy if available, falls back to brain for backward compatibility.
-
-        Args:
-            candidate_messages: Messages to select from
-            prompt_preview: Preview of the upcoming task
-            memorize_to: Selection criteria
-            ignore_person: Comma-separated list of person IDs to exclude
-            at_most: Maximum messages to select
-            llm_service: LLM service for intelligent selection
-            **kwargs: Additional parameters
-
-        Returns:
-            Selected messages or None if no selection performed
-        """
-        # Use strategy if available
-        if self._memory_strategy:
-            kwargs["person_id"] = self.id  # Add person ID for strategy
-            kwargs["llm_service"] = llm_service  # Ensure llm_service is passed
-            return await self._memory_strategy.select_memories(
-                candidate_messages=candidate_messages,
-                prompt_preview=prompt_preview,
-                memorize_to=memorize_to,
-                ignore_person=ignore_person,
-                at_most=at_most,
-                **kwargs,
-            )
-        return None
 
     async def complete_with_memory(
         self,
@@ -298,33 +184,29 @@ class Person:
         """
         # Determine which messages to use for completion
         selected_messages = None
+        messages_for_completion = all_messages
 
         # Apply memory selection if criteria provided
         if memorize_to and self._memory_strategy:
             # Use prompt_preview if provided, otherwise use the actual prompt
             preview = prompt_preview or prompt
 
-            # Perform memory selection
-            selected_messages = await self.select_memories(
+            # Perform memory selection directly using strategy
+            selected_messages = await self._memory_strategy.select_memories(
                 candidate_messages=all_messages,
                 prompt_preview=preview,
                 memorize_to=memorize_to,
                 ignore_person=ignore_person,
                 at_most=at_most,
+                person_id=self.id,
                 llm_service=llm_service,
             )
 
             # Use selected messages if selection was performed
             if selected_messages is not None:
                 messages_for_completion = selected_messages
-            else:
-                # Fallback to default filtering if selection couldn't be performed
-                messages_for_completion = self.get_messages(all_messages)
-        else:
-            # No memory criteria - use default person filtering
-            messages_for_completion = self.get_messages(all_messages)
 
-        # Now complete with the filtered messages
+        # Now complete with the messages
         result, incoming, response = await self.complete(
             prompt=prompt,
             all_messages=messages_for_completion,

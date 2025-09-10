@@ -95,8 +95,13 @@ class UnifiedOpenAIClient:
             if not msg.get("content"):
                 continue
 
+            # Convert "system" role to "developer" for OpenAI's new API
+            role = msg.get("role", "user")
+            if role == "system":
+                role = "developer"
+
             message_dict = {
-                "role": msg.get("role", "user"),
+                "role": role,
                 "content": msg["content"],
             }
 
@@ -223,7 +228,8 @@ class UnifiedOpenAIClient:
         kwargs_without_formats = {
             k: v
             for k, v in kwargs.items()
-            if k not in ["response_format", "text_format", "messages", "execution_phase"]
+            if k
+            not in ["response_format", "text_format", "messages", "execution_phase", "trace_id"]
         }
         params.update(kwargs_without_formats)
 

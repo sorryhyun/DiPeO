@@ -65,7 +65,7 @@ class InMemoryPersonRepository(PersonRepository):
 
         # Wire up intelligent memory strategy if orchestrator is available
         if self._orchestrator:
-            from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
+            from dipeo.infrastructure.llm.domain_adapters import LLMMemorySelectionAdapter
 
             # Create memory selector implementation
             memory_selector = LLMMemorySelectionAdapter(self._orchestrator)

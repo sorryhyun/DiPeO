@@ -276,32 +276,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         if hasattr(node, "resolved_first_prompt") and node.resolved_first_prompt:
             first_only_content = node.resolved_first_prompt
             logger.debug(f"[PersonJob {node.label or node.id}] Using pre-resolved first prompt")
-        elif (
-            hasattr(node, "first_prompt_file")
-            and node.first_prompt_file
-            and self._prompt_loading_use_case
-        ):
-            diagram_source_path = self._prompt_loading_use_case.get_diagram_source_path(
-                self._diagram
-            )
-            loaded_content = self._prompt_loading_use_case.load_prompt_file(
-                node.first_prompt_file, diagram_source_path, node.label or node.id
-            )
-            if loaded_content:
-                first_only_content = loaded_content
 
         if hasattr(node, "resolved_prompt") and node.resolved_prompt:
             prompt_content = node.resolved_prompt
             logger.debug(f"[PersonJob {node.label or node.id}] Using pre-resolved default prompt")
-        elif hasattr(node, "prompt_file") and node.prompt_file and self._prompt_loading_use_case:
-            diagram_source_path = self._prompt_loading_use_case.get_diagram_source_path(
-                self._diagram
-            )
-            loaded_content = self._prompt_loading_use_case.load_prompt_file(
-                node.prompt_file, diagram_source_path, node.label or node.id
-            )
-            if loaded_content:
-                prompt_content = loaded_content
 
         # Memory selection configuration
         memorize_to = getattr(node, "memorize_to", None)
@@ -341,36 +319,11 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             "from_person_id": "system",
             "temperature": PERSON_JOB_TEMPERATURE,
             "max_tokens": PERSON_JOB_MAX_TOKENS,
-            "execution_phase": "direct_execution",
         }
 
         # Claude Code specific execution options
-        try:
-            from dipeo.diagram_generated.enums import ExecutionPhase
-        except Exception:
-            from dipeo.diagram_generated.enums import ExecutionPhase  # type: ignore
-
-        try:
-            svc_name = (
-                person.llm_config.service.value
-                if hasattr(person.llm_config.service, "value")
-                else str(person.llm_config.service)
-            ).lower()
-        except Exception:
-            svc_name = str(person.llm_config.service).lower()
-
-        complete_kwargs["execution_phase"] = ExecutionPhase.DIRECT_EXECUTION
-
-        if "claude-code" in svc_name:
-            import os
-            from pathlib import Path
-
-            root = os.getenv(
-                "DIPEO_CLAUDE_WORKSPACES", os.path.join(os.getcwd(), ".dipeo", "workspaces")
-            )
-            workspace_dir = Path(root) / f"exec_{trace_id or 'default'}"
-            workspace_dir.mkdir(parents=True, exist_ok=True)
-            complete_kwargs["cwd"] = str(workspace_dir)
+        # Pass trace_id for workspace directory creation in claude-code
+        complete_kwargs["trace_id"] = trace_id
 
         # Handle tools configuration
         if hasattr(node, "tools") and node.tools and node.tools != "none":
@@ -815,7 +768,12 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 if hasattr(self._execution_orchestrator, "get_conversation")
                 else []
             )
-            messages = person.get_messages(all_conv_messages)
+            # Filter messages relevant to this person
+            messages = [
+                msg
+                for msg in all_conv_messages
+                if msg.from_person_id == person.id or msg.to_person_id == person.id
+            ]
 
         return {
             "messages": messages,

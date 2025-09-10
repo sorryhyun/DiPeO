@@ -18,7 +18,6 @@ from dipeo.config import get_settings
 from dipeo.diagram_generated import ExecutionState, NodeID
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.events.unified_ports import EventBus
-from dipeo.domain.execution import DomainDynamicOrderCalculator
 
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
@@ -40,11 +39,9 @@ class TypedExecutionEngine:
     def __init__(
         self,
         service_registry: "ServiceRegistry",
-        order_calculator: Any | None = None,
         event_bus: EventBus | None = None,
     ):
         self.service_registry = service_registry
-        self.order_calculator = order_calculator or DomainDynamicOrderCalculator()
         self._settings = get_settings()
         self._managed_event_bus = False
         self._scheduler: NodeScheduler | None = None
@@ -125,7 +122,7 @@ class TypedExecutionEngine:
             )
 
             # Initialize scheduler for this execution
-            self._scheduler = NodeScheduler(diagram, self.order_calculator, context)
+            self._scheduler = NodeScheduler(diagram, context)
 
             # Set scheduler reference in context for token events
             context.scheduler = self._scheduler

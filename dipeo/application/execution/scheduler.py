@@ -12,13 +12,12 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.diagram_generated import NodeID, NodeType
+from dipeo.diagram_generated import NodeID, NodeType, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution.token_types import ConcurrencyPolicy, EdgeRef, JoinPolicy
 
 if TYPE_CHECKING:
     from dipeo.application.execution.typed_execution_context import TypedExecutionContext
-    from dipeo.domain.execution import DomainDynamicOrderCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -34,18 +33,15 @@ class NodeScheduler:
     def __init__(
         self,
         diagram: ExecutableDiagram,
-        order_calculator: "DomainDynamicOrderCalculator",
         context: Optional["TypedExecutionContext"] = None,
     ):
         """Initialize the scheduler with a diagram.
 
         Args:
             diagram: The executable diagram to schedule
-            order_calculator: Domain calculator for determining node readiness
             context: Optional execution context for token-based scheduling
         """
         self.diagram = diagram
-        self.order_calculator = order_calculator
         self.context = context
 
         # Build dependency tracking structures
@@ -200,7 +196,7 @@ class NodeScheduler:
     async def get_ready_nodes(self, context: "TypedExecutionContext") -> list[ExecutableNode]:
         """Get nodes that are ready to execute.
 
-        This method uses the order calculator to determine readiness,
+        This method determines node readiness based on tokens,
         taking into account condition branches, loops, and other domain logic.
 
         Args:
@@ -209,16 +205,15 @@ class NodeScheduler:
         Returns:
             List of nodes ready to execute
         """
-        # Build context wrapper for order calculator
-        calc_context = self._create_calculator_context(context)
+        ready_nodes = []
+        all_nodes = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
 
-        # Use domain order calculator to get truly ready nodes
-        ready_nodes = self.order_calculator.get_ready_nodes(
-            diagram=self.diagram,
-            context=calc_context,  # type: ignore
-        )
+        for node in all_nodes:
+            if self._is_node_ready(node, context):
+                ready_nodes.append(node)
 
-        return ready_nodes
+        # Sort by priority
+        return self._prioritize_nodes(ready_nodes)
 
     def mark_node_completed(self, node_id: NodeID, context: "TypedExecutionContext") -> set[NodeID]:
         """Mark a node as completed and update dependencies.
@@ -343,19 +338,120 @@ class NodeScheduler:
         self._running_nodes.pop(key, None)
         self._armed_nodes.pop(key, None)
 
-    def _create_calculator_context(self, context: "TypedExecutionContext") -> Any:
-        """Return the execution context for the order calculator.
+    def _is_node_ready(
+        self,
+        node: ExecutableNode,
+        context: "TypedExecutionContext",
+    ) -> bool:
+        """Check if a node is ready for execution - Phase 6 token-driven version.
 
-        The TypedExecutionContext already implements the ExecutionContext protocol
-        that the DomainDynamicOrderCalculator expects, so we can pass it directly.
-
-        Args:
-            context: The execution context
-
-        Returns:
-            The execution context for order calculator
+        Tokens are the primary scheduling mechanism. Status is kept for UI only.
+        A node is ready when it has new token inputs and dependencies are satisfied.
         """
-        return context
+        # START nodes should only execute once per epoch
+        if node.type == NodeType.START and not self.diagram.get_incoming_edges(node.id):
+            # Run once per epoch; rely on execution count (tracker), not UI status
+            return context.state.get_node_execution_count(node.id) == 0
+
+        # Token-based readiness check (Phase 6 - tokens are primary)
+        if hasattr(context, "has_new_inputs") and hasattr(context, "current_epoch"):
+            epoch = context.current_epoch()
+
+            # Check if node has tokens from dependencies
+            incoming_edges = self.diagram.get_incoming_edges(node.id)
+            if not incoming_edges:
+                # Source nodes are always ready
+                return True
+
+            # has_new_inputs already handles skippable conditions correctly
+            # by excluding them from join policy requirements
+            has_tokens = context.has_new_inputs(node.id, epoch)
+
+            # Standard readiness check
+            if has_tokens:
+                # Node has tokens - check other constraints
+                if not self._handle_loop_node(node, context):
+                    return False
+                return not self._has_pending_higher_priority_siblings(node, context)
+            else:
+                # No tokens = not ready
+                return False
+
+        # Fallback for systems without token support (should not happen in Phase 6)
+        logger.warning(
+            f"Node {node.id} readiness check without token context - this should not happen in Phase 6"
+        )
+        return False
+
+    def _handle_loop_node(self, node: ExecutableNode, context: "TypedExecutionContext") -> bool:
+        """Handle special logic for loop nodes."""
+        # Check if this is a PersonJob node (which can loop)
+        if node.type == NodeType.PERSON_JOB:
+            exec_count = context.state.get_node_execution_count(node.id)
+            max_iter = getattr(node, "max_iteration", 1)
+
+            # Allow execution if under max iterations
+            return exec_count < max_iter
+
+        return True
+
+    def _has_pending_higher_priority_siblings(
+        self, node: ExecutableNode, context: "TypedExecutionContext"
+    ) -> bool:
+        """Check if node has higher priority siblings that haven't executed yet.
+
+        Phase 6: Uses completion status rather than PENDING to determine if siblings have run.
+        Returns True if this node should wait for higher priority siblings to complete.
+        """
+        # Find all edges pointing to this node
+        incoming_edges = self.diagram.get_incoming_edges(node.id)
+        if not incoming_edges:
+            return False
+
+        # For each incoming edge, check siblings from the same source
+        for incoming_edge in incoming_edges:
+            source_node_id = incoming_edge.source_node_id
+            my_priority = getattr(incoming_edge, "execution_priority", 0)
+
+            # Find all sibling edges (edges from same source)
+            sibling_edges = self.diagram.get_outgoing_edges(source_node_id)
+
+            # Check if any higher priority siblings haven't completed yet
+            for sibling_edge in sibling_edges:
+                if sibling_edge.target_node_id == node.id:
+                    continue  # Skip self
+
+                sibling_priority = getattr(sibling_edge, "execution_priority", 0)
+
+                # If sibling has higher priority and hasn't completed, we must wait
+                if sibling_priority > my_priority:
+                    sibling_state = context.state.get_node_state(sibling_edge.target_node_id)
+                    # Phase 6: Check if sibling has NOT completed (rather than checking PENDING)
+                    if not sibling_state or sibling_state.status not in [
+                        Status.COMPLETED,
+                        Status.FAILED,
+                        Status.SKIPPED,
+                        Status.MAXITER_REACHED,
+                    ]:
+                        return True
+
+        return False
+
+    def _prioritize_nodes(self, nodes: list[ExecutableNode]) -> list[ExecutableNode]:
+        """Prioritize nodes for execution order."""
+
+        # Simple priority: START nodes first, then others
+        def priority(node: ExecutableNode) -> int:
+            if node.type == NodeType.START:
+                return 0
+            elif node.type == NodeType.CONDITION:
+                return 1
+            elif node.type == NodeType.PERSON_JOB:
+                return 2
+            else:
+                return 3
+
+        return sorted(nodes, key=priority)
 
     def get_execution_stats(self) -> dict[str, Any]:
         """Get statistics about the scheduling state.

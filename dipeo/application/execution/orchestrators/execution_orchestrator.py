@@ -10,8 +10,8 @@ from dipeo.domain.conversation.ports import ConversationRepository, PersonReposi
 if TYPE_CHECKING:
     from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
     from dipeo.domain.integrations.ports import LLMService as LLMServicePort
-    from dipeo.infrastructure.llm.adapters import LLMMemorySelectionAdapter
-    from dipeo.infrastructure.llm.adapters.decision import LLMDecisionAdapter
+    from dipeo.infrastructure.llm.domain_adapters import LLMMemorySelectionAdapter
+    from dipeo.infrastructure.llm.domain_adapters.decision import LLMDecisionAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -244,7 +244,7 @@ class ExecutionOrchestrator:
         """
         # Lazy initialization of decision adapter
         if not self._decision_adapter:
-            from dipeo.infrastructure.llm.adapters.decision import LLMDecisionAdapter
+            from dipeo.infrastructure.llm.domain_adapters.decision import LLMDecisionAdapter
 
             self._decision_adapter = LLMDecisionAdapter(self)
 
@@ -366,12 +366,31 @@ class ExecutionOrchestrator:
             api_key_id = "APIKEY_52609F"
             logger.warning(f"No api_key_id for person {person_id}, defaulting to {api_key_id}")
 
+        # Load system prompt from file if specified
+        system_prompt = person_config.get("system_prompt")
+        prompt_file = person_config.get("prompt_file")
+
+        if prompt_file and self._prompt_loading_use_case:
+            # Load prompt from file using the centralized use case
+            loaded_prompt = self.load_prompt(
+                prompt_file=prompt_file,
+                inline_prompt=None,
+                diagram=diagram,
+                node_label=f"Person {person_id}",
+            )
+            if loaded_prompt:
+                # Use loaded content as system prompt
+                system_prompt = loaded_prompt
+                logger.debug(
+                    f"Loaded system prompt from file '{prompt_file}' for person {person_id}"
+                )
+
         llm_config = PersonLLMConfig(
             service=person_config.get("service", "openai"),
             model=person_config.get("model", "gpt-5-nano-2025-08-07"),
             api_key_id=ApiKeyID(api_key_id),
-            system_prompt=person_config.get("system_prompt"),
-            prompt_file=person_config.get("prompt_file"),
+            system_prompt=system_prompt,
+            prompt_file=None,  # Clear prompt_file since we've already loaded it
         )
 
         # Create person with config

@@ -44,12 +44,12 @@ persons:
       Every file must be immediately usable with no placeholders or TODOs.
 
   Frontend Generator:
-#    service: openai
-#    model: gpt-5-mini-2025-08-07
-#    api_key_id: APIKEY_52609F
-    service: claude-code
-    model: claude-code
-    api_key_id: APIKEY_CLAUDE
+    service: openai
+    model: gpt-5-mini-2025-08-07
+    api_key_id: APIKEY_52609F
+#    service: claude-code
+#    model: claude-code
+#    api_key_id: APIKEY_CLAUDE
     system_prompt: |
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
 
@@ -62,13 +62,13 @@ persons:
 
 
   Frontend Verdict:
-#    service: openai
-#    model: gpt-5-mini-2025-08-07
-#    api_key_id: APIKEY_52609F
-     service: claude-code
-     model: claude-code
-     api_key_id: APIKEY_CLAUDE
-     system_prompt: |
+    service: openai
+    model: gpt-5-mini-2025-08-07
+    api_key_id: APIKEY_52609F
+#     service: claude-code
+#     model: claude-code
+#     api_key_id: APIKEY_CLAUDE
+    system_prompt: |
       You are an expert React/TypeScript engineer.
 
 nodes:

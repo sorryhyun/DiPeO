@@ -234,13 +234,18 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
 
             # Log if enabled
             if hasattr(self, "logger"):
-                self.log_debug(f"Using {service} provider for model {model}")
                 self.log_debug(f"Messages: {len(messages)}")
 
             # Prepare kwargs for the client
             client_kwargs = {**kwargs}
+            # Set execution phase - default to DIRECT_EXECUTION if not specified
             if execution_phase:
                 client_kwargs["execution_phase"] = execution_phase
+            else:
+                # Default to direct execution for regular completions
+                from dipeo.diagram_generated.enums import ExecutionPhase
+
+                client_kwargs["execution_phase"] = ExecutionPhase.DIRECT_EXECUTION
 
             # Call the client
             if hasattr(client, "async_chat"):

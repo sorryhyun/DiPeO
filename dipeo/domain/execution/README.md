@@ -167,72 +167,19 @@ class TransformationType(Enum):
     CUSTOM = "custom"              # Custom function
 ```
 
-### 3. Dynamic Order Calculator (`dynamic_order_calculator.py`)
+### 3. Node Scheduling (Moved to Application Layer)
 
-Calculates execution order at runtime with advanced dependency resolution:
+Node scheduling and execution order calculation has been moved to the application layer's `NodeScheduler` class in `dipeo.application.execution.scheduler`. This scheduler implements:
 
-```python
-class DomainDynamicOrderCalculator:
-    """Calculates node execution order with condition branch validation"""
-    
-    def get_ready_nodes(self,
-                       diagram: ExecutableDiagram,
-                       node_states: dict[NodeID, NodeState],
-                       context: ExecutionContext) -> list[ExecutableNode]:
-        """Get nodes ready for execution"""
-        ready_nodes = []
-        
-        for node in diagram.nodes:
-            if self._is_node_ready(node, diagram, node_states, context):
-                ready_nodes.append(node)
-        
-        # Prioritize and batch for optimal execution
-        prioritized = self._prioritize_nodes(ready_nodes, context)
-        batches = self._group_by_constraints(prioritized, context)
-        
-        return batches[0] if batches else []
-    
-    def _is_dependency_satisfied(self,
-                                edge: Any,
-                                node_states: dict[NodeID, NodeState],
-                                context: ExecutionContext) -> bool:
-        """Check dependency with condition branch validation"""
-        source_state = node_states.get(edge.source_node_id)
-        if not source_state or source_state.status not in [Status.COMPLETED, Status.MAXITER_REACHED]:
-            return False
-        
-        # Critical: Validate condition branches
-        if edge.source_output in ["condtrue", "condfalse"]:
-            output = context.state.get_node_output(edge.source_node_id)
-            if isinstance(output, ConditionOutput):
-                active_branch, _ = output.get_branch_output()
-                return edge.source_output == active_branch  # Only satisfied if on active branch
-            return False
-        
-        return True
-```
+- **Token-based readiness checks**: Nodes are scheduled based on token availability
+- **Join policies**: Support for all, any, and k_of_n join semantics
+- **Loop iteration limits**: Automatic handling of max iterations
+- **Priority-based execution**: Respects execution priorities between sibling nodes
+- **Condition branch validation**: Proper handling of conditional dependencies
 
-**Dependency Analysis:**
+The scheduler is integrated directly with the execution engine and uses token-based flow control as the primary scheduling mechanism, with status tracking maintained only for UI visualization purposes.
 
-```python
-def get_dependencies(self, node_id: NodeID) -> set[NodeID]:
-    """Get all upstream dependencies for a node"""
-    dependencies = set()
-    
-    for edge in self.diagram.edges:
-        if edge.target_node_id == node_id:
-            dependencies.add(edge.source_node_id)
-            
-            # Recursive dependencies for complex flows
-            if self._is_complex_node(edge.source_node_id):
-                dependencies.update(
-                    self.get_dependencies(edge.source_node_id)
-                )
-    
-    return dependencies
-```
-
-**Parallel Execution Detection:**
+### 4. Parallel Execution Detection:
 
 ```python
 def get_parallel_groups(self) -> list[set[NodeID]]:
