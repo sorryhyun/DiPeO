@@ -10,10 +10,9 @@ from dipeo.application.registry.keys import (
     API_INVOKER,
     API_KEY_SERVICE,
     BLOB_STORE,
-    DOMAIN_EVENT_BUS,
+    EVENT_BUS,
     FILESYSTEM_ADAPTER,
     LLM_SERVICE,
-    MESSAGE_BUS,
     MESSAGE_ROUTER,
     STATE_CACHE,
     STATE_REPOSITORY,
@@ -104,8 +103,7 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
             )
 
     registry.register(MESSAGE_ROUTER, router)
-    registry.register(MESSAGE_BUS, router)
-    registry.register(DOMAIN_EVENT_BUS, domain_event_bus)
+    registry.register(EVENT_BUS, domain_event_bus)
 
 
 def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) -> None:
@@ -178,8 +176,8 @@ def wire_event_services(registry: ServiceRegistry) -> None:
     from dipeo.diagram_generated.enums import EventType
     from dipeo.infrastructure.events.adapters import InMemoryEventBus
 
-    if registry.has(DOMAIN_EVENT_BUS):
-        domain_event_bus = registry.resolve(DOMAIN_EVENT_BUS)
+    if registry.has(EVENT_BUS):
+        domain_event_bus = registry.resolve(EVENT_BUS)
     else:
         event_bus_backend = os.getenv("DIPEO_EVENT_BUS_BACKEND", "adapter").lower()
 
@@ -194,8 +192,8 @@ def wire_event_services(registry: ServiceRegistry) -> None:
                 enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true",
             )
 
-    if not registry.has(DOMAIN_EVENT_BUS):
-        registry.register(DOMAIN_EVENT_BUS, domain_event_bus)
+    if not registry.has(EVENT_BUS):
+        registry.register(EVENT_BUS, domain_event_bus)
 
     if registry.has(MESSAGE_ROUTER):
         router = registry.resolve(MESSAGE_ROUTER)

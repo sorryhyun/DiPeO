@@ -14,12 +14,8 @@ STATE_STORE = ServiceKey["StateStorePort"]("state_store")
 FILE_SERVICE = ServiceKey["FileServicePort"]("file_service")
 MESSAGE_ROUTER = ServiceKey["MessageRouterPort"]("message_router")
 
-# Unified Event Bus - replaces EVENT_BUS, MESSAGE_BUS, and DOMAIN_EVENT_BUS
+# Unified Event Bus
 EVENT_BUS = ServiceKey["EventBus"]("event_bus")
-
-# Legacy aliases for backward compatibility (will be removed in v1.0)
-MESSAGE_BUS = EVENT_BUS
-DOMAIN_EVENT_BUS = EVENT_BUS
 
 # Execution State Services
 STATE_REPOSITORY = ServiceKey["ExecutionStateRepository"]("execution_state_repository")
@@ -127,7 +123,6 @@ __all__ = [
     "DIAGRAM_SERIALIZER",
     "DIAGRAM_STATISTICS_SERVICE",
     "DIAGRAM_VALIDATOR",
-    "DOMAIN_EVENT_BUS",
     "EVENT_BUS",
     "EXECUTION_CONTEXT",
     "EXECUTION_ORCHESTRATOR",
@@ -141,7 +136,6 @@ __all__ = [
     "LLM_SERVICE",
     "MEMORY_SELECTOR",
     "MEMORY_SERVICE",
-    "MESSAGE_BUS",
     "MESSAGE_ROUTER",
     "NODE_EXEC_COUNTS",
     "NODE_REGISTRY",

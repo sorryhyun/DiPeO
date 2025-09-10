@@ -57,10 +57,10 @@ async def create_server_container() -> Container:
         container.registry.register(MESSAGE_ROUTER, message_router)
 
     # Get or create domain event bus
-    from dipeo.application.registry.keys import DOMAIN_EVENT_BUS
+    # Event bus is already imported above as EVENT_BUS
 
-    if container.registry.has(DOMAIN_EVENT_BUS):
-        domain_event_bus = container.registry.resolve(DOMAIN_EVENT_BUS)
+    if container.registry.has(EVENT_BUS):
+        domain_event_bus = container.registry.resolve(EVENT_BUS)
         event_bus = domain_event_bus
     else:
         # Fallback to InMemoryEventBus

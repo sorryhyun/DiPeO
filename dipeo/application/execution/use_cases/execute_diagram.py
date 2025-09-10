@@ -89,15 +89,11 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
         if event_filter:
             options["event_filter"] = event_filter
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
-        from dipeo.application.registry.keys import DOMAIN_EVENT_BUS, EVENT_BUS
+        from dipeo.application.registry.keys import EVENT_BUS
 
         # Get event bus from registry if available
-        # Use DOMAIN_EVENT_BUS (which has MessageRouter subscribed) if available,
-        # otherwise fall back to EVENT_BUS for backward compatibility
         event_bus = None
-        if self.service_registry.has(DOMAIN_EVENT_BUS):
-            event_bus = self.service_registry.resolve(DOMAIN_EVENT_BUS)
-        elif self.service_registry.has(EVENT_BUS):
+        if self.service_registry.has(EVENT_BUS):
             event_bus = self.service_registry.resolve(EVENT_BUS)
 
         # Subscribe MetricsObserver to the event bus if available
