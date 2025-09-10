@@ -11,8 +11,8 @@ from dipeo.domain.diagram.ports import TemplateProcessorPort, TemplateResult
 class SimpleTemplateProcessor(TemplateProcessorPort):
     """Simple template processor supporting legacy double-brace syntax.
 
-    This is the infrastructure implementation of the TemplateProcessorPort.
-    It provides basic template features like variable substitution, conditionals, and loops
+    Infrastructure implementation of the TemplateProcessorPort protocol.
+    Provides basic template features like variable substitution, conditionals, and loops
     without requiring a full template engine like Jinja2.
     """
 
