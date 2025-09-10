@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   User, MessageSquare,
-  Search, Filter, Download, DollarSign, List, FileText
+  Search, Filter, Download, DollarSign, List, FileText, BarChart3
 } from 'lucide-react';
 import { Button } from '@/ui/components/common/forms/buttons';
 import { Input, Select } from '@/ui/components/common/forms';
@@ -12,6 +12,8 @@ import { useUIState } from '@/infrastructure/store/hooks/state';
 import { usePersonsData } from '@/domain/diagram/hooks';
 import { MessageList } from '../MessageList';
 import { ExecutionOrderView, ExecutionLogView } from '@/ui/components/execution';
+import { ExecutionMetricsView } from '@/ui/components/execution/ExecutionMetricsView';
+import { useExecutionMetrics } from '@/domain/execution/hooks/useExecutionMetrics';
 import { useCanvas } from '@/domain/diagram/contexts';
 import { ConversationFilters, UIConversationMessage } from '@/infrastructure/types/conversation';
 import { PersonID, executionId, personId } from '@/infrastructure/types';
@@ -19,7 +21,7 @@ import { debounce, throttle } from '@/lib/utils/math';
 import { stringify } from 'yaml';
 
 const ConversationDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'conversation' | 'execution-order' | 'execution-log'>('execution-log');
+  const [activeTab, setActiveTab] = useState<'conversation' | 'execution-order' | 'execution-log' | 'metrics'>('execution-log');
   const [dashboardSelectedPerson, setDashboardSelectedPerson] = useState<PersonID | 'whole' | null>(null);
   const [filters, setFilters] = useState<ConversationFilters>({
     searchTerm: '',
@@ -42,6 +44,12 @@ const ConversationDashboard: React.FC = () => {
   const { operations } = useCanvas();
   const { execution } = operations.executionOps;
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Use execution metrics hook for metrics tab
+  const { metrics, isLive } = useExecutionMetrics(
+    execution?.executionId || '',
+    execution?.isRunning || false
+  );
 
   // Use persons directly from the hook
   const persons = personsArray;
@@ -395,6 +403,17 @@ const ConversationDashboard: React.FC = () => {
         <FileText className="h-4 w-4" />
         <span>Execution Log</span>
       </button>
+      <button
+        className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+          activeTab === 'metrics'
+            ? 'border-blue-500 text-blue-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
+        }`}
+        onClick={() => setActiveTab('metrics')}
+      >
+        <BarChart3 className="h-4 w-4" />
+        <span>Metrics</span>
+      </button>
     </div>
   );
 
@@ -443,6 +462,17 @@ const ConversationDashboard: React.FC = () => {
           {/* Execution Log Tab - Always mounted but hidden when not active */}
           <div className={`flex-1 flex overflow-hidden ${activeTab === 'execution-log' ? '' : 'hidden'}`}>
             <ExecutionLogView />
+          </div>
+
+          {/* Metrics Tab - Always mounted but hidden when not active */}
+          <div className={`flex-1 overflow-auto ${activeTab === 'metrics' ? '' : 'hidden'}`}>
+            <div className="p-4">
+              <ExecutionMetricsView
+                executionId={execution?.executionId || ''}
+                metrics={metrics}
+                isActive={isLive}
+              />
+            </div>
           </div>
         </div>
       </div>

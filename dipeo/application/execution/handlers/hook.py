@@ -24,20 +24,12 @@ if TYPE_CHECKING:
 
 @register_handler
 class HookNodeHandler(TypedNodeHandler[HookNode]):
-    """
-    Clean separation of concerns:
-    1. validate() - Static/structural validation (compile-time checks)
-    2. pre_execute() - Runtime validation and setup
-    3. execute_with_envelopes() - Core execution logic with envelope inputs
-
-    Now uses envelope-based communication for clean input/output interfaces.
-    """
+    """Execute external hooks (shell commands, webhooks, Python scripts, or file operations)."""
 
     NODE_TYPE = NodeType.HOOK
 
     def __init__(self):
         super().__init__()
-        # Instance variables for passing data between methods
         self._current_filesystem_adapter = None
         self._current_timeout = None
 
@@ -64,14 +56,8 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         return ["filesystem_adapter"]
 
     async def pre_execute(self, request: ExecutionRequest[HookNode]) -> Envelope | None:
-        """Pre-execution setup: validate hook configuration and prepare resources.
-
-        Moves hook validation, configuration parsing, and service resolution
-        out of execute_request for cleaner separation of concerns.
-        """
         node = request.node
 
-        # Validate hook type
         valid_hook_types = {HookType.SHELL, HookType.WEBHOOK, HookType.PYTHON, HookType.FILE}
         if node.hook_type not in valid_hook_types:
             return EnvelopeFactory.create(
@@ -79,7 +65,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 produced_by=str(node.id),
             )
 
-        # Validate configuration based on hook type
         config = node.config or {}
 
         if node.hook_type == HookType.SHELL:
@@ -109,7 +94,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     },
                     produced_by=str(node.id),
                 )
-            # Get filesystem adapter for file hooks
             filesystem_adapter = request.services.resolve(FILESYSTEM_ADAPTER)
             if not filesystem_adapter:
                 return EnvelopeFactory.create(
@@ -119,46 +103,32 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     },
                     produced_by=str(node.id),
                 )
-            # Store in instance variable for execute_request
             self._current_filesystem_adapter = filesystem_adapter
         else:
-            # Clear filesystem adapter for non-file hooks
             self._current_filesystem_adapter = None
 
-        # Store timeout configuration in instance variable
         self._current_timeout = node.timeout or 30
 
-        # No early return - proceed to execute_request
         return None
 
     async def prepare_inputs(
         self, request: ExecutionRequest[HookNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelope inputs to legacy format for hook execution.
-
-        Phase 5: Now consumes tokens from incoming edges when available.
-        """
-        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
         envelope_inputs = self.consume_token_inputs(request, inputs)
 
-        # Convert envelope inputs to legacy format
         prepared_inputs = {}
         for key, envelope in envelope_inputs.items():
             try:
-                # Try to parse as JSON first
                 prepared_inputs[key] = envelope.as_json()
             except ValueError:
-                # Fall back to text
                 prepared_inputs[key] = envelope.as_text()
 
-        # Filesystem adapter already available in instance variable if needed (set in pre_execute for file hooks)
         if request.node.hook_type == HookType.FILE:
             self._temp_filesystem_adapter = self._current_filesystem_adapter
 
         return prepared_inputs
 
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
-        """Execute the hook with prepared inputs."""
         node = request.node
 
         try:
@@ -171,11 +141,9 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     def _build_node_output(
         self, result: Any, request: ExecutionRequest[HookNode]
     ) -> dict[str, Any]:
-        """Build multi-representation output for hook execution."""
         node = request.node
         hook_type = str(node.hook_type)
 
-        # Extract status info if available
         success = True
         exit_code = 0
         if isinstance(result, dict):
@@ -184,14 +152,12 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             if "returncode" in result:
                 exit_code = result["returncode"]
 
-        # Build representations
         representations = {
             "text": str(result) if not isinstance(result, dict) else json.dumps(result, indent=2),
             "object": result,
             "status": {"success": success, "exit_code": exit_code, "hook_type": hook_type},
         }
 
-        # Add hook-specific representations based on type
         if node.hook_type == HookType.SHELL:
             if isinstance(result, dict):
                 representations["output"] = result.get("stdout", result.get("output", ""))
@@ -203,7 +169,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         elif node.hook_type == HookType.FILE and isinstance(result, dict):
             representations["file_path"] = result.get("file", "")
 
-        # Determine primary body
         if isinstance(result, dict):
             primary = result
             primary_type = "json"
@@ -219,14 +184,11 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         }
 
     def serialize_output(self, result: Any, request: ExecutionRequest[HookNode]) -> Envelope:
-        """Serialize hook result to multi-representation envelope."""
         node = request.node
         trace_id = request.execution_id or ""
 
-        # Build multi-representation output
         output = self._build_node_output(result, request)
 
-        # Create envelope based on primary type
         primary = output["primary"]
         primary_type = output.get("primary_type", "text")
 
@@ -241,26 +203,17 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 trace_id=trace_id,
             )
 
-        # Representations no longer needed - removed deprecated with_representations() call
-
-        # Add metadata
         if "meta" in output:
             output_envelope = output_envelope.with_meta(**output["meta"])
 
         return output_envelope
 
     def post_execute(self, request: ExecutionRequest[HookNode], output: Envelope) -> Envelope:
-        """Post-execution hook to emit tokens.
-
-        Phase 5: Now emits output as tokens to trigger downstream nodes.
-        """
-        # Phase 5: Emit output as tokens to trigger downstream nodes
         self.emit_token_outputs(request, output)
 
         return output
 
     async def _execute_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
-        # Hook type already validated in pre_execute
         if node.hook_type == HookType.SHELL:
             return await self._execute_shell_hook(node, inputs)
         elif node.hook_type == HookType.WEBHOOK:
@@ -270,34 +223,27 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         elif node.hook_type == HookType.FILE:
             return await self._execute_file_hook(node, inputs)
         else:
-            # This should never happen since validation occurs in pre_execute
             raise InvalidDiagramError(f"Unknown hook type: {node.hook_type}")
 
     async def _execute_shell_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
-        # Configuration already validated in pre_execute
         config = node.config
         command = config.get("command")
 
-        # Prepare environment variables
         env = os.environ.copy()
         if config.get("env"):
             env.update(config["env"])
 
-        # Add inputs as environment variables
         for key, value in inputs.items():
             env[f"DIPEO_INPUT_{key.upper()}"] = json.dumps(value)
 
-        # Prepare command with arguments
         args = config.get("args", [])
         cmd = [command, *args]
 
-        # Execute command
         try:
             process = await asyncio.create_subprocess_exec(
                 *cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=config.get("cwd"), env=env
             )
 
-            # Apply timeout if specified
             timeout = self._current_timeout or 30
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
 
@@ -306,7 +252,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     f"Shell command failed with code {process.returncode}: {stderr.decode()}"
                 )
 
-            # Try to parse output as JSON, fallback to string
             output = stdout.decode().strip()
             try:
                 return json.loads(output)
@@ -317,26 +262,18 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             raise NodeExecutionError(f"Shell command timed out after {timeout} seconds") from None
 
     async def _execute_webhook_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
-        """Execute webhook hook - either send a request or subscribe to events.
-
-        Two modes supported:
-        1. Outgoing webhook: Send HTTP request to external URL
-        2. Event subscription: Subscribe to webhook events from providers
-        """
+        """Execute webhook hook - send request or subscribe to events."""
         config = node.config
 
-        # Check if this is a subscription hook
         if config.get("subscribe_to"):
             return await self._subscribe_to_webhook_events(node, inputs)
 
-        # Otherwise, it's an outgoing webhook request
         url = config.get("url")
 
         method = config.get("method", "POST")
         headers = config.get("headers", {})
         headers["Content-Type"] = "application/json"
 
-        # Prepare payload with inputs
         payload = {"inputs": inputs, "hook_type": "hook_node", "node_id": node.label}
 
         timeout = aiohttp.ClientTimeout(total=self._current_timeout or 30)
@@ -352,11 +289,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 raise NodeExecutionError(f"Webhook request failed: {e!s}") from e
 
     async def _subscribe_to_webhook_events(self, node: HookNode, inputs: dict[str, Any]) -> Any:
-        """Subscribe to webhook events from providers.
-
-        This allows a diagram to be triggered by incoming webhooks.
-        The hook node will wait for matching events from the event bus.
-        """
+        """Subscribe to webhook events from providers."""
         config = node.config
         subscribe_config = config.get("subscribe_to", {})
 
@@ -370,7 +303,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 "Webhook subscription requires 'provider' in subscribe_to config"
             )
 
-        # Create an event consumer to wait for the webhook event
         received_event = None
         event_received = asyncio.Event()
 
@@ -378,7 +310,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             async def handle(self, event: DomainEvent) -> None:
                 nonlocal received_event
 
-                # Check if this is a webhook event for our provider
                 event_data = event.payload
                 if event_data.get("source") != "webhook":
                     return
@@ -389,22 +320,15 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 if event_name and event_data.get("event_name") != event_name:
                     return
 
-                # Apply additional filters if specified
                 payload = event_data.get("payload", {})
                 for key, expected_value in filter_conditions.items():
                     if payload.get(key) != expected_value:
                         return
 
-                # Event matches our criteria
                 received_event = event_data
                 event_received.set()
 
-        # Register our consumer with the event bus (if available)
-        # Note: In a real implementation, we'd need access to the event bus
-        # For now, this is a placeholder showing the pattern
-
         try:
-            # Wait for the event with timeout
             await asyncio.wait_for(event_received.wait(), timeout=timeout)
 
             if received_event:
@@ -430,13 +354,11 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             }
 
     async def _execute_python_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
-        # Configuration already validated in pre_execute
         config = node.config
         script = config.get("script")
 
         function_name = config.get("function_name", "hook")
 
-        # Prepare Python code to execute
         code = f"""
 import json
 import sys
@@ -448,7 +370,6 @@ result = {function_name}({json.dumps(inputs)})
 print(json.dumps(result))
 """
 
-        # Execute Python script
         try:
             process = await asyncio.create_subprocess_exec(
                 "python", "-c", code, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -470,13 +391,11 @@ print(json.dumps(result))
             raise NodeExecutionError(f"Failed to parse Python script output: {e!s}") from e
 
     async def _execute_file_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
-        # Configuration already validated in pre_execute
         config = node.config
         file_path = config.get("file_path")
 
         format_type = config.get("format", "json")
 
-        # Prepare data to write
         data = {"inputs": inputs, "node_id": node.label}
 
         try:
@@ -485,12 +404,10 @@ print(json.dumps(result))
             if not filesystem_adapter:
                 raise NodeExecutionError("Filesystem adapter not available")
 
-            # Create parent directories if needed
             parent_dir = path.parent
             if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
                 filesystem_adapter.mkdir(parent_dir, parents=True)
 
-            # Prepare content based on format
             if format_type == "json":
                 content = json.dumps(data, indent=2)
             elif format_type == "yaml":
@@ -500,7 +417,6 @@ print(json.dumps(result))
             else:  # text
                 content = str(data)
 
-            # Write file
             with filesystem_adapter.open(path, "wb") as f:
                 f.write(content.encode("utf-8"))
 

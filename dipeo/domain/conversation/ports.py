@@ -53,14 +53,6 @@ class ConversationRepository(Protocol):
         """Clear all messages from the conversation."""
         ...
 
-    def clear_person_messages(self, person_id: PersonID) -> None:
-        """Clear all messages involving a specific person.
-
-        Args:
-            person_id: The person whose messages to clear
-        """
-        ...
-
     def get_message_count(self) -> int:
         """Get the number of messages in the conversation."""
         ...

@@ -23,14 +23,7 @@ logger = logging.getLogger(__name__)
 
 @register_handler
 class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
-    """
-    Clean separation of concerns:
-    1. validate() - Static/structural validation (compile-time checks)
-    2. pre_execute() - Runtime validation and setup
-    3. execute_with_envelopes() - Core execution logic with envelope inputs
-
-    Now uses envelope-based communication for clean input/output interfaces.
-    """
+    """Renders templates using Jinja2 syntax and outputs the result."""
 
     NODE_TYPE = NodeType.TEMPLATE_JOB
 

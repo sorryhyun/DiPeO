@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_api_key_mutations(registry: ServiceRegistry) -> type:
-    """Create API key mutation methods with injected service registry."""
+    """Create API key mutation methods with injected registry."""
 
     @strawberry.type
     class ApiKeyMutations:
@@ -25,14 +25,12 @@ def create_api_key_mutations(registry: ServiceRegistry) -> type:
             try:
                 apikey_service = registry.resolve(API_KEY_SERVICE)
 
-                # Create API key using the service
                 result = await apikey_service.create_api_key(
                     label=input.label,
                     service=input.service.value,  # Convert enum to string
                     key=input.key,
                 )
 
-                # Return without exposing the actual key
                 safe_api_key = DomainApiKey(
                     id=result["id"],
                     label=result["label"],
@@ -59,7 +57,6 @@ def create_api_key_mutations(registry: ServiceRegistry) -> type:
                 api_key_id = str(id)
                 apikey_service = registry.resolve(API_KEY_SERVICE)
 
-                # Delete API key
                 await apikey_service.delete_api_key(api_key_id)
 
                 return DeleteResult(
@@ -88,7 +85,6 @@ def create_api_key_mutations(registry: ServiceRegistry) -> type:
                         error="LLM service not available",
                     )
 
-                # Get API key
                 api_keys = await apikey_service.list_api_keys()
                 api_key = None
                 for key in api_keys:
@@ -102,7 +98,6 @@ def create_api_key_mutations(registry: ServiceRegistry) -> type:
                         error=f"API key not found: {api_key_id}",
                     )
 
-                # Test the API key
                 try:
                     models = await llm_service.get_available_models(api_key_id)
 

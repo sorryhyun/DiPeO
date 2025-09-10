@@ -16,9 +16,7 @@ from .mutations import (
 
 
 def create_mutation_type(registry: ServiceRegistry) -> type:
-    """Create a combined Mutation type with all mutation categories."""
-
-    # Create individual mutation classes
+    """Create combined Mutation type with all mutation categories."""
     diagram_mutations = create_diagram_mutations(registry)
     execution_mutations = create_execution_mutations(registry)
     person_mutations = create_person_mutations(registry)
@@ -27,7 +25,6 @@ def create_mutation_type(registry: ServiceRegistry) -> type:
     upload_mutations = create_upload_mutations(registry)
     cli_session_mutations = create_cli_session_mutations(registry)
 
-    # Combine into single Mutation class
     @strawberry.type
     class Mutation(
         diagram_mutations,
@@ -38,8 +35,6 @@ def create_mutation_type(registry: ServiceRegistry) -> type:
         upload_mutations,
         cli_session_mutations,
     ):
-        """Combined GraphQL mutation type."""
-
         pass
 
     return Mutation

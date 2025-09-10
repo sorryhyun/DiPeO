@@ -62,18 +62,14 @@ class BaseCodeExecutor(ABC):
     """Base class for code executors with common functionality."""
 
     def prepare_inputs(self, inputs: dict[str, Any]) -> dict[str, Any]:
-        """Prepare inputs for execution (e.g., parse JSON strings)."""
         import json
 
         prepared = {}
-        # Handle case where inputs might not be a dictionary
         if not isinstance(inputs, dict):
-            # If inputs is None or not a dict, return empty dict
             return prepared
 
         if inputs:
             for key, value in inputs.items():
-                # Try to parse JSON strings
                 if isinstance(value, str) and value.strip() and value.strip()[0] in "{[":
                     try:
                         prepared[key] = json.loads(value)

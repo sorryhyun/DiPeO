@@ -22,26 +22,21 @@ logger = logging.getLogger(__name__)
 
 
 def create_execution_mutations(registry: ServiceRegistry) -> type:
-    """Create execution mutation methods with injected service registry."""
+    """Create execution mutation methods with injected registry."""
 
     @strawberry.type
     class ExecutionMutations:
         @strawberry.mutation
         async def execute_diagram(self, input: ExecuteDiagramInput) -> ExecutionResult:
             try:
-                # Get required services
                 state_store = registry.resolve(STATE_STORE)
                 message_router = registry.resolve(MESSAGE_ROUTER)
                 integrated_service = registry.resolve(DIAGRAM_PORT)
-
-                # Initialize diagram service if needed
                 if integrated_service and hasattr(integrated_service, "initialize"):
                     await integrated_service.initialize()
 
-                # Get diagram data - must be DomainDiagram for type safety
-
                 domain_diagram = None
-                diagram_source_path = None  # Track the original source path
+                diagram_source_path = None
                 if input.diagram_id:
                     diagram_source_path = input.diagram_id  # Store the original path
                     # Load diagram model by ID
@@ -132,10 +127,7 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                         # Process updates if needed
                         pass
 
-                # Start execution in background - keep reference to avoid task cleanup issues
                 _background_task = asyncio.create_task(run_execution())
-
-                # Wait briefly for execution to start
                 await asyncio.sleep(0.1)
 
                 if execution_id:
@@ -165,7 +157,6 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 state_store = registry.resolve(STATE_STORE)
                 message_router = registry.resolve(MESSAGE_ROUTER)
 
-                # Update node state
                 await state_store.update_node_status(
                     execution_id=input.execution_id,
                     node_id=input.node_id,
@@ -174,7 +165,6 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                     error=input.error,
                 )
 
-                # Send update event
                 await message_router.broadcast_to_execution(
                     execution_id=input.execution_id,
                     message={
@@ -209,7 +199,6 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 state_store = registry.resolve(STATE_STORE)
                 message_router = registry.resolve(MESSAGE_ROUTER)
 
-                # Map action to status
                 status_map = {
                     "pause": Status.PAUSED,
                     "resume": Status.RUNNING,
@@ -259,7 +248,6 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 message_router = registry.resolve(MESSAGE_ROUTER)
                 state_store = registry.resolve(STATE_STORE)
 
-                # Send interactive response
                 await message_router.broadcast_to_execution(
                     execution_id=input.execution_id,
                     message={

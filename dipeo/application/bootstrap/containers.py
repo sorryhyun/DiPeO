@@ -22,8 +22,6 @@ class Container:
         self.config = config or get_settings()
         self.registry = ServiceRegistry()
 
-        # Infrastructure must be initialized before Application
-        # as Application depends on infrastructure services
         self.infrastructure = InfrastructureContainer(self.registry, self.config)
         self.application = ApplicationContainer(self.registry)
 
@@ -58,7 +56,6 @@ class Container:
 
     async def shutdown(self):
         """Shutdown resources including warm pools."""
-        # Shutdown Claude Code warm pool if it's being used
         try:
             from dipeo.infrastructure.llm.providers.claude_code.transport.session_pool import (
                 shutdown_global_session_manager,
@@ -66,10 +63,8 @@ class Container:
 
             await shutdown_global_session_manager()
         except ImportError:
-            # Claude Code SDK not installed, skip
             pass
         except Exception as e:
-            # Log error but don't fail shutdown
             import logging
 
             logger = logging.getLogger(__name__)
@@ -78,8 +73,7 @@ class Container:
     def create_sub_container(self, execution_id: str) -> "Container":
         """Create a sub-container for isolated execution.
 
-        Infrastructure services are shared (connection pooling),
-        application services are shared, only execution context is isolated.
+        Infrastructure services are shared, only execution context is isolated.
         """
         return self
 

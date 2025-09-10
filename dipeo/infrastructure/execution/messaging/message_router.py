@@ -544,6 +544,18 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                     "timestamp": event.occurred_at.isoformat(),
                 }
                 await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
+
+            elif event.type == EventType.METRICS_COLLECTED:
+                # Forward metrics data directly to frontend
+                # The payload already contains metrics information from MetricsObserver
+                ui_payload = {
+                    "type": "METRICS_COLLECTED",
+                    "event_type": "METRICS_COLLECTED",
+                    "execution_id": str(event.scope.execution_id),
+                    "data": payload.get("data", payload),  # Extract metrics data
+                    "timestamp": event.occurred_at.isoformat(),
+                }
+                await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
         else:
             # Handle global events (not tied to specific execution)
             logger.debug(f"Received global event: {event.type.value}")

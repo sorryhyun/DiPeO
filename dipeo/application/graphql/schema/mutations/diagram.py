@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_diagram_mutations(registry: ServiceRegistry) -> type:
-    """Create diagram mutation methods with injected service registry."""
+    """Create diagram mutation methods with injected registry."""
 
     @strawberry.type
     class DiagramMutations:
@@ -26,7 +26,6 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
             try:
                 diagram_service = registry.resolve(DIAGRAM_PORT)
 
-                # Create metadata from input
                 metadata = DiagramMetadata(
                     name=input.name,
                     description=input.description or "",
@@ -36,7 +35,6 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
                     modified=datetime.now(),
                 )
 
-                # Create empty diagram with metadata
                 diagram_model = DomainDiagram(
                     nodes=[],
                     arrows=[],
@@ -46,7 +44,6 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
                     metadata=metadata,
                 )
 
-                # Save the typed model directly
                 filename = await diagram_service.create_diagram(input.name, diagram_model, "json")
 
                 return DiagramResult(
@@ -68,12 +65,10 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
                 diagram_id = DiagramID(str(id))
                 diagram_service = registry.resolve(DIAGRAM_PORT)
 
-                # Get diagram to verify it exists
                 diagram_data = await diagram_service.get_diagram(diagram_id)
                 if not diagram_data:
                     raise FileNotFoundError(f"Diagram not found: {id}")
 
-                # Find the path for deletion
                 file_repo = diagram_service.file_repository
                 path = await file_repo.find_by_id(id)
                 if path:

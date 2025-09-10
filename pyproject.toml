@@ -214,6 +214,7 @@ ignore = [
     "PTH111", # os.path.expanduser should be replaced by Path.expanduser()
     "PTH201", # Path constructor with current directory
     "PTH207", # glob should be replaced by Path.glob
+    "N806"
 ]
 
 [tool.ruff.lint.pep8-naming]

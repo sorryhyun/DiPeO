@@ -46,14 +46,11 @@ from ..types.provider_types import (
 )
 from ..types.results import DiagramFormatInfo
 
-# Version constant - should be imported from shared location
 DIAGRAM_VERSION = "1.0.0"
 
 
 def create_query_type(registry: ServiceRegistry) -> type:
-    """Create a Query type with injected service registry."""
-
-    # Create resolvers with registry
+    """Create Query type with injected service registry."""
     diagram_resolver = DiagramResolver(registry)
     execution_resolver = ExecutionResolver(registry)
     person_resolver = PersonResolver(registry)
@@ -114,29 +111,24 @@ def create_query_type(registry: ServiceRegistry) -> type:
 
         @strawberry.field
         async def providers(self) -> list[ProviderType]:
-            """List all registered API providers."""
             return await provider_resolver.list_providers()
 
         @strawberry.field
         async def provider(self, name: str) -> ProviderType | None:
-            """Get a specific API provider by name."""
             return await provider_resolver.get_provider(name)
 
         @strawberry.field
         async def provider_operations(self, provider: str) -> list[OperationType]:
-            """Get operations for a specific provider."""
             return await provider_resolver.get_provider_operations(provider)
 
         @strawberry.field
         async def operation_schema(
             self, provider: str, operation: str
         ) -> OperationSchemaType | None:
-            """Get schema for a specific operation."""
             return await provider_resolver.get_operation_schema(provider, operation)
 
         @strawberry.field
         async def provider_statistics(self) -> ProviderStatisticsType:
-            """Get statistics about registered providers."""
             return await provider_resolver.get_provider_statistics()
 
         @strawberry.field
@@ -151,14 +143,12 @@ def create_query_type(registry: ServiceRegistry) -> type:
 
         @strawberry.field
         async def execution_capabilities(self) -> JSON:
-            # Get diagram service from registry
             integrated_service = registry.resolve(DIAGRAM_PORT)
             persons_list = []
 
             if integrated_service:
                 diagram_infos = await integrated_service.list_diagrams()
                 for diagram_info in diagram_infos:
-                    # Extract diagram ID from path
                     path = diagram_info.get("path", "")
                     diagram_id = path.split(".")[0] if path else diagram_info.get("id")
                     diagram = await integrated_service.get_diagram(diagram_id)
@@ -197,7 +187,7 @@ def create_query_type(registry: ServiceRegistry) -> type:
             except Exception:
                 pass
 
-            checks["redis"] = False  # Not implemented yet
+            checks["redis"] = False
 
             try:
                 (FILES_DIR / "diagrams").exists()
@@ -238,9 +228,6 @@ def create_query_type(registry: ServiceRegistry) -> type:
                     "has_more": False,
                 }
 
-            # Implementation continues as in original...
-            # (Keeping this simplified for brevity)
-
             return {
                 "conversations": [],
                 "total": 0,
@@ -278,16 +265,11 @@ def create_query_type(registry: ServiceRegistry) -> type:
                     "totalNodes": 0,
                 }
 
-            # Build execution order data from ExecutionState
             nodes = []
-
-            # Get executed nodes list and node states
             executed_nodes = (
                 execution.executed_nodes if hasattr(execution, "executed_nodes") else []
             )
             node_states = execution.node_states if hasattr(execution, "node_states") else {}
-
-            # Build detailed node information for each executed node
             for node_id in executed_nodes:
                 if node_id in node_states:
                     node_state = node_states[node_id]
@@ -444,7 +426,6 @@ def create_query_type(registry: ServiceRegistry) -> type:
 
         @strawberry.field
         async def active_cli_session(self) -> CliSession | None:
-            """Get the current active CLI execution session."""
             cli_session_service = registry.resolve(CLI_SESSION_SERVICE)
             if not cli_session_service:
                 return None
@@ -469,10 +450,42 @@ def create_query_type(registry: ServiceRegistry) -> type:
 
         @strawberry.field
         async def execution_metrics(self, execution_id: strawberry.ID) -> JSON | None:
-            """Get metrics for a specific execution."""
-            execution_id_typed = ExecutionID(str(execution_id))
-            execution = await execution_resolver.get_execution(execution_id_typed)
+            from dipeo.application.execution.observers import MetricsObserver
+            from dipeo.application.registry.keys import ServiceKey
 
+            execution_id_typed = ExecutionID(str(execution_id))
+
+            # Try to get metrics from MetricsObserver first (real-time data)
+            try:
+                metrics_observer_key = ServiceKey[MetricsObserver]("metrics_observer")
+                metrics_observer = registry.resolve(metrics_observer_key)
+
+                # Get detailed metrics summary from observer
+                metrics_summary = metrics_observer.get_metrics_summary(str(execution_id))
+                if metrics_summary:
+                    # Get individual node metrics for detailed breakdown
+                    execution_metrics = metrics_observer.get_execution_metrics(str(execution_id))
+                    if execution_metrics:
+                        node_breakdown = []
+                        for node_id, node_metrics in execution_metrics.node_metrics.items():
+                            node_data = {
+                                "node_id": node_id,
+                                "node_type": node_metrics.node_type,
+                                "duration_ms": node_metrics.duration_ms,
+                                "token_usage": node_metrics.token_usage
+                                or {"input": 0, "output": 0, "total": 0},
+                                "error": node_metrics.error,
+                            }
+                            node_breakdown.append(node_data)
+
+                        metrics_summary["node_breakdown"] = node_breakdown
+
+                    return metrics_summary
+            except Exception:
+                pass  # Fall back to execution state
+
+            # Fall back to execution state if observer doesn't have data
+            execution = await execution_resolver.get_execution(execution_id_typed)
             if not execution or not hasattr(execution, "metrics"):
                 return None
 
@@ -485,7 +498,6 @@ def create_query_type(registry: ServiceRegistry) -> type:
             limit: int = 100,
             include_metrics: bool = False,
         ) -> list[ExecutionStateType]:
-            """Get execution history with optional metrics."""
             filter_input = None
             if diagram_id:
                 filter_input = ExecutionFilterInput(diagram_id=DiagramID(str(diagram_id)))

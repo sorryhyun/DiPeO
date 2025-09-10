@@ -39,15 +39,9 @@ async def create_server_container() -> Container:
     wire_minimal(container.registry, redis_client=None)
 
     # Wire optional features if specified
-    features = (
-        os.getenv("DIPEO_FEATURES", "").split(",")
-        if os.getenv("DIPEO_FEATURES")
-        else []
-    )
+    features = os.getenv("DIPEO_FEATURES", "").split(",") if os.getenv("DIPEO_FEATURES") else []
     if features:
-        wire_feature_flags(
-            container.registry, [f.strip() for f in features if f.strip()]
-        )
+        wire_feature_flags(container.registry, [f.strip() for f in features if f.strip()])
 
     # Wire messaging services for server operation
     wire_messaging_services(container.registry)
@@ -144,8 +138,13 @@ async def create_server_container() -> Container:
 
     # Create and subscribe metrics observer
     from dipeo.application.execution.observers import MetricsObserver
+    from dipeo.application.registry.keys import ServiceKey
 
     metrics_observer = MetricsObserver(event_bus=event_bus)
+
+    # Register metrics observer in the container for external access
+    METRICS_OBSERVER_KEY = ServiceKey[MetricsObserver]("metrics_observer")
+    container.registry.register(METRICS_OBSERVER_KEY, metrics_observer)
 
     # Subscribe to metrics events
     metrics_events = [
@@ -173,15 +172,9 @@ async def create_server_container() -> Container:
     # Load providers from manifests
     try:
         # Load all provider manifests - use BASE_DIR to ensure correct path
-        await provider_registry.load_manifests(
-            str(BASE_DIR / "integrations/**/provider.yaml")
-        )
-        await provider_registry.load_manifests(
-            str(BASE_DIR / "integrations/**/provider.yml")
-        )
-        await provider_registry.load_manifests(
-            str(BASE_DIR / "integrations/**/provider.json")
-        )
+        await provider_registry.load_manifests(str(BASE_DIR / "integrations/**/provider.yaml"))
+        await provider_registry.load_manifests(str(BASE_DIR / "integrations/**/provider.yml"))
+        await provider_registry.load_manifests(str(BASE_DIR / "integrations/**/provider.json"))
 
         # Log what was loaded
         import logging
@@ -219,18 +212,14 @@ async def create_server_container() -> Container:
     logger = logging.getLogger(__name__)
     unused = container.registry.report_unused()
     if unused:
-        logger.info(
-            f"🔎 Unused registrations this run ({len(unused)}): {', '.join(unused)}"
-        )
+        logger.info(f"🔎 Unused registrations this run ({len(unused)}): {', '.join(unused)}")
 
     return container
 
 
 def get_container() -> Container:
     if _container is None:
-        raise RuntimeError(
-            "Container not initialized. Call initialize_container() first."
-        )
+        raise RuntimeError("Container not initialized. Call initialize_container() first.")
     return _container
 
 
@@ -243,9 +232,7 @@ def initialize_container() -> Container:
         try:
             asyncio.get_running_loop()
             # If we're already in an event loop, this is an error
-            raise RuntimeError(
-                "initialize_container must be called before the event loop starts"
-            )
+            raise RuntimeError("initialize_container must be called before the event loop starts")
         except RuntimeError:
             # No event loop running, create container synchronously
             _container = asyncio.run(create_server_container())

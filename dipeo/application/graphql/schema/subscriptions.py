@@ -219,6 +219,19 @@ def create_subscription_type(registry: ServiceRegistry) -> type:
                                         data = json.loads(data)
                                     except Exception:
                                         data = {}
+                            elif event_type == "METRICS_COLLECTED":
+                                # Handle METRICS_COLLECTED events for real-time metrics updates
+                                data = event.get("data", {})
+                                if data is None:
+                                    data = {}
+                                elif isinstance(data, str):
+                                    try:
+                                        data = json.loads(data)
+                                    except Exception:
+                                        data = {}
+                                # Ensure metrics data is properly structured
+                                if isinstance(data, dict) and "metrics" in data:
+                                    data = data["metrics"]
                             else:
                                 # For other events, pass through the data as-is
                                 data = {

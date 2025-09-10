@@ -366,11 +366,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             **complete_kwargs,
         )
 
-        # Handle GOLDFISH mode
-        if memorize_to and memorize_to.strip().upper() == "GOLDFISH":
-            if hasattr(self._execution_orchestrator, "clear_person_messages"):
-                self._execution_orchestrator.clear_person_messages(person.id)
-
+        # GOLDFISH mode is handled by memory strategy returning empty list
         # Add messages to conversation
         if hasattr(self._execution_orchestrator, "add_message"):
             self._execution_orchestrator.add_message(

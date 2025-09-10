@@ -25,21 +25,12 @@ logger = logging.getLogger(__name__)
 
 @register_handler
 class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
-    """
-    Clean separation of concerns using Template Method Pattern:
-    1. validate() - Static/structural validation (compile-time checks)
-    2. pre_execute() - Runtime validation and setup
-    3. run() - Core execution logic
-    4. serialize_output() - Custom envelope creation
-
-    Now uses template method pattern to reduce code duplication.
-    """
+    """File-based DB node supporting read, write and append operations."""
 
     NODE_TYPE = NodeType.DB.value
 
     def __init__(self) -> None:
         super().__init__()
-        # Instance variables for passing data between methods
         self._current_db_service = None
         self._current_base_dir = None
         self._current_template_processor = None

@@ -1,5 +1,3 @@
-# Unified prompt building service
-
 import logging
 import warnings
 from typing import Any
@@ -20,19 +18,13 @@ class PromptBuilder:
         first_only_prompt: str | None = None,
         execution_count: int = 0,
     ) -> str:
-        """Build a prompt with template substitution.
-
-        This is now a pure template processor - conversation context
-        should be provided in template_values from the domain layer.
-        """
+        """Build a prompt with template substitution."""
         selected_prompt = self._select_prompt(prompt, first_only_prompt, execution_count)
 
-        # Handle None prompt - return empty string
         if selected_prompt is None:
             logger.warning("No prompt provided to PromptBuilder - returning empty string")
             return ""
 
-        # Use template processing to support variable substitution
         if self._processor:
             result = self._processor.process(selected_prompt, template_values)
             if result.errors:
@@ -41,28 +33,20 @@ class PromptBuilder:
                 logger.warning(f"Template missing keys: {result.missing_keys}")
             return result.content
         else:
-            # Return raw prompt if no processor available
             logger.warning("No template processor available!")
             return selected_prompt
 
     def prepare_template_values(self, inputs: dict[str, Any]) -> dict[str, Any]:
-        """Prepare template values from inputs.
-
-        This now only handles input transformation, not conversation context.
-        Conversation context should be obtained from Person.get_conversation_context().
-        """
+        """Prepare template values from inputs."""
         template_values = {}
 
         # Special handling for 'default' and 'first' inputs - flatten their properties to root context
-        # This allows templates to access {{property}} instead of {{default.property}} or {{first.property}}
         for special_key in ["default", "first"]:
             if special_key in inputs:
                 special_value = inputs[special_key]
 
-                # Only unwrap and flatten if it's a dict
                 if isinstance(special_value, dict):
                     # Handle double/triple nesting: recursively unwrap if default contains only a 'default' key
-                    # This handles cases where data passes through multiple unlabeled edges
                     while (
                         isinstance(special_value, dict)
                         and len(special_value) == 1
@@ -70,34 +54,27 @@ class PromptBuilder:
                     ):
                         special_value = special_value["default"]
 
-                    # Add all properties from the special input to the root context
                     if isinstance(special_value, dict):
                         for prop_key, prop_value in special_value.items():
-                            if prop_key not in template_values:  # Don't overwrite existing values
+                            if prop_key not in template_values:
                                 template_values[prop_key] = prop_value
                             else:
-                                # Log collision for debugging
                                 logger.debug(
                                     f"[PromptBuilder] Collision detected: '{prop_key}' already exists in template_values, skipping from {special_key}"
                                 )
 
-                # Always keep the special key itself (whether dict or scalar) for backward compatibility
-                # This ensures {{default}} and {{first}} are always accessible in templates
                 template_values[special_key] = special_value
 
-        # Process remaining inputs (skip already processed special keys)
         for key, value in inputs.items():
             if key in ["default", "first"]:
-                continue  # Already processed above
+                continue
             if isinstance(value, str | int | float | bool | type(None)):
                 template_values[key] = value
 
             elif isinstance(value, dict):
                 if "messages" in value:
-                    # Handle conversation data
                     messages = value.get("messages", [])
                     if messages:
-                        # Convert to simple dicts
                         messages_as_dicts = []
                         for msg in messages:
                             if hasattr(msg, "model_dump"):
@@ -105,7 +82,6 @@ class PromptBuilder:
                             elif isinstance(msg, dict):
                                 messages_as_dicts.append(msg)
                             else:
-                                # Convert object to dict
                                 messages_as_dicts.append(
                                     {
                                         "content": getattr(msg, "content", ""),
@@ -114,7 +90,6 @@ class PromptBuilder:
                                     }
                                 )
 
-                        # Make last message and full conversation available
                         if messages_as_dicts:
                             last_msg = messages_as_dicts[-1]
                             if "content" in last_msg:
@@ -122,7 +97,6 @@ class PromptBuilder:
                             template_values[f"{key}_messages"] = messages_as_dicts
                     continue
 
-                # For any dict value, make it available for dot notation access
                 template_values[key] = value
 
             elif isinstance(value, list) and all(
@@ -135,7 +109,6 @@ class PromptBuilder:
     def should_use_first_only_prompt(
         self, first_only_prompt: str | None, execution_count: int
     ) -> bool:
-        # execution_count is 1 on first run because it's incremented before execution
         return bool(first_only_prompt and execution_count == 1)
 
     def _select_prompt(
@@ -144,8 +117,6 @@ class PromptBuilder:
         first_only_prompt: str | None,
         execution_count: int,
     ) -> str:
-        # Debug logging
-
         if self.should_use_first_only_prompt(first_only_prompt, execution_count):
             return first_only_prompt
         return default_prompt
@@ -159,7 +130,6 @@ class PromptBuilder:
     ) -> str:
         selected_prompt = self._select_prompt(prompt, first_only_prompt, execution_count)
 
-        # Handle None prompt - return empty string
         if selected_prompt is None:
             logger.warning("No prompt provided to build_with_context - returning empty string")
             return ""
@@ -182,47 +152,34 @@ class PromptBuilder:
     def prepend_conversation_if_needed(
         self, prompt: str, conversation_context: dict[str, Any]
     ) -> str:
-        """Prepend conversation context to prompt if appropriate.
-
-        This is now a simple utility that checks if the prompt already references
-        conversation variables and prepends a summary if not.
-        """
-        # Check if prompt is None
+        """Prepend conversation context to prompt if appropriate."""
         if prompt is None:
             return prompt
 
-        # Check if conversation data is available
         if "global_conversation" not in conversation_context:
             return prompt
 
-        # Check if prompt already references conversation variables
         conversation_vars = ["global_conversation", "global_message_count", "person_conversations"]
         if any(f"{{{{{var}" in prompt or f"{{#{var}" in prompt for var in conversation_vars):
-            # Prompt already uses conversation variables, don't prepend
             return prompt
 
-        # Check if there are any messages to prepend
         global_conversation = conversation_context.get("global_conversation", [])
         if not global_conversation:
             return prompt
 
-        # Get context limit from settings
         try:
             from dipeo.config import get_settings
 
             settings = get_settings()
-            # Get conversation context limit from settings (use a reasonable default)
             context_limit = getattr(settings, "conversation_context_limit", 10)
         except Exception:
-            context_limit = 10  # Default fallback
+            context_limit = 10
 
-        # Build conversation summary
         conversation_summary = []
         conversation_summary.append(
             f"[Previous conversation with {len(global_conversation)} messages]"
         )
 
-        # Include recent messages
         recent_messages = (
             global_conversation[-context_limit:]
             if len(global_conversation) > context_limit
@@ -232,7 +189,7 @@ class PromptBuilder:
         for msg in recent_messages:
             from_person = msg.get("from", "unknown")
             content = msg.get("content", "")
-            if content:  # Only include non-empty messages
+            if content:
                 conversation_summary.append(f"{from_person}: {content}")
 
         if len(global_conversation) > context_limit:
@@ -240,8 +197,7 @@ class PromptBuilder:
                 f"... ({len(global_conversation) - context_limit} earlier messages omitted)"
             )
 
-        conversation_summary.append("")  # Empty line separator
+        conversation_summary.append("")
 
-        # Prepend to prompt
         conversation_text = "\n".join(conversation_summary)
         return f"{conversation_text}\n{prompt}"

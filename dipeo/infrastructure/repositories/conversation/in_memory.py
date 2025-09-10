@@ -76,23 +76,6 @@ class InMemoryConversationRepository(ConversationRepository):
         """Clear all messages from the conversation."""
         self._global_conversation.clear()
 
-    def clear_person_messages(self, person_id: PersonID) -> None:
-        """Clear all messages involving a specific person.
-
-        This filters out messages from/to the specified person.
-        """
-        # Filter out messages involving this person
-        filtered_messages = [
-            msg
-            for msg in self._global_conversation.messages
-            if msg.from_person_id != person_id and msg.to_person_id != person_id
-        ]
-
-        # Clear and rebuild conversation with filtered messages
-        self._global_conversation.clear()
-        for msg in filtered_messages:
-            self._global_conversation.add_message(msg)
-
     def get_message_count(self) -> int:
         """Get the number of messages in the conversation."""
         return len(self._global_conversation.messages)

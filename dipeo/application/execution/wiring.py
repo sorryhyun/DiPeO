@@ -29,6 +29,7 @@ def wire_execution(registry: ServiceRegistry) -> None:
     # Ensure handlers are auto-registered
     # This import triggers the auto-registration in handlers/__init__.py
     import dipeo.application.execution.handlers
+    from dipeo.application.conversation.wiring import MANAGE_CONVERSATION_USE_CASE
 
     # Wire execution orchestrator
     from dipeo.application.execution.orchestrators.execution_orchestrator import (
@@ -36,7 +37,6 @@ def wire_execution(registry: ServiceRegistry) -> None:
     )
     from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
     from dipeo.application.registry.keys import (
-        CONVERSATION_REPOSITORY,
         FILESYSTEM_ADAPTER,
         LLM_SERVICE,
         MEMORY_SELECTOR,
@@ -48,7 +48,7 @@ def wire_execution(registry: ServiceRegistry) -> None:
     def create_execution_orchestrator() -> ExecutionOrchestrator:
         """Factory for execution orchestrator with all dependencies."""
         person_repo = registry.resolve(PERSON_REPOSITORY)
-        conversation_repo = registry.resolve(CONVERSATION_REPOSITORY)
+        manage_conversation_use_case = registry.resolve(MANAGE_CONVERSATION_USE_CASE)
 
         # Create PromptLoadingUseCase
         filesystem_adapter = registry.resolve(FILESYSTEM_ADAPTER)
@@ -61,7 +61,7 @@ def wire_execution(registry: ServiceRegistry) -> None:
         # Create orchestrator with all dependencies
         orchestrator = ExecutionOrchestrator(
             person_repository=person_repo,
-            conversation_repository=conversation_repo,
+            manage_conversation_use_case=manage_conversation_use_case,
             prompt_loading_use_case=prompt_loading,
             memory_selector=None,  # Will be set after creation
             llm_service=llm_service,

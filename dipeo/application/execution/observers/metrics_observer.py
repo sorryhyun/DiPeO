@@ -1,4 +1,4 @@
-"""Metrics collection observer for execution analysis and optimization."""
+"""Metrics collection observer for execution analysis."""
 
 import asyncio
 import contextlib
@@ -24,8 +24,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class NodeMetrics:
-    """Metrics for a single node execution."""
-
     node_id: str
     node_type: str
     start_time: float
@@ -39,8 +37,6 @@ class NodeMetrics:
 
 @dataclass
 class ExecutionMetrics:
-    """Aggregated metrics for an entire execution."""
-
     execution_id: str
     start_time: float
     end_time: float | None = None
@@ -53,8 +49,6 @@ class ExecutionMetrics:
 
 @dataclass
 class DiagramOptimization:
-    """Optimization suggestions for a diagram."""
-
     execution_id: str
     diagram_id: str | None
     bottlenecks: list[dict[str, Any]]
@@ -62,7 +56,6 @@ class DiagramOptimization:
     suggested_changes: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for serialization."""
         return {
             "execution_id": self.execution_id,
             "diagram_id": self.diagram_id,
@@ -73,38 +66,25 @@ class DiagramOptimization:
 
 
 class MetricsObserver(EventBus):
-    """Collects execution metrics for analysis and optimization suggestions.
-
-    This observer:
-    - Tracks execution performance metrics
-    - Identifies bottlenecks and optimization opportunities
-    - Emits suggestions for diagram improvements
-    - Provides foundation for self-modifying diagrams
-    """
+    """Collects execution metrics for analysis and optimization suggestions."""
 
     def __init__(self, event_bus: EventBus | None = None):
         self._metrics_buffer: dict[str, ExecutionMetrics] = {}
-        self._node_dependencies: dict[str, dict[str, set[str]]] = {}  # exec_id -> node_id -> deps
-        self._completed_metrics: dict[
-            str, ExecutionMetrics
-        ] = {}  # Keep last N completed executions
+        self._node_dependencies: dict[str, dict[str, set[str]]] = {}
+        self._completed_metrics: dict[str, ExecutionMetrics] = {}
         self.event_bus = event_bus
-        self._analysis_threshold_ms = 1000  # Nodes taking > 1s are potential bottlenecks
+        self._analysis_threshold_ms = 1000
         self._cleanup_task: asyncio.Task | None = None
         self._running = False
-        self._max_completed_metrics = 10  # Keep last 10 completed executions
+        self._max_completed_metrics = 10
 
     def get_execution_metrics(self, execution_id: str) -> ExecutionMetrics | None:
-        """Get metrics for a specific execution."""
-        # Check active buffer first, then completed metrics
         return self._metrics_buffer.get(execution_id) or self._completed_metrics.get(execution_id)
 
     def get_all_metrics(self) -> dict[str, ExecutionMetrics]:
-        """Get all current metrics in the buffer."""
         return self._metrics_buffer.copy()
 
     def get_metrics_summary(self, execution_id: str) -> dict[str, Any] | None:
-        """Get a summary of metrics for an execution."""
         metrics = self._metrics_buffer.get(execution_id) or self._completed_metrics.get(
             execution_id
         )
@@ -118,18 +98,41 @@ class MetricsObserver(EventBus):
                 total_token_usage["output"] += node_metrics.token_usage.get("output", 0)
                 total_token_usage["total"] += node_metrics.token_usage.get("total", 0)
 
+        node_breakdown = []
+        for node_id, node_metrics in metrics.node_metrics.items():
+            node_data = {
+                "node_id": node_id,
+                "node_type": node_metrics.node_type,
+                "duration_ms": node_metrics.duration_ms,
+                "token_usage": node_metrics.token_usage or {"input": 0, "output": 0, "total": 0},
+                "error": node_metrics.error,
+            }
+            node_breakdown.append(node_data)
+
+        bottlenecks = []
+        for node_id in metrics.bottlenecks[:5]:
+            if node_id in metrics.node_metrics:
+                node_metrics = metrics.node_metrics[node_id]
+                bottlenecks.append(
+                    {
+                        "node_id": node_id,
+                        "node_type": node_metrics.node_type,
+                        "duration_ms": node_metrics.duration_ms,
+                    }
+                )
+
         return {
             "execution_id": metrics.execution_id,
             "total_duration_ms": metrics.total_duration_ms,
             "node_count": len(metrics.node_metrics),
             "total_token_usage": total_token_usage,
-            "bottlenecks": metrics.bottlenecks,
+            "bottlenecks": bottlenecks,
             "critical_path_length": len(metrics.critical_path),
             "parallelizable_groups": len(metrics.parallelizable_groups),
+            "node_breakdown": node_breakdown,
         }
 
     async def start(self) -> None:
-        """Start the metrics observer."""
         if self._running:
             return
 
@@ -138,7 +141,6 @@ class MetricsObserver(EventBus):
         logger.debug("MetricsObserver started")
 
     async def stop(self) -> None:
-        """Stop the metrics observer."""
         self._running = False
 
         if self._cleanup_task:
@@ -149,7 +151,6 @@ class MetricsObserver(EventBus):
         logger.info("MetricsObserver stopped")
 
     async def consume(self, event: DomainEvent) -> None:
-        """Process execution events to collect metrics."""
         try:
             if event.type == EventType.EXECUTION_STARTED:
                 await self._handle_execution_started(event)
@@ -165,7 +166,6 @@ class MetricsObserver(EventBus):
             logger.error(f"Error processing event: {e}", exc_info=True)
 
     async def _handle_execution_started(self, event: DomainEvent) -> None:
-        """Initialize metrics for a new execution."""
         execution_id = event.scope.execution_id
         self._metrics_buffer[execution_id] = ExecutionMetrics(
             execution_id=execution_id,
@@ -174,7 +174,6 @@ class MetricsObserver(EventBus):
         self._node_dependencies[execution_id] = {}
 
     async def _handle_node_started(self, event: DomainEvent) -> None:
-        """Track node start time."""
         execution_id = event.scope.execution_id
         metrics = self._metrics_buffer.get(execution_id)
         if not metrics:
@@ -191,14 +190,12 @@ class MetricsObserver(EventBus):
             start_time=event.occurred_at.timestamp(),
         )
 
-        # Track dependencies from inputs if available
         if payload.inputs and isinstance(payload.inputs, dict):
             deps = payload.inputs.get("dependencies", [])
             if deps:
                 self._node_dependencies[execution_id][node_id] = set(deps)
 
     async def _handle_node_completed(self, event: DomainEvent) -> None:
-        """Track node completion and calculate duration."""
         execution_id = event.scope.execution_id
         metrics = self._metrics_buffer.get(execution_id)
         if not metrics:
@@ -224,7 +221,6 @@ class MetricsObserver(EventBus):
             )
 
     async def _handle_node_failed(self, event: DomainEvent) -> None:
-        """Track node failures."""
         execution_id = event.scope.execution_id
         metrics = self._metrics_buffer.get(execution_id)
         if not metrics:
@@ -242,7 +238,6 @@ class MetricsObserver(EventBus):
         node_metrics.error = payload.error_message
 
     async def _handle_execution_completed(self, event: DomainEvent) -> None:
-        """Finalize metrics and emit analysis events."""
         execution_id = event.scope.execution_id
         metrics = self._metrics_buffer.get(execution_id)
         if not metrics:
@@ -251,26 +246,18 @@ class MetricsObserver(EventBus):
         metrics.end_time = event.occurred_at.timestamp()
         metrics.total_duration_ms = (metrics.end_time - metrics.start_time) * 1000
 
-        # Analyze and emit metrics
         await self._analyze_execution(metrics, event.scope)
-
-        # Store in completed metrics before cleanup
         self._completed_metrics[execution_id] = metrics
 
-        # Limit the size of completed metrics
         if len(self._completed_metrics) > self._max_completed_metrics:
-            # Remove oldest (first) item
             oldest_id = next(iter(self._completed_metrics))
             del self._completed_metrics[oldest_id]
 
-        # Clean up from active buffer
         del self._metrics_buffer[execution_id]
         if execution_id in self._node_dependencies:
             del self._node_dependencies[execution_id]
 
     async def _analyze_execution(self, metrics: ExecutionMetrics, scope: EventScope) -> None:
-        """Analyze execution metrics and emit findings."""
-        # Identify bottlenecks (slowest nodes)
         bottlenecks = []
         for node_id, node_metrics in metrics.node_metrics.items():
             if node_metrics.duration_ms and node_metrics.duration_ms > self._analysis_threshold_ms:
@@ -282,25 +269,42 @@ class MetricsObserver(EventBus):
                     }
                 )
 
-        # Sort by duration
         bottlenecks.sort(key=lambda x: x["duration_ms"], reverse=True)
-        metrics.bottlenecks = [b["node_id"] for b in bottlenecks[:5]]  # Top 5 slowest
-
-        # Calculate critical path (simplified - just longest sequential chain)
+        metrics.bottlenecks = [b["node_id"] for b in bottlenecks[:5]]
         metrics.critical_path = self._calculate_critical_path(metrics)
-
-        # Identify parallelizable groups
         metrics.parallelizable_groups = self._find_parallelizable_nodes(metrics)
 
         # Emit metrics event
         if self.event_bus:
+            # Build comprehensive node breakdown
+            node_breakdown = []
+            total_token_usage = {"input": 0, "output": 0, "total": 0}
+            for node_id, node_metrics in metrics.node_metrics.items():
+                node_data = {
+                    "node_id": node_id,
+                    "node_type": node_metrics.node_type,
+                    "duration_ms": node_metrics.duration_ms,
+                    "token_usage": node_metrics.token_usage
+                    or {"input": 0, "output": 0, "total": 0},
+                    "error": node_metrics.error,
+                }
+                node_breakdown.append(node_data)
+
+                # Aggregate token usage
+                if node_metrics.token_usage:
+                    total_token_usage["input"] += node_metrics.token_usage.get("input", 0)
+                    total_token_usage["output"] += node_metrics.token_usage.get("output", 0)
+                    total_token_usage["total"] += node_metrics.token_usage.get("total", 0)
+
             metrics_dict = {
                 "execution_id": metrics.execution_id,
                 "total_duration_ms": metrics.total_duration_ms,
                 "node_count": len(metrics.node_metrics),
+                "total_token_usage": total_token_usage,
                 "bottlenecks": bottlenecks[:5],
                 "critical_path_length": len(metrics.critical_path),
                 "parallelizable_groups": len(metrics.parallelizable_groups),
+                "node_breakdown": node_breakdown,
             }
 
             await self.event_bus.publish(
@@ -329,13 +333,10 @@ class MetricsObserver(EventBus):
                 )
 
     def _calculate_critical_path(self, metrics: ExecutionMetrics) -> list[str]:
-        """Calculate the critical path through the execution."""
-        # Simplified: return nodes in execution order that took the longest
         sorted_nodes = sorted(metrics.node_metrics.items(), key=lambda x: x[1].start_time)
         return [node_id for node_id, _ in sorted_nodes]
 
     def _find_parallelizable_nodes(self, metrics: ExecutionMetrics) -> list[list[str]]:
-        """Find groups of nodes that could run in parallel."""
         groups = []
         exec_id = metrics.execution_id
 
@@ -343,14 +344,12 @@ class MetricsObserver(EventBus):
             return groups
 
         dependencies = self._node_dependencies[exec_id]
-
-        # Find nodes with no dependencies on each other
         potential_group = []
+
         for node_id in metrics.node_metrics:
             node_deps = dependencies.get(node_id, set())
-
-            # Check if this node can run in parallel with nodes in potential_group
             can_parallel = True
+
             for other_id in potential_group:
                 other_deps = dependencies.get(other_id, set())
                 if node_id in other_deps or other_id in node_deps:
@@ -369,7 +368,6 @@ class MetricsObserver(EventBus):
         return groups
 
     def _estimate_parallel_savings(self, metrics: ExecutionMetrics) -> float:
-        """Estimate time savings from parallelization."""
         total_savings = 0.0
 
         for group in metrics.parallelizable_groups:
@@ -381,7 +379,6 @@ class MetricsObserver(EventBus):
                         durations.append(duration)
 
             if durations:
-                # Savings = sum of all durations - max duration (parallel execution time)
                 savings = sum(durations) - max(durations)
                 total_savings += savings
 

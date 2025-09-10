@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 from .service_registry import ServiceKey
 
-# Type imports for service keys
 if TYPE_CHECKING:
     pass
 
@@ -19,10 +18,10 @@ MESSAGE_ROUTER = ServiceKey["MessageRouterPort"]("message_router")
 EVENT_BUS = ServiceKey["EventBus"]("event_bus")
 
 # Legacy aliases for backward compatibility (will be removed in v1.0)
-MESSAGE_BUS = EVENT_BUS  # Now uses unified EventBus
-DOMAIN_EVENT_BUS = EVENT_BUS  # Now uses unified EventBus
+MESSAGE_BUS = EVENT_BUS
+DOMAIN_EVENT_BUS = EVENT_BUS
 
-# Execution State Services (from registry_tokens.py)
+# Execution State Services
 STATE_REPOSITORY = ServiceKey["ExecutionStateRepository"]("execution_state_repository")
 STATE_SERVICE = ServiceKey["ExecutionStateService"]("execution_state_service")
 STATE_CACHE = ServiceKey["ExecutionCachePort"]("execution_state_cache")
@@ -43,24 +42,20 @@ MEMORY_SELECTOR = ServiceKey["LLMMemorySelectionAdapter"]("memory_selector")
 # Domain Services
 DB_OPERATIONS_SERVICE = ServiceKey["DBOperationsDomainService"]("db_operations_service")
 DIAGRAM_CONVERTER = ServiceKey["DiagramConverter"]("diagram_converter")
-DIAGRAM_COMPILER = ServiceKey["DiagramCompiler"]("diagram_compiler")  # From registry_tokens.py
-DIAGRAM_SERIALIZER = ServiceKey["DiagramStorageSerializer"](
-    "diagram_serializer"
-)  # From registry_tokens.py
-DIAGRAM_PORT = ServiceKey["DiagramPort"]("diagram_port")  # From registry_tokens.py
+DIAGRAM_COMPILER = ServiceKey["DiagramCompiler"]("diagram_compiler")
+DIAGRAM_SERIALIZER = ServiceKey["DiagramStorageSerializer"]("diagram_serializer")
+DIAGRAM_PORT = ServiceKey["DiagramPort"]("diagram_port")
 
 # External Integration Services
 API_KEY_SERVICE = ServiceKey["APIKeyPort"]("api_key_service")
 INTEGRATED_API_SERVICE = ServiceKey["IntegratedApiServicePort"]("integrated_api_service")
-PROVIDER_REGISTRY = ServiceKey["Any"](
-    "provider_registry"
-)  # Provider registry for webhook integration
-API_INVOKER = ServiceKey["ApiInvoker"]("api_invoker")  # From registry_tokens.py
+PROVIDER_REGISTRY = ServiceKey["Any"]("provider_registry")
+API_INVOKER = ServiceKey["ApiInvoker"]("api_invoker")
 
 # Parser Services
 AST_PARSER = ServiceKey["ASTParserPort"]("ast_parser")
 
-# Resolution Services (from registry_tokens.py)
+# Resolution Services
 TRANSFORMATION_ENGINE = ServiceKey["TransformationEngine"]("transformation_engine")
 
 # Execution Context Services
@@ -87,7 +82,7 @@ DATABASE = ServiceKey["DatabasePort"]("database")
 NOTION_CLIENT = ServiceKey["NotionClientPort"]("notion_client")
 
 # Validator Services
-DIAGRAM_VALIDATOR = ServiceKey["DiagramValidator"]("diagram_validator")  # Active
+DIAGRAM_VALIDATOR = ServiceKey["DiagramValidator"]("diagram_validator")
 
 # Business Logic Services
 API_BUSINESS_LOGIC = ServiceKey["APIBusinessLogic"]("api_business_logic")
@@ -96,7 +91,7 @@ DIAGRAM_STATISTICS_SERVICE = ServiceKey["DiagramStatisticsService"]("diagram_sta
 DIAGRAM_FORMAT_SERVICE = ServiceKey["DiagramFormatDetector"]("diagram_format_service")
 LLM_DOMAIN_SERVICE = ServiceKey["LLMDomainService"]("llm_domain_service")
 
-# Additional Services (newly added for migration)
+# Additional Services
 CLI_SESSION_SERVICE = ServiceKey["CliSessionService"]("cli_session_service")
 
 # Repository Services
@@ -104,7 +99,6 @@ API_KEY_REPOSITORY = ServiceKey["APIKeyRepository"]("api_key_repository")
 CONVERSATION_REPOSITORY = ServiceKey["ConversationRepository"]("conversation_repository")
 DIAGRAM_REPOSITORY = ServiceKey["DiagramRepository"]("diagram_repository")
 EXECUTION_REPOSITORY = ServiceKey["ExecutionRepository"]("execution_repository")
-# NODE_OUTPUT_REPOSITORY removed - migrated to Envelope pattern
 PERSON_REPOSITORY = ServiceKey["PersonRepository"]("person_repository")
 
 # Registry Services
@@ -112,27 +106,18 @@ NODE_REGISTRY = ServiceKey["HandlerRegistry"]("node_registry")
 
 
 __all__ = [
-    # Business Logic
     "API_BUSINESS_LOGIC",
     "API_INVOKER",
-    # Repository Services
     "API_KEY_REPOSITORY",
-    # External Integration
     "API_KEY_SERVICE",
-    # Parser
     "AST_PARSER",
-    # Storage
     "BLOB_STORE",
-    # Additional Services
     "CLI_SESSION_SERVICE",
     "COMPILATION_SERVICE",
     "CONVERSATION_REPOSITORY",
     "CURRENT_NODE_INFO",
-    # Infrastructure
     "DATABASE",
-    # Domain
     "DB_OPERATIONS_SERVICE",
-    # Execution Context
     "DIAGRAM",
     "DIAGRAM_COMPILER",
     "DIAGRAM_CONVERTER",
@@ -141,30 +126,24 @@ __all__ = [
     "DIAGRAM_REPOSITORY",
     "DIAGRAM_SERIALIZER",
     "DIAGRAM_STATISTICS_SERVICE",
-    # Validators
     "DIAGRAM_VALIDATOR",
     "DOMAIN_EVENT_BUS",
     "EVENT_BUS",
     "EXECUTION_CONTEXT",
-    # Application
     "EXECUTION_ORCHESTRATOR",
     "EXECUTION_REPOSITORY",
-    # Diagram Services
     "EXECUTION_SERVICE",
     "FILESYSTEM_ADAPTER",
     "FILE_BUSINESS_LOGIC",
     "FILE_SERVICE",
     "INTEGRATED_API_SERVICE",
     "LLM_DOMAIN_SERVICE",
-    # Core Infrastructure
     "LLM_SERVICE",
     "MEMORY_SELECTOR",
     "MEMORY_SERVICE",
-    # Messaging Services
     "MESSAGE_BUS",
     "MESSAGE_ROUTER",
     "NODE_EXEC_COUNTS",
-    # Registry Services
     "NODE_REGISTRY",
     "NOTION_CLIENT",
     "PERSON_REPOSITORY",
@@ -173,11 +152,9 @@ __all__ = [
     "PROMPT_LOADING_SERVICE",
     "PROVIDER_REGISTRY",
     "STATE_CACHE",
-    # Execution State Services
     "STATE_REPOSITORY",
     "STATE_SERVICE",
     "STATE_STORE",
     "TEMPLATE_PROCESSOR",
-    # Resolution Services
     "TRANSFORMATION_ENGINE",
 ]

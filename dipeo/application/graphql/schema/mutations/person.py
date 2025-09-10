@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_person_mutations(registry: ServiceRegistry) -> type:
-    """Create person mutation methods with injected service registry."""
+    """Create person mutation methods with injected registry."""
 
     @strawberry.type
     class PersonMutations:
@@ -26,7 +26,6 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
             try:
                 execution_orchestrator = registry.resolve(EXECUTION_ORCHESTRATOR)
 
-                # Create LLM config from input
                 llm_config = PersonLLMConfig(
                     service=input.llm_config.service,
                     model=input.llm_config.model,
@@ -47,7 +46,7 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                     id=person_id,
                     label=input.label,
                     llm_config=llm_config,
-                    type="person",  # This is a literal type
+                    type="person",
                 )
 
                 return PersonResult(
@@ -131,7 +130,7 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                     id=person_id,
                     label=updated_label,
                     llm_config=updated_llm_config,
-                    type="person",  # This is a literal type
+                    type="person",
                 )
 
                 return PersonResult(

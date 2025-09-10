@@ -27,31 +27,24 @@ class ApplicationContainer:
         self._setup_application_services()
 
     def _setup_application_services(self):
-        # Use per-context wiring modules
         self._wire_bounded_contexts()
-
-        # Wire remaining services that haven't been migrated yet
         self._setup_app_services()
 
     def _wire_bounded_contexts(self):
         """Wire all bounded contexts using their respective wiring modules."""
-        # Wire execution context
         from dipeo.application.execution.wiring import wire_execution
 
         wire_execution(self.registry)
 
-        # Wire conversation context
         from dipeo.application.conversation.wiring import wire_conversation
 
         wire_conversation(self.registry)
 
-        # Wire diagram context
         from dipeo.application.diagram.wiring import wire_diagram
 
         wire_diagram(self.registry)
 
     def _setup_app_services(self):
-        # Register domain services
         from dipeo.domain.diagram.validation.diagram_validator import DiagramValidator
 
         self.registry.register(
@@ -84,19 +77,13 @@ class ApplicationContainer:
             DBOperationsDomainService(file_system=file_system, validation_service=DataValidator()),
         )
 
-        # Setup repositories - now handled by InfrastructureContainer
-        # ExecutionOrchestrator is now registered by wire_execution() in _wire_bounded_contexts()
-
         from dipeo.application.execution.use_cases import CliSessionService
 
-        # Pass state store to CliSessionService for fetching initial node states
         self.registry.register(
             CLI_SESSION_SERVICE,
             lambda: CliSessionService(state_store=self.registry.resolve(STATE_STORE)),
         )
 
-        # DiagramService is already wired by wire_all_diagram_services
-        # Just register it with the old key for backward compatibility
         diagram_service = self.registry.resolve(DIAGRAM_PORT)
         if diagram_service:
             self.registry.register(DIAGRAM_PORT, diagram_service)
@@ -111,4 +98,3 @@ class ApplicationContainer:
                 diagram_service=self.registry.resolve(DIAGRAM_PORT),
             ),
         )
-        # PrepareDiagramForExecutionUseCase is now registered by wire_execution() in _wire_bounded_contexts()
