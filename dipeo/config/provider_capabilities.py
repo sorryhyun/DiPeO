@@ -238,7 +238,7 @@ def get_provider_capabilities_object(
         supports_web_search=capabilities["supports_web_search"],
         supports_image_generation=capabilities["supports_image_generation"],
         supports_computer_use=capabilities["supports_computer_use"],
-        max_context_length=max_context_length or 4096,  # Default if not provided
+        max_context_length=max_context_length or 200000,  # Default if not provided
         max_output_tokens=max_output_tokens,
         supported_models=capabilities["supported_models"],
         streaming_modes=capabilities["streaming_modes"],

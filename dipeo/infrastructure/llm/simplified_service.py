@@ -265,7 +265,7 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
                 elif hasattr(response, "text"):
                     response_text = str(response.text)[:50]
                 else:
-                    response_text = str(response)[:50]
+                    response_text = str(response)
                 self.log_debug(f"LLM response: {response_text}")
 
             # Convert response to ChatResult

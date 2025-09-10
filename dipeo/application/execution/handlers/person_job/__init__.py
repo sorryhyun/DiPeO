@@ -4,7 +4,6 @@ This refactored version merges the executor logic directly into the handler,
 reducing layers of abstraction from 8 to 4-5 as per the simplification plan.
 """
 
-import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -14,7 +13,6 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.use_cases import PromptLoadingUseCase
-from dipeo.config.execution import BATCH_MAX_CONCURRENT, BATCH_SIZE
 from dipeo.config.llm import PERSON_JOB_MAX_TOKENS, PERSON_JOB_TEMPERATURE
 from dipeo.diagram_generated.domain_models import PersonID
 from dipeo.diagram_generated.enums import NodeType
@@ -22,6 +20,7 @@ from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode
 from dipeo.domain.conversation import Person
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
+from .batch_executor import BatchExecutor
 from .conversation_handler import ConversationHandler
 from .text_format_handler import TextFormatHandler
 
@@ -42,10 +41,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
 
     NODE_TYPE = NodeType.PERSON_JOB.value
 
-    # Batch execution defaults
-    DEFAULT_MAX_CONCURRENT = BATCH_MAX_CONCURRENT
-    DEFAULT_BATCH_SIZE = BATCH_SIZE
-
     def __init__(self):
         super().__init__()
 
@@ -61,6 +56,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         self._prompt_loading_use_case = None
         self._text_format_handler = TextFormatHandler()
         self._conversation_handler = ConversationHandler()
+        self._batch_executor = BatchExecutor(self._execute_single)
 
         # Instance variable for debug flag
         self._current_debug = False
@@ -211,7 +207,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         # Check if batch mode is enabled
         if getattr(node, "batch", False):
             logger.info(f"Executing PersonJobNode {node.id} in batch mode")
-            return await self._execute_batch(request)
+            return await self._batch_executor.execute_batch(request)
         else:
             return await self._execute_single(request)
 
@@ -242,7 +238,12 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         extracted_inputs = {}
         for key, value in inputs.items():
             if hasattr(value, "body"):  # It's an Envelope
-                extracted_inputs[key] = value.body
+                body = value.body
+                # Filter out internal metadata from conversation outputs
+                if isinstance(body, dict) and "llm_usage" in body:
+                    # Create a copy without llm_usage
+                    body = {k: v for k, v in body.items() if k != "llm_usage"}
+                extracted_inputs[key] = body
             else:
                 extracted_inputs[key] = value
         transformed_inputs = extracted_inputs
@@ -407,6 +408,9 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         llm_usage = None
         if hasattr(result, "llm_usage") and result.llm_usage:
             llm_usage = result.llm_usage
+            logger.debug(
+                f"[PersonJob] Extracted LLM usage: input={llm_usage.input}, output={llm_usage.output}, total={llm_usage.total}"
+            )
 
         # Get person and conversation IDs
         person_id = str(person.id) if person.id else None
@@ -445,296 +449,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             representations["conversation"] = conversation_repr
 
         return replace(primary_envelope, representations=representations)
-
-    # ==============================================================================
-    # BATCH EXECUTION LOGIC (merged from BatchPersonJobExecutor)
-    # ==============================================================================
-
-    async def _execute_batch(self, request: ExecutionRequest[PersonJobNode]) -> Envelope:
-        """Execute person job for each item in the batch (merged from BatchPersonJobExecutor)."""
-        node = request.node
-        trace_id = request.execution_id or ""
-
-        # Get batch configuration
-        batch_config = self._get_batch_configuration(node)
-
-        logger.debug(
-            f"Batch configuration - key: {batch_config['input_key']}, "
-            f"parallel: {batch_config['parallel']}, "
-            f"max_concurrent: {batch_config['max_concurrent']}"
-        )
-
-        # Extract array from inputs
-        batch_items = self._extract_batch_items(request.inputs, batch_config["input_key"])
-
-        if not batch_items:
-            return self._create_empty_batch_output(node, batch_config, trace_id)
-
-        logger.info(f"Processing batch of {len(batch_items)} items for person {node.person}")
-
-        # Execute batch items
-        if batch_config["parallel"]:
-            results, errors = await self._execute_batch_parallel(
-                batch_items, request, batch_config["max_concurrent"]
-            )
-        else:
-            results, errors = await self._execute_batch_sequential(batch_items, request)
-
-        # Return batch output
-        return self._create_batch_output(
-            node=node,
-            batch_items=batch_items,
-            results=results,
-            errors=errors,
-            batch_config=batch_config,
-            trace_id=trace_id,
-        )
-
-    def _get_batch_configuration(self, node: PersonJobNode) -> dict[str, Any]:
-        """Extract batch configuration from node."""
-        return {
-            "input_key": getattr(node, "batch_input_key", "items"),
-            "parallel": getattr(node, "batch_parallel", True),
-            "max_concurrent": getattr(node, "max_concurrent", self.DEFAULT_MAX_CONCURRENT),
-        }
-
-    def _extract_batch_items(
-        self, inputs: dict[str, Any] | None, batch_input_key: str
-    ) -> list[Any]:
-        """Extract batch items from inputs."""
-        if not inputs:
-            return []
-
-        logger.debug(
-            f"Extracting batch items with key '{batch_input_key}' from inputs: {list(inputs.keys())}"
-        )
-
-        batch_items = self._find_batch_items_in_inputs(inputs, batch_input_key)
-
-        if batch_items is None:
-            logger.warning(f"No batch items found for key '{batch_input_key}'")
-            return []
-
-        if not isinstance(batch_items, list):
-            logger.warning(
-                f"Batch input '{batch_input_key}' is not a list (type: {type(batch_items)}). "
-                f"Treating as single item."
-            )
-            return [batch_items]
-
-        return batch_items
-
-    def _find_batch_items_in_inputs(
-        self, inputs: dict[str, Any], batch_input_key: str
-    ) -> Any | None:
-        """Find batch items in various input structures."""
-        # Direct key in inputs
-        if batch_input_key in inputs:
-            logger.debug("Found batch items at root level")
-            return inputs[batch_input_key]
-
-        # Under 'default' key
-        if "default" in inputs:
-            default_value = inputs["default"]
-            if isinstance(default_value, dict) and batch_input_key in default_value:
-                logger.debug("Found batch items under 'default'")
-                return default_value[batch_input_key]
-            if batch_input_key == "default":
-                logger.debug("Batch items are the default value itself")
-                return default_value
-            if isinstance(default_value, dict):
-                for key, value in default_value.items():
-                    if key == batch_input_key:
-                        logger.debug(f"Found batch items in default dict at key '{key}'")
-                        return value
-
-        return None
-
-    async def _execute_batch_parallel(
-        self, batch_items: list[Any], request: ExecutionRequest[PersonJobNode], max_concurrent: int
-    ) -> tuple[list[Any], list[dict[str, Any]]]:
-        """Execute batch items in parallel with concurrency control."""
-        results = []
-        errors = []
-
-        # Create semaphore for concurrency control
-        semaphore = asyncio.Semaphore(max_concurrent)
-
-        async def execute_with_semaphore(batch_item: Any, index: int) -> Any:
-            async with semaphore:
-                return await self._execute_batch_item(batch_item, index, len(batch_items), request)
-
-        # Create tasks for all items
-        tasks = []
-        for idx, item in enumerate(batch_items):
-            task = execute_with_semaphore(item, idx)
-            tasks.append(task)
-
-        # Wait for all tasks to complete
-        task_results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Process results
-        for idx, result in enumerate(task_results):
-            if isinstance(result, Exception):
-                error = self._format_batch_error(idx, result, batch_items)
-                logger.error(f"Batch item {idx} failed: {error['error']}")
-                errors.append(error)
-            else:
-                results.append(result)
-
-        return results, errors
-
-    async def _execute_batch_sequential(
-        self, batch_items: list[Any], request: ExecutionRequest[PersonJobNode]
-    ) -> tuple[list[Any], list[dict[str, Any]]]:
-        """Execute batch items sequentially."""
-        results = []
-        errors = []
-
-        for idx, item in enumerate(batch_items):
-            try:
-                result = await self._execute_batch_item(item, idx, len(batch_items), request)
-                results.append(result)
-            except Exception as e:
-                error = self._format_batch_error(idx, e, batch_items)
-                logger.error(f"Error processing batch item {idx}: {error['error']}", exc_info=True)
-                errors.append(error)
-
-        return results, errors
-
-    async def _execute_batch_item(
-        self, item: Any, index: int, total: int, original_request: ExecutionRequest[PersonJobNode]
-    ) -> dict[str, Any]:
-        """Execute a single item in the batch."""
-        node = original_request.node
-
-        # Create item-specific inputs
-        item_inputs = self._create_item_inputs(
-            item=item, index=index, total=total, original_request=original_request
-        )
-
-        # Create a new request for this batch item
-        item_request = self._create_item_request(
-            node=node, item_inputs=item_inputs, index=index, original_request=original_request
-        )
-
-        # Execute using single execution logic
-        logger.debug(f"Executing batch item {index + 1}/{total} for person {node.person}")
-        result = await self._execute_single(item_request)
-
-        # Format the result
-        return self._format_item_result(index, result)
-
-    def _create_item_inputs(
-        self, item: Any, index: int, total: int, original_request: ExecutionRequest[PersonJobNode]
-    ) -> dict[str, Any]:
-        """Create inputs for a single batch item."""
-        node = original_request.node
-        batch_input_key = getattr(node, "batch_input_key", "items")
-
-        item_inputs = {"default": item, "_batch_index": index, "_batch_total": total}
-
-        # Merge with original inputs (excluding the batch array)
-        if original_request.inputs:
-            for key, value in original_request.inputs.items():
-                if key != batch_input_key and key != "default":
-                    item_inputs[key] = value
-
-        return item_inputs
-
-    def _create_item_request(
-        self,
-        node: PersonJobNode,
-        item_inputs: dict[str, Any],
-        index: int,
-        original_request: ExecutionRequest[PersonJobNode],
-    ) -> ExecutionRequest[PersonJobNode]:
-        """Create an execution request for a single batch item."""
-        return ExecutionRequest(
-            node=node,
-            context=original_request.context,
-            inputs=item_inputs,
-            services=original_request.services,
-            execution_id=f"{original_request.execution_id}_batch_{index}",
-            metadata={},
-            parent_registry=original_request.parent_registry,
-            parent_container=original_request.parent_container,
-        )
-
-    def _format_item_result(self, index: int, result: Any) -> dict[str, Any]:
-        """Format the result from a single item execution."""
-        if hasattr(result, "body"):  # It's an Envelope
-            output_value = result.body
-            metadata = result.meta if hasattr(result, "meta") else {}
-            return {"index": index, "output": output_value, "metadata": metadata}
-        else:
-            return {"index": index, "output": str(result), "metadata": {}}
-
-    def _format_batch_error(
-        self, index: int, error: Exception, batch_items: list[Any]
-    ) -> dict[str, Any]:
-        """Format error information for batch processing."""
-        return {
-            "index": index,
-            "error": str(error),
-            "error_type": type(error).__name__,
-            "item": batch_items[index] if index < len(batch_items) else None,
-        }
-
-    def _create_empty_batch_output(
-        self, node: PersonJobNode, batch_config: dict[str, Any], trace_id: str = ""
-    ) -> Envelope:
-        """Create an Envelope for empty batch."""
-        logger.warning(
-            f"Batch mode enabled but no items found for key '{batch_config['input_key']}'"
-        )
-
-        empty_result = {
-            "total_items": 0,
-            "successful": 0,
-            "failed": 0,
-            "results": [],
-            "errors": None,
-        }
-
-        envelope = EnvelopeFactory.create(body=empty_result, produced_by=node.id, trace_id=trace_id)
-        envelope = envelope.with_meta(
-            batch_mode="empty", batch_parallel=batch_config["parallel"], person_id=node.person
-        )
-
-        return envelope
-
-    def _create_batch_output(
-        self,
-        node: PersonJobNode,
-        batch_items: list[Any],
-        results: list[Any],
-        errors: list[dict[str, Any]],
-        batch_config: dict[str, Any],
-        trace_id: str = "",
-    ) -> Envelope:
-        """Create an Envelope containing batch execution results."""
-        batch_output = {
-            "total_items": len(batch_items),
-            "successful": len(results),
-            "failed": len(errors),
-            "results": results,
-            "errors": errors if errors else None,
-        }
-
-        envelope = EnvelopeFactory.create(body=batch_output, produced_by=node.id, trace_id=trace_id)
-
-        meta = {
-            "batch_mode": "completed",
-            "batch_parallel": batch_config["parallel"],
-            "total_items": len(batch_items),
-            "successful": len(results),
-            "failed": len(errors),
-            "person_id": node.person,
-        }
-        envelope = envelope.with_meta(**meta)
-
-        return envelope
 
     # ==============================================================================
     # HELPER METHODS (shared by both single and batch execution)
@@ -780,9 +494,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             "last_message": messages[-1] if messages else None,
             "person_id": str(person.id),
             "model": model,
-            "llm_usage": result.llm_usage.model_dump()
-            if hasattr(result, "llm_usage") and result.llm_usage
-            else None,
         }
 
     def _any_edge_needs_conversation(self, node_id, diagram):
@@ -848,7 +559,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
 
         # Check if batch mode
         if getattr(node, "batch", False):
-            # Batch result is already an Envelope from _execute_batch
+            # Batch result is already an Envelope from BatchExecutor
             if isinstance(result, Envelope):
                 return result
             else:

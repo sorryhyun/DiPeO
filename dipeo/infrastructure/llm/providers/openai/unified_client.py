@@ -174,13 +174,23 @@ class UnifiedOpenAIClient:
         )
 
     def _extract_usage(self, response: Any) -> LLMUsage | None:
-        """Extract token usage from response."""
+        """Extract token usage from response using new OpenAI responses API format."""
         if hasattr(response, "usage"):
             usage = response.usage
+            # New OpenAI responses API uses input_tokens and output_tokens
+            input_tokens = getattr(usage, "input_tokens", 0)
+            output_tokens = getattr(usage, "output_tokens", 0)
+            total_tokens = getattr(usage, "total_tokens", input_tokens + output_tokens)
+
+            # Log for debugging
+            logger.debug(
+                f"OpenAI usage - input: {input_tokens}, output: {output_tokens}, total: {total_tokens}"
+            )
+
             return LLMUsage(
-                input=usage.prompt_tokens if hasattr(usage, "prompt_tokens") else 0,
-                output=usage.completion_tokens if hasattr(usage, "completion_tokens") else 0,
-                total=usage.total_tokens if hasattr(usage, "total_tokens") else 0,
+                input=input_tokens,
+                output=output_tokens,
+                total=total_tokens,
             )
         return None
 

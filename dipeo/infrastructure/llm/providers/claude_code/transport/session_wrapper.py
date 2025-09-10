@@ -51,11 +51,6 @@ class SessionQueryWrapper:
         # Borrow a session from the pool (will connect on-demand)
         self._session = await self._pool.borrow()
 
-        logger.debug(
-            f"[SessionQueryWrapper] Borrowed session {self._session.session_id} "
-            f"for phase '{self.execution_phase}'"
-        )
-
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -65,16 +60,8 @@ class SessionQueryWrapper:
             # remove it here so disconnect runs in the same task that used it.
             try:
                 if (not self._session.can_reuse()) or self._session.is_expired():
-                    logger.debug(
-                        f"[SessionQueryWrapper] Removing non-reusable session {self._session.session_id} "
-                        f"(queries: {self._session.query_count}/{self._session.max_queries})"
-                    )
                     await self._pool.remove_session(self._session)
             finally:
-                logger.debug(
-                    f"[SessionQueryWrapper] Released session {self._session.session_id} "
-                    f"(queries: {self._session.query_count}/{self._session.max_queries})"
-                )
                 self._session = None
 
     async def force_cleanup(self):

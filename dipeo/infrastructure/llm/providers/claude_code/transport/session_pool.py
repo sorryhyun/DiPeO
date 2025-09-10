@@ -323,8 +323,6 @@ class SessionPool:
         self._closed = False
         self._pending_cleanup: list[SessionClient] = []  # Sessions pending cleanup
 
-        logger.info(f"[SessionPool] Initialized pool '{pool_key}' with max_sessions={max_sessions}")
-
     async def borrow(self) -> SessionClient:
         """Borrow a session from the pool, creating and connecting if necessary.
 
@@ -356,10 +354,6 @@ class SessionPool:
 
                     self._stats.total_borrowed += 1
                     self._stats.total_reused += 1
-                    logger.debug(
-                        f"[SessionPool] Reusing session {session.session_id} "
-                        f"(query {session.query_count + 1}/{session.max_queries})"
-                    )
                     session_to_return = session
                     break
 
@@ -407,9 +401,6 @@ class SessionPool:
             )
 
             self._stats.total_created += 1
-            logger.info(
-                f"[SessionPool] Created session {session_id} for pool '{self.pool_key}' (not connected)"
-            )
 
             return session
 
@@ -435,9 +426,6 @@ class SessionPool:
 
         # Add expired sessions to pending cleanup list
         for session in expired:
-            logger.debug(
-                f"[SessionPool] Removed expired session {session.session_id} from pool '{self.pool_key}'"
-            )
             self._pending_cleanup.append(session)
 
     async def _cleanup_unusable(self) -> None:
@@ -456,10 +444,6 @@ class SessionPool:
 
         # Add unusable sessions to pending cleanup list
         for session in unusable:
-            logger.debug(
-                f"[SessionPool] Removed unusable session {session.session_id} from pool '{self.pool_key}' "
-                f"(completed {session.query_count}/{session.max_queries} queries)"
-            )
             self._pending_cleanup.append(session)
 
     async def _disconnect_session(self, session: SessionClient) -> None:
@@ -555,8 +539,6 @@ class SessionPoolManager:
         self._lock = asyncio.Lock()
         self._closed = False
 
-        logger.info(f"[SessionPoolManager] Initialized with max_pools={max_pools}")
-
     def _generate_pool_key(
         self,
         execution_phase: str,
@@ -622,16 +604,10 @@ class SessionPoolManager:
             )
             self._pools[pool_key] = pool
 
-            logger.info(
-                f"[SessionPoolManager] Created pool '{pool_key}'. "
-                f"Active pools: {len(self._pools)}/{self.max_pools}"
-            )
-
             return pool
 
     async def shutdown_all(self) -> None:
         """Shutdown all pools."""
-        logger.info("[SessionPoolManager] Shutting down all session pools")
         self._closed = True
 
         async with self._lock:

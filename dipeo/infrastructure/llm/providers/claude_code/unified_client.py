@@ -40,7 +40,6 @@ class UnifiedClaudeCodeClient:
     def __init__(self, config: AdapterConfig):
         """Initialize unified client with configuration."""
         self.config = config
-        self.model = config.model or "claude-code"
         self.provider_type = "claude_code"
 
         # Set capabilities
@@ -63,31 +62,45 @@ class UnifiedClaudeCodeClient:
             max_output_tokens=CLAUDE_MAX_OUTPUT_TOKENS,
         )
 
-    def _get_system_prompt(self, execution_phase: ExecutionPhase | None = None) -> str | None:
+    def _get_system_prompt(
+        self, execution_phase: ExecutionPhase | None = None, **kwargs
+    ) -> str | None:
         """Get system prompt based on execution phase."""
         if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-            return MEMORY_SELECTION_PROMPT
+            # Get person name from kwargs if available
+            person_name = kwargs.get("person_name", "Assistant")
+            # Replace the placeholder in the prompt
+            return MEMORY_SELECTION_PROMPT.format(assistant_name=person_name)
         elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
             return LLM_DECISION_PROMPT
         elif execution_phase == ExecutionPhase.DIRECT_EXECUTION:
             return DIRECT_EXECUTION_PROMPT
         return None
 
-    def _prepare_message(self, messages: list[Message]) -> str:
+    def _prepare_message(self, messages: list[Message]):
         """Prepare messages for Claude Code SDK."""
         # Claude Code SDK expects a single message string
         # Combine all messages into a single prompt
         formatted_messages = []
+        system_message = ""
 
         for msg in messages:
-            if msg.role == "system":
-                formatted_messages.append(f"System: {msg.content}")
-            elif msg.role == "assistant":
-                formatted_messages.append(f"Assistant: {msg.content}")
-            else:  # user role
-                formatted_messages.append(f"User: {msg.content}")
+            # Handle both dict and Message object formats
+            if isinstance(msg, dict):
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+            else:
+                role = msg.role
+                content = {"role": msg.role, "content": [{"type": "text", "text": msg.content}]}
 
-        return "\n\n".join(formatted_messages)
+            if role == "system":
+                system_message = content
+            elif role == "assistant":
+                formatted_messages.append({"type": "assistant", "message": content})
+            else:  # user role
+                formatted_messages.append({"type": "user", "message": content})
+
+        return system_message, str(formatted_messages)
 
     def _extract_usage_from_response(self, response_text: str) -> LLMUsage | None:
         """Extract token usage from response if included."""
@@ -119,7 +132,7 @@ class UnifiedClaudeCodeClient:
             content=clean_response,
             raw_response=response,
             usage=usage,
-            model=self.model,
+            model="claude-code",
             provider=self.provider_type,
         )
 
@@ -136,28 +149,43 @@ class UnifiedClaudeCodeClient:
     ) -> LLMResponse:
         """Execute async chat completion with retry logic."""
         # Prepare message
-        message_text = self._prepare_message(messages)
+        system_message, message_text = self._prepare_message(messages)
 
         # Get system prompt based on execution phase
-        system_prompt = self._get_system_prompt(execution_phase)
+        # Extract person_name from system message if it contains "YOUR NAME:"
+        person_name = None
+        if system_message and "YOUR NAME:" in system_message:
+            # Extract person name from system message
+            match = re.search(r"YOUR NAME:\s*([^\n]+)", system_message)
+            if match:
+                person_name = match.group(1).strip()
+                # Remove the YOUR NAME line from system message
+                system_message = re.sub(r"YOUR NAME:\s*[^\n]+\n*", "", system_message)
+
+        system_prompt = self._get_system_prompt(execution_phase, person_name=person_name)
+        if system_prompt:
+            system_prompt = system_prompt + ("\n\n" + system_message if system_message else "")
+        else:
+            system_prompt = system_message
 
         # Set up workspace directory for claude-code
         if "cwd" not in kwargs:
             import os
             from pathlib import Path
 
-            trace_id = kwargs.get("trace_id", "default")
+            trace_id = kwargs.pop("trace_id", "default")  # Remove trace_id from kwargs
             root = os.getenv(
                 "DIPEO_CLAUDE_WORKSPACES", os.path.join(os.getcwd(), ".dipeo", "workspaces")
             )
             workspace_dir = Path(root) / f"exec_{trace_id}"
             workspace_dir.mkdir(parents=True, exist_ok=True)
             kwargs["cwd"] = str(workspace_dir)
+        else:
+            # Remove trace_id if present since we're not using it
+            kwargs.pop("trace_id", None)
 
         # Create Claude Code options
         options = ClaudeCodeOptions(
-            message=message_text,
-            model=model or self.model,
             system_prompt=system_prompt,
             # Claude Code SDK doesn't support these parameters directly
             # but we can include them in kwargs for future compatibility
@@ -181,8 +209,17 @@ class UnifiedClaudeCodeClient:
                 options=options,
                 execution_phase=str(execution_phase) if execution_phase else "default",
             ) as wrapper:
-                response = await wrapper.query()
-                return self._parse_response(response)
+                # Collect only the final result from Claude Code SDK
+                # Claude Code sends multiple messages: SystemMessage, AssistantMessage, ResultMessage
+                # We only want the ResultMessage to avoid duplication
+                result_text = ""
+                async for message in wrapper.query(message_text):
+                    # Only process ResultMessage for the final response
+                    if hasattr(message, "result"):
+                        # This is the final, authoritative response
+                        result_text = str(message.result)
+                        break  # We have the result, no need to process further messages
+                return self._parse_response(result_text)
 
         async for attempt in retry:
             with attempt:
@@ -204,28 +241,43 @@ class UnifiedClaudeCodeClient:
     ) -> AsyncIterator[str]:
         """Stream chat completion response."""
         # Prepare message
-        message_text = self._prepare_message(messages)
+        system_message, message_text = self._prepare_message(messages)
 
         # Get system prompt based on execution phase
-        system_prompt = self._get_system_prompt(execution_phase)
+        # Extract person_name from system message if it contains "YOUR NAME:"
+        person_name = None
+        if system_message and "YOUR NAME:" in system_message:
+            # Extract person name from system message
+            match = re.search(r"YOUR NAME:\s*([^\n]+)", system_message)
+            if match:
+                person_name = match.group(1).strip()
+                # Remove the YOUR NAME line from system message
+                system_message = re.sub(r"YOUR NAME:\s*[^\n]+\n*", "", system_message)
+
+        system_prompt = self._get_system_prompt(execution_phase, person_name=person_name)
+        if system_prompt:
+            system_prompt = system_prompt + ("\n\n" + system_message if system_message else "")
+        else:
+            system_prompt = system_message
 
         # Set up workspace directory for claude-code
         if "cwd" not in kwargs:
             import os
             from pathlib import Path
 
-            trace_id = kwargs.get("trace_id", "default")
+            trace_id = kwargs.pop("trace_id", "default")  # Remove trace_id from kwargs
             root = os.getenv(
                 "DIPEO_CLAUDE_WORKSPACES", os.path.join(os.getcwd(), ".dipeo", "workspaces")
             )
             workspace_dir = Path(root) / f"exec_{trace_id}"
             workspace_dir.mkdir(parents=True, exist_ok=True)
             kwargs["cwd"] = str(workspace_dir)
+        else:
+            # Remove trace_id if present since we're not using it
+            kwargs.pop("trace_id", None)
 
         # Create Claude Code options with streaming enabled
         options = ClaudeCodeOptions(
-            message=message_text,
-            model=model or self.model,
             system_prompt=system_prompt,
             stream=True,  # Enable streaming if supported
             **kwargs,
@@ -235,14 +287,23 @@ class UnifiedClaudeCodeClient:
         async with SessionQueryWrapper(
             options=options, execution_phase=str(execution_phase) if execution_phase else "default"
         ) as wrapper:
-            # Note: Claude Code SDK might not support true streaming yet
-            # If it doesn't, we can simulate streaming by yielding chunks
-            response = await wrapper.query()
-
-            # Simulate streaming by yielding in chunks
-            chunk_size = 100  # Adjust as needed
-            for i in range(0, len(response), chunk_size):
-                yield response[i : i + chunk_size]
+            # Stream messages from Claude Code SDK
+            # For streaming, we need to handle both AssistantMessage (for real-time streaming)
+            # and ResultMessage (for final result)
+            has_yielded_content = False
+            async for message in wrapper.query(message_text):
+                if hasattr(message, "content") and not hasattr(message, "result"):
+                    # Stream content from AssistantMessage (real-time streaming)
+                    for block in message.content:
+                        if hasattr(block, "text") and block.text:
+                            has_yielded_content = True
+                            yield block.text
+                elif hasattr(message, "result"):
+                    # If we haven't yielded any content yet, yield the result
+                    # This handles non-streaming responses
+                    if not has_yielded_content:
+                        yield str(message.result)
+                    break  # ResultMessage is the final message
 
     async def batch_chat(
         self,
