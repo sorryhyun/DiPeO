@@ -1,4 +1,4 @@
-"""Template processing components for the diagram domain."""
+"""Template processing infrastructure implementations."""
 
 from .simple_processor import SimpleTemplateProcessor
 

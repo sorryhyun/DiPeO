@@ -311,8 +311,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             body=primary, produced_by=node.id, trace_id=trace_id, meta={}
         )
 
-        # Representations no longer needed - removed deprecated with_representations() call
-
         # Add metadata
         if "meta" in output:
             output_envelope = output_envelope.with_meta(**output["meta"])

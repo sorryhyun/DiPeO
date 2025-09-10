@@ -20,7 +20,6 @@ class TextFormatHandler:
         text_format_content = self._load_text_format_content(node)
 
         if not text_format_content:
-            logger.debug(f"[TextFormatHandler] No text_format content found for node {node.id}")
             return None
 
         model = self._compile_pydantic_model(text_format_content)

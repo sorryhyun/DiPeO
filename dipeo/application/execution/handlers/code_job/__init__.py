@@ -294,8 +294,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             trace_id=trace_id,
         )
 
-        # Representations no longer needed - removed deprecated with_representations() call
-
         # Add metadata
         if "meta" in output:
             output_envelope = output_envelope.with_meta(**output["meta"])

@@ -138,12 +138,12 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             if hasattr(self, "_temp_filesystem_adapter"):
                 delattr(self, "_temp_filesystem_adapter")
 
-    def _build_node_output(
-        self, result: Any, request: ExecutionRequest[HookNode]
-    ) -> dict[str, Any]:
+    def serialize_output(self, result: Any, request: ExecutionRequest[HookNode]) -> Envelope:
         node = request.node
+        trace_id = request.execution_id or ""
         hook_type = str(node.hook_type)
 
+        # Determine success status
         success = True
         exit_code = 0
         if isinstance(result, dict):
@@ -152,59 +152,25 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             if "returncode" in result:
                 exit_code = result["returncode"]
 
-        representations = {
-            "text": str(result) if not isinstance(result, dict) else json.dumps(result, indent=2),
-            "object": result,
-            "status": {"success": success, "exit_code": exit_code, "hook_type": hook_type},
-        }
+        # Create envelope with result as body
+        output_envelope = EnvelopeFactory.create(
+            body=result, produced_by=node.id, trace_id=trace_id
+        )
 
-        if node.hook_type == HookType.SHELL:
-            if isinstance(result, dict):
-                representations["output"] = result.get("stdout", result.get("output", ""))
-                representations["stderr"] = result.get("stderr", "")
-        elif node.hook_type == HookType.WEBHOOK:
-            if isinstance(result, dict):
-                representations["response"] = result
-                representations["provider"] = result.get("provider")
+        # Build metadata based on hook type
+        meta = {"hook_type": hook_type, "success": success, "exit_code": exit_code}
+
+        # Add hook-specific metadata
+        if node.hook_type == HookType.SHELL and isinstance(result, dict):
+            meta["stdout"] = result.get("stdout", result.get("output", ""))
+            meta["stderr"] = result.get("stderr", "")
+        elif node.hook_type == HookType.WEBHOOK and isinstance(result, dict):
+            meta["provider"] = result.get("provider")
         elif node.hook_type == HookType.FILE and isinstance(result, dict):
-            representations["file_path"] = result.get("file", "")
+            meta["file_path"] = result.get("file", "")
 
-        if isinstance(result, dict):
-            primary = result
-            primary_type = "json"
-        else:
-            primary = str(result)
-            primary_type = "text"
-
-        return {
-            "primary": primary,
-            "primary_type": primary_type,
-            "representations": representations,
-            "meta": {"hook_type": hook_type, "success": success},
-        }
-
-    def serialize_output(self, result: Any, request: ExecutionRequest[HookNode]) -> Envelope:
-        node = request.node
-        trace_id = request.execution_id or ""
-
-        output = self._build_node_output(result, request)
-
-        primary = output["primary"]
-        primary_type = output.get("primary_type", "text")
-
-        if primary_type == "json" and isinstance(primary, dict):
-            output_envelope = EnvelopeFactory.create(
-                body=primary, produced_by=node.id, trace_id=trace_id
-            )
-        else:
-            output_envelope = EnvelopeFactory.create(
-                body=str(primary) if not isinstance(primary, dict) else json.dumps(primary),
-                produced_by=node.id,
-                trace_id=trace_id,
-            )
-
-        if "meta" in output:
-            output_envelope = output_envelope.with_meta(**output["meta"])
+        # Add metadata to envelope
+        output_envelope = output_envelope.with_meta(**meta)
 
         return output_envelope
 

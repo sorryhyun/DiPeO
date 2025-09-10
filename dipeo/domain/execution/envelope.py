@@ -34,14 +34,10 @@ class Envelope:
     serialization_format: str | None = field(default=None)
     body: Any = field(default=None)
     meta: dict[str, Any] = field(default_factory=dict)
-    representations: dict[str, Any] = field(default_factory=dict)  # deprecated
 
     def with_meta(self, **kwargs) -> Envelope:
         new_meta = {**self.meta, **kwargs}
         return replace(self, meta=new_meta)
-
-    def with_representations(self, representations: dict[str, Any]) -> Envelope:
-        return replace(self, representations=representations)
 
     def with_iteration(self, iteration: int) -> Envelope:
         return self.with_meta(iteration=iteration)
@@ -518,7 +514,6 @@ def serialize_protocol(output: Envelope) -> dict[str, Any]:
         "serialization_format": output.serialization_format,
         "body": output.body,
         "meta": output.meta,
-        "representations": output.representations,
     }
 
 
@@ -545,5 +540,4 @@ def deserialize_protocol(data: dict[str, Any]) -> Envelope:
         serialization_format=data.get("serialization_format"),
         body=data.get("body"),
         meta=data.get("meta", {}),
-        representations=data.get("representations", {}),
     )

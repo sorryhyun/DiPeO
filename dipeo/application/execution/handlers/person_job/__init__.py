@@ -398,8 +398,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         selected_messages: list | None = None,
     ) -> Envelope:
         """Build node output with envelope support for single execution."""
-        from dataclasses import replace
-
         # Extract LLM usage
         llm_usage = None
         if hasattr(result, "llm_usage") and result.llm_usage:
@@ -444,7 +442,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         if conversation_repr is not None:
             representations["conversation"] = conversation_repr
 
-        return replace(primary_envelope, representations=representations)
+        return primary_envelope.with_meta(representations=representations)
 
     # ==============================================================================
     # HELPER METHODS (shared by both single and batch execution)

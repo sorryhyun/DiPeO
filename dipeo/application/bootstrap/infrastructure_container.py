@@ -68,7 +68,7 @@ class InfrastructureContainer:
             self.registry.register(LLM_SERVICE, LLMInfraService(api_key_service=api_key_service))
 
     def _setup_infrastructure_services(self):
-        from dipeo.domain.diagram.template import SimpleTemplateProcessor
+        from dipeo.infrastructure.template import SimpleTemplateProcessor
 
         self.registry.register(TEMPLATE_PROCESSOR, SimpleTemplateProcessor())
 

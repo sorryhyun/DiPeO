@@ -395,74 +395,44 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
         return rendered
 
-    def _build_node_output(
-        self, result: Any, request: ExecutionRequest[TemplateJobNode]
-    ) -> dict[str, Any]:
-        """Build multi-representation output for template rendering."""
+    def serialize_output(self, result: Any, request: ExecutionRequest[TemplateJobNode]) -> Envelope:
+        """Serialize rendered template to envelope."""
         node = request.node
+        trace_id = request.execution_id or ""
         template_vars = getattr(self, "_template_vars", {})
 
-        # Handle foreach mode results
+        # Determine the body content
         if isinstance(result, dict) and "written" in result:
             # Foreach mode - multiple files written
-            rendered_text = f"Written {result['count']} files: {', '.join(result['written'])}"
-            primary = rendered_text
+            body = f"Written {result['count']} files: {', '.join(result['written'])}"
         else:
             # Single file mode
-            rendered_text = result if isinstance(result, str) else str(result)
-            primary = rendered_text
+            body = result if isinstance(result, str) else str(result)
 
-        # Build representations
-        representations = {
-            "text": rendered_text,
-            "object": {"rendered": rendered_text, "variables": template_vars},
-            "metadata": {
-                "engine": self._current_engine,
-                "template_path": node.template_path,
-                "output_path": str(self._current_output_path)
-                if hasattr(self, "_current_output_path") and self._current_output_path
-                else None,
-            },
+        # Create envelope
+        envelope = EnvelopeFactory.create(body=body, produced_by=node.id, trace_id=trace_id)
+
+        # Build metadata
+        meta = {
+            "engine": self._current_engine,
+            "template_path": node.template_path,
+            "template_vars": template_vars,
         }
+
+        # Add output path if available
+        if hasattr(self, "_current_output_path") and self._current_output_path:
+            meta["output_path"] = str(self._current_output_path)
 
         # Add file write info if available
         if isinstance(result, dict) and "written" in result:
-            representations["files"] = result["written"]
-            representations["file_count"] = result["count"]
+            meta["files"] = result["written"]
+            meta["file_count"] = result["count"]
         elif hasattr(self, "_current_output_path") and self._current_output_path:
-            representations["files"] = [str(self._current_output_path)]
-            representations["file_count"] = 1
+            meta["files"] = [str(self._current_output_path)]
+            meta["file_count"] = 1
 
-        return {
-            "primary": primary,
-            "representations": representations,
-            "meta": {
-                "engine": self._current_engine,
-                "template_path": node.template_path,
-                "output_path": str(self._current_output_path)
-                if hasattr(self, "_current_output_path") and self._current_output_path
-                else None,
-            },
-        }
-
-    def serialize_output(self, result: Any, request: ExecutionRequest[TemplateJobNode]) -> Envelope:
-        """Serialize rendered template to multi-representation envelope."""
-        node = request.node
-        trace_id = request.execution_id or ""
-
-        # Build multi-representation output
-        output = self._build_node_output(result, request)
-
-        # Create envelope with auto-detection
-        envelope = EnvelopeFactory.create(
-            body=output["primary"], produced_by=node.id, trace_id=trace_id
-        )
-
-        # Representations no longer needed - removed deprecated with_representations() call
-
-        # Add metadata
-        if "meta" in output:
-            envelope = envelope.with_meta(**output["meta"])
+        # Add metadata to envelope
+        envelope = envelope.with_meta(**meta)
 
         return envelope
 
