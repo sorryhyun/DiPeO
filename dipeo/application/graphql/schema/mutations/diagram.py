@@ -10,8 +10,7 @@ from dipeo.application.registry.keys import DIAGRAM_PORT
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 from dipeo.diagram_generated.domain_models import DiagramID
 from dipeo.diagram_generated.graphql.inputs import CreateDiagramInput
-
-from ...types.results import DeleteResult, DiagramResult
+from dipeo.diagram_generated.graphql.results import DeleteResult, DiagramResult
 
 logger = logging.getLogger(__name__)
 
@@ -46,18 +45,16 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
 
                 filename = await diagram_service.create_diagram(input.name, diagram_model, "json")
 
-                return DiagramResult(
-                    success=True,
-                    diagram=diagram_model,
-                    message=f"Created diagram: {filename}",
+                return DiagramResult.success_result(
+                    data=diagram_model, message=f"Created diagram: {filename}"
                 )
 
             except ValueError as e:
                 logger.error(f"Validation error creating diagram: {e}")
-                return DiagramResult(success=False, error=f"Validation error: {e!s}")
+                return DiagramResult.error_result(error=f"Validation error: {e!s}")
             except Exception as e:
                 logger.error(f"Failed to create diagram: {e}")
-                return DiagramResult(success=False, error=f"Failed to create diagram: {e!s}")
+                return DiagramResult.error_result(error=f"Failed to create diagram: {e!s}")
 
         @strawberry.mutation
         async def delete_diagram(self, id: strawberry.ID) -> DeleteResult:
@@ -76,14 +73,14 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
                 else:
                     raise FileNotFoundError(f"Diagram path not found: {id}")
 
-                return DeleteResult(
-                    success=True,
-                    deleted_id=str(diagram_id),
-                    message=f"Deleted diagram: {diagram_id}",
+                result = DeleteResult.success_result(
+                    data=None, message=f"Deleted diagram: {diagram_id}"
                 )
+                result.deleted_id = str(diagram_id)
+                return result
 
             except Exception as e:
                 logger.error(f"Failed to delete diagram {diagram_id}: {e}")
-                return DeleteResult(success=False, error=f"Failed to delete diagram: {e!s}")
+                return DeleteResult.error_result(error=f"Failed to delete diagram: {e!s}")
 
     return DiagramMutations

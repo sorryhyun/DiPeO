@@ -49,8 +49,8 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
     Returns:
         A Strawberry GraphQL schema ready to be served
     """
-    # Import scalar types
-    from .types.scalars import (
+    # Import scalar types from generated code
+    from dipeo.diagram_generated.graphql.scalars import (
         ApiKeyIDScalar,
         ArrowIDScalar,
         DiagramIDScalar,

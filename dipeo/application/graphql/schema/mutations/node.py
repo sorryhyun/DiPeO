@@ -7,8 +7,7 @@ import strawberry
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT
 from dipeo.diagram_generated.graphql.inputs import CreateNodeInput, UpdateNodeInput
-
-from ...types.results import DeleteResult, NodeResult
+from dipeo.diagram_generated.graphql.results import DeleteResult, NodeResult
 
 logger = logging.getLogger(__name__)
 
@@ -44,52 +43,37 @@ def create_node_mutations(registry: ServiceRegistry) -> type:
                     diagram_data["nodes"] = []
                 diagram_data["nodes"].append(node)
 
-                return NodeResult(
-                    success=True,
-                    node=node,
-                    message=f"Created node: {node_id}",
-                )
+                return NodeResult.success_result(data=node, message=f"Created node: {node_id}")
 
             except Exception as e:
                 logger.error(f"Failed to create node: {e}")
-                return NodeResult(
-                    success=False,
-                    error=f"Failed to create node: {e!s}",
-                )
+                return NodeResult.error_result(error=f"Failed to create node: {e!s}")
 
         @strawberry.mutation
         async def update_node(
             self, diagram_id: strawberry.ID, node_id: strawberry.ID, input: UpdateNodeInput
         ) -> NodeResult:
             try:
-                return NodeResult(
-                    success=True,
+                return NodeResult.success_result(
+                    data=None,  # TODO: return updated node
                     message=f"Updated node: {node_id}",
                 )
 
             except Exception as e:
                 logger.error(f"Failed to update node {node_id}: {e}")
-                return NodeResult(
-                    success=False,
-                    error=f"Failed to update node: {e!s}",
-                )
+                return NodeResult.error_result(error=f"Failed to update node: {e!s}")
 
         @strawberry.mutation
         async def delete_node(
             self, diagram_id: strawberry.ID, node_id: strawberry.ID
         ) -> DeleteResult:
             try:
-                return DeleteResult(
-                    success=True,
-                    deleted_id=node_id,
-                    message=f"Deleted node: {node_id}",
-                )
+                result = DeleteResult.success_result(data=None, message=f"Deleted node: {node_id}")
+                result.deleted_id = node_id
+                return result
 
             except Exception as e:
                 logger.error(f"Failed to delete node {node_id}: {e}")
-                return DeleteResult(
-                    success=False,
-                    error=f"Failed to delete node: {e!s}",
-                )
+                return DeleteResult.error_result(error=f"Failed to delete node: {e!s}")
 
     return NodeMutations

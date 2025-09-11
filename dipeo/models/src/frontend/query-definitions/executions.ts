@@ -93,7 +93,6 @@ export const executionQueries: EntityQueryDefinitions = {
           ],
           fields: [
             { name: 'success' },
-            { name: 'execution_id' },
             {
               name: 'execution',
               fields: [
@@ -121,7 +120,6 @@ export const executionQueries: EntityQueryDefinitions = {
           ],
           fields: [
             { name: 'success' },
-            { name: 'execution_id' },
             { name: 'message' },
             { name: 'error' }
           ]
@@ -142,7 +140,6 @@ export const executionQueries: EntityQueryDefinitions = {
           ],
           fields: [
             { name: 'success' },
-            { name: 'execution_id' },
             {
               name: 'execution',
               fields: [

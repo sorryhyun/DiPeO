@@ -24,7 +24,6 @@ type Upload = Scalars['Upload']['input'];export const CONTROLEXECUTION_MUTATION 
   ) {
     control_execution(input: $input) {
       success
-      execution_id
       execution {
         id
         status
@@ -257,7 +256,6 @@ export const SENDINTERACTIVERESPONSE_MUTATION = gql`
   ) {
     send_interactive_response(input: $input) {
       success
-      execution_id
       message
       error
     }
@@ -326,7 +324,6 @@ export const UPDATENODESTATE_MUTATION = gql`
   ) {
     update_node_state(input: $input) {
       success
-      execution_id
       execution {
         id
         status

@@ -76,7 +76,14 @@ class OperationResult(Generic[T]):
 @strawberry.type
 class DiagramResult(OperationResult[DomainDiagramType]):
     """Result type for diagram operations"""
-    pass
+    diagram: Optional[DomainDiagramType] = None
+
+    @classmethod
+    def success_result(cls, data: DomainDiagramType, message: Optional[str] = None) -> 'DiagramResult':
+        """Create a successful result with diagram field populated"""
+        result = super(DiagramResult, cls).success_result(data, message)
+        result.diagram = data
+        return result
 
 
 @strawberry.type
@@ -89,7 +96,14 @@ class DiagramListResult(OperationResult[list[DomainDiagramType]]):
 @strawberry.type
 class NodeResult(OperationResult[DomainNodeType]):
     """Result type for node operations"""
-    pass
+    node: Optional[DomainNodeType] = None
+
+    @classmethod
+    def success_result(cls, data: DomainNodeType, message: Optional[str] = None) -> 'NodeResult':
+        """Create a successful result with node field populated"""
+        result = super(NodeResult, cls).success_result(data, message)
+        result.node = data
+        return result
 
 
 @strawberry.type
@@ -101,7 +115,14 @@ class NodeListResult(OperationResult[list[DomainNodeType]]):
 @strawberry.type
 class ExecutionResult(OperationResult[ExecutionStateType]):
     """Result type for execution operations"""
-    execution_id: Optional[str] = None
+    execution: Optional[ExecutionStateType] = None
+
+    @classmethod
+    def success_result(cls, data: ExecutionStateType, message: Optional[str] = None) -> 'ExecutionResult':
+        """Create a successful result with execution field populated"""
+        result = super(ExecutionResult, cls).success_result(data, message)
+        result.execution = data
+        return result
 
 
 @strawberry.type
@@ -114,7 +135,14 @@ class ExecutionListResult(OperationResult[list[ExecutionStateType]]):
 @strawberry.type
 class PersonResult(OperationResult[DomainPersonType]):
     """Result type for person operations"""
-    pass
+    person: Optional[DomainPersonType] = None
+
+    @classmethod
+    def success_result(cls, data: DomainPersonType, message: Optional[str] = None) -> 'PersonResult':
+        """Create a successful result with person field populated"""
+        result = super(PersonResult, cls).success_result(data, message)
+        result.person = data
+        return result
 
 
 @strawberry.type
@@ -126,7 +154,14 @@ class PersonListResult(OperationResult[list[DomainPersonType]]):
 @strawberry.type
 class ApiKeyResult(OperationResult[DomainApiKeyType]):
     """Result type for API key operations"""
-    pass
+    api_key: Optional[DomainApiKeyType] = None
+
+    @classmethod
+    def success_result(cls, data: DomainApiKeyType, message: Optional[str] = None) -> 'ApiKeyResult':
+        """Create a successful result with api_key field populated"""
+        result = super(ApiKeyResult, cls).success_result(data, message)
+        result.api_key = data
+        return result
 
 
 @strawberry.type

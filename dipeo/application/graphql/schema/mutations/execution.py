@@ -15,8 +15,7 @@ from dipeo.diagram_generated.graphql.inputs import (
     InteractiveResponseInput,
     UpdateNodeStateInput,
 )
-
-from ...types.results import ExecutionResult
+from dipeo.diagram_generated.graphql.results import ExecutionResult
 
 logger = logging.getLogger(__name__)
 
@@ -132,24 +131,17 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
 
                 if execution_id:
                     execution = await state_store.get_state(str(execution_id))
-                    return ExecutionResult(
-                        success=True,
-                        execution_id=str(execution_id),
-                        execution=execution,
-                        message="Execution started successfully",
+                    result = ExecutionResult.success_result(
+                        data=execution, message="Execution started successfully"
                     )
+                    result.execution = execution
+                    return result
                 else:
-                    return ExecutionResult(
-                        success=False,
-                        error="Failed to start execution",
-                    )
+                    return ExecutionResult.error_result(error="Failed to start execution")
 
             except Exception as e:
                 logger.error(f"Failed to execute diagram: {e}")
-                return ExecutionResult(
-                    success=False,
-                    error=f"Failed to execute diagram: {e!s}",
-                )
+                return ExecutionResult.error_result(error=f"Failed to execute diagram: {e!s}")
 
         @strawberry.mutation
         async def update_node_state(self, input: UpdateNodeStateInput) -> ExecutionResult:
@@ -179,19 +171,15 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 # Get updated execution
                 execution = await state_store.get_state(input.execution_id)
 
-                return ExecutionResult(
-                    success=True,
-                    execution_id=input.execution_id,
-                    execution=execution,
-                    message=f"Updated node {input.node_id} state",
+                result = ExecutionResult.success_result(
+                    data=execution, message=f"Updated node {input.node_id} state"
                 )
+                result.execution = execution
+                return result
 
             except Exception as e:
                 logger.error(f"Failed to update node state: {e}")
-                return ExecutionResult(
-                    success=False,
-                    error=f"Failed to update node state: {e!s}",
-                )
+                return ExecutionResult.error_result(error=f"Failed to update node state: {e!s}")
 
         @strawberry.mutation
         async def control_execution(self, input: ExecutionControlInput) -> ExecutionResult:
@@ -226,19 +214,15 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 # Get updated execution
                 execution = await state_store.get_state(input.execution_id)
 
-                return ExecutionResult(
-                    success=True,
-                    execution_id=input.execution_id,
-                    execution=execution,
-                    message=f"Execution {input.action} successful",
+                result = ExecutionResult.success_result(
+                    data=execution, message=f"Execution {input.action} successful"
                 )
+                result.execution = execution
+                return result
 
             except Exception as e:
                 logger.error(f"Failed to control execution: {e}")
-                return ExecutionResult(
-                    success=False,
-                    error=f"Failed to control execution: {e!s}",
-                )
+                return ExecutionResult.error_result(error=f"Failed to control execution: {e!s}")
 
         @strawberry.mutation
         async def send_interactive_response(
@@ -261,18 +245,16 @@ def create_execution_mutations(registry: ServiceRegistry) -> type:
                 # Get updated execution
                 execution = await state_store.get_state(input.execution_id)
 
-                return ExecutionResult(
-                    success=True,
-                    execution_id=input.execution_id,
-                    execution=execution,
-                    message="Interactive response sent",
+                result = ExecutionResult.success_result(
+                    data=execution, message="Interactive response sent"
                 )
+                result.execution = execution
+                return result
 
             except Exception as e:
                 logger.error(f"Failed to send interactive response: {e}")
-                return ExecutionResult(
-                    success=False,
-                    error=f"Failed to send interactive response: {e!s}",
+                return ExecutionResult.error_result(
+                    error=f"Failed to send interactive response: {e!s}"
                 )
 
     return ExecutionMutations

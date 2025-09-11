@@ -2,7 +2,7 @@
 Strawberry GraphQL scalar types for DiPeO.
 Auto-generated from TypeScript branded types.
 
-Generated at: 2025-09-11T15:46:12.776205
+Generated at: 2025-09-11T16:46:46.699605
 """
 
 import strawberry
@@ -16,8 +16,10 @@ from dipeo.diagram_generated.domain_models import (
     DiagramID,
     ExecutionID,
     HandleID,
+    HookID,
     NodeID,
     PersonID,
+    TaskID,
 )
 
 
@@ -68,6 +70,15 @@ HandleIDScalar = strawberry.scalar(
     parse_value=lambda v: HandleID(v) if v is not None else None,
 )
 
+# Unique identifier type for hook entities
+HookIDScalar = strawberry.scalar(
+    HookID,
+    name="HookID",
+    description="Unique identifier type for hook entities",
+    serialize=lambda v: str(v) if v is not None else None,
+    parse_value=lambda v: HookID(v) if v is not None else None,
+)
+
 # Unique identifier type for node entities
 NodeIDScalar = strawberry.scalar(
     NodeID,
@@ -86,6 +97,15 @@ PersonIDScalar = strawberry.scalar(
     parse_value=lambda v: PersonID(v) if v is not None else None,
 )
 
+# Unique identifier type for task entities
+TaskIDScalar = strawberry.scalar(
+    TaskID,
+    name="TaskID",
+    description="Unique identifier type for task entities",
+    serialize=lambda v: str(v) if v is not None else None,
+    parse_value=lambda v: TaskID(v) if v is not None else None,
+)
+
 
 # Export all scalar types
 __all__ = [
@@ -94,8 +114,10 @@ __all__ = [
     "DiagramIDScalar",
     "ExecutionIDScalar",
     "HandleIDScalar",
+    "HookIDScalar",
     "NodeIDScalar",
     "PersonIDScalar",
+    "TaskIDScalar",
 ]
 
 
@@ -106,6 +128,8 @@ SCALAR_MAP = {
     "DiagramID": DiagramIDScalar,
     "ExecutionID": ExecutionIDScalar,
     "HandleID": HandleIDScalar,
+    "HookID": HookIDScalar,
     "NodeID": NodeIDScalar,
     "PersonID": PersonIDScalar,
+    "TaskID": TaskIDScalar,
 }

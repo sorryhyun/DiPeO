@@ -5,12 +5,14 @@ import logging
 import strawberry
 from strawberry.file_uploads import Upload
 
-from dipeo.application.graphql.enums import DiagramFormat
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT, FILESYSTEM_ADAPTER
 from dipeo.config import FILES_DIR
-
-from ...types.results import DiagramResult, FileUploadResult
+from dipeo.diagram_generated.graphql.enums import (
+    DiagramFormatGraphQL,
+    convert_diagramformat_from_graphql,
+)
+from dipeo.diagram_generated.graphql.results import DiagramResult, FileOperationResult
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,7 @@ class DiagramConvertResult:
     success: bool
     message: str | None = None
     content: str | None = None
-    format: DiagramFormat | None = None
+    format: DiagramFormatGraphQL | None = None
     error: str | None = None
 
 
@@ -42,14 +44,13 @@ def create_upload_mutations(registry: ServiceRegistry) -> type:
     @strawberry.type
     class UploadMutations:
         @strawberry.mutation
-        async def upload_file(self, file: Upload, path: str | None = None) -> FileUploadResult:
+        async def upload_file(self, file: Upload, path: str | None = None) -> FileOperationResult:
             """Upload a file to the system."""
             try:
                 filesystem = registry.get(FILESYSTEM_ADAPTER)
                 if not filesystem:
-                    return FileUploadResult(
-                        success=False,
-                        error="Filesystem adapter not available",
+                    return FileOperationResult.error_result(
+                        error="Filesystem adapter not available"
                     )
 
                 # Read file content
@@ -101,23 +102,25 @@ def create_upload_mutations(registry: ServiceRegistry) -> type:
                 # Get relative path for response
                 relative_path = str(full_path.relative_to(base_dir))
 
-                return FileUploadResult(
-                    success=True,
-                    path=relative_path,
-                    size_bytes=len(content),
-                    content_type=file.content_type,
+                result = FileOperationResult.success_result(
+                    data={
+                        "path": relative_path,
+                        "size_bytes": len(content),
+                        "content_type": file.content_type,
+                    },
                     message=f"Uploaded file: {file.filename}",
                 )
+                result.path = relative_path
+                result.size_bytes = len(content)
+                result.content_type = file.content_type
+                return result
 
             except Exception as e:
                 logger.error(f"Failed to upload file: {e}")
-                return FileUploadResult(
-                    success=False,
-                    error=f"Failed to upload file: {e!s}",
-                )
+                return FileOperationResult.error_result(error=f"Failed to upload file: {e!s}")
 
         @strawberry.mutation
-        async def upload_diagram(self, file: Upload, format: DiagramFormat) -> DiagramResult:
+        async def upload_diagram(self, file: Upload, format: DiagramFormatGraphQL) -> DiagramResult:
             """Upload and import a diagram file."""
             try:
                 integrated_service = registry.resolve(DIAGRAM_PORT)
@@ -127,7 +130,7 @@ def create_upload_mutations(registry: ServiceRegistry) -> type:
                 content_str = content.decode("utf-8")
 
                 # Convert GraphQL enum to Python enum
-                format_python = format.to_python_enum()
+                format_python = convert_diagramformat_from_graphql(format)
 
                 # Load and validate diagram based on format
                 diagram = await integrated_service.load_from_string(
@@ -137,28 +140,24 @@ def create_upload_mutations(registry: ServiceRegistry) -> type:
                 # Save the diagram
                 # Note: This would need actual implementation
 
-                return DiagramResult(
-                    success=True,
-                    message=f"Uploaded diagram: {file.filename}",
+                return DiagramResult.success_result(
+                    data=diagram, message=f"Uploaded diagram: {file.filename}"
                 )
 
             except Exception as e:
                 logger.error(f"Failed to upload diagram: {e}")
-                return DiagramResult(
-                    success=False,
-                    error=f"Failed to upload diagram: {e!s}",
-                )
+                return DiagramResult.error_result(error=f"Failed to upload diagram: {e!s}")
 
         @strawberry.mutation
         async def validate_diagram(
-            self, content: str, format: DiagramFormat
+            self, content: str, format: DiagramFormatGraphQL
         ) -> DiagramValidationResult:
             """Validate diagram content without saving."""
             try:
                 integrated_service = registry.resolve(DIAGRAM_PORT)
 
                 # Convert GraphQL enum to Python enum
-                format_python = format.to_python_enum()
+                format_python = convert_diagramformat_from_graphql(format)
 
                 # Validate diagram by attempting to load it
                 diagram = await integrated_service.load_from_string(
@@ -182,15 +181,17 @@ def create_upload_mutations(registry: ServiceRegistry) -> type:
 
         @strawberry.mutation
         async def convert_diagram_format(
-            self, content: str, from_format: DiagramFormat, to_format: DiagramFormat
+            self, content: str, from_format: DiagramFormatGraphQL, to_format: DiagramFormatGraphQL
         ) -> DiagramConvertResult:
             """Convert diagram between formats."""
             try:
                 from dipeo.infrastructure.diagram.drivers import converter_registry
 
                 # Convert GraphQL enums to Python enum values (strings)
-                from_format_str = from_format.to_python_enum().value
-                to_format_str = to_format.to_python_enum().value
+                from_format_python = convert_diagramformat_from_graphql(from_format)
+                to_format_python = convert_diagramformat_from_graphql(to_format)
+                from_format_str = from_format_python.value
+                to_format_str = to_format_python.value
 
                 # Initialize converter if needed
                 if not converter_registry._initialized:

@@ -33,6 +33,9 @@ type ApiKeyResult {
   success: Boolean!
   message: String
   error: String
+  error_type: String
+  data: DomainApiKeyType
+  envelope: JSON
   api_key: DomainApiKeyType
 }
 
@@ -62,6 +65,11 @@ type CliSessionResult {
   success: Boolean!
   message: String
   error: String
+  error_type: String
+  data: JSON
+  envelope: JSON
+  session_id: String
+  execution_id: String
 }
 
 type CodeJobDataType {
@@ -162,7 +170,11 @@ type DeleteResult {
   success: Boolean!
   message: String
   error: String
+  error_type: String
+  data: Void
+  envelope: JSON
   deleted_id: String
+  deleted_count: Int
 }
 
 type DiagramConvertResult {
@@ -213,9 +225,12 @@ type DiagramMetadataType {
 
 type DiagramResult {
   success: Boolean!
-  diagram: DomainDiagramType
   message: String
   error: String
+  error_type: String
+  data: DomainDiagramType
+  envelope: JSON
+  diagram: DomainDiagramType
 }
 
 type DiagramValidationResult {
@@ -312,10 +327,12 @@ scalar ExecutionID
 
 type ExecutionResult {
   success: Boolean!
-  execution_id: String
-  execution: ExecutionStateType
   message: String
   error: String
+  error_type: String
+  data: ExecutionStateType
+  envelope: JSON
+  execution: ExecutionStateType
 }
 
 type ExecutionStateType {
@@ -343,13 +360,17 @@ type ExecutionUpdate {
   timestamp: String!
 }
 
-type FileUploadResult {
+type FileOperationResult {
   success: Boolean!
   message: String
+  error: String
+  error_type: String
+  data: JSON
+  envelope: JSON
   path: String
+  content: String
   size_bytes: Int
   content_type: String
-  error: String
 }
 
 enum HandleDirection {
@@ -456,11 +477,11 @@ type Mutation {
   delete_person(id: ID!): DeleteResult!
   create_api_key(input: CreateApiKeyInput!): ApiKeyResult!
   delete_api_key(id: ID!): DeleteResult!
-  test_api_key(id: ID!): TestApiKeyResult!
+  test_api_key(id: ID!): TestResult!
   create_node(diagram_id: ID!, input: CreateNodeInput!): NodeResult!
   update_node(diagram_id: ID!, node_id: ID!, input: UpdateNodeInput!): NodeResult!
   delete_node(diagram_id: ID!, node_id: ID!): DeleteResult!
-  upload_file(file: Upload!, path: String = null): FileUploadResult!
+  upload_file(file: Upload!, path: String = null): FileOperationResult!
   upload_diagram(file: Upload!, format: DiagramFormat!): DiagramResult!
   validate_diagram(content: String!, format: DiagramFormat!): DiagramValidationResult!
   convert_diagram_format(content: String!, from_format: DiagramFormat!, to_format: DiagramFormat!): DiagramConvertResult!
@@ -473,9 +494,12 @@ scalar NodeID
 
 type NodeResult {
   success: Boolean!
-  node: DomainNodeType
   message: String
   error: String
+  error_type: String
+  data: DomainNodeType
+  envelope: JSON
+  node: DomainNodeType
 }
 
 enum NodeType {
@@ -561,9 +585,12 @@ type PersonLLMConfigType {
 
 type PersonResult {
   success: Boolean!
-  person: DomainPersonType
   message: String
   error: String
+  error_type: String
+  data: DomainPersonType
+  envelope: JSON
+  person: DomainPersonType
 }
 
 type ProviderMetadataType {
@@ -712,10 +739,15 @@ type TemplateJobDataType {
   preprocessor: String
 }
 
-type TestApiKeyResult {
+type TestResult {
   success: Boolean!
   message: String
   error: String
+  error_type: String
+  data: JSON
+  envelope: JSON
+  test_name: String
+  duration_ms: Float
   model_info: JSON
 }
 
@@ -779,3 +811,6 @@ type Vec2Type {
   x: Int!
   y: Int!
 }
+
+"""Represents NULL values"""
+scalar Void

@@ -80,7 +80,11 @@ class RunCommand:
                 print(f"❌ Execution failed: {result.get('error', 'Unknown error')}")
                 return False
 
-            execution_id = result["execution_id"]
+            # Get execution ID from nested structure
+            if not result.get("execution") or not result["execution"].get("id"):
+                print("❌ No execution ID returned")
+                return False
+            execution_id = result["execution"]["id"]
 
             # Use simple display mode if requested or if subscriptions fail
             if simple:

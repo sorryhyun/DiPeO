@@ -52,6 +52,8 @@ export type Scalars = {
   /** Unique identifier for tasks */
   TaskID: { input: any; output: any; }
   Upload: { input: any; output: any; }
+  /** Represents NULL values */
+  Void: { input: any; output: any; }
 };
 
 export enum APIServiceType {
@@ -86,7 +88,10 @@ export type ApiJobDataType = {
 export type ApiKeyResult = {
   __typename?: 'ApiKeyResult';
   api_key?: Maybe<DomainApiKeyType>;
+  data?: Maybe<DomainApiKeyType>;
+  envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
+  error_type?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
 };
@@ -114,8 +119,13 @@ export type CliSession = {
 
 export type CliSessionResult = {
   __typename?: 'CliSessionResult';
+  data?: Maybe<Scalars['JSON']['output']>;
+  envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
+  error_type?: Maybe<Scalars['String']['output']>;
+  execution_id?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
+  session_id?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
 };
 
@@ -208,8 +218,12 @@ export type DbDataType = {
 
 export type DeleteResult = {
   __typename?: 'DeleteResult';
+  data?: Maybe<Scalars['Void']['output']>;
+  deleted_count?: Maybe<Scalars['Int']['output']>;
   deleted_id?: Maybe<Scalars['String']['output']>;
+  envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
+  error_type?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
 };
@@ -258,8 +272,11 @@ export type DiagramMetadataType = {
 
 export type DiagramResult = {
   __typename?: 'DiagramResult';
+  data?: Maybe<DomainDiagramType>;
   diagram?: Maybe<DomainDiagramType>;
+  envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
+  error_type?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
 };
@@ -363,9 +380,11 @@ export type ExecutionFilterInput = {
 
 export type ExecutionResult = {
   __typename?: 'ExecutionResult';
+  data?: Maybe<ExecutionStateType>;
+  envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
+  error_type?: Maybe<Scalars['String']['output']>;
   execution?: Maybe<ExecutionStateType>;
-  execution_id?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
 };
@@ -397,10 +416,14 @@ export type ExecutionUpdate = {
   timestamp: Scalars['String']['output'];
 };
 
-export type FileUploadResult = {
-  __typename?: 'FileUploadResult';
+export type FileOperationResult = {
+  __typename?: 'FileOperationResult';
+  content?: Maybe<Scalars['String']['output']>;
   content_type?: Maybe<Scalars['String']['output']>;
+  data?: Maybe<Scalars['JSON']['output']>;
+  envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
+  error_type?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   path?: Maybe<Scalars['String']['output']>;
   size_bytes?: Maybe<Scalars['Int']['output']>;
@@ -486,13 +509,13 @@ export type Mutation = {
   execute_diagram: ExecutionResult;
   register_cli_session: CliSessionResult;
   send_interactive_response: ExecutionResult;
-  test_api_key: TestApiKeyResult;
+  test_api_key: TestResult;
   unregister_cli_session: CliSessionResult;
   update_node: NodeResult;
   update_node_state: ExecutionResult;
   update_person: PersonResult;
   upload_diagram: DiagramResult;
-  upload_file: FileUploadResult;
+  upload_file: FileOperationResult;
   validate_diagram: DiagramValidationResult;
 };
 
@@ -613,7 +636,10 @@ export type Mutationvalidate_diagramArgs = {
 
 export type NodeResult = {
   __typename?: 'NodeResult';
+  data?: Maybe<DomainNodeType>;
+  envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
+  error_type?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   node?: Maybe<DomainNodeType>;
   success: Scalars['Boolean']['output'];
@@ -688,7 +714,10 @@ export type PersonLLMConfigType = {
 
 export type PersonResult = {
   __typename?: 'PersonResult';
+  data?: Maybe<DomainPersonType>;
+  envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
+  error_type?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   person?: Maybe<DomainPersonType>;
   success: Scalars['Boolean']['output'];
@@ -958,12 +987,17 @@ export type TemplateJobDataType = {
   variables?: Maybe<Scalars['JSON']['output']>;
 };
 
-export type TestApiKeyResult = {
-  __typename?: 'TestApiKeyResult';
+export type TestResult = {
+  __typename?: 'TestResult';
+  data?: Maybe<Scalars['JSON']['output']>;
+  duration_ms?: Maybe<Scalars['Float']['output']>;
+  envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
+  error_type?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   model_info?: Maybe<Scalars['JSON']['output']>;
   success: Scalars['Boolean']['output'];
+  test_name?: Maybe<Scalars['String']['output']>;
 };
 
 export type TypescriptAstDataType = {
@@ -1033,7 +1067,7 @@ export type ControlExecutionMutationVariables = Exact<{
 }>;
 
 
-export type ControlExecutionMutation = { __typename?: 'Mutation', control_execution: { __typename?: 'ExecutionResult', success: boolean, execution_id?: string | null, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: Status } | null } };
+export type ControlExecutionMutation = { __typename?: 'Mutation', control_execution: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: Status } | null } };
 
 export type ConvertDiagramFormatMutationVariables = Exact<{
   content: Scalars['String']['input'];
@@ -1121,14 +1155,14 @@ export type SendInteractiveResponseMutationVariables = Exact<{
 }>;
 
 
-export type SendInteractiveResponseMutation = { __typename?: 'Mutation', send_interactive_response: { __typename?: 'ExecutionResult', success: boolean, execution_id?: string | null, message?: string | null, error?: string | null } };
+export type SendInteractiveResponseMutation = { __typename?: 'Mutation', send_interactive_response: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type TestApiKeyMutationVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
 
-export type TestApiKeyMutation = { __typename?: 'Mutation', test_api_key: { __typename?: 'TestApiKeyResult', success: boolean, message?: string | null, error?: string | null } };
+export type TestApiKeyMutation = { __typename?: 'Mutation', test_api_key: { __typename?: 'TestResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type UnregisterCliSessionMutationVariables = Exact<{
   input: UnregisterCliSessionInput;
@@ -1151,7 +1185,7 @@ export type UpdateNodeStateMutationVariables = Exact<{
 }>;
 
 
-export type UpdateNodeStateMutation = { __typename?: 'Mutation', update_node_state: { __typename?: 'ExecutionResult', success: boolean, execution_id?: string | null, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: Status } | null } };
+export type UpdateNodeStateMutation = { __typename?: 'Mutation', update_node_state: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: Status } | null } };
 
 export type UpdatePersonMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -1175,7 +1209,7 @@ export type UploadFileMutationVariables = Exact<{
 }>;
 
 
-export type UploadFileMutation = { __typename?: 'Mutation', upload_file: { __typename?: 'FileUploadResult', success: boolean, path?: string | null, size_bytes?: number | null, content_type?: string | null, message?: string | null, error?: string | null } };
+export type UploadFileMutation = { __typename?: 'Mutation', upload_file: { __typename?: 'FileOperationResult', success: boolean, path?: string | null, size_bytes?: number | null, content_type?: string | null, message?: string | null, error?: string | null } };
 
 export type ValidateDiagramMutationVariables = Exact<{
   content: Scalars['String']['input'];
@@ -1358,7 +1392,6 @@ export const ControlExecutionDocument = gql`
     mutation ControlExecution($input: ExecutionControlInput!) {
   control_execution(input: $input) {
     success
-    execution_id
     execution {
       id
       status
@@ -1819,7 +1852,6 @@ export const SendInteractiveResponseDocument = gql`
     mutation SendInteractiveResponse($input: InteractiveResponseInput!) {
   send_interactive_response(input: $input) {
     success
-    execution_id
     message
     error
   }
@@ -1962,7 +1994,6 @@ export const UpdateNodeStateDocument = gql`
     mutation UpdateNodeState($input: UpdateNodeStateInput!) {
   update_node_state(input: $input) {
     success
-    execution_id
     execution {
       id
       status

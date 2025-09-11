@@ -44,7 +44,7 @@ from ..types.provider_types import (
     ProviderStatisticsType,
     ProviderType,
 )
-from ..types.results import DiagramFormatInfo
+from ..types.query_types import DiagramFormatInfo
 
 DIAGRAM_VERSION = "1.0.0"
 

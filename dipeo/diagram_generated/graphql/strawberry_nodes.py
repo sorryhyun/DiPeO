@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-11T15:46:12.773886
+Generated at: 2025-09-11T16:46:46.697182
 """
 
 import strawberry
@@ -51,7 +51,7 @@ class ApiJobDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -100,7 +100,7 @@ class ApiJobDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -136,7 +136,7 @@ class ApiJobDataType:
         field_values["auth_config"] = getattr(node, "auth_config", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -158,7 +158,7 @@ class CodeJobDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -197,7 +197,7 @@ class CodeJobDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -221,7 +221,7 @@ class CodeJobDataType:
         field_values["timeout"] = getattr(node, "timeout", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -243,7 +243,7 @@ class ConditionDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -312,7 +312,7 @@ class ConditionDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -356,7 +356,7 @@ class ConditionDataType:
         field_values["skippable"] = getattr(node, "skippable", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -378,7 +378,7 @@ class DbDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -431,7 +431,7 @@ class DbDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -467,7 +467,7 @@ class DbDataType:
         field_values["format"] = getattr(node, "format", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -489,7 +489,7 @@ class EndpointDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -510,7 +510,7 @@ class EndpointDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -522,7 +522,7 @@ class EndpointDataType:
         field_values["file_name"] = getattr(node, "file_name", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -544,7 +544,7 @@ class HookDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -583,7 +583,7 @@ class HookDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -607,7 +607,7 @@ class HookDataType:
         field_values["retry_count"] = getattr(node, "retry_count", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -629,7 +629,7 @@ class IntegratedApiDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -672,7 +672,7 @@ class IntegratedApiDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -700,7 +700,7 @@ class IntegratedApiDataType:
         field_values["max_retries"] = getattr(node, "max_retries", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -722,7 +722,7 @@ class JsonSchemaValidatorDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -759,7 +759,7 @@ class JsonSchemaValidatorDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -783,7 +783,7 @@ class JsonSchemaValidatorDataType:
         field_values["error_on_extra"] = getattr(node, "error_on_extra", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -805,7 +805,7 @@ class PersonJobDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -922,7 +922,7 @@ class PersonJobDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -998,7 +998,7 @@ class PersonJobDataType:
         field_values["max_concurrent"] = getattr(node, "max_concurrent", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -1020,7 +1020,7 @@ class StartDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -1053,7 +1053,7 @@ class StartDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -1077,7 +1077,7 @@ class StartDataType:
         field_values["hook_filters"] = getattr(node, "hook_filters", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -1099,7 +1099,7 @@ class SubDiagramDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -1174,7 +1174,7 @@ class SubDiagramDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -1226,7 +1226,7 @@ class SubDiagramDataType:
         field_values["batch_parallel"] = getattr(node, "batch_parallel", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -1248,7 +1248,7 @@ class TemplateJobDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -1291,7 +1291,7 @@ class TemplateJobDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -1319,7 +1319,7 @@ class TemplateJobDataType:
         field_values["preprocessor"] = getattr(node, "preprocessor", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -1341,7 +1341,7 @@ class TypescriptAstDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -1404,7 +1404,7 @@ class TypescriptAstDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -1444,7 +1444,7 @@ class TypescriptAstDataType:
         field_values["batchInputKey"] = getattr(node, "batchInputKey", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),
@@ -1466,7 +1466,7 @@ class UserResponseDataType:
     label: Optional[str] = None
     flipped: Optional[bool] = False
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
-    
+
     # Node-specific fields from specification
     
     
@@ -1487,7 +1487,7 @@ class UserResponseDataType:
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
-        
+
         # Get node-specific fields with Dict conversion
         field_values = {}
         
@@ -1499,7 +1499,7 @@ class UserResponseDataType:
         field_values["timeout"] = getattr(node, "timeout", None)
         
         
-        
+
         return cls(
             id=node.id,
             position=Vec2Type(x=node.position.x, y=node.position.y),

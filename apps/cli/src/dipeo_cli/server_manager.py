@@ -149,13 +149,12 @@ class ServerManager:
 
         execution_result = result["data"]["execute_diagram"]
 
-        # Extract execution_id from nested structure for backward compatibility
+        # Register CLI session if execution started successfully
         if execution_result.get("success") and execution_result.get("execution"):
-            execution_result["execution_id"] = execution_result["execution"]["id"]
+            execution_id = execution_result["execution"]["id"]
 
-            # Register CLI session if execution started successfully
             self.register_cli_session(
-                execution_id=execution_result["execution_id"],
+                execution_id=execution_id,
                 diagram_name=diagram_name or "unknown",
                 diagram_format=diagram_format or "native",
                 diagram_data=diagram_data,  # Send diagram data for faster loading

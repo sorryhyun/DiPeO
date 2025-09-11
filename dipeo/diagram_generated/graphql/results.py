@@ -38,7 +38,7 @@ class OperationResult(Generic[T]):
     error_type: Optional[str] = None
     data: Optional[T] = None
     envelope: Optional[JSON] = None  # Raw envelope for advanced use cases
-    
+
     @classmethod
     def from_envelope(cls, envelope: Envelope, data: Optional[T] = None) -> 'OperationResult[T]':
         """Create result from domain Envelope"""
@@ -50,7 +50,7 @@ class OperationResult(Generic[T]):
             data=data if data is not None else envelope.body,
             envelope=envelope.meta
         )
-    
+
     @classmethod
     def success_result(cls, data: T, message: Optional[str] = None) -> 'OperationResult[T]':
         """Create a successful result"""
@@ -59,7 +59,7 @@ class OperationResult(Generic[T]):
             data=data,
             message=message
         )
-    
+
     @classmethod
     def error_result(cls, error: str, error_type: str = "OperationError", message: Optional[str] = None) -> 'OperationResult[T]':
         """Create an error result"""
@@ -76,7 +76,14 @@ class OperationResult(Generic[T]):
 @strawberry.type
 class DiagramResult(OperationResult[DomainDiagramType]):
     """Result type for diagram operations"""
-    pass
+    diagram: Optional[DomainDiagramType] = None
+    
+    @classmethod
+    def success_result(cls, data: DomainDiagramType, message: Optional[str] = None) -> 'DiagramResult':
+        """Create a successful result with diagram field populated"""
+        result = super(DiagramResult, cls).success_result(data, message)
+        result.diagram = data
+        return result
 
 
 @strawberry.type
@@ -86,10 +93,17 @@ class DiagramListResult(OperationResult[list[DomainDiagramType]]):
     has_more: Optional[bool] = None
 
 
-@strawberry.type  
+@strawberry.type
 class NodeResult(OperationResult[DomainNodeType]):
     """Result type for node operations"""
-    pass
+    node: Optional[DomainNodeType] = None
+    
+    @classmethod
+    def success_result(cls, data: DomainNodeType, message: Optional[str] = None) -> 'NodeResult':
+        """Create a successful result with node field populated"""
+        result = super(NodeResult, cls).success_result(data, message)
+        result.node = data
+        return result
 
 
 @strawberry.type
@@ -101,7 +115,14 @@ class NodeListResult(OperationResult[list[DomainNodeType]]):
 @strawberry.type
 class ExecutionResult(OperationResult[ExecutionStateType]):
     """Result type for execution operations"""
-    execution_id: Optional[str] = None
+    execution: Optional[ExecutionStateType] = None
+    
+    @classmethod
+    def success_result(cls, data: ExecutionStateType, message: Optional[str] = None) -> 'ExecutionResult':
+        """Create a successful result with execution field populated"""
+        result = super(ExecutionResult, cls).success_result(data, message)
+        result.execution = data
+        return result
 
 
 @strawberry.type
@@ -114,7 +135,14 @@ class ExecutionListResult(OperationResult[list[ExecutionStateType]]):
 @strawberry.type
 class PersonResult(OperationResult[DomainPersonType]):
     """Result type for person operations"""
-    pass
+    person: Optional[DomainPersonType] = None
+    
+    @classmethod
+    def success_result(cls, data: DomainPersonType, message: Optional[str] = None) -> 'PersonResult':
+        """Create a successful result with person field populated"""
+        result = super(PersonResult, cls).success_result(data, message)
+        result.person = data
+        return result
 
 
 @strawberry.type
@@ -126,7 +154,14 @@ class PersonListResult(OperationResult[list[DomainPersonType]]):
 @strawberry.type
 class ApiKeyResult(OperationResult[DomainApiKeyType]):
     """Result type for API key operations"""
-    pass
+    api_key: Optional[DomainApiKeyType] = None
+    
+    @classmethod
+    def success_result(cls, data: DomainApiKeyType, message: Optional[str] = None) -> 'ApiKeyResult':
+        """Create a successful result with api_key field populated"""
+        result = super(ApiKeyResult, cls).success_result(data, message)
+        result.api_key = data
+        return result
 
 
 @strawberry.type

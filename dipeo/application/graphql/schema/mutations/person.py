@@ -10,8 +10,7 @@ from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR
 from dipeo.diagram_generated import DomainPerson
 from dipeo.diagram_generated.domain_models import ApiKeyID, LLMService, PersonID, PersonLLMConfig
 from dipeo.diagram_generated.graphql.inputs import CreatePersonInput, UpdatePersonInput
-
-from ...types.results import DeleteResult, PersonResult
+from dipeo.diagram_generated.graphql.results import DeleteResult, PersonResult
 
 logger = logging.getLogger(__name__)
 
@@ -49,18 +48,13 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                     type="person",
                 )
 
-                return PersonResult(
-                    success=True,
-                    person=person,
-                    message=f"Created person: {person.label}",
+                return PersonResult.success_result(
+                    data=person, message=f"Created person: {person.label}"
                 )
 
             except Exception as e:
                 logger.error(f"Failed to create person: {e}")
-                return PersonResult(
-                    success=False,
-                    error=f"Failed to create person: {e!s}",
-                )
+                return PersonResult.error_result(error=f"Failed to create person: {e!s}")
 
         @strawberry.mutation
         async def update_person(self, id: strawberry.ID, input: UpdatePersonInput) -> PersonResult:
@@ -133,18 +127,13 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                     type="person",
                 )
 
-                return PersonResult(
-                    success=True,
-                    person=updated_person,
-                    message=f"Updated person: {updated_label}",
+                return PersonResult.success_result(
+                    data=updated_person, message=f"Updated person: {updated_label}"
                 )
 
             except Exception as e:
                 logger.error(f"Failed to update person {id}: {e}")
-                return PersonResult(
-                    success=False,
-                    error=f"Failed to update person: {e!s}",
-                )
+                return PersonResult.error_result(error=f"Failed to update person: {e!s}")
 
         @strawberry.mutation
         async def delete_person(self, id: strawberry.ID) -> DeleteResult:
@@ -157,16 +146,12 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                     f"Delete person operation not supported in current architecture for person {person_id}"
                 )
 
-                return DeleteResult(
-                    success=False,
-                    error="Delete operation not currently supported. Persons are managed through execution context.",
+                return DeleteResult.error_result(
+                    error="Delete operation not currently supported. Persons are managed through execution context."
                 )
 
             except Exception as e:
                 logger.error(f"Failed to delete person {id}: {e}")
-                return DeleteResult(
-                    success=False,
-                    error=f"Failed to delete person: {e!s}",
-                )
+                return DeleteResult.error_result(error=f"Failed to delete person: {e!s}")
 
     return PersonMutations

@@ -17,7 +17,6 @@ from dipeo.diagram_generated.enums import DiagramFormat
 CONTROL_EXECUTION_MUTATION = """mutation ControlExecution($input: ExecutionControlInput!) {
   control_execution(input: $input) {
     success
-    execution_id
     execution {
       id
       status
@@ -170,7 +169,6 @@ REGISTER_CLI_SESSION_MUTATION = """mutation RegisterCliSession($input: RegisterC
 SEND_INTERACTIVE_RESPONSE_MUTATION = """mutation SendInteractiveResponse($input: InteractiveResponseInput!) {
   send_interactive_response(input: $input) {
     success
-    execution_id
     message
     error
   }
@@ -211,7 +209,6 @@ UPDATE_NODE_MUTATION = """mutation UpdateNode($diagram_id: ID!, $node_id: ID!, $
 UPDATE_NODE_STATE_MUTATION = """mutation UpdateNodeState($input: UpdateNodeStateInput!) {
   update_node_state(input: $input) {
     success
-    execution_id
     execution {
       id
       status
@@ -596,11 +593,11 @@ class ControlExecutionOperation:
     Mutation operation for Execution.
     GraphQL mutation: ControlExecution
     """
-    
+
     query = CONTROL_EXECUTION_MUTATION
     operation_type = "mutation"
     operation_name = "ControlExecution"
-    
+
     
     class Variables(TypedDict):
         """Variable types for ControlExecution mutation."""
@@ -608,22 +605,22 @@ class ControlExecutionOperation:
         input: ExecutionControlInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, input: Union[ExecutionControlInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             input: ExecutionControlInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -645,11 +642,11 @@ class ConvertDiagramFormatOperation:
     Mutation operation for File.
     GraphQL mutation: ConvertDiagramFormat
     """
-    
+
     query = CONVERT_DIAGRAM_FORMAT_MUTATION
     operation_type = "mutation"
     operation_name = "ConvertDiagramFormat"
-    
+
     
     class Variables(TypedDict):
         """Variable types for ConvertDiagramFormat mutation."""
@@ -661,17 +658,17 @@ class ConvertDiagramFormatOperation:
         to_format: DiagramFormat
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, content: str, from_format: DiagramFormat, to_format: DiagramFormat) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             content: String - Required (accepts dict or Strawberry input object)
@@ -680,7 +677,7 @@ class ConvertDiagramFormatOperation:
             
             to_format: DiagramFormat - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -718,11 +715,11 @@ class CreateApiKeyOperation:
     Mutation operation for ApiKey.
     GraphQL mutation: CreateApiKey
     """
-    
+
     query = CREATE_API_KEY_MUTATION
     operation_type = "mutation"
     operation_name = "CreateApiKey"
-    
+
     
     class Variables(TypedDict):
         """Variable types for CreateApiKey mutation."""
@@ -730,22 +727,22 @@ class CreateApiKeyOperation:
         input: CreateApiKeyInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, input: Union[CreateApiKeyInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             input: CreateApiKeyInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -767,11 +764,11 @@ class CreateDiagramOperation:
     Mutation operation for Diagram.
     GraphQL mutation: CreateDiagram
     """
-    
+
     query = CREATE_DIAGRAM_MUTATION
     operation_type = "mutation"
     operation_name = "CreateDiagram"
-    
+
     
     class Variables(TypedDict):
         """Variable types for CreateDiagram mutation."""
@@ -779,22 +776,22 @@ class CreateDiagramOperation:
         input: CreateDiagramInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, input: Union[CreateDiagramInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             input: CreateDiagramInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -816,11 +813,11 @@ class CreateNodeOperation:
     Mutation operation for Node.
     GraphQL mutation: CreateNode
     """
-    
+
     query = CREATE_NODE_MUTATION
     operation_type = "mutation"
     operation_name = "CreateNode"
-    
+
     
     class Variables(TypedDict):
         """Variable types for CreateNode mutation."""
@@ -830,24 +827,24 @@ class CreateNodeOperation:
         input: CreateNodeInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, diagram_id: str, input: Union[CreateNodeInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             diagram_id: ID - Required (accepts dict or Strawberry input object)
             
             input: CreateNodeInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -877,11 +874,11 @@ class CreatePersonOperation:
     Mutation operation for Person.
     GraphQL mutation: CreatePerson
     """
-    
+
     query = CREATE_PERSON_MUTATION
     operation_type = "mutation"
     operation_name = "CreatePerson"
-    
+
     
     class Variables(TypedDict):
         """Variable types for CreatePerson mutation."""
@@ -889,22 +886,22 @@ class CreatePersonOperation:
         input: CreatePersonInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, input: Union[CreatePersonInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             input: CreatePersonInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -926,11 +923,11 @@ class DeleteApiKeyOperation:
     Mutation operation for ApiKey.
     GraphQL mutation: DeleteApiKey
     """
-    
+
     query = DELETE_API_KEY_MUTATION
     operation_type = "mutation"
     operation_name = "DeleteApiKey"
-    
+
     
     class Variables(TypedDict):
         """Variable types for DeleteApiKey mutation."""
@@ -938,22 +935,22 @@ class DeleteApiKeyOperation:
         id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -975,11 +972,11 @@ class DeleteDiagramOperation:
     Mutation operation for Diagram.
     GraphQL mutation: DeleteDiagram
     """
-    
+
     query = DELETE_DIAGRAM_MUTATION
     operation_type = "mutation"
     operation_name = "DeleteDiagram"
-    
+
     
     class Variables(TypedDict):
         """Variable types for DeleteDiagram mutation."""
@@ -987,22 +984,22 @@ class DeleteDiagramOperation:
         id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1024,11 +1021,11 @@ class DeleteNodeOperation:
     Mutation operation for Node.
     GraphQL mutation: DeleteNode
     """
-    
+
     query = DELETE_NODE_MUTATION
     operation_type = "mutation"
     operation_name = "DeleteNode"
-    
+
     
     class Variables(TypedDict):
         """Variable types for DeleteNode mutation."""
@@ -1038,24 +1035,24 @@ class DeleteNodeOperation:
         node_id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, diagram_id: str, node_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             diagram_id: ID - Required (accepts dict or Strawberry input object)
             
             node_id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1085,11 +1082,11 @@ class DeletePersonOperation:
     Mutation operation for Person.
     GraphQL mutation: DeletePerson
     """
-    
+
     query = DELETE_PERSON_MUTATION
     operation_type = "mutation"
     operation_name = "DeletePerson"
-    
+
     
     class Variables(TypedDict):
         """Variable types for DeletePerson mutation."""
@@ -1097,22 +1094,22 @@ class DeletePersonOperation:
         id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1134,11 +1131,11 @@ class ExecuteDiagramOperation:
     Mutation operation for Diagram.
     GraphQL mutation: ExecuteDiagram
     """
-    
+
     query = EXECUTE_DIAGRAM_MUTATION
     operation_type = "mutation"
     operation_name = "ExecuteDiagram"
-    
+
     
     class Variables(TypedDict):
         """Variable types for ExecuteDiagram mutation."""
@@ -1146,22 +1143,22 @@ class ExecuteDiagramOperation:
         input: ExecuteDiagramInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, input: Union[ExecuteDiagramInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             input: ExecuteDiagramInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1183,11 +1180,11 @@ class RegisterCliSessionOperation:
     Mutation operation for CliSession.
     GraphQL mutation: RegisterCliSession
     """
-    
+
     query = REGISTER_CLI_SESSION_MUTATION
     operation_type = "mutation"
     operation_name = "RegisterCliSession"
-    
+
     
     class Variables(TypedDict):
         """Variable types for RegisterCliSession mutation."""
@@ -1195,22 +1192,22 @@ class RegisterCliSessionOperation:
         input: RegisterCliSessionInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, input: Union[RegisterCliSessionInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             input: RegisterCliSessionInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1232,11 +1229,11 @@ class SendInteractiveResponseOperation:
     Mutation operation for Execution.
     GraphQL mutation: SendInteractiveResponse
     """
-    
+
     query = SEND_INTERACTIVE_RESPONSE_MUTATION
     operation_type = "mutation"
     operation_name = "SendInteractiveResponse"
-    
+
     
     class Variables(TypedDict):
         """Variable types for SendInteractiveResponse mutation."""
@@ -1244,22 +1241,22 @@ class SendInteractiveResponseOperation:
         input: InteractiveResponseInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, input: Union[InteractiveResponseInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             input: InteractiveResponseInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1281,11 +1278,11 @@ class TestApiKeyOperation:
     Mutation operation for ApiKey.
     GraphQL mutation: TestApiKey
     """
-    
+
     query = TEST_API_KEY_MUTATION
     operation_type = "mutation"
     operation_name = "TestApiKey"
-    
+
     
     class Variables(TypedDict):
         """Variable types for TestApiKey mutation."""
@@ -1293,22 +1290,22 @@ class TestApiKeyOperation:
         id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1330,11 +1327,11 @@ class UnregisterCliSessionOperation:
     Mutation operation for CliSession.
     GraphQL mutation: UnregisterCliSession
     """
-    
+
     query = UNREGISTER_CLI_SESSION_MUTATION
     operation_type = "mutation"
     operation_name = "UnregisterCliSession"
-    
+
     
     class Variables(TypedDict):
         """Variable types for UnregisterCliSession mutation."""
@@ -1342,22 +1339,22 @@ class UnregisterCliSessionOperation:
         input: UnregisterCliSessionInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, input: Union[UnregisterCliSessionInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             input: UnregisterCliSessionInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1379,11 +1376,11 @@ class UpdateNodeOperation:
     Mutation operation for Node.
     GraphQL mutation: UpdateNode
     """
-    
+
     query = UPDATE_NODE_MUTATION
     operation_type = "mutation"
     operation_name = "UpdateNode"
-    
+
     
     class Variables(TypedDict):
         """Variable types for UpdateNode mutation."""
@@ -1395,17 +1392,17 @@ class UpdateNodeOperation:
         input: UpdateNodeInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, diagram_id: str, node_id: str, input: Union[UpdateNodeInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             diagram_id: ID - Required (accepts dict or Strawberry input object)
@@ -1414,7 +1411,7 @@ class UpdateNodeOperation:
             
             input: UpdateNodeInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1452,11 +1449,11 @@ class UpdateNodeStateOperation:
     Mutation operation for Execution.
     GraphQL mutation: UpdateNodeState
     """
-    
+
     query = UPDATE_NODE_STATE_MUTATION
     operation_type = "mutation"
     operation_name = "UpdateNodeState"
-    
+
     
     class Variables(TypedDict):
         """Variable types for UpdateNodeState mutation."""
@@ -1464,22 +1461,22 @@ class UpdateNodeStateOperation:
         input: UpdateNodeStateInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, input: Union[UpdateNodeStateInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             input: UpdateNodeStateInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1501,11 +1498,11 @@ class UpdatePersonOperation:
     Mutation operation for Person.
     GraphQL mutation: UpdatePerson
     """
-    
+
     query = UPDATE_PERSON_MUTATION
     operation_type = "mutation"
     operation_name = "UpdatePerson"
-    
+
     
     class Variables(TypedDict):
         """Variable types for UpdatePerson mutation."""
@@ -1515,24 +1512,24 @@ class UpdatePersonOperation:
         input: UpdatePersonInput
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, id: str, input: Union[UpdatePersonInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             id: ID - Required (accepts dict or Strawberry input object)
             
             input: UpdatePersonInput - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1562,11 +1559,11 @@ class UploadDiagramOperation:
     Mutation operation for File.
     GraphQL mutation: UploadDiagram
     """
-    
+
     query = UPLOAD_DIAGRAM_MUTATION
     operation_type = "mutation"
     operation_name = "UploadDiagram"
-    
+
     
     class Variables(TypedDict):
         """Variable types for UploadDiagram mutation."""
@@ -1576,24 +1573,24 @@ class UploadDiagramOperation:
         format: DiagramFormat
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, file: Any, format: DiagramFormat) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             file: Upload - Required (accepts dict or Strawberry input object)
             
             format: DiagramFormat - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1623,11 +1620,11 @@ class UploadFileOperation:
     Mutation operation for File.
     GraphQL mutation: UploadFile
     """
-    
+
     query = UPLOAD_FILE_MUTATION
     operation_type = "mutation"
     operation_name = "UploadFile"
-    
+
     
     class Variables(TypedDict, total=False):
         """Variable types for UploadFile mutation."""
@@ -1637,24 +1634,24 @@ class UploadFileOperation:
         path: Optional[str]
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, file: Any, path: Optional[str] = None) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             file: Upload - Required (accepts dict or Strawberry input object)
             
             path: String - Optional (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1685,11 +1682,11 @@ class ValidateDiagramOperation:
     Mutation operation for File.
     GraphQL mutation: ValidateDiagram
     """
-    
+
     query = VALIDATE_DIAGRAM_MUTATION
     operation_type = "mutation"
     operation_name = "ValidateDiagram"
-    
+
     
     class Variables(TypedDict):
         """Variable types for ValidateDiagram mutation."""
@@ -1699,24 +1696,24 @@ class ValidateDiagramOperation:
         format: DiagramFormat
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, content: str, format: DiagramFormat) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             content: String - Required (accepts dict or Strawberry input object)
             
             format: DiagramFormat - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1746,30 +1743,30 @@ class GetActiveCliSessionOperation:
     Query operation for System.
     GraphQL query: GetActiveCliSession
     """
-    
+
     query = GET_ACTIVE_CLI_SESSION_QUERY
     operation_type = "query"
     operation_name = "GetActiveCliSession"
-    
+
     
     class Variables(TypedDict):
         """No variables for this operation."""
         pass
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, ) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1783,11 +1780,11 @@ class GetApiKeyOperation:
     Query operation for ApiKey.
     GraphQL query: GetApiKey
     """
-    
+
     query = GET_API_KEY_QUERY
     operation_type = "query"
     operation_name = "GetApiKey"
-    
+
     
     class Variables(TypedDict):
         """Variable types for GetApiKey query."""
@@ -1795,22 +1792,22 @@ class GetApiKeyOperation:
         id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1832,11 +1829,11 @@ class GetApiKeysOperation:
     Query operation for ApiKey.
     GraphQL query: GetApiKeys
     """
-    
+
     query = GET_API_KEYS_QUERY
     operation_type = "query"
     operation_name = "GetApiKeys"
-    
+
     
     class Variables(TypedDict, total=False):
         """Variable types for GetApiKeys query."""
@@ -1844,22 +1841,22 @@ class GetApiKeysOperation:
         service: Optional[str]
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, service: Optional[str] = None) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             service: String - Optional (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1882,11 +1879,11 @@ class GetAvailableModelsOperation:
     Query operation for ApiKey.
     GraphQL query: GetAvailableModels
     """
-    
+
     query = GET_AVAILABLE_MODELS_QUERY
     operation_type = "query"
     operation_name = "GetAvailableModels"
-    
+
     
     class Variables(TypedDict):
         """Variable types for GetAvailableModels query."""
@@ -1896,24 +1893,24 @@ class GetAvailableModelsOperation:
         apiKeyId: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, service: str, apiKeyId: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             service: String - Required (accepts dict or Strawberry input object)
             
             apiKeyId: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1943,11 +1940,11 @@ class GetDiagramOperation:
     Query operation for Diagram.
     GraphQL query: GetDiagram
     """
-    
+
     query = GET_DIAGRAM_QUERY
     operation_type = "query"
     operation_name = "GetDiagram"
-    
+
     
     class Variables(TypedDict):
         """Variable types for GetDiagram query."""
@@ -1955,22 +1952,22 @@ class GetDiagramOperation:
         id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -1992,11 +1989,11 @@ class GetExecutionOperation:
     Query operation for Execution.
     GraphQL query: GetExecution
     """
-    
+
     query = GET_EXECUTION_QUERY
     operation_type = "query"
     operation_name = "GetExecution"
-    
+
     
     class Variables(TypedDict):
         """Variable types for GetExecution query."""
@@ -2004,22 +2001,22 @@ class GetExecutionOperation:
         id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2041,30 +2038,30 @@ class GetExecutionCapabilitiesOperation:
     Query operation for System.
     GraphQL query: GetExecutionCapabilities
     """
-    
+
     query = GET_EXECUTION_CAPABILITIES_QUERY
     operation_type = "query"
     operation_name = "GetExecutionCapabilities"
-    
+
     
     class Variables(TypedDict):
         """No variables for this operation."""
         pass
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, ) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2078,11 +2075,11 @@ class GetExecutionHistoryOperation:
     Query operation for System.
     GraphQL query: GetExecutionHistory
     """
-    
+
     query = GET_EXECUTION_HISTORY_QUERY
     operation_type = "query"
     operation_name = "GetExecutionHistory"
-    
+
     
     class Variables(TypedDict, total=False):
         """Variable types for GetExecutionHistory query."""
@@ -2094,17 +2091,17 @@ class GetExecutionHistoryOperation:
         include_metrics: Optional[bool]
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, diagram_id: Optional[str] = None, limit: Optional[int] = None, include_metrics: Optional[bool] = None) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             diagram_id: ID - Optional (accepts dict or Strawberry input object)
@@ -2113,7 +2110,7 @@ class GetExecutionHistoryOperation:
             
             include_metrics: Boolean - Optional (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2154,11 +2151,11 @@ class GetExecutionMetricsOperation:
     Query operation for System.
     GraphQL query: GetExecutionMetrics
     """
-    
+
     query = GET_EXECUTION_METRICS_QUERY
     operation_type = "query"
     operation_name = "GetExecutionMetrics"
-    
+
     
     class Variables(TypedDict):
         """Variable types for GetExecutionMetrics query."""
@@ -2166,22 +2163,22 @@ class GetExecutionMetricsOperation:
         execution_id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, execution_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             execution_id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2203,11 +2200,11 @@ class GetExecutionOrderOperation:
     Query operation for System.
     GraphQL query: GetExecutionOrder
     """
-    
+
     query = GET_EXECUTION_ORDER_QUERY
     operation_type = "query"
     operation_name = "GetExecutionOrder"
-    
+
     
     class Variables(TypedDict):
         """Variable types for GetExecutionOrder query."""
@@ -2215,22 +2212,22 @@ class GetExecutionOrderOperation:
         execution_id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, execution_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             execution_id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2252,11 +2249,11 @@ class GetOperationSchemaOperation:
     Query operation for Provider.
     GraphQL query: GetOperationSchema
     """
-    
+
     query = GET_OPERATION_SCHEMA_QUERY
     operation_type = "query"
     operation_name = "GetOperationSchema"
-    
+
     
     class Variables(TypedDict):
         """Variable types for GetOperationSchema query."""
@@ -2266,24 +2263,24 @@ class GetOperationSchemaOperation:
         operation: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, provider: str, operation: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             provider: String - Required (accepts dict or Strawberry input object)
             
             operation: String - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2313,11 +2310,11 @@ class GetPersonOperation:
     Query operation for Person.
     GraphQL query: GetPerson
     """
-    
+
     query = GET_PERSON_QUERY
     operation_type = "query"
     operation_name = "GetPerson"
-    
+
     
     class Variables(TypedDict):
         """Variable types for GetPerson query."""
@@ -2325,22 +2322,22 @@ class GetPersonOperation:
         id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2362,11 +2359,11 @@ class GetPromptFileOperation:
     Query operation for Prompt.
     GraphQL query: GetPromptFile
     """
-    
+
     query = GET_PROMPT_FILE_QUERY
     operation_type = "query"
     operation_name = "GetPromptFile"
-    
+
     
     class Variables(TypedDict):
         """Variable types for GetPromptFile query."""
@@ -2374,22 +2371,22 @@ class GetPromptFileOperation:
         filename: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, filename: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             filename: String - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2411,11 +2408,11 @@ class GetProviderOperationsOperation:
     Query operation for Provider.
     GraphQL query: GetProviderOperations
     """
-    
+
     query = GET_PROVIDER_OPERATIONS_QUERY
     operation_type = "query"
     operation_name = "GetProviderOperations"
-    
+
     
     class Variables(TypedDict):
         """Variable types for GetProviderOperations query."""
@@ -2423,22 +2420,22 @@ class GetProviderOperationsOperation:
         provider: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, provider: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             provider: String - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2460,30 +2457,30 @@ class GetProvidersOperation:
     Query operation for Provider.
     GraphQL query: GetProviders
     """
-    
+
     query = GET_PROVIDERS_QUERY
     operation_type = "query"
     operation_name = "GetProviders"
-    
+
     
     class Variables(TypedDict):
         """No variables for this operation."""
         pass
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, ) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2497,30 +2494,30 @@ class GetSupportedFormatsOperation:
     Query operation for Format.
     GraphQL query: GetSupportedFormats
     """
-    
+
     query = GET_SUPPORTED_FORMATS_QUERY
     operation_type = "query"
     operation_name = "GetSupportedFormats"
-    
+
     
     class Variables(TypedDict):
         """No variables for this operation."""
         pass
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, ) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2534,30 +2531,30 @@ class GetSystemInfoOperation:
     Query operation for System.
     GraphQL query: GetSystemInfo
     """
-    
+
     query = GET_SYSTEM_INFO_QUERY
     operation_type = "query"
     operation_name = "GetSystemInfo"
-    
+
     
     class Variables(TypedDict):
         """No variables for this operation."""
         pass
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, ) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2571,30 +2568,30 @@ class HealthCheckOperation:
     Query operation for System.
     GraphQL query: HealthCheck
     """
-    
+
     query = HEALTH_CHECK_QUERY
     operation_type = "query"
     operation_name = "HealthCheck"
-    
+
     
     class Variables(TypedDict):
         """No variables for this operation."""
         pass
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, ) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2608,11 +2605,11 @@ class ListConversationsOperation:
     Query operation for Conversation.
     GraphQL query: ListConversations
     """
-    
+
     query = LIST_CONVERSATIONS_QUERY
     operation_type = "query"
     operation_name = "ListConversations"
-    
+
     
     class Variables(TypedDict, total=False):
         """Variable types for ListConversations query."""
@@ -2632,17 +2629,17 @@ class ListConversationsOperation:
         since: Optional[str]
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, person_id: Optional[str] = None, execution_id: Optional[str] = None, search: Optional[str] = None, show_forgotten: Optional[bool] = None, limit: Optional[int] = None, offset: Optional[int] = None, since: Optional[str] = None) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             person_id: ID - Optional (accepts dict or Strawberry input object)
@@ -2659,7 +2656,7 @@ class ListConversationsOperation:
             
             since: DateTime - Optional (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2736,11 +2733,11 @@ class ListDiagramsOperation:
     Query operation for Diagram.
     GraphQL query: ListDiagrams
     """
-    
+
     query = LIST_DIAGRAMS_QUERY
     operation_type = "query"
     operation_name = "ListDiagrams"
-    
+
     
     class Variables(TypedDict, total=False):
         """Variable types for ListDiagrams query."""
@@ -2752,17 +2749,17 @@ class ListDiagramsOperation:
         offset: Optional[int]
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, filter: Optional[Union[DiagramFilterInput, dict[str, Any]]] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             filter: DiagramFilterInput - Optional (accepts dict or Strawberry input object)
@@ -2771,7 +2768,7 @@ class ListDiagramsOperation:
             
             offset: Int - Optional (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2812,11 +2809,11 @@ class ListExecutionsOperation:
     Query operation for Execution.
     GraphQL query: ListExecutions
     """
-    
+
     query = LIST_EXECUTIONS_QUERY
     operation_type = "query"
     operation_name = "ListExecutions"
-    
+
     
     class Variables(TypedDict, total=False):
         """Variable types for ListExecutions query."""
@@ -2828,17 +2825,17 @@ class ListExecutionsOperation:
         offset: Optional[int]
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, filter: Optional[Union[ExecutionFilterInput, dict[str, Any]]] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             filter: ExecutionFilterInput - Optional (accepts dict or Strawberry input object)
@@ -2847,7 +2844,7 @@ class ListExecutionsOperation:
             
             offset: Int - Optional (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2888,11 +2885,11 @@ class ListPersonsOperation:
     Query operation for Person.
     GraphQL query: ListPersons
     """
-    
+
     query = LIST_PERSONS_QUERY
     operation_type = "query"
     operation_name = "ListPersons"
-    
+
     
     class Variables(TypedDict, total=False):
         """Variable types for ListPersons query."""
@@ -2900,22 +2897,22 @@ class ListPersonsOperation:
         limit: Optional[int]
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, limit: Optional[int] = None) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             limit: Int - Optional (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2938,30 +2935,30 @@ class ListPromptFilesOperation:
     Query operation for Prompt.
     GraphQL query: ListPromptFiles
     """
-    
+
     query = LIST_PROMPT_FILES_QUERY
     operation_type = "query"
     operation_name = "ListPromptFiles"
-    
+
     
     class Variables(TypedDict):
         """No variables for this operation."""
         pass
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, ) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -2975,11 +2972,11 @@ class ExecutionUpdatesOperation:
     Subscription operation for Execution.
     GraphQL subscription: ExecutionUpdates
     """
-    
+
     query = EXECUTION_UPDATES_SUBSCRIPTION
     operation_type = "subscription"
     operation_name = "ExecutionUpdates"
-    
+
     
     class Variables(TypedDict):
         """Variable types for ExecutionUpdates subscription."""
@@ -2987,22 +2984,22 @@ class ExecutionUpdatesOperation:
         execution_id: str
         
     
-    
+
     @classmethod
     def get_query(cls) -> str:
         """Get the GraphQL query string."""
         return cls.query
-    
+
     @classmethod
     def get_variables_dict(cls, execution_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
-        
+
         Args:
             
             execution_id: ID - Required (accepts dict or Strawberry input object)
             
-        
+
         Returns:
             Dictionary of variables for GraphQL execution
         """
@@ -3328,7 +3325,7 @@ __all__ = [
     
     # Registries
     "QUERIES",
-    "MUTATIONS", 
+    "MUTATIONS",
     "SUBSCRIPTIONS",
     "ALL_OPERATIONS",
     # Helper functions

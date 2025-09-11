@@ -10,8 +10,7 @@ from dipeo.diagram_generated.graphql.inputs import (
     RegisterCliSessionInput,
     UnregisterCliSessionInput,
 )
-
-from ...types.results import CliSessionResult
+from dipeo.diagram_generated.graphql.results import CliSessionResult
 
 logger = logging.getLogger(__name__)
 
@@ -118,16 +117,14 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
                     diagram_data=diagram_data,
                 )
 
-                return CliSessionResult(
-                    success=True,
+                return CliSessionResult.success_result(
+                    data={"execution_id": input.execution_id},
                     message=f"CLI session registered for execution {input.execution_id}",
                 )
 
             except Exception as e:
                 logger.error(f"Failed to register CLI session: {e}")
-                return CliSessionResult(
-                    success=False, error=f"Failed to register CLI session: {e!s}"
-                )
+                return CliSessionResult.error_result(error=f"Failed to register CLI session: {e!s}")
 
         @strawberry.mutation
         async def unregister_cli_session(
@@ -137,28 +134,25 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
             try:
                 cli_session_service = registry.get(CLI_SESSION_SERVICE)
                 if not cli_session_service:
-                    return CliSessionResult(
-                        success=False, error="CLI session service not available"
-                    )
+                    return CliSessionResult.error_result(error="CLI session service not available")
 
                 # Unregister the session
                 success = await cli_session_service.end_cli_session(input.execution_id)
 
                 if success:
-                    return CliSessionResult(
-                        success=True,
+                    return CliSessionResult.success_result(
+                        data={"execution_id": input.execution_id},
                         message=f"CLI session unregistered for execution {input.execution_id}",
                     )
                 else:
-                    return CliSessionResult(
-                        success=False,
-                        error=f"No active CLI session found for execution {input.execution_id}",
+                    return CliSessionResult.error_result(
+                        error=f"No active CLI session found for execution {input.execution_id}"
                     )
 
             except Exception as e:
                 logger.error(f"Failed to unregister CLI session: {e}")
-                return CliSessionResult(
-                    success=False, error=f"Failed to unregister CLI session: {e!s}"
+                return CliSessionResult.error_result(
+                    error=f"Failed to unregister CLI session: {e!s}"
                 )
 
     return CliSessionMutations

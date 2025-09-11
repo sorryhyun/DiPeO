@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces.
 
-Generated at: 2025-09-11T15:46:12.776960
+Generated at: 2025-09-11T16:46:46.698448
 """
 
 import strawberry
@@ -38,8 +38,10 @@ from dipeo.diagram_generated.graphql.scalars import (
     DiagramIDScalar,
     ExecutionIDScalar,
     HandleIDScalar,
+    HookIDScalar,
     NodeIDScalar,
     PersonIDScalar,
+    TaskIDScalar,
 )
 
 # Note: HookIDScalar and TaskIDScalar are not branded types yet
