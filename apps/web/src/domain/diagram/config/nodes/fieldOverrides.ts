@@ -2,27 +2,7 @@ import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConf
 import { getGeneratedFields } from '@/__generated__/fields';
 import { createZodFieldValidator } from '@/__generated__/schemas';
 import { apolloClient } from '@/lib/graphql/client';
-import { gql } from '@apollo/client';
-
-const Q_PROVIDERS = gql`
-  query Providers {
-    providers {
-      name
-      metadata {
-        description
-      }
-    }
-  }
-`;
-
-const Q_PROVIDER_OPS = gql`
-  query ProviderOps($provider: String!) {
-    provider_operations(provider: $provider) {
-      name
-      description
-    }
-  }
-`;
+import { GETPROVIDERS_QUERY, GETPROVIDEROPERATIONS_QUERY } from '@/__generated__/queries/all-queries';
 
 /**
  * Field override configuration for specific node types
@@ -210,7 +190,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
         options: async () => {
           try {
             const { data } = await apolloClient.query({
-              query: Q_PROVIDERS,
+              query: GETPROVIDERS_QUERY,
               fetchPolicy: 'network-only'
             });
 
@@ -239,7 +219,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
             }
 
             const { data } = await apolloClient.query({
-              query: Q_PROVIDER_OPS,
+              query: GETPROVIDEROPERATIONS_QUERY,
               variables: { provider },
               fetchPolicy: 'network-only'
             });

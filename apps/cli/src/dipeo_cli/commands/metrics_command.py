@@ -5,7 +5,12 @@ import traceback
 
 import requests
 
-from ..graphql_queries import GraphQLQueries
+from dipeo.diagram_generated.graphql.operations import (
+    GET_EXECUTION_HISTORY_QUERY,
+    GET_EXECUTION_QUERY,
+    LIST_EXECUTIONS_QUERY,
+)
+
 from ..server_manager import ServerManager
 
 
@@ -42,9 +47,7 @@ class MetricsCommand:
                     url, diagram_id, output_json, bottlenecks_only, optimizations_only
                 )
             else:
-                self._query_latest_execution(
-                    url, output_json, bottlenecks_only, optimizations_only
-                )
+                self._query_latest_execution(url, output_json, bottlenecks_only, optimizations_only)
 
         except requests.exceptions.RequestException as e:
             print(f"❌ Failed to fetch metrics: {e}")
@@ -61,12 +64,10 @@ class MetricsCommand:
         optimizations_only: bool,
     ):
         """Query specific execution metrics."""
-        query = GraphQLQueries.EXECUTION_METRICS_DETAILED
+        query = GET_EXECUTION_QUERY
         variables = {"executionId": execution_id}
 
-        response = requests.post(
-            url, json={"query": query, "variables": variables}, timeout=10
-        )
+        response = requests.post(url, json={"query": query, "variables": variables}, timeout=10)
         response.raise_for_status()
         result = response.json()
 
@@ -87,9 +88,7 @@ class MetricsCommand:
         if output_json:
             print(json.dumps(metrics, indent=2))
         else:
-            self._display_metrics(
-                execution, metrics, bottlenecks_only, optimizations_only
-            )
+            self._display_metrics(execution, metrics, bottlenecks_only, optimizations_only)
 
     def _query_diagram_history(
         self,
@@ -100,12 +99,10 @@ class MetricsCommand:
         optimizations_only: bool,
     ):
         """Query execution history for diagram."""
-        query = GraphQLQueries.EXECUTION_HISTORY
+        query = GET_EXECUTION_HISTORY_QUERY
         variables = {"diagramId": diagram_id, "includeMetrics": True}
 
-        response = requests.post(
-            url, json={"query": query, "variables": variables}, timeout=10
-        )
+        response = requests.post(url, json={"query": query, "variables": variables}, timeout=10)
         response.raise_for_status()
         result = response.json()
 
@@ -121,9 +118,7 @@ class MetricsCommand:
         if output_json:
             print(json.dumps(executions, indent=2))
         else:
-            self._display_history_metrics(
-                executions, bottlenecks_only, optimizations_only
-            )
+            self._display_history_metrics(executions, bottlenecks_only, optimizations_only)
 
     def _query_latest_execution(
         self,
@@ -133,7 +128,7 @@ class MetricsCommand:
         optimizations_only: bool,
     ):
         """Query latest execution."""
-        query = GraphQLQueries.LATEST_EXECUTION
+        query = LIST_EXECUTIONS_QUERY
 
         response = requests.post(url, json={"query": query}, timeout=10)
         response.raise_for_status()
@@ -158,13 +153,9 @@ class MetricsCommand:
         if output_json:
             print(json.dumps(metrics, indent=2))
         else:
-            self._display_metrics(
-                execution, metrics, bottlenecks_only, optimizations_only
-            )
+            self._display_metrics(execution, metrics, bottlenecks_only, optimizations_only)
 
-    def _display_metrics(
-        self, execution, metrics, bottlenecks_only, optimizations_only
-    ):
+    def _display_metrics(self, execution, metrics, bottlenecks_only, optimizations_only):
         """Display formatted metrics for a single execution."""
         print("\n📊 Execution Metrics")
         print("=" * 60)
@@ -208,9 +199,7 @@ class MetricsCommand:
                 for i, group in enumerate(parallelizable[:3], 1):  # Show top 3
                     print(f"  Group {i}: {', '.join(group)}")
 
-    def _display_history_metrics(
-        self, executions, bottlenecks_only, optimizations_only
-    ):
+    def _display_history_metrics(self, executions, bottlenecks_only, optimizations_only):
         """Display metrics history for multiple executions."""
         print("\n📈 Execution History Metrics")
         print("=" * 60)

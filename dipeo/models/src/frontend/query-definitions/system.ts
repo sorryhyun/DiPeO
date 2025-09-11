@@ -101,12 +101,14 @@ export const systemQueries: EntityQueryDefinitions = {
         {
           name: 'active_cli_session',
           fields: [
+            { name: 'session_id' },
             { name: 'execution_id' },
             { name: 'diagram_name' },
             { name: 'diagram_format' },
             { name: 'started_at' },
             { name: 'is_active' },
-            { name: 'diagram_data' }
+            { name: 'diagram_data' },
+            { name: 'node_states' }
           ]
         }
       ]

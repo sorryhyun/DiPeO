@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useContext } from 'react';
-import { useQuery, useLazyQuery, gql } from '@apollo/client';
+import { useQuery, useLazyQuery } from '@apollo/client';
 import { toast } from 'sonner';
 import { useExecution } from './useExecution';
 import { useDiagramLoader } from '@/domain/diagram/hooks/useDiagramLoader';
@@ -14,34 +14,7 @@ import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { useUIState, useUIOperations } from '@/infrastructure/store/hooks';
 import { nodeId } from '@/infrastructure/types';
 import { Status } from '@dipeo/models';
-
-const ACTIVE_CLI_SESSION_QUERY = gql`
-  query ActiveCliSession {
-    active_cli_session {
-      session_id
-      execution_id
-      diagram_name
-      diagram_format
-      started_at
-      is_active
-      diagram_data
-      node_states
-    }
-  }
-`;
-
-const GET_EXECUTION_STATE_QUERY = gql`
-  query GetExecutionState($id: ID!) {
-    execution(id: $id) {
-      id
-      status
-      started_at
-      ended_at
-      node_states
-      node_outputs
-    }
-  }
-`;
+import { GETACTIVECLISESSION_QUERY, GETEXECUTION_QUERY } from '@/__generated__/queries/all-queries';
 
 export interface UseMonitorModeOptions {
   pollCliSessions?: boolean;
@@ -67,7 +40,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   const { setActiveCanvas } = useUIOperations();
 
   // Lazy query to fetch execution state on demand
-  const [fetchExecutionState] = useLazyQuery(GET_EXECUTION_STATE_QUERY, {
+  const [fetchExecutionState] = useLazyQuery(GETEXECUTION_QUERY, {
     fetchPolicy: 'network-only',
   });
 
@@ -80,7 +53,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   const initialConnectionRef = useRef(true);
 
   // Poll for active CLI session when in monitor mode
-  const { data: cliSessionData, loading: cliSessionLoading, error: cliSessionError } = useQuery(ACTIVE_CLI_SESSION_QUERY, {
+  const { data: cliSessionData, loading: cliSessionLoading, error: cliSessionError } = useQuery(GETACTIVECLISESSION_QUERY, {
     skip: !isMonitorMode() || !pollCliSessions,
     pollInterval: initialConnectionRef.current ? 100 : 200, // Fast polling initially, then slower
     fetchPolicy: 'network-only',

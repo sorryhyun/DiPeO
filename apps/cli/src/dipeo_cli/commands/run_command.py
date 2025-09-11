@@ -1,5 +1,6 @@
 """Run command for executing diagrams."""
 
+import asyncio
 import json
 import time
 from pathlib import Path
@@ -7,6 +8,8 @@ from typing import Any
 
 from dipeo.infrastructure.logging_config import setup_logging
 
+from ..display.execution_display import ExecutionDisplay, SimpleDisplay
+from ..display.subscription_client import SimpleSubscriptionClient, SubscriptionClient
 from ..server_manager import ServerManager
 from .base import DiagramLoader
 
@@ -27,6 +30,7 @@ class RunCommand:
         format_type: str | None = None,
         input_variables: dict[str, Any] | None = None,
         use_unified: bool = False,
+        simple: bool = False,
     ) -> bool:
         """Run a diagram via server."""
         # Setup logging if debug mode is enabled
@@ -77,10 +81,16 @@ class RunCommand:
                 return False
 
             execution_id = result["execution_id"]
-            print(f"✓ Execution started: {execution_id}")
 
-            # Poll for completion
-            return self._wait_for_completion(execution_id, timeout, debug)
+            # Use simple display mode if requested or if subscriptions fail
+            if simple:
+                print(f"✓ Execution started: {execution_id}")
+                return self._wait_for_completion_simple(execution_id, timeout, debug)
+            else:
+                # Try to use rich display with subscriptions
+                return self._wait_for_completion_rich(
+                    execution_id, diagram_name or Path(diagram_path).stem, timeout, debug
+                )
 
         except Exception as e:
             print(f"❌ Error during execution: {e}")
@@ -98,10 +108,8 @@ class RunCommand:
             # Stop the server
             self.server.stop()
 
-    def _wait_for_completion(
-        self, execution_id: str, timeout: int, debug: bool
-    ) -> bool:
-        """Poll for execution completion."""
+    def _wait_for_completion_simple(self, execution_id: str, timeout: int, debug: bool) -> bool:
+        """Poll for execution completion in simple mode."""
         print(f"\n⏳ Waiting for execution to complete (timeout: {timeout}s)...")
         start_time = time.time()
 
@@ -132,9 +140,7 @@ class RunCommand:
                 if status == "ABORTED":
                     print("❌ Execution aborted")
                 else:
-                    print(
-                        f"❌ Execution failed: {exec_result.get('error', 'Unknown error')}"
-                    )
+                    print(f"❌ Execution failed: {exec_result.get('error', 'Unknown error')}")
                 return False
             if status in ["RUNNING", "PENDING"]:
                 print(f"⏳ Execution {status.lower()}... ({int(elapsed)}s)")
@@ -142,3 +148,110 @@ class RunCommand:
                 print(f"⏳ Status: {status} ({int(elapsed)}s)")
 
         return True
+
+    def _wait_for_completion_rich(
+        self, execution_id: str, diagram_name: str, timeout: int, debug: bool
+    ) -> bool:
+        """Wait for execution completion with rich display."""
+        try:
+            # Create display
+            display = ExecutionDisplay(diagram_name, execution_id, debug)
+            display.start()
+
+            # Try WebSocket client first, fallback to polling if it fails
+            try:
+                # Use WebSocket subscription client for real-time updates
+                ws_url = f"http://localhost:{self.server.port}"
+                client = SubscriptionClient(ws_url, execution_id)
+            except Exception:
+                # Fallback to polling client
+                client = SimpleSubscriptionClient(self.server, execution_id)
+
+            # Get initial state
+            exec_result = self.server.get_execution_result(execution_id)
+            if exec_result:
+                display.update_from_state(exec_result)
+
+            # Run async subscription
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            async def run_subscription():
+                await client.connect()
+
+                # Create task for subscription
+                subscription_task = asyncio.create_task(
+                    client.subscribe_to_execution(display.handle_event)
+                )
+
+                try:
+                    # Also run timeout checker
+                    start_time = time.time()
+                    while True:
+                        # Check timeout
+                        if time.time() - start_time > timeout:
+                            print(f"\n⏰ Execution timed out after {timeout} seconds")
+                            subscription_task.cancel()
+                            await client.disconnect()
+                            return False
+
+                        # Check execution status
+                        exec_result = self.server.get_execution_result(execution_id)
+                        if exec_result:
+                            status = exec_result.get("status")
+                            if status in ["COMPLETED", "MAXITER_REACHED"]:
+                                if status == "MAXITER_REACHED":
+                                    print("\n✅ Execution completed (max iterations reached)")
+                                else:
+                                    print("\n✅ Execution completed successfully!")
+                                subscription_task.cancel()
+                                await client.disconnect()
+                                return True
+                            elif status in ["FAILED", "ABORTED"]:
+                                if status == "ABORTED":
+                                    print("\n❌ Execution aborted")
+                                else:
+                                    print(
+                                        f"\n❌ Execution failed: {exec_result.get('error', 'Unknown error')}"
+                                    )
+                                subscription_task.cancel()
+                                await client.disconnect()
+                                return False
+
+                        await asyncio.sleep(1)
+                except asyncio.CancelledError:
+                    subscription_task.cancel()
+                    await client.disconnect()
+                    raise
+
+            try:
+                result = loop.run_until_complete(run_subscription())
+                return result
+            except KeyboardInterrupt:
+                # Handle Ctrl+C gracefully
+                loop.run_until_complete(client.disconnect())
+                raise
+            finally:
+                # Clean up any pending tasks
+                pending = asyncio.all_tasks(loop)
+                for task in pending:
+                    task.cancel()
+                # Wait for all tasks to complete cancellation
+                if pending:
+                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                loop.close()
+                display.stop()
+
+        except KeyboardInterrupt:
+            # Re-raise keyboard interrupt
+            raise
+        except Exception as e:
+            if debug:
+                print(f"Rich display failed: {e}")
+                import traceback
+
+                traceback.print_exc()
+
+            # Fallback to simple mode
+            print("Falling back to simple display mode...")
+            return self._wait_for_completion_simple(execution_id, timeout, debug)

@@ -66,6 +66,23 @@ export enum APIServiceType {
   VERTEX = 'VERTEX'
 }
 
+export type ApiJobDataType = {
+  __typename?: 'ApiJobDataType';
+  auth_config?: Maybe<Scalars['JSON']['output']>;
+  auth_type?: Maybe<Scalars['String']['output']>;
+  body?: Maybe<Scalars['JSON']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  headers?: Maybe<Scalars['JSON']['output']>;
+  id: Scalars['NodeID']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  method: Scalars['String']['output'];
+  params?: Maybe<Scalars['JSON']['output']>;
+  position: Vec2Type;
+  timeout?: Maybe<Scalars['String']['output']>;
+  url: Scalars['String']['output'];
+};
+
 export type ApiKeyResult = {
   __typename?: 'ApiKeyResult';
   api_key?: Maybe<DomainApiKeyType>;
@@ -100,6 +117,39 @@ export type CliSessionResult = {
   error?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
+};
+
+export type CodeJobDataType = {
+  __typename?: 'CodeJobDataType';
+  code?: Maybe<Scalars['String']['output']>;
+  filePath?: Maybe<Scalars['String']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  functionName?: Maybe<Scalars['String']['output']>;
+  id: Scalars['NodeID']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  language: Scalars['String']['output'];
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  position: Vec2Type;
+  timeout?: Maybe<Scalars['String']['output']>;
+};
+
+export type ConditionDataType = {
+  __typename?: 'ConditionDataType';
+  at_most?: Maybe<Scalars['String']['output']>;
+  condition_type?: Maybe<Scalars['String']['output']>;
+  expose_index_as?: Maybe<Scalars['String']['output']>;
+  expression?: Maybe<Scalars['String']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  id: Scalars['NodeID']['output'];
+  judge_by?: Maybe<Scalars['String']['output']>;
+  judge_by_file?: Maybe<Scalars['String']['output']>;
+  label?: Maybe<Scalars['String']['output']>;
+  memorize_to?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  node_indices?: Maybe<Scalars['String']['output']>;
+  person?: Maybe<Scalars['String']['output']>;
+  position: Vec2Type;
+  skippable?: Maybe<Scalars['String']['output']>;
 };
 
 export enum ContentType {
@@ -138,6 +188,23 @@ export type CreatePersonInput = {
 };
 
 export { DataType };
+
+export type DbDataType = {
+  __typename?: 'DbDataType';
+  collection?: Maybe<Scalars['String']['output']>;
+  data?: Maybe<Scalars['JSON']['output']>;
+  file?: Maybe<Scalars['JSON']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  format?: Maybe<Scalars['String']['output']>;
+  id: Scalars['NodeID']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  operation: Scalars['String']['output'];
+  position: Vec2Type;
+  query?: Maybe<Scalars['String']['output']>;
+  serialize_json?: Maybe<Scalars['String']['output']>;
+  sub_type: Scalars['String']['output'];
+};
 
 export type DeleteResult = {
   __typename?: 'DeleteResult';
@@ -260,6 +327,17 @@ export type DomainPersonType = {
   type: Scalars['String']['output'];
 };
 
+export type EndpointDataType = {
+  __typename?: 'EndpointDataType';
+  file_name?: Maybe<Scalars['String']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  id: Scalars['NodeID']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  position: Vec2Type;
+  save_to_file: Scalars['String']['output'];
+};
+
 export type ExecuteDiagramInput = {
   debug_mode?: InputMaybe<Scalars['Boolean']['input']>;
   diagram_data?: InputMaybe<Scalars['JSON']['input']>;
@@ -333,11 +411,54 @@ export { HandleDirection };
 
 export { HandleLabel };
 
+export type HookDataType = {
+  __typename?: 'HookDataType';
+  command?: Maybe<Scalars['String']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  hook_type: Scalars['String']['output'];
+  id: Scalars['NodeID']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  position: Vec2Type;
+  retry_count?: Maybe<Scalars['String']['output']>;
+  timeout?: Maybe<Scalars['String']['output']>;
+  url?: Maybe<Scalars['String']['output']>;
+};
+
+export type IntegratedApiDataType = {
+  __typename?: 'IntegratedApiDataType';
+  config?: Maybe<Scalars['JSON']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  id: Scalars['NodeID']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  max_retries?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  operation: Scalars['String']['output'];
+  position: Vec2Type;
+  provider: Scalars['String']['output'];
+  resource_id?: Maybe<Scalars['String']['output']>;
+  timeout?: Maybe<Scalars['String']['output']>;
+};
+
 export type InteractiveResponseInput = {
   execution_id: Scalars['ID']['input'];
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   node_id: Scalars['ID']['input'];
   response: Scalars['String']['input'];
+};
+
+export type JsonSchemaValidatorDataType = {
+  __typename?: 'JsonSchemaValidatorDataType';
+  data_path?: Maybe<Scalars['String']['output']>;
+  error_on_extra?: Maybe<Scalars['String']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  id: Scalars['NodeID']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  position: Vec2Type;
+  schema?: Maybe<Scalars['JSON']['output']>;
+  schema_path?: Maybe<Scalars['String']['output']>;
+  strict_mode?: Maybe<Scalars['String']['output']>;
 };
 
 export { LLMService };
@@ -520,6 +641,33 @@ export type OperationType = {
   path: Scalars['String']['output'];
   required_scopes?: Maybe<Array<Scalars['String']['output']>>;
   timeout_override?: Maybe<Scalars['Float']['output']>;
+};
+
+export type PersonJobDataType = {
+  __typename?: 'PersonJobDataType';
+  at_most?: Maybe<Scalars['String']['output']>;
+  batch?: Maybe<Scalars['String']['output']>;
+  batch_input_key?: Maybe<Scalars['String']['output']>;
+  batch_parallel?: Maybe<Scalars['String']['output']>;
+  default_prompt?: Maybe<Scalars['String']['output']>;
+  first_only_prompt: Scalars['String']['output'];
+  first_prompt_file?: Maybe<Scalars['String']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  id: Scalars['NodeID']['output'];
+  ignore_person?: Maybe<Scalars['String']['output']>;
+  label?: Maybe<Scalars['String']['output']>;
+  max_concurrent?: Maybe<Scalars['String']['output']>;
+  max_iteration: Scalars['String']['output'];
+  memorize_to?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  person?: Maybe<Scalars['String']['output']>;
+  position: Vec2Type;
+  prompt_file?: Maybe<Scalars['String']['output']>;
+  resolved_first_prompt?: Maybe<Scalars['String']['output']>;
+  resolved_prompt?: Maybe<Scalars['String']['output']>;
+  text_format?: Maybe<Scalars['String']['output']>;
+  text_format_file?: Maybe<Scalars['String']['output']>;
+  tools?: Maybe<Scalars['String']['output']>;
 };
 
 export type PersonLLMConfigInput = {
@@ -729,7 +877,42 @@ export type RetryPolicyType = {
   strategy: Scalars['String']['output'];
 };
 
+export type StartDataType = {
+  __typename?: 'StartDataType';
+  custom_data?: Maybe<Scalars['JSON']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  hook_event?: Maybe<Scalars['String']['output']>;
+  hook_filters?: Maybe<Scalars['JSON']['output']>;
+  id: Scalars['NodeID']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  output_data_structure?: Maybe<Scalars['JSON']['output']>;
+  position: Vec2Type;
+  trigger_mode?: Maybe<Scalars['String']['output']>;
+};
+
 export { Status };
+
+export type SubDiagramDataType = {
+  __typename?: 'SubDiagramDataType';
+  batch?: Maybe<Scalars['String']['output']>;
+  batch_input_key?: Maybe<Scalars['String']['output']>;
+  batch_parallel?: Maybe<Scalars['String']['output']>;
+  diagram_data?: Maybe<Scalars['JSON']['output']>;
+  diagram_format?: Maybe<Scalars['String']['output']>;
+  diagram_name?: Maybe<Scalars['String']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  id: Scalars['NodeID']['output'];
+  ignoreIfSub?: Maybe<Scalars['String']['output']>;
+  input_mapping?: Maybe<Scalars['JSON']['output']>;
+  isolate_conversation?: Maybe<Scalars['String']['output']>;
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  output_mapping?: Maybe<Scalars['JSON']['output']>;
+  position: Vec2Type;
+  timeout?: Maybe<Scalars['String']['output']>;
+  wait_for_completion?: Maybe<Scalars['String']['output']>;
+};
 
 export type Subscription = {
   __typename?: 'Subscription';
@@ -760,12 +943,45 @@ export type Subscriptionnode_updatesArgs = {
   node_id?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type TemplateJobDataType = {
+  __typename?: 'TemplateJobDataType';
+  engine?: Maybe<Scalars['String']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  id: Scalars['NodeID']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  output_path?: Maybe<Scalars['String']['output']>;
+  position: Vec2Type;
+  preprocessor?: Maybe<Scalars['String']['output']>;
+  template_content?: Maybe<Scalars['String']['output']>;
+  template_path?: Maybe<Scalars['String']['output']>;
+  variables?: Maybe<Scalars['JSON']['output']>;
+};
+
 export type TestApiKeyResult = {
   __typename?: 'TestApiKeyResult';
   error?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   model_info?: Maybe<Scalars['JSON']['output']>;
   success: Scalars['Boolean']['output'];
+};
+
+export type TypescriptAstDataType = {
+  __typename?: 'TypescriptAstDataType';
+  batch?: Maybe<Scalars['String']['output']>;
+  batchInputKey?: Maybe<Scalars['String']['output']>;
+  extractPatterns?: Maybe<Scalars['String']['output']>;
+  flattenOutput?: Maybe<Scalars['String']['output']>;
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  id: Scalars['NodeID']['output'];
+  includeJSDoc?: Maybe<Scalars['String']['output']>;
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  outputFormat?: Maybe<Scalars['String']['output']>;
+  parseMode?: Maybe<Scalars['String']['output']>;
+  position: Vec2Type;
+  source: Scalars['String']['output'];
+  transformEnums?: Maybe<Scalars['String']['output']>;
 };
 
 export type UnregisterCliSessionInput = {
@@ -788,6 +1004,17 @@ export type UpdateNodeStateInput = {
 export type UpdatePersonInput = {
   label?: InputMaybe<Scalars['String']['input']>;
   llm_config?: InputMaybe<PersonLLMConfigInput>;
+};
+
+export type UserResponseDataType = {
+  __typename?: 'UserResponseDataType';
+  flipped?: Maybe<Scalars['Boolean']['output']>;
+  id: Scalars['NodeID']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  position: Vec2Type;
+  prompt: Scalars['String']['output'];
+  timeout?: Maybe<Scalars['String']['output']>;
 };
 
 export type Vec2Input = {
@@ -961,7 +1188,7 @@ export type ValidateDiagramMutation = { __typename?: 'Mutation', validate_diagra
 export type GetActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetActiveCliSessionQuery = { __typename?: 'Query', active_cli_session?: { __typename?: 'CliSession', execution_id: string, diagram_name: string, diagram_format: string, started_at: any, is_active: boolean, diagram_data?: string | null } | null };
+export type GetActiveCliSessionQuery = { __typename?: 'Query', active_cli_session?: { __typename?: 'CliSession', session_id: string, execution_id: string, diagram_name: string, diagram_format: string, started_at: any, is_active: boolean, diagram_data?: string | null, node_states?: any | null } | null };
 
 export type GetApiKeyQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -1027,6 +1254,14 @@ export type GetExecutionOrderQueryVariables = Exact<{
 
 export type GetExecutionOrderQuery = { __typename?: 'Query', execution_order: any };
 
+export type GetOperationSchemaQueryVariables = Exact<{
+  provider: Scalars['String']['input'];
+  operation: Scalars['String']['input'];
+}>;
+
+
+export type GetOperationSchemaQuery = { __typename?: 'Query', operation_schema?: { __typename?: 'OperationSchemaType', operation: string, method: string, path: string, description?: string | null, request_body?: any | null, query_params?: any | null, response?: any | null } | null };
+
 export type GetPersonQueryVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
@@ -1040,6 +1275,18 @@ export type GetPromptFileQueryVariables = Exact<{
 
 
 export type GetPromptFileQuery = { __typename?: 'Query', prompt_file: any };
+
+export type GetProviderOperationsQueryVariables = Exact<{
+  provider: Scalars['String']['input'];
+}>;
+
+
+export type GetProviderOperationsQuery = { __typename?: 'Query', provider_operations: Array<{ __typename?: 'OperationType', name: string, method: string, path: string, description?: string | null, required_scopes?: Array<string> | null, has_pagination: boolean, timeout_override?: number | null }> };
+
+export type GetProvidersQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetProvidersQuery = { __typename?: 'Query', providers: Array<{ __typename?: 'ProviderType', name: string, base_url?: string | null, default_timeout: number, operations: Array<{ __typename?: 'OperationType', name: string, method: string, path: string, description?: string | null, required_scopes?: Array<string> | null }>, metadata: { __typename?: 'ProviderMetadataType', version: string, type: string, description?: string | null, documentation_url?: string | null } }> };
 
 export type GetSupportedFormatsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1105,65 +1352,6 @@ export type ExecutionUpdatesSubscriptionVariables = Exact<{
 
 
 export type ExecutionUpdatesSubscription = { __typename?: 'Subscription', execution_updates: { __typename?: 'ExecutionUpdate', execution_id: string, event_type: string, data: any, timestamp: string } };
-
-export type ProvidersQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type ProvidersQuery = { __typename?: 'Query', providers: Array<{ __typename?: 'ProviderType', name: string, metadata: { __typename?: 'ProviderMetadataType', description?: string | null } }> };
-
-export type ProviderOpsQueryVariables = Exact<{
-  provider: Scalars['String']['input'];
-}>;
-
-
-export type ProviderOpsQuery = { __typename?: 'Query', provider_operations: Array<{ __typename?: 'OperationType', name: string, description?: string | null }> };
-
-export type ActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type ActiveCliSessionQuery = { __typename?: 'Query', active_cli_session?: { __typename?: 'CliSession', session_id: string, execution_id: string, diagram_name: string, diagram_format: string, started_at: any, is_active: boolean, diagram_data?: string | null, node_states?: any | null } | null };
-
-export type GetExecutionStateQueryVariables = Exact<{
-  id: Scalars['ID']['input'];
-}>;
-
-
-export type GetExecutionStateQuery = { __typename?: 'Query', execution?: { __typename?: 'ExecutionStateType', id: string, status: Status, started_at: string, ended_at?: string | null, node_states: any, node_outputs: any } | null };
-
-export type GetProvidersQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type GetProvidersQuery = { __typename?: 'Query', providers: Array<{ __typename?: 'ProviderType', name: string, base_url?: string | null, default_timeout: number, operations: Array<{ __typename?: 'OperationType', name: string, method: string, path: string, description?: string | null, required_scopes?: Array<string> | null }>, metadata: { __typename?: 'ProviderMetadataType', version: string, type: string, description?: string | null, documentation_url?: string | null } }> };
-
-export type GetProviderOperationsQueryVariables = Exact<{
-  provider: Scalars['String']['input'];
-}>;
-
-
-export type GetProviderOperationsQuery = { __typename?: 'Query', provider_operations: Array<{ __typename?: 'OperationType', name: string, method: string, path: string, description?: string | null, required_scopes?: Array<string> | null, has_pagination: boolean, timeout_override?: number | null }> };
-
-export type GetOperationSchemaQueryVariables = Exact<{
-  provider: Scalars['String']['input'];
-  operation: Scalars['String']['input'];
-}>;
-
-
-export type GetOperationSchemaQuery = { __typename?: 'Query', operation_schema?: { __typename?: 'OperationSchemaType', operation: string, method: string, path: string, description?: string | null, request_body?: any | null, query_params?: any | null, response?: any | null } | null };
-
-export type ListRecentExecutionsQueryVariables = Exact<{
-  limit?: InputMaybe<Scalars['Int']['input']>;
-}>;
-
-
-export type ListRecentExecutionsQuery = { __typename?: 'Query', executions: Array<{ __typename?: 'ExecutionStateType', id: string, diagram_id?: string | null, status: Status, started_at: string, ended_at?: string | null, error?: string | null }> };
-
-export type ListActiveExecutionsQueryVariables = Exact<{
-  filter?: InputMaybe<ExecutionFilterInput>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-}>;
-
-
-export type ListActiveExecutionsQuery = { __typename?: 'Query', executions: Array<{ __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at: string, ended_at?: string | null }> };
 
 
 export const ControlExecutionDocument = gql`
@@ -1971,12 +2159,14 @@ export type ValidateDiagramMutationOptions = Apollo.BaseMutationOptions<Validate
 export const GetActiveCliSessionDocument = gql`
     query GetActiveCliSession {
   active_cli_session {
+    session_id
     execution_id
     diagram_name
     diagram_format
     started_at
     is_active
     diagram_data
+    node_states
   }
 }
     `;
@@ -2431,6 +2621,53 @@ export type GetExecutionOrderQueryHookResult = ReturnType<typeof useGetExecution
 export type GetExecutionOrderLazyQueryHookResult = ReturnType<typeof useGetExecutionOrderLazyQuery>;
 export type GetExecutionOrderSuspenseQueryHookResult = ReturnType<typeof useGetExecutionOrderSuspenseQuery>;
 export type GetExecutionOrderQueryResult = Apollo.QueryResult<GetExecutionOrderQuery, GetExecutionOrderQueryVariables>;
+export const GetOperationSchemaDocument = gql`
+    query GetOperationSchema($provider: String!, $operation: String!) {
+  operation_schema(provider: $provider, operation: $operation) {
+    operation
+    method
+    path
+    description
+    request_body
+    query_params
+    response
+  }
+}
+    `;
+
+/**
+ * __useGetOperationSchemaQuery__
+ *
+ * To run a query within a React component, call `useGetOperationSchemaQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetOperationSchemaQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetOperationSchemaQuery({
+ *   variables: {
+ *      provider: // value for 'provider'
+ *      operation: // value for 'operation'
+ *   },
+ * });
+ */
+export function useGetOperationSchemaQuery(baseOptions: Apollo.QueryHookOptions<GetOperationSchemaQuery, GetOperationSchemaQueryVariables> & ({ variables: GetOperationSchemaQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>(GetOperationSchemaDocument, options);
+      }
+export function useGetOperationSchemaLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>(GetOperationSchemaDocument, options);
+        }
+export function useGetOperationSchemaSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>(GetOperationSchemaDocument, options);
+        }
+export type GetOperationSchemaQueryHookResult = ReturnType<typeof useGetOperationSchemaQuery>;
+export type GetOperationSchemaLazyQueryHookResult = ReturnType<typeof useGetOperationSchemaLazyQuery>;
+export type GetOperationSchemaSuspenseQueryHookResult = ReturnType<typeof useGetOperationSchemaSuspenseQuery>;
+export type GetOperationSchemaQueryResult = Apollo.QueryResult<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>;
 export const GetPersonDocument = gql`
     query GetPerson($id: ID!) {
   person(id: $id) {
@@ -2517,6 +2754,106 @@ export type GetPromptFileQueryHookResult = ReturnType<typeof useGetPromptFileQue
 export type GetPromptFileLazyQueryHookResult = ReturnType<typeof useGetPromptFileLazyQuery>;
 export type GetPromptFileSuspenseQueryHookResult = ReturnType<typeof useGetPromptFileSuspenseQuery>;
 export type GetPromptFileQueryResult = Apollo.QueryResult<GetPromptFileQuery, GetPromptFileQueryVariables>;
+export const GetProviderOperationsDocument = gql`
+    query GetProviderOperations($provider: String!) {
+  provider_operations(provider: $provider) {
+    name
+    method
+    path
+    description
+    required_scopes
+    has_pagination
+    timeout_override
+  }
+}
+    `;
+
+/**
+ * __useGetProviderOperationsQuery__
+ *
+ * To run a query within a React component, call `useGetProviderOperationsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetProviderOperationsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetProviderOperationsQuery({
+ *   variables: {
+ *      provider: // value for 'provider'
+ *   },
+ * });
+ */
+export function useGetProviderOperationsQuery(baseOptions: Apollo.QueryHookOptions<GetProviderOperationsQuery, GetProviderOperationsQueryVariables> & ({ variables: GetProviderOperationsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>(GetProviderOperationsDocument, options);
+      }
+export function useGetProviderOperationsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>(GetProviderOperationsDocument, options);
+        }
+export function useGetProviderOperationsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>(GetProviderOperationsDocument, options);
+        }
+export type GetProviderOperationsQueryHookResult = ReturnType<typeof useGetProviderOperationsQuery>;
+export type GetProviderOperationsLazyQueryHookResult = ReturnType<typeof useGetProviderOperationsLazyQuery>;
+export type GetProviderOperationsSuspenseQueryHookResult = ReturnType<typeof useGetProviderOperationsSuspenseQuery>;
+export type GetProviderOperationsQueryResult = Apollo.QueryResult<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>;
+export const GetProvidersDocument = gql`
+    query GetProviders {
+  providers {
+    name
+    operations {
+      name
+      method
+      path
+      description
+      required_scopes
+    }
+    metadata {
+      version
+      type
+      description
+      documentation_url
+    }
+    base_url
+    default_timeout
+  }
+}
+    `;
+
+/**
+ * __useGetProvidersQuery__
+ *
+ * To run a query within a React component, call `useGetProvidersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetProvidersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetProvidersQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGetProvidersQuery(baseOptions?: Apollo.QueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
+      }
+export function useGetProvidersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
+        }
+export function useGetProvidersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
+        }
+export type GetProvidersQueryHookResult = ReturnType<typeof useGetProvidersQuery>;
+export type GetProvidersLazyQueryHookResult = ReturnType<typeof useGetProvidersLazyQuery>;
+export type GetProvidersSuspenseQueryHookResult = ReturnType<typeof useGetProvidersSuspenseQuery>;
+export type GetProvidersQueryResult = Apollo.QueryResult<GetProvidersQuery, GetProvidersQueryVariables>;
 export const GetSupportedFormatsDocument = gql`
     query GetSupportedFormats {
   supported_formats {
@@ -2903,414 +3240,3 @@ export function useExecutionUpdatesSubscription(baseOptions: Apollo.Subscription
       }
 export type ExecutionUpdatesSubscriptionHookResult = ReturnType<typeof useExecutionUpdatesSubscription>;
 export type ExecutionUpdatesSubscriptionResult = Apollo.SubscriptionResult<ExecutionUpdatesSubscription>;
-export const ProvidersDocument = gql`
-    query Providers {
-  providers {
-    name
-    metadata {
-      description
-    }
-  }
-}
-    `;
-
-/**
- * __useProvidersQuery__
- *
- * To run a query within a React component, call `useProvidersQuery` and pass it any options that fit your needs.
- * When your component renders, `useProvidersQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useProvidersQuery({
- *   variables: {
- *   },
- * });
- */
-export function useProvidersQuery(baseOptions?: Apollo.QueryHookOptions<ProvidersQuery, ProvidersQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<ProvidersQuery, ProvidersQueryVariables>(ProvidersDocument, options);
-      }
-export function useProvidersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProvidersQuery, ProvidersQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<ProvidersQuery, ProvidersQueryVariables>(ProvidersDocument, options);
-        }
-export function useProvidersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ProvidersQuery, ProvidersQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<ProvidersQuery, ProvidersQueryVariables>(ProvidersDocument, options);
-        }
-export type ProvidersQueryHookResult = ReturnType<typeof useProvidersQuery>;
-export type ProvidersLazyQueryHookResult = ReturnType<typeof useProvidersLazyQuery>;
-export type ProvidersSuspenseQueryHookResult = ReturnType<typeof useProvidersSuspenseQuery>;
-export type ProvidersQueryResult = Apollo.QueryResult<ProvidersQuery, ProvidersQueryVariables>;
-export const ProviderOpsDocument = gql`
-    query ProviderOps($provider: String!) {
-  provider_operations(provider: $provider) {
-    name
-    description
-  }
-}
-    `;
-
-/**
- * __useProviderOpsQuery__
- *
- * To run a query within a React component, call `useProviderOpsQuery` and pass it any options that fit your needs.
- * When your component renders, `useProviderOpsQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useProviderOpsQuery({
- *   variables: {
- *      provider: // value for 'provider'
- *   },
- * });
- */
-export function useProviderOpsQuery(baseOptions: Apollo.QueryHookOptions<ProviderOpsQuery, ProviderOpsQueryVariables> & ({ variables: ProviderOpsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<ProviderOpsQuery, ProviderOpsQueryVariables>(ProviderOpsDocument, options);
-      }
-export function useProviderOpsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProviderOpsQuery, ProviderOpsQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<ProviderOpsQuery, ProviderOpsQueryVariables>(ProviderOpsDocument, options);
-        }
-export function useProviderOpsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ProviderOpsQuery, ProviderOpsQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<ProviderOpsQuery, ProviderOpsQueryVariables>(ProviderOpsDocument, options);
-        }
-export type ProviderOpsQueryHookResult = ReturnType<typeof useProviderOpsQuery>;
-export type ProviderOpsLazyQueryHookResult = ReturnType<typeof useProviderOpsLazyQuery>;
-export type ProviderOpsSuspenseQueryHookResult = ReturnType<typeof useProviderOpsSuspenseQuery>;
-export type ProviderOpsQueryResult = Apollo.QueryResult<ProviderOpsQuery, ProviderOpsQueryVariables>;
-export const ActiveCliSessionDocument = gql`
-    query ActiveCliSession {
-  active_cli_session {
-    session_id
-    execution_id
-    diagram_name
-    diagram_format
-    started_at
-    is_active
-    diagram_data
-    node_states
-  }
-}
-    `;
-
-/**
- * __useActiveCliSessionQuery__
- *
- * To run a query within a React component, call `useActiveCliSessionQuery` and pass it any options that fit your needs.
- * When your component renders, `useActiveCliSessionQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useActiveCliSessionQuery({
- *   variables: {
- *   },
- * });
- */
-export function useActiveCliSessionQuery(baseOptions?: Apollo.QueryHookOptions<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>(ActiveCliSessionDocument, options);
-      }
-export function useActiveCliSessionLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>(ActiveCliSessionDocument, options);
-        }
-export function useActiveCliSessionSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>(ActiveCliSessionDocument, options);
-        }
-export type ActiveCliSessionQueryHookResult = ReturnType<typeof useActiveCliSessionQuery>;
-export type ActiveCliSessionLazyQueryHookResult = ReturnType<typeof useActiveCliSessionLazyQuery>;
-export type ActiveCliSessionSuspenseQueryHookResult = ReturnType<typeof useActiveCliSessionSuspenseQuery>;
-export type ActiveCliSessionQueryResult = Apollo.QueryResult<ActiveCliSessionQuery, ActiveCliSessionQueryVariables>;
-export const GetExecutionStateDocument = gql`
-    query GetExecutionState($id: ID!) {
-  execution(id: $id) {
-    id
-    status
-    started_at
-    ended_at
-    node_states
-    node_outputs
-  }
-}
-    `;
-
-/**
- * __useGetExecutionStateQuery__
- *
- * To run a query within a React component, call `useGetExecutionStateQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetExecutionStateQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useGetExecutionStateQuery({
- *   variables: {
- *      id: // value for 'id'
- *   },
- * });
- */
-export function useGetExecutionStateQuery(baseOptions: Apollo.QueryHookOptions<GetExecutionStateQuery, GetExecutionStateQueryVariables> & ({ variables: GetExecutionStateQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<GetExecutionStateQuery, GetExecutionStateQueryVariables>(GetExecutionStateDocument, options);
-      }
-export function useGetExecutionStateLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetExecutionStateQuery, GetExecutionStateQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<GetExecutionStateQuery, GetExecutionStateQueryVariables>(GetExecutionStateDocument, options);
-        }
-export function useGetExecutionStateSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetExecutionStateQuery, GetExecutionStateQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<GetExecutionStateQuery, GetExecutionStateQueryVariables>(GetExecutionStateDocument, options);
-        }
-export type GetExecutionStateQueryHookResult = ReturnType<typeof useGetExecutionStateQuery>;
-export type GetExecutionStateLazyQueryHookResult = ReturnType<typeof useGetExecutionStateLazyQuery>;
-export type GetExecutionStateSuspenseQueryHookResult = ReturnType<typeof useGetExecutionStateSuspenseQuery>;
-export type GetExecutionStateQueryResult = Apollo.QueryResult<GetExecutionStateQuery, GetExecutionStateQueryVariables>;
-export const GetProvidersDocument = gql`
-    query GetProviders {
-  providers {
-    name
-    operations {
-      name
-      method
-      path
-      description
-      required_scopes
-    }
-    metadata {
-      version
-      type
-      description
-      documentation_url
-    }
-    base_url
-    default_timeout
-  }
-}
-    `;
-
-/**
- * __useGetProvidersQuery__
- *
- * To run a query within a React component, call `useGetProvidersQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetProvidersQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useGetProvidersQuery({
- *   variables: {
- *   },
- * });
- */
-export function useGetProvidersQuery(baseOptions?: Apollo.QueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
-      }
-export function useGetProvidersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
-        }
-export function useGetProvidersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
-        }
-export type GetProvidersQueryHookResult = ReturnType<typeof useGetProvidersQuery>;
-export type GetProvidersLazyQueryHookResult = ReturnType<typeof useGetProvidersLazyQuery>;
-export type GetProvidersSuspenseQueryHookResult = ReturnType<typeof useGetProvidersSuspenseQuery>;
-export type GetProvidersQueryResult = Apollo.QueryResult<GetProvidersQuery, GetProvidersQueryVariables>;
-export const GetProviderOperationsDocument = gql`
-    query GetProviderOperations($provider: String!) {
-  provider_operations(provider: $provider) {
-    name
-    method
-    path
-    description
-    required_scopes
-    has_pagination
-    timeout_override
-  }
-}
-    `;
-
-/**
- * __useGetProviderOperationsQuery__
- *
- * To run a query within a React component, call `useGetProviderOperationsQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetProviderOperationsQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useGetProviderOperationsQuery({
- *   variables: {
- *      provider: // value for 'provider'
- *   },
- * });
- */
-export function useGetProviderOperationsQuery(baseOptions: Apollo.QueryHookOptions<GetProviderOperationsQuery, GetProviderOperationsQueryVariables> & ({ variables: GetProviderOperationsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>(GetProviderOperationsDocument, options);
-      }
-export function useGetProviderOperationsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>(GetProviderOperationsDocument, options);
-        }
-export function useGetProviderOperationsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>(GetProviderOperationsDocument, options);
-        }
-export type GetProviderOperationsQueryHookResult = ReturnType<typeof useGetProviderOperationsQuery>;
-export type GetProviderOperationsLazyQueryHookResult = ReturnType<typeof useGetProviderOperationsLazyQuery>;
-export type GetProviderOperationsSuspenseQueryHookResult = ReturnType<typeof useGetProviderOperationsSuspenseQuery>;
-export type GetProviderOperationsQueryResult = Apollo.QueryResult<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>;
-export const GetOperationSchemaDocument = gql`
-    query GetOperationSchema($provider: String!, $operation: String!) {
-  operation_schema(provider: $provider, operation: $operation) {
-    operation
-    method
-    path
-    description
-    request_body
-    query_params
-    response
-  }
-}
-    `;
-
-/**
- * __useGetOperationSchemaQuery__
- *
- * To run a query within a React component, call `useGetOperationSchemaQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetOperationSchemaQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useGetOperationSchemaQuery({
- *   variables: {
- *      provider: // value for 'provider'
- *      operation: // value for 'operation'
- *   },
- * });
- */
-export function useGetOperationSchemaQuery(baseOptions: Apollo.QueryHookOptions<GetOperationSchemaQuery, GetOperationSchemaQueryVariables> & ({ variables: GetOperationSchemaQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>(GetOperationSchemaDocument, options);
-      }
-export function useGetOperationSchemaLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>(GetOperationSchemaDocument, options);
-        }
-export function useGetOperationSchemaSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>(GetOperationSchemaDocument, options);
-        }
-export type GetOperationSchemaQueryHookResult = ReturnType<typeof useGetOperationSchemaQuery>;
-export type GetOperationSchemaLazyQueryHookResult = ReturnType<typeof useGetOperationSchemaLazyQuery>;
-export type GetOperationSchemaSuspenseQueryHookResult = ReturnType<typeof useGetOperationSchemaSuspenseQuery>;
-export type GetOperationSchemaQueryResult = Apollo.QueryResult<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>;
-export const ListRecentExecutionsDocument = gql`
-    query ListRecentExecutions($limit: Int) {
-  executions(limit: $limit) {
-    id
-    diagram_id
-    status
-    started_at
-    ended_at
-    error
-  }
-}
-    `;
-
-/**
- * __useListRecentExecutionsQuery__
- *
- * To run a query within a React component, call `useListRecentExecutionsQuery` and pass it any options that fit your needs.
- * When your component renders, `useListRecentExecutionsQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useListRecentExecutionsQuery({
- *   variables: {
- *      limit: // value for 'limit'
- *   },
- * });
- */
-export function useListRecentExecutionsQuery(baseOptions?: Apollo.QueryHookOptions<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>(ListRecentExecutionsDocument, options);
-      }
-export function useListRecentExecutionsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>(ListRecentExecutionsDocument, options);
-        }
-export function useListRecentExecutionsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>(ListRecentExecutionsDocument, options);
-        }
-export type ListRecentExecutionsQueryHookResult = ReturnType<typeof useListRecentExecutionsQuery>;
-export type ListRecentExecutionsLazyQueryHookResult = ReturnType<typeof useListRecentExecutionsLazyQuery>;
-export type ListRecentExecutionsSuspenseQueryHookResult = ReturnType<typeof useListRecentExecutionsSuspenseQuery>;
-export type ListRecentExecutionsQueryResult = Apollo.QueryResult<ListRecentExecutionsQuery, ListRecentExecutionsQueryVariables>;
-export const ListActiveExecutionsDocument = gql`
-    query ListActiveExecutions($filter: ExecutionFilterInput, $limit: Int) {
-  executions(filter: $filter, limit: $limit) {
-    id
-    status
-    diagram_id
-    started_at
-    ended_at
-  }
-}
-    `;
-
-/**
- * __useListActiveExecutionsQuery__
- *
- * To run a query within a React component, call `useListActiveExecutionsQuery` and pass it any options that fit your needs.
- * When your component renders, `useListActiveExecutionsQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useListActiveExecutionsQuery({
- *   variables: {
- *      filter: // value for 'filter'
- *      limit: // value for 'limit'
- *   },
- * });
- */
-export function useListActiveExecutionsQuery(baseOptions?: Apollo.QueryHookOptions<ListActiveExecutionsQuery, ListActiveExecutionsQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<ListActiveExecutionsQuery, ListActiveExecutionsQueryVariables>(ListActiveExecutionsDocument, options);
-      }
-export function useListActiveExecutionsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ListActiveExecutionsQuery, ListActiveExecutionsQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<ListActiveExecutionsQuery, ListActiveExecutionsQueryVariables>(ListActiveExecutionsDocument, options);
-        }
-export function useListActiveExecutionsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ListActiveExecutionsQuery, ListActiveExecutionsQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<ListActiveExecutionsQuery, ListActiveExecutionsQueryVariables>(ListActiveExecutionsDocument, options);
-        }
-export type ListActiveExecutionsQueryHookResult = ReturnType<typeof useListActiveExecutionsQuery>;
-export type ListActiveExecutionsLazyQueryHookResult = ReturnType<typeof useListActiveExecutionsLazyQuery>;
-export type ListActiveExecutionsSuspenseQueryHookResult = ReturnType<typeof useListActiveExecutionsSuspenseQuery>;
-export type ListActiveExecutionsQueryResult = Apollo.QueryResult<ListActiveExecutionsQuery, ListActiveExecutionsQueryVariables>;

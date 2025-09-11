@@ -3,8 +3,8 @@
 overwrite: true
 schema: "../server/schema.graphql"
 documents:
-  # - "src/__generated__/queries/all-queries.ts"  # Future: Use TypeScript queries when schema is updated
-  - "src/**/*.{ts,tsx}"
+  - "src/__generated__/queries/all-queries.ts"  # Use only generated queries
+  # - "src/**/*.{ts,tsx}"  # Old: scanned all files
 generates:
   src/__generated__/graphql.tsx:
     plugins:

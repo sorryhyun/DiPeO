@@ -8,8 +8,17 @@ from typing import Any
 import requests
 
 from dipeo.config import BASE_DIR
-
-from .graphql_queries import GraphQLQueries
+from dipeo.diagram_generated.graphql.inputs import (
+    ExecuteDiagramInput,
+    RegisterCliSessionInput,
+    UnregisterCliSessionInput,
+)
+from dipeo.diagram_generated.graphql.operations import (
+    ExecuteDiagramOperation,
+    GetExecutionOperation,
+    RegisterCliSessionOperation,
+    UnregisterCliSessionOperation,
+)
 
 
 class ServerManager:
@@ -46,9 +55,7 @@ class ServerManager:
         env = {
             **subprocess.os.environ,
             "LOG_LEVEL": "DEBUG" if debug else "INFO",
-            "DIPEO_BASE_DIR": str(
-                BASE_DIR
-            ),  # Ensure server uses correct base directory
+            "DIPEO_BASE_DIR": str(BASE_DIR),  # Ensure server uses correct base directory
             # Ensure PYTHONPATH includes the project root for module imports
             "PYTHONPATH": str(BASE_DIR)
             + (
@@ -114,18 +121,22 @@ class ServerManager:
         diagram_format: str | None = None,
     ) -> dict[str, Any]:
         """Execute a diagram via GraphQL."""
-        query = GraphQLQueries.EXECUTE_DIAGRAM
+        # Create Strawberry input object for better type safety
+        execute_input = ExecuteDiagramInput(
+            diagram_id=diagram_id,
+            diagram_data=diagram_data,
+            variables=input_variables,
+            use_unified_monitoring=use_unified_monitoring,
+        )
+
+        # Use operation class to get query and build variables (now with Strawberry object)
+        variables = ExecuteDiagramOperation.get_variables_dict(input=execute_input)
 
         response = requests.post(
             f"{self.base_url}/graphql",
             json={
-                "query": query,
-                "variables": {
-                    "diagramId": diagram_id,
-                    "diagramData": diagram_data,
-                    "variables": input_variables,
-                    "useUnifiedMonitoring": use_unified_monitoring,
-                },
+                "query": ExecuteDiagramOperation.get_query(),
+                "variables": variables,
             },
         )
 
@@ -138,8 +149,11 @@ class ServerManager:
 
         execution_result = result["data"]["execute_diagram"]
 
-        # Register CLI session if execution started successfully
-        if execution_result.get("success") and execution_result.get("execution_id"):
+        # Extract execution_id from nested structure for backward compatibility
+        if execution_result.get("success") and execution_result.get("execution"):
+            execution_result["execution_id"] = execution_result["execution"]["id"]
+
+            # Register CLI session if execution started successfully
             self.register_cli_session(
                 execution_id=execution_result["execution_id"],
                 diagram_name=diagram_name or "unknown",
@@ -152,12 +166,13 @@ class ServerManager:
 
     def get_execution_result(self, execution_id: str) -> dict[str, Any] | None:
         """Get execution result by ID."""
-        query = GraphQLQueries.GET_EXECUTION_RESULT
+        # Use operation class to get query and build variables
+        variables = GetExecutionOperation.get_variables_dict(id=execution_id)
 
         try:
             response = requests.post(
                 f"{self.base_url}/graphql",
-                json={"query": query, "variables": {"id": execution_id}},
+                json={"query": GetExecutionOperation.get_query(), "variables": variables},
                 timeout=5,
             )
 
@@ -192,30 +207,31 @@ class ServerManager:
         diagram_path: str | None = None,
     ) -> bool:
         """Register a CLI execution session with the server."""
-        mutation = GraphQLQueries.REGISTER_CLI_SESSION
+        # Create Strawberry input object for better type safety
+        register_input = RegisterCliSessionInput(
+            execution_id=execution_id,
+            diagram_name=diagram_name,
+            diagram_format=diagram_format,
+            diagram_data=diagram_data,
+            diagram_path=diagram_path,
+        )
+
+        # Use operation class to get query and build variables (now with Strawberry object)
+        variables = RegisterCliSessionOperation.get_variables_dict(input=register_input)
 
         try:
             response = requests.post(
                 f"{self.base_url}/graphql",
                 json={
-                    "query": mutation,
-                    "variables": {
-                        "executionId": execution_id,
-                        "diagramName": diagram_name,
-                        "diagramFormat": diagram_format,
-                        "diagramData": diagram_data,
-                        "diagramPath": diagram_path,
-                    },
+                    "query": RegisterCliSessionOperation.get_query(),
+                    "variables": variables,
                 },
                 timeout=5,
             )
 
             if response.status_code == 200:
                 result = response.json()
-                if (
-                    "data" in result
-                    and result["data"]["register_cli_session"]["success"]
-                ):
+                if "data" in result and result["data"]["register_cli_session"]["success"]:
                     print("📡 CLI session registered for monitoring")
                     return True
         except Exception as e:
@@ -225,12 +241,16 @@ class ServerManager:
 
     def unregister_cli_session(self, execution_id: str) -> bool:
         """Unregister a CLI execution session."""
-        mutation = GraphQLQueries.UNREGISTER_CLI_SESSION
+        # Create Strawberry input object for better type safety
+        unregister_input = UnregisterCliSessionInput(execution_id=execution_id)
+
+        # Use operation class to get query and build variables (now with Strawberry object)
+        variables = UnregisterCliSessionOperation.get_variables_dict(input=unregister_input)
 
         try:
             response = requests.post(
                 f"{self.base_url}/graphql",
-                json={"query": mutation, "variables": {"executionId": execution_id}},
+                json={"query": UnregisterCliSessionOperation.get_query(), "variables": variables},
                 timeout=5,
             )
 

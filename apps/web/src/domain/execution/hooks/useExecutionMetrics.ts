@@ -1,23 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useQuery, useSubscription } from '@apollo/client';
-import { gql } from '@apollo/client';
-
-const EXECUTION_METRICS_QUERY = gql`
-  query ExecutionMetrics($executionId: ID!) {
-    execution_metrics(execution_id: $executionId)
-  }
-`;
-
-const EXECUTION_UPDATES_SUBSCRIPTION = gql`
-  subscription ExecutionUpdates($executionId: ID!) {
-    execution_updates(execution_id: $executionId) {
-      execution_id
-      event_type
-      data
-      timestamp
-    }
-  }
-`;
+import { GETEXECUTIONMETRICS_QUERY, EXECUTIONUPDATES_SUBSCRIPTION } from '@/__generated__/queries/all-queries';
 
 interface TokenUsage {
   input: number;
@@ -62,15 +45,15 @@ export function useExecutionMetrics(executionId: string, enableSubscription = tr
   const metricsRef = useRef<ExecutionMetrics | null>(null);
 
   // Query initial metrics
-  const { data, loading, error, refetch } = useQuery(EXECUTION_METRICS_QUERY, {
-    variables: { executionId },
+  const { data, loading, error, refetch } = useQuery(GETEXECUTIONMETRICS_QUERY, {
+    variables: { execution_id: executionId },
     skip: !executionId,
     fetchPolicy: 'network-only',
   });
 
   // Subscribe to real-time updates
-  const { data: subscriptionData } = useSubscription(EXECUTION_UPDATES_SUBSCRIPTION, {
-    variables: { executionId },
+  const { data: subscriptionData } = useSubscription(EXECUTIONUPDATES_SUBSCRIPTION, {
+    variables: { execution_id: executionId },
     skip: !executionId || !enableSubscription,
     onError: (err) => {
       console.error('Subscription error:', err);

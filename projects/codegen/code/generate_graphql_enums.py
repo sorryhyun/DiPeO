@@ -266,8 +266,8 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
     from datetime import datetime
 
     logger = logging.getLogger(__name__)
-    logger.debug(f"Received inputs keys: {list(inputs.keys())}")
-    logger.debug(f"Inputs type: {type(inputs)}")
+    # logger.debug(f"Received inputs keys: {list(inputs.keys())}")
+    # logger.debug(f"Inputs type: {type(inputs)}")
 
     # Log the structure to understand what we're getting
     if "default" in inputs:

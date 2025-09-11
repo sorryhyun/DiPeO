@@ -1,21 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, X, Clock, CheckCircle2, XCircle, AlertCircle, Activity } from 'lucide-react';
 import { useQuery } from '@apollo/client';
-import { gql } from '@apollo/client';
-
-// GraphQL query to fetch recent executions
-const LIST_EXECUTIONS = gql`
-  query ListRecentExecutions($limit: Int) {
-    executions(limit: $limit) {
-      id
-      diagram_id
-      status
-      started_at
-      ended_at
-      error
-    }
-  }
-`;
+import { LISTEXECUTIONS_QUERY } from '@/__generated__/queries/all-queries';
 
 interface Execution {
   id: string;
@@ -37,7 +23,7 @@ export function RunPicker({ onSelect, onClose, existingIds }: RunPickerProps) {
   const [manualId, setManualId] = useState('');
 
   // Fetch recent executions
-  const { data, loading, error } = useQuery(LIST_EXECUTIONS, {
+  const { data, loading, error } = useQuery(LISTEXECUTIONS_QUERY, {
     variables: { limit: 50 },
     pollInterval: 5000, // Poll every 5 seconds for updates
   });

@@ -48,9 +48,9 @@ For kernel files (core/contracts.ts, app/config.ts, core/events.ts), use kernel_
 - Handle edge cases within file scope
 - **IMPORTANT**: Use `import.meta.env` for environment variables (NOT `process.env`) as this is a Vite-based browser application
 
-## Self-Check Comments
-Append as comments at file bottom:
-- [ ] Uses `@/` imports only
+## Self-Confirm Comments
+Append as comments before codes begin, below the file path:
+- [ ] Uses `@/` imports as much as possible
 - [ ] Uses providers/hooks (no direct DOM/localStorage side effects)
 - [ ] Reads config from `@/app/config`
 - [ ] Exports default named component

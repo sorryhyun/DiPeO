@@ -1,0 +1,130 @@
+# Generate Python GraphQL Operations from TypeScript Definitions
+# Converts TypeScript query definitions to typed Python operations
+# Output: /dipeo/diagram_generated/graphql/operations.py
+
+version: light
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    props:
+      custom_data:
+        message: Starting Python GraphQL operations generation
+
+  # Parse TypeScript if not already done
+  - label: Parse TypeScript
+    type: sub_diagram
+    position: {x: 200, y: 200}
+    props:
+      diagram_name: projects/codegen/diagrams/parse_typescript_batch_direct
+      diagram_format: light
+      passInputData: false
+      ignoreIfSub: true
+
+  # Load parsed query definition files
+  - label: Load Query Definitions
+    type: db
+    position: {x: 350, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      glob: true
+      file:
+        - "temp/frontend/query-definitions/*.ts.json"
+        - "temp/frontend/query-enums.ts.json"
+
+  # Transform TypeScript AST to Python-compatible format
+  - label: Prepare Python Data
+    type: code_job
+    position: {x: 500, y: 200}
+    props:
+      language: python
+      filePath: projects/codegen/code/backend/prepare_python_graphql_data.py
+      functionName: prepare_python_operations_data
+
+  # Generate Python operations using template
+  - label: Generate Operations
+    type: template_job
+    position: {x: 700, y: 150}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/backend/python-graphql-operations.j2
+      output_path: dipeo/diagram_generated_staged/graphql/operations.py
+      variables:
+        generated_warning: "DO NOT EDIT - Generated from TypeScript query definitions"
+
+  # Generate unified result types using template
+  - label: Generate Results
+    type: template_job
+    position: {x: 700, y: 250}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/strawberry/strawberry_results.j2
+      output_path: dipeo/diagram_generated_staged/graphql/results.py
+      variables:
+        generated_warning: "DO NOT EDIT - Generated unified result types for GraphQL operations"
+
+  # Verify generation
+  - label: Verify Output
+    type: code_job
+    position: {x: 900, y: 200}
+    props:
+      language: python
+      code: |
+        import os
+        from pathlib import Path
+
+        operations_file = Path('/home/soryhyun/DiPeO/dipeo/diagram_generated_staged/graphql/operations.py')
+        results_file = Path('/home/soryhyun/DiPeO/dipeo/diagram_generated_staged/graphql/results.py')
+
+        success = True
+
+        # Check operations file
+        if operations_file.exists():
+            ops_size = operations_file.stat().st_size
+            ops_content = operations_file.read_text()
+            query_count = ops_content.count('class ')
+            const_count = ops_content.count('_QUERY = """')
+            const_count += ops_content.count('_MUTATION = """')
+            const_count += ops_content.count('_SUBSCRIPTION = """')
+
+            print(f"✓ Generated Python GraphQL operations")
+            print(f"  Operations: {query_count} classes")
+            print(f"  Query constants: {const_count}")
+            print(f"  File size: {ops_size:,} bytes")
+        else:
+            print(f"✗ Failed to generate operations file")
+            success = False
+
+        # Check results file
+        if results_file.exists():
+            results_size = results_file.stat().st_size
+            results_content = results_file.read_text()
+            result_types = results_content.count('@strawberry.type')
+
+            print(f"✓ Generated unified result types")
+            print(f"  Result types: {result_types}")
+            print(f"  File size: {results_size:,} bytes")
+        else:
+            print(f"✗ Failed to generate results file")
+            success = False
+
+        result = {'success': success}
+
+  - label: End
+    type: endpoint
+    position: {x: 1100, y: 200}
+    props:
+      save_to_file: false
+
+connections:
+  - {from: Start, to: Parse TypeScript}
+  - {from: Parse TypeScript, to: Load Query Definitions}
+  - {from: Load Query Definitions, to: Prepare Python Data, label: ast_data}
+  - {from: Prepare Python Data, to: Generate Operations, label: operations_data}
+  - {from: Prepare Python Data, to: Generate Results, label: operations_data}
+  - {from: Generate Operations, to: Verify Output}
+  - {from: Generate Results, to: Verify Output}
+  - {from: Verify Output, to: End}

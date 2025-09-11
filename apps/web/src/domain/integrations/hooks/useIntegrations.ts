@@ -3,59 +3,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { useQuery, useMutation, gql } from '@apollo/client';
-
-// GraphQL queries and mutations
-const GET_PROVIDERS = gql`
-  query GetProviders {
-    providers {
-      name
-      operations {
-        name
-        method
-        path
-        description
-        required_scopes
-      }
-      metadata {
-        version
-        type
-        description
-        documentation_url
-      }
-      base_url
-      default_timeout
-    }
-  }
-`;
-
-const GET_PROVIDER_OPERATIONS = gql`
-  query GetProviderOperations($provider: String!) {
-    provider_operations(provider: $provider) {
-      name
-      method
-      path
-      description
-      required_scopes
-      has_pagination
-      timeout_override
-    }
-  }
-`;
-
-const GET_OPERATION_SCHEMA = gql`
-  query GetOperationSchema($provider: String!, $operation: String!) {
-    operation_schema(provider: $provider, operation: $operation) {
-      operation
-      method
-      path
-      description
-      request_body
-      query_params
-      response
-    }
-  }
-`;
+import { useQuery, useMutation } from '@apollo/client';
+import { GETPROVIDERS_QUERY, GETPROVIDEROPERATIONS_QUERY, GETOPERATIONSCHEMA_QUERY } from '@/__generated__/queries/all-queries';
 
 // TODO: These mutations need to be implemented in the backend
 // const TEST_INTEGRATION = gql`
@@ -136,7 +85,7 @@ export function useIntegrations() {
     loading: providersLoading,
     error: providersError,
     refetch: refetchProviders,
-  } = useQuery(GET_PROVIDERS);
+  } = useQuery(GETPROVIDERS_QUERY);
 
   // Fetch operations for selected provider
   const {
@@ -144,7 +93,7 @@ export function useIntegrations() {
     loading: operationsLoading,
     error: operationsError,
     refetch: refetchOperations,
-  } = useQuery(GET_PROVIDER_OPERATIONS, {
+  } = useQuery(GETPROVIDEROPERATIONS_QUERY, {
     variables: { provider: selectedProvider },
     skip: !selectedProvider,
   });
@@ -154,7 +103,7 @@ export function useIntegrations() {
     data: schemaData,
     loading: schemaLoading,
     error: schemaError,
-  } = useQuery(GET_OPERATION_SCHEMA, {
+  } = useQuery(GETOPERATIONSCHEMA_QUERY, {
     variables: {
       provider: selectedProvider,
       operation: selectedOperation,

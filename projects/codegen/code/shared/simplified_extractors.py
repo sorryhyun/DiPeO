@@ -199,13 +199,32 @@ def prepare_strawberry_types(inputs: dict[str, Any]) -> dict[str, Any]:
         # Convert node type to class name
         class_name = ''.join(word.capitalize() for word in node_type.split('_'))
 
+        # Extract fields and identify which ones are Dict types
+        fields = []
+        for field in spec.get('fields', []):
+            field_name = field.get('name', '')
+            field_type = field.get('type', 'any')
+            required = field.get('required', False)
+
+            # Determine if this is a Dict/object type that needs JSONScalar
+            is_dict_type = field_type in ['object', 'Record<string, any>', 'any', 'json']
+
+            fields.append({
+                'name': field_name,
+                'type': field_type,
+                'required': required,
+                'is_dict_type': is_dict_type,
+                'description': field.get('description', '')
+            })
+
         strawberry_types.append({
             'node_type': node_type,
             'class_name': class_name,
             'pydantic_model': class_name,
             'display_name': spec.get('displayName', ''),
             'description': spec.get('description', ''),
-            'category': spec.get('category', '')
+            'category': spec.get('category', ''),
+            'fields': fields
         })
 
     return {

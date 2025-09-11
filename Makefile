@@ -73,7 +73,7 @@ parse-typescript:
 	@rm -rf temp/core temp/specifications temp/frontend temp/codegen temp/utilities temp/*.json 2>/dev/null || true
 	@echo "Parsing TypeScript models..."
 	@if command -v dipeo >/dev/null 2>&1; then \
-		dipeo run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20; \
+		dipeo run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --simple --timeout=20; \
 	else \
 		python -m dipeo_cli run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20; \
 	fi
@@ -84,7 +84,7 @@ parse-typescript:
 codegen: parse-typescript
 	@echo "Starting code generation..."
 	@if command -v dipeo >/dev/null 2>&1; then \
-		dipeo run projects/codegen/diagrams/generate_all --light --debug --timeout=35; \
+		dipeo run projects/codegen/diagrams/generate_all --light --debug --simple --timeout=35; \
 	else \
 		python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --debug --timeout=35; \
 	fi

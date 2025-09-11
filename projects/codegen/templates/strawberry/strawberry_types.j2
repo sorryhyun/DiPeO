@@ -43,10 +43,55 @@ from dipeo.diagram_generated.graphql.scalars import *
 
 # Generate Strawberry types for node data
 {% for type_info in strawberry_types.strawberry_types %}
-@strawberry.experimental.pydantic.type({{ type_info.pydantic_model }}Node, all_fields=True)
+@strawberry.type
 class {{ type_info.class_name }}DataType:
     """{{ type_info.description }} - Data fields only"""
-    pass
+    # Base fields (all nodes have these)
+    id: NodeIDScalar
+    position: Vec2Type
+    type: strawberry.Private[NodeType]  # Not exposed in GraphQL
+    label: Optional[str] = None
+    flipped: Optional[bool] = False
+    metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
+
+    # Node-specific fields from specification
+    {% for field in type_info.fields %}
+    {% if field.is_dict_type %}
+    {{ field.name }}: Optional[JSONScalar] = None  # {{ field.description }}
+    {% else %}
+    {% if field.required %}
+    {{ field.name }}: str  # {{ field.description }}
+    {% else %}
+    {{ field.name }}: Optional[str] = None  # {{ field.description }}
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+
+    @classmethod
+    def from_pydantic(cls, node: {{ type_info.pydantic_model }}Node) -> "{{ type_info.class_name }}DataType":
+        """Convert from Pydantic model to Strawberry type."""
+        # Convert Dict fields to JSONScalar
+        metadata = node.metadata if node.metadata else None
+
+        # Get node-specific fields with Dict conversion
+        field_values = {}
+        {% for field in type_info.fields %}
+        {% if field.is_dict_type %}
+        field_values["{{ field.name }}"] = getattr(node, "{{ field.name }}", None)
+        {% else %}
+        field_values["{{ field.name }}"] = getattr(node, "{{ field.name }}", None)
+        {% endif %}
+        {% endfor %}
+
+        return cls(
+            id=node.id,
+            position=Vec2Type(x=node.position.x, y=node.position.y),
+            type=node.type,
+            label=node.label,
+            flipped=node.flipped,
+            metadata=metadata,
+            **field_values
+        )
 
 {% endfor %}
 {% if strawberry_types and strawberry_types.strawberry_types %}

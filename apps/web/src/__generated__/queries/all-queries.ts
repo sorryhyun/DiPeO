@@ -430,12 +430,14 @@ export interface ValidateDiagramVariables {
 export const GETACTIVECLISESSION_QUERY = gql`
   query GetActiveCliSession {
     active_cli_session {
+      session_id
       execution_id
       diagram_name
       diagram_format
       started_at
       is_active
       diagram_data
+      node_states
     }
   }
 `;
@@ -623,6 +625,28 @@ export interface GetExecutionOrderVariables {
   execution_id: string;
 }
 
+export const GETOPERATIONSCHEMA_QUERY = gql`
+  query GetOperationSchema(
+    $provider: String!,
+    $operation: String!
+  ) {
+    operation_schema(provider: $provider, operation: $operation) {
+      operation
+      method
+      path
+      description
+      request_body
+      query_params
+      response
+    }
+  }
+`;
+
+export interface GetOperationSchemaVariables {
+  provider: string;
+  operation: string;
+}
+
 export const GETPERSON_QUERY = gql`
   query GetPerson(
     $id: ID!
@@ -656,6 +680,49 @@ export const GETPROMPTFILE_QUERY = gql`
 export interface GetPromptFileVariables {
   filename: string;
 }
+
+export const GETPROVIDEROPERATIONS_QUERY = gql`
+  query GetProviderOperations(
+    $provider: String!
+  ) {
+    provider_operations(provider: $provider) {
+      name
+      method
+      path
+      description
+      required_scopes
+      has_pagination
+      timeout_override
+    }
+  }
+`;
+
+export interface GetProviderOperationsVariables {
+  provider: string;
+}
+
+export const GETPROVIDERS_QUERY = gql`
+  query GetProviders {
+    providers {
+      name
+      operations {
+        name
+        method
+        path
+        description
+        required_scopes
+      }
+      metadata {
+        version
+        type
+        description
+        documentation_url
+      }
+      base_url
+      default_timeout
+    }
+  }
+`;
 
 export const GETSUPPORTEDFORMATS_QUERY = gql`
   query GetSupportedFormats {
@@ -810,8 +877,11 @@ export interface ExecutionUpdatesVariables {
   GETEXECUTIONHISTORY: GETEXECUTIONHISTORY_QUERY,
   GETEXECUTIONMETRICS: GETEXECUTIONMETRICS_QUERY,
   GETEXECUTIONORDER: GETEXECUTIONORDER_QUERY,
+  GETOPERATIONSCHEMA: GETOPERATIONSCHEMA_QUERY,
   GETPERSON: GETPERSON_QUERY,
   GETPROMPTFILE: GETPROMPTFILE_QUERY,
+  GETPROVIDEROPERATIONS: GETPROVIDEROPERATIONS_QUERY,
+  GETPROVIDERS: GETPROVIDERS_QUERY,
   GETSUPPORTEDFORMATS: GETSUPPORTEDFORMATS_QUERY,
   GETSYSTEMINFO: GETSYSTEMINFO_QUERY,
   HEALTHCHECK: HEALTHCHECK_QUERY,
@@ -1037,6 +1107,12 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
     operation: '',
     fieldPreset: 'STANDARD',
   },
+  GetOperationSchema: {
+    type: 'query',
+    entity: 'Provider',
+    operation: '',
+    fieldPreset: 'STANDARD',
+  },
   GetPerson: {
     type: 'query',
     entity: 'Person',
@@ -1046,6 +1122,18 @@ export type SubscriptionName = keyof typeof SUBSCRIPTIONS;export const OPERATION
   GetPromptFile: {
     type: 'query',
     entity: 'Prompt',
+    operation: '',
+    fieldPreset: 'STANDARD',
+  },
+  GetProviderOperations: {
+    type: 'query',
+    entity: 'Provider',
+    operation: '',
+    fieldPreset: 'STANDARD',
+  },
+  GetProviders: {
+    type: 'query',
+    entity: 'Provider',
     operation: '',
     fieldPreset: 'STANDARD',
   },

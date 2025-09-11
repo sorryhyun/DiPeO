@@ -1,18 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery } from '@apollo/client';
-import { gql } from '@apollo/client';
-
-const LIST_ACTIVE_EXECUTIONS = gql`
-  query ListActiveExecutions($filter: ExecutionFilterInput, $limit: Int) {
-    executions(filter: $filter, limit: $limit) {
-      id
-      status
-      diagram_id
-      started_at
-      ended_at
-    }
-  }
-`;
+import { LISTEXECUTIONS_QUERY } from '@/__generated__/queries/all-queries';
 
 interface UseAutoFetchExecutionsOptions {
   enabled: boolean;
@@ -31,7 +19,7 @@ export function useAutoFetchExecutions({
   includeCompleted = false,
   limit = 50,
 }: UseAutoFetchExecutionsOptions) {
-  const { data, loading, error } = useQuery(LIST_ACTIVE_EXECUTIONS, {
+  const { data, loading, error } = useQuery(LISTEXECUTIONS_QUERY, {
     variables: {
       filter: includeCompleted ? undefined : { status: 'RUNNING' },
       limit,

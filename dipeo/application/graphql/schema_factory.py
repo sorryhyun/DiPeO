@@ -11,29 +11,28 @@ from strawberry.schema.config import StrawberryConfig
 
 from dipeo.application.registry import ServiceRegistry
 
+# Import generated types
+from dipeo.diagram_generated.graphql.strawberry_nodes import (
+    ApiJobDataType,
+    CodeJobDataType,
+    ConditionDataType,
+    DbDataType,
+    EndpointDataType,
+    HookDataType,
+    IntegratedApiDataType,
+    JsonSchemaValidatorDataType,
+    PersonJobDataType,
+    StartDataType,
+    SubDiagramDataType,
+    TemplateJobDataType,
+    TypescriptAstDataType,
+    UserResponseDataType,
+)
+
 from .schema.mutation_factory import create_mutation_type
 from .schema.queries import create_query_type
 from .schema.subscriptions import create_subscription_type
 
-# Import generated types
-# TODO: Fix Dict field handling in generated types
-# from dipeo.diagram_generated.graphql.strawberry_nodes import (
-#     ApiJobDataType,
-#     CodeJobDataType,
-#     ConditionDataType,
-#     DBDataType,
-#     EndpointDataType,
-#     HookDataType,
-#     IntegratedApiDataType,
-#     JsonSchemaValidatorDataType,
-#     PersonBatchJobDataType,
-#     PersonJobDataType,
-#     StartDataType,
-#     SubDiagramDataType,
-#     TemplateJobDataType,
-#     TypescriptAstDataType,
-#     UserResponseDataType,
-# )
 # Note: strawberry_domain.py needs to be regenerated
 # from dipeo.diagram_generated.graphql.strawberry_domain import (
 #     MemorySettingsType,
@@ -93,22 +92,20 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
             HookIDScalar,
             TaskIDScalar,
             # Generated node data types
-            # TODO: Fix Dict field handling before enabling
-            # ApiJobDataType,
-            # CodeJobDataType,
-            # ConditionDataType,
-            # DBDataType,
-            # EndpointDataType,
-            # HookDataType,
-            # IntegratedApiDataType,
-            # JsonSchemaValidatorDataType,
-            # PersonBatchJobDataType,
-            # PersonJobDataType,
-            # StartDataType,
-            # SubDiagramDataType,
-            # TemplateJobDataType,
-            # TypescriptAstDataType,
-            # UserResponseDataType,
+            ApiJobDataType,
+            CodeJobDataType,
+            ConditionDataType,
+            DbDataType,
+            EndpointDataType,
+            HookDataType,
+            IntegratedApiDataType,
+            JsonSchemaValidatorDataType,
+            PersonJobDataType,
+            StartDataType,
+            SubDiagramDataType,
+            TemplateJobDataType,
+            TypescriptAstDataType,
+            UserResponseDataType,
             # Domain types (need to be regenerated)
             # MemorySettingsType,
             # ToolConfigType,

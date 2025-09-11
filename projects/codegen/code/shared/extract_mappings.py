@@ -333,7 +333,7 @@ def extract_zod_schemas(interfaces: list[dict], enums: list[dict], mappings: dic
                 break
 
         if not interface_data:
-            print(f"Warning: Interface {interface_name} not found")
+            # print(f"Warning: Interface {interface_name} not found")
             continue
 
         schema_code = generate_interface_schema(interface_data, enum_schemas, type_to_zod, base_fields)

@@ -203,9 +203,6 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
 
             client = await self._get_client(service, model, api_key_id)
 
-            if hasattr(self, "logger"):
-                self.log_debug(f"Messages: {len(messages)}")
-
             client_kwargs = {**kwargs}
             if execution_phase:
                 client_kwargs["execution_phase"] = execution_phase
