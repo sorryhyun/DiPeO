@@ -126,7 +126,6 @@ class ServerManager:
             diagram_id=diagram_id,
             diagram_data=diagram_data,
             variables=input_variables,
-            use_unified_monitoring=use_unified_monitoring,
         )
 
         # Use operation class to get query and build variables (now with Strawberry object)

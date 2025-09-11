@@ -98,6 +98,12 @@ class ExecuteDiagramInput:
     debug_mode: bool | None = None
     max_iterations: int | None = None
     timeout_seconds: int | None = None
+
+
+@strawberry.input
+class ValidateDiagramInput:
+    diagram_id: strawberry.ID | None = None
+    diagram_data: strawberry.scalars.JSON | None = None
     use_unified_monitoring: bool | None = None
 
 
@@ -175,6 +181,7 @@ __all__ = [
     'UpdatePersonInput',
     'CreateApiKeyInput',
     'ExecuteDiagramInput',
+    'ValidateDiagramInput',
     'FileOperationInput',
     'UpdateNodeStateInput',
     'DiagramFilterInput',
