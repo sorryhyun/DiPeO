@@ -5,8 +5,8 @@ This module provides a unified interface for executing GraphQL operations using 
 generated operation definitions from TypeScript query definitions.
 """
 
-import contextlib
 import inspect
+import logging
 import re
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
@@ -68,10 +68,16 @@ def _iter_operation_classes():
 
 def _import_modules(paths: list[str]):
     """Import resolver modules, ignoring import errors."""
+    import logging
+
+    logger = logging.getLogger(__name__)
     out = []
     for p in paths:
-        with contextlib.suppress(Exception):
-            out.append(import_module(p))
+        try:
+            module = import_module(p)
+            out.append(module)
+        except Exception as e:
+            logger.debug(f"Failed to import module {p}: {e}")
     return out
 
 
@@ -143,6 +149,7 @@ class OperationExecutor:
 
         for op_cls in _iter_operation_classes():
             func_name = _op_to_func_name(op_cls)
+            found = False
 
             # Try to find the resolver function in the modules
             for m in modules:
@@ -158,7 +165,14 @@ class OperationExecutor:
 
                     # Register the operation
                     self._register_operation(op_cls, fn, result_type)
+                    found = True
                     break
+
+            if not found:
+                logger = logging.getLogger(__name__)
+                logger.debug(
+                    f"No resolver found for operation {op_cls.__name__}, expected function name: {func_name}"
+                )
 
     def _register_operation(
         self, operation_class: type, resolver_method: Callable, result_type: type | None = None

@@ -105,12 +105,21 @@ class Query:
         {{ operation.description }} (Preferred field name)
         Operation: {{ operation.operation_class }}
         """
-        return await self.{{ operation.field_name }}(
-            info{% if operation.parameters %},{% endif %}
-            {% for param in operation.parameters %}
-            {{ param.name }}={{ param.name }}{% if not loop.last %},{% endif %}
-            {% endfor %}
-        )
+        from dipeo.application.graphql.operation_executor import OperationExecutor
+        executor = OperationExecutor(info.context.service_registry)
+
+        # Build variables dict from typed parameters
+        variables = {}
+        {% for param in operation.parameters %}
+        {% if not param.optional %}
+        variables["{{ param.name }}"] = {{ param.name }}
+        {% else %}
+        if {{ param.name }} is not None:
+            variables["{{ param.name }}"] = {{ param.name }}
+        {% endif %}
+        {% endfor %}
+
+        return await executor.execute("{{ operation.operation_name }}", variables=variables)
     {% endif %}
 
 {% endfor %}

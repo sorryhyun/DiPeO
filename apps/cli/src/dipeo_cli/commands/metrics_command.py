@@ -65,7 +65,7 @@ class MetricsCommand:
     ):
         """Query specific execution metrics."""
         query = GET_EXECUTION_QUERY
-        variables = {"executionId": execution_id}
+        variables = {"execution_id": execution_id}
 
         response = requests.post(url, json={"query": query, "variables": variables}, timeout=10)
         response.raise_for_status()

@@ -9,9 +9,10 @@ import strawberry
 from strawberry.scalars import JSON
 from strawberry.schema.config import StrawberryConfig
 
-# Import subscription types for registration
-from dipeo.application.graphql.schema.subscriptions import ExecutionUpdate
 from dipeo.application.registry import ServiceRegistry
+
+# Import subscription types for registration
+from dipeo.diagram_generated.graphql.domain_types import ExecutionUpdate
 
 # Import generated schema (Now includes fixed Subscription)
 from dipeo.diagram_generated.graphql.generated_schema import Mutation, Query, Subscription

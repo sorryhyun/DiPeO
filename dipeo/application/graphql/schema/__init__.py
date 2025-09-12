@@ -1,5 +1,6 @@
 """GraphQL schema definitions."""
 
-from .queries import create_query_type
+# Query and subscription resolvers are now accessed directly by the OperationExecutor
+# No exports needed from this package
 
-__all__ = ["create_query_type"]
+__all__ = []
