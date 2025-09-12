@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from projects.codegen.code.core.utils import parse_dipeo_output
+
 
 @dataclass
 class EnumValue:
@@ -146,12 +148,10 @@ def _process_direct_glob_inputs(inputs: dict[str, Any], logger) -> dict[str, Any
             continue
 
         # Parse AST content if it's a string
-        if isinstance(ast_content, str):
-            try:
-                ast_content = json.loads(ast_content)
-            except (json.JSONDecodeError, ValueError):
-                logger.debug(f"Could not parse AST content for {filepath}")
-                continue
+        ast_content = parse_dipeo_output(ast_content)
+        if not isinstance(ast_content, dict):
+            logger.debug(f"Could not parse AST content for {filepath}")
+            continue
 
         # Add to cache
         if isinstance(ast_content, dict):
@@ -162,14 +162,8 @@ def _process_direct_glob_inputs(inputs: dict[str, Any], logger) -> dict[str, Any
 
 def _parse_string_input(data: str, logger) -> dict:
     """Parse string input trying both JSON and literal eval."""
-    try:
-        return json.loads(data)
-    except (json.JSONDecodeError, ValueError):
-        try:
-            return ast.literal_eval(data)
-        except (ValueError, SyntaxError):
-            logger.debug("Could not parse string input")
-            return {}
+    result = parse_dipeo_output(data)
+    return result if isinstance(result, dict) else {}
 
 
 def _process_default_input(data, logger) -> dict[str, Any]:
@@ -196,12 +190,10 @@ def _process_default_input(data, logger) -> dict[str, Any]:
                     continue
 
                 # Parse AST content if it's a string
-                if isinstance(ast_content, str):
-                    try:
-                        ast_content = json.loads(ast_content)
-                    except (json.JSONDecodeError, ValueError):
-                        logger.debug(f"Could not parse AST content for {filepath}")
-                        continue
+                ast_content = parse_dipeo_output(ast_content)
+                if not isinstance(ast_content, dict):
+                    logger.debug(f"Could not parse AST content for {filepath}")
+                    continue
 
                 # Add to cache
                 if isinstance(ast_content, dict):

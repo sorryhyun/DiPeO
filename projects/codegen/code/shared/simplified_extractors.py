@@ -10,24 +10,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from projects.codegen.code.core.utils import parse_dipeo_output
+
 
 def parse_string_to_dict(value: Any) -> dict[str, Any]:
     """
     Parse a string value to dictionary if needed.
     Handles both Python dict format (single quotes) and JSON format.
     """
-    if isinstance(value, str):
-        try:
-            # Try ast.literal_eval first (for Python dict format)
-            return ast.literal_eval(value)
-        except (ValueError, SyntaxError):
-            # If that fails, try JSON
-            try:
-                return json.loads(value)
-            except json.JSONDecodeError:
-                # If both fail, return empty dict
-                return {}
-    return value if isinstance(value, dict) else {}
+    return parse_dipeo_output(value)
 
 
 def extract_node_specs_from_glob(inputs: dict[str, Any]) -> dict[str, Any]:
@@ -55,8 +46,7 @@ def extract_node_specs_from_glob(inputs: dict[str, Any]) -> dict[str, Any]:
             continue
 
         # Parse AST data if string
-        if isinstance(ast_data, str):
-            ast_data = json.loads(ast_data)
+        ast_data = parse_dipeo_output(ast_data)
 
         # Extract specs from constants
         for const in ast_data.get('constants', []):
@@ -110,8 +100,7 @@ def extract_node_data_from_glob(inputs: dict[str, Any]) -> dict[str, Any]:
         node_type = base_filename.replace('.spec.ts.json', '').replace('-', '_')
 
         # Parse AST data if string
-        if isinstance(ast_data, str):
-            ast_data = json.loads(ast_data)
+        ast_data = parse_dipeo_output(ast_data)
 
         # Extract the specification from constants
         for const in ast_data.get('constants', []):
@@ -395,8 +384,7 @@ def extract_models_from_glob(inputs: dict[str, Any]) -> dict[str, Any]:
             continue
 
         # Parse AST data if string
-        if isinstance(ast_data, str):
-            ast_data = json.loads(ast_data)
+        ast_data = parse_dipeo_output(ast_data)
 
         # Collect data from each file
         interfaces = ast_data.get('interfaces', [])
@@ -454,8 +442,7 @@ def _collect_graphql_ast_data(glob_results: dict) -> tuple[list, list, list, lis
             continue
 
         # Parse AST data if string
-        if isinstance(ast_data, str):
-            ast_data = json.loads(ast_data)
+        ast_data = parse_dipeo_output(ast_data)
 
         # Extract definitions from AST
         interfaces = ast_data.get('interfaces', [])
@@ -615,12 +602,12 @@ def prepare_zod_schemas_data(inputs: dict[str, Any]) -> dict[str, Any]:
 
     for filepath, ast_data in glob_results.items():
         # Skip special keys
+        print(ast_data)
         if filepath in ['default', 'inputs', 'node_id']:
             continue
-
+        print(ast_data)
         # Parse AST data if string
-        if isinstance(ast_data, str):
-            ast_data = json.loads(ast_data)
+        ast_data = parse_dipeo_output(ast_data)
 
         # Collect definitions
         interfaces = ast_data.get('interfaces', [])
@@ -691,8 +678,7 @@ def prepare_node_list_for_batch(inputs: dict[str, Any]) -> list[dict[str, str]]:
             continue
 
         # Parse AST data if string
-        if isinstance(ast_data, str):
-            ast_data = json.loads(ast_data)
+        ast_data = parse_dipeo_output(ast_data)
 
         # Verify it contains valid spec
         has_valid_spec = False

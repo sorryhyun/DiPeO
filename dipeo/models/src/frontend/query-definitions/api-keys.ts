@@ -12,7 +12,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'api_keys',
+          name: 'get_api_keys',
           args: [
             { name: 'service', value: 'service', isVariable: true }
           ],
@@ -29,13 +29,13 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       name: 'GetApiKey',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'api_key_id', type: 'ID', required: true }
       ],
       fields: [
         {
-          name: 'api_key',
+          name: 'get_api_key',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'api_key_id', value: 'api_key_id', isVariable: true }
           ],
           fields: [
             { name: 'id' },
@@ -50,14 +50,14 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       variables: [
         { name: 'service', type: 'String', required: true },
-        { name: 'apiKeyId', type: 'ID', required: true }
+        { name: 'api_key_id', type: 'ID', required: true }
       ],
       fields: [
         {
-          name: 'available_models',
+          name: 'get_available_models',
           args: [
             { name: 'service', value: 'service', isVariable: true },
-            { name: 'api_key_id', value: 'apiKeyId', isVariable: true }
+            { name: 'api_key_id', value: 'api_key_id', isVariable: true }
           ]
         }
       ]
@@ -94,13 +94,13 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       name: 'TestApiKey',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'api_key_id', type: 'ID', required: true }
       ],
       fields: [
         {
           name: 'test_api_key',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'api_key_id', value: 'api_key_id', isVariable: true }
           ],
           fields: [
             { name: 'success' },
@@ -114,13 +114,13 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       name: 'DeleteApiKey',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'api_key_id', type: 'ID', required: true }
       ],
       fields: [
         {
           name: 'delete_api_key',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'api_key_id', value: 'api_key_id', isVariable: true }
           ],
           fields: [
             { name: 'success' },

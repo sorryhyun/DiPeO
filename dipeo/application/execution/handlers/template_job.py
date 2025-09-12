@@ -308,7 +308,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 except Exception as e:
                     # Fall back to standard Jinja2
                     rendered = self._render_jinja2(template_content, local_context)
-                    logger.debug(f"Enhancement fallback: {e}")
+                    # logger.debug(f"Enhancement fallback: {e}")
             else:
                 rendered = template_content  # Fallback
 
@@ -353,7 +353,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             except Exception as e:
                 # Fall back to standard Jinja2
                 rendered = await self._render_jinja2(template_content, template_vars)
-                logger.debug(f"Enhancement fallback: {e}")
+                # logger.debug(f"Enhancement fallback: {e}")
         else:
             rendered = template_content
 

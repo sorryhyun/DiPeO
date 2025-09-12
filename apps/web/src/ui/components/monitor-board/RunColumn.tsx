@@ -23,7 +23,7 @@ export function RunColumn({ executionId, onRemove }: RunColumnProps) {
 
   // Fetch execution to get diagram_id
   const { data: executionData } = useQuery(GetExecutionDocument, {
-    variables: { id: executionId },
+    variables: { execution_id: executionId },
     skip: !executionId,
   });
 
@@ -31,7 +31,7 @@ export function RunColumn({ executionId, onRemove }: RunColumnProps) {
 
   // Fetch diagram using the diagram_id from execution
   const { data: diagramData, loading: diagramLoading } = useQuery(GetDiagramDocument, {
-    variables: { id: diagramId },
+    variables: { diagram_id: diagramId },
     skip: !diagramId,
   });
 

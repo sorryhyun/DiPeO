@@ -342,9 +342,9 @@ def collect_required_imports(operations: list[dict[str, Any]]) -> dict[str, set[
             elif clean_type == 'DateTime':
                 # DateTime is represented as str in Python
                 continue
-            elif clean_type == 'DiagramFormat':
-                # DiagramFormat is an enum
-                imports['dipeo.diagram_generated.enums'].add('DiagramFormat')
+            elif clean_type == 'DiagramFormat' or clean_type == 'DiagramFormatGraphQL':
+                # DiagramFormatGraphQL is handled by template with relative import
+                continue
             elif clean_type not in ['ID', 'String', 'Int', 'Float', 'Boolean', 'JSON', 'Upload']:
                 # Other custom types might be enums too
                 imports['dipeo.diagram_generated.enums'].add(clean_type)

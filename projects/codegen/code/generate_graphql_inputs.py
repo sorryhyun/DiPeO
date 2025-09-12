@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
+from projects.codegen.code.core.utils import parse_dipeo_output
+
 
 @dataclass
 class InputField:
@@ -146,6 +148,7 @@ def resolve_typescript_type_to_python(type_data: Any) -> str:
         "LLMService": "LLMService",
         "APIServiceType": "APIServiceType",
         "DiagramFormat": "DiagramFormat",
+        "DiagramFormatGraphQL": "DiagramFormat",  # Map GraphQL name to Python enum
         "Vec2Input": "Vec2Input",
         "PersonLLMConfigInput": "PersonLLMConfigInput",
         "string": "str",
@@ -175,15 +178,7 @@ def _process_default_input_for_graphql(data, logger) -> dict[str, Any]:
     ast_cache = {}
 
     # Handle string input - parse it first
-    if isinstance(data, str):
-        try:
-            data = json.loads(data)
-        except (json.JSONDecodeError, ValueError):
-            try:
-                data = ast.literal_eval(data)
-            except (ValueError, SyntaxError):
-                logger.debug("Could not parse string input")
-                data = {}
+    data = parse_dipeo_output(data)
 
     # Now data could be either:
     # 1. A dict of file paths to AST content (from glob)
@@ -209,12 +204,10 @@ def _process_default_input_for_graphql(data, logger) -> dict[str, Any]:
                     continue
 
                 # Parse AST content if it's a string
-                if isinstance(ast_content, str):
-                    try:
-                        ast_content = json.loads(ast_content)
-                    except (json.JSONDecodeError, ValueError):
-                        logger.debug(f"Could not parse AST content for {filepath}")
-                        continue
+                ast_content = parse_dipeo_output(ast_content)
+                if not isinstance(ast_content, dict):
+                    logger.debug(f"Could not parse AST content for {filepath}")
+                    continue
 
                 # Add to cache - especially look for graphql-inputs file
                 if isinstance(ast_content, dict):
@@ -242,12 +235,10 @@ def _build_ast_cache_for_inputs(inputs: dict[str, Any], logger) -> dict[str, Any
                 continue
 
             # Parse AST content if it's a string
-            if isinstance(ast_content, str):
-                try:
-                    ast_content = json.loads(ast_content)
-                except (json.JSONDecodeError, ValueError):
-                    logger.debug(f"Could not parse AST content for {filepath}")
-                    continue
+            ast_content = parse_dipeo_output(ast_content)
+            if not isinstance(ast_content, dict):
+                logger.debug(f"Could not parse AST content for {filepath}")
+                continue
 
             # Add to cache
             if isinstance(ast_content, dict):
@@ -504,7 +495,7 @@ def parse_inputs_file_directly(file_path: Path) -> list[InputTypeData]:
             fields=[
                 InputField('execution_id', 'str', False),
                 InputField('diagram_name', 'str', False),
-                InputField('diagram_format', 'str', False),
+                InputField('diagram_format', 'DiagramFormat', False),
                 InputField('diagram_data', 'strawberry.scalars.JSON', True),
                 InputField('diagram_path', 'str', True),
             ]

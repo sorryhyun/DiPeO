@@ -3,6 +3,8 @@ import ast
 import json
 from typing import Any
 
+from projects.codegen.code.core.utils import parse_dipeo_output
+
 
 def prepare_init_context_from_specs(inputs: dict[str, Any]) -> dict[str, Any]:
     """
@@ -22,16 +24,7 @@ def prepare_init_context_from_specs(inputs: dict[str, Any]) -> dict[str, Any]:
         default_value = inputs['default']
         if isinstance(default_value, str):
             # Parse the Python dict string to get the actual glob results
-            try:
-                # Try ast.literal_eval first (for Python dict format)
-                inputs = ast.literal_eval(default_value)
-            except (ValueError, SyntaxError):
-                # If that fails, try JSON
-                try:
-                    inputs = json.loads(default_value)
-                except json.JSONDecodeError:
-                    # If both fail, treat as empty
-                    inputs = {}
+            inputs = parse_dipeo_output(default_value)
         elif isinstance(default_value, dict):
             inputs = default_value
 

@@ -5,7 +5,6 @@ import type {
   CreateNodeInput,
   CreatePersonInput,
   DiagramFilterInput,
-  DiagramFormat,
   ExecuteDiagramInput,
   ExecutionControlInput,
   ExecutionFilterInput,
@@ -41,8 +40,8 @@ export interface ControlExecutionVariables {
 export const CONVERTDIAGRAMFORMAT_MUTATION = gql`
   mutation ConvertDiagramFormat(
     $content: String!,
-    $from_format: DiagramFormat!,
-    $to_format: DiagramFormat!
+    $from_format: DiagramFormatGraphQL!,
+    $to_format: DiagramFormatGraphQL!
   ) {
     convert_diagram_format(content: $content, from_format: $from_format, to_format: $to_format) {
       success
@@ -56,8 +55,8 @@ export const CONVERTDIAGRAMFORMAT_MUTATION = gql`
 
 export interface ConvertDiagramFormatVariables {
   content: string;
-  from_format: DiagramFormat;
-  to_format: DiagramFormat;
+  from_format: DiagramFormatGraphQL;
+  to_format: DiagramFormatGraphQL;
 }
 
 export const CREATEAPIKEY_MUTATION = gql`
@@ -152,9 +151,9 @@ export interface CreatePersonVariables {
 
 export const DELETEAPIKEY_MUTATION = gql`
   mutation DeleteApiKey(
-    $id: ID!
+    $api_key_id: ID!
   ) {
-    delete_api_key(id: $id) {
+    delete_api_key(api_key_id: $api_key_id) {
       success
       message
     }
@@ -162,14 +161,14 @@ export const DELETEAPIKEY_MUTATION = gql`
 `;
 
 export interface DeleteApiKeyVariables {
-  id: string;
+  api_key_id: string;
 }
 
 export const DELETEDIAGRAM_MUTATION = gql`
   mutation DeleteDiagram(
-    $id: ID!
+    $diagram_id: ID!
   ) {
-    delete_diagram(id: $id) {
+    delete_diagram(diagram_id: $diagram_id) {
       success
       message
       error
@@ -178,7 +177,7 @@ export const DELETEDIAGRAM_MUTATION = gql`
 `;
 
 export interface DeleteDiagramVariables {
-  id: string;
+  diagram_id: string;
 }
 
 export const DELETENODE_MUTATION = gql`
@@ -201,9 +200,9 @@ export interface DeleteNodeVariables {
 
 export const DELETEPERSON_MUTATION = gql`
   mutation DeletePerson(
-    $id: ID!
+    $person_id: ID!
   ) {
-    delete_person(id: $id) {
+    delete_person(person_id: $person_id) {
       success
       message
       error
@@ -212,7 +211,7 @@ export const DELETEPERSON_MUTATION = gql`
 `;
 
 export interface DeletePersonVariables {
-  id: string;
+  person_id: string;
 }
 
 export const EXECUTEDIAGRAM_MUTATION = gql`
@@ -268,9 +267,9 @@ export interface SendInteractiveResponseVariables {
 
 export const TESTAPIKEY_MUTATION = gql`
   mutation TestApiKey(
-    $id: ID!
+    $api_key_id: ID!
   ) {
-    test_api_key(id: $id) {
+    test_api_key(api_key_id: $api_key_id) {
       success
       message
       error
@@ -279,7 +278,7 @@ export const TESTAPIKEY_MUTATION = gql`
 `;
 
 export interface TestApiKeyVariables {
-  id: string;
+  api_key_id: string;
 }
 
 export const UNREGISTERCLISESSION_MUTATION = gql`
@@ -340,10 +339,10 @@ export interface UpdateNodeStateVariables {
 
 export const UPDATEPERSON_MUTATION = gql`
   mutation UpdatePerson(
-    $id: ID!,
+    $person_id: ID!,
     $input: UpdatePersonInput!
   ) {
-    update_person(id: $id, input: $input) {
+    update_person(person_id: $person_id, input: $input) {
       success
       person {
         id
@@ -356,14 +355,14 @@ export const UPDATEPERSON_MUTATION = gql`
 `;
 
 export interface UpdatePersonVariables {
-  id: string;
+  person_id: string;
   input: UpdatePersonInput;
 }
 
 export const UPLOADDIAGRAM_MUTATION = gql`
   mutation UploadDiagram(
     $file: Upload!,
-    $format: DiagramFormat!
+    $format: DiagramFormatGraphQL!
   ) {
     upload_diagram(file: $file, format: $format) {
       success
@@ -381,7 +380,7 @@ export const UPLOADDIAGRAM_MUTATION = gql`
 
 export interface UploadDiagramVariables {
   file: Upload;
-  format: DiagramFormat;
+  format: DiagramFormatGraphQL;
 }
 
 export const UPLOADFILE_MUTATION = gql`
@@ -408,12 +407,11 @@ export interface UploadFileVariables {
 export const VALIDATEDIAGRAM_MUTATION = gql`
   mutation ValidateDiagram(
     $content: String!,
-    $format: DiagramFormat!
+    $format: DiagramFormatGraphQL!
   ) {
     validate_diagram(content: $content, format: $format) {
       success
-      errors
-      warnings
+      error
       message
     }
   }
@@ -421,12 +419,12 @@ export const VALIDATEDIAGRAM_MUTATION = gql`
 
 export interface ValidateDiagramVariables {
   content: string;
-  format: DiagramFormat;
+  format: DiagramFormatGraphQL;
 }
 
 export const GETACTIVECLISESSION_QUERY = gql`
   query GetActiveCliSession {
-    active_cli_session {
+    get_active_cli_session {
       session_id
       execution_id
       diagram_name
@@ -441,9 +439,9 @@ export const GETACTIVECLISESSION_QUERY = gql`
 
 export const GETAPIKEY_QUERY = gql`
   query GetApiKey(
-    $id: ID!
+    $api_key_id: ID!
   ) {
-    api_key(id: $id) {
+    get_api_key(api_key_id: $api_key_id) {
       id
       label
       service
@@ -452,14 +450,14 @@ export const GETAPIKEY_QUERY = gql`
 `;
 
 export interface GetApiKeyVariables {
-  id: string;
+  api_key_id: string;
 }
 
 export const GETAPIKEYS_QUERY = gql`
   query GetApiKeys(
     $service: String
   ) {
-    api_keys(service: $service) {
+    get_api_keys(service: $service) {
       id
       label
       service
@@ -475,22 +473,22 @@ export interface GetApiKeysVariables {
 export const GETAVAILABLEMODELS_QUERY = gql`
   query GetAvailableModels(
     $service: String!,
-    $apiKeyId: ID!
+    $api_key_id: ID!
   ) {
-    available_models(service: $service, api_key_id: $apiKeyId)
+    get_available_models(service: $service, api_key_id: $api_key_id)
   }
 `;
 
 export interface GetAvailableModelsVariables {
   service: string;
-  apiKeyId: string;
+  api_key_id: string;
 }
 
 export const GETDIAGRAM_QUERY = gql`
   query GetDiagram(
-    $id: ID!
+    $diagram_id: ID!
   ) {
-    diagram(id: $id) {
+    get_diagram(diagram_id: $diagram_id) {
       nodes {
         id
         type
@@ -542,14 +540,14 @@ export const GETDIAGRAM_QUERY = gql`
 `;
 
 export interface GetDiagramVariables {
-  id: string;
+  diagram_id: string;
 }
 
 export const GETEXECUTION_QUERY = gql`
   query GetExecution(
-    $id: ID!
+    $execution_id: ID!
   ) {
-    execution(id: $id) {
+    get_execution(execution_id: $execution_id) {
       id
       status
       diagram_id
@@ -560,17 +558,23 @@ export const GETEXECUTION_QUERY = gql`
       node_outputs
       variables
       metrics
+      llm_usage {
+        input
+        output
+        cached
+        total
+      }
     }
   }
 `;
 
 export interface GetExecutionVariables {
-  id: string;
+  execution_id: string;
 }
 
 export const GETEXECUTIONCAPABILITIES_QUERY = gql`
   query GetExecutionCapabilities {
-    execution_capabilities
+    get_execution_capabilities
   }
 `;
 
@@ -580,7 +584,7 @@ export const GETEXECUTIONHISTORY_QUERY = gql`
     $limit: Int,
     $include_metrics: Boolean
   ) {
-    execution_history {
+    get_execution_history {
       id
       status
       diagram_id
@@ -602,7 +606,7 @@ export const GETEXECUTIONMETRICS_QUERY = gql`
   query GetExecutionMetrics(
     $execution_id: ID!
   ) {
-    execution_metrics(execution_id: $execution_id)
+    get_execution_metrics(execution_id: $execution_id)
   }
 `;
 
@@ -614,7 +618,7 @@ export const GETEXECUTIONORDER_QUERY = gql`
   query GetExecutionOrder(
     $execution_id: ID!
   ) {
-    execution_order(execution_id: $execution_id)
+    get_execution_order(execution_id: $execution_id)
   }
 `;
 
@@ -627,7 +631,7 @@ export const GETOPERATIONSCHEMA_QUERY = gql`
     $provider: String!,
     $operation: String!
   ) {
-    operation_schema(provider: $provider, operation: $operation) {
+    get_operation_schema(provider: $provider, operation: $operation) {
       operation
       method
       path
@@ -646,9 +650,9 @@ export interface GetOperationSchemaVariables {
 
 export const GETPERSON_QUERY = gql`
   query GetPerson(
-    $id: ID!
+    $person_id: ID!
   ) {
-    person(id: $id) {
+    get_person(person_id: $person_id) {
       id
       label
       type
@@ -663,14 +667,14 @@ export const GETPERSON_QUERY = gql`
 `;
 
 export interface GetPersonVariables {
-  id: string;
+  person_id: string;
 }
 
 export const GETPROMPTFILE_QUERY = gql`
   query GetPromptFile(
     $filename: String!
   ) {
-    prompt_file(filename: $filename)
+    get_prompt_file(filename: $filename)
   }
 `;
 
@@ -682,7 +686,7 @@ export const GETPROVIDEROPERATIONS_QUERY = gql`
   query GetProviderOperations(
     $provider: String!
   ) {
-    provider_operations(provider: $provider) {
+    get_provider_operations(provider: $provider) {
       name
       method
       path
@@ -700,7 +704,7 @@ export interface GetProviderOperationsVariables {
 
 export const GETPROVIDERS_QUERY = gql`
   query GetProviders {
-    providers {
+    get_providers {
       name
       operations {
         name
@@ -736,13 +740,13 @@ export const GETSUPPORTEDFORMATS_QUERY = gql`
 
 export const GETSYSTEMINFO_QUERY = gql`
   query GetSystemInfo {
-    system_info
+    get_system_info
   }
 `;
 
 export const HEALTHCHECK_QUERY = gql`
   query HealthCheck {
-    health
+    health_check
   }
 `;
 
@@ -776,7 +780,7 @@ export const LISTDIAGRAMS_QUERY = gql`
     $limit: Int,
     $offset: Int
   ) {
-    diagrams(filter: $filter, limit: $limit, offset: $offset) {
+    list_diagrams(filter: $filter, limit: $limit, offset: $offset) {
       metadata {
         id
         name
@@ -804,7 +808,7 @@ export const LISTEXECUTIONS_QUERY = gql`
     $limit: Int,
     $offset: Int
   ) {
-    executions(filter: $filter, limit: $limit, offset: $offset) {
+    list_executions(filter: $filter, limit: $limit, offset: $offset) {
       id
       status
       diagram_id
@@ -825,7 +829,7 @@ export const LISTPERSONS_QUERY = gql`
   query ListPersons(
     $limit: Int
   ) {
-    persons(limit: $limit) {
+    list_persons(limit: $limit) {
       id
       label
       type
@@ -844,7 +848,7 @@ export interface ListPersonsVariables {
 
 export const LISTPROMPTFILES_QUERY = gql`
   query ListPromptFiles {
-    prompt_files
+    list_prompt_files
   }
 `;
 

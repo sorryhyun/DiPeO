@@ -251,7 +251,7 @@ const TopBar = () => {
                 try {
                   // Fetch diagram content from server
                   const { data, error } = await getDiagram({
-                    variables: { id: fullPath }
+                    variables: { diagram_id: fullPath }
                   });
 
                   if (error) {

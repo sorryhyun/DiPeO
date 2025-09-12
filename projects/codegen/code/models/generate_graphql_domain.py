@@ -2,11 +2,11 @@
 Extract domain types from TypeScript AST for GraphQL type generation.
 """
 
-import ast
-import json
 import os
 from pathlib import Path
 from typing import Any
+
+from projects.codegen.code.core.utils import parse_dipeo_output
 
 
 def determine_field_type(field: dict[str, Any], interface_name: str) -> dict[str, Any]:
@@ -370,14 +370,10 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
 
         # Handle string input
         if isinstance(data, str):
-            try:
-                data = json.loads(data)
-            except (json.JSONDecodeError, ValueError):
-                try:
-                    data = ast.literal_eval(data)
-                except (ValueError, SyntaxError):
-                    logger.debug(f"Could not parse string input: {data[:100]}")
-                    data = None
+            data = parse_dipeo_output(data)
+            if not data:
+                logger.debug(f"Could not parse string input: {data[:100]}")
+                data = None
 
         if isinstance(data, dict):
             ast_files = [data]
@@ -387,13 +383,9 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
     # Process AST files
     for item in ast_files:
         if isinstance(item, str):
-            try:
-                item = json.loads(item)
-            except (json.JSONDecodeError, ValueError):
-                try:
-                    item = ast.literal_eval(item)
-                except (ValueError, SyntaxError):
-                    continue
+            item = parse_dipeo_output(item)
+            if not item:
+                continue
 
         if isinstance(item, dict):
             # Check if it has interfaces (domain types)
@@ -419,7 +411,8 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
             ast_file = temp_dir / file_name
             if ast_file.exists():
                 with open(ast_file) as f:
-                    ast_data = json.load(f)
+                    content = f.read()
+                    ast_data = parse_dipeo_output(content)
                     types = extract_domain_interfaces_from_ast(ast_data)
                     all_domain_types.extend(types)
 
@@ -481,4 +474,5 @@ if __name__ == "__main__":
     }
 
     result = main({"default": test_ast})
+    import json
     print(json.dumps(result, indent=2))

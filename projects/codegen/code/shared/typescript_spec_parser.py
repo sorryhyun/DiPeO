@@ -3,13 +3,14 @@ TypeScript specification parser
 Extracts node specifications from TypeScript AST data
 """
 
-import json
 import os
 import re
 
 # Import type transformer from the parser infrastructure
 import sys
 from typing import Any, Optional, Union
+
+from projects.codegen.code.core.utils import parse_dipeo_output
 
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
 from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python
@@ -126,10 +127,9 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
 
     # Handle case where ast_data might be a JSON string
     if isinstance(ast_data, str):
-        try:
-            ast_data = json.loads(ast_data)
-        except (json.JSONDecodeError, ValueError):
-            # If it's not valid JSON, treat as empty dict
+        ast_data = parse_dipeo_output(ast_data)
+        if not ast_data:
+            # If parsing failed, treat as empty dict
             ast_data = {}
 
     # Ensure ast_data is a dictionary

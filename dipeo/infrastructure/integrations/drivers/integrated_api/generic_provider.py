@@ -483,7 +483,6 @@ class GenericHTTPProvider(BaseApiProvider):
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             self._hook_cache["module"] = module
-            logger.info(f"Loaded hooks module: {module_path}")
 
     async def _execute_hook(self, hook_name: str, hook_type: str, data: Any) -> Any:
         """Execute a hook function.

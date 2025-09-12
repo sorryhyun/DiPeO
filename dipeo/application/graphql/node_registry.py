@@ -9,79 +9,39 @@ from typing import Any
 
 import strawberry
 
+from dipeo.diagram_generated.graphql import node_mutations as nm
 from dipeo.diagram_generated.graphql.enums import NodeTypeGraphQL
-from dipeo.diagram_generated.graphql.node_mutations import (
-    CreateApiJobInput,
-    CreateCodeJobInput,
-    CreateConditionInput,
-    CreateDbInput,
-    CreateEndpointInput,
-    CreateHookInput,
-    CreateIntegratedApiInput,
-    CreateJsonSchemaValidatorInput,
-    CreatePersonJobInput,
-    CreateStartInput,
-    CreateSubDiagramInput,
-    CreateTemplateJobInput,
-    CreateTypescriptAstInput,
-    CreateUserResponseInput,
-    UpdateApiJobInput,
-    UpdateCodeJobInput,
-    UpdateConditionInput,
-    UpdateDbInput,
-    UpdateEndpointInput,
-    UpdateHookInput,
-    UpdateIntegratedApiInput,
-    UpdateJsonSchemaValidatorInput,
-    UpdatePersonJobInput,
-    UpdateStartInput,
-    UpdateSubDiagramInput,
-    UpdateTemplateJobInput,
-    UpdateTypescriptAstInput,
-    UpdateUserResponseInput,
-)
 
 logger = logging.getLogger(__name__)
 
 
+def _pascal_from_enum(node_type: NodeTypeGraphQL) -> str:
+    """Convert node type enum to Pascal case.
+
+    Examples:
+        "code_job" -> "CodeJob"
+        "json_schema_validator" -> "JsonSchemaValidator"
+    """
+    return "".join(part.title() for part in node_type.value.split("_"))
+
+
+def get_input_types(node_type: NodeTypeGraphQL) -> tuple[type | None, type | None]:
+    """Get the create and update input types for a node type.
+
+    Args:
+        node_type: The node type enum
+
+    Returns:
+        Tuple of (CreateInput, UpdateInput) classes, or None if not found
+    """
+    base = _pascal_from_enum(node_type)
+    create = getattr(nm, f"Create{base}Input", None)
+    update = getattr(nm, f"Update{base}Input", None)
+    return create, update
+
+
 class NodeTypeRegistry:
     """Registry for mapping node types to their input classes and validation logic."""
-
-    # Mapping of NodeType to Create input classes
-    CREATE_INPUT_MAP: dict[NodeTypeGraphQL, type] = {
-        NodeTypeGraphQL.API_JOB: CreateApiJobInput,
-        NodeTypeGraphQL.CODE_JOB: CreateCodeJobInput,
-        NodeTypeGraphQL.CONDITION: CreateConditionInput,
-        NodeTypeGraphQL.DB: CreateDbInput,
-        NodeTypeGraphQL.ENDPOINT: CreateEndpointInput,
-        NodeTypeGraphQL.HOOK: CreateHookInput,
-        NodeTypeGraphQL.INTEGRATED_API: CreateIntegratedApiInput,
-        NodeTypeGraphQL.JSON_SCHEMA_VALIDATOR: CreateJsonSchemaValidatorInput,
-        NodeTypeGraphQL.PERSON_JOB: CreatePersonJobInput,
-        NodeTypeGraphQL.START: CreateStartInput,
-        NodeTypeGraphQL.SUB_DIAGRAM: CreateSubDiagramInput,
-        NodeTypeGraphQL.TEMPLATE_JOB: CreateTemplateJobInput,
-        NodeTypeGraphQL.TYPESCRIPT_AST: CreateTypescriptAstInput,
-        NodeTypeGraphQL.USER_RESPONSE: CreateUserResponseInput,
-    }
-
-    # Mapping of NodeType to Update input classes
-    UPDATE_INPUT_MAP: dict[NodeTypeGraphQL, type] = {
-        NodeTypeGraphQL.API_JOB: UpdateApiJobInput,
-        NodeTypeGraphQL.CODE_JOB: UpdateCodeJobInput,
-        NodeTypeGraphQL.CONDITION: UpdateConditionInput,
-        NodeTypeGraphQL.DB: UpdateDbInput,
-        NodeTypeGraphQL.ENDPOINT: UpdateEndpointInput,
-        NodeTypeGraphQL.HOOK: UpdateHookInput,
-        NodeTypeGraphQL.INTEGRATED_API: UpdateIntegratedApiInput,
-        NodeTypeGraphQL.JSON_SCHEMA_VALIDATOR: UpdateJsonSchemaValidatorInput,
-        NodeTypeGraphQL.PERSON_JOB: UpdatePersonJobInput,
-        NodeTypeGraphQL.START: UpdateStartInput,
-        NodeTypeGraphQL.SUB_DIAGRAM: UpdateSubDiagramInput,
-        NodeTypeGraphQL.TEMPLATE_JOB: UpdateTemplateJobInput,
-        NodeTypeGraphQL.TYPESCRIPT_AST: UpdateTypescriptAstInput,
-        NodeTypeGraphQL.USER_RESPONSE: UpdateUserResponseInput,
-    }
 
     # Node-specific validation rules
     VALIDATION_RULES: dict[NodeTypeGraphQL, dict[str, Any]] = {
@@ -146,12 +106,14 @@ class NodeTypeRegistry:
     @classmethod
     def get_create_input_class(cls, node_type: NodeTypeGraphQL) -> type | None:
         """Get the create input class for a specific node type."""
-        return cls.CREATE_INPUT_MAP.get(node_type)
+        create_cls, _ = get_input_types(node_type)
+        return create_cls
 
     @classmethod
     def get_update_input_class(cls, node_type: NodeTypeGraphQL) -> type | None:
         """Get the update input class for a specific node type."""
-        return cls.UPDATE_INPUT_MAP.get(node_type)
+        _, update_cls = get_input_types(node_type)
+        return update_cls
 
     @classmethod
     def validate_node_data(

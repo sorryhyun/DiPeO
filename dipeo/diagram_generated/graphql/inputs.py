@@ -2,7 +2,7 @@
 GraphQL input types for DiPeO mutations.
 Auto-generated from TypeScript definitions.
 
-Generated at: 2025-09-11T16:46:46.708498
+Generated at: 2025-09-12T17:36:01.701452
 """
 
 from datetime import datetime
@@ -98,12 +98,6 @@ class ExecuteDiagramInput:
     debug_mode: bool | None = None
     max_iterations: int | None = None
     timeout_seconds: int | None = None
-
-
-@strawberry.input
-class ValidateDiagramInput:
-    diagram_id: strawberry.ID | None = None
-    diagram_data: strawberry.scalars.JSON | None = None
     use_unified_monitoring: bool | None = None
 
 
@@ -158,7 +152,7 @@ class InteractiveResponseInput:
 class RegisterCliSessionInput:
     execution_id: str
     diagram_name: str
-    diagram_format: str
+    diagram_format: DiagramFormat
     diagram_data: strawberry.scalars.JSON | None = None
     diagram_path: str | None = None
 
@@ -181,7 +175,6 @@ __all__ = [
     'UpdatePersonInput',
     'CreateApiKeyInput',
     'ExecuteDiagramInput',
-    'ValidateDiagramInput',
     'FileOperationInput',
     'UpdateNodeStateInput',
     'DiagramFilterInput',

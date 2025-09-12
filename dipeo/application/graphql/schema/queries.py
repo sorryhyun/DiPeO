@@ -68,9 +68,9 @@ def create_query_type(registry: ServiceRegistry) -> type:
     @strawberry.type
     class Query:
         @strawberry.field
-        async def diagram(self, id: strawberry.ID) -> DomainDiagramType | None:
+        async def diagram(self, diagram_id: strawberry.ID) -> DomainDiagramType | None:
             """Query method that delegates to standalone resolver."""
-            return await get_diagram(registry, id)
+            return await get_diagram(registry, diagram_id)
 
         @strawberry.field
         async def diagrams(
@@ -83,9 +83,9 @@ def create_query_type(registry: ServiceRegistry) -> type:
             return await list_diagrams(registry, filter, limit, offset)
 
         @strawberry.field
-        async def execution(self, id: strawberry.ID) -> ExecutionStateType | None:
+        async def execution(self, execution_id: strawberry.ID) -> ExecutionStateType | None:
             """Query method that delegates to standalone resolver."""
-            return await get_execution(registry, id)
+            return await get_execution(registry, execution_id)
 
         @strawberry.field
         async def executions(
@@ -98,9 +98,9 @@ def create_query_type(registry: ServiceRegistry) -> type:
             return await list_executions(registry, filter, limit, offset)
 
         @strawberry.field
-        async def person(self, id: strawberry.ID) -> DomainPersonType | None:
+        async def person(self, person_id: strawberry.ID) -> DomainPersonType | None:
             """Query method that delegates to standalone resolver."""
-            return await get_person(registry, id)
+            return await get_person(registry, person_id)
 
         @strawberry.field
         async def persons(self, limit: int = 100) -> list[DomainPersonType]:
@@ -108,9 +108,9 @@ def create_query_type(registry: ServiceRegistry) -> type:
             return await list_persons(registry, limit)
 
         @strawberry.field
-        async def api_key(self, id: strawberry.ID) -> DomainApiKeyType | None:
+        async def api_key(self, api_key_id: strawberry.ID) -> DomainApiKeyType | None:
             """Query method that delegates to standalone resolver."""
-            return await get_api_key(registry, id)
+            return await get_api_key(registry, api_key_id)
 
         @strawberry.field
         async def api_keys(self, service: str | None = None) -> list[DomainApiKeyType]:

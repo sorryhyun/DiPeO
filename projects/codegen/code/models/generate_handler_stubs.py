@@ -1,9 +1,10 @@
 """Generate Python handler stubs from TypeScript node specifications."""
-import json
 import os
 import sys
 from pathlib import Path
 from typing import Any
+
+from projects.codegen.code.core.utils import parse_dipeo_output
 
 # Add DiPeO base to path
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
@@ -32,12 +33,10 @@ def parse_jsdoc_annotations(jsdoc: str | None) -> dict[str, Any]:
             end = line.find(']')
             if start != -1 and end != -1:
                 services_str = line[start:end+1]
-                try:
-                    # Parse as JSON array
-                    services = json.loads(services_str)
+                # Parse as JSON array using the utility
+                services = parse_dipeo_output(services_str)
+                if services:
                     annotations['services'] = services
-                except json.JSONDecodeError:
-                    pass
 
         # Parse @dipeo.timeout annotation
         elif '@dipeo.timeout' in line:
@@ -224,7 +223,8 @@ def generate_from_cache() -> dict:
     if ast_cache_dir.exists():
         for ast_file in ast_cache_dir.glob('*.json'):
             with ast_file.open() as f:
-                ast_data = json.load(f)
+                content = f.read()
+                ast_data = parse_dipeo_output(content)
                 all_interfaces.extend(ast_data.get('interfaces', []))
 
     # Load node specifications
@@ -232,7 +232,8 @@ def generate_from_cache() -> dict:
     if specs_dir.exists():
         for spec_file in specs_dir.glob('*.spec.ts.json'):
             with spec_file.open() as f:
-                spec_data = json.load(f)
+                content = f.read()
+                spec_data = parse_dipeo_output(content)
                 if 'nodeType' in spec_data:
                     node_specs.append(spec_data)
 

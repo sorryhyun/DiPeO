@@ -2,10 +2,11 @@
 Extract branded types from TypeScript AST for GraphQL scalar generation.
 """
 
-import json
 import os
 from pathlib import Path
 from typing import Any
+
+from projects.codegen.code.core.utils import parse_dipeo_output
 
 
 def extract_branded_types_from_ast(ast_data: dict[str, Any]) -> list[dict[str, str]]:
@@ -39,7 +40,6 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
 
     Reads TypeScript AST files and extracts all branded types for scalar generation.
     """
-    import ast
 
     all_scalars = []
 
@@ -58,16 +58,10 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
 
         # Handle string input that needs evaluation
         if isinstance(data, str):
-            try:
-                # Try to parse as JSON first
-                data = json.loads(data)
-            except (json.JSONDecodeError, ValueError):
-                try:
-                    # Try literal eval for Python literals
-                    data = ast.literal_eval(data)
-                except (ValueError, SyntaxError):
-                    logger.debug(f"Could not parse string input: {data[:100]}")
-                    data = None
+            data = parse_dipeo_output(data)
+            if not data:
+                logger.debug(f"Could not parse string input: {data[:100]}")
+                data = None
 
         if isinstance(data, dict):
             # Single file result
@@ -90,13 +84,9 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
     for item in ast_files:
         # Handle string items
         if isinstance(item, str):
-            try:
-                item = json.loads(item)
-            except (json.JSONDecodeError, ValueError):
-                try:
-                    item = ast.literal_eval(item)
-                except (ValueError, SyntaxError):
-                    continue
+            item = parse_dipeo_output(item)
+            if not item:
+                continue
 
         if isinstance(item, dict):
             # Check if it's AST data (has 'types' key)
@@ -123,7 +113,8 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
             ast_file = temp_dir / file_path
             if ast_file.exists():
                 with open(ast_file) as f:
-                    ast_data = json.load(f)
+                    content = f.read()
+                    ast_data = parse_dipeo_output(content)
                     scalars = extract_branded_types_from_ast(ast_data)
                     all_scalars.extend(scalars)
 
@@ -168,4 +159,5 @@ if __name__ == "__main__":
     }
 
     result = extract_branded_types_from_ast(test_ast)
+    import json
     print(json.dumps(result, indent=2))

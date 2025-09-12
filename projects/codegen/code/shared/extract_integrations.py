@@ -66,11 +66,10 @@ def main(inputs: dict) -> dict:
 
     # Parse JSON if it's a string
     if isinstance(ast_json, str):
-        try:
-            import json
-            ast_data = json.loads(ast_json)
-        except Exception as e:
-            print(f"[ERROR] Failed to parse JSON: {e}")
+        from projects.codegen.code.core.utils import parse_dipeo_output
+        ast_data = parse_dipeo_output(ast_json)
+        if not ast_data:
+            print(f"[ERROR] Failed to parse input data")
             return {
                 'enums': [],
                 'interfaces': [],

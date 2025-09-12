@@ -29,7 +29,7 @@ generates:
         HandleLabel: "@dipeo/models#HandleLabel"
         DataType: "@dipeo/models#DataType"
         LLMService: "@dipeo/models#LLMService"
-        DiagramFormat: "@dipeo/models#DiagramFormat"
+        DiagramFormatGraphQL: "@dipeo/models#DiagramFormat"
         Status: "@dipeo/models#Status"
       # Skip generating TypeScript types for enums
       skipTypename: false

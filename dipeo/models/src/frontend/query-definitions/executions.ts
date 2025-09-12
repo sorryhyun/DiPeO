@@ -8,13 +8,13 @@ export const executionQueries: EntityQueryDefinitions = {
       name: 'GetExecution',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'execution_id', type: 'ID', required: true }
       ],
       fields: [
         {
-          name: 'execution',
+          name: 'get_execution',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
           fields: [
             { name: 'id' },
@@ -26,7 +26,16 @@ export const executionQueries: EntityQueryDefinitions = {
             { name: 'node_states' },
             { name: 'node_outputs' },
             { name: 'variables' },
-            { name: 'metrics' }
+            { name: 'metrics' },
+            {
+              name: 'llm_usage',
+              fields: [
+                { name: 'input' },
+                { name: 'output' },
+                { name: 'cached' },
+                { name: 'total' }
+              ]
+            }
           ]
         }
       ]
@@ -41,7 +50,7 @@ export const executionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'executions',
+          name: 'list_executions',
           args: [
             { name: 'filter', value: 'filter', isVariable: true },
             { name: 'limit', value: 'limit', isVariable: true },

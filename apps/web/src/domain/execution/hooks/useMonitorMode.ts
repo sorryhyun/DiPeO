@@ -140,7 +140,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
           // Only fetch execution state if node states weren't provided by CLI session
           !activeSession.node_states ?
             fetchExecutionState({
-              variables: { id: activeSession.execution_id }
+              variables: { execution_id: activeSession.execution_id }
             }).catch(error => {
               console.error('[Monitor] Failed to fetch initial execution state:', error);
               return null;

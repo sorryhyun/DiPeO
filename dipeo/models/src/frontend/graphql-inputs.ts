@@ -23,6 +23,9 @@ import type {
 // Re-export enums for convenience
 export { DiagramFormat, APIServiceType };
 
+// Type alias for GraphQL enum naming convention
+export type DiagramFormatGraphQL = DiagramFormat;
+
 // Helper types
 export type InputMaybe<T> = T | null | undefined;
 
@@ -162,7 +165,7 @@ export type InteractiveResponseInput = {
 export type RegisterCliSessionInput = {
   execution_id: Scalars['ID']['input'];
   diagram_name: Scalars['String']['input'];
-  diagram_format: DiagramFormat;
+  diagram_format: DiagramFormatGraphQL;
   diagram_data?: InputMaybe<Scalars['JSON']['input']>;
 };
 

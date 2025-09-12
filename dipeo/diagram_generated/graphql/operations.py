@@ -9,8 +9,8 @@ from typing import Any, Optional, TypedDict, Protocol, Union
 import strawberry
 from typing import Any, Optional, TypedDict, Union
 from dipeo.diagram_generated.graphql.inputs import CreateApiKeyInput, CreateDiagramInput, CreateNodeInput, CreatePersonInput, DiagramFilterInput, ExecuteDiagramInput, ExecutionControlInput, ExecutionFilterInput, InteractiveResponseInput, RegisterCliSessionInput, UnregisterCliSessionInput, UpdateNodeInput, UpdateNodeStateInput, UpdatePersonInput
-from dipeo.diagram_generated.enums import DiagramFormat
 
+from .enums import DiagramFormatGraphQL
 
 # GraphQL query strings as constants
 
@@ -28,7 +28,7 @@ CONTROL_EXECUTION_MUTATION = """mutation ControlExecution($input: ExecutionContr
 
 
 
-CONVERT_DIAGRAM_FORMAT_MUTATION = """mutation ConvertDiagramFormat($content: String!, $from_format: DiagramFormat!, $to_format: DiagramFormat!) {
+CONVERT_DIAGRAM_FORMAT_MUTATION = """mutation ConvertDiagramFormat($content: String!, $from_format: DiagramFormatGraphQL!, $to_format: DiagramFormatGraphQL!) {
   convert_diagram_format(content: $content, from_format: $from_format, to_format: $to_format) {
     success
     content
@@ -104,8 +104,8 @@ CREATE_PERSON_MUTATION = """mutation CreatePerson($input: CreatePersonInput!) {
 
 
 
-DELETE_API_KEY_MUTATION = """mutation DeleteApiKey($id: ID!) {
-  delete_api_key(id: $id) {
+DELETE_API_KEY_MUTATION = """mutation DeleteApiKey($api_key_id: ID!) {
+  delete_api_key(api_key_id: $api_key_id) {
     success
     message
   }
@@ -113,8 +113,8 @@ DELETE_API_KEY_MUTATION = """mutation DeleteApiKey($id: ID!) {
 
 
 
-DELETE_DIAGRAM_MUTATION = """mutation DeleteDiagram($id: ID!) {
-  delete_diagram(id: $id) {
+DELETE_DIAGRAM_MUTATION = """mutation DeleteDiagram($diagram_id: ID!) {
+  delete_diagram(diagram_id: $diagram_id) {
     success
     message
     error
@@ -133,8 +133,8 @@ DELETE_NODE_MUTATION = """mutation DeleteNode($diagram_id: ID!, $node_id: ID!) {
 
 
 
-DELETE_PERSON_MUTATION = """mutation DeletePerson($id: ID!) {
-  delete_person(id: $id) {
+DELETE_PERSON_MUTATION = """mutation DeletePerson($person_id: ID!) {
+  delete_person(person_id: $person_id) {
     success
     message
     error
@@ -176,8 +176,8 @@ SEND_INTERACTIVE_RESPONSE_MUTATION = """mutation SendInteractiveResponse($input:
 
 
 
-TEST_API_KEY_MUTATION = """mutation TestApiKey($id: ID!) {
-  test_api_key(id: $id) {
+TEST_API_KEY_MUTATION = """mutation TestApiKey($api_key_id: ID!) {
+  test_api_key(api_key_id: $api_key_id) {
     success
     message
     error
@@ -220,8 +220,8 @@ UPDATE_NODE_STATE_MUTATION = """mutation UpdateNodeState($input: UpdateNodeState
 
 
 
-UPDATE_PERSON_MUTATION = """mutation UpdatePerson($id: ID!, $input: UpdatePersonInput!) {
-  update_person(id: $id, input: $input) {
+UPDATE_PERSON_MUTATION = """mutation UpdatePerson($person_id: ID!, $input: UpdatePersonInput!) {
+  update_person(person_id: $person_id, input: $input) {
     success
     person {
       id
@@ -234,7 +234,7 @@ UPDATE_PERSON_MUTATION = """mutation UpdatePerson($id: ID!, $input: UpdatePerson
 
 
 
-UPLOAD_DIAGRAM_MUTATION = """mutation UploadDiagram($file: Upload!, $format: DiagramFormat!) {
+UPLOAD_DIAGRAM_MUTATION = """mutation UploadDiagram($file: Upload!, $format: DiagramFormatGraphQL!) {
   upload_diagram(file: $file, format: $format) {
     success
     diagram {
@@ -263,11 +263,10 @@ UPLOAD_FILE_MUTATION = """mutation UploadFile($file: Upload!, $path: String) {
 
 
 
-VALIDATE_DIAGRAM_MUTATION = """mutation ValidateDiagram($content: String!, $format: DiagramFormat!) {
+VALIDATE_DIAGRAM_MUTATION = """mutation ValidateDiagram($content: String!, $format: DiagramFormatGraphQL!) {
   validate_diagram(content: $content, format: $format) {
     success
-    errors
-    warnings
+    error
     message
   }
 }"""
@@ -275,7 +274,7 @@ VALIDATE_DIAGRAM_MUTATION = """mutation ValidateDiagram($content: String!, $form
 
 
 GET_ACTIVE_CLI_SESSION_QUERY = """query GetActiveCliSession {
-  active_cli_session {
+  get_active_cli_session {
     session_id
     execution_id
     diagram_name
@@ -289,8 +288,8 @@ GET_ACTIVE_CLI_SESSION_QUERY = """query GetActiveCliSession {
 
 
 
-GET_API_KEY_QUERY = """query GetApiKey($id: ID!) {
-  api_key(id: $id) {
+GET_API_KEY_QUERY = """query GetApiKey($api_key_id: ID!) {
+  get_api_key(api_key_id: $api_key_id) {
     id
     label
     service
@@ -300,7 +299,7 @@ GET_API_KEY_QUERY = """query GetApiKey($id: ID!) {
 
 
 GET_API_KEYS_QUERY = """query GetApiKeys($service: String) {
-  api_keys(service: $service) {
+  get_api_keys(service: $service) {
     id
     label
     service
@@ -310,14 +309,14 @@ GET_API_KEYS_QUERY = """query GetApiKeys($service: String) {
 
 
 
-GET_AVAILABLE_MODELS_QUERY = """query GetAvailableModels($service: String!, $apiKeyId: ID!) {
-  available_models(service: $service, api_key_id: $apiKeyId)
+GET_AVAILABLE_MODELS_QUERY = """query GetAvailableModels($service: String!, $api_key_id: ID!) {
+  get_available_models(service: $service, api_key_id: $api_key_id)
 }"""
 
 
 
-GET_DIAGRAM_QUERY = """query GetDiagram($id: ID!) {
-  diagram(id: $id) {
+GET_DIAGRAM_QUERY = """query GetDiagram($diagram_id: ID!) {
+  get_diagram(diagram_id: $diagram_id) {
     nodes {
       id
       type
@@ -369,8 +368,8 @@ GET_DIAGRAM_QUERY = """query GetDiagram($id: ID!) {
 
 
 
-GET_EXECUTION_QUERY = """query GetExecution($id: ID!) {
-  execution(id: $id) {
+GET_EXECUTION_QUERY = """query GetExecution($execution_id: ID!) {
+  get_execution(execution_id: $execution_id) {
     id
     status
     diagram_id
@@ -381,19 +380,25 @@ GET_EXECUTION_QUERY = """query GetExecution($id: ID!) {
     node_outputs
     variables
     metrics
+    llm_usage {
+      input
+      output
+      cached
+      total
+    }
   }
 }"""
 
 
 
 GET_EXECUTION_CAPABILITIES_QUERY = """query GetExecutionCapabilities {
-  execution_capabilities
+  get_execution_capabilities
 }"""
 
 
 
 GET_EXECUTION_HISTORY_QUERY = """query GetExecutionHistory($diagram_id: ID, $limit: Int, $include_metrics: Boolean) {
-  execution_history {
+  get_execution_history {
     id
     status
     diagram_id
@@ -407,19 +412,19 @@ GET_EXECUTION_HISTORY_QUERY = """query GetExecutionHistory($diagram_id: ID, $lim
 
 
 GET_EXECUTION_METRICS_QUERY = """query GetExecutionMetrics($execution_id: ID!) {
-  execution_metrics(execution_id: $execution_id)
+  get_execution_metrics(execution_id: $execution_id)
 }"""
 
 
 
 GET_EXECUTION_ORDER_QUERY = """query GetExecutionOrder($execution_id: ID!) {
-  execution_order(execution_id: $execution_id)
+  get_execution_order(execution_id: $execution_id)
 }"""
 
 
 
 GET_OPERATION_SCHEMA_QUERY = """query GetOperationSchema($provider: String!, $operation: String!) {
-  operation_schema(provider: $provider, operation: $operation) {
+  get_operation_schema(provider: $provider, operation: $operation) {
     operation
     method
     path
@@ -432,8 +437,8 @@ GET_OPERATION_SCHEMA_QUERY = """query GetOperationSchema($provider: String!, $op
 
 
 
-GET_PERSON_QUERY = """query GetPerson($id: ID!) {
-  person(id: $id) {
+GET_PERSON_QUERY = """query GetPerson($person_id: ID!) {
+  get_person(person_id: $person_id) {
     id
     label
     type
@@ -449,13 +454,13 @@ GET_PERSON_QUERY = """query GetPerson($id: ID!) {
 
 
 GET_PROMPT_FILE_QUERY = """query GetPromptFile($filename: String!) {
-  prompt_file(filename: $filename)
+  get_prompt_file(filename: $filename)
 }"""
 
 
 
 GET_PROVIDER_OPERATIONS_QUERY = """query GetProviderOperations($provider: String!) {
-  provider_operations(provider: $provider) {
+  get_provider_operations(provider: $provider) {
     name
     method
     path
@@ -469,7 +474,7 @@ GET_PROVIDER_OPERATIONS_QUERY = """query GetProviderOperations($provider: String
 
 
 GET_PROVIDERS_QUERY = """query GetProviders {
-  providers {
+  get_providers {
     name
     operations {
       name
@@ -505,13 +510,13 @@ GET_SUPPORTED_FORMATS_QUERY = """query GetSupportedFormats {
 
 
 GET_SYSTEM_INFO_QUERY = """query GetSystemInfo {
-  system_info
+  get_system_info
 }"""
 
 
 
 HEALTH_CHECK_QUERY = """query HealthCheck {
-  health
+  health_check
 }"""
 
 
@@ -523,7 +528,7 @@ LIST_CONVERSATIONS_QUERY = """query ListConversations($person_id: ID, $execution
 
 
 LIST_DIAGRAMS_QUERY = """query ListDiagrams($filter: DiagramFilterInput, $limit: Int, $offset: Int) {
-  diagrams(filter: $filter, limit: $limit, offset: $offset) {
+  list_diagrams(filter: $filter, limit: $limit, offset: $offset) {
     metadata {
       id
       name
@@ -541,7 +546,7 @@ LIST_DIAGRAMS_QUERY = """query ListDiagrams($filter: DiagramFilterInput, $limit:
 
 
 LIST_EXECUTIONS_QUERY = """query ListExecutions($filter: ExecutionFilterInput, $limit: Int, $offset: Int) {
-  executions(filter: $filter, limit: $limit, offset: $offset) {
+  list_executions(filter: $filter, limit: $limit, offset: $offset) {
     id
     status
     diagram_id
@@ -554,7 +559,7 @@ LIST_EXECUTIONS_QUERY = """query ListExecutions($filter: ExecutionFilterInput, $
 
 
 LIST_PERSONS_QUERY = """query ListPersons($limit: Int) {
-  persons(limit: $limit) {
+  list_persons(limit: $limit) {
     id
     label
     type
@@ -569,7 +574,7 @@ LIST_PERSONS_QUERY = """query ListPersons($limit: Int) {
 
 
 LIST_PROMPT_FILES_QUERY = """query ListPromptFiles {
-  prompt_files
+  list_prompt_files
 }"""
 
 
@@ -653,9 +658,9 @@ class ConvertDiagramFormatOperation:
         
         content: str
         
-        from_format: DiagramFormat
+        from_format: DiagramFormatGraphQL
         
-        to_format: DiagramFormat
+        to_format: DiagramFormatGraphQL
         
     
 
@@ -665,7 +670,7 @@ class ConvertDiagramFormatOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, content: str, from_format: DiagramFormat, to_format: DiagramFormat) -> dict[str, Any]:
+    def get_variables_dict(cls, content: str, from_format: DiagramFormatGraphQL, to_format: DiagramFormatGraphQL) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
@@ -673,9 +678,9 @@ class ConvertDiagramFormatOperation:
             
             content: String - Required (accepts dict or Strawberry input object)
             
-            from_format: DiagramFormat - Required (accepts dict or Strawberry input object)
+            from_format: DiagramFormatGraphQL - Required (accepts dict or Strawberry input object)
             
-            to_format: DiagramFormat - Required (accepts dict or Strawberry input object)
+            to_format: DiagramFormatGraphQL - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -932,7 +937,7 @@ class DeleteApiKeyOperation:
     class Variables(TypedDict):
         """Variable types for DeleteApiKey mutation."""
         
-        id: str
+        api_key_id: str
         
     
 
@@ -942,13 +947,13 @@ class DeleteApiKeyOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, id: str) -> dict[str, Any]:
+    def get_variables_dict(cls, api_key_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
         Args:
             
-            id: ID - Required (accepts dict or Strawberry input object)
+            api_key_id: ID - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -958,10 +963,10 @@ class DeleteApiKeyOperation:
         
         
         # Convert Strawberry input object to dict if needed
-        if hasattr(id, '__strawberry_definition__'):
-            variables["id"] = strawberry.asdict(id)
+        if hasattr(api_key_id, '__strawberry_definition__'):
+            variables["api_key_id"] = strawberry.asdict(api_key_id)
         else:
-            variables["id"] = id
+            variables["api_key_id"] = api_key_id
         
         
         return variables
@@ -981,7 +986,7 @@ class DeleteDiagramOperation:
     class Variables(TypedDict):
         """Variable types for DeleteDiagram mutation."""
         
-        id: str
+        diagram_id: str
         
     
 
@@ -991,13 +996,13 @@ class DeleteDiagramOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, id: str) -> dict[str, Any]:
+    def get_variables_dict(cls, diagram_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
         Args:
             
-            id: ID - Required (accepts dict or Strawberry input object)
+            diagram_id: ID - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -1007,10 +1012,10 @@ class DeleteDiagramOperation:
         
         
         # Convert Strawberry input object to dict if needed
-        if hasattr(id, '__strawberry_definition__'):
-            variables["id"] = strawberry.asdict(id)
+        if hasattr(diagram_id, '__strawberry_definition__'):
+            variables["diagram_id"] = strawberry.asdict(diagram_id)
         else:
-            variables["id"] = id
+            variables["diagram_id"] = diagram_id
         
         
         return variables
@@ -1091,7 +1096,7 @@ class DeletePersonOperation:
     class Variables(TypedDict):
         """Variable types for DeletePerson mutation."""
         
-        id: str
+        person_id: str
         
     
 
@@ -1101,13 +1106,13 @@ class DeletePersonOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, id: str) -> dict[str, Any]:
+    def get_variables_dict(cls, person_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
         Args:
             
-            id: ID - Required (accepts dict or Strawberry input object)
+            person_id: ID - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -1117,10 +1122,10 @@ class DeletePersonOperation:
         
         
         # Convert Strawberry input object to dict if needed
-        if hasattr(id, '__strawberry_definition__'):
-            variables["id"] = strawberry.asdict(id)
+        if hasattr(person_id, '__strawberry_definition__'):
+            variables["person_id"] = strawberry.asdict(person_id)
         else:
-            variables["id"] = id
+            variables["person_id"] = person_id
         
         
         return variables
@@ -1287,7 +1292,7 @@ class TestApiKeyOperation:
     class Variables(TypedDict):
         """Variable types for TestApiKey mutation."""
         
-        id: str
+        api_key_id: str
         
     
 
@@ -1297,13 +1302,13 @@ class TestApiKeyOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, id: str) -> dict[str, Any]:
+    def get_variables_dict(cls, api_key_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
         Args:
             
-            id: ID - Required (accepts dict or Strawberry input object)
+            api_key_id: ID - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -1313,10 +1318,10 @@ class TestApiKeyOperation:
         
         
         # Convert Strawberry input object to dict if needed
-        if hasattr(id, '__strawberry_definition__'):
-            variables["id"] = strawberry.asdict(id)
+        if hasattr(api_key_id, '__strawberry_definition__'):
+            variables["api_key_id"] = strawberry.asdict(api_key_id)
         else:
-            variables["id"] = id
+            variables["api_key_id"] = api_key_id
         
         
         return variables
@@ -1507,7 +1512,7 @@ class UpdatePersonOperation:
     class Variables(TypedDict):
         """Variable types for UpdatePerson mutation."""
         
-        id: str
+        person_id: str
         
         input: UpdatePersonInput
         
@@ -1519,13 +1524,13 @@ class UpdatePersonOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, id: str, input: Union[UpdatePersonInput, dict[str, Any]]) -> dict[str, Any]:
+    def get_variables_dict(cls, person_id: str, input: Union[UpdatePersonInput, dict[str, Any]]) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
         Args:
             
-            id: ID - Required (accepts dict or Strawberry input object)
+            person_id: ID - Required (accepts dict or Strawberry input object)
             
             input: UpdatePersonInput - Required (accepts dict or Strawberry input object)
             
@@ -1537,10 +1542,10 @@ class UpdatePersonOperation:
         
         
         # Convert Strawberry input object to dict if needed
-        if hasattr(id, '__strawberry_definition__'):
-            variables["id"] = strawberry.asdict(id)
+        if hasattr(person_id, '__strawberry_definition__'):
+            variables["person_id"] = strawberry.asdict(person_id)
         else:
-            variables["id"] = id
+            variables["person_id"] = person_id
         
         
         
@@ -1570,7 +1575,7 @@ class UploadDiagramOperation:
         
         file: Any
         
-        format: DiagramFormat
+        format: DiagramFormatGraphQL
         
     
 
@@ -1580,7 +1585,7 @@ class UploadDiagramOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, file: Any, format: DiagramFormat) -> dict[str, Any]:
+    def get_variables_dict(cls, file: Any, format: DiagramFormatGraphQL) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
@@ -1588,7 +1593,7 @@ class UploadDiagramOperation:
             
             file: Upload - Required (accepts dict or Strawberry input object)
             
-            format: DiagramFormat - Required (accepts dict or Strawberry input object)
+            format: DiagramFormatGraphQL - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -1693,7 +1698,7 @@ class ValidateDiagramOperation:
         
         content: str
         
-        format: DiagramFormat
+        format: DiagramFormatGraphQL
         
     
 
@@ -1703,7 +1708,7 @@ class ValidateDiagramOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, content: str, format: DiagramFormat) -> dict[str, Any]:
+    def get_variables_dict(cls, content: str, format: DiagramFormatGraphQL) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
@@ -1711,7 +1716,7 @@ class ValidateDiagramOperation:
             
             content: String - Required (accepts dict or Strawberry input object)
             
-            format: DiagramFormat - Required (accepts dict or Strawberry input object)
+            format: DiagramFormatGraphQL - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -1789,7 +1794,7 @@ class GetApiKeyOperation:
     class Variables(TypedDict):
         """Variable types for GetApiKey query."""
         
-        id: str
+        api_key_id: str
         
     
 
@@ -1799,13 +1804,13 @@ class GetApiKeyOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, id: str) -> dict[str, Any]:
+    def get_variables_dict(cls, api_key_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
         Args:
             
-            id: ID - Required (accepts dict or Strawberry input object)
+            api_key_id: ID - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -1815,10 +1820,10 @@ class GetApiKeyOperation:
         
         
         # Convert Strawberry input object to dict if needed
-        if hasattr(id, '__strawberry_definition__'):
-            variables["id"] = strawberry.asdict(id)
+        if hasattr(api_key_id, '__strawberry_definition__'):
+            variables["api_key_id"] = strawberry.asdict(api_key_id)
         else:
-            variables["id"] = id
+            variables["api_key_id"] = api_key_id
         
         
         return variables
@@ -1890,7 +1895,7 @@ class GetAvailableModelsOperation:
         
         service: str
         
-        apiKeyId: str
+        api_key_id: str
         
     
 
@@ -1900,7 +1905,7 @@ class GetAvailableModelsOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, service: str, apiKeyId: str) -> dict[str, Any]:
+    def get_variables_dict(cls, service: str, api_key_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
@@ -1908,7 +1913,7 @@ class GetAvailableModelsOperation:
             
             service: String - Required (accepts dict or Strawberry input object)
             
-            apiKeyId: ID - Required (accepts dict or Strawberry input object)
+            api_key_id: ID - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -1926,10 +1931,10 @@ class GetAvailableModelsOperation:
         
         
         # Convert Strawberry input object to dict if needed
-        if hasattr(apiKeyId, '__strawberry_definition__'):
-            variables["apiKeyId"] = strawberry.asdict(apiKeyId)
+        if hasattr(api_key_id, '__strawberry_definition__'):
+            variables["api_key_id"] = strawberry.asdict(api_key_id)
         else:
-            variables["apiKeyId"] = apiKeyId
+            variables["api_key_id"] = api_key_id
         
         
         return variables
@@ -1949,7 +1954,7 @@ class GetDiagramOperation:
     class Variables(TypedDict):
         """Variable types for GetDiagram query."""
         
-        id: str
+        diagram_id: str
         
     
 
@@ -1959,13 +1964,13 @@ class GetDiagramOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, id: str) -> dict[str, Any]:
+    def get_variables_dict(cls, diagram_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
         Args:
             
-            id: ID - Required (accepts dict or Strawberry input object)
+            diagram_id: ID - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -1975,10 +1980,10 @@ class GetDiagramOperation:
         
         
         # Convert Strawberry input object to dict if needed
-        if hasattr(id, '__strawberry_definition__'):
-            variables["id"] = strawberry.asdict(id)
+        if hasattr(diagram_id, '__strawberry_definition__'):
+            variables["diagram_id"] = strawberry.asdict(diagram_id)
         else:
-            variables["id"] = id
+            variables["diagram_id"] = diagram_id
         
         
         return variables
@@ -1998,7 +2003,7 @@ class GetExecutionOperation:
     class Variables(TypedDict):
         """Variable types for GetExecution query."""
         
-        id: str
+        execution_id: str
         
     
 
@@ -2008,13 +2013,13 @@ class GetExecutionOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, id: str) -> dict[str, Any]:
+    def get_variables_dict(cls, execution_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
         Args:
             
-            id: ID - Required (accepts dict or Strawberry input object)
+            execution_id: ID - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -2024,10 +2029,10 @@ class GetExecutionOperation:
         
         
         # Convert Strawberry input object to dict if needed
-        if hasattr(id, '__strawberry_definition__'):
-            variables["id"] = strawberry.asdict(id)
+        if hasattr(execution_id, '__strawberry_definition__'):
+            variables["execution_id"] = strawberry.asdict(execution_id)
         else:
-            variables["id"] = id
+            variables["execution_id"] = execution_id
         
         
         return variables
@@ -2319,7 +2324,7 @@ class GetPersonOperation:
     class Variables(TypedDict):
         """Variable types for GetPerson query."""
         
-        id: str
+        person_id: str
         
     
 
@@ -2329,13 +2334,13 @@ class GetPersonOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, id: str) -> dict[str, Any]:
+    def get_variables_dict(cls, person_id: str) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
         Args:
             
-            id: ID - Required (accepts dict or Strawberry input object)
+            person_id: ID - Required (accepts dict or Strawberry input object)
             
 
         Returns:
@@ -2345,10 +2350,10 @@ class GetPersonOperation:
         
         
         # Convert Strawberry input object to dict if needed
-        if hasattr(id, '__strawberry_definition__'):
-            variables["id"] = strawberry.asdict(id)
+        if hasattr(person_id, '__strawberry_definition__'):
+            variables["person_id"] = strawberry.asdict(person_id)
         else:
-            variables["id"] = id
+            variables["person_id"] = person_id
         
         
         return variables

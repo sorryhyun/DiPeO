@@ -46,11 +46,13 @@ DIAGRAM_VERSION = "1.0.0"
 
 
 # Query resolvers - Diagrams
-async def get_diagram(registry: ServiceRegistry, id: strawberry.ID) -> DomainDiagramType | None:
+async def get_diagram(
+    registry: ServiceRegistry, diagram_id: strawberry.ID
+) -> DomainDiagramType | None:
     """Get a single diagram by ID."""
     diagram_resolver = DiagramResolver(registry)
-    diagram_id = DiagramID(str(id))
-    return await diagram_resolver.get_diagram(diagram_id)
+    diagram_id_typed = DiagramID(str(diagram_id))
+    return await diagram_resolver.get_diagram(diagram_id_typed)
 
 
 async def list_diagrams(
@@ -65,11 +67,13 @@ async def list_diagrams(
 
 
 # Query resolvers - Executions
-async def get_execution(registry: ServiceRegistry, id: strawberry.ID) -> ExecutionStateType | None:
+async def get_execution(
+    registry: ServiceRegistry, execution_id: strawberry.ID
+) -> ExecutionStateType | None:
     """Get a single execution by ID."""
     execution_resolver = ExecutionResolver(registry)
-    execution_id = ExecutionID(str(id))
-    return await execution_resolver.get_execution(execution_id)
+    execution_id_typed = ExecutionID(str(execution_id))
+    return await execution_resolver.get_execution(execution_id_typed)
 
 
 async def list_executions(
@@ -233,11 +237,13 @@ async def get_execution_history(
 
 
 # Query resolvers - Persons
-async def get_person(registry: ServiceRegistry, id: strawberry.ID) -> DomainPersonType | None:
+async def get_person(
+    registry: ServiceRegistry, person_id: strawberry.ID
+) -> DomainPersonType | None:
     """Get a single person by ID."""
     person_resolver = PersonResolver(registry)
-    person_id = PersonID(str(id))
-    return await person_resolver.get_person(person_id)
+    person_id_typed = PersonID(str(person_id))
+    return await person_resolver.get_person(person_id_typed)
 
 
 async def list_persons(registry: ServiceRegistry, limit: int = 100) -> list[DomainPersonType]:
@@ -247,11 +253,13 @@ async def list_persons(registry: ServiceRegistry, limit: int = 100) -> list[Doma
 
 
 # Query resolvers - API Keys
-async def get_api_key(registry: ServiceRegistry, id: strawberry.ID) -> DomainApiKeyType | None:
+async def get_api_key(
+    registry: ServiceRegistry, api_key_id: strawberry.ID
+) -> DomainApiKeyType | None:
     """Get a single API key by ID."""
     person_resolver = PersonResolver(registry)
-    api_key_id = ApiKeyID(str(id))
-    return await person_resolver.get_api_key(api_key_id)
+    api_key_id_typed = ApiKeyID(str(api_key_id))
+    return await person_resolver.get_api_key(api_key_id_typed)
 
 
 async def get_api_keys(

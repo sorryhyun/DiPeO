@@ -8,6 +8,7 @@
 > System design, architecture patterns, and technical specifications
 
 - [Overall Architecture](architecture/overall_architecture.md) - System architecture and technology stack
+- [GraphQL Layer Architecture](architecture/graphql-layer.md) - Complete GraphQL implementation with 3-tier architecture
 - [Memory System Design](architecture/memory_system_design.md) - Conversation memory architecture  
 - [GraphQL Subscriptions](architecture/graphql-subscriptions.md) - Real-time updates implementation
 

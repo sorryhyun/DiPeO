@@ -9,7 +9,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'system_info',
+          name: 'get_system_info',
           // Returns JSONScalar with dynamic fields
           fields: []
         }
@@ -20,7 +20,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'execution_capabilities',
+          name: 'get_execution_capabilities',
           // Returns JSONScalar with dynamic fields
           fields: []
         }
@@ -31,7 +31,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'health',
+          name: 'health_check',
           // Returns JSONScalar with dynamic fields
           fields: []
         }
@@ -45,7 +45,7 @@ export const systemQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'execution_order',
+          name: 'get_execution_order',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
@@ -62,7 +62,7 @@ export const systemQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'execution_metrics',
+          name: 'get_execution_metrics',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
@@ -81,7 +81,7 @@ export const systemQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'execution_history',
+          name: 'get_execution_history',
           fields: [
             { name: 'id' },
             { name: 'status' },
@@ -99,7 +99,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'active_cli_session',
+          name: 'get_active_cli_session',
           fields: [
             { name: 'session_id' },
             { name: 'execution_id' },

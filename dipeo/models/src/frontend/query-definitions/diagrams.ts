@@ -8,13 +8,13 @@ export const diagramQueries: EntityQueryDefinitions = {
       name: 'GetDiagram',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'diagram_id', type: 'ID', required: true }
       ],
       fields: [
         {
-          name: 'diagram',
+          name: 'get_diagram',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'diagram_id', value: 'diagram_id', isVariable: true }
           ],
           fields: [
             {
@@ -98,7 +98,7 @@ export const diagramQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'diagrams',
+          name: 'list_diagrams',
           args: [
             { name: 'filter', value: 'filter', isVariable: true },
             { name: 'limit', value: 'limit', isVariable: true },
@@ -185,13 +185,13 @@ export const diagramQueries: EntityQueryDefinitions = {
       name: 'DeleteDiagram',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'diagram_id', type: 'ID', required: true }
       ],
       fields: [
         {
           name: 'delete_diagram',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'diagram_id', value: 'diagram_id', isVariable: true }
           ],
           fields: [
             { name: 'success' },

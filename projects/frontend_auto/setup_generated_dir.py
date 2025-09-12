@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Setup the generated directory with base configuration files before generation starts.
-This ensures all config files are in place before any source code generation.
+Setup the generated directory with base configuration files and install dependencies.
+This ensures all config files and libraries are in place before any source code generation.
 """
 
 import json
 import os
 import shutil
+import subprocess
 from pathlib import Path
 
 
@@ -167,6 +168,148 @@ def setup_generated_directory(inputs=None):
     print(
         f"\n✅ Setup complete! Copied {copied_count} config files and created directory structure"
     )
+
+    # Install dependencies using pnpm
+    print("\n📦 Installing dependencies with pnpm...")
+    try:
+        result = subprocess.run(
+            ["pnpm", "install"],
+            cwd=generated_dir,
+            capture_output=True,
+            text=True,
+            timeout=120  # 2 minute timeout
+        )
+        if result.returncode == 0:
+            print("✓ Dependencies installed successfully")
+        else:
+            print(f"⚠ Warning: pnpm install had issues: {result.stderr}")
+    except subprocess.TimeoutExpired:
+        print("⚠ Warning: pnpm install timed out")
+    except FileNotFoundError:
+        print("⚠ Warning: pnpm not found, skipping dependency installation")
+    except Exception as e:
+        print(f"⚠ Warning: Failed to install dependencies: {e}")
+
+    # Create UI components library structure (shadcn-style)
+    ui_components_dir = generated_dir / "src" / "components" / "ui"
+    ui_components_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create a lib/utils.ts file for cn helper
+    lib_dir = generated_dir / "src" / "lib"
+    lib_dir.mkdir(parents=True, exist_ok=True)
+
+    utils_file = lib_dir / "utils.ts"
+    utils_file.write_text("""import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+""")
+    print("✓ Created lib/utils.ts with cn helper")
+
+    # Create a components.json config for shadcn-style components
+    components_json = generated_dir / "components.json"
+    components_json.write_text(json.dumps({
+        "$schema": "https://ui.shadcn.com/schema.json",
+        "style": "default",
+        "rsc": False,
+        "tsx": True,
+        "tailwind": {
+            "config": "tailwind.config.js",
+            "css": "src/styles/tailwind.css",
+            "baseColor": "slate",
+            "cssVariables": True,
+            "prefix": ""
+        },
+        "aliases": {
+            "components": "@/components",
+            "utils": "@/lib/utils"
+        }
+    }, indent=2))
+    print("✓ Created components.json for UI library configuration")
+
+    # Create basic UI component exports that wrap Radix UI
+    # This allows the generated code to import from @/components/ui/*
+    ui_index = ui_components_dir / "index.ts"
+    ui_index.write_text("""// Re-export all UI components from this central location
+// These components wrap Radix UI primitives with app styling
+
+export * from './button'
+export * from './card'
+export * from './dialog'
+export * from './input'
+export * from './select'
+export * from './table'
+export * from './toast'
+export * from './tooltip'
+export * from './checkbox'
+export * from './switch'
+export * from './popover'
+export * from './separator'
+export * from './scroll-area'
+export * from './skeleton'
+export * from './badge'
+export * from './alert'
+""")
+    print("✓ Created UI components index")
+
+    # Create a sample button component that wraps Radix with CVA
+    button_file = ui_components_dir / "button.tsx"
+    button_file.write_text("""import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Button.displayName = "Button"
+
+export { Button, buttonVariants }
+""")
+    print("✓ Created Button component wrapper")
 
     # Return success status for diagram flow
     return {"success": True, "copied_files": copied_count, "generated_dir": str(generated_dir)}

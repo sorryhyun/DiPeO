@@ -3,7 +3,7 @@ import type { HandleDirection } from '@dipeo/models';
 import type { HandleLabel } from '@dipeo/models';
 import type { DataType } from '@dipeo/models';
 import type { LLMService } from '@dipeo/models';
-import type { DiagramFormat } from '@dipeo/models';
+import type { DiagramFormat as DiagramFormatGraphQL } from '@dipeo/models';
 import type { Status } from '@dipeo/models';
 import type { ApiKeyID } from '@dipeo/models';
 import type { ArrowID } from '@dipeo/models';
@@ -41,7 +41,7 @@ export type Scalars = {
   ExecutionID: { input: ExecutionID; output: ExecutionID; }
   /** Unique identifier type for handle entities */
   HandleID: { input: HandleID; output: HandleID; }
-  /** Unique identifier for hooks */
+  /** Unique identifier type for hook entities */
   HookID: { input: any; output: any; }
   /** The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf). */
   JSON: { input: any; output: any; }
@@ -49,7 +49,7 @@ export type Scalars = {
   NodeID: { input: NodeID; output: NodeID; }
   /** Unique identifier type for person entities */
   PersonID: { input: PersonID; output: PersonID; }
-  /** Unique identifier for tasks */
+  /** Unique identifier type for task entities */
   TaskID: { input: any; output: any; }
   Upload: { input: any; output: any; }
   /** Represents NULL values */
@@ -232,7 +232,7 @@ export type DiagramConvertResult = {
   __typename?: 'DiagramConvertResult';
   content?: Maybe<Scalars['String']['output']>;
   error?: Maybe<Scalars['String']['output']>;
-  format?: Maybe<DiagramFormat>;
+  format?: Maybe<DiagramFormatGraphQL>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
 };
@@ -245,7 +245,13 @@ export type DiagramFilterInput = {
   tags?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
-export { DiagramFormat };
+export enum DiagramFormat {
+  LIGHT = 'LIGHT',
+  NATIVE = 'NATIVE',
+  READABLE = 'READABLE'
+}
+
+export { DiagramFormatGraphQL };
 
 export type DiagramFormatInfo = {
   __typename?: 'DiagramFormatInfo';
@@ -279,14 +285,6 @@ export type DiagramResult = {
   error_type?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
-};
-
-export type DiagramValidationResult = {
-  __typename?: 'DiagramValidationResult';
-  errors?: Maybe<Array<Scalars['String']['output']>>;
-  message?: Maybe<Scalars['String']['output']>;
-  success: Scalars['Boolean']['output'];
-  warnings?: Maybe<Array<Scalars['String']['output']>>;
 };
 
 export type DomainApiKeyType = {
@@ -498,10 +496,13 @@ export type Mutation = {
   __typename?: 'Mutation';
   control_execution: ExecutionResult;
   convert_diagram_format: DiagramConvertResult;
+  create_api_job_node: NodeResult;
   create_api_key: ApiKeyResult;
+  create_condition_node: NodeResult;
   create_diagram: DiagramResult;
   create_node: NodeResult;
   create_person: PersonResult;
+  create_person_job_node: NodeResult;
   delete_api_key: DeleteResult;
   delete_diagram: DeleteResult;
   delete_node: DeleteResult;
@@ -516,7 +517,7 @@ export type Mutation = {
   update_person: PersonResult;
   upload_diagram: DiagramResult;
   upload_file: FileOperationResult;
-  validate_diagram: DiagramValidationResult;
+  validate_diagram: DiagramResult;
 };
 
 
@@ -527,13 +528,33 @@ export type Mutationcontrol_executionArgs = {
 
 export type Mutationconvert_diagram_formatArgs = {
   content: Scalars['String']['input'];
-  from_format: DiagramFormat;
-  to_format: DiagramFormat;
+  from_format: DiagramFormatGraphQL;
+  to_format: DiagramFormatGraphQL;
+};
+
+
+export type Mutationcreate_api_job_nodeArgs = {
+  api_id: Scalars['String']['input'];
+  diagram_id: Scalars['ID']['input'];
+  headers?: InputMaybe<Scalars['JSON']['input']>;
+  parameters?: InputMaybe<Scalars['JSON']['input']>;
+  position_x: Scalars['Float']['input'];
+  position_y: Scalars['Float']['input'];
 };
 
 
 export type Mutationcreate_api_keyArgs = {
   input: CreateApiKeyInput;
+};
+
+
+export type Mutationcreate_condition_nodeArgs = {
+  combine_operator?: InputMaybe<Scalars['String']['input']>;
+  diagram_id: Scalars['ID']['input'];
+  operator: Scalars['String']['input'];
+  position_x: Scalars['Float']['input'];
+  position_y: Scalars['Float']['input'];
+  value_b?: InputMaybe<Scalars['JSON']['input']>;
 };
 
 
@@ -553,13 +574,25 @@ export type Mutationcreate_personArgs = {
 };
 
 
+export type Mutationcreate_person_job_nodeArgs = {
+  diagram_id: Scalars['ID']['input'];
+  max_tokens?: InputMaybe<Scalars['Int']['input']>;
+  message: Scalars['String']['input'];
+  model?: InputMaybe<Scalars['String']['input']>;
+  person_id: Scalars['String']['input'];
+  position_x: Scalars['Float']['input'];
+  position_y: Scalars['Float']['input'];
+  variables?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+
 export type Mutationdelete_api_keyArgs = {
-  id: Scalars['ID']['input'];
+  api_key_id: Scalars['ID']['input'];
 };
 
 
 export type Mutationdelete_diagramArgs = {
-  id: Scalars['ID']['input'];
+  diagram_id: Scalars['ID']['input'];
 };
 
 
@@ -570,7 +603,7 @@ export type Mutationdelete_nodeArgs = {
 
 
 export type Mutationdelete_personArgs = {
-  id: Scalars['ID']['input'];
+  person_id: Scalars['ID']['input'];
 };
 
 
@@ -590,7 +623,7 @@ export type Mutationsend_interactive_responseArgs = {
 
 
 export type Mutationtest_api_keyArgs = {
-  id: Scalars['ID']['input'];
+  api_key_id: Scalars['ID']['input'];
 };
 
 
@@ -612,14 +645,14 @@ export type Mutationupdate_node_stateArgs = {
 
 
 export type Mutationupdate_personArgs = {
-  id: Scalars['ID']['input'];
   input: UpdatePersonInput;
+  person_id: Scalars['ID']['input'];
 };
 
 
 export type Mutationupload_diagramArgs = {
   file: Scalars['Upload']['input'];
-  format: DiagramFormat;
+  format: DiagramFormatGraphQL;
 };
 
 
@@ -631,7 +664,7 @@ export type Mutationupload_fileArgs = {
 
 export type Mutationvalidate_diagramArgs = {
   content: Scalars['String']['input'];
-  format: DiagramFormat;
+  format: DiagramFormatGraphQL;
 };
 
 export type NodeResult = {
@@ -784,7 +817,7 @@ export type Query = {
 
 
 export type Queryapi_keyArgs = {
-  id: Scalars['ID']['input'];
+  api_key_id: Scalars['ID']['input'];
 };
 
 
@@ -811,7 +844,7 @@ export type QueryconversationsArgs = {
 
 
 export type QuerydiagramArgs = {
-  id: Scalars['ID']['input'];
+  diagram_id: Scalars['ID']['input'];
 };
 
 
@@ -823,7 +856,7 @@ export type QuerydiagramsArgs = {
 
 
 export type QueryexecutionArgs = {
-  id: Scalars['ID']['input'];
+  execution_id: Scalars['ID']['input'];
 };
 
 
@@ -858,7 +891,7 @@ export type Queryoperation_schemaArgs = {
 
 
 export type QuerypersonArgs = {
-  id: Scalars['ID']['input'];
+  person_id: Scalars['ID']['input'];
 };
 
 
@@ -891,7 +924,7 @@ export type RateLimitConfigType = {
 
 export type RegisterCliSessionInput = {
   diagram_data?: InputMaybe<Scalars['JSON']['input']>;
-  diagram_format: Scalars['String']['input'];
+  diagram_format: DiagramFormat;
   diagram_name: Scalars['String']['input'];
   diagram_path?: InputMaybe<Scalars['String']['input']>;
   execution_id: Scalars['String']['input'];
@@ -1071,12 +1104,12 @@ export type ControlExecutionMutation = { __typename?: 'Mutation', control_execut
 
 export type ConvertDiagramFormatMutationVariables = Exact<{
   content: Scalars['String']['input'];
-  from_format: DiagramFormat;
-  to_format: DiagramFormat;
+  from_format: DiagramFormatGraphQL;
+  to_format: DiagramFormatGraphQL;
 }>;
 
 
-export type ConvertDiagramFormatMutation = { __typename?: 'Mutation', convert_diagram_format: { __typename?: 'DiagramConvertResult', success: boolean, content?: string | null, format?: DiagramFormat | null, message?: string | null, error?: string | null } };
+export type ConvertDiagramFormatMutation = { __typename?: 'Mutation', convert_diagram_format: { __typename?: 'DiagramConvertResult', success: boolean, content?: string | null, format?: DiagramFormatGraphQL | null, message?: string | null, error?: string | null } };
 
 export type CreateApiKeyMutationVariables = Exact<{
   input: CreateApiKeyInput;
@@ -1108,14 +1141,14 @@ export type CreatePersonMutationVariables = Exact<{
 export type CreatePersonMutation = { __typename?: 'Mutation', create_person: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: string, label: string } | null } };
 
 export type DeleteApiKeyMutationVariables = Exact<{
-  id: Scalars['ID']['input'];
+  api_key_id: Scalars['ID']['input'];
 }>;
 
 
 export type DeleteApiKeyMutation = { __typename?: 'Mutation', delete_api_key: { __typename?: 'DeleteResult', success: boolean, message?: string | null } };
 
 export type DeleteDiagramMutationVariables = Exact<{
-  id: Scalars['ID']['input'];
+  diagram_id: Scalars['ID']['input'];
 }>;
 
 
@@ -1130,7 +1163,7 @@ export type DeleteNodeMutationVariables = Exact<{
 export type DeleteNodeMutation = { __typename?: 'Mutation', delete_node: { __typename?: 'DeleteResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type DeletePersonMutationVariables = Exact<{
-  id: Scalars['ID']['input'];
+  person_id: Scalars['ID']['input'];
 }>;
 
 
@@ -1158,7 +1191,7 @@ export type SendInteractiveResponseMutationVariables = Exact<{
 export type SendInteractiveResponseMutation = { __typename?: 'Mutation', send_interactive_response: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type TestApiKeyMutationVariables = Exact<{
-  id: Scalars['ID']['input'];
+  api_key_id: Scalars['ID']['input'];
 }>;
 
 
@@ -1188,7 +1221,7 @@ export type UpdateNodeStateMutationVariables = Exact<{
 export type UpdateNodeStateMutation = { __typename?: 'Mutation', update_node_state: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: Status } | null } };
 
 export type UpdatePersonMutationVariables = Exact<{
-  id: Scalars['ID']['input'];
+  person_id: Scalars['ID']['input'];
   input: UpdatePersonInput;
 }>;
 
@@ -1197,7 +1230,7 @@ export type UpdatePersonMutation = { __typename?: 'Mutation', update_person: { _
 
 export type UploadDiagramMutationVariables = Exact<{
   file: Scalars['Upload']['input'];
-  format: DiagramFormat;
+  format: DiagramFormatGraphQL;
 }>;
 
 
@@ -1213,11 +1246,11 @@ export type UploadFileMutation = { __typename?: 'Mutation', upload_file: { __typ
 
 export type ValidateDiagramMutationVariables = Exact<{
   content: Scalars['String']['input'];
-  format: DiagramFormat;
+  format: DiagramFormatGraphQL;
 }>;
 
 
-export type ValidateDiagramMutation = { __typename?: 'Mutation', validate_diagram: { __typename?: 'DiagramValidationResult', success: boolean, errors?: Array<string> | null, warnings?: Array<string> | null, message?: string | null } };
+export type ValidateDiagramMutation = { __typename?: 'Mutation', validate_diagram: { __typename?: 'DiagramResult', success: boolean, error?: string | null, message?: string | null } };
 
 export type GetActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1225,7 +1258,7 @@ export type GetActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>
 export type GetActiveCliSessionQuery = { __typename?: 'Query', active_cli_session?: { __typename?: 'CliSession', session_id: string, execution_id: string, diagram_name: string, diagram_format: string, started_at: any, is_active: boolean, diagram_data?: string | null, node_states?: any | null } | null };
 
 export type GetApiKeyQueryVariables = Exact<{
-  id: Scalars['ID']['input'];
+  api_key_id: Scalars['ID']['input'];
 }>;
 
 
@@ -1240,25 +1273,25 @@ export type GetApiKeysQuery = { __typename?: 'Query', api_keys: Array<{ __typena
 
 export type GetAvailableModelsQueryVariables = Exact<{
   service: Scalars['String']['input'];
-  apiKeyId: Scalars['ID']['input'];
+  api_key_id: Scalars['ID']['input'];
 }>;
 
 
 export type GetAvailableModelsQuery = { __typename?: 'Query', available_models: Array<string> };
 
 export type GetDiagramQueryVariables = Exact<{
-  id: Scalars['ID']['input'];
+  diagram_id: Scalars['ID']['input'];
 }>;
 
 
 export type GetDiagramQuery = { __typename?: 'Query', diagram?: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: string, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: string, node_id: string, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: string, source: string, target: string, content_type?: ContentType | null, label?: string | null, data?: any | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } | null };
 
 export type GetExecutionQueryVariables = Exact<{
-  id: Scalars['ID']['input'];
+  execution_id: Scalars['ID']['input'];
 }>;
 
 
-export type GetExecutionQuery = { __typename?: 'Query', execution?: { __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at: string, ended_at?: string | null, error?: string | null, node_states: any, node_outputs: any, variables?: any | null, metrics?: any | null } | null };
+export type GetExecutionQuery = { __typename?: 'Query', execution?: { __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at: string, ended_at?: string | null, error?: string | null, node_states: any, node_outputs: any, variables?: any | null, metrics?: any | null, llm_usage: { __typename?: 'LLMUsageType', input: number, output: number, cached?: number | null, total?: number | null } } | null };
 
 export type GetExecutionCapabilitiesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1297,7 +1330,7 @@ export type GetOperationSchemaQueryVariables = Exact<{
 export type GetOperationSchemaQuery = { __typename?: 'Query', operation_schema?: { __typename?: 'OperationSchemaType', operation: string, method: string, path: string, description?: string | null, request_body?: any | null, query_params?: any | null, response?: any | null } | null };
 
 export type GetPersonQueryVariables = Exact<{
-  id: Scalars['ID']['input'];
+  person_id: Scalars['ID']['input'];
 }>;
 
 
@@ -1428,7 +1461,7 @@ export type ControlExecutionMutationHookResult = ReturnType<typeof useControlExe
 export type ControlExecutionMutationResult = Apollo.MutationResult<ControlExecutionMutation>;
 export type ControlExecutionMutationOptions = Apollo.BaseMutationOptions<ControlExecutionMutation, ControlExecutionMutationVariables>;
 export const ConvertDiagramFormatDocument = gql`
-    mutation ConvertDiagramFormat($content: String!, $from_format: DiagramFormat!, $to_format: DiagramFormat!) {
+    mutation ConvertDiagramFormat($content: String!, $from_format: DiagramFormatGraphQL!, $to_format: DiagramFormatGraphQL!) {
   convert_diagram_format(
     content: $content
     from_format: $from_format
@@ -1636,8 +1669,8 @@ export type CreatePersonMutationHookResult = ReturnType<typeof useCreatePersonMu
 export type CreatePersonMutationResult = Apollo.MutationResult<CreatePersonMutation>;
 export type CreatePersonMutationOptions = Apollo.BaseMutationOptions<CreatePersonMutation, CreatePersonMutationVariables>;
 export const DeleteApiKeyDocument = gql`
-    mutation DeleteApiKey($id: ID!) {
-  delete_api_key(id: $id) {
+    mutation DeleteApiKey($api_key_id: ID!) {
+  delete_api_key(api_key_id: $api_key_id) {
     success
     message
   }
@@ -1658,7 +1691,7 @@ export type DeleteApiKeyMutationFn = Apollo.MutationFunction<DeleteApiKeyMutatio
  * @example
  * const [deleteApiKeyMutation, { data, loading, error }] = useDeleteApiKeyMutation({
  *   variables: {
- *      id: // value for 'id'
+ *      api_key_id: // value for 'api_key_id'
  *   },
  * });
  */
@@ -1670,8 +1703,8 @@ export type DeleteApiKeyMutationHookResult = ReturnType<typeof useDeleteApiKeyMu
 export type DeleteApiKeyMutationResult = Apollo.MutationResult<DeleteApiKeyMutation>;
 export type DeleteApiKeyMutationOptions = Apollo.BaseMutationOptions<DeleteApiKeyMutation, DeleteApiKeyMutationVariables>;
 export const DeleteDiagramDocument = gql`
-    mutation DeleteDiagram($id: ID!) {
-  delete_diagram(id: $id) {
+    mutation DeleteDiagram($diagram_id: ID!) {
+  delete_diagram(diagram_id: $diagram_id) {
     success
     message
     error
@@ -1693,7 +1726,7 @@ export type DeleteDiagramMutationFn = Apollo.MutationFunction<DeleteDiagramMutat
  * @example
  * const [deleteDiagramMutation, { data, loading, error }] = useDeleteDiagramMutation({
  *   variables: {
- *      id: // value for 'id'
+ *      diagram_id: // value for 'diagram_id'
  *   },
  * });
  */
@@ -1741,8 +1774,8 @@ export type DeleteNodeMutationHookResult = ReturnType<typeof useDeleteNodeMutati
 export type DeleteNodeMutationResult = Apollo.MutationResult<DeleteNodeMutation>;
 export type DeleteNodeMutationOptions = Apollo.BaseMutationOptions<DeleteNodeMutation, DeleteNodeMutationVariables>;
 export const DeletePersonDocument = gql`
-    mutation DeletePerson($id: ID!) {
-  delete_person(id: $id) {
+    mutation DeletePerson($person_id: ID!) {
+  delete_person(person_id: $person_id) {
     success
     message
     error
@@ -1764,7 +1797,7 @@ export type DeletePersonMutationFn = Apollo.MutationFunction<DeletePersonMutatio
  * @example
  * const [deletePersonMutation, { data, loading, error }] = useDeletePersonMutation({
  *   variables: {
- *      id: // value for 'id'
+ *      person_id: // value for 'person_id'
  *   },
  * });
  */
@@ -1884,8 +1917,8 @@ export type SendInteractiveResponseMutationHookResult = ReturnType<typeof useSen
 export type SendInteractiveResponseMutationResult = Apollo.MutationResult<SendInteractiveResponseMutation>;
 export type SendInteractiveResponseMutationOptions = Apollo.BaseMutationOptions<SendInteractiveResponseMutation, SendInteractiveResponseMutationVariables>;
 export const TestApiKeyDocument = gql`
-    mutation TestApiKey($id: ID!) {
-  test_api_key(id: $id) {
+    mutation TestApiKey($api_key_id: ID!) {
+  test_api_key(api_key_id: $api_key_id) {
     success
     message
     error
@@ -1907,7 +1940,7 @@ export type TestApiKeyMutationFn = Apollo.MutationFunction<TestApiKeyMutation, T
  * @example
  * const [testApiKeyMutation, { data, loading, error }] = useTestApiKeyMutation({
  *   variables: {
- *      id: // value for 'id'
+ *      api_key_id: // value for 'api_key_id'
  *   },
  * });
  */
@@ -2030,8 +2063,8 @@ export type UpdateNodeStateMutationHookResult = ReturnType<typeof useUpdateNodeS
 export type UpdateNodeStateMutationResult = Apollo.MutationResult<UpdateNodeStateMutation>;
 export type UpdateNodeStateMutationOptions = Apollo.BaseMutationOptions<UpdateNodeStateMutation, UpdateNodeStateMutationVariables>;
 export const UpdatePersonDocument = gql`
-    mutation UpdatePerson($id: ID!, $input: UpdatePersonInput!) {
-  update_person(id: $id, input: $input) {
+    mutation UpdatePerson($person_id: ID!, $input: UpdatePersonInput!) {
+  update_person(person_id: $person_id, input: $input) {
     success
     person {
       id
@@ -2057,7 +2090,7 @@ export type UpdatePersonMutationFn = Apollo.MutationFunction<UpdatePersonMutatio
  * @example
  * const [updatePersonMutation, { data, loading, error }] = useUpdatePersonMutation({
  *   variables: {
- *      id: // value for 'id'
+ *      person_id: // value for 'person_id'
  *      input: // value for 'input'
  *   },
  * });
@@ -2070,7 +2103,7 @@ export type UpdatePersonMutationHookResult = ReturnType<typeof useUpdatePersonMu
 export type UpdatePersonMutationResult = Apollo.MutationResult<UpdatePersonMutation>;
 export type UpdatePersonMutationOptions = Apollo.BaseMutationOptions<UpdatePersonMutation, UpdatePersonMutationVariables>;
 export const UploadDiagramDocument = gql`
-    mutation UploadDiagram($file: Upload!, $format: DiagramFormat!) {
+    mutation UploadDiagram($file: Upload!, $format: DiagramFormatGraphQL!) {
   upload_diagram(file: $file, format: $format) {
     success
     diagram {
@@ -2151,11 +2184,10 @@ export type UploadFileMutationHookResult = ReturnType<typeof useUploadFileMutati
 export type UploadFileMutationResult = Apollo.MutationResult<UploadFileMutation>;
 export type UploadFileMutationOptions = Apollo.BaseMutationOptions<UploadFileMutation, UploadFileMutationVariables>;
 export const ValidateDiagramDocument = gql`
-    mutation ValidateDiagram($content: String!, $format: DiagramFormat!) {
+    mutation ValidateDiagram($content: String!, $format: DiagramFormatGraphQL!) {
   validate_diagram(content: $content, format: $format) {
     success
-    errors
-    warnings
+    error
     message
   }
 }
@@ -2234,8 +2266,8 @@ export type GetActiveCliSessionLazyQueryHookResult = ReturnType<typeof useGetAct
 export type GetActiveCliSessionSuspenseQueryHookResult = ReturnType<typeof useGetActiveCliSessionSuspenseQuery>;
 export type GetActiveCliSessionQueryResult = Apollo.QueryResult<GetActiveCliSessionQuery, GetActiveCliSessionQueryVariables>;
 export const GetApiKeyDocument = gql`
-    query GetApiKey($id: ID!) {
-  api_key(id: $id) {
+    query GetApiKey($api_key_id: ID!) {
+  api_key(api_key_id: $api_key_id) {
     id
     label
     service
@@ -2255,7 +2287,7 @@ export const GetApiKeyDocument = gql`
  * @example
  * const { data, loading, error } = useGetApiKeyQuery({
  *   variables: {
- *      id: // value for 'id'
+ *      api_key_id: // value for 'api_key_id'
  *   },
  * });
  */
@@ -2319,8 +2351,8 @@ export type GetApiKeysLazyQueryHookResult = ReturnType<typeof useGetApiKeysLazyQ
 export type GetApiKeysSuspenseQueryHookResult = ReturnType<typeof useGetApiKeysSuspenseQuery>;
 export type GetApiKeysQueryResult = Apollo.QueryResult<GetApiKeysQuery, GetApiKeysQueryVariables>;
 export const GetAvailableModelsDocument = gql`
-    query GetAvailableModels($service: String!, $apiKeyId: ID!) {
-  available_models(service: $service, api_key_id: $apiKeyId)
+    query GetAvailableModels($service: String!, $api_key_id: ID!) {
+  available_models(service: $service, api_key_id: $api_key_id)
 }
     `;
 
@@ -2337,7 +2369,7 @@ export const GetAvailableModelsDocument = gql`
  * const { data, loading, error } = useGetAvailableModelsQuery({
  *   variables: {
  *      service: // value for 'service'
- *      apiKeyId: // value for 'apiKeyId'
+ *      api_key_id: // value for 'api_key_id'
  *   },
  * });
  */
@@ -2358,8 +2390,8 @@ export type GetAvailableModelsLazyQueryHookResult = ReturnType<typeof useGetAvai
 export type GetAvailableModelsSuspenseQueryHookResult = ReturnType<typeof useGetAvailableModelsSuspenseQuery>;
 export type GetAvailableModelsQueryResult = Apollo.QueryResult<GetAvailableModelsQuery, GetAvailableModelsQueryVariables>;
 export const GetDiagramDocument = gql`
-    query GetDiagram($id: ID!) {
-  diagram(id: $id) {
+    query GetDiagram($diagram_id: ID!) {
+  diagram(diagram_id: $diagram_id) {
     nodes {
       id
       type
@@ -2422,7 +2454,7 @@ export const GetDiagramDocument = gql`
  * @example
  * const { data, loading, error } = useGetDiagramQuery({
  *   variables: {
- *      id: // value for 'id'
+ *      diagram_id: // value for 'diagram_id'
  *   },
  * });
  */
@@ -2443,8 +2475,8 @@ export type GetDiagramLazyQueryHookResult = ReturnType<typeof useGetDiagramLazyQ
 export type GetDiagramSuspenseQueryHookResult = ReturnType<typeof useGetDiagramSuspenseQuery>;
 export type GetDiagramQueryResult = Apollo.QueryResult<GetDiagramQuery, GetDiagramQueryVariables>;
 export const GetExecutionDocument = gql`
-    query GetExecution($id: ID!) {
-  execution(id: $id) {
+    query GetExecution($execution_id: ID!) {
+  execution(execution_id: $execution_id) {
     id
     status
     diagram_id
@@ -2455,6 +2487,12 @@ export const GetExecutionDocument = gql`
     node_outputs
     variables
     metrics
+    llm_usage {
+      input
+      output
+      cached
+      total
+    }
   }
 }
     `;
@@ -2471,7 +2509,7 @@ export const GetExecutionDocument = gql`
  * @example
  * const { data, loading, error } = useGetExecutionQuery({
  *   variables: {
- *      id: // value for 'id'
+ *      execution_id: // value for 'execution_id'
  *   },
  * });
  */
@@ -2700,8 +2738,8 @@ export type GetOperationSchemaLazyQueryHookResult = ReturnType<typeof useGetOper
 export type GetOperationSchemaSuspenseQueryHookResult = ReturnType<typeof useGetOperationSchemaSuspenseQuery>;
 export type GetOperationSchemaQueryResult = Apollo.QueryResult<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>;
 export const GetPersonDocument = gql`
-    query GetPerson($id: ID!) {
-  person(id: $id) {
+    query GetPerson($person_id: ID!) {
+  person(person_id: $person_id) {
     id
     label
     type
@@ -2727,7 +2765,7 @@ export const GetPersonDocument = gql`
  * @example
  * const { data, loading, error } = useGetPersonQuery({
  *   variables: {
- *      id: // value for 'id'
+ *      person_id: // value for 'person_id'
  *   },
  * });
  */

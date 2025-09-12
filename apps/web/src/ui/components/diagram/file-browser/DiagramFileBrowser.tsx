@@ -25,7 +25,7 @@ export const DiagramFileBrowser: React.FC = () => {
       try {
         // Fetch diagram content from server
         const { data, error } = await getDiagram({
-          variables: { id: file.path }
+          variables: { diagram_id: file.path }
         });
 
         if (error) {

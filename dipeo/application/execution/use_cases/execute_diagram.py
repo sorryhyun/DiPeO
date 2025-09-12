@@ -121,9 +121,6 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
             if hasattr(event_bus, "subscribe"):
                 for event_type in metrics_events:
                     await event_bus.subscribe(event_type, metrics_observer)
-                logger.debug(
-                    f"Subscribed MetricsObserver to event bus for execution {execution_id}"
-                )
 
         # Create engine with event bus only (observers are deprecated)
         engine = TypedExecutionEngine(

@@ -4,10 +4,9 @@ The AST parser provides properly structured data.
 Templates handle case conversions using Jinja2 filters.
 """
 
-import ast
-import json
 from typing import Any
 
+from projects.codegen.code.core.utils import parse_dipeo_output
 from projects.codegen.code.shared.typescript_spec_parser import extract_spec_from_ast
 
 
@@ -71,15 +70,9 @@ def main(inputs: dict) -> dict:
     # Get ast_data and parse if it's a string
     raw_ast_data = actual_inputs.get('ast_data', {})
     if isinstance(raw_ast_data, str):
-        try:
-            # Try ast.literal_eval first (for Python dict format with single quotes)
-            ast_data = ast.literal_eval(raw_ast_data)
-        except (ValueError, SyntaxError):
-            # If that fails, try JSON
-            try:
-                ast_data = json.loads(raw_ast_data)
-            except json.JSONDecodeError:
-                ast_data = {}
+        ast_data = parse_dipeo_output(raw_ast_data)
+        if not ast_data:
+            ast_data = {}
     else:
         ast_data = raw_ast_data if isinstance(raw_ast_data, dict) else {}
 

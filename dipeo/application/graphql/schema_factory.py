@@ -11,6 +11,9 @@ from strawberry.schema.config import StrawberryConfig
 
 from dipeo.application.registry import ServiceRegistry
 
+# Import generated schema with properly typed parameters
+from dipeo.diagram_generated.graphql.generated_schema import Mutation, Query, Subscription
+
 # Import generated types
 from dipeo.diagram_generated.graphql.strawberry_nodes import (
     ApiJobDataType,
@@ -29,9 +32,10 @@ from dipeo.diagram_generated.graphql.strawberry_nodes import (
     UserResponseDataType,
 )
 
-from .schema.mutation_factory import create_mutation_type
-from .schema.queries import create_query_type
-from .schema.subscriptions import create_subscription_type
+# Legacy manual schema imports (temporarily using until type issues are resolved)
+# from .schema.queries import create_query_type
+# from .schema.mutation_factory import create_mutation_type
+# from .schema.subscriptions import create_subscription_type
 
 # Note: strawberry_domain.py needs to be regenerated
 # from dipeo.diagram_generated.graphql.strawberry_domain import (
@@ -62,10 +66,10 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
         TaskIDScalar,
     )
 
-    # Create schema components with injected registry
-    query = create_query_type(registry)
-    mutation = create_mutation_type(registry)
-    subscription = create_subscription_type(registry)
+    # Use generated schema (now with correct field names)
+    query = Query
+    mutation = Mutation
+    subscription = Subscription
 
     # Create the schema with configuration
     schema = strawberry.Schema(

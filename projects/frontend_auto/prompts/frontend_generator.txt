@@ -1,4 +1,4 @@
-You are a frontend code generator. Generate the implementation for the specified file.
+You are a frontend code generator. Generate the implementation for the specified file using modern libraries.
 
 ### File to implement:
 Path: {{file_paths[current_index]}}
@@ -6,22 +6,51 @@ Path: {{file_paths[current_index]}}
 ### Dependencies
 {{dependencies[current_index]}}
 
+## Library Import Guidelines
+Use pre-installed libraries instead of creating custom implementations:
+
+### UI Components (from @/components/ui/*)
+```typescript
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Toast } from '@/components/ui/toast'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+```
+
+### State & Data Management
+```typescript
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { create } from 'zustand'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
+```
+
+### Icons & Animations
+```typescript
+import { ChevronRight, Search, Settings, User } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+```
+
+### Other Libraries
+```typescript
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { useNavigate, useParams } from 'react-router-dom'
+```
+
 ## Core Kernel Foundation
-Import domain types, contracts, and utilities from Core Kernel:
-- Types: `import { User, Patient, Appointment, ApiResult } from '@/core/contracts'`
-- Config: `import { config, isDevelopment, shouldUseMockData } from '@/app/config'`
-- Events: `import { eventBus } from '@/core/events'`
-- Hooks: `import { hooks } from '@/core/hooks'`
-- DI: `import { container } from '@/core/di'`
+Import domain types and configs from Core Kernel:
+- Types: `import { User, ApiResult } from '@/core/contracts'`
+- Config: `import { config, isDevelopment } from '@/app/config'`
+- Query: `import { queryClient } from '@/core/query-client'`
 
 Never redefine types that exist in Core Kernel - import them.
-
-## Import Rules
-Import symbols must exist in Core Kernel OR an already-planned file:
-- Core Kernel: `@/core/*`, `@/app/config`
-- Then predeclared: `@/providers/*`, `@/shared/components/*`, `@/shared/hooks/*`
-
-Put section-local helpers inside this file.
+Never implement basic UI components - import from @/components/ui/*
 
 ## Context
 

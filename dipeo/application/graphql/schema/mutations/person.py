@@ -52,16 +52,16 @@ async def create_person(input: CreatePersonInput, registry: ServiceRegistry = No
 
 
 async def update_person(
-    id: strawberry.ID, input: UpdatePersonInput, registry: ServiceRegistry = None
+    person_id: strawberry.ID, input: UpdatePersonInput, registry: ServiceRegistry = None
 ) -> PersonResult:
     """Update an existing person."""
     try:
-        person_id = PersonID(str(id))
+        person_id_typed = PersonID(str(person_id))
         execution_orchestrator = registry.resolve(EXECUTION_ORCHESTRATOR)
 
         # Try to get existing person
         try:
-            existing_person = execution_orchestrator.get_person(person_id)
+            existing_person = execution_orchestrator.get_person(person_id_typed)
             existing_label = existing_person.name
             existing_llm_config = existing_person.llm_config
         except (KeyError, Exception):
@@ -102,7 +102,7 @@ async def update_person(
         if existing_person:
             # Update using register_person (backward compatibility method)
             execution_orchestrator.register_person(
-                person_id=str(person_id),
+                person_id=str(person_id_typed),
                 config={
                     "name": updated_label,
                     "service": updated_llm_config.service,
@@ -118,7 +118,7 @@ async def update_person(
 
         # Create DomainPerson for response
         updated_person = DomainPerson(
-            id=person_id,
+            id=person_id_typed,
             label=updated_label,
             llm_config=updated_llm_config,
             type="person",
@@ -129,19 +129,19 @@ async def update_person(
         )
 
     except Exception as e:
-        logger.error(f"Failed to update person {id}: {e}")
+        logger.error(f"Failed to update person {person_id}: {e}")
         return PersonResult.error_result(error=f"Failed to update person: {e!s}")
 
 
-async def delete_person(id: strawberry.ID, registry: ServiceRegistry = None) -> DeleteResult:
+async def delete_person(person_id: strawberry.ID, registry: ServiceRegistry = None) -> DeleteResult:
     """Delete a person (not currently supported)."""
     try:
-        person_id = PersonID(str(id))
+        person_id_typed = PersonID(str(person_id))
         # Since ExecutionOrchestrator doesn't have delete,
         # we'll need to access the repository directly
         # For now, return an error indicating this operation is not supported
         logger.warning(
-            f"Delete person operation not supported in current architecture for person {person_id}"
+            f"Delete person operation not supported in current architecture for person {person_id_typed}"
         )
 
         return DeleteResult.error_result(
@@ -149,7 +149,7 @@ async def delete_person(id: strawberry.ID, registry: ServiceRegistry = None) -> 
         )
 
     except Exception as e:
-        logger.error(f"Failed to delete person {id}: {e}")
+        logger.error(f"Failed to delete person {person_id}: {e}")
         return DeleteResult.error_result(error=f"Failed to delete person: {e!s}")
 
 
@@ -195,14 +195,16 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                 return PersonResult.error_result(error=f"Failed to create person: {e!s}")
 
         @strawberry.mutation
-        async def update_person(self, id: strawberry.ID, input: UpdatePersonInput) -> PersonResult:
+        async def update_person(
+            self, person_id: strawberry.ID, input: UpdatePersonInput
+        ) -> PersonResult:
             try:
-                person_id = PersonID(str(id))
+                person_id_typed = PersonID(str(person_id))
                 execution_orchestrator = registry.resolve(EXECUTION_ORCHESTRATOR)
 
                 # Try to get existing person
                 try:
-                    existing_person = execution_orchestrator.get_person(person_id)
+                    existing_person = execution_orchestrator.get_person(person_id_typed)
                     existing_label = existing_person.name
                     existing_llm_config = existing_person.llm_config
                 except (KeyError, Exception):
@@ -243,7 +245,7 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                 if existing_person:
                     # Update using register_person (backward compatibility method)
                     execution_orchestrator.register_person(
-                        person_id=str(person_id),
+                        person_id=str(person_id_typed),
                         config={
                             "name": updated_label,
                             "service": updated_llm_config.service,
@@ -259,7 +261,7 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
 
                 # Create DomainPerson for response
                 updated_person = DomainPerson(
-                    id=person_id,
+                    id=person_id_typed,
                     label=updated_label,
                     llm_config=updated_llm_config,
                     type="person",
@@ -270,18 +272,18 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                 )
 
             except Exception as e:
-                logger.error(f"Failed to update person {id}: {e}")
+                logger.error(f"Failed to update person {person_id}: {e}")
                 return PersonResult.error_result(error=f"Failed to update person: {e!s}")
 
         @strawberry.mutation
-        async def delete_person(self, id: strawberry.ID) -> DeleteResult:
+        async def delete_person(self, person_id: strawberry.ID) -> DeleteResult:
             try:
-                person_id = PersonID(str(id))
+                person_id_typed = PersonID(str(person_id))
                 # Since ExecutionOrchestrator doesn't have delete,
                 # we'll need to access the repository directly
                 # For now, return an error indicating this operation is not supported
                 logger.warning(
-                    f"Delete person operation not supported in current architecture for person {person_id}"
+                    f"Delete person operation not supported in current architecture for person {person_id_typed}"
                 )
 
                 return DeleteResult.error_result(
@@ -289,7 +291,7 @@ def create_person_mutations(registry: ServiceRegistry) -> type:
                 )
 
             except Exception as e:
-                logger.error(f"Failed to delete person {id}: {e}")
+                logger.error(f"Failed to delete person {person_id}: {e}")
                 return DeleteResult.error_result(error=f"Failed to delete person: {e!s}")
 
     return PersonMutations

@@ -52,7 +52,7 @@ export const FileOperations: React.FC = () => {
 
       // Fetch diagram content from server
       const { data, error } = await getDiagram({
-        variables: { id: diagramPath }
+        variables: { diagram_id: diagramPath }
       });
 
       if (error) {

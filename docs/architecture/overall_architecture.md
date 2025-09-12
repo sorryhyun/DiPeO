@@ -259,3 +259,49 @@ This architecture enables:
 - Clean separation of concerns via event decoupling
 - Asynchronous state persistence
 - Simplified service registration with unified protocols
+
+---
+
+## 11. GraphQL Layer Architecture
+
+### Implementation Status: COMPLETE
+
+The GraphQL refactoring is **substantially complete** with a solid, production-ready architecture:
+
+- **45 complete operations** with full GraphQL query strings as constants (23 queries, 21 mutations, 1 subscription)
+- **Type-safe operation classes** with proper TypedDict for variables and automatic Strawberry input conversion
+- **Well-structured resolver implementations** following consistent patterns with ServiceRegistry dependency injection
+- **Clean 3-tier architecture** separating generated code, application logic, and execution layer
+- **Comprehensive type safety** throughout the entire stack
+
+### Architecture Overview
+
+The GraphQL layer uses a clean 3-tier architecture:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Generated Layer                         │
+│  /dipeo/diagram_generated/graphql/ (Automated from TypeScript) │
+├─────────────────────────────────────────────────────────────────┤
+│                      Application Layer                         │
+│  /dipeo/application/graphql/ (Manual Business Logic)           │
+├─────────────────────────────────────────────────────────────────┤
+│                      Execution Layer                           │
+│  OperationExecutor (Runtime mapping and validation)            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Components
+
+- **Generated Layer**: `/dipeo/diagram_generated/graphql/operations.py` - All 45 operations with complete GraphQL query strings and typed operation classes
+- **Application Layer**: `/dipeo/application/graphql/` - Resolver implementations following consistent patterns with ServiceRegistry integration
+- **Execution Layer**: `OperationExecutor` - Type-safe mapping between operations and resolvers with validation
+
+### Integration Benefits
+
+- **Event System**: GraphQL subscriptions use the unified EventBus for real-time updates
+- **Envelope System**: All resolvers work with DiPeO's standardized Envelope data flow
+- **Service Registry**: Clean dependency injection throughout all GraphQL resolvers
+- **Type Safety**: Full TypeScript-to-Python type safety across the entire stack
+
+**Status**: No major refactoring needed - the architecture is solid, type-safe, and maintainable. For detailed documentation, see [GraphQL Layer Architecture](graphql-layer.md).

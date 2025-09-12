@@ -1,4 +1,4 @@
-You are a Core Kernel Architect. Generate specifications for foundational contract files that all application sections will depend on.
+You are a Core Kernel Architect. Generate specifications for foundational integration files that connect libraries with application logic.
 
 ## Context
 
@@ -11,60 +11,77 @@ You are a Core Kernel Architect. Generate specifications for foundational contra
 ### Section Descriptions:
 {{sections_data.sections}}
 
+## Available Libraries
+Your kernel should integrate with these pre-installed libraries:
+- **UI Components**: Radix UI primitives wrapped in @/components/ui/*
+- **State Management**: Zustand for local state, React Query for server state
+- **Forms**: React Hook Form + Zod for validation
+- **Routing**: React Router v6
+- **Icons**: Lucide React
+- **Toasts**: Sonner
+- **Tables**: TanStack Table
+- **Charts**: Recharts
+- **Animations**: Framer Motion
+- **Mocking**: MSW (Mock Service Worker)
+- **i18n**: i18next + react-i18next
+
 ## Required Specifications
 
 ### 1. Core Contracts (src/core/contracts.ts)
 TypeScript interfaces for:
-- User types (User, Patient, Doctor, Nurse based on roles in config)
-- Healthcare domain models (Appointment, MedicalRecord, Prescription, LabResult, etc.)
+- Domain types based on config (User, roles, business entities)
 - API response types (ApiResult<T>, ApiError, PaginatedResponse<T>)
-- WebSocket event types if not disabled in config
-- Common UI state types (LoadingState, FormState, etc.)
+- React Query types (QueryKey patterns, Mutation variables)
+- Form schemas using Zod
+- **IMPORTANT**: Export Zod schemas alongside TypeScript types for runtime validation
 
 ### 2. Configuration (src/app/config.ts)
-Materialize JSON config into TypeScript:
-- Export typed config object with all settings
-- Computed flags (isDevelopment, shouldUseMockData, etc.)
-- Feature toggles based on config.features array
-- Mock user data if development_mode.enable_mock_data is true
-- **IMPORTANT**: Use `import.meta.env` for environment variables (NOT `process.env`) as this is a Vite-based browser application
+Materialize JSON config with library integration:
+- Export typed config using import.meta.env
+- React Query default options configuration
+- MSW setup for development mode
+- i18n configuration object
+- Theme configuration for UI components
+- **IMPORTANT**: Use `import.meta.env` for environment variables (NOT `process.env`)
 
-### 3. Event Bus (src/core/events.ts)
-Typed event system:
-- EventBus class with on/off/emit methods
-- Typed event map for domain events
-- Export singleton instance
-- Support for sync and async handlers
+### 3. Query Client Setup (src/core/query-client.ts)
+React Query configuration:
+- QueryClient with default options
+- Global error handling
+- Cache time and stale time settings
+- Mutation defaults
+- Integration with toast notifications
 
-### 4. Hook Registry (src/core/hooks.ts)
-Extension points:
-- HookPoint union type for all hook names
-- HookRegistry class with register/run methods
-- Standard hooks: beforeApiRequest, afterApiResponse, onLogin, onLogout, onRouteChange
-- Context object passed to all hooks
+### 4. Mock Service Worker Setup (src/core/msw.ts)
+MSW handlers for development:
+- Request handlers based on config.mock_api_endpoints
+- Mock data generators using config.development_mode
+- Integration with browser DevTools
+- Conditional setup based on isDevelopment flag
 
-### 5. Dependency Injection (src/core/di.ts)
-Service container:
-- Token definitions for ApiClient, AuthService, StorageService, WebSocketService
-- Container class with register/resolve methods
-- Type-safe token resolution
+### 5. Library Re-exports (src/core/lib.ts)
+Centralized library exports:
+- Re-export commonly used hooks from libraries
+- Custom typed versions of library functions
+- Utility wrappers (e.g., typed useQuery, useMutation)
+- Form helpers combining React Hook Form + Zod
 
-### 6. Common Utilities (src/core/utils.ts) - Optional
-If needed:
-- Date formatting functions
-- Validation helpers
-- Safe JSON parse/stringify
-- Debug logging utilities
+### 6. Toast Configuration (src/core/toast.ts)
+Sonner toast setup:
+- Toast provider configuration
+- Typed toast functions for different severities
+- Integration with React Query mutations
+- Custom toast components if needed
 
 ## Output Format
 For each file, provide:
-- Types/interfaces to define
-- Functions/classes to export
-- Patterns and conventions
-- Example usage patterns
-- Integration points with other kernel files
+- Integration code that connects libraries
+- Type definitions that extend library types
+- Configuration objects
+- Example usage showing library integration
+- NO implementation of UI components (use libraries)
 
+Focus on GLUE CODE that makes libraries work together seamlessly.
 Use actual feature names from config.features.
-Include mock data structures if development mode is enabled.
-Keep files focused - each has one clear responsibility.
-Use @/core/* import paths in examples.
+Keep files focused on integration, not implementation.
+Import UI components from @/components/ui/* not custom implementations.

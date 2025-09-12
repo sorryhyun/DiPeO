@@ -8,13 +8,13 @@ export const personQueries: EntityQueryDefinitions = {
       name: 'GetPerson',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'person_id', type: 'ID', required: true }
       ],
       fields: [
         {
-          name: 'person',
+          name: 'get_person',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'person_id', value: 'person_id', isVariable: true }
           ],
           fields: [
             { name: 'id' },
@@ -41,7 +41,7 @@ export const personQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'persons',
+          name: 'list_persons',
           args: [
             { name: 'limit', value: 'limit', isVariable: true }
           ],
@@ -92,14 +92,14 @@ export const personQueries: EntityQueryDefinitions = {
       name: 'UpdatePerson',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'id', type: 'ID', required: true },
+        { name: 'person_id', type: 'ID', required: true },
         { name: 'input', type: 'UpdatePersonInput', required: true }
       ],
       fields: [
         {
           name: 'update_person',
           args: [
-            { name: 'id', value: 'id', isVariable: true },
+            { name: 'person_id', value: 'person_id', isVariable: true },
             { name: 'input', value: 'input', isVariable: true }
           ],
           fields: [
@@ -121,13 +121,13 @@ export const personQueries: EntityQueryDefinitions = {
       name: 'DeletePerson',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'person_id', type: 'ID', required: true }
       ],
       fields: [
         {
           name: 'delete_person',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'person_id', value: 'person_id', isVariable: true }
           ],
           fields: [
             { name: 'success' },

@@ -47,7 +47,7 @@ export function useDiagram(options: UseDiagramOptions = {}) {
       if (!targetId) throw new Error('No diagram ID provided');
 
       const { data } = await useGetDiagramQuery({
-        variables: { id: targetId }
+        variables: { diagram_id: targetId }
       }).refetch();
 
       if (!data?.diagram) {
@@ -131,7 +131,7 @@ export function useDiagram(options: UseDiagramOptions = {}) {
 
     delete: async (id: string) => {
       const { data } = await deleteDiagram({
-        variables: { id }
+        variables: { diagram_id: id }
       });
 
       if (data?.delete_diagram && syncWithStore) {

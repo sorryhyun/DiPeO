@@ -15,6 +15,7 @@ from dipeo.diagram_generated.graphql.inputs import (
 )
 from dipeo.diagram_generated.graphql.operations import (
     ExecuteDiagramOperation,
+    GetExecutionMetricsOperation,
     GetExecutionOperation,
     RegisterCliSessionOperation,
     UnregisterCliSessionOperation,
@@ -165,7 +166,7 @@ class ServerManager:
     def get_execution_result(self, execution_id: str) -> dict[str, Any] | None:
         """Get execution result by ID."""
         # Use operation class to get query and build variables
-        variables = GetExecutionOperation.get_variables_dict(id=execution_id)
+        variables = GetExecutionOperation.get_variables_dict(execution_id=execution_id)
 
         try:
             response = requests.post(
@@ -196,6 +197,30 @@ class ServerManager:
             traceback.print_exc()
             return None
 
+    def get_execution_metrics(self, execution_id: str) -> dict[str, Any] | None:
+        """Get execution metrics by ID."""
+        # Use operation class to get query and build variables
+        variables = GetExecutionMetricsOperation.get_variables_dict(execution_id=execution_id)
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/graphql",
+                json={"query": GetExecutionMetricsOperation.get_query(), "variables": variables},
+                timeout=5,
+            )
+
+            if response.status_code != 200:
+                return None
+
+            result = response.json()
+
+            if "errors" in result or "data" not in result:
+                return None
+
+            return result["data"].get("execution_metrics")
+        except Exception:
+            return None
+
     def register_cli_session(
         self,
         execution_id: str,
@@ -205,11 +230,14 @@ class ServerManager:
         diagram_path: str | None = None,
     ) -> bool:
         """Register a CLI execution session with the server."""
+        # Convert lowercase format to uppercase for GraphQL enum
+        diagram_format_upper = diagram_format.upper()
+
         # Create Strawberry input object for better type safety
         register_input = RegisterCliSessionInput(
             execution_id=execution_id,
             diagram_name=diagram_name,
-            diagram_format=diagram_format,
+            diagram_format=diagram_format_upper,
             diagram_data=diagram_data,
             diagram_path=diagram_path,
         )

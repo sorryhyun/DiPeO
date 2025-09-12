@@ -53,33 +53,35 @@ async def create_api_key(registry: ServiceRegistry, input: CreateApiKeyInput) ->
         return ApiKeyResult.error_result(error=f"Failed to create API key: {e!s}")
 
 
-async def delete_api_key(registry: ServiceRegistry, id: strawberry.ID) -> DeleteResult:
+async def delete_api_key(registry: ServiceRegistry, api_key_id: strawberry.ID) -> DeleteResult:
     """
     Resolver for DeleteApiKey operation.
     Uses the generated DELETE_API_KEY_MUTATION query string.
     """
     try:
-        api_key_id = str(id)
+        api_key_id_str = str(api_key_id)
         apikey_service = registry.resolve(API_KEY_SERVICE)
 
-        await apikey_service.delete_api_key(api_key_id)
+        await apikey_service.delete_api_key(api_key_id_str)
 
-        result = DeleteResult.success_result(data=None, message=f"Deleted API key: {api_key_id}")
-        result.deleted_id = api_key_id
+        result = DeleteResult.success_result(
+            data=None, message=f"Deleted API key: {api_key_id_str}"
+        )
+        result.deleted_id = api_key_id_str
         return result
 
     except Exception as e:
-        logger.error(f"Failed to delete API key {id}: {e}")
+        logger.error(f"Failed to delete API key {api_key_id}: {e}")
         return DeleteResult.error_result(error=f"Failed to delete API key: {e!s}")
 
 
-async def test_api_key(registry: ServiceRegistry, id: strawberry.ID) -> TestResult:
+async def test_api_key(registry: ServiceRegistry, api_key_id: strawberry.ID) -> TestResult:
     """
     Resolver for TestApiKey operation.
     Uses the generated TEST_API_KEY_MUTATION query string.
     """
     try:
-        api_key_id = ApiKeyID(str(id))
+        api_key_id_typed = ApiKeyID(str(api_key_id))
         apikey_service = registry.resolve(API_KEY_SERVICE)
         llm_service = registry.get(LLM_SERVICE)
 
@@ -89,7 +91,7 @@ async def test_api_key(registry: ServiceRegistry, id: strawberry.ID) -> TestResu
         api_keys = await apikey_service.list_api_keys()
         api_key = None
         for key in api_keys:
-            if key.id == api_key_id:
+            if key.id == api_key_id_typed:
                 api_key = key
                 break
 
@@ -118,7 +120,7 @@ async def test_api_key(registry: ServiceRegistry, id: strawberry.ID) -> TestResu
             return result
 
     except Exception as e:
-        logger.error(f"Failed to test API key {id}: {e}")
+        logger.error(f"Failed to test API key {api_key_id}: {e}")
         return TestResult.error_result(error=f"Failed to test API key: {e!s}")
 
 
@@ -133,13 +135,13 @@ def create_api_key_mutations(registry: ServiceRegistry) -> type:
             return await create_api_key(registry, input)
 
         @strawberry.mutation
-        async def delete_api_key(self, id: strawberry.ID) -> DeleteResult:
+        async def delete_api_key(self, api_key_id: strawberry.ID) -> DeleteResult:
             """Mutation method that delegates to standalone resolver."""
-            return await delete_api_key(registry, id)
+            return await delete_api_key(registry, api_key_id)
 
         @strawberry.mutation
-        async def test_api_key(self, id: strawberry.ID) -> TestResult:
+        async def test_api_key(self, api_key_id: strawberry.ID) -> TestResult:
             """Mutation method that delegates to standalone resolver."""
-            return await test_api_key(registry, id)
+            return await test_api_key(registry, api_key_id)
 
     return ApiKeyMutations

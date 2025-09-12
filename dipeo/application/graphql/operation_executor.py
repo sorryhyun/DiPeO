@@ -5,9 +5,12 @@ This module provides a unified interface for executing GraphQL operations using 
 generated operation definitions from TypeScript query definitions.
 """
 
+import contextlib
 import inspect
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from importlib import import_module
 from typing import Any, Optional, Union, get_type_hints
 
 import strawberry
@@ -15,57 +18,7 @@ import strawberry
 from dipeo.application.registry.service_registry import ServiceRegistry
 from dipeo.diagram_generated.graphql import operations
 
-# Import all operation classes
-from dipeo.diagram_generated.graphql.operations import (
-    # Mutations
-    ControlExecutionOperation,
-    ConvertDiagramFormatOperation,
-    CreateApiKeyOperation,
-    CreateDiagramOperation,
-    CreateNodeOperation,
-    CreatePersonOperation,
-    DeleteApiKeyOperation,
-    DeleteDiagramOperation,
-    DeleteNodeOperation,
-    DeletePersonOperation,
-    ExecuteDiagramOperation,
-    # Subscriptions
-    ExecutionUpdatesOperation,
-    # Queries
-    GetActiveCliSessionOperation,
-    GetApiKeyOperation,
-    GetApiKeysOperation,
-    GetAvailableModelsOperation,
-    GetDiagramOperation,
-    GetExecutionCapabilitiesOperation,
-    GetExecutionHistoryOperation,
-    GetExecutionMetricsOperation,
-    GetExecutionOperation,
-    GetExecutionOrderOperation,
-    GetOperationSchemaOperation,
-    GetPersonOperation,
-    GetPromptFileOperation,
-    GetProviderOperationsOperation,
-    GetProvidersOperation,
-    GetSupportedFormatsOperation,
-    GetSystemInfoOperation,
-    HealthCheckOperation,
-    ListConversationsOperation,
-    ListDiagramsOperation,
-    ListExecutionsOperation,
-    ListPersonsOperation,
-    ListPromptFilesOperation,
-    RegisterCliSessionOperation,
-    SendInteractiveResponseOperation,
-    TestApiKeyOperation,
-    UnregisterCliSessionOperation,
-    UpdateNodeOperation,
-    UpdateNodeStateOperation,
-    UpdatePersonOperation,
-    UploadDiagramOperation,
-    UploadFileOperation,
-    ValidateDiagramOperation,
-)
+# Import result types for type checking
 from dipeo.diagram_generated.graphql.results import (
     ApiKeyResult,
     CliSessionResult,
@@ -77,6 +30,48 @@ from dipeo.diagram_generated.graphql.results import (
     PersonResult,
     TestResult,
 )
+
+# Modules where resolvers live
+RESOLVER_MODULES = [
+    "dipeo.application.graphql.schema.query_resolvers",
+    "dipeo.application.graphql.schema.mutations.api_key",
+    "dipeo.application.graphql.schema.mutations.diagram",
+    "dipeo.application.graphql.schema.mutations.execution",
+    "dipeo.application.graphql.schema.mutations.node",
+    "dipeo.application.graphql.schema.mutations.person",
+    "dipeo.application.graphql.schema.mutations.upload",
+    "dipeo.application.graphql.schema.mutations.cli_session",
+]
+
+
+def _camel_to_snake(s: str) -> str:
+    """Convert CamelCase to snake_case."""
+    s = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", s)
+    return re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s).lower()
+
+
+def _op_to_func_name(op_cls: type) -> str:
+    """Convert operation class name to expected function name.
+
+    Example: GetDiagramOperation -> get_diagram
+    """
+    return _camel_to_snake(op_cls.__name__.removesuffix("Operation"))
+
+
+def _iter_operation_classes():
+    """Iterate over all operation classes from the generated module."""
+    for name in dir(operations):
+        if name.endswith("Operation") and not name.startswith("_"):
+            yield getattr(operations, name)
+
+
+def _import_modules(paths: list[str]):
+    """Import resolver modules, ignoring import errors."""
+    out = []
+    for p in paths:
+        with contextlib.suppress(Exception):
+            out.append(import_module(p))
+    return out
 
 
 @dataclass
@@ -106,126 +101,58 @@ class OperationExecutor:
         """
         self.registry = registry
         self.operations: dict[str, OperationMapping] = {}
-        self._initialize_operation_mappings()
+        self._autowire()
 
-    def _initialize_operation_mappings(self):
-        """Initialize mappings between operations and their resolver implementations."""
-        # Import resolver modules dynamically to avoid circular imports
-        from dipeo.application.graphql.schema.mutations import (
-            api_key,
-            cli_session,
-            diagram,
-            execution,
-            node,
-            person,
-            upload,
-        )
-        from dipeo.application.graphql.schema.query_resolvers import (
-            get_active_cli_session,
-            get_api_key,
-            get_api_keys,
-            get_available_models,
-            get_diagram,
-            get_execution,
-            get_execution_capabilities,
-            get_execution_history,
-            get_execution_metrics,
-            get_execution_order,
-            get_operation_schema,
-            get_person,
-            get_prompt_file,
-            get_provider_operations,
-            get_providers,
-            get_supported_formats,
-            get_system_info,
-            health_check,
-            list_conversations,
-            list_diagrams,
-            list_executions,
-            list_persons,
-            list_prompt_files,
-        )
+    def _autowire(self) -> None:
+        """Auto-wire operations to their resolvers based on naming conventions."""
+        modules = _import_modules(RESOLVER_MODULES)
 
-        # Map each operation to its resolver
+        # Map to store result types for specific operations
+        result_type_map = {
+            # API Key mutations
+            "CreateApiKey": ApiKeyResult,
+            "DeleteApiKey": DeleteResult,
+            "TestApiKey": TestResult,
+            # Diagram mutations
+            "CreateDiagram": DiagramResult,
+            "DeleteDiagram": DeleteResult,
+            "ValidateDiagram": DiagramResult,
+            # Execution mutations
+            "ExecuteDiagram": ExecutionResult,
+            "ControlExecution": ExecutionResult,
+            "SendInteractiveResponse": ExecutionResult,
+            "UpdateNodeState": ExecutionResult,
+            # Node mutations
+            "CreateNode": NodeResult,
+            "UpdateNode": NodeResult,
+            "DeleteNode": DeleteResult,
+            # Person mutations
+            "CreatePerson": PersonResult,
+            "UpdatePerson": PersonResult,
+            "DeletePerson": DeleteResult,
+            # Upload mutations
+            "UploadDiagram": DiagramResult,
+            "UploadFile": FileOperationResult,
+            "ConvertDiagramFormat": FileOperationResult,
+            # CLI Session mutations
+            "RegisterCliSession": CliSessionResult,
+            "UnregisterCliSession": CliSessionResult,
+        }
 
-        # Queries - 23 operations
-        self._register_operation(GetDiagramOperation, get_diagram)
-        self._register_operation(ListDiagramsOperation, list_diagrams)
-        self._register_operation(GetExecutionOperation, get_execution)
-        self._register_operation(ListExecutionsOperation, list_executions)
-        self._register_operation(GetExecutionOrderOperation, get_execution_order)
-        self._register_operation(GetExecutionMetricsOperation, get_execution_metrics)
-        self._register_operation(GetExecutionHistoryOperation, get_execution_history)
-        self._register_operation(GetExecutionCapabilitiesOperation, get_execution_capabilities)
-        self._register_operation(GetPersonOperation, get_person)
-        self._register_operation(ListPersonsOperation, list_persons)
-        self._register_operation(GetApiKeyOperation, get_api_key)
-        self._register_operation(GetApiKeysOperation, get_api_keys)
-        self._register_operation(GetAvailableModelsOperation, get_available_models)
-        self._register_operation(GetProvidersOperation, get_providers)
-        self._register_operation(GetProviderOperationsOperation, get_provider_operations)
-        self._register_operation(GetOperationSchemaOperation, get_operation_schema)
-        self._register_operation(GetSystemInfoOperation, get_system_info)
-        self._register_operation(HealthCheckOperation, health_check)
-        self._register_operation(ListConversationsOperation, list_conversations)
-        self._register_operation(GetSupportedFormatsOperation, get_supported_formats)
-        self._register_operation(ListPromptFilesOperation, list_prompt_files)
-        self._register_operation(GetPromptFileOperation, get_prompt_file)
-        self._register_operation(GetActiveCliSessionOperation, get_active_cli_session)
+        for op_cls in _iter_operation_classes():
+            func_name = _op_to_func_name(op_cls)
 
-        # Mutations - API Keys
-        self._register_operation(CreateApiKeyOperation, api_key.create_api_key, ApiKeyResult)
-        self._register_operation(DeleteApiKeyOperation, api_key.delete_api_key, DeleteResult)
-        self._register_operation(TestApiKeyOperation, api_key.test_api_key, TestResult)
+            # Try to find the resolver function in the modules
+            for m in modules:
+                fn = getattr(m, func_name, None)
+                if fn and (inspect.iscoroutinefunction(fn) or inspect.isfunction(fn)):
+                    # Get result type if specified
+                    op_name = op_cls.__name__.removesuffix("Operation")
+                    result_type = result_type_map.get(op_name)
 
-        # Mutations - Diagrams
-        self._register_operation(CreateDiagramOperation, diagram.create_diagram, DiagramResult)
-        self._register_operation(DeleteDiagramOperation, diagram.delete_diagram, DeleteResult)
-        self._register_operation(ValidateDiagramOperation, diagram.validate_diagram, DiagramResult)
-
-        # Mutations - Execution
-        self._register_operation(
-            ExecuteDiagramOperation, execution.execute_diagram, ExecutionResult
-        )
-        self._register_operation(
-            ControlExecutionOperation, execution.control_execution, ExecutionResult
-        )
-        self._register_operation(
-            SendInteractiveResponseOperation, execution.send_interactive_response, ExecutionResult
-        )
-        self._register_operation(
-            UpdateNodeStateOperation, execution.update_node_state, ExecutionResult
-        )
-
-        # Mutations - Nodes
-        self._register_operation(CreateNodeOperation, node.create_node, NodeResult)
-        self._register_operation(UpdateNodeOperation, node.update_node, NodeResult)
-        self._register_operation(DeleteNodeOperation, node.delete_node, DeleteResult)
-
-        # Mutations - Persons
-        self._register_operation(CreatePersonOperation, person.create_person, PersonResult)
-        self._register_operation(UpdatePersonOperation, person.update_person, PersonResult)
-        self._register_operation(DeletePersonOperation, person.delete_person, DeleteResult)
-
-        # Mutations - Upload
-        self._register_operation(UploadDiagramOperation, upload.upload_diagram, DiagramResult)
-        self._register_operation(UploadFileOperation, upload.upload_file, FileOperationResult)
-        self._register_operation(
-            ConvertDiagramFormatOperation, upload.convert_diagram_format, FileOperationResult
-        )
-
-        # Mutations - CLI Session
-        self._register_operation(
-            RegisterCliSessionOperation, cli_session.register_cli_session, CliSessionResult
-        )
-        self._register_operation(
-            UnregisterCliSessionOperation, cli_session.unregister_cli_session, CliSessionResult
-        )
-
-        # Queries - TODO: Query operations need standalone resolvers
-        # Note: Queries module doesn't export standalone functions yet
-        # All queries are currently implemented as methods on Query class
-        # These need to be refactored to standalone functions like api_key mutations
+                    # Register the operation
+                    self._register_operation(op_cls, fn, result_type)
+                    break
 
     def _register_operation(
         self, operation_class: type, resolver_method: Callable, result_type: type | None = None
@@ -323,9 +250,16 @@ class OperationExecutor:
             validated = {}
             for var_name, var_value in variables.items():
                 if var_name in expected_vars:
-                    # Convert Strawberry objects to dicts if needed
+                    # Keep Strawberry input objects as-is (resolvers expect them)
+                    # Only convert if it's not an input type
                     if hasattr(var_value, "__strawberry_definition__"):
-                        validated[var_name] = strawberry.asdict(var_value)
+                        # Check if it's an input type (has 'Input' in the class name)
+                        if "Input" in var_value.__class__.__name__:
+                            # Keep input objects as-is
+                            validated[var_name] = var_value
+                        else:
+                            # Convert other Strawberry types to dicts
+                            validated[var_name] = strawberry.asdict(var_value)
                     else:
                         validated[var_name] = var_value
                 else:

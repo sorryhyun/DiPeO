@@ -6,7 +6,7 @@ following the Envelope pattern from the domain layer.
 """
 
 import strawberry
-from typing import TypeVar, Generic, Optional, Any
+from typing import Optional, Any
 from strawberry.scalars import JSON
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
@@ -22,46 +22,54 @@ from dipeo.diagram_generated.graphql.domain_types import (
     NodeStateType,
 )
 
-# Generic type variable for result data
-T = TypeVar('T')
 
-
-@strawberry.type
-class OperationResult(Generic[T]):
-    """
-    Generic result wrapper following the Envelope pattern.
-    All GraphQL operations return this unified structure.
-    """
+# Base result fields mixin for consistent structure
+class BaseResultMixin:
+    """Common fields for all result types"""
     success: bool
     message: Optional[str] = None
     error: Optional[str] = None
     error_type: Optional[str] = None
-    data: Optional[T] = None
     envelope: Optional[JSON] = None  # Raw envelope for advanced use cases
 
     @classmethod
-    def from_envelope(cls, envelope: Envelope, data: Optional[T] = None) -> 'OperationResult[T]':
+    def from_envelope(cls, envelope: Envelope, data: Optional[Any] = None):
         """Create result from domain Envelope"""
-        return cls(
+        instance = cls(
             success=not envelope.has_error(),
             message=envelope.meta.get("message"),
             error=envelope.error,
             error_type=envelope.meta.get("error_type"),
-            data=data if data is not None else envelope.body,
             envelope=envelope.meta
         )
+        if data is not None and hasattr(instance, 'data'):
+            instance.data = data
+        return instance
 
     @classmethod
-    def success_result(cls, data: T, message: Optional[str] = None) -> 'OperationResult[T]':
+    def success_result(cls, data: Any, message: Optional[str] = None):
         """Create a successful result"""
-        return cls(
+        instance = cls(
             success=True,
-            data=data,
             message=message
         )
+        if hasattr(instance, 'data'):
+            instance.data = data
+        # Set entity-specific field if it exists
+        if hasattr(instance, 'diagram') and hasattr(data, '__class__') and 'Diagram' in data.__class__.__name__:
+            instance.diagram = data
+        elif hasattr(instance, 'node') and hasattr(data, '__class__') and 'Node' in data.__class__.__name__:
+            instance.node = data
+        elif hasattr(instance, 'person') and hasattr(data, '__class__') and 'Person' in data.__class__.__name__:
+            instance.person = data
+        elif hasattr(instance, 'api_key') and hasattr(data, '__class__') and 'ApiKey' in data.__class__.__name__:
+            instance.api_key = data
+        elif hasattr(instance, 'execution') and hasattr(data, '__class__') and 'Execution' in data.__class__.__name__:
+            instance.execution = data
+        return instance
 
     @classmethod
-    def error_result(cls, error: str, error_type: str = "OperationError", message: Optional[str] = None) -> 'OperationResult[T]':
+    def error_result(cls, error: str, error_type: str = "OperationError", message: Optional[str] = None):
         """Create an error result"""
         return cls(
             success=False,
@@ -74,117 +82,159 @@ class OperationResult(Generic[T]):
 # Specific result types for each entity/operation type
 
 @strawberry.type
-class DiagramResult(OperationResult[DomainDiagramType]):
+class DiagramResult(BaseResultMixin):
     """Result type for diagram operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[DomainDiagramType] = None
     diagram: Optional[DomainDiagramType] = None
-
-    @classmethod
-    def success_result(cls, data: DomainDiagramType, message: Optional[str] = None) -> 'DiagramResult':
-        """Create a successful result with diagram field populated"""
-        result = super(DiagramResult, cls).success_result(data, message)
-        result.diagram = data
-        return result
 
 
 @strawberry.type
-class DiagramListResult(OperationResult[list[DomainDiagramType]]):
+class DiagramListResult(BaseResultMixin):
     """Result type for diagram list operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[list[DomainDiagramType]] = None
     total_count: Optional[int] = None
     has_more: Optional[bool] = None
 
 
 @strawberry.type
-class NodeResult(OperationResult[DomainNodeType]):
+class NodeResult(BaseResultMixin):
     """Result type for node operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[DomainNodeType] = None
     node: Optional[DomainNodeType] = None
-
-    @classmethod
-    def success_result(cls, data: DomainNodeType, message: Optional[str] = None) -> 'NodeResult':
-        """Create a successful result with node field populated"""
-        result = super(NodeResult, cls).success_result(data, message)
-        result.node = data
-        return result
 
 
 @strawberry.type
-class NodeListResult(OperationResult[list[DomainNodeType]]):
+class NodeListResult(BaseResultMixin):
     """Result type for node list operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[list[DomainNodeType]] = None
     total_count: Optional[int] = None
 
 
 @strawberry.type
-class ExecutionResult(OperationResult[ExecutionStateType]):
+class ExecutionResult(BaseResultMixin):
     """Result type for execution operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[ExecutionStateType] = None
     execution: Optional[ExecutionStateType] = None
-
-    @classmethod
-    def success_result(cls, data: ExecutionStateType, message: Optional[str] = None) -> 'ExecutionResult':
-        """Create a successful result with execution field populated"""
-        result = super(ExecutionResult, cls).success_result(data, message)
-        result.execution = data
-        return result
 
 
 @strawberry.type
-class ExecutionListResult(OperationResult[list[ExecutionStateType]]):
+class ExecutionListResult(BaseResultMixin):
     """Result type for execution list operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[list[ExecutionStateType]] = None
     total_count: Optional[int] = None
     active_count: Optional[int] = None
 
 
 @strawberry.type
-class PersonResult(OperationResult[DomainPersonType]):
+class PersonResult(BaseResultMixin):
     """Result type for person operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[DomainPersonType] = None
     person: Optional[DomainPersonType] = None
 
-    @classmethod
-    def success_result(cls, data: DomainPersonType, message: Optional[str] = None) -> 'PersonResult':
-        """Create a successful result with person field populated"""
-        result = super(PersonResult, cls).success_result(data, message)
-        result.person = data
-        return result
-
 
 @strawberry.type
-class PersonListResult(OperationResult[list[DomainPersonType]]):
+class PersonListResult(BaseResultMixin):
     """Result type for person list operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[list[DomainPersonType]] = None
     total_count: Optional[int] = None
 
 
 @strawberry.type
-class ApiKeyResult(OperationResult[DomainApiKeyType]):
+class ApiKeyResult(BaseResultMixin):
     """Result type for API key operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[DomainApiKeyType] = None
     api_key: Optional[DomainApiKeyType] = None
 
-    @classmethod
-    def success_result(cls, data: DomainApiKeyType, message: Optional[str] = None) -> 'ApiKeyResult':
-        """Create a successful result with api_key field populated"""
-        result = super(ApiKeyResult, cls).success_result(data, message)
-        result.api_key = data
-        return result
-
 
 @strawberry.type
-class ApiKeyListResult(OperationResult[list[DomainApiKeyType]]):
+class ApiKeyListResult(BaseResultMixin):
     """Result type for API key list operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[list[DomainApiKeyType]] = None
     total_count: Optional[int] = None
 
 
 @strawberry.type
-class ConversationResult(OperationResult[JSON]):
+class ConversationResult(BaseResultMixin):
     """Result type for conversation operations"""
-    pass
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[JSON] = None
 
 
 @strawberry.type
-class ConversationListResult(OperationResult[list[JSON]]):
+class ConversationListResult(BaseResultMixin):
     """Result type for conversation list operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[list[JSON]] = None
     total_count: Optional[int] = None
 
 
 @strawberry.type
-class FileOperationResult(OperationResult[JSON]):
+class FileOperationResult(BaseResultMixin):
     """Result type for file operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[JSON] = None
     path: Optional[str] = None
     content: Optional[str] = None
     size_bytes: Optional[int] = None
@@ -192,53 +242,95 @@ class FileOperationResult(OperationResult[JSON]):
 
 
 @strawberry.type
-class DeleteResult(OperationResult[None]):
+class DeleteResult(BaseResultMixin):
     """Result type for delete operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[JSON] = None  # Delete operations typically don't return data
     deleted_id: Optional[str] = None
     deleted_count: Optional[int] = None
 
 
 @strawberry.type
-class TestResult(OperationResult[JSON]):
+class TestResult(BaseResultMixin):
     """Result type for test operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[JSON] = None
     test_name: Optional[str] = None
     duration_ms: Optional[float] = None
     model_info: Optional[JSON] = None
 
 
 @strawberry.type
-class FormatConversionResult(OperationResult[str]):
+class FormatConversionResult(BaseResultMixin):
     """Result type for format conversion operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[str] = None
     format: Optional[str] = None
     original_format: Optional[str] = None
 
 
 @strawberry.type
-class ValidationResult(OperationResult[bool]):
+class ValidationResult(BaseResultMixin):
     """Result type for validation operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[bool] = None
     warnings: Optional[list[str]] = None
     errors: Optional[list[str]] = None
     is_valid: Optional[bool] = None
 
 
 @strawberry.type
-class CliSessionResult(OperationResult[JSON]):
+class CliSessionResult(BaseResultMixin):
     """Result type for CLI session operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[JSON] = None
     session_id: Optional[str] = None
     execution_id: Optional[str] = None
 
 
 @strawberry.type
-class InteractiveResponseResult(OperationResult[JSON]):
+class InteractiveResponseResult(BaseResultMixin):
     """Result type for interactive response operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[JSON] = None
     node_id: Optional[str] = None
     execution_id: Optional[str] = None
     response_data: Optional[JSON] = None
 
 
 @strawberry.type
-class BatchOperationResult(OperationResult[list[JSON]]):
+class BatchOperationResult(BaseResultMixin):
     """Result type for batch operations"""
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    envelope: Optional[JSON] = None
+    data: Optional[list[JSON]] = None
     succeeded_count: Optional[int] = None
     failed_count: Optional[int] = None
     partial_failures: Optional[list[JSON]] = None
@@ -246,24 +338,24 @@ class BatchOperationResult(OperationResult[list[JSON]]):
 
 # Helper functions for creating results from different sources
 
-def create_success_result(data: Any, result_type: type[OperationResult], message: Optional[str] = None) -> OperationResult:
+def create_success_result(data: Any, result_type: type, message: Optional[str] = None):
     """Create a successful result with type checking"""
     return result_type.success_result(data=data, message=message)
 
 
-def create_error_result(error: str, result_type: type[OperationResult], error_type: str = "OperationError") -> OperationResult:
+def create_error_result(error: str, result_type: type, error_type: str = "OperationError"):
     """Create an error result with type checking"""
     return result_type.error_result(error=error, error_type=error_type)
 
 
-def create_result_from_envelope(envelope: Envelope, result_type: type[OperationResult], data: Optional[Any] = None) -> OperationResult:
+def create_result_from_envelope(envelope: Envelope, result_type: type, data: Optional[Any] = None):
     """Create a result from a domain Envelope"""
     return result_type.from_envelope(envelope=envelope, data=data)
 
 
 # Export all result types
 __all__ = [
-    'OperationResult',
+    'BaseResultMixin',
     'DiagramResult',
     'DiagramListResult',
     'NodeResult',

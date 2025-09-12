@@ -1,7 +1,7 @@
 """Prepare context for node factory generation from spec files."""
-import ast
-import json
 from typing import Any
+
+from projects.codegen.code.core.utils import parse_dipeo_output
 
 
 def prepare_factory_context(inputs: dict[str, Any]) -> dict[str, Any]:
@@ -22,16 +22,9 @@ def prepare_factory_context(inputs: dict[str, Any]) -> dict[str, Any]:
         default_value = inputs['default']
         if isinstance(default_value, str):
             # Parse the Python dict string to get the actual glob results
-            try:
-                # Try ast.literal_eval first (for Python dict format)
-                inputs = ast.literal_eval(default_value)
-            except (ValueError, SyntaxError):
-                # If that fails, try JSON
-                try:
-                    inputs = json.loads(default_value)
-                except json.JSONDecodeError:
-                    # If both fail, treat as empty
-                    inputs = {}
+            inputs = parse_dipeo_output(default_value)
+            if not inputs:
+                inputs = {}
         elif isinstance(default_value, dict):
             inputs = default_value
 
@@ -49,7 +42,7 @@ def prepare_factory_context(inputs: dict[str, Any]) -> dict[str, Any]:
 
         # Parse AST data if string
         if isinstance(ast_data, str):
-            ast_data = json.loads(ast_data)
+            ast_data = parse_dipeo_output(ast_data)
 
         # Extract specification from constants
         fields = []

@@ -36,7 +36,7 @@ export const fileQueries: EntityQueryDefinitions = {
       type: QueryOperationType.MUTATION,
       variables: [
         { name: 'file', type: 'Upload', required: true },
-        { name: 'format', type: 'DiagramFormat', required: true }
+        { name: 'format', type: 'DiagramFormatGraphQL', required: true }
       ],
       fields: [
         {
@@ -70,7 +70,7 @@ export const fileQueries: EntityQueryDefinitions = {
       type: QueryOperationType.MUTATION,
       variables: [
         { name: 'content', type: 'String', required: true },
-        { name: 'format', type: 'DiagramFormat', required: true }
+        { name: 'format', type: 'DiagramFormatGraphQL', required: true }
       ],
       fields: [
         {
@@ -81,8 +81,7 @@ export const fileQueries: EntityQueryDefinitions = {
           ],
           fields: [
             { name: 'success' },
-            { name: 'errors' },
-            { name: 'warnings' },
+            { name: 'error' },
             { name: 'message' }
           ]
         }
@@ -93,8 +92,8 @@ export const fileQueries: EntityQueryDefinitions = {
       type: QueryOperationType.MUTATION,
       variables: [
         { name: 'content', type: 'String', required: true },
-        { name: 'from_format', type: 'DiagramFormat', required: true },
-        { name: 'to_format', type: 'DiagramFormat', required: true }
+        { name: 'from_format', type: 'DiagramFormatGraphQL', required: true },
+        { name: 'to_format', type: 'DiagramFormatGraphQL', required: true }
       ],
       fields: [
         {

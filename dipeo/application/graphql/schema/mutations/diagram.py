@@ -10,7 +10,8 @@ from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 from dipeo.diagram_generated.domain_models import DiagramID
-from dipeo.diagram_generated.graphql.inputs import CreateDiagramInput, ValidateDiagramInput
+from dipeo.diagram_generated.graphql.enums import DiagramFormatGraphQL
+from dipeo.diagram_generated.graphql.inputs import CreateDiagramInput
 from dipeo.diagram_generated.graphql.operations import (
     CREATE_DIAGRAM_MUTATION,
     DELETE_DIAGRAM_MUTATION,
@@ -66,36 +67,40 @@ async def create_diagram(registry: ServiceRegistry, input: CreateDiagramInput) -
         return DiagramResult.error_result(error=f"Failed to create diagram: {e!s}")
 
 
-async def delete_diagram(registry: ServiceRegistry, id: strawberry.ID) -> DeleteResult:
+async def delete_diagram(registry: ServiceRegistry, diagram_id: strawberry.ID) -> DeleteResult:
     """
     Resolver for DeleteDiagram operation.
     Uses the generated DELETE_DIAGRAM_MUTATION query string.
     """
     try:
-        diagram_id = DiagramID(str(id))
+        diagram_id_typed = DiagramID(str(diagram_id))
         diagram_service = registry.resolve(DIAGRAM_PORT)
 
-        diagram_data = await diagram_service.get_diagram(diagram_id)
+        diagram_data = await diagram_service.get_diagram(diagram_id_typed)
         if not diagram_data:
-            raise FileNotFoundError(f"Diagram not found: {id}")
+            raise FileNotFoundError(f"Diagram not found: {diagram_id}")
 
         file_repo = diagram_service.file_repository
-        path = await file_repo.find_by_id(id)
+        path = await file_repo.find_by_id(str(diagram_id))
         if path:
             await diagram_service.delete_diagram(path)
         else:
-            raise FileNotFoundError(f"Diagram path not found: {id}")
+            raise FileNotFoundError(f"Diagram path not found: {diagram_id}")
 
-        result = DeleteResult.success_result(data=None, message=f"Deleted diagram: {diagram_id}")
-        result.deleted_id = str(diagram_id)
+        result = DeleteResult.success_result(
+            data=None, message=f"Deleted diagram: {diagram_id_typed}"
+        )
+        result.deleted_id = str(diagram_id_typed)
         return result
 
     except Exception as e:
-        logger.error(f"Failed to delete diagram {diagram_id}: {e}")
+        logger.error(f"Failed to delete diagram {diagram_id_typed}: {e}")
         return DeleteResult.error_result(error=f"Failed to delete diagram: {e!s}")
 
 
-async def validate_diagram(registry: ServiceRegistry, input: ValidateDiagramInput) -> DiagramResult:
+async def validate_diagram(
+    registry: ServiceRegistry, content: str, format: DiagramFormatGraphQL
+) -> DiagramResult:
     """
     Resolver for ValidateDiagram operation.
     Uses the generated VALIDATE_DIAGRAM_MUTATION query string.
@@ -105,36 +110,10 @@ async def validate_diagram(registry: ServiceRegistry, input: ValidateDiagramInpu
         serializer = UnifiedSerializerAdapter()
         await serializer.initialize()
 
-        domain_diagram = None
-
-        if input.diagram_id:
-            # Validate existing diagram by ID
-            if hasattr(diagram_service, "get_diagram_model"):
-                domain_diagram = await diagram_service.get_diagram_model(input.diagram_id)
-            elif hasattr(diagram_service, "load_from_file"):
-                domain_diagram = await diagram_service.load_from_file(input.diagram_id)
-            else:
-                diagram_dict = await diagram_service.get_diagram(input.diagram_id)
-                if diagram_dict:
-                    import json
-
-                    json_content = json.dumps(diagram_dict)
-                    domain_diagram = serializer.deserialize_from_storage(json_content, "native")
-        elif input.diagram_data:
-            # Validate provided diagram data
-            format_hint = input.diagram_data.get("version") or input.diagram_data.get("format")
-            if format_hint in ["light", "readable"]:
-                import yaml
-
-                content = yaml.dump(input.diagram_data, default_flow_style=False, sort_keys=False)
-                domain_diagram = serializer.deserialize_from_storage(content, format_hint)
-            else:
-                import json
-
-                json_content = json.dumps(input.diagram_data)
-                domain_diagram = serializer.deserialize_from_storage(json_content, "native")
-        else:
-            raise ValueError("Either diagram_id or diagram_data must be provided")
+        # Validate the provided content with the specified format
+        # Convert enum to string value for the serializer
+        format_str = format.value if hasattr(format, "value") else str(format)
+        domain_diagram = serializer.deserialize_from_storage(content, format_str)
 
         if not domain_diagram:
             raise ValueError("Could not load diagram for validation")
@@ -218,13 +197,15 @@ def create_diagram_mutations(registry: ServiceRegistry) -> type:
             return await create_diagram(registry, input)
 
         @strawberry.mutation
-        async def delete_diagram(self, id: strawberry.ID) -> DeleteResult:
+        async def delete_diagram(self, diagram_id: strawberry.ID) -> DeleteResult:
             """Mutation method that delegates to standalone resolver."""
-            return await delete_diagram(registry, id)
+            return await delete_diagram(registry, diagram_id)
 
         @strawberry.mutation
-        async def validate_diagram(self, input: ValidateDiagramInput) -> DiagramResult:
+        async def validate_diagram(
+            self, content: str, format: DiagramFormatGraphQL
+        ) -> DiagramResult:
             """Mutation method that delegates to standalone resolver."""
-            return await validate_diagram(registry, input)
+            return await validate_diagram(registry, content, format)
 
     return DiagramMutations

@@ -45,6 +45,14 @@ nodes:
 
       data = inputs.get('default', {})
 
+      # Debug: Check what we actually received
+      print(f"DEBUG: Type of data: {type(data)}")
+      print(f"DEBUG: Is dict? {isinstance(data, dict)}")
+      if isinstance(data, dict):
+          print(f"DEBUG: Dict keys: {list(data.keys())[:5]}")  # First 5 keys
+      elif isinstance(data, str):
+          print(f"DEBUG: String preview: {data[:200]}...")
+
       # If data is a string, parse it
       if isinstance(data, str):
           try:

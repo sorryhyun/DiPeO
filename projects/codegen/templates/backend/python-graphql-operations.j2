@@ -12,6 +12,7 @@ import strawberry
 from {{ source }} import {{ types | sort | join(', ') }}
 {% endif -%}
 {% endfor %}
+from .enums import DiagramFormatGraphQL
 
 # GraphQL query strings as constants
 {% for operation in operations_data.operations %}

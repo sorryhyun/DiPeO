@@ -9,39 +9,60 @@ persons:
       You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.
 
       Your task is to:
-      1. Define the overall architecture and folder structure
-      2. Split work into sections where EACH section represents ONE specific file
-      3. List all files that need to be implemented with clear descriptions
+      1. Define the overall architecture using pre-installed UI libraries
+      2. Split work into sections where EACH section represents ONE business logic file
+      3. List ONLY domain-specific files (exclude standard UI components)
+
+      Available Libraries (already installed):
+      - UI Components: Radix UI primitives in @/components/ui/*
+      - State: React Query, Zustand
+      - Forms: React Hook Form + Zod
+      - Icons: Lucide React
+      - Charts: Recharts
+      - Toasts: Sonner
+      - Tables: TanStack Table
+      - Animations: Framer Motion
 
       Focus on:
-      - COMPLETENESS: Include every file that will be imported anywhere
-      - Clear file paths and responsibilities
-      - Logical grouping and dependencies between files
-      - Modern React 18+ and TypeScript patterns
+      - Business logic components only (MetricCard, KPIWidget, etc.)
+      - Feature-specific pages and hooks
+      - Service integration layers
+      - DO NOT include Button, Input, Modal, Table, etc. (use libraries)
       - Vite-based application (use import.meta.env, not process.env)
 
-      Note: You don't need to provide detailed implementation steps. The Core Kernel will handle shared contracts, and the Frontend Generator will handle implementation details.
+      Note: Standard UI components come from @/components/ui/*. Only plan business-specific components.
 
   Core Kernel Architect:
     service: openai
     model: gpt-5-mini-2025-08-07
     api_key_id: APIKEY_52609F
     system_prompt: |
-      You are an expert TypeScript architect specializing in creating foundational contracts and utilities.
+      You are an expert TypeScript architect specializing in library integration and glue code.
 
-      Your task is to generate the Core Kernel - a set of 5-7 foundational files that ALL sections will depend on.
-      These files establish the single source of truth for types, configuration, events, hooks, and utilities.
+      Your task is to generate the Core Kernel - integration files that connect pre-installed libraries with application logic.
 
-      Generate complete, production-ready TypeScript code with:
-      - Comprehensive domain types and API contracts
-      - Materialized configuration from the app config
-      - Event bus for decoupled communication
-      - Hook system for extension points
-      - Dependency injection tokens
+      Available Libraries to integrate:
+      - React Query for data fetching
+      - Zustand for state management
+      - React Hook Form + Zod for forms
+      - MSW for API mocking
+      - Radix UI components (wrapped in @/components/ui/*)
+      - Sonner for toasts
+      - i18next for translations
 
-      IMPORTANT: Use `import.meta.env` for environment variables (NOT `process.env`) as this is a Vite-based browser application.
+      Generate library integration code:
+      - React Query client configuration
+      - MSW mock handlers setup
+      - Zod schemas with TypeScript types
+      - Library re-exports and typed wrappers
+      - Configuration that ties libraries together
 
-      Every file must be immediately usable with no placeholders or TODOs.
+      IMPORTANT:
+      - Use `import.meta.env` for environment variables (NOT `process.env`)
+      - Focus on integration, not implementation
+      - Import UI from @/components/ui/*, don't create new components
+
+      Every file must integrate with existing libraries, not recreate functionality.
 
   Frontend Generator:
 #    service: openai
@@ -53,12 +74,16 @@ persons:
     system_prompt: |
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
 
+      The section details will specify exactly what to implement. Follow the dependencies and imports specified.
+
       KEY FOCUS:
       - Generate raw code without explanations or commentary
       - Follow conventions and contracts defined in the prompt
       - Build iteratively using context from previous sections
       - Code must be complete, working, and deployable as-is
       - IMPORTANT: Use `import.meta.env` for environment variables (NOT `process.env`) as this is a Vite-based browser application
+
+      Libraries are pre-installed, so you can import from them as needed.
 
 
   Frontend Verdict:
@@ -224,9 +249,9 @@ nodes:
     position: {x: 2100, y: 850}
     props:
       person: Frontend Generator
-      max_iteration: 100
+      max_iteration: 150
       memorize_to: "Only prior sections that this file imports or explicitly depends on (providers, hooks, shared components referenced in file_to_implement), excluding requests for each section."
-      at_most: 6
+      at_most: 10
       prompt_file: frontend_generator.txt
       ignore_person: Frontend Verdict
 
@@ -265,7 +290,7 @@ nodes:
     props:
       person: Frontend Generator
       memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement), excluding requests for each section."
-      at_most: 5
+      at_most: 8
       prompt_file: frontend_reviser.txt
 
   - label: Write Section Result
@@ -337,7 +362,7 @@ connections:
   - {from: Merge Kernel and Sections, to: Save Merged Data, content_type: object}
   - {from: Save Merged Data, to: load Data, content_type: object}
 
-  - {from: Start, to: load Data, label: default, content_type: object}
+#  - {from: Start, to: load Data, label: default, content_type: object}
 
   - { from: load Data, to: Check Continue, content_type: object }
 

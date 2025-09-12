@@ -3,7 +3,6 @@ GraphQL schema generator for DiPeO.
 Consolidates all GraphQL schema generation logic into a single module.
 """
 
-import json
 import os
 import re
 
@@ -14,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Set
 
 from jinja2 import StrictUndefined, Template
+from projects.codegen.code.core.utils import parse_dipeo_output
 
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
 from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python
@@ -62,14 +62,16 @@ def combine_node_data_ast(inputs):
                     # Use file locking for safe concurrent access
                     with cache_lock.read(file_path) as f:
                         if f:
-                            data = json.load(f)
+                            content = f.read()
+                            data = parse_dipeo_output(content)
                             all_interfaces.extend(data.get('interfaces', []))
                             all_types.extend(data.get('types', []))
                             all_enums.extend(data.get('enums', []))
                 else:
                     # Fallback to direct file access
                     with open(file_path) as f:
-                        data = json.load(f)
+                        content = f.read()
+                        data = parse_dipeo_output(content)
                         all_interfaces.extend(data.get('interfaces', []))
                         all_types.extend(data.get('types', []))
                         all_enums.extend(data.get('enums', []))
@@ -374,8 +376,8 @@ def render_graphql_schema(inputs):
     # Get template content - it comes as a direct string input
     template_content = inputs.get('template_content', '')
 
-    # Get prepared data - it comes from the 'default' connection
-    template_data = inputs.get('default', {})
+    # Get prepared data - DiPeO handles 'default' automatically
+    template_data = inputs
 
     # Ensure all expected keys exist with proper defaults
     template_context = {
@@ -405,17 +407,16 @@ def render_graphql_schema(inputs):
 
 def generate_summary(inputs):
     """Generate summary of GraphQL schema generation."""
-    import json
 
     # The connection is labeled 'graphql_data' in the diagram
-    graphql_types = inputs.get('graphql_data', inputs.get('graphql_types', inputs.get('default', {})))
+    # DiPeO handles 'default' automatically, just check for specific keys
+    graphql_types = inputs.get('graphql_data', inputs.get('graphql_types', inputs))
 
     # Handle case where graphql_types might be a JSON string
     if isinstance(graphql_types, str):
-        try:
-            graphql_types = json.loads(graphql_types)
-        except (json.JSONDecodeError, ValueError):
-            # If it's not valid JSON, return an error-like result
+        graphql_types = parse_dipeo_output(graphql_types)
+        if not graphql_types:
+            # If parsing failed, return an error-like result
             return {
                 'status': 'error',
                 'message': 'GraphQL types data is not in expected format',
@@ -479,7 +480,6 @@ def prepare_graphql_data_for_template(inputs: dict) -> dict:
 
 def extract_graphql_types_from_multi_read(inputs: dict) -> dict:
     """Extract GraphQL types from multiple file read with serialize_json=true"""
-    import json
 
     # Get the multiple file read output
     all_files = inputs.get('all_ast_files', {})
@@ -495,7 +495,7 @@ def extract_graphql_types_from_multi_read(inputs: dict) -> dict:
             # Extract key name from filepath (e.g., "temp/diagram.ts.json" -> "diagram")
             filename = filepath.split('/')[-1].replace('.ts.json', '')
             # Content is already parsed if serialize_json=true
-            parsed_content = content if isinstance(content, dict) else json.loads(content)
+            parsed_content = content if isinstance(content, dict) else parse_dipeo_output(content)
 
             # Special handling for node data files
             if '.data' in filename:

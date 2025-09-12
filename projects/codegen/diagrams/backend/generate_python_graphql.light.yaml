@@ -66,10 +66,30 @@ nodes:
       variables:
         generated_warning: "DO NOT EDIT - Generated unified result types for GraphQL operations"
 
+  # NEW: Extract operations for strawberry schema generation
+  - label: Extract Operations for Schema
+    type: code_job
+    position: {x: 900, y: 150}
+    props:
+      language: python
+      filePath: projects/codegen/code/backend/strawberry_schema_extractor.py
+      functionName: extract_operations_for_schema
+
+  # NEW: Generate Strawberry schema from operations
+  - label: Generate Strawberry Schema
+    type: template_job
+    position: {x: 1100, y: 150}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/strawberry/strawberry_schema_from_operations.j2
+      output_path: dipeo/diagram_generated_staged/graphql/generated_schema.py
+      variables:
+        generated_warning: "DO NOT EDIT - Generated from TypeScript query definitions"
+
   # Verify generation
   - label: Verify Output
     type: code_job
-    position: {x: 900, y: 200}
+    position: {x: 1300, y: 200}
     props:
       language: python
       code: |
@@ -78,6 +98,7 @@ nodes:
 
         operations_file = Path('/home/soryhyun/DiPeO/dipeo/diagram_generated_staged/graphql/operations.py')
         results_file = Path('/home/soryhyun/DiPeO/dipeo/diagram_generated_staged/graphql/results.py')
+        schema_file = Path('/home/soryhyun/DiPeO/dipeo/diagram_generated_staged/graphql/generated_schema.py')
 
         success = True
 
@@ -111,11 +132,28 @@ nodes:
             print(f"✗ Failed to generate results file")
             success = False
 
+        # Check strawberry schema file
+        if schema_file.exists():
+            schema_size = schema_file.stat().st_size
+            schema_content = schema_file.read_text()
+            query_fields = schema_content.count('@strawberry.field')
+            has_query = 'class Query:' in schema_content
+            has_mutation = 'class Mutation:' in schema_content
+
+            print(f"✓ Generated Strawberry schema")
+            print(f"  Query class: {has_query}")
+            print(f"  Mutation class: {has_mutation}")
+            print(f"  Field decorators: {query_fields}")
+            print(f"  File size: {schema_size:,} bytes")
+        else:
+            print(f"✗ Failed to generate schema file")
+            success = False
+
         result = {'success': success}
 
   - label: End
     type: endpoint
-    position: {x: 1100, y: 200}
+    position: {x: 1500, y: 200}
     props:
       save_to_file: false
 
@@ -125,6 +163,11 @@ connections:
   - {from: Load Query Definitions, to: Prepare Python Data, label: ast_data}
   - {from: Prepare Python Data, to: Generate Operations, label: operations_data}
   - {from: Prepare Python Data, to: Generate Results, label: operations_data}
-  - {from: Generate Operations, to: Verify Output}
-  - {from: Generate Results, to: Verify Output}
+  # NEW: After operations are generated, extract them for schema
+  - {from: Generate Operations, to: Extract Operations for Schema}
+  - {from: Generate Results, to: Extract Operations for Schema}
+  # Generate schema from extracted operations
+  - {from: Extract Operations for Schema, to: Generate Strawberry Schema, label: default}
+  # All generation completes before verification
+  - {from: Generate Strawberry Schema, to: Verify Output}
   - {from: Verify Output, to: End}

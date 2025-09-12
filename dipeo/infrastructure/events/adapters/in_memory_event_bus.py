@@ -196,7 +196,7 @@ class InMemoryEventBus(EventBus):
                 await subscription.handler.handle(event)
 
             except asyncio.CancelledError:
-                logger.debug(f"Queue processor cancelled for {subscription.subscription_id}")
+                # logger.debug(f"Queue processor cancelled for {subscription.subscription_id}")
                 break
             except Exception as e:
                 logger.error(

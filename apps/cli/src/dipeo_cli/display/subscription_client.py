@@ -186,12 +186,13 @@ class SimpleSubscriptionClient:
                                 # Update tracked state
                                 self.last_node_states[node_id] = state
 
-                    # Emit token usage updates if available
-                    if "token_usage" in result:
+                    # Get metrics including token usage
+                    metrics = self.server_manager.get_execution_metrics(self.execution_id)
+                    if metrics and "token_usage" in metrics:
                         event = {
                             "execution_id": self.execution_id,
                             "event_type": "METRICS_COLLECTED",
-                            "data": {"token_usage": result["token_usage"]},
+                            "data": {"token_usage": metrics["token_usage"]},
                             "timestamp": None,
                         }
                         await asyncio.get_event_loop().run_in_executor(None, callback, event)
