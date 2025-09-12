@@ -12,7 +12,7 @@ export const diagramQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_diagram',
+          name: 'diagram',
           args: [
             { name: 'diagram_id', value: 'diagram_id', isVariable: true }
           ],
@@ -98,7 +98,7 @@ export const diagramQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'list_diagrams',
+          name: 'diagrams',
           args: [
             { name: 'filter', value: 'filter', isVariable: true },
             { name: 'limit', value: 'limit', isVariable: true },

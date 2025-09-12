@@ -9,6 +9,7 @@ import strawberry
 from strawberry.types import Info
 from strawberry.scalars import JSON
 from typing import Any, Optional, Union
+from collections.abc import AsyncGenerator
 from datetime import datetime
 
 # Import operation executor
@@ -45,13 +46,24 @@ from dipeo.diagram_generated.graphql.results import (
     BatchOperationResult,
 )
 
+# Import domain types for direct query returns
+from dipeo.diagram_generated.graphql.domain_types import (
+    ExecutionStateType,
+    DomainDiagramType,
+    DomainPersonType,
+    DomainApiKeyType,
+    DomainNodeType,
+    ExecutionUpdate,  # For subscriptions
+)
+
 {% if queries %}
 @strawberry.type
 class Query:
     """Auto-generated Query type from TypeScript definitions"""
 
 {% for operation in queries %}
-    @strawberry.field
+    # Legacy field (verb form)
+    @strawberry.field{% if operation.alias_name %}(deprecation_reason="Use '{{ operation.alias_name }}' instead"){% endif %}
     async def {{ operation.field_name }}(
         self,
         info: Info{% if operation.parameters %},{% endif %}
@@ -78,6 +90,28 @@ class Query:
         {% endfor %}
 
         return await executor.execute("{{ operation.operation_name }}", variables=variables)
+
+    {% if operation.alias_name %}
+    # Preferred noun form
+    @strawberry.field(name="{{ operation.alias_name }}")
+    async def {{ operation.alias_name }}_resolver(
+        self,
+        info: Info{% if operation.parameters %},{% endif %}
+        {% for param in operation.parameters %}
+        {{ param.name }}: {{ param.type }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ) -> {{ operation.return_type }}:
+        """
+        {{ operation.description }} (Preferred field name)
+        Operation: {{ operation.operation_class }}
+        """
+        return await self.{{ operation.field_name }}(
+            info{% if operation.parameters %},{% endif %}
+            {% for param in operation.parameters %}
+            {{ param.name }}={{ param.name }}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        )
+    {% endif %}
 
 {% endfor %}
 {% endif %}
@@ -125,14 +159,14 @@ class Subscription:
     """Auto-generated Subscription type from TypeScript definitions"""
 
 {% for operation in subscriptions %}
-    @strawberry.field
+    @strawberry.subscription
     async def {{ operation.field_name }}(
         self,
         info: Info{% if operation.parameters %},{% endif %}
         {% for param in operation.parameters %}
         {{ param.name }}: {{ param.type }}{% if not loop.last %},{% endif %}
         {% endfor %}
-    ) -> {{ operation.return_type }}:
+    ) -> AsyncGenerator[{{ operation.return_type }}, None]:
         """
         {{ operation.description }}
         Operation: {{ operation.operation_class }}
@@ -151,7 +185,9 @@ class Subscription:
         {% endif %}
         {% endfor %}
 
-        return await executor.execute("{{ operation.operation_name }}", variables=variables)
+        # Execute subscription and yield items
+        async for item in executor.execute_subscription("{{ operation.operation_name }}", variables=variables):
+            yield item
 
 {% endfor %}
 {% endif %}

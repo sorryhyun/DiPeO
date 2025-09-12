@@ -90,7 +90,16 @@ class DiagramResult(BaseResultMixin):
     error_type: Optional[str] = None
     envelope: Optional[JSON] = None
     data: Optional[DomainDiagramType] = None
-    diagram: Optional[DomainDiagramType] = None
+    # Deprecated field for backward compatibility
+    diagram: Optional[DomainDiagramType] = strawberry.field(
+        default=None,
+        deprecation_reason="Use 'data' field instead"
+    )
+
+    def __post_init__(self):
+        # Auto-populate deprecated field
+        if self.data and not self.diagram:
+            self.diagram = self.data
 
 
 @strawberry.type
@@ -115,7 +124,16 @@ class NodeResult(BaseResultMixin):
     error_type: Optional[str] = None
     envelope: Optional[JSON] = None
     data: Optional[DomainNodeType] = None
-    node: Optional[DomainNodeType] = None
+    # Deprecated field for backward compatibility
+    node: Optional[DomainNodeType] = strawberry.field(
+        default=None,
+        deprecation_reason="Use 'data' field instead"
+    )
+
+    def __post_init__(self):
+        # Auto-populate deprecated field
+        if self.data and not self.node:
+            self.node = self.data
 
 
 @strawberry.type
@@ -139,7 +157,16 @@ class ExecutionResult(BaseResultMixin):
     error_type: Optional[str] = None
     envelope: Optional[JSON] = None
     data: Optional[ExecutionStateType] = None
-    execution: Optional[ExecutionStateType] = None
+    # Deprecated field for backward compatibility
+    execution: Optional[ExecutionStateType] = strawberry.field(
+        default=None,
+        deprecation_reason="Use 'data' field instead"
+    )
+
+    def __post_init__(self):
+        # Auto-populate deprecated field
+        if self.data and not self.execution:
+            self.execution = self.data
 
 
 @strawberry.type
@@ -164,7 +191,16 @@ class PersonResult(BaseResultMixin):
     error_type: Optional[str] = None
     envelope: Optional[JSON] = None
     data: Optional[DomainPersonType] = None
-    person: Optional[DomainPersonType] = None
+    # Deprecated field for backward compatibility
+    person: Optional[DomainPersonType] = strawberry.field(
+        default=None,
+        deprecation_reason="Use 'data' field instead"
+    )
+
+    def __post_init__(self):
+        # Auto-populate deprecated field
+        if self.data and not self.person:
+            self.person = self.data
 
 
 @strawberry.type
@@ -188,7 +224,16 @@ class ApiKeyResult(BaseResultMixin):
     error_type: Optional[str] = None
     envelope: Optional[JSON] = None
     data: Optional[DomainApiKeyType] = None
-    api_key: Optional[DomainApiKeyType] = None
+    # Deprecated field for backward compatibility
+    api_key: Optional[DomainApiKeyType] = strawberry.field(
+        default=None,
+        deprecation_reason="Use 'data' field instead"
+    )
+
+    def __post_init__(self):
+        # Auto-populate deprecated field
+        if self.data and not self.api_key:
+            self.api_key = self.data
 
 
 @strawberry.type

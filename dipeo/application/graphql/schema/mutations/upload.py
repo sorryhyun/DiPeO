@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Standalone resolver functions for operation executor
 async def upload_file(
-    file: Upload, path: str | None = None, registry: ServiceRegistry = None
+    registry: ServiceRegistry, file: Upload, path: str | None = None
 ) -> FileOperationResult:
     """Upload a file to the system."""
     try:
@@ -95,7 +95,7 @@ async def upload_file(
 
 
 async def upload_diagram(
-    file: Upload, format: DiagramFormatGraphQL, registry: ServiceRegistry = None
+    registry: ServiceRegistry, file: Upload, format: DiagramFormatGraphQL
 ) -> DiagramResult:
     """Upload and import a diagram file."""
     try:
@@ -126,10 +126,10 @@ async def upload_diagram(
 
 
 async def convert_diagram_format(
+    registry: ServiceRegistry,
     content: str,
     from_format: DiagramFormatGraphQL,
     to_format: DiagramFormatGraphQL,
-    registry: ServiceRegistry = None,
 ) -> FileOperationResult:
     """Convert diagram between formats."""
     try:

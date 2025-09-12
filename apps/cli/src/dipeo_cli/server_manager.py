@@ -189,7 +189,7 @@ class ServerManager:
             if "data" not in result or result["data"] is None:
                 return None
 
-            return result["data"].get("execution")
+            return result["data"].get("get_execution")
         except Exception as e:
             print(f"[DEBUG] Error getting execution result: {e}")
             import traceback
@@ -217,7 +217,7 @@ class ServerManager:
             if "errors" in result or "data" not in result:
                 return None
 
-            return result["data"].get("execution_metrics")
+            return result["data"].get("get_execution_metrics")
         except Exception:
             return None
 

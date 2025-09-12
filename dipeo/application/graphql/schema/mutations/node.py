@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Standalone resolver functions for operation executor
 async def create_node(
-    diagram_id: strawberry.ID, input: CreateNodeInput, registry: ServiceRegistry = None
+    registry: ServiceRegistry, diagram_id: strawberry.ID, input: CreateNodeInput
 ) -> NodeResult:
     """Create a new node in a diagram with type-specific validation."""
     try:
@@ -67,10 +67,10 @@ async def create_node(
 
 
 async def update_node(
+    registry: ServiceRegistry,
     diagram_id: strawberry.ID,
     node_id: strawberry.ID,
     input: UpdateNodeInput,
-    registry: ServiceRegistry = None,
 ) -> NodeResult:
     """Update an existing node in a diagram with type-specific validation."""
     try:
@@ -143,7 +143,7 @@ async def update_node(
 
 
 async def delete_node(
-    diagram_id: strawberry.ID, node_id: strawberry.ID, registry: ServiceRegistry = None
+    registry: ServiceRegistry, diagram_id: strawberry.ID, node_id: strawberry.ID
 ) -> DeleteResult:
     """Delete a node from a diagram."""
     try:

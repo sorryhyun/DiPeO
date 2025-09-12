@@ -36,7 +36,7 @@ type ApiKeyResult {
   error_type: String
   envelope: JSON
   data: DomainApiKeyType
-  api_key: DomainApiKeyType
+  api_key: DomainApiKeyType @deprecated(reason: "Use 'data' field instead")
 }
 
 """Unique identifier type for arrow entities"""
@@ -181,17 +181,6 @@ enum DiagramFormatGraphQL {
 """Unique identifier type for diagram entities"""
 scalar DiagramID
 
-type DiagramListResult {
-  success: Boolean!
-  message: String
-  error: String
-  error_type: String
-  envelope: JSON
-  data: [DomainDiagramType!]
-  total_count: Int
-  has_more: Boolean
-}
-
 type DiagramMetadataType {
   id: String
   name: String
@@ -211,7 +200,7 @@ type DiagramResult {
   error_type: String
   envelope: JSON
   data: DomainDiagramType
-  diagram: DomainDiagramType
+  diagram: DomainDiagramType @deprecated(reason: "Use 'data' field instead")
 }
 
 type DomainApiKeyType {
@@ -299,17 +288,6 @@ input ExecutionFilterInput {
 """Unique identifier type for execution entities"""
 scalar ExecutionID
 
-type ExecutionListResult {
-  success: Boolean!
-  message: String
-  error: String
-  error_type: String
-  envelope: JSON
-  data: [ExecutionStateType!]
-  total_count: Int
-  active_count: Int
-}
-
 type ExecutionResult {
   success: Boolean!
   message: String
@@ -317,7 +295,7 @@ type ExecutionResult {
   error_type: String
   envelope: JSON
   data: ExecutionStateType
-  execution: ExecutionStateType
+  execution: ExecutionStateType @deprecated(reason: "Use 'data' field instead")
 }
 
 type ExecutionStateType {
@@ -336,6 +314,13 @@ type ExecutionStateType {
   duration_seconds: Float
   is_active: Boolean
   executed_nodes: [String!]!
+}
+
+type ExecutionUpdate {
+  execution_id: String!
+  event_type: String!
+  data: JSON!
+  timestamp: String!
 }
 
 type FormatConversionResult {
@@ -475,7 +460,7 @@ type NodeResult {
   error_type: String
   envelope: JSON
   data: DomainNodeType
-  node: DomainNodeType
+  node: DomainNodeType @deprecated(reason: "Use 'data' field instead")
 }
 
 enum NodeType {
@@ -539,16 +524,6 @@ type PersonLLMConfigType {
   prompt_file: String
 }
 
-type PersonListResult {
-  success: Boolean!
-  message: String
-  error: String
-  error_type: String
-  envelope: JSON
-  data: [DomainPersonType!]
-  total_count: Int
-}
-
 type PersonResult {
   success: Boolean!
   message: String
@@ -556,33 +531,55 @@ type PersonResult {
   error_type: String
   envelope: JSON
   data: DomainPersonType
-  person: DomainPersonType
+  person: DomainPersonType @deprecated(reason: "Use 'data' field instead")
 }
 
 type Query {
-  get_active_cli_session: CliSessionResult!
-  get_api_key(api_key_id: ID!): ApiKeyResult!
-  get_api_keys(service: String): JSON!
-  get_available_models(service: String!, api_key_id: ID!): JSON!
-  get_diagram(diagram_id: ID!): DiagramResult!
-  get_execution(execution_id: ID!): ExecutionResult!
-  get_execution_capabilities: JSON!
-  get_execution_history(diagram_id: ID, limit: Int, include_metrics: Boolean): JSON!
-  get_execution_metrics(execution_id: ID!): JSON!
-  get_execution_order(execution_id: ID!): JSON!
-  get_operation_schema(provider: String!, operation: String!): JSON!
-  get_person(person_id: ID!): PersonResult!
-  get_prompt_file(filename: String!): JSON!
-  get_provider_operations(provider: String!): JSON!
-  get_providers: JSON!
-  get_supported_formats: JSON!
-  get_system_info: JSON!
+  get_active_cli_session: JSON! @deprecated(reason: "Use 'active_cli_session' instead")
+  active_cli_session: JSON!
+  get_api_key(api_key_id: ID!): DomainApiKeyType! @deprecated(reason: "Use 'api_key' instead")
+  api_key(api_key_id: ID!): DomainApiKeyType!
+  get_api_keys(service: String): JSON! @deprecated(reason: "Use 'api_keys' instead")
+  api_keys(service: String): JSON!
+  get_available_models(service: String!, api_key_id: ID!): JSON! @deprecated(reason: "Use 'available_models' instead")
+  available_models(service: String!, api_key_id: ID!): JSON!
+  get_diagram(diagram_id: ID!): DomainDiagramType! @deprecated(reason: "Use 'diagram' instead")
+  diagram(diagram_id: ID!): DomainDiagramType!
+  get_execution(execution_id: ID!): ExecutionStateType! @deprecated(reason: "Use 'execution' instead")
+  execution(execution_id: ID!): ExecutionStateType!
+  get_execution_capabilities: JSON! @deprecated(reason: "Use 'execution_capabilities' instead")
+  execution_capabilities: JSON!
+  get_execution_history(diagram_id: ID, limit: Int, include_metrics: Boolean): JSON! @deprecated(reason: "Use 'execution_history' instead")
+  execution_history(diagram_id: ID, limit: Int, include_metrics: Boolean): JSON!
+  get_execution_metrics(execution_id: ID!): JSON! @deprecated(reason: "Use 'execution_metrics' instead")
+  execution_metrics(execution_id: ID!): JSON!
+  get_execution_order(execution_id: ID!): JSON! @deprecated(reason: "Use 'execution_order' instead")
+  execution_order(execution_id: ID!): JSON!
+  get_operation_schema(provider: String!, operation: String!): JSON! @deprecated(reason: "Use 'operation_schema' instead")
+  operation_schema(provider: String!, operation: String!): JSON!
+  get_person(person_id: ID!): DomainPersonType! @deprecated(reason: "Use 'person' instead")
+  person(person_id: ID!): DomainPersonType!
+  get_prompt_file(filename: String!): JSON! @deprecated(reason: "Use 'prompt_file' instead")
+  prompt_file(filename: String!): JSON!
+  get_provider_operations(provider: String!): JSON! @deprecated(reason: "Use 'provider_operations' instead")
+  provider_operations(provider: String!): JSON!
+  get_providers: JSON! @deprecated(reason: "Use 'providers' instead")
+  providers: JSON!
+  get_supported_formats: JSON! @deprecated(reason: "Use 'supported_formats' instead")
+  supported_formats: JSON!
+  get_system_info: JSON! @deprecated(reason: "Use 'system_info' instead")
+  system_info: JSON!
   health_check: JSON!
-  list_conversations(person_id: ID, execution_id: ID, search: String, show_forgotten: Boolean, limit: Int, offset: Int, since: String): JSON!
-  list_diagrams(filter: DiagramFilterInput, limit: Int, offset: Int): DiagramListResult!
-  list_executions(filter: ExecutionFilterInput, limit: Int, offset: Int): ExecutionListResult!
-  list_persons(limit: Int): PersonListResult!
-  list_prompt_files: JSON!
+  list_conversations(person_id: ID, execution_id: ID, search: String, show_forgotten: Boolean, limit: Int, offset: Int, since: String): [JSON!]! @deprecated(reason: "Use 'conversations' instead")
+  conversations(person_id: ID, execution_id: ID, search: String, show_forgotten: Boolean, limit: Int, offset: Int, since: String): [JSON!]!
+  list_diagrams(filter: DiagramFilterInput, limit: Int, offset: Int): [DomainDiagramType!]! @deprecated(reason: "Use 'diagrams' instead")
+  diagrams(filter: DiagramFilterInput, limit: Int, offset: Int): [DomainDiagramType!]!
+  list_executions(filter: ExecutionFilterInput, limit: Int, offset: Int): [ExecutionStateType!]! @deprecated(reason: "Use 'executions' instead")
+  executions(filter: ExecutionFilterInput, limit: Int, offset: Int): [ExecutionStateType!]!
+  list_persons(limit: Int): [DomainPersonType!]! @deprecated(reason: "Use 'persons' instead")
+  persons(limit: Int): [DomainPersonType!]!
+  list_prompt_files: [JSON!]! @deprecated(reason: "Use 'prompt_files' instead")
+  prompt_files: [JSON!]!
 }
 
 input RegisterCliSessionInput {
@@ -638,7 +635,7 @@ type SubDiagramDataType {
 }
 
 type Subscription {
-  execution_updates(execution_id: ID!): JSON!
+  execution_updates(execution_id: ID!): ExecutionUpdate!
 }
 
 """Unique identifier type for task entities"""

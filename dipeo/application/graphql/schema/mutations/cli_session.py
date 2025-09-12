@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Standalone resolver functions for operation executor
 async def register_cli_session(
-    input: RegisterCliSessionInput, registry: ServiceRegistry = None
+    registry: ServiceRegistry, input: RegisterCliSessionInput
 ) -> CliSessionResult:
     """Register a new CLI execution session."""
     try:
@@ -119,7 +119,7 @@ async def register_cli_session(
 
 
 async def unregister_cli_session(
-    input: UnregisterCliSessionInput, registry: ServiceRegistry = None
+    registry: ServiceRegistry, input: UnregisterCliSessionInput
 ) -> CliSessionResult:
     """Unregister a CLI execution session."""
     try:

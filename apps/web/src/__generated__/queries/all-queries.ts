@@ -424,7 +424,7 @@ export interface ValidateDiagramVariables {
 
 export const GETACTIVECLISESSION_QUERY = gql`
   query GetActiveCliSession {
-    get_active_cli_session {
+    active_cli_session {
       session_id
       execution_id
       diagram_name
@@ -441,7 +441,7 @@ export const GETAPIKEY_QUERY = gql`
   query GetApiKey(
     $api_key_id: ID!
   ) {
-    get_api_key(api_key_id: $api_key_id) {
+    api_key(api_key_id: $api_key_id) {
       id
       label
       service
@@ -457,7 +457,7 @@ export const GETAPIKEYS_QUERY = gql`
   query GetApiKeys(
     $service: String
   ) {
-    get_api_keys(service: $service) {
+    api_keys(service: $service) {
       id
       label
       service
@@ -475,7 +475,7 @@ export const GETAVAILABLEMODELS_QUERY = gql`
     $service: String!,
     $api_key_id: ID!
   ) {
-    get_available_models(service: $service, api_key_id: $api_key_id)
+    available_models(service: $service, api_key_id: $api_key_id)
   }
 `;
 
@@ -488,7 +488,7 @@ export const GETDIAGRAM_QUERY = gql`
   query GetDiagram(
     $diagram_id: ID!
   ) {
-    get_diagram(diagram_id: $diagram_id) {
+    diagram(diagram_id: $diagram_id) {
       nodes {
         id
         type
@@ -547,7 +547,7 @@ export const GETEXECUTION_QUERY = gql`
   query GetExecution(
     $execution_id: ID!
   ) {
-    get_execution(execution_id: $execution_id) {
+    execution(execution_id: $execution_id) {
       id
       status
       diagram_id
@@ -574,7 +574,7 @@ export interface GetExecutionVariables {
 
 export const GETEXECUTIONCAPABILITIES_QUERY = gql`
   query GetExecutionCapabilities {
-    get_execution_capabilities
+    execution_capabilities
   }
 `;
 
@@ -584,7 +584,7 @@ export const GETEXECUTIONHISTORY_QUERY = gql`
     $limit: Int,
     $include_metrics: Boolean
   ) {
-    get_execution_history {
+    execution_history {
       id
       status
       diagram_id
@@ -606,7 +606,7 @@ export const GETEXECUTIONMETRICS_QUERY = gql`
   query GetExecutionMetrics(
     $execution_id: ID!
   ) {
-    get_execution_metrics(execution_id: $execution_id)
+    execution_metrics(execution_id: $execution_id)
   }
 `;
 
@@ -618,7 +618,7 @@ export const GETEXECUTIONORDER_QUERY = gql`
   query GetExecutionOrder(
     $execution_id: ID!
   ) {
-    get_execution_order(execution_id: $execution_id)
+    execution_order(execution_id: $execution_id)
   }
 `;
 
@@ -631,7 +631,7 @@ export const GETOPERATIONSCHEMA_QUERY = gql`
     $provider: String!,
     $operation: String!
   ) {
-    get_operation_schema(provider: $provider, operation: $operation) {
+    operation_schema(provider: $provider, operation: $operation) {
       operation
       method
       path
@@ -652,7 +652,7 @@ export const GETPERSON_QUERY = gql`
   query GetPerson(
     $person_id: ID!
   ) {
-    get_person(person_id: $person_id) {
+    person(person_id: $person_id) {
       id
       label
       type
@@ -674,7 +674,7 @@ export const GETPROMPTFILE_QUERY = gql`
   query GetPromptFile(
     $filename: String!
   ) {
-    get_prompt_file(filename: $filename)
+    prompt_file(filename: $filename)
   }
 `;
 
@@ -686,7 +686,7 @@ export const GETPROVIDEROPERATIONS_QUERY = gql`
   query GetProviderOperations(
     $provider: String!
   ) {
-    get_provider_operations(provider: $provider) {
+    provider_operations(provider: $provider) {
       name
       method
       path
@@ -704,7 +704,7 @@ export interface GetProviderOperationsVariables {
 
 export const GETPROVIDERS_QUERY = gql`
   query GetProviders {
-    get_providers {
+    providers {
       name
       operations {
         name
@@ -740,7 +740,7 @@ export const GETSUPPORTEDFORMATS_QUERY = gql`
 
 export const GETSYSTEMINFO_QUERY = gql`
   query GetSystemInfo {
-    get_system_info
+    system_info
   }
 `;
 
@@ -780,7 +780,7 @@ export const LISTDIAGRAMS_QUERY = gql`
     $limit: Int,
     $offset: Int
   ) {
-    list_diagrams(filter: $filter, limit: $limit, offset: $offset) {
+    diagrams(filter: $filter, limit: $limit, offset: $offset) {
       metadata {
         id
         name
@@ -808,7 +808,7 @@ export const LISTEXECUTIONS_QUERY = gql`
     $limit: Int,
     $offset: Int
   ) {
-    list_executions(filter: $filter, limit: $limit, offset: $offset) {
+    executions(filter: $filter, limit: $limit, offset: $offset) {
       id
       status
       diagram_id
@@ -829,7 +829,7 @@ export const LISTPERSONS_QUERY = gql`
   query ListPersons(
     $limit: Int
   ) {
-    list_persons(limit: $limit) {
+    persons(limit: $limit) {
       id
       label
       type
@@ -848,7 +848,7 @@ export interface ListPersonsVariables {
 
 export const LISTPROMPTFILES_QUERY = gql`
   query ListPromptFiles {
-    list_prompt_files
+    prompt_files
   }
 `;
 

@@ -12,7 +12,7 @@ export const personQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_person',
+          name: 'person',
           args: [
             { name: 'person_id', value: 'person_id', isVariable: true }
           ],
@@ -41,7 +41,7 @@ export const personQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'list_persons',
+          name: 'persons',
           args: [
             { name: 'limit', value: 'limit', isVariable: true }
           ],

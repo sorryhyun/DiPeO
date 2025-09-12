@@ -12,7 +12,7 @@ export const executionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_execution',
+          name: 'execution',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
@@ -50,7 +50,7 @@ export const executionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'list_executions',
+          name: 'executions',
           args: [
             { name: 'filter', value: 'filter', isVariable: true },
             { name: 'limit', value: 'limit', isVariable: true },

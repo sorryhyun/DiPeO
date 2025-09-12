@@ -118,6 +118,16 @@ class {{ type.name }}Type:
 {%- endif %}
 {%- endfor %}
 
+# Subscription-specific types (not from Pydantic models)
+@strawberry.type
+class ExecutionUpdate:
+    """Real-time execution update."""
+
+    execution_id: str
+    event_type: str
+    data: JSONScalar
+    timestamp: str
+
 # Alias for backward compatibility
 SerializedNodeOutputType = SerializedEnvelopeType
 
@@ -126,6 +136,7 @@ __all__ = [
 {%- for type in domain_types %}
     '{{ type.name }}Type',
 {%- endfor %}
+    'ExecutionUpdate',  # For subscriptions
     'SerializedNodeOutputType',  # Alias
     'ToolConfigType',  # Re-exported from generated code
 ]

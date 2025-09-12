@@ -410,6 +410,8 @@ dependencies = [
     { name = "datamodel-code-generator" },
     { name = "dependency-injector" },
     { name = "dill" },
+    { name = "dipeo-cli" },
+    { name = "dipeo-server" },
     { name = "distro" },
     { name = "fastapi" },
     { name = "filelock" },
@@ -526,6 +528,8 @@ requires-dist = [
     { name = "datamodel-code-generator", specifier = ">=0.21.0" },
     { name = "dependency-injector", specifier = "==4.48.1" },
     { name = "dill", specifier = "==0.3.8" },
+    { name = "dipeo-cli", editable = "apps/cli" },
+    { name = "dipeo-server", editable = "apps/server" },
     { name = "distro", specifier = "==1.9.0" },
     { name = "fastapi", specifier = "==0.115.13" },
     { name = "filelock", specifier = "==3.18.0" },
@@ -600,7 +604,7 @@ requires-dist = [
     { name = "six", specifier = "==1.17.0" },
     { name = "sniffio", specifier = "==1.3.1" },
     { name = "starlette", specifier = "==0.46.2" },
-    { name = "strawberry-graphql", specifier = "==0.275.5" },
+    { name = "strawberry-graphql", specifier = "==0.282.0" },
     { name = "structlog", specifier = "==24.4.0" },
     { name = "tenacity", specifier = "==8.5.0" },
     { name = "tqdm", specifier = "==4.67.1" },
@@ -1136,6 +1140,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/19/74/a633ee74eb36c44aa6d1095e7cc5569bebf04342ee146178e2d36600708b/jsonschema_specifications-2025.9.1.tar.gz", hash = "sha256:b540987f239e745613c7a9176f3edb72b832a4ac465cf02712288397832b5e8d", size = 32855, upload-time = "2025-09-08T01:34:59.186Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/41/45/1a4ed80516f02155c51f51e8cedb3c1902296743db0bbc66608a0db2814f/jsonschema_specifications-2025.9.1-py3-none-any.whl", hash = "sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe", size = 18437, upload-time = "2025-09-08T01:34:57.871Z" },
+]
+
+[[package]]
+name = "lia-web"
+version = "0.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1e/4e/847404ca9d36e3f5468c9e460aed565a02cbca0fdf81247da9f87fabc1b8/lia_web-0.2.3.tar.gz", hash = "sha256:ccc9d24cdc200806ea96a20b22fb68f4759e6becdb901bd36024df7921e848d7", size = 156761, upload-time = "2025-08-11T10:23:21.003Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/f2/c68a97c727c795119f1056ad2b7e716c23f26f004292517c435accf90b5c/lia_web-0.2.3-py3-none-any.whl", hash = "sha256:237c779c943cd4341527fc0adfcc3d8068f992ee051f4ef059b8474ee087f641", size = 13965, upload-time = "2025-08-11T10:23:20.215Z" },
 ]
 
 [[package]]
@@ -2176,17 +2192,18 @@ wheels = [
 
 [[package]]
 name = "strawberry-graphql"
-version = "0.275.5"
+version = "0.282.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "graphql-core" },
+    { name = "lia-web" },
     { name = "packaging" },
     { name = "python-dateutil" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/67/52/8a317305bb3e484c4850befefe655069c51ff8a9fa7b30e96f6fd68e6203/strawberry_graphql-0.275.5.tar.gz", hash = "sha256:080518de70b82c04a1f2d6118f268fadde45b985821e20e1550e3281afdecc41", size = 209640, upload-time = "2025-06-26T22:38:51.863Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/58/c5e680a5a088ffa91caade9cd861f03d52a12cd7ad336d9f104544d92d49/strawberry_graphql-0.282.0.tar.gz", hash = "sha256:f15610e4944210c15f83be814bfcd6ac1024b4293c18c9f4eee8345639795d1c", size = 212315, upload-time = "2025-09-07T20:29:09.035Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/17/1c/6b9727656968e6460fd22cdaedd1e309e26fa313053ed9bbdf1aee45082b/strawberry_graphql-0.275.5-py3-none-any.whl", hash = "sha256:b1d2c7c6febb5f8bd5bc9f3059d23f527f61f7a9fb6f7f24f4c5a7771dba7050", size = 306274, upload-time = "2025-06-26T22:38:49.05Z" },
+    { url = "https://files.pythonhosted.org/packages/69/98/81595a80ca75ac25f304cdb6a7ebcf86b2956d15679eedb4598d4216b5bd/strawberry_graphql-0.282.0-py3-none-any.whl", hash = "sha256:6671cf90fd3630ae7d50aae2d8a06808ada6ce55d02ee01b7b7cba0026dfed18", size = 309831, upload-time = "2025-09-07T20:29:06.272Z" },
 ]
 
 [[package]]

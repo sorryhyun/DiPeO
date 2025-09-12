@@ -10,7 +10,7 @@ export const providerQueries: EntityQueryDefinitions = {
       variables: [],
       fields: [
         {
-          name: 'get_providers',
+          name: 'providers',
           fields: [
             { name: 'name' },
             {
@@ -46,7 +46,7 @@ export const providerQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_provider_operations',
+          name: 'provider_operations',
           args: [
             { name: 'provider', value: 'provider', isVariable: true }
           ],
@@ -71,7 +71,7 @@ export const providerQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_operation_schema',
+          name: 'operation_schema',
           args: [
             { name: 'provider', value: 'provider', isVariable: true },
             { name: 'operation', value: 'operation', isVariable: true }

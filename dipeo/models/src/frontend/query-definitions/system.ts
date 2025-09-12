@@ -9,7 +9,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'get_system_info',
+          name: 'system_info',
           // Returns JSONScalar with dynamic fields
           fields: []
         }
@@ -20,7 +20,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'get_execution_capabilities',
+          name: 'execution_capabilities',
           // Returns JSONScalar with dynamic fields
           fields: []
         }
@@ -45,7 +45,7 @@ export const systemQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_execution_order',
+          name: 'execution_order',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
@@ -62,7 +62,7 @@ export const systemQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_execution_metrics',
+          name: 'execution_metrics',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
@@ -81,7 +81,7 @@ export const systemQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_execution_history',
+          name: 'execution_history',
           fields: [
             { name: 'id' },
             { name: 'status' },
@@ -99,7 +99,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'get_active_cli_session',
+          name: 'active_cli_session',
           fields: [
             { name: 'session_id' },
             { name: 'execution_id' },

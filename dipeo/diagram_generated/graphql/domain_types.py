@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces.
 
-Generated at: 2025-09-12T17:36:01.693036
+Generated at: 2025-09-12T19:35:01.659204
 """
 
 import strawberry
@@ -202,6 +202,15 @@ class ExecutionStateType:
         """Execution metrics"""
         return self.metrics if hasattr(self, 'metrics') else None
 
+@strawberry.type
+class ExecutionUpdate:
+    """Real-time execution update."""
+    
+    execution_id: str
+    event_type: str
+    data: JSONScalar
+    timestamp: str
+
 # Alias for backward compatibility
 SerializedNodeOutputType = SerializedEnvelopeType
 
@@ -222,6 +231,7 @@ __all__ = [
     'SerializedEnvelopeType',
     'ExecutionOptionsType',
     'ExecutionStateType',
+    'ExecutionUpdate',  # For subscriptions
     'SerializedNodeOutputType',  # Alias
     'ToolConfigType',  # Re-exported from generated code
 ]

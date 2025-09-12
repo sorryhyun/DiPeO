@@ -274,7 +274,7 @@ VALIDATE_DIAGRAM_MUTATION = """mutation ValidateDiagram($content: String!, $form
 
 
 GET_ACTIVE_CLI_SESSION_QUERY = """query GetActiveCliSession {
-  get_active_cli_session {
+  active_cli_session {
     session_id
     execution_id
     diagram_name
@@ -289,7 +289,7 @@ GET_ACTIVE_CLI_SESSION_QUERY = """query GetActiveCliSession {
 
 
 GET_API_KEY_QUERY = """query GetApiKey($api_key_id: ID!) {
-  get_api_key(api_key_id: $api_key_id) {
+  api_key(api_key_id: $api_key_id) {
     id
     label
     service
@@ -299,7 +299,7 @@ GET_API_KEY_QUERY = """query GetApiKey($api_key_id: ID!) {
 
 
 GET_API_KEYS_QUERY = """query GetApiKeys($service: String) {
-  get_api_keys(service: $service) {
+  api_keys(service: $service) {
     id
     label
     service
@@ -310,13 +310,13 @@ GET_API_KEYS_QUERY = """query GetApiKeys($service: String) {
 
 
 GET_AVAILABLE_MODELS_QUERY = """query GetAvailableModels($service: String!, $api_key_id: ID!) {
-  get_available_models(service: $service, api_key_id: $api_key_id)
+  available_models(service: $service, api_key_id: $api_key_id)
 }"""
 
 
 
 GET_DIAGRAM_QUERY = """query GetDiagram($diagram_id: ID!) {
-  get_diagram(diagram_id: $diagram_id) {
+  diagram(diagram_id: $diagram_id) {
     nodes {
       id
       type
@@ -369,7 +369,7 @@ GET_DIAGRAM_QUERY = """query GetDiagram($diagram_id: ID!) {
 
 
 GET_EXECUTION_QUERY = """query GetExecution($execution_id: ID!) {
-  get_execution(execution_id: $execution_id) {
+  execution(execution_id: $execution_id) {
     id
     status
     diagram_id
@@ -392,13 +392,13 @@ GET_EXECUTION_QUERY = """query GetExecution($execution_id: ID!) {
 
 
 GET_EXECUTION_CAPABILITIES_QUERY = """query GetExecutionCapabilities {
-  get_execution_capabilities
+  execution_capabilities
 }"""
 
 
 
 GET_EXECUTION_HISTORY_QUERY = """query GetExecutionHistory($diagram_id: ID, $limit: Int, $include_metrics: Boolean) {
-  get_execution_history {
+  execution_history {
     id
     status
     diagram_id
@@ -412,19 +412,19 @@ GET_EXECUTION_HISTORY_QUERY = """query GetExecutionHistory($diagram_id: ID, $lim
 
 
 GET_EXECUTION_METRICS_QUERY = """query GetExecutionMetrics($execution_id: ID!) {
-  get_execution_metrics(execution_id: $execution_id)
+  execution_metrics(execution_id: $execution_id)
 }"""
 
 
 
 GET_EXECUTION_ORDER_QUERY = """query GetExecutionOrder($execution_id: ID!) {
-  get_execution_order(execution_id: $execution_id)
+  execution_order(execution_id: $execution_id)
 }"""
 
 
 
 GET_OPERATION_SCHEMA_QUERY = """query GetOperationSchema($provider: String!, $operation: String!) {
-  get_operation_schema(provider: $provider, operation: $operation) {
+  operation_schema(provider: $provider, operation: $operation) {
     operation
     method
     path
@@ -438,7 +438,7 @@ GET_OPERATION_SCHEMA_QUERY = """query GetOperationSchema($provider: String!, $op
 
 
 GET_PERSON_QUERY = """query GetPerson($person_id: ID!) {
-  get_person(person_id: $person_id) {
+  person(person_id: $person_id) {
     id
     label
     type
@@ -454,13 +454,13 @@ GET_PERSON_QUERY = """query GetPerson($person_id: ID!) {
 
 
 GET_PROMPT_FILE_QUERY = """query GetPromptFile($filename: String!) {
-  get_prompt_file(filename: $filename)
+  prompt_file(filename: $filename)
 }"""
 
 
 
 GET_PROVIDER_OPERATIONS_QUERY = """query GetProviderOperations($provider: String!) {
-  get_provider_operations(provider: $provider) {
+  provider_operations(provider: $provider) {
     name
     method
     path
@@ -474,7 +474,7 @@ GET_PROVIDER_OPERATIONS_QUERY = """query GetProviderOperations($provider: String
 
 
 GET_PROVIDERS_QUERY = """query GetProviders {
-  get_providers {
+  providers {
     name
     operations {
       name
@@ -510,7 +510,7 @@ GET_SUPPORTED_FORMATS_QUERY = """query GetSupportedFormats {
 
 
 GET_SYSTEM_INFO_QUERY = """query GetSystemInfo {
-  get_system_info
+  system_info
 }"""
 
 
@@ -528,7 +528,7 @@ LIST_CONVERSATIONS_QUERY = """query ListConversations($person_id: ID, $execution
 
 
 LIST_DIAGRAMS_QUERY = """query ListDiagrams($filter: DiagramFilterInput, $limit: Int, $offset: Int) {
-  list_diagrams(filter: $filter, limit: $limit, offset: $offset) {
+  diagrams(filter: $filter, limit: $limit, offset: $offset) {
     metadata {
       id
       name
@@ -546,7 +546,7 @@ LIST_DIAGRAMS_QUERY = """query ListDiagrams($filter: DiagramFilterInput, $limit:
 
 
 LIST_EXECUTIONS_QUERY = """query ListExecutions($filter: ExecutionFilterInput, $limit: Int, $offset: Int) {
-  list_executions(filter: $filter, limit: $limit, offset: $offset) {
+  executions(filter: $filter, limit: $limit, offset: $offset) {
     id
     status
     diagram_id
@@ -559,7 +559,7 @@ LIST_EXECUTIONS_QUERY = """query ListExecutions($filter: ExecutionFilterInput, $
 
 
 LIST_PERSONS_QUERY = """query ListPersons($limit: Int) {
-  list_persons(limit: $limit) {
+  persons(limit: $limit) {
     id
     label
     type
@@ -574,7 +574,7 @@ LIST_PERSONS_QUERY = """query ListPersons($limit: Int) {
 
 
 LIST_PROMPT_FILES_QUERY = """query ListPromptFiles {
-  list_prompt_files
+  prompt_files
 }"""
 
 

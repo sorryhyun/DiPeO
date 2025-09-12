@@ -17,6 +17,7 @@ from dipeo.config.settings import get_settings
 from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import EventType
+from dipeo.diagram_generated.graphql.domain_types import ExecutionUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -68,16 +69,6 @@ def serialize_for_json(obj: Any, seen: set | None = None, max_depth: int = 10) -
     finally:
         # Remove from seen set when done
         seen.discard(obj_id)
-
-
-@strawberry.type
-class ExecutionUpdate:
-    """Real-time execution update."""
-
-    execution_id: str
-    event_type: str
-    data: JSON
-    timestamp: str
 
 
 def create_subscription_type(registry: ServiceRegistry) -> type:

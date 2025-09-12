@@ -12,7 +12,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_api_keys',
+          name: 'api_keys',
           args: [
             { name: 'service', value: 'service', isVariable: true }
           ],
@@ -33,7 +33,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_api_key',
+          name: 'api_key',
           args: [
             { name: 'api_key_id', value: 'api_key_id', isVariable: true }
           ],
@@ -54,7 +54,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_available_models',
+          name: 'available_models',
           args: [
             { name: 'service', value: 'service', isVariable: true },
             { name: 'api_key_id', value: 'api_key_id', isVariable: true }

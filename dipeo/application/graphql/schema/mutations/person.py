@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 # Standalone resolver functions for operation executor
-async def create_person(input: CreatePersonInput, registry: ServiceRegistry = None) -> PersonResult:
+async def create_person(registry: ServiceRegistry, input: CreatePersonInput) -> PersonResult:
     """Create a new person."""
     try:
         execution_orchestrator = registry.resolve(EXECUTION_ORCHESTRATOR)
@@ -52,7 +52,7 @@ async def create_person(input: CreatePersonInput, registry: ServiceRegistry = No
 
 
 async def update_person(
-    person_id: strawberry.ID, input: UpdatePersonInput, registry: ServiceRegistry = None
+    registry: ServiceRegistry, person_id: strawberry.ID, input: UpdatePersonInput
 ) -> PersonResult:
     """Update an existing person."""
     try:
@@ -133,7 +133,7 @@ async def update_person(
         return PersonResult.error_result(error=f"Failed to update person: {e!s}")
 
 
-async def delete_person(person_id: strawberry.ID, registry: ServiceRegistry = None) -> DeleteResult:
+async def delete_person(registry: ServiceRegistry, person_id: strawberry.ID) -> DeleteResult:
     """Delete a person (not currently supported)."""
     try:
         person_id_typed = PersonID(str(person_id))

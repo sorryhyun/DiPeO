@@ -36,63 +36,89 @@ def extract_operations_for_schema(inputs: dict[str, Any]) -> dict[str, Any]:
         # Insert underscore before uppercase letters that follow numbers or lowercase
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
-    def get_return_type(operation_name: str) -> str:
+    def get_return_type(operation_name: str, operation_type: str) -> str:
         """
         Map operation names to their correct return types.
-        Based on the resolvers in dipeo/application/graphql/schema/mutations/
+        Return direct types for queries, Result wrappers for mutations.
         """
+        # Direct type mapping for queries
+        DIRECT_TYPE_MAP = {
+            "Execution": "ExecutionStateType",
+            "Diagram": "DomainDiagramType",
+            "Person": "DomainPersonType",
+            "ApiKey": "DomainApiKeyType",
+            "Node": "DomainNodeType",
+            # File and CliSession types don't exist yet, use JSON
+        }
+
+        if operation_type == "query":
+            # Extract entity from operation name for direct type returns
+            if operation_name.startswith("Get"):
+                entity = operation_name[3:]  # GetExecution → Execution
+                return DIRECT_TYPE_MAP.get(entity, "JSON")
+            elif operation_name.startswith("List"):
+                # ListExecutions → list[ExecutionStateType]
+                entity_plural = operation_name[4:]  # ListExecutions → Executions
+                # Remove trailing 's' to get singular
+                entity = entity_plural.rstrip('s')
+                base_type = DIRECT_TYPE_MAP.get(entity, "JSON")
+                return f"list[{base_type}]"
+            elif operation_name == "GetExecutions":
+                # Special case for GetExecutions (returns list)
+                return "list[ExecutionStateType]"
+            elif operation_name == "SearchDiagrams":
+                return "list[DomainDiagramType]"
+            elif operation_name == "GetRecentFiles":
+                return "list[JSON]"  # FileType doesn't exist yet
+            elif operation_name == "GetActiveCliSession":
+                return "JSON"  # CliSessionType doesn't exist yet
+
+        # For subscriptions, return proper typed objects
+        if operation_type == "subscription":
+            if operation_name == "ExecutionUpdates":
+                return "ExecutionUpdate"
+            # Other subscriptions can return JSON for now
+            return "JSON"
+
+        # For mutations, keep existing Result wrappers
         # Execution operations
         if operation_name in ['ExecuteDiagram', 'UpdateNodeState', 'ControlExecution', 'SendInteractiveResponse']:
             return 'ExecutionResult'
 
         # Diagram operations
-        if operation_name in ['CreateDiagram', 'UpdateDiagram', 'GetDiagram', 'LoadDiagram', 'SaveDiagram']:
+        if operation_name in ['CreateDiagram', 'UpdateDiagram', 'LoadDiagram', 'SaveDiagram']:
             return 'DiagramResult'
-        if operation_name in ['ListDiagrams', 'SearchDiagrams']:
-            return 'DiagramListResult'
         if operation_name == 'DeleteDiagram':
             return 'DeleteResult'
 
         # Node operations
-        if operation_name in ['CreateNode', 'UpdateNode', 'GetNode']:
+        if operation_name in ['CreateNode', 'UpdateNode']:
             return 'NodeResult'
-        if operation_name in ['ListNodes']:
-            return 'NodeListResult'
         if operation_name == 'DeleteNode':
             return 'DeleteResult'
 
         # Person operations
-        if operation_name in ['CreatePerson', 'UpdatePerson', 'GetPerson']:
+        if operation_name in ['CreatePerson', 'UpdatePerson']:
             return 'PersonResult'
-        if operation_name in ['ListPersons']:
-            return 'PersonListResult'
         if operation_name == 'DeletePerson':
             return 'DeleteResult'
 
         # API Key operations
-        if operation_name in ['CreateApiKey', 'GetApiKey', 'TestApiKey']:
+        if operation_name in ['CreateApiKey', 'TestApiKey']:
             return 'ApiKeyResult'
-        if operation_name in ['ListApiKeys']:
-            return 'ApiKeyListResult'
         if operation_name == 'DeleteApiKey':
             return 'DeleteResult'
-
-        # Execution queries
-        if operation_name in ['GetExecution']:
-            return 'ExecutionResult'
-        if operation_name in ['ListExecutions', 'GetExecutions']:
-            return 'ExecutionListResult'
 
         # Format conversion
         if operation_name == 'ConvertDiagramFormat':
             return 'FormatConversionResult'
 
         # CLI session operations
-        if operation_name in ['RegisterCliSession', 'UnregisterCliSession', 'GetActiveCliSession']:
+        if operation_name in ['RegisterCliSession', 'UnregisterCliSession']:
             return 'CliSessionResult'
 
-        # File operations
-        if operation_name in ['ListFiles', 'GetFile', 'GetRecentFiles']:
+        # File operations (mutations)
+        if operation_name in ['SaveFile', 'DeleteFile']:
             return 'FileOperationResult'
 
         # Default to JSON for unknown operations
@@ -213,7 +239,15 @@ def extract_operations_for_schema(inputs: dict[str, Any]) -> dict[str, Any]:
                 parameters = extract_parameters(obj)
 
                 # Get the return type for this operation
-                return_type = get_return_type(operation_name)
+                return_type = get_return_type(operation_name, operation_type)
+
+                # Generate field alias for queries (noun forms)
+                alias_name = None
+                if operation_type == "query":
+                    if field_name.startswith("get_"):
+                        alias_name = field_name[4:]  # get_execution → execution
+                    elif field_name.startswith("list_"):
+                        alias_name = field_name[5:]  # list_executions → executions
 
                 # Generate description
                 description = f"Execute {operation_name} {operation_type}"
@@ -221,6 +255,7 @@ def extract_operations_for_schema(inputs: dict[str, Any]) -> dict[str, Any]:
                 operation_info = {
                     'operation_class': name,
                     'field_name': field_name,
+                    'alias_name': alias_name,  # NEW: preferred noun form
                     'description': description,
                     'operation_name': operation_name,
                     'parameters': parameters,  # Add extracted parameters

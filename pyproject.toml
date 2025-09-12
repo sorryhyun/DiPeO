@@ -93,7 +93,7 @@ dependencies = [
     "six==1.17.0",
     "sniffio==1.3.1",
     "starlette==0.46.2",
-    "strawberry-graphql==0.275.5",
+    "strawberry-graphql==0.282.0",
     "structlog==24.4.0",
     "tenacity==8.5.0",
     "tqdm==4.67.1",
@@ -110,6 +110,9 @@ dependencies = [
     "ollama>=0.5.0",
     "claude-code-sdk>=0.0.21",
     "rich>=13.0.0",
+    # Workspace packages (automatically installed as editable by uv)
+    "dipeo-cli",
+    "dipeo-server",
 ]
 
 [project.optional-dependencies]
@@ -151,6 +154,10 @@ dev-dependencies = [
 members = ["dipeo", "apps/server", "apps/cli"]
 
 # UV workspace members are automatically installed as editable
+
+[tool.uv.sources]
+dipeo-cli = { workspace = true }
+dipeo-server = { workspace = true }
 
 # Tool configurations (inherited from existing configs)
 [tool.ruff]

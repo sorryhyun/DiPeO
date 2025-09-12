@@ -8,7 +8,7 @@ generated operation definitions from TypeScript query definitions.
 import contextlib
 import inspect
 import re
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
 from importlib import import_module
 from typing import Any, Optional, Union, get_type_hints
@@ -41,6 +41,7 @@ RESOLVER_MODULES = [
     "dipeo.application.graphql.schema.mutations.person",
     "dipeo.application.graphql.schema.mutations.upload",
     "dipeo.application.graphql.schema.mutations.cli_session",
+    "dipeo.application.graphql.schema.subscription_resolvers",
 ]
 
 
@@ -101,6 +102,7 @@ class OperationExecutor:
         """
         self.registry = registry
         self.operations: dict[str, OperationMapping] = {}
+        self.subscriptions: dict[str, OperationMapping] = {}
         self._autowire()
 
     def _autowire(self) -> None:
@@ -145,7 +147,11 @@ class OperationExecutor:
             # Try to find the resolver function in the modules
             for m in modules:
                 fn = getattr(m, func_name, None)
-                if fn and (inspect.iscoroutinefunction(fn) or inspect.isfunction(fn)):
+                if fn and (
+                    inspect.iscoroutinefunction(fn)
+                    or inspect.isfunction(fn)
+                    or inspect.isasyncgenfunction(fn)
+                ):
                     # Get result type if specified
                     op_name = op_cls.__name__.removesuffix("Operation")
                     result_type = result_type_map.get(op_name)
@@ -165,14 +171,23 @@ class OperationExecutor:
             resolver_method: The resolver method to execute
             result_type: Expected result type (if applicable)
         """
-        is_async = inspect.iscoroutinefunction(resolver_method)
+        # Check if it's async (regular async function or async generator)
+        is_async = inspect.iscoroutinefunction(resolver_method) or inspect.isasyncgenfunction(
+            resolver_method
+        )
 
-        self.operations[operation_class.operation_name] = OperationMapping(
+        mapping = OperationMapping(
             operation_class=operation_class,
             resolver_method=resolver_method,
             result_type=result_type,
             is_async=is_async,
         )
+
+        # Check if it's a subscription based on operation type
+        if getattr(operation_class, "operation_type", None) == "subscription":
+            self.subscriptions[operation_class.operation_name] = mapping
+        else:
+            self.operations[operation_class.operation_name] = mapping
 
     async def execute(
         self,
@@ -213,7 +228,45 @@ class OperationExecutor:
         if mapping.result_type:
             self._validate_result(result, mapping.result_type)
 
+        # For queries, unwrap Result types to return data directly
+        if mapping.operation_class.operation_type == "query" and hasattr(result, "data"):
+            return result.data if result.data is not None else result
+
         return result
+
+    async def execute_subscription(
+        self,
+        operation_name: str,
+        variables: dict[str, Any] | None = None,
+    ) -> AsyncGenerator[Any]:
+        """
+        Execute a GraphQL subscription by name.
+
+        Args:
+            operation_name: Name of the subscription to execute
+            variables: Variables for the subscription
+
+        Yields:
+            Subscription events
+
+        Raises:
+            ValueError: If subscription is not found or validation fails
+        """
+        mapping = self.subscriptions.get(operation_name)
+        if not mapping:
+            raise ValueError(
+                f"Subscription '{operation_name}' not found. Available subscriptions: {list(self.subscriptions.keys())}"
+            )
+
+        # Validate variables against subscription schema
+        validated_vars = self._validate_variables(mapping, variables or {})
+
+        # Execute the subscription resolver (should return an async generator)
+        if mapping.is_async:
+            async for item in mapping.resolver_method(self.registry, **validated_vars):
+                yield item
+        else:
+            raise TypeError(f"Subscription '{operation_name}' resolver must be async generator")
 
     def _validate_variables(
         self, mapping: OperationMapping, variables: dict[str, Any]
