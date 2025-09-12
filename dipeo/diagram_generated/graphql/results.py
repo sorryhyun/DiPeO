@@ -95,7 +95,7 @@ class DiagramResult(BaseResultMixin):
         default=None,
         deprecation_reason="Use 'data' field instead"
     )
-    
+
     def __post_init__(self):
         # Auto-populate deprecated field
         if self.data and not self.diagram:
@@ -129,7 +129,7 @@ class NodeResult(BaseResultMixin):
         default=None,
         deprecation_reason="Use 'data' field instead"
     )
-    
+
     def __post_init__(self):
         # Auto-populate deprecated field
         if self.data and not self.node:
@@ -162,7 +162,7 @@ class ExecutionResult(BaseResultMixin):
         default=None,
         deprecation_reason="Use 'data' field instead"
     )
-    
+
     def __post_init__(self):
         # Auto-populate deprecated field
         if self.data and not self.execution:
@@ -196,7 +196,7 @@ class PersonResult(BaseResultMixin):
         default=None,
         deprecation_reason="Use 'data' field instead"
     )
-    
+
     def __post_init__(self):
         # Auto-populate deprecated field
         if self.data and not self.person:
@@ -229,7 +229,7 @@ class ApiKeyResult(BaseResultMixin):
         default=None,
         deprecation_reason="Use 'data' field instead"
     )
-    
+
     def __post_init__(self):
         # Auto-populate deprecated field
         if self.data and not self.api_key:

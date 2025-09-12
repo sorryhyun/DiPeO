@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces.
 
-Generated at: 2025-09-12T19:35:01.659204
+Generated at: 2025-09-12T22:51:35.970363
 """
 
 import strawberry
@@ -202,10 +202,11 @@ class ExecutionStateType:
         """Execution metrics"""
         return self.metrics if hasattr(self, 'metrics') else None
 
+# Subscription-specific types (not from Pydantic models)
 @strawberry.type
 class ExecutionUpdate:
     """Real-time execution update."""
-    
+
     execution_id: str
     event_type: str
     data: JSONScalar

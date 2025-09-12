@@ -11,30 +11,8 @@ export const providerQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'providers',
-          fields: [
-            { name: 'name' },
-            {
-              name: 'operations',
-              fields: [
-                { name: 'name' },
-                { name: 'method' },
-                { name: 'path' },
-                { name: 'description' },
-                { name: 'required_scopes' }
-              ]
-            },
-            {
-              name: 'metadata',
-              fields: [
-                { name: 'version' },
-                { name: 'type' },
-                { name: 'description' },
-                { name: 'documentation_url' }
-              ]
-            },
-            { name: 'base_url' },
-            { name: 'default_timeout' }
-          ]
+          // Returns JSONScalar with dynamic fields
+          fields: []
         }
       ]
     },
@@ -50,15 +28,8 @@ export const providerQueries: EntityQueryDefinitions = {
           args: [
             { name: 'provider', value: 'provider', isVariable: true }
           ],
-          fields: [
-            { name: 'name' },
-            { name: 'method' },
-            { name: 'path' },
-            { name: 'description' },
-            { name: 'required_scopes' },
-            { name: 'has_pagination' },
-            { name: 'timeout_override' }
-          ]
+          // Returns JSONScalar with dynamic fields
+          fields: []
         }
       ]
     },
@@ -76,15 +47,8 @@ export const providerQueries: EntityQueryDefinitions = {
             { name: 'provider', value: 'provider', isVariable: true },
             { name: 'operation', value: 'operation', isVariable: true }
           ],
-          fields: [
-            { name: 'operation' },
-            { name: 'method' },
-            { name: 'path' },
-            { name: 'description' },
-            { name: 'request_body' },
-            { name: 'query_params' },
-            { name: 'response' }
-          ]
+          // Returns JSONScalar with dynamic fields
+          fields: []
         }
       ]
     }

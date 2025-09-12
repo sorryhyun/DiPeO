@@ -16,12 +16,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
           args: [
             { name: 'service', value: 'service', isVariable: true }
           ],
-          fields: [
-            { name: 'id' },
-            { name: 'label' },
-            { name: 'service' },
-            { name: 'key' }
-          ]
+          fields: []
         }
       ]
     },

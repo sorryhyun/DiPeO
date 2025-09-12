@@ -10,14 +10,11 @@ import type {
   ExecutionFilterInput,
   InteractiveResponseInput,
   RegisterCliSessionInput,
-  Scalars,
   UnregisterCliSessionInput,
   UpdateNodeInput,
   UpdateNodeStateInput,
   UpdatePersonInput
-} from '@dipeo/models';
-
-type Upload = Scalars['Upload']['input'];export const CONTROLEXECUTION_MUTATION = gql`
+} from '@dipeo/models';export const CONTROLEXECUTION_MUTATION = gql`
   mutation ControlExecution(
     $input: ExecutionControlInput!
   ) {
@@ -45,7 +42,7 @@ export const CONVERTDIAGRAMFORMAT_MUTATION = gql`
   ) {
     convert_diagram_format(content: $content, from_format: $from_format, to_format: $to_format) {
       success
-      content
+      data
       format
       message
       error
@@ -361,46 +358,29 @@ export interface UpdatePersonVariables {
 
 export const UPLOADDIAGRAM_MUTATION = gql`
   mutation UploadDiagram(
-    $file: Upload!,
+    $file: JSON!,
     $format: DiagramFormatGraphQL!
   ) {
-    upload_diagram(file: $file, format: $format) {
-      success
-      diagram {
-        metadata {
-          id
-          name
-        }
-      }
-      message
-      error
-    }
+    upload_diagram(file: $file, format: $format)
   }
 `;
 
 export interface UploadDiagramVariables {
-  file: Upload;
+  file: any;
   format: DiagramFormatGraphQL;
 }
 
 export const UPLOADFILE_MUTATION = gql`
   mutation UploadFile(
-    $file: Upload!,
+    $file: JSON!,
     $path: String
   ) {
-    upload_file(file: $file, path: $path) {
-      success
-      path
-      size_bytes
-      content_type
-      message
-      error
-    }
+    upload_file(file: $file, path: $path)
   }
 `;
 
 export interface UploadFileVariables {
-  file: Upload;
+  file: any;
   path?: string;
 }
 
@@ -409,11 +389,7 @@ export const VALIDATEDIAGRAM_MUTATION = gql`
     $content: String!,
     $format: DiagramFormatGraphQL!
   ) {
-    validate_diagram(content: $content, format: $format) {
-      success
-      error
-      message
-    }
+    validate_diagram(content: $content, format: $format)
   }
 `;
 
@@ -424,16 +400,7 @@ export interface ValidateDiagramVariables {
 
 export const GETACTIVECLISESSION_QUERY = gql`
   query GetActiveCliSession {
-    active_cli_session {
-      session_id
-      execution_id
-      diagram_name
-      diagram_format
-      started_at
-      is_active
-      diagram_data
-      node_states
-    }
+    active_cli_session
   }
 `;
 
@@ -457,12 +424,7 @@ export const GETAPIKEYS_QUERY = gql`
   query GetApiKeys(
     $service: String
   ) {
-    api_keys(service: $service) {
-      id
-      label
-      service
-      key
-    }
+    api_keys(service: $service)
   }
 `;
 
@@ -584,15 +546,7 @@ export const GETEXECUTIONHISTORY_QUERY = gql`
     $limit: Int,
     $include_metrics: Boolean
   ) {
-    execution_history {
-      id
-      status
-      diagram_id
-      started_at
-      ended_at
-      error
-      metrics
-    }
+    execution_history(diagram_id: $diagram_id, limit: $limit, include_metrics: $include_metrics)
   }
 `;
 
@@ -631,15 +585,7 @@ export const GETOPERATIONSCHEMA_QUERY = gql`
     $provider: String!,
     $operation: String!
   ) {
-    operation_schema(provider: $provider, operation: $operation) {
-      operation
-      method
-      path
-      description
-      request_body
-      query_params
-      response
-    }
+    operation_schema(provider: $provider, operation: $operation)
   }
 `;
 
@@ -686,15 +632,7 @@ export const GETPROVIDEROPERATIONS_QUERY = gql`
   query GetProviderOperations(
     $provider: String!
   ) {
-    provider_operations(provider: $provider) {
-      name
-      method
-      path
-      description
-      required_scopes
-      has_pagination
-      timeout_override
-    }
+    provider_operations(provider: $provider)
   }
 `;
 
@@ -704,37 +642,13 @@ export interface GetProviderOperationsVariables {
 
 export const GETPROVIDERS_QUERY = gql`
   query GetProviders {
-    providers {
-      name
-      operations {
-        name
-        method
-        path
-        description
-        required_scopes
-      }
-      metadata {
-        version
-        type
-        description
-        documentation_url
-      }
-      base_url
-      default_timeout
-    }
+    providers
   }
 `;
 
 export const GETSUPPORTEDFORMATS_QUERY = gql`
   query GetSupportedFormats {
-    supported_formats {
-      format
-      name
-      description
-      extension
-      supports_import
-      supports_export
-    }
+    supported_formats
   }
 `;
 
@@ -758,7 +672,7 @@ export const LISTCONVERSATIONS_QUERY = gql`
     $show_forgotten: Boolean,
     $limit: Int,
     $offset: Int,
-    $since: DateTime
+    $since: String
   ) {
     conversations(person_id: $person_id, execution_id: $execution_id, search: $search, show_forgotten: $show_forgotten, limit: $limit, offset: $offset, since: $since)
   }

@@ -10,7 +10,7 @@ export const fileQueries: EntityQueryDefinitions = {
       name: 'UploadFile',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'file', type: 'Upload', required: true },
+        { name: 'file', type: 'JSON', required: true },
         { name: 'path', type: 'String' }
       ],
       fields: [
@@ -20,14 +20,7 @@ export const fileQueries: EntityQueryDefinitions = {
             { name: 'file', value: 'file', isVariable: true },
             { name: 'path', value: 'path', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'path' },
-            { name: 'size_bytes' },
-            { name: 'content_type' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: []
         }
       ]
     },
@@ -35,7 +28,7 @@ export const fileQueries: EntityQueryDefinitions = {
       name: 'UploadDiagram',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'file', type: 'Upload', required: true },
+        { name: 'file', type: 'JSON', required: true },
         { name: 'format', type: 'DiagramFormatGraphQL', required: true }
       ],
       fields: [
@@ -45,23 +38,7 @@ export const fileQueries: EntityQueryDefinitions = {
             { name: 'file', value: 'file', isVariable: true },
             { name: 'format', value: 'format', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            {
-              name: 'diagram',
-              fields: [
-                {
-                  name: 'metadata',
-                  fields: [
-                    { name: 'id' },
-                    { name: 'name' }
-                  ]
-                }
-              ]
-            },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: []
         }
       ]
     },
@@ -79,11 +56,7 @@ export const fileQueries: EntityQueryDefinitions = {
             { name: 'content', value: 'content', isVariable: true },
             { name: 'format', value: 'format', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'error' },
-            { name: 'message' }
-          ]
+          fields: []
         }
       ]
     },
@@ -105,7 +78,7 @@ export const fileQueries: EntityQueryDefinitions = {
           ],
           fields: [
             { name: 'success' },
-            { name: 'content' },
+            { name: 'data' },
             { name: 'format' },
             { name: 'message' },
             { name: 'error' }

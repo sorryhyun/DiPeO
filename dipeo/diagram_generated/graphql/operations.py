@@ -31,7 +31,7 @@ CONTROL_EXECUTION_MUTATION = """mutation ControlExecution($input: ExecutionContr
 CONVERT_DIAGRAM_FORMAT_MUTATION = """mutation ConvertDiagramFormat($content: String!, $from_format: DiagramFormatGraphQL!, $to_format: DiagramFormatGraphQL!) {
   convert_diagram_format(content: $content, from_format: $from_format, to_format: $to_format) {
     success
-    content
+    data
     format
     message
     error
@@ -234,56 +234,26 @@ UPDATE_PERSON_MUTATION = """mutation UpdatePerson($person_id: ID!, $input: Updat
 
 
 
-UPLOAD_DIAGRAM_MUTATION = """mutation UploadDiagram($file: Upload!, $format: DiagramFormatGraphQL!) {
-  upload_diagram(file: $file, format: $format) {
-    success
-    diagram {
-      metadata {
-        id
-        name
-      }
-    }
-    message
-    error
-  }
+UPLOAD_DIAGRAM_MUTATION = """mutation UploadDiagram($file: JSON!, $format: DiagramFormatGraphQL!) {
+  upload_diagram(file: $file, format: $format)
 }"""
 
 
 
-UPLOAD_FILE_MUTATION = """mutation UploadFile($file: Upload!, $path: String) {
-  upload_file(file: $file, path: $path) {
-    success
-    path
-    size_bytes
-    content_type
-    message
-    error
-  }
+UPLOAD_FILE_MUTATION = """mutation UploadFile($file: JSON!, $path: String) {
+  upload_file(file: $file, path: $path)
 }"""
 
 
 
 VALIDATE_DIAGRAM_MUTATION = """mutation ValidateDiagram($content: String!, $format: DiagramFormatGraphQL!) {
-  validate_diagram(content: $content, format: $format) {
-    success
-    error
-    message
-  }
+  validate_diagram(content: $content, format: $format)
 }"""
 
 
 
 GET_ACTIVE_CLI_SESSION_QUERY = """query GetActiveCliSession {
-  active_cli_session {
-    session_id
-    execution_id
-    diagram_name
-    diagram_format
-    started_at
-    is_active
-    diagram_data
-    node_states
-  }
+  active_cli_session
 }"""
 
 
@@ -299,12 +269,7 @@ GET_API_KEY_QUERY = """query GetApiKey($api_key_id: ID!) {
 
 
 GET_API_KEYS_QUERY = """query GetApiKeys($service: String) {
-  api_keys(service: $service) {
-    id
-    label
-    service
-    key
-  }
+  api_keys(service: $service)
 }"""
 
 
@@ -398,15 +363,7 @@ GET_EXECUTION_CAPABILITIES_QUERY = """query GetExecutionCapabilities {
 
 
 GET_EXECUTION_HISTORY_QUERY = """query GetExecutionHistory($diagram_id: ID, $limit: Int, $include_metrics: Boolean) {
-  execution_history {
-    id
-    status
-    diagram_id
-    started_at
-    ended_at
-    error
-    metrics
-  }
+  execution_history(diagram_id: $diagram_id, limit: $limit, include_metrics: $include_metrics)
 }"""
 
 
@@ -424,15 +381,7 @@ GET_EXECUTION_ORDER_QUERY = """query GetExecutionOrder($execution_id: ID!) {
 
 
 GET_OPERATION_SCHEMA_QUERY = """query GetOperationSchema($provider: String!, $operation: String!) {
-  operation_schema(provider: $provider, operation: $operation) {
-    operation
-    method
-    path
-    description
-    request_body
-    query_params
-    response
-  }
+  operation_schema(provider: $provider, operation: $operation)
 }"""
 
 
@@ -460,51 +409,19 @@ GET_PROMPT_FILE_QUERY = """query GetPromptFile($filename: String!) {
 
 
 GET_PROVIDER_OPERATIONS_QUERY = """query GetProviderOperations($provider: String!) {
-  provider_operations(provider: $provider) {
-    name
-    method
-    path
-    description
-    required_scopes
-    has_pagination
-    timeout_override
-  }
+  provider_operations(provider: $provider)
 }"""
 
 
 
 GET_PROVIDERS_QUERY = """query GetProviders {
-  providers {
-    name
-    operations {
-      name
-      method
-      path
-      description
-      required_scopes
-    }
-    metadata {
-      version
-      type
-      description
-      documentation_url
-    }
-    base_url
-    default_timeout
-  }
+  providers
 }"""
 
 
 
 GET_SUPPORTED_FORMATS_QUERY = """query GetSupportedFormats {
-  supported_formats {
-    format
-    name
-    description
-    extension
-    supports_import
-    supports_export
-  }
+  supported_formats
 }"""
 
 
@@ -521,7 +438,7 @@ HEALTH_CHECK_QUERY = """query HealthCheck {
 
 
 
-LIST_CONVERSATIONS_QUERY = """query ListConversations($person_id: ID, $execution_id: ID, $search: String, $show_forgotten: Boolean, $limit: Int, $offset: Int, $since: DateTime) {
+LIST_CONVERSATIONS_QUERY = """query ListConversations($person_id: ID, $execution_id: ID, $search: String, $show_forgotten: Boolean, $limit: Int, $offset: Int, $since: String) {
   conversations(person_id: $person_id, execution_id: $execution_id, search: $search, show_forgotten: $show_forgotten, limit: $limit, offset: $offset, since: $since)
 }"""
 
@@ -1573,7 +1490,7 @@ class UploadDiagramOperation:
     class Variables(TypedDict):
         """Variable types for UploadDiagram mutation."""
         
-        file: Any
+        file: dict[str, Any]
         
         format: DiagramFormatGraphQL
         
@@ -1585,13 +1502,13 @@ class UploadDiagramOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, file: Any, format: DiagramFormatGraphQL) -> dict[str, Any]:
+    def get_variables_dict(cls, file: dict[str, Any], format: DiagramFormatGraphQL) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
         Args:
             
-            file: Upload - Required (accepts dict or Strawberry input object)
+            file: JSON - Required (accepts dict or Strawberry input object)
             
             format: DiagramFormatGraphQL - Required (accepts dict or Strawberry input object)
             
@@ -1634,7 +1551,7 @@ class UploadFileOperation:
     class Variables(TypedDict, total=False):
         """Variable types for UploadFile mutation."""
         
-        file: Any
+        file: dict[str, Any]
         
         path: Optional[str]
         
@@ -1646,13 +1563,13 @@ class UploadFileOperation:
         return cls.query
 
     @classmethod
-    def get_variables_dict(cls, file: Any, path: Optional[str] = None) -> dict[str, Any]:
+    def get_variables_dict(cls, file: dict[str, Any], path: Optional[str] = None) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
 
         Args:
             
-            file: Upload - Required (accepts dict or Strawberry input object)
+            file: JSON - Required (accepts dict or Strawberry input object)
             
             path: String - Optional (accepts dict or Strawberry input object)
             
@@ -2659,7 +2576,7 @@ class ListConversationsOperation:
             
             offset: Int - Optional (accepts dict or Strawberry input object)
             
-            since: DateTime - Optional (accepts dict or Strawberry input object)
+            since: String - Optional (accepts dict or Strawberry input object)
             
 
         Returns:

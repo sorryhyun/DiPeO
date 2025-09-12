@@ -14,7 +14,7 @@ export const conversationQueries: EntityQueryDefinitions = {
         { name: 'show_forgotten', type: 'Boolean' },
         { name: 'limit', type: 'Int' },
         { name: 'offset', type: 'Int' },
-        { name: 'since', type: 'DateTime' }
+        { name: 'since', type: 'String' }
       ],
       fields: [
         {

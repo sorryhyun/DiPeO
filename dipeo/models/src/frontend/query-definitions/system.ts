@@ -82,15 +82,13 @@ export const systemQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'execution_history',
-          fields: [
-            { name: 'id' },
-            { name: 'status' },
-            { name: 'diagram_id' },
-            { name: 'started_at' },
-            { name: 'ended_at' },
-            { name: 'error' },
-            { name: 'metrics' }
-          ]
+          args: [
+            { name: 'diagram_id', value: 'diagram_id', isVariable: true },
+            { name: 'limit', value: 'limit', isVariable: true },
+            { name: 'include_metrics', value: 'include_metrics', isVariable: true }
+          ],
+          // Returns JSONScalar with dynamic fields
+          fields: []
         }
       ]
     },
@@ -100,16 +98,8 @@ export const systemQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'active_cli_session',
-          fields: [
-            { name: 'session_id' },
-            { name: 'execution_id' },
-            { name: 'diagram_name' },
-            { name: 'diagram_format' },
-            { name: 'started_at' },
-            { name: 'is_active' },
-            { name: 'diagram_data' },
-            { name: 'node_states' }
-          ]
+          // Returns JSONScalar with dynamic fields
+          fields: []
         }
       ]
     }
