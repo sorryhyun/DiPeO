@@ -109,6 +109,7 @@ dependencies = [
     "datamodel-code-generator>=0.21.0",
     "ollama>=0.5.0",
     "claude-code-sdk>=0.0.21",
+    "rich>=13.0.0",
 ]
 
 [project.optional-dependencies]

@@ -57,7 +57,7 @@ install-uv:
 
 # Sync dependencies using uv
 sync-deps:
-	@export PATH="$$HOME/.local/bin:$$PATH" && uv pip sync requirements.txt
+	@export PATH="$$HOME/.local/bin:$$PATH" && uv sync --all-extras
 	@echo "Dependencies synced with uv"
 
 # Install development dependencies
