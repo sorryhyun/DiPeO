@@ -1,0 +1,31 @@
+interfaces:
+  NodeState:
+    simple_fields: false
+    custom_fields:
+      - name: status
+        type: Status
+        is_enum: true
+        is_auto: false
+      - name: started_at
+        is_auto: true
+      - name: ended_at
+        is_auto: true
+    field_methods:
+      - name: output
+        return_type: Optional[JSONScalar]
+        description: Node output data
+
+  DomainNode:
+    simple_fields: false
+    custom_fields:
+      - name: id
+        is_auto: true
+      - name: position
+        is_auto: true
+    field_methods:
+      - name: type
+        return_type: str
+        description: Return the enum value (lowercase)
+      - name: data
+        return_type: JSONScalar
+        description: Node configuration data

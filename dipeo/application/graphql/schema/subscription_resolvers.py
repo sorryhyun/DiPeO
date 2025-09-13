@@ -13,7 +13,7 @@ from dipeo.application.registry import ServiceRegistry
 from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import EventType
-from dipeo.diagram_generated.graphql.domain_types import ExecutionUpdate
+from dipeo.diagram_generated.graphql_backups.domain_types import ExecutionUpdate
 
 logger = logging.getLogger(__name__)
 

@@ -72,7 +72,9 @@ class SubscriptionClient:
             return
 
         # Import and use generated subscription
-        from dipeo.diagram_generated.graphql.operations import EXECUTION_UPDATES_SUBSCRIPTION
+        from dipeo.diagram_generated.graphql_backups.operations import (
+            EXECUTION_UPDATES_SUBSCRIPTION,
+        )
 
         # GraphQL subscription query
         subscription = gql(EXECUTION_UPDATES_SUBSCRIPTION)

@@ -115,26 +115,6 @@ nodes:
       diagram_format: light
       passInputData: false
 
-
-  # Generate Strawberry Types
-  - label: Generate Strawberry Types
-    type: sub_diagram
-    position: {x: 400, y: 600}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_strawberry_types
-      diagram_format: light
-      passInputData: false
-
-  # Generate Strawberry Mutations
-  - label: Generate Strawberry Mutations
-    type: sub_diagram
-    position: {x: 400, y: 650}
-    props:
-      diagram_name: projects/codegen/diagrams/models/generate_strawberry_mutations
-      diagram_format: light
-      passInputData: false
-
-
   # Generate TypeScript Indexes
   - label: Generate TypeScript Indexes
     type: code_job
@@ -168,8 +148,6 @@ nodes:
                 "Conversions",
                 "GraphQL schema",
                 "Static nodes",
-                "Strawberry types",
-                "Strawberry mutations",
                 "Validation models",
                 "TypeScript indexes"
             ]
@@ -201,8 +179,6 @@ connections:
   - {from: Start, to: Generate Integrations}
   - {from: Start, to: Generate Conversions}
   - {from: Start, to: Generate GraphQL Schema}
-  - {from: Start, to: Generate Strawberry Types}
-  - {from: Start, to: Generate Strawberry Mutations}
   - {from: Start, to: Generate TypeScript Indexes}
 
   # Backend models batch processing chain
@@ -225,8 +201,6 @@ connections:
   - {from: Generate Integrations, to: Summary}
   - {from: Generate Conversions, to: Summary}
   - {from: Generate GraphQL Schema, to: Summary}
-  - {from: Generate Strawberry Types, to: Summary}
-  - {from: Generate Strawberry Mutations, to: Summary}
   - {from: Generate TypeScript Indexes, to: Summary}
 
   # Summary to End

@@ -1,0 +1,6358 @@
+{
+  "version": 1,
+  "generated_at": "2025-09-13T17:04:49.477169",
+  "interfaces": [
+    {
+      "name": "CliSession",
+      "fields": [
+        {
+          "name": "id",
+          "type": "CliSessionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "session_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "user_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "started_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "last_active",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "'active' | 'inactive' | 'terminated'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "current_directory",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "environment",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "CliSessionResult",
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "session",
+          "type": "CliSession",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "Message",
+      "fields": [
+        {
+          "name": "id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "from_person_id",
+          "type": "PersonID | 'system'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "to_person_id",
+          "type": "PersonID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "content",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "token_count",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "message_type",
+          "type": "'person_to_person' | 'system_to_person' | 'person_to_system'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "ConversationMetadata",
+      "fields": [
+        {
+          "name": "started_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "last_message_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "total_tokens",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "message_count",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "context_resets",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "Conversation",
+      "fields": [
+        {
+          "name": "messages",
+          "type": "Message[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "ConversationMetadata",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "Vec2",
+      "fields": [
+        {
+          "name": "x",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "y",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "DomainHandle",
+      "fields": [
+        {
+          "name": "id",
+          "type": "HandleID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "label",
+          "type": "HandleLabel",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "direction",
+          "type": "HandleDirection",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "data_type",
+          "type": "DataType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "position",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "DomainNode",
+      "fields": [
+        {
+          "name": "id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "type",
+          "type": "NodeType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "position",
+          "type": "Vec2",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "data",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [
+        {
+          "name": "type",
+          "return_type": "str",
+          "description": "Return the enum value (lowercase)"
+        },
+        {
+          "name": "data",
+          "return_type": "JSONScalar",
+          "description": "Node configuration data"
+        }
+      ],
+      "simple_fields": false,
+      "custom_fields": [
+        {
+          "name": "id",
+          "is_auto": true
+        },
+        {
+          "name": "position",
+          "is_auto": true
+        }
+      ]
+    },
+    {
+      "name": "DomainArrow",
+      "fields": [
+        {
+          "name": "id",
+          "type": "ArrowID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "source",
+          "type": "HandleID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "target",
+          "type": "HandleID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "content_type",
+          "type": "ContentType | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "label",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "packing",
+          "type": "'pack' | 'spread' | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "execution_priority",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "data",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "PersonLLMConfig",
+      "fields": [
+        {
+          "name": "service",
+          "type": "LLMService",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "model",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "api_key_id",
+          "type": "ApiKeyID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "system_prompt",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "prompt_file",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "DomainPerson",
+      "fields": [
+        {
+          "name": "id",
+          "type": "PersonID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "label",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_config",
+          "type": "PersonLLMConfig",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "type",
+          "type": "'person'",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "DomainApiKey",
+      "fields": [
+        {
+          "name": "id",
+          "type": "ApiKeyID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "label",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "service",
+          "type": "APIServiceType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "key",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "DiagramMetadata",
+      "fields": [
+        {
+          "name": "id",
+          "type": "DiagramID | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "description",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "version",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "created",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "modified",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "author",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "tags",
+          "type": "string[] | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "format",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "DomainDiagram",
+      "fields": [
+        {
+          "name": "nodes",
+          "type": "DomainNode[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "handles",
+          "type": "DomainHandle[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "arrows",
+          "type": "DomainArrow[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "persons",
+          "type": "DomainPerson[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "DiagramMetadata | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "LLMUsage",
+      "fields": [
+        {
+          "name": "input",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "output",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "cached",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "total",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "NodeState",
+      "fields": [
+        {
+          "name": "status",
+          "type": "Status",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "started_at",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "ended_at",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_usage",
+          "type": "LLMUsage | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "output",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [
+        {
+          "name": "output",
+          "return_type": "Optional[JSONScalar]",
+          "description": "Node output data"
+        }
+      ],
+      "simple_fields": false,
+      "custom_fields": [
+        {
+          "name": "status",
+          "type": "Status",
+          "is_enum": true,
+          "is_auto": false
+        },
+        {
+          "name": "started_at",
+          "is_auto": true
+        },
+        {
+          "name": "ended_at",
+          "is_auto": true
+        }
+      ]
+    },
+    {
+      "name": "NodeMetrics",
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "start_time",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "end_time",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "duration_ms",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "memory_usage",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_usage",
+          "type": "LLMUsage | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "dependencies",
+          "type": "string[]",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "Bottleneck",
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "duration_ms",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "percentage",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "ExecutionMetrics",
+      "fields": [
+        {
+          "name": "execution_id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "start_time",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "end_time",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "total_duration_ms",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_metrics",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "critical_path",
+          "type": "string[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "parallelizable_groups",
+          "type": "string[][]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "bottlenecks",
+          "type": "Bottleneck[]",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "EnvelopeMeta",
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_usage",
+          "type": "LLMUsage",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "execution_time",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "retry_count",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "string | number",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "SerializedEnvelope",
+      "fields": [
+        {
+          "name": "envelope_format",
+          "type": "true",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "trace_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "produced_by",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "content_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "schema_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "serialization_format",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "body",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "meta",
+          "type": "EnvelopeMeta",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "representations",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "ExecutionState",
+      "fields": [
+        {
+          "name": "id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "Status",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "diagram_id",
+          "type": "DiagramID | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "started_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "ended_at",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_states",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_outputs",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_usage",
+          "type": "LLMUsage",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "variables",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "duration_seconds",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "exec_counts",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "executed_nodes",
+          "type": "string[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metrics",
+          "type": "ExecutionMetrics | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "ExecutionOptions",
+      "fields": [
+        {
+          "name": "mode",
+          "type": "'normal' | 'debug' | 'monitor'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "variables",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "InteractivePromptData",
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "default_value",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "InteractiveResponse",
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "response",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "ExecutionUpdate",
+      "fields": [
+        {
+          "name": "type",
+          "type": "EventType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "execution_id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "Status",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "result",
+          "type": "JsonValue",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "total_tokens",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "tokens",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "data",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "NodeDefinition",
+      "fields": [
+        {
+          "name": "type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_schema",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "handler",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "requires_services",
+          "type": "string[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "description",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "File",
+      "fields": [
+        {
+          "name": "id",
+          "type": "FileID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "path",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "content",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "size",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "mime_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "modified_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "FileOperationResult",
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "file",
+          "type": "File",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "ToolConfig",
+      "fields": [
+        {
+          "name": "type",
+          "type": "ToolType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "enabled",
+          "type": "bool",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "config",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "WebSearchResult",
+      "fields": [
+        {
+          "name": "url",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "title",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "snippet",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "score",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "ImageGenerationResult",
+      "fields": [
+        {
+          "name": "image_data",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "format",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "width",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "height",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "ToolOutput",
+      "fields": [
+        {
+          "name": "type",
+          "type": "ToolType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "result",
+          "type": "WebSearchResult[] | ImageGenerationResult | any",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "raw_response",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "ChatResult",
+      "fields": [
+        {
+          "name": "text",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_usage",
+          "type": "LLMUsage | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "raw_response",
+          "type": "any | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "tool_outputs",
+          "type": "ToolOutput[] | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "LLMRequestOptions",
+      "fields": [
+        {
+          "name": "temperature",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "max_tokens",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "top_p",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "n",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "tools",
+          "type": "ToolConfig[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "response_format",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "NodeUpdate",
+      "fields": [
+        {
+          "name": "execution_id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "Status",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "progress",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "output",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metrics",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "InteractivePrompt",
+      "fields": [
+        {
+          "name": "execution_id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "prompt_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "default_value",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "options",
+          "type": "string[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "ExecutionLogEntry",
+      "fields": [
+        {
+          "name": "execution_id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "level",
+          "type": "'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "context",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    },
+    {
+      "name": "KeepalivePayload",
+      "fields": [
+        {
+          "name": "type",
+          "type": "'keepalive'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "simple_fields": true,
+      "custom_fields": []
+    }
+  ],
+  "scalars": [
+    {
+      "name": "ApiKeyID",
+      "base_type": "strawberry.ID"
+    },
+    {
+      "name": "ArrowID",
+      "base_type": "strawberry.ID"
+    },
+    {
+      "name": "DiagramID",
+      "base_type": "strawberry.ID"
+    },
+    {
+      "name": "ExecutionID",
+      "base_type": "strawberry.ID"
+    },
+    {
+      "name": "HandleID",
+      "base_type": "strawberry.ID"
+    },
+    {
+      "name": "HookID",
+      "base_type": "strawberry.ID"
+    },
+    {
+      "name": "NodeID",
+      "base_type": "strawberry.ID"
+    },
+    {
+      "name": "PersonID",
+      "base_type": "strawberry.ID"
+    },
+    {
+      "name": "CliSessionID",
+      "base_type": "strawberry.ID"
+    },
+    {
+      "name": "FileID",
+      "base_type": "strawberry.ID"
+    },
+    {
+      "name": "TaskID",
+      "base_type": "strawberry.ID"
+    }
+  ],
+  "enums": [
+    {
+      "name": "DataType",
+      "values": [
+        {
+          "name": "ANY",
+          "value": "any"
+        },
+        {
+          "name": "STRING",
+          "value": "string"
+        },
+        {
+          "name": "NUMBER",
+          "value": "number"
+        },
+        {
+          "name": "BOOLEAN",
+          "value": "boolean"
+        },
+        {
+          "name": "OBJECT",
+          "value": "object"
+        },
+        {
+          "name": "ARRAY",
+          "value": "array"
+        }
+      ]
+    },
+    {
+      "name": "ContentType",
+      "values": [
+        {
+          "name": "RAW_TEXT",
+          "value": "raw_text"
+        },
+        {
+          "name": "CONVERSATION_STATE",
+          "value": "conversation_state"
+        },
+        {
+          "name": "OBJECT",
+          "value": "object"
+        },
+        {
+          "name": "EMPTY",
+          "value": "empty"
+        },
+        {
+          "name": "GENERIC",
+          "value": "generic"
+        },
+        {
+          "name": "VARIABLE",
+          "value": "variable"
+        },
+        {
+          "name": "BINARY",
+          "value": "binary"
+        }
+      ]
+    },
+    {
+      "name": "HandleDirection",
+      "values": [
+        {
+          "name": "INPUT",
+          "value": "input"
+        },
+        {
+          "name": "OUTPUT",
+          "value": "output"
+        }
+      ]
+    },
+    {
+      "name": "HandleLabel",
+      "values": [
+        {
+          "name": "DEFAULT",
+          "value": "default"
+        },
+        {
+          "name": "FIRST",
+          "value": "first"
+        },
+        {
+          "name": "CONDTRUE",
+          "value": "condtrue"
+        },
+        {
+          "name": "CONDFALSE",
+          "value": "condfalse"
+        },
+        {
+          "name": "SUCCESS",
+          "value": "success"
+        },
+        {
+          "name": "ERROR",
+          "value": "error"
+        },
+        {
+          "name": "RESULTS",
+          "value": "results"
+        }
+      ]
+    },
+    {
+      "name": "DiagramFormat",
+      "values": [
+        {
+          "name": "NATIVE",
+          "value": "native"
+        },
+        {
+          "name": "LIGHT",
+          "value": "light"
+        },
+        {
+          "name": "READABLE",
+          "value": "readable"
+        }
+      ]
+    },
+    {
+      "name": "Status",
+      "values": [
+        {
+          "name": "PENDING",
+          "value": "pending"
+        },
+        {
+          "name": "RUNNING",
+          "value": "running"
+        },
+        {
+          "name": "PAUSED",
+          "value": "paused"
+        },
+        {
+          "name": "COMPLETED",
+          "value": "completed"
+        },
+        {
+          "name": "FAILED",
+          "value": "failed"
+        },
+        {
+          "name": "ABORTED",
+          "value": "aborted"
+        },
+        {
+          "name": "SKIPPED",
+          "value": "skipped"
+        },
+        {
+          "name": "MAXITER_REACHED",
+          "value": "maxiter_reached"
+        }
+      ]
+    },
+    {
+      "name": "FlowStatus",
+      "values": [
+        {
+          "name": "WAITING",
+          "value": "waiting"
+        },
+        {
+          "name": "READY",
+          "value": "ready"
+        },
+        {
+          "name": "RUNNING",
+          "value": "running"
+        },
+        {
+          "name": "BLOCKED",
+          "value": "blocked"
+        }
+      ]
+    },
+    {
+      "name": "CompletionStatus",
+      "values": [
+        {
+          "name": "SUCCESS",
+          "value": "success"
+        },
+        {
+          "name": "FAILED",
+          "value": "failed"
+        },
+        {
+          "name": "SKIPPED",
+          "value": "skipped"
+        },
+        {
+          "name": "MAX_ITER",
+          "value": "max_iter"
+        }
+      ]
+    },
+    {
+      "name": "ExecutionPhase",
+      "values": [
+        {
+          "name": "MEMORY_SELECTION",
+          "value": "memory_selection"
+        },
+        {
+          "name": "DIRECT_EXECUTION",
+          "value": "direct_execution"
+        },
+        {
+          "name": "DECISION_EVALUATION",
+          "value": "decision_evaluation"
+        },
+        {
+          "name": "DEFAULT",
+          "value": "default"
+        }
+      ]
+    },
+    {
+      "name": "EventType",
+      "values": [
+        {
+          "name": "EXECUTION_STARTED",
+          "value": "execution_started"
+        },
+        {
+          "name": "EXECUTION_COMPLETED",
+          "value": "execution_completed"
+        },
+        {
+          "name": "EXECUTION_ERROR",
+          "value": "execution_error"
+        },
+        {
+          "name": "EXECUTION_STATUS_CHANGED",
+          "value": "execution_status_changed"
+        },
+        {
+          "name": "NODE_STARTED",
+          "value": "node_started"
+        },
+        {
+          "name": "NODE_COMPLETED",
+          "value": "node_completed"
+        },
+        {
+          "name": "NODE_ERROR",
+          "value": "node_error"
+        },
+        {
+          "name": "NODE_OUTPUT",
+          "value": "node_output"
+        },
+        {
+          "name": "NODE_STATUS_CHANGED",
+          "value": "node_status_changed"
+        },
+        {
+          "name": "NODE_PROGRESS",
+          "value": "node_progress"
+        },
+        {
+          "name": "METRICS_COLLECTED",
+          "value": "metrics_collected"
+        },
+        {
+          "name": "OPTIMIZATION_SUGGESTED",
+          "value": "optimization_suggested"
+        },
+        {
+          "name": "WEBHOOK_RECEIVED",
+          "value": "webhook_received"
+        },
+        {
+          "name": "INTERACTIVE_PROMPT",
+          "value": "interactive_prompt"
+        },
+        {
+          "name": "INTERACTIVE_RESPONSE",
+          "value": "interactive_response"
+        },
+        {
+          "name": "EXECUTION_UPDATE",
+          "value": "execution_update"
+        },
+        {
+          "name": "EXECUTION_LOG",
+          "value": "execution_log"
+        },
+        {
+          "name": "KEEPALIVE",
+          "value": "keepalive"
+        }
+      ]
+    },
+    {
+      "name": "LLMService",
+      "values": [
+        {
+          "name": "OPENAI",
+          "value": "openai"
+        },
+        {
+          "name": "ANTHROPIC",
+          "value": "anthropic"
+        },
+        {
+          "name": "CLAUDE_CODE",
+          "value": "claude-code"
+        },
+        {
+          "name": "GOOGLE",
+          "value": "google"
+        },
+        {
+          "name": "GEMINI",
+          "value": "gemini"
+        },
+        {
+          "name": "BEDROCK",
+          "value": "bedrock"
+        },
+        {
+          "name": "VERTEX",
+          "value": "vertex"
+        },
+        {
+          "name": "DEEPSEEK",
+          "value": "deepseek"
+        },
+        {
+          "name": "OLLAMA",
+          "value": "ollama"
+        }
+      ]
+    },
+    {
+      "name": "APIServiceType",
+      "values": [
+        {
+          "name": "OPENAI",
+          "value": "openai"
+        },
+        {
+          "name": "ANTHROPIC",
+          "value": "anthropic"
+        },
+        {
+          "name": "GOOGLE",
+          "value": "google"
+        },
+        {
+          "name": "GEMINI",
+          "value": "gemini"
+        },
+        {
+          "name": "BEDROCK",
+          "value": "bedrock"
+        },
+        {
+          "name": "VERTEX",
+          "value": "vertex"
+        },
+        {
+          "name": "DEEPSEEK",
+          "value": "deepseek"
+        },
+        {
+          "name": "OLLAMA",
+          "value": "ollama"
+        },
+        {
+          "name": "CLAUDE_CODE",
+          "value": "claude-code"
+        }
+      ]
+    },
+    {
+      "name": "ToolType",
+      "values": [
+        {
+          "name": "WEB_SEARCH",
+          "value": "web_search"
+        },
+        {
+          "name": "WEB_SEARCH_PREVIEW",
+          "value": "web_search_preview"
+        },
+        {
+          "name": "IMAGE_GENERATION",
+          "value": "image_generation"
+        }
+      ]
+    },
+    {
+      "name": "ToolSelection",
+      "values": [
+        {
+          "name": "NONE",
+          "value": "none"
+        },
+        {
+          "name": "IMAGE",
+          "value": "image"
+        },
+        {
+          "name": "WEBSEARCH",
+          "value": "websearch"
+        }
+      ]
+    },
+    {
+      "name": "AuthType",
+      "values": [
+        {
+          "name": "NONE",
+          "value": "none"
+        },
+        {
+          "name": "BEARER",
+          "value": "bearer"
+        },
+        {
+          "name": "BASIC",
+          "value": "basic"
+        },
+        {
+          "name": "API_KEY",
+          "value": "api_key"
+        }
+      ]
+    },
+    {
+      "name": "RetryStrategy",
+      "values": [
+        {
+          "name": "NONE",
+          "value": "none"
+        },
+        {
+          "name": "LINEAR",
+          "value": "linear"
+        },
+        {
+          "name": "EXPONENTIAL",
+          "value": "exponential"
+        },
+        {
+          "name": "FIBONACCI",
+          "value": "fibonacci"
+        },
+        {
+          "name": "CONSTANT",
+          "value": "constant"
+        },
+        {
+          "name": "EXPONENTIAL_BACKOFF",
+          "value": "exponential_backoff"
+        },
+        {
+          "name": "LINEAR_BACKOFF",
+          "value": "linear_backoff"
+        },
+        {
+          "name": "FIXED_DELAY",
+          "value": "fixed_delay"
+        }
+      ]
+    },
+    {
+      "name": "DBBlockSubType",
+      "values": [
+        {
+          "name": "FIXED_PROMPT",
+          "value": "fixed_prompt"
+        },
+        {
+          "name": "FILE",
+          "value": "file"
+        },
+        {
+          "name": "CODE",
+          "value": "code"
+        },
+        {
+          "name": "API_TOOL",
+          "value": "api_tool"
+        }
+      ]
+    },
+    {
+      "name": "SupportedLanguage",
+      "values": [
+        {
+          "name": "PYTHON",
+          "value": "python"
+        },
+        {
+          "name": "TYPESCRIPT",
+          "value": "typescript"
+        },
+        {
+          "name": "BASH",
+          "value": "bash"
+        },
+        {
+          "name": "SHELL",
+          "value": "shell"
+        }
+      ]
+    },
+    {
+      "name": "HttpMethod",
+      "values": [
+        {
+          "name": "GET",
+          "value": "get"
+        },
+        {
+          "name": "POST",
+          "value": "post"
+        },
+        {
+          "name": "PUT",
+          "value": "put"
+        },
+        {
+          "name": "DELETE",
+          "value": "delete"
+        },
+        {
+          "name": "PATCH",
+          "value": "patch"
+        }
+      ]
+    },
+    {
+      "name": "HookType",
+      "values": [
+        {
+          "name": "SHELL",
+          "value": "shell"
+        },
+        {
+          "name": "WEBHOOK",
+          "value": "webhook"
+        },
+        {
+          "name": "PYTHON",
+          "value": "python"
+        },
+        {
+          "name": "FILE",
+          "value": "file"
+        }
+      ]
+    },
+    {
+      "name": "HookTriggerMode",
+      "values": [
+        {
+          "name": "NONE",
+          "value": "none"
+        },
+        {
+          "name": "MANUAL",
+          "value": "manual"
+        },
+        {
+          "name": "HOOK",
+          "value": "hook"
+        }
+      ]
+    },
+    {
+      "name": "ConditionType",
+      "values": [
+        {
+          "name": "DETECT_MAX_ITERATIONS",
+          "value": "detect_max_iterations"
+        },
+        {
+          "name": "CHECK_NODES_EXECUTED",
+          "value": "check_nodes_executed"
+        },
+        {
+          "name": "CUSTOM",
+          "value": "custom"
+        },
+        {
+          "name": "LLM_DECISION",
+          "value": "llm_decision"
+        }
+      ]
+    },
+    {
+      "name": "TemplateEngine",
+      "values": [
+        {
+          "name": "INTERNAL",
+          "value": "internal"
+        },
+        {
+          "name": "JINJA2",
+          "value": "jinja2"
+        }
+      ]
+    },
+    {
+      "name": "NodeType",
+      "values": [
+        {
+          "name": "START",
+          "value": "start"
+        },
+        {
+          "name": "PERSON_JOB",
+          "value": "person_job"
+        },
+        {
+          "name": "CONDITION",
+          "value": "condition"
+        },
+        {
+          "name": "CODE_JOB",
+          "value": "code_job"
+        },
+        {
+          "name": "API_JOB",
+          "value": "api_job"
+        },
+        {
+          "name": "ENDPOINT",
+          "value": "endpoint"
+        },
+        {
+          "name": "DB",
+          "value": "db"
+        },
+        {
+          "name": "USER_RESPONSE",
+          "value": "user_response"
+        },
+        {
+          "name": "HOOK",
+          "value": "hook"
+        },
+        {
+          "name": "TEMPLATE_JOB",
+          "value": "template_job"
+        },
+        {
+          "name": "JSON_SCHEMA_VALIDATOR",
+          "value": "json_schema_validator"
+        },
+        {
+          "name": "TYPESCRIPT_AST",
+          "value": "typescript_ast"
+        },
+        {
+          "name": "SUB_DIAGRAM",
+          "value": "sub_diagram"
+        },
+        {
+          "name": "INTEGRATED_API",
+          "value": "integrated_api"
+        }
+      ]
+    },
+    {
+      "name": "Severity",
+      "values": [
+        {
+          "name": "ERROR",
+          "value": "error"
+        },
+        {
+          "name": "WARNING",
+          "value": "warning"
+        },
+        {
+          "name": "INFO",
+          "value": "info"
+        }
+      ]
+    },
+    {
+      "name": "EventPriority",
+      "values": [
+        {
+          "name": "LOW",
+          "value": "low"
+        },
+        {
+          "name": "NORMAL",
+          "value": "normal"
+        },
+        {
+          "name": "HIGH",
+          "value": "high"
+        },
+        {
+          "name": "CRITICAL",
+          "value": "critical"
+        }
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "name": "Vec2Input",
+      "fields": [
+        {
+          "name": "x",
+          "type": "Scalars['Float']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "y",
+          "type": "Scalars['Float']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "PersonLLMConfigInput",
+      "fields": [
+        {
+          "name": "api_key_id",
+          "type": "Scalars['ID']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "model",
+          "type": "Scalars['String']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "service",
+          "type": "LLMService",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "system_prompt",
+          "type": "InputMaybe<Scalars['String']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "CreateNodeInput",
+      "fields": [
+        {
+          "name": "data",
+          "type": "Scalars['JSON']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "position",
+          "type": "Vec2Input",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "type",
+          "type": "NodeType",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "UpdateNodeInput",
+      "fields": [
+        {
+          "name": "data",
+          "type": "InputMaybe<Scalars['JSON']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "position",
+          "type": "InputMaybe<Vec2Input>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "CreateDiagramInput",
+      "fields": [
+        {
+          "name": "author",
+          "type": "InputMaybe<Scalars['String']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "description",
+          "type": "InputMaybe<Scalars['String']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "Scalars['String']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "tags",
+          "type": "Array<Scalars['String']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "DiagramFilterInput",
+      "fields": [
+        {
+          "name": "author",
+          "type": "InputMaybe<Scalars['String']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "created_after",
+          "type": "InputMaybe<Scalars['DateTime']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "created_before",
+          "type": "InputMaybe<Scalars['DateTime']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "InputMaybe<Scalars['String']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "tags",
+          "type": "InputMaybe<Array<Scalars['String']['input']>>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "CreatePersonInput",
+      "fields": [
+        {
+          "name": "label",
+          "type": "Scalars['String']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_config",
+          "type": "PersonLLMConfigInput",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "type",
+          "type": "Scalars['String']['input']",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "UpdatePersonInput",
+      "fields": [
+        {
+          "name": "label",
+          "type": "InputMaybe<Scalars['String']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "llm_config",
+          "type": "InputMaybe<PersonLLMConfigInput>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "CreateApiKeyInput",
+      "fields": [
+        {
+          "name": "key",
+          "type": "Scalars['String']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "label",
+          "type": "Scalars['String']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "service",
+          "type": "APIServiceType",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "ExecuteDiagramInput",
+      "fields": [
+        {
+          "name": "debug_mode",
+          "type": "InputMaybe<Scalars['Boolean']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "diagram_data",
+          "type": "InputMaybe<Scalars['JSON']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "diagram_id",
+          "type": "InputMaybe<Scalars['ID']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "max_iterations",
+          "type": "InputMaybe<Scalars['Int']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "timeout_seconds",
+          "type": "InputMaybe<Scalars['Int']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "use_unified_monitoring",
+          "type": "InputMaybe<Scalars['Boolean']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "variables",
+          "type": "InputMaybe<Scalars['JSON']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "ExecutionControlInput",
+      "fields": [
+        {
+          "name": "action",
+          "type": "Scalars['String']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "execution_id",
+          "type": "Scalars['ID']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "reason",
+          "type": "InputMaybe<Scalars['String']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "ExecutionFilterInput",
+      "fields": [
+        {
+          "name": "diagram_id",
+          "type": "InputMaybe<Scalars['ID']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "started_after",
+          "type": "InputMaybe<Scalars['DateTime']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "started_before",
+          "type": "InputMaybe<Scalars['DateTime']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "InputMaybe<Status>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "UpdateNodeStateInput",
+      "fields": [
+        {
+          "name": "error",
+          "type": "InputMaybe<Scalars['String']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "execution_id",
+          "type": "Scalars['ID']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "Scalars['ID']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "output",
+          "type": "InputMaybe<Scalars['JSON']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "Status",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "InteractiveResponseInput",
+      "fields": [
+        {
+          "name": "execution_id",
+          "type": "Scalars['ID']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "InputMaybe<Scalars['JSON']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "Scalars['ID']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "response",
+          "type": "Scalars['String']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "RegisterCliSessionInput",
+      "fields": [
+        {
+          "name": "execution_id",
+          "type": "Scalars['ID']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "diagram_name",
+          "type": "Scalars['String']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "diagram_format",
+          "type": "DiagramFormatGraphQL",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "diagram_data",
+          "type": "InputMaybe<Scalars['JSON']['input']>",
+          "is_required": false,
+          "is_optional": true,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "UnregisterCliSessionInput",
+      "fields": [
+        {
+          "name": "execution_id",
+          "type": "Scalars['ID']['input']",
+          "is_required": true,
+          "is_optional": false,
+          "description": ""
+        }
+      ]
+    }
+  ],
+  "node_specs": [
+    {
+      "class_name": "ApiJob",
+      "display_name": "API Job",
+      "pydantic_model": "ApiJob",
+      "description": "Make HTTP API requests",
+      "category": "integration",
+      "icon": "\ud83c\udf10",
+      "color": "#00BCD4",
+      "fields": [
+        {
+          "name": "url",
+          "type": "str",
+          "required": true,
+          "is_dict_type": false,
+          "description": "API endpoint URL"
+        },
+        {
+          "name": "method",
+          "type": "enum",
+          "required": true,
+          "is_dict_type": false,
+          "description": "HTTP method"
+        },
+        {
+          "name": "headers",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "HTTP headers"
+        },
+        {
+          "name": "params",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Query parameters"
+        },
+        {
+          "name": "body",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Request body"
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Request timeout in seconds"
+        },
+        {
+          "name": "auth_type",
+          "type": "enum",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Authentication type"
+        },
+        {
+          "name": "auth_config",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Authentication configuration"
+        }
+      ]
+    },
+    {
+      "class_name": "CodeJob",
+      "display_name": "Code Job",
+      "pydantic_model": "CodeJob",
+      "description": "Execute custom code functions",
+      "category": "compute",
+      "icon": "\ud83d\udcbb",
+      "color": "#9C27B0",
+      "fields": [
+        {
+          "name": "language",
+          "type": "enum",
+          "required": true,
+          "is_dict_type": false,
+          "description": "Programming language"
+        },
+        {
+          "name": "filePath",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Path to code file"
+        },
+        {
+          "name": "code",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Inline code to execute (alternative to filePath)"
+        },
+        {
+          "name": "functionName",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Function to execute"
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Execution timeout in seconds"
+        }
+      ]
+    },
+    {
+      "class_name": "Condition",
+      "display_name": "Condition",
+      "pydantic_model": "Condition",
+      "description": "Conditional branching based on expressions",
+      "category": "control",
+      "icon": "\ud83d\udd00",
+      "color": "#FF9800",
+      "fields": [
+        {
+          "name": "condition_type",
+          "type": "enum",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Type of condition to evaluate"
+        },
+        {
+          "name": "expression",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Boolean expression to evaluate"
+        },
+        {
+          "name": "node_indices",
+          "type": "array",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Node indices for detect_max_iteration condition"
+        },
+        {
+          "name": "person",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "AI agent to use for decision making"
+        },
+        {
+          "name": "judge_by",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Prompt for LLM to make a judgment"
+        },
+        {
+          "name": "judge_by_file",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "External prompt file path"
+        },
+        {
+          "name": "memorize_to",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Memory control strategy (e.g., GOLDFISH for fresh evaluation)"
+        },
+        {
+          "name": "at_most",
+          "type": "float",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Maximum messages to keep in memory"
+        },
+        {
+          "name": "expose_index_as",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Variable name to expose the condition node's execution count (0-based index) to downstream nodes"
+        },
+        {
+          "name": "skippable",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "When true, downstream nodes can execute even if this condition hasn't been evaluated yet"
+        }
+      ]
+    },
+    {
+      "class_name": "Db",
+      "display_name": "Database",
+      "pydantic_model": "Db",
+      "description": "Database operations",
+      "category": "integration",
+      "icon": "\ud83d\uddc4\ufe0f",
+      "color": "#795548",
+      "fields": [
+        {
+          "name": "file",
+          "type": "JSONScalar",
+          "required": false,
+          "is_dict_type": false,
+          "description": "File path or array of file paths"
+        },
+        {
+          "name": "collection",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Database collection name"
+        },
+        {
+          "name": "sub_type",
+          "type": "enum",
+          "required": true,
+          "is_dict_type": false,
+          "description": "Database operation type"
+        },
+        {
+          "name": "operation",
+          "type": "str",
+          "required": true,
+          "is_dict_type": false,
+          "description": "Operation configuration"
+        },
+        {
+          "name": "query",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Query configuration"
+        },
+        {
+          "name": "data",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Data configuration"
+        },
+        {
+          "name": "serialize_json",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Serialize structured data to JSON string (for backward compatibility)"
+        },
+        {
+          "name": "format",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Data format (json, yaml, csv, text, etc.)"
+        }
+      ]
+    },
+    {
+      "class_name": "Endpoint",
+      "display_name": "End Node",
+      "pydantic_model": "Endpoint",
+      "description": "Exit point for diagram execution",
+      "category": "control",
+      "icon": "\ud83c\udfc1",
+      "color": "#F44336",
+      "fields": [
+        {
+          "name": "save_to_file",
+          "type": "bool",
+          "required": true,
+          "is_dict_type": false,
+          "description": "Save results to file"
+        },
+        {
+          "name": "file_name",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Output filename"
+        }
+      ]
+    },
+    {
+      "class_name": "Hook",
+      "display_name": "Hook",
+      "pydantic_model": "Hook",
+      "description": "Executes hooks at specific points in the diagram execution",
+      "category": "compute",
+      "icon": "\ud83e\ude9d",
+      "color": "#9333ea",
+      "fields": [
+        {
+          "name": "hook_type",
+          "type": "enum",
+          "required": true,
+          "is_dict_type": false,
+          "description": "Type of hook to execute"
+        },
+        {
+          "name": "command",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Shell command to run (for shell hooks)"
+        },
+        {
+          "name": "url",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Webhook URL (for HTTP hooks)"
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Execution timeout in seconds"
+        },
+        {
+          "name": "retry_count",
+          "type": "float",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Number of retries on failure"
+        }
+      ]
+    },
+    {
+      "class_name": "IntegratedApi",
+      "display_name": "Integrated API",
+      "pydantic_model": "IntegratedApi",
+      "description": "Connect to external APIs like Notion, Slack, GitHub, and more",
+      "category": "integration",
+      "icon": "\ud83d\udd0c",
+      "color": "#8b5cf6",
+      "fields": [
+        {
+          "name": "provider",
+          "type": "str",
+          "required": true,
+          "is_dict_type": false,
+          "description": "API provider to connect to"
+        },
+        {
+          "name": "operation",
+          "type": "str",
+          "required": true,
+          "is_dict_type": false,
+          "description": "Operation to perform (provider-specific)"
+        },
+        {
+          "name": "resource_id",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Resource identifier (e.g., page ID, channel ID)"
+        },
+        {
+          "name": "config",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Provider-specific configuration"
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Request timeout in seconds"
+        },
+        {
+          "name": "max_retries",
+          "type": "float",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Maximum retry attempts"
+        }
+      ]
+    },
+    {
+      "class_name": "JsonSchemaValidator",
+      "display_name": "JSON Schema Validator",
+      "pydantic_model": "JsonSchemaValidator",
+      "description": "Validate data against JSON schema",
+      "category": "codegen",
+      "icon": "\u2713",
+      "color": "#8BC34A",
+      "fields": [
+        {
+          "name": "schema_path",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Path to JSON schema file"
+        },
+        {
+          "name": "schema",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Inline JSON schema"
+        },
+        {
+          "name": "data_path",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Data Path configuration"
+        },
+        {
+          "name": "strict_mode",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Strict Mode configuration"
+        },
+        {
+          "name": "error_on_extra",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Error On Extra configuration"
+        }
+      ]
+    },
+    {
+      "class_name": "PersonJob",
+      "display_name": "Person Job",
+      "pydantic_model": "PersonJob",
+      "description": "Execute tasks using AI language models",
+      "category": "ai",
+      "icon": "\ud83e\udd16",
+      "color": "#2196F3",
+      "fields": [
+        {
+          "name": "person",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "AI person to use"
+        },
+        {
+          "name": "first_only_prompt",
+          "type": "str",
+          "required": true,
+          "is_dict_type": false,
+          "description": "Prompt used only on first execution"
+        },
+        {
+          "name": "first_prompt_file",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "External prompt file for first iteration only"
+        },
+        {
+          "name": "default_prompt",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Default prompt template"
+        },
+        {
+          "name": "prompt_file",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Path to prompt file in /files/prompts/"
+        },
+        {
+          "name": "max_iteration",
+          "type": "float",
+          "required": true,
+          "is_dict_type": false,
+          "description": "Maximum execution iterations"
+        },
+        {
+          "name": "memorize_to",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria."
+        },
+        {
+          "name": "at_most",
+          "type": "float",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Select at most N messages to keep (system messages may be preserved in addition)."
+        },
+        {
+          "name": "ignore_person",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Comma-separated list of person IDs whose messages should be excluded from memory selection."
+        },
+        {
+          "name": "tools",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Tools available to the AI agent"
+        },
+        {
+          "name": "text_format",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "JSON schema or response format for structured outputs"
+        },
+        {
+          "name": "text_format_file",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Path to Python file containing Pydantic models for structured outputs"
+        },
+        {
+          "name": "resolved_prompt",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Pre-resolved prompt content from compile-time"
+        },
+        {
+          "name": "resolved_first_prompt",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Pre-resolved first prompt content from compile-time"
+        },
+        {
+          "name": "batch",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Enable batch mode for processing multiple items"
+        },
+        {
+          "name": "batch_input_key",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Key containing the array to iterate over in batch mode"
+        },
+        {
+          "name": "batch_parallel",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Execute batch items in parallel"
+        },
+        {
+          "name": "max_concurrent",
+          "type": "float",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Maximum concurrent executions in batch mode"
+        }
+      ]
+    },
+    {
+      "class_name": "Start",
+      "display_name": "Start Node",
+      "pydantic_model": "Start",
+      "description": "Entry point for diagram execution",
+      "category": "control",
+      "icon": "\ud83d\ude80",
+      "color": "#4CAF50",
+      "fields": [
+        {
+          "name": "trigger_mode",
+          "type": "enum",
+          "required": false,
+          "is_dict_type": false,
+          "description": "How this start node is triggered"
+        },
+        {
+          "name": "custom_data",
+          "type": "JSONScalar",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Custom data to pass when manually triggered"
+        },
+        {
+          "name": "output_data_structure",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Expected output data structure"
+        },
+        {
+          "name": "hook_event",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Event name to listen for"
+        },
+        {
+          "name": "hook_filters",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Filters to apply to incoming events"
+        }
+      ]
+    },
+    {
+      "class_name": "SubDiagram",
+      "display_name": "Sub-Diagram",
+      "pydantic_model": "SubDiagram",
+      "description": "Execute another diagram as a node within the current diagram",
+      "category": "compute",
+      "icon": "\ud83d\udcca",
+      "color": "#8B5CF6",
+      "fields": [
+        {
+          "name": "diagram_name",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Name of the diagram to execute (e.g., 'workflow/process')"
+        },
+        {
+          "name": "diagram_data",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Inline diagram data (alternative to diagram_name)"
+        },
+        {
+          "name": "input_mapping",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Map node inputs to sub-diagram variables"
+        },
+        {
+          "name": "output_mapping",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Map sub-diagram outputs to node outputs"
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Execution timeout in seconds"
+        },
+        {
+          "name": "wait_for_completion",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Whether to wait for sub-diagram completion"
+        },
+        {
+          "name": "isolate_conversation",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Create isolated conversation context for sub-diagram"
+        },
+        {
+          "name": "ignoreIfSub",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Skip execution if this diagram is being run as a sub-diagram"
+        },
+        {
+          "name": "diagram_format",
+          "type": "enum",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Format of the diagram file (yaml, json, or light)"
+        },
+        {
+          "name": "batch",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Execute sub-diagram in batch mode for multiple inputs"
+        },
+        {
+          "name": "batch_input_key",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Key in inputs containing the array of items for batch processing"
+        },
+        {
+          "name": "batch_parallel",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Execute batch items in parallel"
+        }
+      ]
+    },
+    {
+      "class_name": "TemplateJob",
+      "display_name": "Template Job",
+      "pydantic_model": "TemplateJob",
+      "description": "Process templates with data",
+      "category": "codegen",
+      "icon": "\ud83d\udcdd",
+      "color": "#3F51B5",
+      "fields": [
+        {
+          "name": "template_path",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Path to template file"
+        },
+        {
+          "name": "template_content",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Inline template content"
+        },
+        {
+          "name": "output_path",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Output file path"
+        },
+        {
+          "name": "variables",
+          "type": "object",
+          "required": false,
+          "is_dict_type": true,
+          "description": "Variables configuration"
+        },
+        {
+          "name": "engine",
+          "type": "enum",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Template engine to use"
+        },
+        {
+          "name": "preprocessor",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Preprocessor function to apply before templating"
+        }
+      ]
+    },
+    {
+      "class_name": "TypescriptAst",
+      "display_name": "TypeScript AST Parser",
+      "pydantic_model": "TypescriptAst",
+      "description": "Parses TypeScript source code and extracts AST, interfaces, types, and enums",
+      "category": "codegen",
+      "icon": "\ud83d\udd0d",
+      "color": "#3178c6",
+      "fields": [
+        {
+          "name": "source",
+          "type": "str",
+          "required": true,
+          "is_dict_type": false,
+          "description": "TypeScript source code to parse"
+        },
+        {
+          "name": "extractPatterns",
+          "type": "array",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Patterns to extract from the AST"
+        },
+        {
+          "name": "includeJSDoc",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Include JSDoc comments in the extracted data"
+        },
+        {
+          "name": "parseMode",
+          "type": "enum",
+          "required": false,
+          "is_dict_type": false,
+          "description": "TypeScript parsing mode"
+        },
+        {
+          "name": "transformEnums",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Transform enum definitions to a simpler format"
+        },
+        {
+          "name": "flattenOutput",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Flatten the output structure for easier consumption"
+        },
+        {
+          "name": "outputFormat",
+          "type": "enum",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Output format for the parsed data"
+        },
+        {
+          "name": "batch",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Enable batch processing mode"
+        },
+        {
+          "name": "batchInputKey",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Key to extract batch items from input"
+        }
+      ]
+    },
+    {
+      "class_name": "UserResponse",
+      "display_name": "User Response",
+      "pydantic_model": "UserResponse",
+      "description": "Collect user input",
+      "category": "integration",
+      "icon": "\ud83d\udcac",
+      "color": "#E91E63",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "required": true,
+          "is_dict_type": false,
+          "description": "Question to ask the user"
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Response timeout in seconds"
+        }
+      ]
+    }
+  ],
+  "operations": {
+    "queries": [
+      {
+        "name": "GetActiveCliSession",
+        "returns": "JSON",
+        "variables": [],
+        "description": ""
+      },
+      {
+        "name": "GetApiKey",
+        "returns": "DomainApiKeyType",
+        "variables": [
+          {
+            "name": "api_key_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetApiKeys",
+        "returns": "JSON",
+        "variables": [
+          {
+            "name": "service",
+            "type": "String",
+            "required": false
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetAvailableModels",
+        "returns": "JSON",
+        "variables": [
+          {
+            "name": "service",
+            "type": "String",
+            "required": true
+          },
+          {
+            "name": "api_key_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetDiagram",
+        "returns": "DomainDiagramType",
+        "variables": [
+          {
+            "name": "diagram_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetExecution",
+        "returns": "ExecutionStateType",
+        "variables": [
+          {
+            "name": "execution_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetExecutionCapabilities",
+        "returns": "JSON",
+        "variables": [],
+        "description": ""
+      },
+      {
+        "name": "GetExecutionHistory",
+        "returns": "JSON",
+        "variables": [
+          {
+            "name": "diagram_id",
+            "type": "ID",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "Int",
+            "required": false
+          },
+          {
+            "name": "include_metrics",
+            "type": "Boolean",
+            "required": false
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetExecutionMetrics",
+        "returns": "JSON",
+        "variables": [
+          {
+            "name": "execution_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetExecutionOrder",
+        "returns": "JSON",
+        "variables": [
+          {
+            "name": "execution_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetOperationSchema",
+        "returns": "JSON",
+        "variables": [
+          {
+            "name": "provider",
+            "type": "String",
+            "required": true
+          },
+          {
+            "name": "operation",
+            "type": "String",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetPerson",
+        "returns": "DomainPersonType",
+        "variables": [
+          {
+            "name": "person_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetPromptFile",
+        "returns": "JSON",
+        "variables": [
+          {
+            "name": "filename",
+            "type": "String",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetProviderOperations",
+        "returns": "JSON",
+        "variables": [
+          {
+            "name": "provider",
+            "type": "String",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "GetProviders",
+        "returns": "JSON",
+        "variables": [],
+        "description": ""
+      },
+      {
+        "name": "GetSupportedFormats",
+        "returns": "JSON",
+        "variables": [],
+        "description": ""
+      },
+      {
+        "name": "GetSystemInfo",
+        "returns": "JSON",
+        "variables": [],
+        "description": ""
+      },
+      {
+        "name": "HealthCheck",
+        "returns": "JSON",
+        "variables": [],
+        "description": ""
+      },
+      {
+        "name": "ListConversations",
+        "returns": "list[JSON]",
+        "variables": [
+          {
+            "name": "person_id",
+            "type": "ID",
+            "required": false
+          },
+          {
+            "name": "execution_id",
+            "type": "ID",
+            "required": false
+          },
+          {
+            "name": "search",
+            "type": "String",
+            "required": false
+          },
+          {
+            "name": "show_forgotten",
+            "type": "Boolean",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "Int",
+            "required": false
+          },
+          {
+            "name": "offset",
+            "type": "Int",
+            "required": false
+          },
+          {
+            "name": "since",
+            "type": "String",
+            "required": false
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "ListDiagrams",
+        "returns": "list[DomainDiagramType]",
+        "variables": [
+          {
+            "name": "filter",
+            "type": "DiagramFilterInput",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "Int",
+            "required": false
+          },
+          {
+            "name": "offset",
+            "type": "Int",
+            "required": false
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "ListExecutions",
+        "returns": "list[ExecutionStateType]",
+        "variables": [
+          {
+            "name": "filter",
+            "type": "ExecutionFilterInput",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "Int",
+            "required": false
+          },
+          {
+            "name": "offset",
+            "type": "Int",
+            "required": false
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "ListPersons",
+        "returns": "list[DomainPersonType]",
+        "variables": [
+          {
+            "name": "limit",
+            "type": "Int",
+            "required": false
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "ListPromptFiles",
+        "returns": "list[JSON]",
+        "variables": [],
+        "description": ""
+      }
+    ],
+    "mutations": [
+      {
+        "name": "ControlExecution",
+        "returns": "ExecutionResult",
+        "variables": [
+          {
+            "name": "input",
+            "type": "ExecutionControlInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "ConvertDiagramFormat",
+        "returns": "FormatConversionResult",
+        "variables": [
+          {
+            "name": "content",
+            "type": "String",
+            "required": true
+          },
+          {
+            "name": "from_format",
+            "type": "DiagramFormatGraphQL",
+            "required": true
+          },
+          {
+            "name": "to_format",
+            "type": "DiagramFormatGraphQL",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "CreateApiKey",
+        "returns": "ApiKeyResult",
+        "variables": [
+          {
+            "name": "input",
+            "type": "CreateApiKeyInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "CreateDiagram",
+        "returns": "DiagramResult",
+        "variables": [
+          {
+            "name": "input",
+            "type": "CreateDiagramInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "CreateNode",
+        "returns": "NodeResult",
+        "variables": [
+          {
+            "name": "diagram_id",
+            "type": "ID",
+            "required": true
+          },
+          {
+            "name": "input",
+            "type": "CreateNodeInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "CreatePerson",
+        "returns": "PersonResult",
+        "variables": [
+          {
+            "name": "input",
+            "type": "CreatePersonInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "DeleteApiKey",
+        "returns": "DeleteResult",
+        "variables": [
+          {
+            "name": "api_key_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "DeleteDiagram",
+        "returns": "DeleteResult",
+        "variables": [
+          {
+            "name": "diagram_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "DeleteNode",
+        "returns": "DeleteResult",
+        "variables": [
+          {
+            "name": "diagram_id",
+            "type": "ID",
+            "required": true
+          },
+          {
+            "name": "node_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "DeletePerson",
+        "returns": "DeleteResult",
+        "variables": [
+          {
+            "name": "person_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "ExecuteDiagram",
+        "returns": "ExecutionResult",
+        "variables": [
+          {
+            "name": "input",
+            "type": "ExecuteDiagramInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "RegisterCliSession",
+        "returns": "CliSessionResult",
+        "variables": [
+          {
+            "name": "input",
+            "type": "RegisterCliSessionInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "SendInteractiveResponse",
+        "returns": "ExecutionResult",
+        "variables": [
+          {
+            "name": "input",
+            "type": "InteractiveResponseInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "TestApiKey",
+        "returns": "ApiKeyResult",
+        "variables": [
+          {
+            "name": "api_key_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "UnregisterCliSession",
+        "returns": "CliSessionResult",
+        "variables": [
+          {
+            "name": "input",
+            "type": "UnregisterCliSessionInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "UpdateNode",
+        "returns": "NodeResult",
+        "variables": [
+          {
+            "name": "diagram_id",
+            "type": "ID",
+            "required": true
+          },
+          {
+            "name": "node_id",
+            "type": "ID",
+            "required": true
+          },
+          {
+            "name": "input",
+            "type": "UpdateNodeInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "UpdateNodeState",
+        "returns": "ExecutionResult",
+        "variables": [
+          {
+            "name": "input",
+            "type": "UpdateNodeStateInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "UpdatePerson",
+        "returns": "PersonResult",
+        "variables": [
+          {
+            "name": "person_id",
+            "type": "ID",
+            "required": true
+          },
+          {
+            "name": "input",
+            "type": "UpdatePersonInput",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "UploadDiagram",
+        "returns": "JSON",
+        "variables": [
+          {
+            "name": "file",
+            "type": "JSON",
+            "required": true
+          },
+          {
+            "name": "format",
+            "type": "DiagramFormatGraphQL",
+            "required": true
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "UploadFile",
+        "returns": "JSON",
+        "variables": [
+          {
+            "name": "file",
+            "type": "JSON",
+            "required": true
+          },
+          {
+            "name": "path",
+            "type": "String",
+            "required": false
+          }
+        ],
+        "description": ""
+      },
+      {
+        "name": "ValidateDiagram",
+        "returns": "JSON",
+        "variables": [
+          {
+            "name": "content",
+            "type": "String",
+            "required": true
+          },
+          {
+            "name": "format",
+            "type": "DiagramFormatGraphQL",
+            "required": true
+          }
+        ],
+        "description": ""
+      }
+    ],
+    "subscriptions": [
+      {
+        "name": "ExecutionUpdates",
+        "returns": "ExecutionUpdate",
+        "variables": [
+          {
+            "name": "execution_id",
+            "type": "ID",
+            "required": true
+          }
+        ],
+        "description": ""
+      }
+    ]
+  },
+  "result_wrappers": [
+    {
+      "name": "ApiKeyResult",
+      "base_type": "DomainApiKeyType",
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool"
+        },
+        {
+          "name": "message",
+          "type": "Optional[str]"
+        },
+        {
+          "name": "data",
+          "type": "Optional[DomainApiKeyType]"
+        }
+      ]
+    },
+    {
+      "name": "CliSessionResult",
+      "base_type": "CliSessionType",
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool"
+        },
+        {
+          "name": "message",
+          "type": "Optional[str]"
+        },
+        {
+          "name": "data",
+          "type": "Optional[CliSessionType]"
+        }
+      ]
+    },
+    {
+      "name": "DeleteResult",
+      "base_type": null,
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool"
+        },
+        {
+          "name": "message",
+          "type": "Optional[str]"
+        }
+      ]
+    },
+    {
+      "name": "DiagramResult",
+      "base_type": "DomainDiagramType",
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool"
+        },
+        {
+          "name": "message",
+          "type": "Optional[str]"
+        },
+        {
+          "name": "data",
+          "type": "Optional[DomainDiagramType]"
+        }
+      ]
+    },
+    {
+      "name": "ExecutionResult",
+      "base_type": "ExecutionStateType",
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool"
+        },
+        {
+          "name": "message",
+          "type": "Optional[str]"
+        },
+        {
+          "name": "data",
+          "type": "Optional[ExecutionStateType]"
+        }
+      ]
+    },
+    {
+      "name": "FormatConversionResult",
+      "base_type": "str",
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool"
+        },
+        {
+          "name": "message",
+          "type": "Optional[str]"
+        },
+        {
+          "name": "data",
+          "type": "Optional[str]"
+        }
+      ]
+    },
+    {
+      "name": "NodeResult",
+      "base_type": "DomainNodeType",
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool"
+        },
+        {
+          "name": "message",
+          "type": "Optional[str]"
+        },
+        {
+          "name": "data",
+          "type": "Optional[DomainNodeType]"
+        }
+      ]
+    },
+    {
+      "name": "PersonResult",
+      "base_type": "DomainPersonType",
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool"
+        },
+        {
+          "name": "message",
+          "type": "Optional[str]"
+        },
+        {
+          "name": "data",
+          "type": "Optional[DomainPersonType]"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "ast_file_count": 43,
+    "interface_count": 39,
+    "enum_count": 26,
+    "scalar_count": 11,
+    "input_count": 16
+  },
+  "config": {
+    "type_mappings": {
+      "scalar_mappings": {
+        "string": "str",
+        "number": "float",
+        "boolean": "bool",
+        "Date": "datetime",
+        "any": "JSONScalar",
+        "Record<*>": "JSONScalar",
+        "Dict<*>": "JSONScalar"
+      },
+      "patterns": [
+        {
+          "pattern": "*ID",
+          "type": "strawberry.ID"
+        },
+        {
+          "pattern": "*Status",
+          "type": "Status",
+          "is_enum": true
+        }
+      ],
+      "complex_types": {
+        "LLMUsage": "LLMUsageType",
+        "PersonLLMConfig": "PersonLLMConfigType",
+        "Vec2": "Vec2Type"
+      }
+    },
+    "domain_fields": {
+      "interfaces": {
+        "NodeState": {
+          "simple_fields": false,
+          "custom_fields": [
+            {
+              "name": "status",
+              "type": "Status",
+              "is_enum": true,
+              "is_auto": false
+            },
+            {
+              "name": "started_at",
+              "is_auto": true
+            },
+            {
+              "name": "ended_at",
+              "is_auto": true
+            }
+          ],
+          "field_methods": [
+            {
+              "name": "output",
+              "return_type": "Optional[JSONScalar]",
+              "description": "Node output data"
+            }
+          ]
+        },
+        "DomainNode": {
+          "simple_fields": false,
+          "custom_fields": [
+            {
+              "name": "id",
+              "is_auto": true
+            },
+            {
+              "name": "position",
+              "is_auto": true
+            }
+          ],
+          "field_methods": [
+            {
+              "name": "type",
+              "return_type": "str",
+              "description": "Return the enum value (lowercase)"
+            },
+            {
+              "name": "data",
+              "return_type": "JSONScalar",
+              "description": "Node configuration data"
+            }
+          ]
+        }
+      }
+    },
+    "schema": {}
+  },
+  "types": [
+    {
+      "name": "CliSession",
+      "fields": [
+        {
+          "name": "id",
+          "type": "CliSessionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "session_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "user_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "started_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "last_active",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "'active' | 'inactive' | 'terminated'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "current_directory",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "environment",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "CliSessionResult",
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "session",
+          "type": "CliSession",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "Message",
+      "fields": [
+        {
+          "name": "id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "from_person_id",
+          "type": "PersonID | 'system'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "to_person_id",
+          "type": "PersonID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "content",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "token_count",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "message_type",
+          "type": "'person_to_person' | 'system_to_person' | 'person_to_system'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "ConversationMetadata",
+      "fields": [
+        {
+          "name": "started_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "last_message_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "total_tokens",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "message_count",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "context_resets",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "Conversation",
+      "fields": [
+        {
+          "name": "messages",
+          "type": "Message[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "ConversationMetadata",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "Vec2",
+      "fields": [
+        {
+          "name": "x",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "y",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "DomainHandle",
+      "fields": [
+        {
+          "name": "id",
+          "type": "HandleID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "label",
+          "type": "HandleLabel",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "direction",
+          "type": "HandleDirection",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "data_type",
+          "type": "DataType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "position",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "DomainNode",
+      "fields": [
+        {
+          "name": "id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "type",
+          "type": "NodeType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "position",
+          "type": "Vec2",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "data",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [
+        {
+          "name": "type",
+          "return_type": "str",
+          "description": "Return the enum value (lowercase)"
+        },
+        {
+          "name": "data",
+          "return_type": "JSONScalar",
+          "description": "Node configuration data"
+        }
+      ],
+      "custom_fields": [
+        {
+          "name": "id",
+          "is_auto": true
+        },
+        {
+          "name": "position",
+          "is_auto": true
+        }
+      ]
+    },
+    {
+      "name": "DomainArrow",
+      "fields": [
+        {
+          "name": "id",
+          "type": "ArrowID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "source",
+          "type": "HandleID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "target",
+          "type": "HandleID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "content_type",
+          "type": "ContentType | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "label",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "packing",
+          "type": "'pack' | 'spread' | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "execution_priority",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "data",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "PersonLLMConfig",
+      "fields": [
+        {
+          "name": "service",
+          "type": "LLMService",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "model",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "api_key_id",
+          "type": "ApiKeyID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "system_prompt",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "prompt_file",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "DomainPerson",
+      "fields": [
+        {
+          "name": "id",
+          "type": "PersonID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "label",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_config",
+          "type": "PersonLLMConfig",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "type",
+          "type": "'person'",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "DomainApiKey",
+      "fields": [
+        {
+          "name": "id",
+          "type": "ApiKeyID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "label",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "service",
+          "type": "APIServiceType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "key",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "DiagramMetadata",
+      "fields": [
+        {
+          "name": "id",
+          "type": "DiagramID | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "description",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "version",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "created",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "modified",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "author",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "tags",
+          "type": "string[] | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "format",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "DomainDiagram",
+      "fields": [
+        {
+          "name": "nodes",
+          "type": "DomainNode[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "handles",
+          "type": "DomainHandle[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "arrows",
+          "type": "DomainArrow[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "persons",
+          "type": "DomainPerson[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "DiagramMetadata | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "LLMUsage",
+      "fields": [
+        {
+          "name": "input",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "output",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "cached",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "total",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "NodeState",
+      "fields": [
+        {
+          "name": "status",
+          "type": "Status",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "started_at",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "ended_at",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_usage",
+          "type": "LLMUsage | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "output",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [
+        {
+          "name": "output",
+          "return_type": "Optional[JSONScalar]",
+          "description": "Node output data"
+        }
+      ],
+      "custom_fields": [
+        {
+          "name": "status",
+          "type": "Status",
+          "is_enum": true,
+          "is_auto": false
+        },
+        {
+          "name": "started_at",
+          "is_auto": true
+        },
+        {
+          "name": "ended_at",
+          "is_auto": true
+        }
+      ]
+    },
+    {
+      "name": "NodeMetrics",
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "start_time",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "end_time",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "duration_ms",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "memory_usage",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_usage",
+          "type": "LLMUsage | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "dependencies",
+          "type": "string[]",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "Bottleneck",
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "duration_ms",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "percentage",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "ExecutionMetrics",
+      "fields": [
+        {
+          "name": "execution_id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "start_time",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "end_time",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "total_duration_ms",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_metrics",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "critical_path",
+          "type": "string[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "parallelizable_groups",
+          "type": "string[][]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "bottlenecks",
+          "type": "Bottleneck[]",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "EnvelopeMeta",
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_usage",
+          "type": "LLMUsage",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "execution_time",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "retry_count",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "string | number",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "SerializedEnvelope",
+      "fields": [
+        {
+          "name": "envelope_format",
+          "type": "true",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "trace_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "produced_by",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "content_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "schema_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "serialization_format",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "body",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "meta",
+          "type": "EnvelopeMeta",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "representations",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "ExecutionState",
+      "fields": [
+        {
+          "name": "id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "Status",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "diagram_id",
+          "type": "DiagramID | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "started_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "ended_at",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_states",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_outputs",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_usage",
+          "type": "LLMUsage",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "variables",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "duration_seconds",
+          "type": "number | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "exec_counts",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "executed_nodes",
+          "type": "string[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metrics",
+          "type": "ExecutionMetrics | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "ExecutionOptions",
+      "fields": [
+        {
+          "name": "mode",
+          "type": "'normal' | 'debug' | 'monitor'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "variables",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "InteractivePromptData",
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "default_value",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "InteractiveResponse",
+      "fields": [
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "response",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "ExecutionUpdate",
+      "fields": [
+        {
+          "name": "type",
+          "type": "EventType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "execution_id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "Status",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "result",
+          "type": "JsonValue",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "total_tokens",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "tokens",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "data",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "NodeDefinition",
+      "fields": [
+        {
+          "name": "type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_schema",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "handler",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "requires_services",
+          "type": "string[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "description",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "File",
+      "fields": [
+        {
+          "name": "id",
+          "type": "FileID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "name",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "path",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "content",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "size",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "mime_type",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "created_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "modified_at",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metadata",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "FileOperationResult",
+      "fields": [
+        {
+          "name": "success",
+          "type": "bool",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "file",
+          "type": "File",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "ToolConfig",
+      "fields": [
+        {
+          "name": "type",
+          "type": "ToolType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "enabled",
+          "type": "bool",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "config",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "WebSearchResult",
+      "fields": [
+        {
+          "name": "url",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "title",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "snippet",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "score",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "ImageGenerationResult",
+      "fields": [
+        {
+          "name": "image_data",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "format",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "width",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "height",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "ToolOutput",
+      "fields": [
+        {
+          "name": "type",
+          "type": "ToolType",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "result",
+          "type": "WebSearchResult[] | ImageGenerationResult | any",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "raw_response",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "ChatResult",
+      "fields": [
+        {
+          "name": "text",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "llm_usage",
+          "type": "LLMUsage | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "raw_response",
+          "type": "any | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "tool_outputs",
+          "type": "ToolOutput[] | null",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "LLMRequestOptions",
+      "fields": [
+        {
+          "name": "temperature",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "max_tokens",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "top_p",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "n",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "tools",
+          "type": "ToolConfig[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "response_format",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "NodeUpdate",
+      "fields": [
+        {
+          "name": "execution_id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "status",
+          "type": "Status",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "progress",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "output",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "metrics",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "InteractivePrompt",
+      "fields": [
+        {
+          "name": "execution_id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "prompt_id",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "default_value",
+          "type": "string | null",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "options",
+          "type": "string[]",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "ExecutionLogEntry",
+      "fields": [
+        {
+          "name": "execution_id",
+          "type": "ExecutionID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "node_id",
+          "type": "NodeID",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "level",
+          "type": "'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "context",
+          "type": "JSONScalar",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    },
+    {
+      "name": "KeepalivePayload",
+      "fields": [
+        {
+          "name": "type",
+          "type": "'keepalive'",
+          "is_optional": false,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "type": "str",
+          "is_optional": false,
+          "description": ""
+        }
+      ],
+      "field_methods": [],
+      "custom_fields": []
+    }
+  ]
+}

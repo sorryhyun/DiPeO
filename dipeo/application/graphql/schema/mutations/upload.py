@@ -8,11 +8,11 @@ from strawberry.file_uploads import Upload
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT, FILESYSTEM_ADAPTER
 from dipeo.config import FILES_DIR
-from dipeo.diagram_generated.graphql.enums import (
+from dipeo.diagram_generated.graphql_backups.enums import (
     DiagramFormatGraphQL,
     convert_diagramformat_from_graphql,
 )
-from dipeo.diagram_generated.graphql.results import DiagramResult, FileOperationResult
+from dipeo.diagram_generated.graphql_backups.results import DiagramResult, FileOperationResult
 
 logger = logging.getLogger(__name__)
 

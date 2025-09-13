@@ -23,7 +23,7 @@ def extract_operations_for_schema(inputs: dict[str, Any]) -> dict[str, Any]:
         Dictionary with 'queries' and 'mutations' lists for template
     """
     # Import the operations module
-    from dipeo.diagram_generated.graphql import operations
+    from dipeo.diagram_generated.graphql_backups import operations
 
     queries = []
     mutations = []

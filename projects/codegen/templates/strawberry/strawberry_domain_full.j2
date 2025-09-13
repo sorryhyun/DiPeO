@@ -11,7 +11,7 @@ from strawberry.scalars import JSON as JSONScalar
 
 # Import the Pydantic domain models
 from dipeo.diagram_generated.domain_models import (
-{%- for type in domain_types %}
+{%- for type in types %}
     {{ type.name }},
 {%- endfor %}
 )
@@ -21,8 +21,8 @@ from dipeo.diagram_generated.enums import Status
 
 # Import scalar types
 from .scalars import (
-{%- for scalar in scalar_types %}
-    {{ scalar }}Scalar,
+{%- for scalar in scalars %}
+    {{ scalar.name }}Scalar,
 {%- endfor %}
 )
 
@@ -40,16 +40,16 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 # Create Strawberry types from Pydantic models
 # Order matters - define types that are referenced by others first
 
-{%- for type in domain_types %}
+{%- for type in types %}
 
-{%- if type.has_simple_fields %}
+{%- if not type.custom_fields and not type.field_methods %}
 @strawberry.experimental.pydantic.type({{ type.name }}, all_fields=True)
 class {{ type.name }}Type:
     pass
 {%- else %}
-@strawberry.experimental.pydantic.type({{ type.name }}{% if type.has_custom_fields %}){% else %}, all_fields=True){% endif %}
+@strawberry.experimental.pydantic.type({{ type.name }}{% if type.custom_fields or type.field_methods %}){% else %}, all_fields=True){% endif %}
 class {{ type.name }}Type:
-{%- if type.has_custom_fields %}
+{%- if type.custom_fields or type.field_methods %}
 {%- for field in type.custom_fields %}
 {%- if field.is_auto %}
     {{ field.name }}: strawberry.auto
@@ -112,7 +112,7 @@ class {{ type.name }}Type:
         return len(self.arrows) if hasattr(self, 'arrows') else 0
 {%- endif %}
 {%- endfor %}
-{%- if not type.has_custom_fields and not type.field_methods %}
+{%- if not type.custom_fields and not type.field_methods %}
     pass
 {%- endif %}
 {%- endif %}
@@ -133,7 +133,7 @@ SerializedNodeOutputType = SerializedEnvelopeType
 
 # Export all types
 __all__ = [
-{%- for type in domain_types %}
+{%- for type in types %}
     '{{ type.name }}Type',
 {%- endfor %}
     'ExecutionUpdate',  # For subscriptions

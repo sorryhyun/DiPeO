@@ -16,10 +16,10 @@ from typing import Any, Optional, Union, get_type_hints
 import strawberry
 
 from dipeo.application.registry.service_registry import ServiceRegistry
-from dipeo.diagram_generated.graphql import operations
+from dipeo.diagram_generated.graphql_backups import operations
 
 # Import result types for type checking
-from dipeo.diagram_generated.graphql.results import (
+from dipeo.diagram_generated.graphql_backups.results import (
     ApiKeyResult,
     CliSessionResult,
     DeleteResult,

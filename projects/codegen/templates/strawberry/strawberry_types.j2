@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: {{ strawberry_types.generated_at | default('N/A') }}
+Generated at: {{ generated_at | default('N/A') }}
 """
 
 import strawberry
@@ -31,7 +31,7 @@ from ..unified_nodes.typescript_ast_node import TypescriptAstNode
 from ..unified_nodes.user_response_node import UserResponseNode
 
 # Import Pydantic models
-{% if strawberry_types and strawberry_types.strawberry_types %}
+{% if types %}
 from ..domain_models import *
 {% else %}
 # No node types found - this file will be populated after initial node spec generation
@@ -42,7 +42,7 @@ from dipeo.diagram_generated.graphql.scalars import *
 
 
 # Generate Strawberry types for node data
-{% for type_info in strawberry_types.strawberry_types %}
+{% for type_info in node_specs %}
 @strawberry.type
 class {{ type_info.class_name }}DataType:
     """{{ type_info.description }} - Data fields only"""
@@ -94,13 +94,13 @@ class {{ type_info.class_name }}DataType:
         )
 
 {% endfor %}
-{% if strawberry_types and strawberry_types.strawberry_types %}
+{% if node_specs %}
 
 # Create union type for all node data types
 NodeDataUnion = strawberry.union(
     "NodeDataUnion",
     (
-{% for type_info in strawberry_types.strawberry_types %}
+{% for type_info in node_specs %}
         {{ type_info.class_name }}DataType,
 {% endfor %}
     )
@@ -120,7 +120,7 @@ NodeDataUnion = PlaceholderNodeData
 # Export all types
 __all__ = [
     'NodeDataUnion',
-{% for type_info in strawberry_types.strawberry_types %}
+{% for type_info in types %}
     '{{ type_info.class_name }}DataType',
 {% endfor %}
 ]

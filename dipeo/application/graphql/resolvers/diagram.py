@@ -5,7 +5,7 @@ import logging
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT
 from dipeo.diagram_generated.domain_models import DiagramID, DomainDiagram
-from dipeo.diagram_generated.graphql.inputs import DiagramFilterInput
+from dipeo.diagram_generated.graphql_backups.inputs import DiagramFilterInput
 from dipeo.domain.base.storage_port import DiagramInfo
 
 logger = logging.getLogger(__name__)

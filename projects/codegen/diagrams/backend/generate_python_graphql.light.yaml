@@ -41,8 +41,7 @@ nodes:
     position: {x: 500, y: 200}
     props:
       language: python
-      filePath: projects/codegen/code/backend/prepare_python_graphql_data.py
-      functionName: prepare_python_operations_data
+      filePath: projects/codegen/code/backend/prepare_python_graphql_data_enhanced.py
 
   # Generate Python operations using template
   - label: Generate Operations
@@ -72,8 +71,7 @@ nodes:
     position: {x: 900, y: 150}
     props:
       language: python
-      filePath: projects/codegen/code/backend/strawberry_schema_extractor.py
-      functionName: extract_operations_for_schema
+      filePath: projects/codegen/code/backend/strawberry_schema_extractor_refactored.py
 
   # NEW: Generate Strawberry schema from operations
   - label: Generate Strawberry Schema

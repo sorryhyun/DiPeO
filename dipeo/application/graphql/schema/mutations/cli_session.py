@@ -6,11 +6,11 @@ import strawberry
 
 from dipeo.application.execution.use_cases import CliSessionService
 from dipeo.application.registry import CLI_SESSION_SERVICE, ServiceRegistry
-from dipeo.diagram_generated.graphql.inputs import (
+from dipeo.diagram_generated.graphql_backups.inputs import (
     RegisterCliSessionInput,
     UnregisterCliSessionInput,
 )
-from dipeo.diagram_generated.graphql.results import CliSessionResult
+from dipeo.diagram_generated.graphql_backups.results import CliSessionResult
 
 logger = logging.getLogger(__name__)
 

@@ -474,7 +474,7 @@ await connectNodes({ variables: connectionData });
 All GraphQL operations are also generated for Python in `/dipeo/diagram_generated/graphql/operations.py`:
 
 ```python
-from dipeo.diagram_generated.graphql.operations import (
+from dipeo.diagram_generated.graphql_backups.operations import (
     ExecuteDiagramOperation,
     GetExecutionOperation,
     RegisterCliSessionOperation,
@@ -492,7 +492,7 @@ Each operation class provides:
 #### Example: Executing a Diagram
 
 ```python
-from dipeo.diagram_generated.graphql.operations import ExecuteDiagramOperation
+from dipeo.diagram_generated.graphql_backups.operations import ExecuteDiagramOperation
 
 # Build variables
 variables = ExecuteDiagramOperation.get_variables_dict(
@@ -516,7 +516,7 @@ response = requests.post(
 #### Example: Querying Execution Status
 
 ```python
-from dipeo.diagram_generated.graphql.operations import GetExecutionOperation
+from dipeo.diagram_generated.graphql_backups.operations import GetExecutionOperation
 
 # Build variables
 variables = GetExecutionOperation.get_variables_dict(id=execution_id)
@@ -541,7 +541,7 @@ print(f"Status: {execution['status']}")
 Input types are available from `/dipeo/diagram_generated/graphql/inputs.py`:
 
 ```python
-from dipeo.diagram_generated.graphql.inputs import (
+from dipeo.diagram_generated.graphql_backups.inputs import (
     ExecuteDiagramInput,
     RegisterCliSessionInput,
     UpdateNodeStateInput,
@@ -586,8 +586,9 @@ variables = {"diagramId": "example", "variables": {}}
 ```
 
 After:
+
 ```python
-from dipeo.diagram_generated.graphql.operations import ExecuteDiagramOperation
+from dipeo.diagram_generated.graphql_backups.operations import ExecuteDiagramOperation
 
 variables = ExecuteDiagramOperation.get_variables_dict(
     input={"diagram_id": "example", "variables": {}}

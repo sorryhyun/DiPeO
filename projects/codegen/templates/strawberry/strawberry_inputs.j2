@@ -2,11 +2,12 @@
 GraphQL input types for DiPeO mutations.
 Auto-generated from TypeScript definitions.
 
-Generated at: {{ generation_time }}
+Generated at: {{ generated_at }}
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Any
+from strawberry.scalars import JSON
 
 import strawberry
 
@@ -17,7 +18,7 @@ from dipeo.diagram_generated.enums import APIServiceType, LLMService, NodeType, 
 # Import scalars to ensure they're registered
 from dipeo.diagram_generated.graphql.scalars import *
 
-{% for input_type in input_types %}
+{% for input_type in inputs %}
 
 @strawberry.input
 class {{ input_type.name }}:
@@ -25,17 +26,20 @@ class {{ input_type.name }}:
     """{{ input_type.description }}"""
     {%- endif %}
     {%- for field in input_type.fields %}
-    {%- if field.optional %}
-    {{ field.name }}: {{ field.type_str }} | None{% if field.default_value %} = {{ field.default_value }}{% else %} = None{% endif %}
+    {%- set py_type = field.type | ts_graphql_input_to_python(field.name) %}
+    {%- if field.is_optional and not py_type.startswith('Optional[') %}
+    {{ field.name }}: Optional[{{ py_type }}]{% if field.default_value %} = {{ field.default_value }}{% else %} = None{% endif %}
+    {%- elif field.is_optional %}
+    {{ field.name }}: {{ py_type }}{% if field.default_value %} = {{ field.default_value }}{% else %} = None{% endif %}
     {%- else %}
-    {{ field.name }}: {{ field.type_str }}{% if field.default_value %} = {{ field.default_value }}{% endif %}
+    {{ field.name }}: {{ py_type }}{% if field.default_value %} = {{ field.default_value }}{% endif %}
     {%- endif %}
     {%- endfor %}
 {% endfor %}
 
 # Export all input types
 __all__ = [
-{%- for input_type in input_types %}
+{%- for input_type in inputs %}
     '{{ input_type.name }}',
 {%- endfor %}
 ]

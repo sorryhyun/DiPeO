@@ -2,7 +2,7 @@
 Strawberry GraphQL scalar types for DiPeO.
 Auto-generated from TypeScript branded types.
 
-Generated at: 2025-09-13T13:11:46.471538
+Generated at: 2025-09-13T16:47:42.128948
 """
 
 import strawberry
@@ -13,115 +13,115 @@ from strawberry.scalars import ID
 from dipeo.diagram_generated.domain_models import (
     ApiKeyID,
     ArrowID,
-    CliSessionID,
     DiagramID,
     ExecutionID,
-    FileID,
     HandleID,
     HookID,
     NodeID,
     PersonID,
+    CliSessionID,
+    FileID,
     TaskID,
 )
 
 
 # Generate Strawberry scalar types for branded IDs
 
-# Unique identifier type for apikey entities
+# Scalar type for ApiKeyID
 ApiKeyIDScalar = strawberry.scalar(
     ApiKeyID,
     name="ApiKeyID",
-    description="Unique identifier type for apikey entities",
+    description="Scalar type for ApiKeyID",
     serialize=lambda v: str(v) if v is not None else None,
     parse_value=lambda v: ApiKeyID(v) if v is not None else None,
 )
 
-# Unique identifier type for arrow entities
+# Scalar type for ArrowID
 ArrowIDScalar = strawberry.scalar(
     ArrowID,
     name="ArrowID",
-    description="Unique identifier type for arrow entities",
+    description="Scalar type for ArrowID",
     serialize=lambda v: str(v) if v is not None else None,
     parse_value=lambda v: ArrowID(v) if v is not None else None,
 )
 
-# Unique identifier type for clisession entities
-CliSessionIDScalar = strawberry.scalar(
-    CliSessionID,
-    name="CliSessionID",
-    description="Unique identifier type for clisession entities",
-    serialize=lambda v: str(v) if v is not None else None,
-    parse_value=lambda v: CliSessionID(v) if v is not None else None,
-)
-
-# Unique identifier type for diagram entities
+# Scalar type for DiagramID
 DiagramIDScalar = strawberry.scalar(
     DiagramID,
     name="DiagramID",
-    description="Unique identifier type for diagram entities",
+    description="Scalar type for DiagramID",
     serialize=lambda v: str(v) if v is not None else None,
     parse_value=lambda v: DiagramID(v) if v is not None else None,
 )
 
-# Unique identifier type for execution entities
+# Scalar type for ExecutionID
 ExecutionIDScalar = strawberry.scalar(
     ExecutionID,
     name="ExecutionID",
-    description="Unique identifier type for execution entities",
+    description="Scalar type for ExecutionID",
     serialize=lambda v: str(v) if v is not None else None,
     parse_value=lambda v: ExecutionID(v) if v is not None else None,
 )
 
-# Unique identifier type for file entities
-FileIDScalar = strawberry.scalar(
-    FileID,
-    name="FileID",
-    description="Unique identifier type for file entities",
-    serialize=lambda v: str(v) if v is not None else None,
-    parse_value=lambda v: FileID(v) if v is not None else None,
-)
-
-# Unique identifier type for handle entities
+# Scalar type for HandleID
 HandleIDScalar = strawberry.scalar(
     HandleID,
     name="HandleID",
-    description="Unique identifier type for handle entities",
+    description="Scalar type for HandleID",
     serialize=lambda v: str(v) if v is not None else None,
     parse_value=lambda v: HandleID(v) if v is not None else None,
 )
 
-# Unique identifier type for hook entities
+# Scalar type for HookID
 HookIDScalar = strawberry.scalar(
     HookID,
     name="HookID",
-    description="Unique identifier type for hook entities",
+    description="Scalar type for HookID",
     serialize=lambda v: str(v) if v is not None else None,
     parse_value=lambda v: HookID(v) if v is not None else None,
 )
 
-# Unique identifier type for node entities
+# Scalar type for NodeID
 NodeIDScalar = strawberry.scalar(
     NodeID,
     name="NodeID",
-    description="Unique identifier type for node entities",
+    description="Scalar type for NodeID",
     serialize=lambda v: str(v) if v is not None else None,
     parse_value=lambda v: NodeID(v) if v is not None else None,
 )
 
-# Unique identifier type for person entities
+# Scalar type for PersonID
 PersonIDScalar = strawberry.scalar(
     PersonID,
     name="PersonID",
-    description="Unique identifier type for person entities",
+    description="Scalar type for PersonID",
     serialize=lambda v: str(v) if v is not None else None,
     parse_value=lambda v: PersonID(v) if v is not None else None,
 )
 
-# Unique identifier type for task entities
+# Scalar type for CliSessionID
+CliSessionIDScalar = strawberry.scalar(
+    CliSessionID,
+    name="CliSessionID",
+    description="Scalar type for CliSessionID",
+    serialize=lambda v: str(v) if v is not None else None,
+    parse_value=lambda v: CliSessionID(v) if v is not None else None,
+)
+
+# Scalar type for FileID
+FileIDScalar = strawberry.scalar(
+    FileID,
+    name="FileID",
+    description="Scalar type for FileID",
+    serialize=lambda v: str(v) if v is not None else None,
+    parse_value=lambda v: FileID(v) if v is not None else None,
+)
+
+# Scalar type for TaskID
 TaskIDScalar = strawberry.scalar(
     TaskID,
     name="TaskID",
-    description="Unique identifier type for task entities",
+    description="Scalar type for TaskID",
     serialize=lambda v: str(v) if v is not None else None,
     parse_value=lambda v: TaskID(v) if v is not None else None,
 )
@@ -131,14 +131,14 @@ TaskIDScalar = strawberry.scalar(
 __all__ = [
     "ApiKeyIDScalar",
     "ArrowIDScalar",
-    "CliSessionIDScalar",
     "DiagramIDScalar",
     "ExecutionIDScalar",
-    "FileIDScalar",
     "HandleIDScalar",
     "HookIDScalar",
     "NodeIDScalar",
     "PersonIDScalar",
+    "CliSessionIDScalar",
+    "FileIDScalar",
     "TaskIDScalar",
 ]
 
@@ -147,13 +147,13 @@ __all__ = [
 SCALAR_MAP = {
     "ApiKeyID": ApiKeyIDScalar,
     "ArrowID": ArrowIDScalar,
-    "CliSessionID": CliSessionIDScalar,
     "DiagramID": DiagramIDScalar,
     "ExecutionID": ExecutionIDScalar,
-    "FileID": FileIDScalar,
     "HandleID": HandleIDScalar,
     "HookID": HookIDScalar,
     "NodeID": NodeIDScalar,
     "PersonID": PersonIDScalar,
+    "CliSessionID": CliSessionIDScalar,
+    "FileID": FileIDScalar,
     "TaskID": TaskIDScalar,
 }

@@ -2,11 +2,12 @@
 GraphQL input types for DiPeO mutations.
 Auto-generated from TypeScript definitions.
 
-Generated at: 2025-09-13T13:11:46.471271
+Generated at: 2025-09-13T16:47:42.128948
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Any
+from strawberry.scalars import JSON
 
 import strawberry
 
@@ -26,135 +27,112 @@ class Vec2Input:
 
 
 @strawberry.input
+class PersonLLMConfigInput:
+    api_key_id: str
+    model: str
+    service: LLMService
+    system_prompt: Optional[str] = None
+
+
+@strawberry.input
 class CreateNodeInput:
-    type: NodeType
+    data: Any
     position: Vec2Input
-    data: strawberry.scalars.JSON
+    type: NodeType
 
 
 @strawberry.input
 class UpdateNodeInput:
-    position: Vec2Input | None = None
-    data: strawberry.scalars.JSON | None = None
-
-
-@strawberry.input
-class CreateArrowInput:
-    source: strawberry.ID
-    target: strawberry.ID
-    label: str | None = None
-    data: strawberry.scalars.JSON | None = None
+    data: Optional[Any] = None
+    position: Optional[Vec2Input] = None
 
 
 @strawberry.input
 class CreateDiagramInput:
+    author: Optional[str] = None
+    description: Optional[str] = None
     name: str
-    description: str | None = None
-    author: str | None = None
-    tags: list[str] = strawberry.field(default_factory=list)
+    tags: Optional[List[str]] = None
 
 
 @strawberry.input
-class UpdateDiagramInput:
-    name: str | None = None
-    description: str | None = None
-    author: str | None = None
-    tags: list[str] | None = None
-
-
-@strawberry.input
-class PersonLLMConfigInput:
-    service: LLMService
-    model: str
-    api_key_id: strawberry.ID
-    system_prompt: str | None = None
+class DiagramFilterInput:
+    author: Optional[str] = None
+    created_after: Optional[datetime] = None
+    created_before: Optional[datetime] = None
+    name: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 
 @strawberry.input
 class CreatePersonInput:
     label: str
     llm_config: PersonLLMConfigInput
-    type: str = "user"
+    type: Optional[str] = None
 
 
 @strawberry.input
 class UpdatePersonInput:
-    label: str | None = None
-    llm_config: PersonLLMConfigInput | None = None
+    label: Optional[str] = None
+    llm_config: Optional[PersonLLMConfigInput] = None
 
 
 @strawberry.input
 class CreateApiKeyInput:
+    key: str
     label: str
     service: APIServiceType
-    key: str
 
 
 @strawberry.input
 class ExecuteDiagramInput:
-    diagram_id: strawberry.ID | None = None
-    diagram_data: strawberry.scalars.JSON | None = None
-    variables: strawberry.scalars.JSON | None = None
-    debug_mode: bool | None = None
-    max_iterations: int | None = None
-    timeout_seconds: int | None = None
-    use_unified_monitoring: bool | None = None
-
-
-@strawberry.input
-class FileOperationInput:
-    diagram_id: strawberry.ID
-    format: DiagramFormat
-
-
-@strawberry.input
-class UpdateNodeStateInput:
-    execution_id: strawberry.ID
-    node_id: strawberry.ID
-    status: Status
-    output: strawberry.scalars.JSON | None = None
-    error: str | None = None
-
-
-@strawberry.input
-class DiagramFilterInput:
-    name: str | None = None
-    author: str | None = None
-    tags: list[str] | None = None
-    created_after: datetime | None = None
-    created_before: datetime | None = None
-
-
-@strawberry.input
-class ExecutionFilterInput:
-    diagram_id: strawberry.ID | None = None
-    status: Status | None = None
-    started_after: datetime | None = None
-    started_before: datetime | None = None
+    debug_mode: Optional[bool] = None
+    diagram_data: Optional[Any] = None
+    diagram_id: Optional[str] = None
+    max_iterations: Optional[int] = None
+    timeout_seconds: Optional[int] = None
+    use_unified_monitoring: Optional[bool] = None
+    variables: Optional[Any] = None
 
 
 @strawberry.input
 class ExecutionControlInput:
-    execution_id: strawberry.ID
     action: str
-    reason: str | None = None
+    execution_id: str
+    reason: Optional[str] = None
+
+
+@strawberry.input
+class ExecutionFilterInput:
+    diagram_id: Optional[str] = None
+    started_after: Optional[datetime] = None
+    started_before: Optional[datetime] = None
+    status: Optional[Status] = None
+
+
+@strawberry.input
+class UpdateNodeStateInput:
+    error: Optional[str] = None
+    execution_id: str
+    node_id: str
+    output: Optional[Any] = None
+    status: Status
 
 
 @strawberry.input
 class InteractiveResponseInput:
-    execution_id: strawberry.ID
-    node_id: strawberry.ID
+    execution_id: str
+    metadata: Optional[Any] = None
+    node_id: str
     response: str
-    metadata: strawberry.scalars.JSON | None = None
 
 
 @strawberry.input
 class RegisterCliSessionInput:
     execution_id: str
     diagram_name: str
-    diagram_format: DiagramFormat
-    diagram_data: strawberry.scalars.JSON | None = None
-    diagram_path: str | None = None
+    diagram_format: DiagramFormatGraphQL
+    diagram_data: Optional[Any] = None
 
 
 @strawberry.input
@@ -165,21 +143,18 @@ class UnregisterCliSessionInput:
 # Export all input types
 __all__ = [
     'Vec2Input',
+    'PersonLLMConfigInput',
     'CreateNodeInput',
     'UpdateNodeInput',
-    'CreateArrowInput',
     'CreateDiagramInput',
-    'UpdateDiagramInput',
-    'PersonLLMConfigInput',
+    'DiagramFilterInput',
     'CreatePersonInput',
     'UpdatePersonInput',
     'CreateApiKeyInput',
     'ExecuteDiagramInput',
-    'FileOperationInput',
-    'UpdateNodeStateInput',
-    'DiagramFilterInput',
-    'ExecutionFilterInput',
     'ExecutionControlInput',
+    'ExecutionFilterInput',
+    'UpdateNodeStateInput',
     'InteractiveResponseInput',
     'RegisterCliSessionInput',
     'UnregisterCliSessionInput',

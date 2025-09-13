@@ -8,8 +8,8 @@ from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import API_KEY_SERVICE, LLM_SERVICE
 from dipeo.diagram_generated import DomainApiKey
 from dipeo.diagram_generated.domain_models import ApiKeyID
-from dipeo.diagram_generated.graphql.inputs import CreateApiKeyInput
-from dipeo.diagram_generated.graphql.operations import (
+from dipeo.diagram_generated.graphql_backups.inputs import CreateApiKeyInput
+from dipeo.diagram_generated.graphql_backups.operations import (
     CREATE_API_KEY_MUTATION,
     DELETE_API_KEY_MUTATION,
     TEST_API_KEY_MUTATION,
@@ -17,7 +17,7 @@ from dipeo.diagram_generated.graphql.operations import (
     DeleteApiKeyOperation,
     TestApiKeyOperation,
 )
-from dipeo.diagram_generated.graphql.results import ApiKeyResult, DeleteResult, TestResult
+from dipeo.diagram_generated.graphql_backups.results import ApiKeyResult, DeleteResult, TestResult
 
 logger = logging.getLogger(__name__)
 

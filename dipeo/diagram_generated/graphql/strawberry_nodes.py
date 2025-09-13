@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-13T13:11:46.466441
+Generated at: 2025-09-13T16:47:42.128948
 """
 
 import strawberry
@@ -382,7 +382,9 @@ class DbDataType:
     # Node-specific fields from specification
     
     
-    file: Optional[JSONScalar] = None  # File path or array of file paths
+    
+    file: Optional[str] = None  # File path or array of file paths
+    
     
     
     
@@ -1030,7 +1032,9 @@ class StartDataType:
     
     
     
-    custom_data: Optional[JSONScalar] = None  # Custom data to pass when manually triggered
+    
+    custom_data: Optional[str] = None  # Custom data to pass when manually triggered
+    
     
     
     
@@ -1555,32 +1559,82 @@ NodeDataUnion = strawberry.union(
 __all__ = [
     'NodeDataUnion',
 
-    'ApiJobDataType',
+    'DataType',
 
-    'CodeJobDataType',
+    'DataType',
 
-    'ConditionDataType',
+    'DataType',
 
-    'DbDataType',
+    'DataType',
 
-    'EndpointDataType',
+    'DataType',
 
-    'HookDataType',
+    'DataType',
 
-    'IntegratedApiDataType',
+    'DataType',
 
-    'JsonSchemaValidatorDataType',
+    'DataType',
 
-    'PersonJobDataType',
+    'DataType',
 
-    'StartDataType',
+    'DataType',
 
-    'SubDiagramDataType',
+    'DataType',
 
-    'TemplateJobDataType',
+    'DataType',
 
-    'TypescriptAstDataType',
+    'DataType',
 
-    'UserResponseDataType',
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
+
+    'DataType',
 
 ]

@@ -33,13 +33,13 @@ from dipeo.application.registry.keys import (
 from dipeo.config import FILES_DIR
 from dipeo.diagram_generated import LLMService, NodeType
 from dipeo.diagram_generated.domain_models import ApiKeyID, DiagramID, ExecutionID, PersonID
-from dipeo.diagram_generated.graphql.domain_types import (
+from dipeo.diagram_generated.graphql_backups.domain_types import (
     DomainApiKeyType,
     DomainDiagramType,
     DomainPersonType,
     ExecutionStateType,
 )
-from dipeo.diagram_generated.graphql.inputs import DiagramFilterInput, ExecutionFilterInput
+from dipeo.diagram_generated.graphql_backups.inputs import DiagramFilterInput, ExecutionFilterInput
 
 logger = logging.getLogger(__name__)
 DIAGRAM_VERSION = "1.0.0"

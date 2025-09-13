@@ -573,6 +573,113 @@ class TypeScriptToPythonFilters:
         )
 
     @classmethod
+    def ts_graphql_input_to_python(cls, ts_type: str, field_name: str = "") -> str:
+        """Convert TypeScript GraphQL input syntax to Python type.
+
+        Handles special GraphQL input patterns:
+        - Scalars['Type']['input'] → Python type
+        - InputMaybe<T> → Optional[T]
+        - Array<T> → List[T]
+        - References to other input types
+
+        Args:
+            ts_type: TypeScript GraphQL input type string
+            field_name: Optional field name for context
+
+        Returns:
+            Python type string
+        """
+        if not ts_type:
+            return "Any"
+
+        ts_type = ts_type.strip()
+
+        # Handle Scalars['Type']['input'] pattern
+        scalars_match = re.match(r"Scalars\['(\w+)'\]\['input'\]", ts_type)
+        if scalars_match:
+            scalar_type = scalars_match.group(1)
+            # Map GraphQL scalar types to Python
+            scalar_map = {
+                "ID": "str",  # GraphQL ID is a string in Python
+                "String": "str",
+                "Int": "int",
+                "Float": "float",
+                "Boolean": "bool",
+                "DateTime": "datetime",
+                "Date": "datetime",
+                "Time": "str",
+                "JSON": "Any",
+                "BigInt": "int",
+            }
+            return scalar_map.get(scalar_type, scalar_type)
+
+        # Handle InputMaybe<T> pattern
+        input_maybe_match = re.match(r"InputMaybe<(.+)>", ts_type, re.DOTALL)
+        if input_maybe_match:
+            inner_type = input_maybe_match.group(1).strip()
+            # Recursively convert the inner type
+            python_type = cls.ts_graphql_input_to_python(inner_type, field_name)
+            # InputMaybe means Optional in Python
+            if not python_type.startswith("Optional["):
+                return f"Optional[{python_type}]"
+            return python_type
+
+        # Handle Array<T> pattern
+        array_match = re.match(r"Array<(.+)>", ts_type, re.DOTALL)
+        if array_match:
+            inner_type = array_match.group(1).strip()
+            # Recursively convert the inner type
+            python_type = cls.ts_graphql_input_to_python(inner_type, field_name)
+            return f"List[{python_type}]"
+
+        # Handle Maybe<T> pattern (similar to InputMaybe)
+        maybe_match = re.match(r"Maybe<(.+)>", ts_type, re.DOTALL)
+        if maybe_match:
+            inner_type = maybe_match.group(1).strip()
+            python_type = cls.ts_graphql_input_to_python(inner_type, field_name)
+            if not python_type.startswith("Optional["):
+                return f"Optional[{python_type}]"
+            return python_type
+
+        # Handle input type references (e.g., Vec2Input, PersonLLMConfigInput)
+        if ts_type.endswith("Input"):
+            # These are references to other input types, keep as-is
+            return ts_type
+
+        # Handle branded ID types
+        if ts_type in cls.BRANDED_IDS:
+            return "str"  # All branded IDs are strings in Python
+
+        # Handle primitive types
+        primitive_map = {
+            "string": "str",
+            "number": "float",
+            "boolean": "bool",
+            "any": "Any",
+            "unknown": "Any",
+            "void": "None",
+            "null": "None",
+            "undefined": "None",
+        }
+
+        if ts_type in primitive_map:
+            mapped = primitive_map[ts_type]
+            # Check for integer fields
+            if mapped == "float" and field_name in cls.INTEGER_FIELDS:
+                return "int"
+            return mapped
+
+        # Handle T[] array syntax
+        array_suffix_match = re.match(r"^(.+)\[\]$", ts_type)
+        if array_suffix_match:
+            inner_type = array_suffix_match.group(1)
+            python_type = cls.ts_graphql_input_to_python(inner_type, field_name)
+            return f"List[{python_type}]"
+
+        # Default: return as-is (likely a type reference)
+        return ts_type
+
+    @classmethod
     def get_all_filters(cls) -> dict:
         """Get all filter methods as a dictionary.
 
@@ -584,6 +691,7 @@ class TypeScriptToPythonFilters:
             "ts_to_python": cls.ts_to_python_type,
             "to_py": cls.ts_to_python_type,  # Alias for backward compatibility
             "is_optional_ts": cls.is_optional_type,
+            "ts_graphql_input_to_python": cls.ts_graphql_input_to_python,  # New GraphQL input filter
             # Codegen-specific filters used in templates
             "typescript_type": cls.typescript_type,
             "ui_field_type": cls.ui_field_type,
