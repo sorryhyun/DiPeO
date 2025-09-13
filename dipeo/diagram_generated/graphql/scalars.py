@@ -2,7 +2,7 @@
 Strawberry GraphQL scalar types for DiPeO.
 Auto-generated from TypeScript branded types.
 
-Generated at: 2025-09-12T22:51:35.968651
+Generated at: 2025-09-13T13:11:46.471538
 """
 
 import strawberry
@@ -13,8 +13,10 @@ from strawberry.scalars import ID
 from dipeo.diagram_generated.domain_models import (
     ApiKeyID,
     ArrowID,
+    CliSessionID,
     DiagramID,
     ExecutionID,
+    FileID,
     HandleID,
     HookID,
     NodeID,
@@ -43,6 +45,15 @@ ArrowIDScalar = strawberry.scalar(
     parse_value=lambda v: ArrowID(v) if v is not None else None,
 )
 
+# Unique identifier type for clisession entities
+CliSessionIDScalar = strawberry.scalar(
+    CliSessionID,
+    name="CliSessionID",
+    description="Unique identifier type for clisession entities",
+    serialize=lambda v: str(v) if v is not None else None,
+    parse_value=lambda v: CliSessionID(v) if v is not None else None,
+)
+
 # Unique identifier type for diagram entities
 DiagramIDScalar = strawberry.scalar(
     DiagramID,
@@ -59,6 +70,15 @@ ExecutionIDScalar = strawberry.scalar(
     description="Unique identifier type for execution entities",
     serialize=lambda v: str(v) if v is not None else None,
     parse_value=lambda v: ExecutionID(v) if v is not None else None,
+)
+
+# Unique identifier type for file entities
+FileIDScalar = strawberry.scalar(
+    FileID,
+    name="FileID",
+    description="Unique identifier type for file entities",
+    serialize=lambda v: str(v) if v is not None else None,
+    parse_value=lambda v: FileID(v) if v is not None else None,
 )
 
 # Unique identifier type for handle entities
@@ -111,8 +131,10 @@ TaskIDScalar = strawberry.scalar(
 __all__ = [
     "ApiKeyIDScalar",
     "ArrowIDScalar",
+    "CliSessionIDScalar",
     "DiagramIDScalar",
     "ExecutionIDScalar",
+    "FileIDScalar",
     "HandleIDScalar",
     "HookIDScalar",
     "NodeIDScalar",
@@ -125,8 +147,10 @@ __all__ = [
 SCALAR_MAP = {
     "ApiKeyID": ApiKeyIDScalar,
     "ArrowID": ArrowIDScalar,
+    "CliSessionID": CliSessionIDScalar,
     "DiagramID": DiagramIDScalar,
     "ExecutionID": ExecutionIDScalar,
+    "FileID": FileIDScalar,
     "HandleID": HandleIDScalar,
     "HookID": HookIDScalar,
     "NodeID": NodeIDScalar,

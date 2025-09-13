@@ -18,7 +18,6 @@ export interface Vec2 {
   y: number;
 }
 
-
 export type NodeID = string & { readonly __brand: 'NodeID' };
 export type ArrowID = string & { readonly __brand: 'ArrowID' };
 export type HandleID = string & { readonly __brand: 'HandleID' };

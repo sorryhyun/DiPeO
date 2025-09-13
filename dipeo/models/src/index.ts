@@ -3,6 +3,9 @@ export * from './core/diagram.js';
 export * from './core/execution.js';
 export * from './core/conversation.js';
 export * from './core/integration.js';
+export * from './core/file.js';
+export * from './core/cli-session.js';
+export * from './core/subscription-types.js';
 export * from './core/enums/index.js';
 export * from './core/types/json.js';
 

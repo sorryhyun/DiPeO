@@ -20,7 +20,7 @@ from dipeo.diagram_generated.domain_models import (
 from dipeo.diagram_generated.enums import Status
 
 # Import scalar types
-from dipeo.diagram_generated.graphql.scalars import (
+from .scalars import (
 {%- for scalar in scalar_types %}
     {{ scalar }}Scalar,
 {%- endfor %}

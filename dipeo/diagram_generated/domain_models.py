@@ -31,7 +31,8 @@ HookID = NewType('HookID', str)
 NodeID = NewType('NodeID', str)
 PersonID = NewType('PersonID', str)
 TaskID = NewType('TaskID', str)
-
+CliSessionID = NewType('CliSessionID', str)
+FileID = NewType('FileID', str)
 
 class Vec2(BaseModel):
     """Vec2 model"""

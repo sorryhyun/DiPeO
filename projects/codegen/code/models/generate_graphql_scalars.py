@@ -107,6 +107,8 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
         core_files = [
             "core/diagram.ts.json",
             "core/execution.ts.json",
+            "core/cli-session.ts.json",
+            "core/file.ts.json"
         ]
 
         for file_path in core_files:

@@ -445,8 +445,8 @@ type Mutation {
   update_node(diagram_id: ID!, node_id: ID!, input: UpdateNodeInput!): NodeResult!
   update_node_state(input: UpdateNodeStateInput!): ExecutionResult!
   update_person(person_id: ID!, input: UpdatePersonInput!): PersonResult!
-  upload_diagram(file: JSON!, format: DiagramFormatGraphQL!): JSON!
-  upload_file(file: JSON!, path: String): JSON!
+  upload_diagram(file: String!, format: DiagramFormatGraphQL!): JSON!
+  upload_file(file: String!, path: String): JSON!
   validate_diagram(content: String!, format: DiagramFormatGraphQL!): JSON!
 }
 

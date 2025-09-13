@@ -80,6 +80,8 @@ def extract_domain_interfaces_from_ast(ast_data: dict[str, Any]) -> list[dict[st
         "DomainArrow",
         "DomainPerson",
         "DomainApiKey",
+        "FileType",
+        "CliSessionType",
         "DiagramMetadata",
         "ExecutionOptions",
         "ExecutionState",
@@ -189,6 +191,8 @@ def extract_domain_interfaces_from_ast(ast_data: dict[str, Any]) -> list[dict[st
         "PersonLLMConfig",
         "DomainHandle",
         "DomainApiKey",
+        "FileType",
+        "CliSessionType",
         "DiagramMetadata",
     ]
 
@@ -407,7 +411,7 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
         temp_dir = base_dir / "temp"
 
         # Load diagram and execution AST files
-        for file_name in ["core/diagram.ts.json", "core/execution.ts.json"]:
+        for file_name in ["core/diagram.ts.json", "core/execution.ts.json", "core/file.ts.json", "core/cli-session.ts.json"]:
             ast_file = temp_dir / file_name
             if ast_file.exists():
                 with open(ast_file) as f:

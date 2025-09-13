@@ -48,7 +48,8 @@ def extract_operations_for_schema(inputs: dict[str, Any]) -> dict[str, Any]:
             "Person": "DomainPersonType",
             "ApiKey": "DomainApiKeyType",
             "Node": "DomainNodeType",
-            # File and CliSession types don't exist yet, use JSON
+            "File": "FileTypeType",
+            "CliSession": "CliSessionType",
         }
 
         if operation_type == "query":
@@ -69,9 +70,9 @@ def extract_operations_for_schema(inputs: dict[str, Any]) -> dict[str, Any]:
             elif operation_name == "SearchDiagrams":
                 return "list[DomainDiagramType]"
             elif operation_name == "GetRecentFiles":
-                return "list[JSON]"  # FileType doesn't exist yet
+                return "list[FileTypeType]"
             elif operation_name == "GetActiveCliSession":
-                return "JSON"  # CliSessionType doesn't exist yet
+                return "CliSessionTypeType"
 
         # For subscriptions, return proper typed objects
         if operation_type == "subscription":

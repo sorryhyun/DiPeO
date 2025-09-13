@@ -62,6 +62,8 @@ nodes:
       file:
         - "temp/core/diagram.ts.json"
         - "temp/core/execution.ts.json"
+        - "temp/core/file.ts.json"
+        - "temp/core/cli-session.ts.json"
 
   # NEW: Extract scalar types from AST
   - label: Extract Scalar Types

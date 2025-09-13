@@ -331,7 +331,7 @@ def main():
                 run_timeout=args.run_timeout,
                 no_browser=not args.browser,  # Invert logic
             )
-            sys.exit(0 if success else 1)
+            os._exit(0 if success else 1)
         elif args.command == "run":
             # Determine format type
             format_type = None
@@ -379,7 +379,8 @@ def main():
                 not args.legacy,  # Use unified by default, legacy only if flag is set
                 args.simple,  # Use simple display if flag is set
             )
-            sys.exit(0 if success else 1)
+            # Use os._exit for forced termination to ensure all threads/subprocesses are killed
+            os._exit(0 if success else 1)
         elif args.command == "convert":
             cli.convert(
                 args.input,
@@ -424,16 +425,16 @@ def main():
                 kwargs["replay"] = getattr(args, "replay", False)
 
             success = cli.integrations(args.integrations_action, **kwargs)
-            sys.exit(0 if success else 1)
+            os._exit(0 if success else 1)
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")
         cli.server.stop()
-        sys.exit(1)
+        os._exit(1)
     except Exception as e:
         print(f"Error: {e}")
         cli.server.stop()
-        sys.exit(1)
+        os._exit(1)
 
 
 if __name__ == "__main__":

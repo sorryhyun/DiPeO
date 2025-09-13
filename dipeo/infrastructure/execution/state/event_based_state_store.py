@@ -366,7 +366,6 @@ class EventBasedStateStore(StateStorePort):
             Status.ABORTED,
         ]:
             state.ended_at = datetime.now().isoformat()
-            state.is_active = False
 
         await self.save_state(state)
 
@@ -529,7 +528,6 @@ class EventBasedStateStore(StateStorePort):
 
     async def persist_final_state(self, state: ExecutionState):
         """Persist final state and delay cache removal to avoid race conditions."""
-        state.is_active = False
         await self._persist_state(state)
 
         async def delayed_cache_removal():

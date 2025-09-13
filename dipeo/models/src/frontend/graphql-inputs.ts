@@ -12,13 +12,15 @@ import type { DiagramFormat } from '../core/enums/diagram';
 import type { Status } from '../core/enums/execution';
 import type { ExecutionID } from '../core/execution';
 import type {
-  NodeID,
-  PersonID,
-  DiagramID,
-  ApiKeyID,
-  ArrowID,
-  HandleID
+    NodeID,
+    PersonID,
+    DiagramID,
+    ApiKeyID,
+    ArrowID,
+    HandleID, HookID, TaskID
 } from '../core/diagram';
+import {CliSessionID} from "../core/cli-session";
+import {FileID} from "../core/file";
 
 // Re-export enums for convenience
 export { DiagramFormat, APIServiceType };
@@ -49,15 +51,17 @@ export type Scalars = {
   /** Unique identifier for handles */
   HandleID: { input: HandleID; output: HandleID; }
   /** Unique identifier for hooks */
-  HookID: { input: any; output: any; }
+  HookID: { input: HookID; output: HookID; }
   /** The `JSON` scalar type represents JSON values */
   JSON: { input: any; output: any; }
   /** Unique identifier for nodes */
   NodeID: { input: NodeID; output: NodeID; }
   /** Unique identifier for persons */
   PersonID: { input: PersonID; output: PersonID; }
+  CliSessionID: { input: CliSessionID; output: CliSessionID; }
+  FileID: { input: FileID; output: FileID; }
   /** Unique identifier for tasks */
-  TaskID: { input: any; output: any; }
+  TaskID: { input: TaskID; output: TaskID; }
   Upload: { input: any; output: any; }
 };
 
