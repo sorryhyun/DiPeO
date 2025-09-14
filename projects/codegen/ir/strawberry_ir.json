@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-14T17:05:07.432446",
+  "generated_at": "2025-09-14T21:21:07.176122",
   "interfaces": [
     {
       "name": "CliSession",
@@ -8899,7 +8899,7 @@
       ],
       "operation_type": "query",
       "description": "ListConversations operation",
-      "alias_name": "conversationses"
+      "alias_name": "conversations"
     },
     {
       "field_name": "ListDiagrams",
@@ -8927,7 +8927,7 @@
       ],
       "operation_type": "query",
       "description": "ListDiagrams operation",
-      "alias_name": "diagramses"
+      "alias_name": "diagrams"
     },
     {
       "field_name": "ListExecutions",
@@ -8955,7 +8955,7 @@
       ],
       "operation_type": "query",
       "description": "ListExecutions operation",
-      "alias_name": "executionses"
+      "alias_name": "executions"
     },
     {
       "field_name": "ListPersons",
@@ -8971,7 +8971,7 @@
       ],
       "operation_type": "query",
       "description": "ListPersons operation",
-      "alias_name": "personses"
+      "alias_name": "persons"
     },
     {
       "field_name": "ListPromptFiles",
@@ -8980,7 +8980,7 @@
       "parameters": [],
       "operation_type": "query",
       "description": "ListPromptFiles operation",
-      "alias_name": "prompt_fileses"
+      "alias_name": "prompt_files"
     }
   ],
   "mutations": [

@@ -776,15 +776,9 @@ class UnifiedIRBuilder:
                     # GetExecution -> execution
                     alias_name = self.to_snake_case(name[3:])
                 elif name.startswith('List'):
-                    # ListDiagrams -> diagrams (make plural)
+                    # ListDiagrams -> diagrams (already plural, just convert to snake_case)
                     base = name[4:]
-                    # Simple pluralization
-                    if base.endswith('s'):
-                        alias_name = self.to_snake_case(base) + 'es'
-                    elif base.endswith('y'):
-                        alias_name = self.to_snake_case(base[:-1]) + 'ies'
-                    else:
-                        alias_name = self.to_snake_case(base) + 's'
+                    alias_name = self.to_snake_case(base)
                 else:
                     # For other queries, just use snake_case of the full name
                     alias_name = self.to_snake_case(name)

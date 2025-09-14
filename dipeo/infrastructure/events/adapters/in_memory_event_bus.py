@@ -60,7 +60,7 @@ class InMemoryEventBus(EventBus):
     async def publish(self, event: DomainEvent) -> None:
         """Publish a domain event."""
         if not self._running:
-            logger.warning("Event bus not running, event dropped")
+            # logger.warning("Event bus not running, event dropped")
             return
 
         if self._enable_event_store:

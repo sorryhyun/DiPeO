@@ -333,17 +333,6 @@ filtered_messages = await selector.apply_memory_settings(
 )
 ```
 
-### Internal Filter Methods
-
-The system uses these internal filters (not exposed to users):
-
-- `_filter_all_involved()`: Messages where person is sender or recipient (default)
-- `_filter_sent_by_me()`: Only messages sent by this person  
-- `_filter_sent_to_me()`: Only messages sent to this person
-- `_filter_system_and_me()`: System messages and person's responses
-- `_filter_conversation_pairs()`: Request/response pairs
-- `_apply_limit()`: Applies message count limits
-
 These are implementation details that enable the default behavior and provide the foundation for future enhancements.
 
 ### Selector Facet Details

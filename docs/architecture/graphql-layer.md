@@ -400,6 +400,352 @@ query = ExecuteDiagramOperation.get_query()
 4. **Developer Experience**: Auto-completion and inline documentation
 5. **Error Reduction**: Compile-time validation prevents runtime errors
 
+## Developer Guide
+
+### Adding New GraphQL Operations
+
+1. **Add definition** to `/dipeo/models/src/frontend/query-definitions/[entity].ts`
+2. **Build models**: `cd dipeo/models && pnpm build`
+3. **Generate queries**: `make codegen`
+4. **Apply changes**: `make apply-syntax-only`
+5. **Update GraphQL schema**: `make graphql-schema`
+
+### Query Definition Structure
+
+```typescript
+// In /dipeo/models/src/frontend/query-definitions/[entity].ts
+export const entityQueries: EntityQueryDefinitions = {
+  entity: 'EntityName',
+  queries: [
+    {
+      name: 'GetEntity',
+      type: QueryOperationType.QUERY,
+      variables: [{ name: 'id', type: 'ID', required: true }],
+      fields: [/* GraphQL fields */]
+    }
+  ]
+}
+```
+
+### File Structure
+
+```
+/dipeo/models/src/frontend/query-definitions/
+├── index.ts           # Exports all query definitions
+├── types.ts           # TypeScript interfaces
+├── api-keys.ts        # API key operations
+├── cli-sessions.ts    # CLI session operations
+├── conversations.ts   # Conversation operations
+├── diagrams.ts        # Diagram CRUD operations
+├── executions.ts      # Execution monitoring
+├── files.ts           # File operations
+├── formats.ts         # Format conversion
+├── nodes.ts           # Node operations
+├── persons.ts         # Person/agent operations
+├── prompts.ts         # Prompt file operations
+├── providers.ts       # Integration providers
+└── system.ts          # System info operations
+```
+
+## Frontend Usage
+
+### Using Generated Hooks
+
+```typescript
+import { useGetExecutionQuery } from '@/__generated__/graphql';
+
+function ExecutionMonitor({ executionId }: { executionId: string }) {
+  const { data, loading, error } = useGetExecutionQuery({
+    variables: { id: executionId },
+    pollInterval: 1000 // Real-time updates
+  });
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      <h2>Execution {data.execution.id}</h2>
+      <p>Status: {data.execution.status}</p>
+    </div>
+  );
+}
+```
+
+### Generated Hook Variants
+
+For each query, multiple hooks are generated:
+
+```typescript
+// Standard query hook
+useGetDiagramQuery()
+
+// Lazy query (manual execution)
+useGetDiagramLazyQuery()
+
+// Suspense-enabled query
+useGetDiagramSuspenseQuery()
+```
+
+For mutations:
+
+```typescript
+const [createDiagram, { data, loading, error }] = useCreateDiagramMutation();
+
+// Execute mutation
+await createDiagram({
+  variables: { input: diagramData }
+});
+```
+
+### Field Definition Patterns
+
+#### Basic Fields
+```typescript
+fields: [
+  { name: 'id' },
+  { name: 'name' },
+  { name: 'created_at' }
+]
+```
+
+#### Nested Objects
+```typescript
+fields: [
+  {
+    name: 'user',
+    fields: [
+      { name: 'id' },
+      { name: 'email' },
+      { name: 'profile', fields: [
+        { name: 'avatar' },
+        { name: 'bio' }
+      ]}
+    ]
+  }
+]
+```
+
+#### Fields with Arguments
+```typescript
+fields: [
+  {
+    name: 'executions',
+    args: [
+      { name: 'filter', value: 'filter', isVariable: true },
+      { name: 'limit', value: 10 },
+      { name: 'offset', value: 'offset', isVariable: true }
+    ],
+    fields: [/* ... */]
+  }
+]
+```
+
+## Python Usage
+
+### Using Operation Classes
+
+Each operation class provides:
+- `query`: The GraphQL query string
+- `get_query()`: Method to retrieve the query
+- `get_variables_dict()`: Helper to build variables dictionary
+
+#### Example: Executing a Diagram
+
+```python
+from dipeo.diagram_generated.graphql.operations import ExecuteDiagramOperation
+
+# Build variables
+variables = ExecuteDiagramOperation.get_variables_dict(
+    input={
+        "diagram_id": "example_diagram",
+        "variables": {"param1": "value1"},
+        "use_unified_monitoring": True
+    }
+)
+
+# Make GraphQL request
+response = requests.post(
+    "http://localhost:8000/graphql",
+    json={
+        "query": ExecuteDiagramOperation.get_query(),
+        "variables": variables
+    }
+)
+```
+
+#### Example: Querying Execution Status
+
+```python
+from dipeo.diagram_generated.graphql.operations import GetExecutionOperation
+
+# Build variables
+variables = GetExecutionOperation.get_variables_dict(id=execution_id)
+
+# Make request
+response = requests.post(
+    "http://localhost:8000/graphql",
+    json={
+        "query": GetExecutionOperation.get_query(),
+        "variables": variables
+    }
+)
+
+# Parse response
+result = response.json()
+execution = result["data"]["execution"]
+print(f"Status: {execution['status']}")
+```
+
+### Available Operations
+
+The generated operations module includes:
+- **Queries** (23): GetExecution, ListExecutions, GetDiagram, etc.
+- **Mutations** (21): ExecuteDiagram, CreateNode, UpdateNode, etc.
+- **Subscriptions** (1): ExecutionUpdates
+
+Each operation follows the naming convention:
+- Query: `GetExecutionOperation`, `ListExecutionsOperation`
+- Mutation: `ExecuteDiagramOperation`, `CreateNodeOperation`
+- Subscription: `ExecutionUpdatesSubscription`
+
+## Best Practices
+
+### 1. Naming Conventions
+- Queries: `Get*` or `List*`
+- Mutations: `Create*`, `Update*`, `Delete*`
+- Subscriptions: `*Updates` or `*Changed`
+
+### 2. Field Selection
+Only request fields you need:
+```typescript
+fields: [
+  { name: 'id' },
+  { name: 'name' },
+  // Don't include heavy fields unless needed
+  // { name: 'large_content' }
+]
+```
+
+### 3. Error Handling
+```typescript
+const { data, loading, error } = useGetDiagramQuery({
+  variables: { id },
+  onError: (error) => {
+    console.error('Failed to fetch diagram:', error);
+    showNotification({ type: 'error', message: error.message });
+  }
+});
+```
+
+### 4. Optimistic Updates
+```typescript
+const [updateNode] = useUpdateNodeMutation({
+  optimisticResponse: {
+    updateNode: {
+      __typename: 'Node',
+      id: nodeId,
+      ...optimisticData
+    }
+  }
+});
+```
+
+### 5. Polling vs Subscriptions
+- Use polling for simple periodic updates
+- Use subscriptions for real-time, event-driven updates
+
+```typescript
+// Polling
+useGetExecutionQuery({
+  variables: { id },
+  pollInterval: 2000
+});
+
+// Subscription
+useExecutionUpdatesSubscription({
+  variables: { executionId }
+});
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Generated hooks not found
+```bash
+# Regenerate everything
+make codegen
+make apply-syntax-only
+make graphql-schema
+```
+
+#### 2. Type mismatches
+```bash
+# Check TypeScript types
+cd apps/web
+pnpm typecheck
+```
+
+#### 3. Missing fields in response
+- Verify field is included in query definition
+- Check GraphQL schema has the field
+- Ensure backend returns the field
+
+#### 4. Duplicate operation names
+- Operation names must be globally unique
+- Check all query definition files for conflicts
+
+### Debugging Tools
+1. **GraphQL Playground**: http://localhost:8000/graphql
+2. **Apollo DevTools**: Browser extension for inspecting cache
+3. **Network tab**: Check actual GraphQL requests/responses
+
+## Advanced Topics
+
+### Fragment Reuse
+Define reusable field sets:
+```typescript
+const userFields = [
+  { name: 'id' },
+  { name: 'email' },
+  { name: 'name' }
+];
+
+// Use in multiple queries
+fields: [
+  { name: 'created_by', fields: userFields },
+  { name: 'updated_by', fields: userFields }
+]
+```
+
+### Conditional Fields
+Use variables to conditionally include fields:
+```typescript
+variables: [
+  { name: 'includeMetrics', type: 'Boolean' }
+],
+fields: [
+  { name: 'id' },
+  {
+    name: 'metrics',
+    condition: 'includeMetrics',
+    fields: [/* ... */]
+  }
+]
+```
+
+### Batch Operations
+Group related operations:
+```typescript
+const [createNode, { data: createData }] = useCreateNodeMutation();
+const [connectNodes, { data: connectData }] = useConnectNodesMutation();
+
+// Execute in sequence
+await createNode({ variables: nodeData });
+await connectNodes({ variables: connectionData });
+```
+
 ## Future Enhancements
 
 While the current implementation is solid and complete, potential minor improvements include:

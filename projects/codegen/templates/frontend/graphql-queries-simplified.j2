@@ -36,11 +36,9 @@ export const {{ query.name | upper }}_QUERY = gql`
     ${{ var.name }}: {{ var.graphql_type }}{{ '!' if var.required else '' }}{{ ',' if not loop.last else '' }}
 {%- endfor %}
   ){% endif %} {
-    {{ query.name | snake_case }}{% if query.variables and query.variables|length > 0 %}(
-{%- for var in query.variables %}
-      {{ var.name }}: ${{ var.name }}{{ ',' if not loop.last else '' }}
+{%- for field in query.fields %}
+{{ render_field(field, 2) }}
 {%- endfor %}
-    ){% endif %}
   }
 `;
 {%- endfor %}
@@ -56,11 +54,9 @@ export const {{ mutation.name | upper }}_MUTATION = gql`
     ${{ var.name }}: {{ var.graphql_type }}{{ '!' if var.required else '' }}{{ ',' if not loop.last else '' }}
 {%- endfor %}
   ){% endif %} {
-    {{ mutation.name | snake_case }}{% if mutation.variables and mutation.variables|length > 0 %}(
-{%- for var in mutation.variables %}
-      {{ var.name }}: ${{ var.name }}{{ ',' if not loop.last else '' }}
+{%- for field in mutation.fields %}
+{{ render_field(field, 2) }}
 {%- endfor %}
-    ){% endif %}
   }
 `;
 {%- endfor %}
@@ -76,11 +72,9 @@ export const {{ subscription.name | upper }}_SUBSCRIPTION = gql`
     ${{ var.name }}: {{ var.graphql_type }}{{ '!' if var.required else '' }}{{ ',' if not loop.last else '' }}
 {%- endfor %}
   ){% endif %} {
-    {{ subscription.name | snake_case }}{% if subscription.variables and subscription.variables|length > 0 %}(
-{%- for var in subscription.variables %}
-      {{ var.name }}: ${{ var.name }}{{ ',' if not loop.last else '' }}
+{%- for field in subscription.fields %}
+{{ render_field(field, 2) }}
 {%- endfor %}
-    ){% endif %}
   }
 `;
 {%- endfor %}

@@ -408,11 +408,11 @@ type Query {
   supported_formats: JSON!
   system_info: JSON!
   health_check: JSON!
-  conversationses(person_id: String, execution_id: String, search: String, show_forgotten: Boolean, limit: Int, offset: Int, since: String): [JSON!]!
-  diagramses(filter: DiagramFilterInput, limit: Int, offset: Int): [DomainDiagramType!]!
-  executionses(filter: ExecutionFilterInput, limit: Int, offset: Int): [ExecutionStateType!]!
-  personses(limit: Int): [DomainPersonType!]!
-  prompt_fileses: [JSON!]!
+  conversations(person_id: String, execution_id: String, search: String, show_forgotten: Boolean, limit: Int, offset: Int, since: String): [JSON!]!
+  diagrams(filter: DiagramFilterInput, limit: Int, offset: Int): [DomainDiagramType!]!
+  executions(filter: ExecutionFilterInput, limit: Int, offset: Int): [ExecutionStateType!]!
+  persons(limit: Int): [DomainPersonType!]!
+  prompt_files: [JSON!]!
 }
 
 input RegisterCliSessionInput {

@@ -124,7 +124,7 @@ class EventPipeline:
             initiated_by=initiated_by,
         )
         await self._publish(event)
-        logger.debug(f"[EventPipeline] Execution started: {self.execution_id}")
+        # logger.debug(f"[EventPipeline] Execution started: {self.execution_id}")
 
     async def _emit_execution_completed(
         self,
@@ -155,7 +155,7 @@ class EventPipeline:
             )
 
         await self._publish(event)
-        logger.debug(f"[EventPipeline] Execution completed: {self.execution_id}, status: {status}")
+        # logger.debug(f"[EventPipeline] Execution completed: {self.execution_id}, status: {status}")
 
     async def _emit_execution_error(self, exc: Exception) -> None:
         """Emit execution error event."""
@@ -197,7 +197,7 @@ class EventPipeline:
         )
 
         await self._publish(event)
-        logger.debug(f"[EventPipeline] Node started: {node.id}")
+        # logger.debug(f"[EventPipeline] Node started: {node.id}")
 
     async def _emit_node_completed(
         self,
@@ -230,10 +230,10 @@ class EventPipeline:
         )
 
         await self._publish(event)
-        logger.debug(
-            f"[EventPipeline] Node completed: {node.id}, "
-            f"exec_count: {exec_count}, duration_ms: {duration_ms}"
-        )
+        # logger.debug(
+        #     f"[EventPipeline] Node completed: {node.id}, "
+        #     f"exec_count: {exec_count}, duration_ms: {duration_ms}"
+        # )
 
     async def _emit_node_error(
         self,
@@ -271,7 +271,7 @@ class EventPipeline:
         )
 
         await self._publish(event)
-        logger.debug(f"[EventPipeline] Node status changed: {node_id} -> {status}")
+        # logger.debug(f"[EventPipeline] Node status changed: {node_id} -> {status}")
 
     def _get_node_state(
         self,
