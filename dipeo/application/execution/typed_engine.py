@@ -282,7 +282,7 @@ class TypedExecutionEngine:
         )
 
         output = EnvelopeFactory.create(
-            body="", produced_by=str(node_id), meta={"status": Status.MAXITER_REACHED.value}
+            body="", produced_by=str(node_id), meta={"status": Status.MAXITER_REACHED}
         )
 
         context.state.transition_to_maxiter(node_id, output)

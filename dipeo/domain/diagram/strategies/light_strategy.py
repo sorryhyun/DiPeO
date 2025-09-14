@@ -9,7 +9,7 @@ from dipeo.diagram_generated import (
     HandleDirection,
     NodeType,
 )
-from dipeo.diagram_generated.conversions import diagram_maps_to_arrays, node_kind_to_domain_type
+from dipeo.diagram_generated.conversions import node_kind_to_domain_type
 from dipeo.domain.diagram.compilation.prompt_compiler import PromptFileCompiler
 from dipeo.domain.diagram.models.format_models import LightConnection, LightDiagram, LightNode
 from dipeo.domain.diagram.utils import (
@@ -23,6 +23,7 @@ from dipeo.domain.diagram.utils import (
     process_dotted_keys,
 )
 
+from ..utils.conversion_utils import diagram_maps_to_arrays
 from .base_strategy import BaseConversionStrategy
 
 log = logging.getLogger(__name__)
@@ -309,7 +310,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 except ValueError:
                     node_type = NodeType.CODE_JOB
 
-                handle_generator.generate_for_node(diagram_dict, node_id, node_type.value)
+                handle_generator.generate_for_node(diagram_dict, node_id, node_type)
 
     def _create_arrow_handles(self, diagram_dict: dict[str, Any]):
         nodes_dict = diagram_dict["nodes"]
@@ -438,7 +439,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 from_=from_str,
                 to=to_str,
                 label=a.label,
-                type=a.content_type.value if a.content_type else None,
+                type=a.content_type if a.content_type else None,
                 **extra_data,
             )
             connections.append(conn)
@@ -448,7 +449,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             persons_out = {}
             for p in diagram.persons:
                 person_data = {
-                    "service": p.llm_config.service.value
+                    "service": p.llm_config.service
                     if hasattr(p.llm_config.service, "value")
                     else str(p.llm_config.service),
                     "model": p.llm_config.model,

@@ -26,7 +26,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 300}
     props:
-      diagram_name: projects/codegen/diagrams/generate_backend
+      diagram_name: projects/codegen/diagrams/generate_backend_simplified
       diagram_format: light
       passInputData: false
 
@@ -35,7 +35,7 @@ nodes:
     type: sub_diagram
     position: {x: 400, y: 400}
     props:
-      diagram_name: projects/codegen/diagrams/generate_frontend
+      diagram_name: projects/codegen/diagrams/generate_frontend_simplified
       diagram_format: light
       passInputData: false
 

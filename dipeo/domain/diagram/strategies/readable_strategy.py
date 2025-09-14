@@ -7,7 +7,6 @@ from typing import Any
 from dipeo.diagram_generated import (
     DomainDiagram,
     HandleDirection,
-    diagram_maps_to_arrays,
 )
 from dipeo.domain.diagram.models.format_models import ReadableArrow, ReadableDiagram, ReadableNode
 from dipeo.domain.diagram.utils import (
@@ -22,6 +21,7 @@ from dipeo.domain.diagram.utils import (
     process_dotted_keys,
 )
 
+from ..utils.conversion_utils import diagram_maps_to_arrays
 from .base_strategy import BaseConversionStrategy
 
 log = logging.getLogger(__name__)

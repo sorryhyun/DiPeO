@@ -92,7 +92,7 @@ class BaseSubscriptionResolver:
     def _create_keepalive_payload(self) -> dict[str, Any]:
         """Create a keepalive payload."""
         return {
-            "type": EventType.KEEPALIVE.value,
+            "type": EventType.KEEPALIVE,
             "timestamp": datetime.now().isoformat(),
         }
 

@@ -66,7 +66,6 @@ def main(inputs: dict) -> dict:
         actual_inputs = inputs['default']
     else:
         actual_inputs = inputs
-
     # Get ast_data and parse if it's a string
     raw_ast_data = actual_inputs.get('ast_data', {})
     if isinstance(raw_ast_data, str):

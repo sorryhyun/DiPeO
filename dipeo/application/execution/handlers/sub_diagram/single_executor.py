@@ -256,7 +256,7 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
 
         if update_type == "NODE_STATUS_CHANGED":
             data = update.get("data", {})
-            if data.get("status") == Status.COMPLETED.value:
+            if data.get("status") == Status.COMPLETED:
                 node_id = data.get("node_id")
                 node_output = data.get("output")
                 if node_id and node_output:
@@ -269,9 +269,9 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
 
         elif update_type == "EXECUTION_STATUS_CHANGED":
             data = update.get("data", {})
-            if data.get("status") == Status.COMPLETED.value:
+            if data.get("status") == Status.COMPLETED:
                 return None, None, True
-            elif data.get("status") == Status.FAILED.value:
+            elif data.get("status") == Status.FAILED:
                 error = (
                     data.get("error")
                     or f"Execution failed (node_id: {data.get('node_id', 'unknown')})"

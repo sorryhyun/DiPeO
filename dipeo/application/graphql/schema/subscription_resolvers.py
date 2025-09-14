@@ -113,7 +113,7 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
         # Ensure metrics data is properly structured
         if isinstance(data, dict) and "metrics" in data:
             data = data["metrics"]
-    elif event_type == EventType.KEEPALIVE.value:
+    elif event_type == EventType.KEEPALIVE:
         # Handle keepalive events
         data = {"type": "keepalive"}
     else:
@@ -131,8 +131,8 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
 def _filter_node_updates(event: dict[str, Any], node_id: str | None = None) -> bool:
     """Filter for node update events."""
     if event.get("type") not in [
-        EventType.NODE_STATUS_CHANGED.value,
-        EventType.NODE_PROGRESS.value,
+        EventType.NODE_STATUS_CHANGED,
+        EventType.NODE_PROGRESS,
     ]:
         return False
 
@@ -156,7 +156,7 @@ def _transform_node_update(event: dict[str, Any]) -> dict[str, Any] | None:
 
 def _filter_interactive_prompts(event: dict[str, Any]) -> bool:
     """Filter for interactive prompt events."""
-    return event.get("type") == EventType.INTERACTIVE_PROMPT.value
+    return event.get("type") == EventType.INTERACTIVE_PROMPT
 
 
 def _transform_interactive_prompt(event: dict[str, Any]) -> dict[str, Any] | None:
@@ -172,7 +172,7 @@ def _transform_interactive_prompt(event: dict[str, Any]) -> dict[str, Any] | Non
 
 def _filter_execution_logs(event: dict[str, Any]) -> bool:
     """Filter for execution log events."""
-    return event.get("type") == EventType.EXECUTION_LOG.value
+    return event.get("type") == EventType.EXECUTION_LOG
 
 
 def _transform_execution_log(event: dict[str, Any]) -> dict[str, Any] | None:

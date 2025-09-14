@@ -371,7 +371,7 @@ class ArrowDataProcessor:
             arrow_dict["label"] = label
 
         if "content_type" not in arrow_dict and arrow_dict.get("content_type") is None:
-            arrow_dict["content_type"] = ContentType.RAW_TEXT.value
+            arrow_dict["content_type"] = ContentType.RAW_TEXT
 
         return arrow_dict
 

@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-14T13:40:21.486217
+Generated at: 2025-09-14T15:18:58.153116
 """
 
 import strawberry

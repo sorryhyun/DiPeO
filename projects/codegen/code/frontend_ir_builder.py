@@ -97,18 +97,18 @@ def extract_node_configs(ast_data: Dict[str, Any]) -> List[Dict[str, Any]]:
                     'validation_schema': None,
                 }
 
-                # Process fields for UI
+                # Process fields - pass raw data, let templates handle type mapping
                 for field in spec_value.get('fields', []):
+                    # Pass through all field data as-is
                     field_config = {
                         'name': field.get('name', ''),
-                        'type': field.get('type', 'string'),
+                        'type': field.get('type', 'string'),  # Keep original AST type
                         'label': field.get('label', field.get('name', '')),
                         'placeholder': field.get('placeholder', ''),
                         'help_text': field.get('description', ''),
                         'required': field.get('required', False),
                         'default_value': field.get('defaultValue'),
                         'validation': field.get('validation', {}),
-                        'ui_type': field.get('uiType', 'text'),  # text, textarea, select, etc.
                         'options': field.get('options', []),
                     }
                     ui_config['fields'].append(field_config)
@@ -125,137 +125,19 @@ def extract_node_configs(ast_data: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 def generate_field_configs(node_configs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Generate field configuration objects from node configs."""
-    field_configs = []
-    processed_field_types = set()
-
-    for config in node_configs:
-        for field in config['fields']:
-            field_type = field['ui_type']
-
-            # Skip if we've already processed this field type
-            if field_type in processed_field_types:
-                continue
-
-            processed_field_types.add(field_type)
-
-            field_config = {
-                'type': field_type,
-                'component': get_field_component(field_type),
-                'props': get_field_props(field_type),
-                'validation_rules': get_field_validation(field_type),
-            }
-            field_configs.append(field_config)
-
-    return field_configs
+    # This is simplified now - templates handle field type mapping
+    # Just return empty list as field configs are handled in templates
+    return []
 
 
-def get_field_component(field_type: str) -> str:
-    """Get React component name for field type."""
-    component_map = {
-        'text': 'TextField',
-        'textarea': 'TextArea',
-        'number': 'NumberField',
-        'select': 'SelectField',
-        'checkbox': 'CheckboxField',
-        'radio': 'RadioGroup',
-        'date': 'DatePicker',
-        'file': 'FileUpload',
-        'json': 'JsonEditor',
-        'code': 'CodeEditor',
-    }
-    return component_map.get(field_type, 'TextField')
-
-
-def get_field_props(field_type: str) -> Dict[str, Any]:
-    """Get default props for field type."""
-    props_map = {
-        'text': {'variant': 'outlined', 'fullWidth': True},
-        'textarea': {'rows': 4, 'multiline': True, 'fullWidth': True},
-        'number': {'type': 'number', 'fullWidth': True},
-        'select': {'fullWidth': True},
-        'checkbox': {},
-        'radio': {'row': True},
-        'date': {'format': 'MM/dd/yyyy'},
-        'file': {'accept': '*/*'},
-        'json': {'height': '200px', 'theme': 'light'},
-        'code': {'height': '300px', 'language': 'javascript'},
-    }
-    return props_map.get(field_type, {})
-
-
-def get_field_validation(field_type: str) -> List[str]:
-    """Get validation rules for field type."""
-    validation_map = {
-        'text': ['string', 'max:255'],
-        'textarea': ['string', 'max:5000'],
-        'number': ['number'],
-        'select': ['string', 'in:options'],
-        'checkbox': ['boolean'],
-        'radio': ['string', 'in:options'],
-        'date': ['date'],
-        'file': ['file'],
-        'json': ['json'],
-        'code': ['string'],
-    }
-    return validation_map.get(field_type, [])
+# Removed helper functions - now handled by Jinja2 filters
 
 
 # ============================================================================
 # ZOD SCHEMAS GENERATION
 # ============================================================================
 
-def create_zod_schemas(node_configs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Generate Zod validation schemas from node configurations."""
-    schemas = []
-
-    for config in node_configs:
-        schema = {
-            'name': f'{config["node_name"]}Schema',
-            'fields': [],
-        }
-
-        for field in config['fields']:
-            zod_field = {
-                'name': field['name'],
-                'type': get_zod_type(field['type']),
-                'required': field['required'],
-                'validations': [],
-            }
-
-            # Add validations
-            if field.get('validation'):
-                validation = field['validation']
-                if validation.get('min'):
-                    zod_field['validations'].append(f'min({validation["min"]})')
-                if validation.get('max'):
-                    zod_field['validations'].append(f'max({validation["max"]})')
-                if validation.get('pattern'):
-                    zod_field['validations'].append(f'regex(/{validation["pattern"]}/)')
-                if validation.get('email'):
-                    zod_field['validations'].append('email()')
-                if validation.get('url'):
-                    zod_field['validations'].append('url()')
-
-            schema['fields'].append(zod_field)
-
-        schemas.append(schema)
-
-    return schemas
-
-
-def get_zod_type(field_type: str) -> str:
-    """Convert field type to Zod type."""
-    type_map = {
-        'string': 'z.string()',
-        'number': 'z.number()',
-        'boolean': 'z.boolean()',
-        'array': 'z.array()',
-        'object': 'z.object()',
-        'any': 'z.any()',
-        'Date': 'z.date()',
-        'File': 'z.instanceof(File)',
-    }
-    return type_map.get(field_type, 'z.string()')
+# Removed create_zod_schemas - templates will handle this with filters
 
 
 # ============================================================================
@@ -418,7 +300,6 @@ class FrontendIRBuilder:
         # Extract all components
         node_configs = extract_node_configs(ast_data)
         field_configs = generate_field_configs(node_configs)
-        zod_schemas = create_zod_schemas(node_configs)
         graphql_queries = extract_graphql_queries(ast_data)
         registry_data = build_registry_data(node_configs)
         typescript_models = generate_typescript_models(node_configs)
@@ -431,7 +312,6 @@ class FrontendIRBuilder:
             # Core data
             'node_configs': node_configs,
             'field_configs': field_configs,
-            'zod_schemas': zod_schemas,
             'graphql_queries': graphql_queries,
             'registry_data': registry_data,
             'typescript_models': typescript_models,
@@ -445,7 +325,6 @@ class FrontendIRBuilder:
             'metadata': {
                 'node_count': len(node_configs),
                 'field_type_count': len(field_configs),
-                'schema_count': len(zod_schemas),
                 'query_count': len([q for q in graphql_queries if q['type'] == 'query']),
                 'mutation_count': len([q for q in graphql_queries if q['type'] == 'mutation']),
                 'subscription_count': len([q for q in graphql_queries if q['type'] == 'subscription']),
@@ -500,7 +379,6 @@ def build_frontend_ir(input_data: Dict[str, Any]) -> Dict[str, Any]:
     print(f"Generated frontend IR with:")
     print(f"  - {ir['metadata']['node_count']} node configurations")
     print(f"  - {ir['metadata']['field_type_count']} field types")
-    print(f"  - {ir['metadata']['schema_count']} Zod schemas")
     print(f"  - {ir['metadata']['query_count']} queries")
     print(f"  - {ir['metadata']['mutation_count']} mutations")
     print(f"  - {ir['metadata']['subscription_count']} subscriptions")

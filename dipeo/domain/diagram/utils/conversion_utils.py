@@ -63,3 +63,13 @@ def _node_id_map(nodes: list[dict[str, Any]]) -> dict[str, str]:
         label = n.get("label") or n.get("data", {}).get("label") or n["id"]
         label_map[label] = n["id"]
     return label_map
+
+
+def diagram_maps_to_arrays(diagram: dict[str, Any]) -> dict[str, Any]:
+    """Convert map-based diagram to array-based structure."""
+    return {
+        "nodes": list(diagram.get("nodes", {}).values()),
+        "arrows": list(diagram.get("arrows", {}).values()),
+        "handles": list(diagram.get("handles", {}).values()),
+        "persons": list(diagram.get("persons", {}).values()),
+    }

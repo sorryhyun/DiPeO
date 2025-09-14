@@ -11,7 +11,7 @@ from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
 
 from dipeo.diagram_generated.enums import *
-from dipeo.diagram_generated.integrations import *
+from dipeo.diagram_generated.domain_models import *
 
 
 class TypescriptAstNode(BaseModel):

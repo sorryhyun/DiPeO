@@ -54,6 +54,28 @@ def ts_to_python_type(ts_type: str) -> str:
         'object': 'Dict[str, Any]',
     }
 
+    # Handle union types (A | B | C)
+    if '|' in ts_type:
+        parts = [part.strip() for part in ts_type.split('|')]
+
+        # Special case: if it's just Type | null or Type | undefined
+        if len(parts) == 2:
+            if 'null' in parts or 'undefined' in parts:
+                other_type = parts[0] if parts[1] in ['null', 'undefined'] else parts[1]
+                return f'Optional[{ts_to_python_type(other_type)}]'
+
+        # General union case
+        converted_parts = [ts_to_python_type(part) for part in parts]
+        # Filter out None values for cleaner output
+        converted_parts = [p for p in converted_parts if p != 'None']
+
+        if len(converted_parts) == 1:
+            return f'Optional[{converted_parts[0]}]'
+        elif len(converted_parts) > 1:
+            return f'Union[{", ".join(converted_parts)}]'
+        else:
+            return 'None'
+
     # Check for array types
     if ts_type.startswith('Array<') and ts_type.endswith('>'):
         inner_type = ts_type[6:-1]
@@ -187,24 +209,25 @@ def extract_integrations(ast_data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     for file_path, file_data in ast_data.items():
-        if 'integration' not in file_path.lower():
+        # Check for integration files more broadly
+        if 'integration' not in file_path.lower() and not file_path.endswith('integration.ts.json'):
             continue
 
-        # Extract integration models
+        # Extract all interfaces from integration files
         for interface in file_data.get('interfaces', []):
-            if 'Integration' in interface.get('name', ''):
-                model = {
-                    'name': interface['name'],
-                    'fields': [],
+            # Include all interfaces from integration files, not just those with 'Integration' in name
+            model = {
+                'name': interface['name'],
+                'fields': [],
+            }
+            for prop in interface.get('properties', []):
+                field = {
+                    'name': prop['name'],
+                    'type': ts_to_python_type(prop.get('type', 'any')),
+                    'optional': prop.get('optional', prop.get('isOptional', False)),
                 }
-                for prop in interface.get('properties', []):
-                    field = {
-                        'name': prop['name'],
-                        'type': ts_to_python_type(prop.get('type', 'any')),
-                        'optional': prop.get('isOptional', False),
-                    }
-                    model['fields'].append(field)
-                integrations['models'].append(model)
+                model['fields'].append(field)
+            integrations['models'].append(model)
 
         # Extract integration configs from constants
         for const in file_data.get('constants', []):
@@ -231,25 +254,51 @@ def extract_conversions(ast_data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     for file_path, file_data in ast_data.items():
-        if 'conversion' not in file_path.lower() and 'mapping' not in file_path.lower():
+        # Check for conversion/mapping files more broadly
+        if ('conversion' not in file_path.lower() and
+            'mapping' not in file_path.lower() and
+            not file_path.endswith('conversions.ts.json') and
+            not file_path.endswith('mappings.ts.json')):
             continue
 
-        # Extract node type mappings
+        # Extract all constants from conversion/mapping files
         for const in file_data.get('constants', []):
             const_name = const.get('name', '')
             const_value = const.get('value', {})
 
-            if 'NodeTypeMap' in const_name and isinstance(const_value, dict):
+            # Handle NODE_TYPE_MAP
+            if 'NODE_TYPE_MAP' in const_name:
+                # Parse the JavaScript object literal string if needed
+                if isinstance(const_value, str) and '{' in const_value:
+                    # This is a JavaScript literal, extract key-value pairs
+                    import re
+                    matches = re.findall(r"'([^']+)':\s*NodeType\.([A-Z_]+)", const_value)
+                    for key, value in matches:
+                        conversions['node_type_map'][key] = value
+                elif isinstance(const_value, dict):
+                    for key, value in const_value.items():
+                        if isinstance(value, dict):
+                            conversions['node_type_map'][key] = value.get('value', key)
+                        else:
+                            conversions['node_type_map'][key] = str(value)
+
+            # Handle TS_TO_PY_TYPE
+            elif 'TS_TO_PY' in const_name and isinstance(const_value, dict):
+                # Clean up the keys (remove quotes)
                 for key, value in const_value.items():
-                    if isinstance(value, dict):
-                        conversions['node_type_map'][key] = value.get('value', key)
-                    else:
-                        conversions['node_type_map'][key] = str(value)
+                    clean_key = key.strip("'\"")
+                    conversions['type_conversions'][clean_key] = value
 
-            elif 'TypeConversion' in const_name and isinstance(const_value, dict):
+            # Handle TYPE_TO_FIELD
+            elif 'TYPE_TO_FIELD' in const_name and isinstance(const_value, dict):
+                for key, value in const_value.items():
+                    clean_key = key.strip("'\"")
+                    conversions['field_mappings'][clean_key] = value
+
+            # Handle other conversion/mapping constants
+            elif 'Conversion' in const_name and isinstance(const_value, dict):
                 conversions['type_conversions'].update(const_value)
-
-            elif 'FieldMapping' in const_name and isinstance(const_value, dict):
+            elif 'Mapping' in const_name and isinstance(const_value, dict):
                 conversions['field_mappings'].update(const_value)
 
     return conversions

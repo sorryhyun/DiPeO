@@ -13,7 +13,7 @@ from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.domain_models import DomainPerson, PersonLLMConfig
 
 from dipeo.diagram_generated.enums import *
-from dipeo.diagram_generated.integrations import *
+from dipeo.diagram_generated.domain_models import *
 
 
 class PersonJobNode(BaseModel):

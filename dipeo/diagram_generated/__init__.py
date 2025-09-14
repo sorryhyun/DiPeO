@@ -3,11 +3,8 @@
 # Re-export enums
 # Re-export functions from conversions
 from .conversions import (
-    diagram_arrays_to_maps,
-    diagram_maps_to_arrays,
     domain_type_to_node_kind,
     node_kind_to_domain_type,
-    normalize_node_id,
 )
 # Re-export all domain models
 from .domain_models import (
@@ -128,10 +125,7 @@ __all__ = [
     # Domain models
     "Vec2",
     "WebSearchResult",
-    "diagram_arrays_to_maps",
-    "diagram_maps_to_arrays",
     "domain_type_to_node_kind",
     # Functions from conversions
     "node_kind_to_domain_type",
-    "normalize_node_id",
 ]

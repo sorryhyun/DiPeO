@@ -442,7 +442,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
             # Only process node completions and execution status
             if update_type == "NODE_STATUS_CHANGED":
                 data = update.get("data", {})
-                if data.get("status") == Status.COMPLETED.value:
+                if data.get("status") == Status.COMPLETED:
                     node_id = data.get("node_id")
                     node_output = data.get("output")
                     if node_id and node_output:
@@ -454,9 +454,9 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
 
             elif update_type == "EXECUTION_STATUS_CHANGED":
                 data = update.get("data", {})
-                if data.get("status") == Status.COMPLETED.value:
+                if data.get("status") == Status.COMPLETED:
                     break
-                elif data.get("status") == Status.FAILED.value:
+                elif data.get("status") == Status.FAILED:
                     execution_error = data.get("error")
                     if not execution_error:
                         # Try to get more context from the data

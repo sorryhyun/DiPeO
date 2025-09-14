@@ -7,7 +7,7 @@ from enum import Enum
 
 
 class DataType(str, Enum):
-    """Data type and structure enumerations"""
+    """"""
     
     ANY = "any"
     
@@ -24,7 +24,7 @@ class DataType(str, Enum):
 
 
 class ContentType(str, Enum):
-    """ContentType enum values"""
+    """"""
     
     RAW_TEXT = "raw_text"
     
@@ -43,7 +43,7 @@ class ContentType(str, Enum):
 
 
 class HandleDirection(str, Enum):
-    """HandleDirection enum values"""
+    """"""
     
     INPUT = "input"
     
@@ -52,7 +52,7 @@ class HandleDirection(str, Enum):
 
 
 class HandleLabel(str, Enum):
-    """HandleLabel enum values"""
+    """"""
     
     DEFAULT = "default"
     
@@ -71,7 +71,7 @@ class HandleLabel(str, Enum):
 
 
 class DiagramFormat(str, Enum):
-    """Diagram format enumeration"""
+    """"""
     
     NATIVE = "native"
     
@@ -82,7 +82,7 @@ class DiagramFormat(str, Enum):
 
 
 class Status(str, Enum):
-    """Execution and event-related enumerations"""
+    """"""
     
     PENDING = "pending"
     
@@ -103,7 +103,7 @@ class Status(str, Enum):
 
 
 class FlowStatus(str, Enum):
-    """Flow control status for node execution"""
+    """"""
     
     WAITING = "waiting"
     
@@ -116,7 +116,7 @@ class FlowStatus(str, Enum):
 
 
 class CompletionStatus(str, Enum):
-    """Node execution completion status"""
+    """"""
     
     SUCCESS = "success"
     
@@ -129,7 +129,7 @@ class CompletionStatus(str, Enum):
 
 
 class ExecutionPhase(str, Enum):
-    """Execution phases for LLM and workflow operations"""
+    """"""
     
     MEMORY_SELECTION = "memory_selection"
     
@@ -142,7 +142,7 @@ class ExecutionPhase(str, Enum):
 
 
 class EventType(str, Enum):
-    """EventType enum values"""
+    """"""
     
     EXECUTION_STARTED = "execution_started"
     
@@ -183,7 +183,7 @@ class EventType(str, Enum):
 
 
 class LLMService(str, Enum):
-    """External service integration enumerations"""
+    """"""
     
     OPENAI = "openai"
     
@@ -206,9 +206,7 @@ class LLMService(str, Enum):
 
 
 class APIServiceType(str, Enum):
-    """APIServiceType now only includes LLM providers.
-External API providers (NOTION, GOOGLE_SEARCH, SLACK, etc.) are now
-handled dynamically through the ProviderRegistry."""
+    """"""
     
     OPENAI = "openai"
     
@@ -231,7 +229,7 @@ handled dynamically through the ProviderRegistry."""
 
 
 class ToolType(str, Enum):
-    """ToolType enum values"""
+    """"""
     
     WEB_SEARCH = "web_search"
     
@@ -242,7 +240,7 @@ class ToolType(str, Enum):
 
 
 class ToolSelection(str, Enum):
-    """ToolSelection enum values"""
+    """"""
     
     NONE = "none"
     
@@ -253,7 +251,7 @@ class ToolSelection(str, Enum):
 
 
 class AuthType(str, Enum):
-    """AuthType enum values"""
+    """"""
     
     NONE = "none"
     
@@ -266,7 +264,7 @@ class AuthType(str, Enum):
 
 
 class RetryStrategy(str, Enum):
-    """RetryStrategy enum values"""
+    """"""
     
     NONE = "none"
     
@@ -287,7 +285,7 @@ class RetryStrategy(str, Enum):
 
 
 class DBBlockSubType(str, Enum):
-    """Node-specific enumerations"""
+    """"""
     
     FIXED_PROMPT = "fixed_prompt"
     
@@ -300,7 +298,7 @@ class DBBlockSubType(str, Enum):
 
 
 class SupportedLanguage(str, Enum):
-    """SupportedLanguage enum values"""
+    """"""
     
     PYTHON = "python"
     
@@ -313,7 +311,7 @@ class SupportedLanguage(str, Enum):
 
 
 class HttpMethod(str, Enum):
-    """HttpMethod enum values"""
+    """"""
     
     GET = "get"
     
@@ -328,7 +326,7 @@ class HttpMethod(str, Enum):
 
 
 class HookType(str, Enum):
-    """HookType enum values"""
+    """"""
     
     SHELL = "shell"
     
@@ -341,7 +339,7 @@ class HookType(str, Enum):
 
 
 class HookTriggerMode(str, Enum):
-    """HookTriggerMode enum values"""
+    """"""
     
     NONE = "none"
     
@@ -352,7 +350,7 @@ class HookTriggerMode(str, Enum):
 
 
 class ConditionType(str, Enum):
-    """ConditionType enum values"""
+    """"""
     
     DETECT_MAX_ITERATIONS = "detect_max_iterations"
     
@@ -365,7 +363,7 @@ class ConditionType(str, Enum):
 
 
 class TemplateEngine(str, Enum):
-    """TemplateEngine enum values"""
+    """"""
     
     INTERNAL = "internal"
     
@@ -374,7 +372,7 @@ class TemplateEngine(str, Enum):
 
 
 class NodeType(str, Enum):
-    """Node type definitions for the DiPeO system"""
+    """"""
     
     START = "start"
     
@@ -407,7 +405,7 @@ class NodeType(str, Enum):
 
 
 class Severity(str, Enum):
-    """Validation and priority-related enumerations"""
+    """"""
     
     ERROR = "error"
     
@@ -418,7 +416,7 @@ class Severity(str, Enum):
 
 
 class EventPriority(str, Enum):
-    """Event processing priority levels"""
+    """"""
     
     LOW = "low"
     

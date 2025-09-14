@@ -122,7 +122,10 @@ async def execute_diagram(registry: ServiceRegistry, input: ExecuteDiagramInput)
             return ExecutionResult.error_result(error="Failed to start execution")
 
     except Exception as e:
+        import traceback
+
         logger.error(f"Failed to execute diagram: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return ExecutionResult.error_result(error=f"Failed to execute diagram: {e!s}")
 
 
@@ -148,7 +151,7 @@ async def update_node_state(
         await message_router.broadcast_to_execution(
             execution_id=input.execution_id,
             message={
-                "type": EventType.NODE_STATUS_CHANGED.value,
+                "type": EventType.NODE_STATUS_CHANGED,
                 "node_id": input.node_id,
                 "status": input.status,
                 "output": input.output,
@@ -194,10 +197,10 @@ async def control_execution(
         await message_router.broadcast_to_execution(
             execution_id=input.execution_id,
             message={
-                "type": EventType.EXECUTION_STATUS_CHANGED.value,
+                "type": EventType.EXECUTION_STATUS_CHANGED,
                 "action": input.action,
                 "reason": input.reason,
-                "status": new_status.value,
+                "status": new_status,
             },
         )
 
@@ -227,7 +230,7 @@ async def send_interactive_response(
         await message_router.broadcast_to_execution(
             execution_id=input.execution_id,
             message={
-                "type": EventType.INTERACTIVE_RESPONSE.value,
+                "type": EventType.INTERACTIVE_RESPONSE,
                 "node_id": input.node_id,
                 "response": input.response,
                 "metadata": input.metadata,
