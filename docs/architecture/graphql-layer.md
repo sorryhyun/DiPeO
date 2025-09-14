@@ -40,6 +40,7 @@ This layer is completely generated from TypeScript query definitions and provide
 - **`results.py`** - Generated result types for consistent response formats
 - **`domain_types.py`** - Generated domain types mapping to internal models
 - **`enums.py`** - Generated enum types
+- **`generated_schema.py`** - Generated Query, Mutation, and Subscription classes with field resolvers
 
 #### operations.py Structure
 ```python
@@ -93,8 +94,8 @@ This layer contains the business logic and resolver implementations that handle 
 │   │   ├── person.py       # Person mutations
 │   │   ├── cli_session.py  # CLI session mutations
 │   │   └── upload.py       # Upload mutations
-│   ├── queries.py          # Query class definition
-│   └── query_resolvers.py  # Standalone query resolvers
+│   ├── query_resolvers.py  # Standalone query resolvers
+│   └── subscription_resolvers.py  # Subscription resolvers
 ├── resolvers/              # Business logic resolvers
 │   ├── diagram.py         # DiagramResolver
 │   ├── execution.py       # ExecutionResolver
@@ -102,6 +103,8 @@ This layer contains the business logic and resolver implementations that handle 
 ├── types/                 # GraphQL type definitions
 └── operation_executor.py  # Central operation mapping
 ```
+
+**Note**: The Query, Mutation, and Subscription classes are now generated in `/dipeo/diagram_generated/graphql/generated_schema.py`
 
 #### Resolver Patterns
 All resolvers follow consistent patterns with proper error handling and ServiceRegistry integration:

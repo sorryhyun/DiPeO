@@ -122,6 +122,9 @@ class RunCommand:
         """Poll for execution completion in simple mode."""
         print(f"\n⏳ Waiting for execution to complete (timeout: {timeout}s)...")
         start_time = time.time()
+        consecutive_none_count = 0
+        max_consecutive_none = 10  # Allow up to 20 seconds of None responses (10 * 2s)
+        last_known_status = None
 
         while True:
             elapsed = time.time() - start_time
@@ -135,10 +138,32 @@ class RunCommand:
             exec_result = self.server.get_execution_result(execution_id)
 
             if exec_result is None:
+                consecutive_none_count += 1
+                if debug:
+                    print(
+                        f"⏳ Execution state unavailable (attempt {consecutive_none_count})... ({int(elapsed)}s)"
+                    )
+
+                # If we had a completed status before and now getting None, assume done
+                if last_known_status in ["COMPLETED", "MAXITER_REACHED"]:
+                    print(f"✅ Execution completed (was {last_known_status})")
+                    return True
+                elif last_known_status in ["FAILED", "ABORTED"]:
+                    print(f"❌ Execution {last_known_status.lower()}")
+                    return False
+
+                # If too many None responses, assume completion
+                if consecutive_none_count >= max_consecutive_none:
+                    print("⚠️ Lost connection to execution state, assuming completed")
+                    return True
+
                 print(f"⏳ Waiting for execution result... ({int(elapsed)}s)")
                 continue
 
+            # Reset None counter when we get a valid result
+            consecutive_none_count = 0
             status = exec_result.get("status")
+            last_known_status = status
 
             if status in ["COMPLETED", "MAXITER_REACHED"]:
                 if status == "MAXITER_REACHED":
@@ -190,6 +215,9 @@ class RunCommand:
                         client.subscribe_to_execution(display.handle_event)
                     )
                     start = time.time()
+                    consecutive_none_count = 0
+                    last_known_status = None
+
                     while True:
                         # Check timeout
                         if time.time() - start > timeout:
@@ -200,7 +228,10 @@ class RunCommand:
                         # Check execution status
                         exec_result = self.server.get_execution_result(execution_id)
                         if exec_result:
+                            consecutive_none_count = 0
                             status = exec_result.get("status")
+                            last_known_status = status
+
                             if status in ["COMPLETED", "MAXITER_REACHED"]:
                                 if status == "MAXITER_REACHED":
                                     print("\n✅ Execution completed (max iterations reached)")
@@ -217,6 +248,26 @@ class RunCommand:
                                     )
                                 subscription_task.cancel()
                                 return False
+                        else:
+                            # Handle None result - might indicate completed execution removed from cache
+                            consecutive_none_count += 1
+
+                            # If we previously saw a completed status and now getting None, assume done
+                            if last_known_status in ["COMPLETED", "MAXITER_REACHED"]:
+                                print(f"\n✅ Execution completed (was {last_known_status})")
+                                subscription_task.cancel()
+                                return True
+
+                            # After many None responses, check if subscription is still running
+                            if consecutive_none_count >= 15:  # 15 seconds of None
+                                if subscription_task.done():
+                                    # Subscription ended, likely execution completed
+                                    print("\n✅ Execution completed (subscription ended)")
+                                    return True
+                                else:
+                                    print("\n⚠️ Lost connection to execution state")
+                                    subscription_task.cancel()
+                                    return True
 
                         await asyncio.sleep(1)
                 except asyncio.CancelledError:

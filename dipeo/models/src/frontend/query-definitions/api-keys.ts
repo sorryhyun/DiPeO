@@ -1,6 +1,19 @@
 import { EntityQueryDefinitions } from './types';
 import { QueryOperationType } from '../query-enums';
 
+// Shared field patterns as const objects
+const API_KEY_FIELDS = [
+  { name: 'id' },
+  { name: 'label' },
+  { name: 'service' }
+];
+
+const RESULT_FIELDS = [
+  { name: 'success' },
+  { name: 'message' },
+  { name: 'error' }
+];
+
 export const apiKeyQueries: EntityQueryDefinitions = {
   entity: 'ApiKey',
   queries: [
@@ -32,11 +45,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
           args: [
             { name: 'api_key_id', value: 'api_key_id', isVariable: true }
           ],
-          fields: [
-            { name: 'id' },
-            { name: 'label' },
-            { name: 'service' }
-          ]
+          fields: API_KEY_FIELDS
         }
       ]
     },
@@ -73,11 +82,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
             { name: 'success' },
             {
               name: 'api_key',
-              fields: [
-                { name: 'id' },
-                { name: 'label' },
-                { name: 'service' }
-              ]
+              fields: API_KEY_FIELDS
             },
             { name: 'message' },
             { name: 'error' }
@@ -97,11 +102,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
           args: [
             { name: 'api_key_id', value: 'api_key_id', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: RESULT_FIELDS
         }
       ]
     },

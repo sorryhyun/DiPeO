@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from dipeo.domain.type_defs import JsonDict, JsonList, JsonPrimitive, JsonValue
 
 from .enums import *
-# Note: integrations are imported in __init__.py to avoid circular import
+from .integrations import *
 
 
 # NewType declarations

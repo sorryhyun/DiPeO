@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-14T15:40:46.324904",
+  "generated_at": "2025-09-14T17:05:07.432446",
   "interfaces": [
     {
       "name": "CliSession",
@@ -5559,7 +5559,7 @@
       "type": "query",
       "const_name": "GetExecution_QUERY",
       "class_name": "GetExecutionOperation",
-      "query_string": "query GetExecution($execution_id: String!) {\n  get_execution(execution_id: $execution_id) {\n    id\n    status\n    diagram_id\n    started_at\n    ended_at\n    error\n    node_states\n    node_outputs\n    variables\n    metrics\n    llm_usage {\n      input\n      output\n      cached\n      total\n    }\n  }\n}",
+      "query_string": "query GetExecution($execution_id: String!) {\n  execution(execution_id: $execution_id) {\n    id\n    status\n    diagram_id\n    started_at\n    ended_at\n    error\n    node_states\n    node_outputs\n    variables\n    metrics\n    llm_usage {\n      input\n      output\n      cached\n      total\n    }\n  }\n}",
       "variables": [
         {
           "name": "execution_id",
@@ -6699,7 +6699,7 @@
       "type": "query",
       "const_name": "GetExecution_QUERY",
       "class_name": "GetExecutionOperation",
-      "query_string": "query GetExecution($execution_id: String!) {\n  get_execution(execution_id: $execution_id) {\n    id\n    status\n    diagram_id\n    started_at\n    ended_at\n    error\n    node_states\n    node_outputs\n    variables\n    metrics\n    llm_usage {\n      input\n      output\n      cached\n      total\n    }\n  }\n}",
+      "query_string": "query GetExecution($execution_id: String!) {\n  execution(execution_id: $execution_id) {\n    id\n    status\n    diagram_id\n    started_at\n    ended_at\n    error\n    node_states\n    node_outputs\n    variables\n    metrics\n    llm_usage {\n      input\n      output\n      cached\n      total\n    }\n  }\n}",
       "variables": [
         {
           "name": "execution_id",
@@ -8586,7 +8586,7 @@
       "parameters": [],
       "operation_type": "query",
       "description": "GetActiveCliSession operation",
-      "alias_name": null
+      "alias_name": "active_cli_session"
     },
     {
       "field_name": "GetApiKey",
@@ -8602,7 +8602,7 @@
       ],
       "operation_type": "query",
       "description": "GetApiKey operation",
-      "alias_name": null
+      "alias_name": "api_key"
     },
     {
       "field_name": "GetApiKeys",
@@ -8618,7 +8618,7 @@
       ],
       "operation_type": "query",
       "description": "GetApiKeys operation",
-      "alias_name": null
+      "alias_name": "api_keys"
     },
     {
       "field_name": "GetAvailableModels",
@@ -8640,7 +8640,7 @@
       ],
       "operation_type": "query",
       "description": "GetAvailableModels operation",
-      "alias_name": null
+      "alias_name": "available_models"
     },
     {
       "field_name": "GetDiagram",
@@ -8656,7 +8656,7 @@
       ],
       "operation_type": "query",
       "description": "GetDiagram operation",
-      "alias_name": null
+      "alias_name": "diagram"
     },
     {
       "field_name": "GetExecution",
@@ -8672,7 +8672,7 @@
       ],
       "operation_type": "query",
       "description": "GetExecution operation",
-      "alias_name": null
+      "alias_name": "execution"
     },
     {
       "field_name": "GetExecutionCapabilities",
@@ -8681,7 +8681,7 @@
       "parameters": [],
       "operation_type": "query",
       "description": "GetExecutionCapabilities operation",
-      "alias_name": null
+      "alias_name": "execution_capabilities"
     },
     {
       "field_name": "GetExecutionHistory",
@@ -8709,7 +8709,7 @@
       ],
       "operation_type": "query",
       "description": "GetExecutionHistory operation",
-      "alias_name": null
+      "alias_name": "execution_history"
     },
     {
       "field_name": "GetExecutionMetrics",
@@ -8725,7 +8725,7 @@
       ],
       "operation_type": "query",
       "description": "GetExecutionMetrics operation",
-      "alias_name": null
+      "alias_name": "execution_metrics"
     },
     {
       "field_name": "GetExecutionOrder",
@@ -8741,7 +8741,7 @@
       ],
       "operation_type": "query",
       "description": "GetExecutionOrder operation",
-      "alias_name": null
+      "alias_name": "execution_order"
     },
     {
       "field_name": "GetOperationSchema",
@@ -8763,7 +8763,7 @@
       ],
       "operation_type": "query",
       "description": "GetOperationSchema operation",
-      "alias_name": null
+      "alias_name": "operation_schema"
     },
     {
       "field_name": "GetPerson",
@@ -8779,7 +8779,7 @@
       ],
       "operation_type": "query",
       "description": "GetPerson operation",
-      "alias_name": null
+      "alias_name": "person"
     },
     {
       "field_name": "GetPromptFile",
@@ -8795,7 +8795,7 @@
       ],
       "operation_type": "query",
       "description": "GetPromptFile operation",
-      "alias_name": null
+      "alias_name": "prompt_file"
     },
     {
       "field_name": "GetProviderOperations",
@@ -8811,7 +8811,7 @@
       ],
       "operation_type": "query",
       "description": "GetProviderOperations operation",
-      "alias_name": null
+      "alias_name": "provider_operations"
     },
     {
       "field_name": "GetProviders",
@@ -8820,7 +8820,7 @@
       "parameters": [],
       "operation_type": "query",
       "description": "GetProviders operation",
-      "alias_name": null
+      "alias_name": "providers"
     },
     {
       "field_name": "GetSupportedFormats",
@@ -8829,7 +8829,7 @@
       "parameters": [],
       "operation_type": "query",
       "description": "GetSupportedFormats operation",
-      "alias_name": null
+      "alias_name": "supported_formats"
     },
     {
       "field_name": "GetSystemInfo",
@@ -8838,7 +8838,7 @@
       "parameters": [],
       "operation_type": "query",
       "description": "GetSystemInfo operation",
-      "alias_name": null
+      "alias_name": "system_info"
     },
     {
       "field_name": "HealthCheck",
@@ -8847,7 +8847,7 @@
       "parameters": [],
       "operation_type": "query",
       "description": "HealthCheck operation",
-      "alias_name": null
+      "alias_name": "health_check"
     },
     {
       "field_name": "ListConversations",
@@ -8899,7 +8899,7 @@
       ],
       "operation_type": "query",
       "description": "ListConversations operation",
-      "alias_name": null
+      "alias_name": "conversationses"
     },
     {
       "field_name": "ListDiagrams",
@@ -8927,7 +8927,7 @@
       ],
       "operation_type": "query",
       "description": "ListDiagrams operation",
-      "alias_name": null
+      "alias_name": "diagramses"
     },
     {
       "field_name": "ListExecutions",
@@ -8955,7 +8955,7 @@
       ],
       "operation_type": "query",
       "description": "ListExecutions operation",
-      "alias_name": null
+      "alias_name": "executionses"
     },
     {
       "field_name": "ListPersons",
@@ -8971,7 +8971,7 @@
       ],
       "operation_type": "query",
       "description": "ListPersons operation",
-      "alias_name": null
+      "alias_name": "personses"
     },
     {
       "field_name": "ListPromptFiles",
@@ -8980,7 +8980,7 @@
       "parameters": [],
       "operation_type": "query",
       "description": "ListPromptFiles operation",
-      "alias_name": null
+      "alias_name": "prompt_fileses"
     }
   ],
   "mutations": [

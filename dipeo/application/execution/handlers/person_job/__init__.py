@@ -402,9 +402,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         llm_usage = None
         if hasattr(result, "llm_usage") and result.llm_usage:
             llm_usage = result.llm_usage
-            logger.debug(
-                f"[PersonJob] Extracted LLM usage: input={llm_usage.input}, output={llm_usage.output}, total={llm_usage.total}"
-            )
 
         # Get person and conversation IDs
         person_id = str(person.id) if person.id else None

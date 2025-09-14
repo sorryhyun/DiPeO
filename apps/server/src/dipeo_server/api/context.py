@@ -53,10 +53,6 @@ class RequestContext(BaseContext):
         return True
 
 
-# Alias for backward compatibility during migration
-GraphQLContext = RequestContext
-
-
 def get_request_context(request_or_ws=None):
     """
     Factory function for creating request context.
@@ -83,7 +79,3 @@ def get_request_context(request_or_ws=None):
         websocket=websocket,
         container=container,
     )
-
-
-# Alias for backward compatibility
-get_graphql_context = get_request_context

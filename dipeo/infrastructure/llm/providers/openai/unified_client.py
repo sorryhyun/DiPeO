@@ -118,9 +118,9 @@ class UnifiedOpenAIClient:
         return api_tools
 
     def _parse_response(self, response: Any) -> LLMResponse:
-        if hasattr(response, "parsed"):
+        if hasattr(response, "output_parsed"):
             return LLMResponse(
-                content=response.parsed,
+                content=response.output_parsed,
                 raw_response=response,
                 usage=self._extract_usage(response),
                 provider="openai",
@@ -210,6 +210,18 @@ class UnifiedOpenAIClient:
 
         # Check for text_format in kwargs (for structured output)
         text_format = kwargs.pop("text_format", None)
+
+        # Set structured output for specific execution phases if not already set
+        if not text_format:
+            if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+                from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
+
+                text_format = MemorySelectionOutput
+            elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+                from dipeo.infrastructure.llm.drivers.types import DecisionOutput
+
+                text_format = DecisionOutput
+
         structured_model = response_format or text_format
 
         # Add remaining kwargs
@@ -235,6 +247,7 @@ class UnifiedOpenAIClient:
                     and issubclass(structured_model, BaseModel)
                 ):
                     params["text_format"] = structured_model
+                    print(structured_model)
                     response = await self.async_client.responses.parse(**params)
                 else:
                     response = await self.async_client.responses.create(**params)

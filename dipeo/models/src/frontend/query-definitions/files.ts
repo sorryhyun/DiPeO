@@ -1,6 +1,15 @@
 import { EntityQueryDefinitions } from './types';
 import { QueryOperationType } from '../query-enums';
 
+// Shared field patterns as const objects
+const CONVERSION_RESULT_FIELDS = [
+  { name: 'success' },
+  { name: 'data' },
+  { name: 'format' },
+  { name: 'message' },
+  { name: 'error' }
+];
+
 export const fileQueries: EntityQueryDefinitions = {
   entity: 'File',
   queries: [
@@ -76,13 +85,7 @@ export const fileQueries: EntityQueryDefinitions = {
             { name: 'from_format', value: 'from_format', isVariable: true },
             { name: 'to_format', value: 'to_format', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'data' },
-            { name: 'format' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: CONVERSION_RESULT_FIELDS
         }
       ]
     }

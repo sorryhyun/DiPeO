@@ -1,6 +1,56 @@
 import { EntityQueryDefinitions } from './types';
 import { QueryOperationType } from '../query-enums';
 
+// Shared field patterns as const objects
+const EXECUTION_FIELDS = [
+  { name: 'id' },
+  { name: 'status' },
+  { name: 'diagram_id' },
+  { name: 'started_at' },
+  { name: 'ended_at' },
+  { name: 'error' }
+];
+
+const EXECUTION_FIELDS_DETAILED = [
+  { name: 'id' },
+  { name: 'status' },
+  { name: 'diagram_id' },
+  { name: 'started_at' },
+  { name: 'ended_at' },
+  { name: 'error' },
+  { name: 'node_states' },
+  { name: 'node_outputs' },
+  { name: 'variables' },
+  { name: 'metrics' },
+  {
+    name: 'llm_usage',
+    fields: [
+      { name: 'input' },
+      { name: 'output' },
+      { name: 'cached' },
+      { name: 'total' }
+    ]
+  }
+];
+
+const SUBSCRIPTION_UPDATE_FIELDS = [
+  { name: 'execution_id' },
+  { name: 'event_type' },
+  { name: 'data' },
+  { name: 'timestamp' }
+];
+
+const RESULT_FIELDS = [
+  { name: 'success' },
+  { name: 'message' },
+  { name: 'error' }
+];
+
+const EXECUTION_WITH_STATUS_FIELDS = [
+  { name: 'id' },
+  { name: 'status' }
+];
+
 export const executionQueries: EntityQueryDefinitions = {
   entity: 'Execution',
   queries: [
@@ -16,27 +66,7 @@ export const executionQueries: EntityQueryDefinitions = {
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
-          fields: [
-            { name: 'id' },
-            { name: 'status' },
-            { name: 'diagram_id' },
-            { name: 'started_at' },
-            { name: 'ended_at' },
-            { name: 'error' },
-            { name: 'node_states' },
-            { name: 'node_outputs' },
-            { name: 'variables' },
-            { name: 'metrics' },
-            {
-              name: 'llm_usage',
-              fields: [
-                { name: 'input' },
-                { name: 'output' },
-                { name: 'cached' },
-                { name: 'total' }
-              ]
-            }
-          ]
+          fields: EXECUTION_FIELDS_DETAILED
         }
       ]
     },
@@ -56,14 +86,7 @@ export const executionQueries: EntityQueryDefinitions = {
             { name: 'limit', value: 'limit', isVariable: true },
             { name: 'offset', value: 'offset', isVariable: true }
           ],
-          fields: [
-            { name: 'id' },
-            { name: 'status' },
-            { name: 'diagram_id' },
-            { name: 'started_at' },
-            { name: 'ended_at' },
-            { name: 'error' }
-          ]
+          fields: EXECUTION_FIELDS
         }
       ]
     },
@@ -79,12 +102,7 @@ export const executionQueries: EntityQueryDefinitions = {
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
-          fields: [
-            { name: 'execution_id' },
-            { name: 'event_type' },
-            { name: 'data' },
-            { name: 'timestamp' }
-          ]
+          fields: SUBSCRIPTION_UPDATE_FIELDS
         }
       ]
     },
@@ -104,10 +122,7 @@ export const executionQueries: EntityQueryDefinitions = {
             { name: 'success' },
             {
               name: 'execution',
-              fields: [
-                { name: 'id' },
-                { name: 'status' }
-              ]
+              fields: EXECUTION_WITH_STATUS_FIELDS
             },
             { name: 'message' },
             { name: 'error' }
@@ -127,11 +142,7 @@ export const executionQueries: EntityQueryDefinitions = {
           args: [
             { name: 'input', value: 'input', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: RESULT_FIELDS
         }
       ]
     },
@@ -151,10 +162,7 @@ export const executionQueries: EntityQueryDefinitions = {
             { name: 'success' },
             {
               name: 'execution',
-              fields: [
-                { name: 'id' },
-                { name: 'status' }
-              ]
+              fields: EXECUTION_WITH_STATUS_FIELDS
             },
             { name: 'message' },
             { name: 'error' }

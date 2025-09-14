@@ -111,41 +111,70 @@ class OperationExecutor:
         self.subscriptions: dict[str, OperationMapping] = {}
         self._autowire()
 
+    def _resolve_result_type(self, op_name: str) -> type | None:
+        """
+        Resolve result type by convention.
+
+        Args:
+            op_name: Operation name (e.g., "GetExecution", "CreateDiagram")
+
+        Returns:
+            The result type if found, None otherwise
+        """
+        # Map specific operations to their result types first
+        specific_mappings = {
+            "ExecuteDiagram": "ExecutionResult",
+            "ControlExecution": "ExecutionResult",
+            "SendInteractiveResponse": "ExecutionResult",
+            "UpdateNodeState": "ExecutionResult",
+            "UploadFile": "FileOperationResult",
+            "ConvertDiagramFormat": "FileOperationResult",
+        }
+
+        # Check for specific mappings first
+        if op_name in specific_mappings:
+            candidate = specific_mappings[op_name]
+        # Check if it's a Delete operation - always returns DeleteResult
+        elif op_name.startswith("Delete"):
+            candidate = "DeleteResult"
+        # Check if it's a Test operation - returns TestResult
+        elif op_name.startswith("Test"):
+            candidate = "TestResult"
+        else:
+            # Remove common operation prefixes to get the base entity name
+            prefixes = [
+                "Get",
+                "List",
+                "Create",
+                "Update",
+                "Register",
+                "Unregister",
+                "Upload",
+                "Convert",
+                "Validate",
+            ]
+
+            base = op_name
+            for prefix in prefixes:
+                if op_name.startswith(prefix):
+                    base = op_name[len(prefix) :]
+                    break
+
+            # Default convention: base entity name + "Result"
+            candidate = f"{base}Result"
+
+        try:
+            # Try to import the result type from the results module
+            results_mod = import_module("dipeo.diagram_generated.graphql.results")
+            return getattr(results_mod, candidate, None)
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Could not resolve result type for {op_name}: {e}")
+            return None
+
     def _autowire(self) -> None:
         """Auto-wire operations to their resolvers based on naming conventions."""
         modules = _import_modules(RESOLVER_MODULES)
-
-        # Map to store result types for specific operations
-        result_type_map = {
-            # API Key mutations
-            "CreateApiKey": ApiKeyResult,
-            "DeleteApiKey": DeleteResult,
-            "TestApiKey": TestResult,
-            # Diagram mutations
-            "CreateDiagram": DiagramResult,
-            "DeleteDiagram": DeleteResult,
-            "ValidateDiagram": DiagramResult,
-            # Execution mutations
-            "ExecuteDiagram": ExecutionResult,
-            "ControlExecution": ExecutionResult,
-            "SendInteractiveResponse": ExecutionResult,
-            "UpdateNodeState": ExecutionResult,
-            # Node mutations
-            "CreateNode": NodeResult,
-            "UpdateNode": NodeResult,
-            "DeleteNode": DeleteResult,
-            # Person mutations
-            "CreatePerson": PersonResult,
-            "UpdatePerson": PersonResult,
-            "DeletePerson": DeleteResult,
-            # Upload mutations
-            "UploadDiagram": DiagramResult,
-            "UploadFile": FileOperationResult,
-            "ConvertDiagramFormat": FileOperationResult,
-            # CLI Session mutations
-            "RegisterCliSession": CliSessionResult,
-            "UnregisterCliSession": CliSessionResult,
-        }
 
         for op_cls in _iter_operation_classes():
             func_name = _op_to_func_name(op_cls)
@@ -159,9 +188,9 @@ class OperationExecutor:
                     or inspect.isfunction(fn)
                     or inspect.isasyncgenfunction(fn)
                 ):
-                    # Get result type if specified
+                    # Get result type using convention-based resolution
                     op_name = op_cls.__name__.removesuffix("Operation")
-                    result_type = result_type_map.get(op_name)
+                    result_type = self._resolve_result_type(op_name)
 
                     # Register the operation
                     self._register_operation(op_cls, fn, result_type)
@@ -238,11 +267,12 @@ class OperationExecutor:
         else:
             result = mapping.resolver_method(self.registry, **validated_vars)
 
-        # Validate result type if specified
-        if mapping.result_type:
+        # Skip validation for queries as they return data directly, not Result wrappers
+        # Only validate for mutations which should return Result types
+        if mapping.result_type and mapping.operation_class.operation_type == "mutation":
             self._validate_result(result, mapping.result_type)
 
-        # For queries, unwrap Result types to return data directly
+        # For queries that accidentally return Result types, unwrap them
         if mapping.operation_class.operation_type == "query" and hasattr(result, "data"):
             return result.data if result.data is not None else result
 

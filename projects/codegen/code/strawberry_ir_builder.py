@@ -116,21 +116,39 @@ def extract_query_string(query_data: dict[str, Any]) -> str:
     else:
         query_str = f"{operation_type} {name} {{\n"
 
-    # Add fields
+    # Add fields - transform to noun form for queries
     for field in fields:
-        query_str += build_field_string(field, indent=1)
+        query_str += build_field_string(field, indent=1, operation_type=operation_type, operation_name=name)
 
     query_str += "}"
 
     return query_str
 
 
-def build_field_string(field: dict[str, Any], indent: int = 0) -> str:
+def build_field_string(field: dict[str, Any], indent: int = 0, operation_type: str = None, operation_name: str = None) -> str:
     """
     Build GraphQL field string with proper indentation.
+    For queries, transforms verb forms to noun forms.
     """
+    # Handle case where field might be a string after const resolution
+    if isinstance(field, str):
+        # If it's just a string, treat it as a field name
+        return f"{'  ' * indent}{field}\n"
+
+    # Ensure field is a dictionary
+    if not isinstance(field, dict):
+        # Skip non-dict fields
+        return ""
+
     indent_str = "  " * indent
-    field_str = f"{indent_str}{field.get('name', '')}"
+    field_name = field.get('name', '')
+
+    # Transform field name to noun form for queries at the root level
+    if operation_type == 'query' and indent == 1 and field_name:
+        # Convert verb form to noun form for root query fields
+        field_name = transform_query_field_to_noun(field_name)
+
+    field_str = f"{indent_str}{field_name}"
 
     # Add arguments if present
     args = field.get('args', [])
@@ -153,14 +171,87 @@ def build_field_string(field: dict[str, Any], indent: int = 0) -> str:
     # Add nested fields if present
     nested_fields = field.get('fields', [])
     if nested_fields:
-        field_str += " {\n"
-        for nested_field in nested_fields:
-            field_str += build_field_string(nested_field, indent + 1)
-        field_str += f"{indent_str}}}\n"
+        # Check if nested_fields is a string (unresolved const reference)
+        if isinstance(nested_fields, str):
+            # This is an unresolved const reference, skip it or treat as empty
+            field_str += " {\n"
+            field_str += f"{indent_str}  # ERROR: Unresolved const reference: {nested_fields}\n"
+            field_str += f"{indent_str}}}\n"
+        elif isinstance(nested_fields, list):
+            field_str += " {\n"
+            for nested_field in nested_fields:
+                # Pass operation info to nested fields but increment indent to avoid transformation
+                field_str += build_field_string(nested_field, indent + 1, operation_type, operation_name)
+            field_str += f"{indent_str}}}\n"
+        else:
+            field_str += "\n"
     else:
         field_str += "\n"
 
     return field_str
+
+
+def transform_query_field_to_noun(field_name: str) -> str:
+    """
+    Transform query field names from verb form to noun form.
+    Handles both camelCase and snake_case inputs.
+    e.g., getExecution -> execution, get_execution -> execution, listDiagrams -> diagrams
+    """
+    import re
+
+    # Handle snake_case input (e.g., get_execution -> execution)
+    if field_name.startswith('get_'):
+        # get_execution -> execution
+        return field_name[4:]
+    elif field_name.startswith('list_'):
+        # list_diagrams -> diagrams (already plural in most cases)
+        base = field_name[5:]
+        # Simple pluralization if not already plural
+        if not base.endswith('s'):
+            if base.endswith('y'):
+                return base[:-1] + 'ies'
+            else:
+                return base + 's'
+        return base
+
+    # Handle camelCase input (e.g., getExecution -> execution)
+    elif field_name.startswith('get'):
+        # getExecution -> execution
+        base = field_name[3:]
+        # Convert first letter to lowercase
+        if base:
+            base = base[0].lower() + base[1:]
+        # Convert to snake_case
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', base)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+    # Handle list* camelCase -> remove "list" prefix and make plural
+    elif field_name.startswith('list'):
+        # listDiagrams -> diagrams
+        base = field_name[4:]
+        # Convert first letter to lowercase
+        if base:
+            base = base[0].lower() + base[1:]
+        # Convert to snake_case
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', base)
+        snake_base = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+        # Simple pluralization
+        if snake_base.endswith('s'):
+            return snake_base + 'es'
+        elif snake_base.endswith('y'):
+            return snake_base[:-1] + 'ies'
+        else:
+            return snake_base + 's'
+
+    # For other queries, just convert to snake_case if needed
+    else:
+        # If already snake_case, return as is
+        if '_' in field_name:
+            return field_name
+        # Convert camelCase to snake_case
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', field_name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
 def transform_query_to_operation(query_data: dict[str, Any], entity: str) -> Optional[dict[str, Any]]:
@@ -375,6 +466,14 @@ class UnifiedIRBuilder:
     def __init__(self, config: StrawberryConfig):
         self.config = config
         self.mapper = TypeMapper(config)
+
+    def to_snake_case(self, name: str) -> str:
+        """Convert CamelCase to snake_case."""
+        import re
+        # Insert underscore before capital letters (except at the start)
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        # Insert underscore before capital letter sequences
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
     def build_domain_ir(self, ast_data: Dict) -> Dict:
         """Extract interfaces, scalars, enums, and node specifications from TypeScript AST"""
@@ -668,6 +767,28 @@ class UnifiedIRBuilder:
                 parameters.append(param)
 
             # Build operation definition for template
+            # Generate alias name for queries (noun form without prefix)
+            alias_name = None
+            if op['type'] == 'query':
+                # Convert GetExecution -> execution, ListDiagrams -> diagrams
+                name = op['name']
+                if name.startswith('Get'):
+                    # GetExecution -> execution
+                    alias_name = self.to_snake_case(name[3:])
+                elif name.startswith('List'):
+                    # ListDiagrams -> diagrams (make plural)
+                    base = name[4:]
+                    # Simple pluralization
+                    if base.endswith('s'):
+                        alias_name = self.to_snake_case(base) + 'es'
+                    elif base.endswith('y'):
+                        alias_name = self.to_snake_case(base[:-1]) + 'ies'
+                    else:
+                        alias_name = self.to_snake_case(base) + 's'
+                else:
+                    # For other queries, just use snake_case of the full name
+                    alias_name = self.to_snake_case(name)
+
             template_op = {
                 'field_name': field_name,  # Raw name - template will convert to snake_case
                 'operation_name': op['name'],
@@ -675,7 +796,7 @@ class UnifiedIRBuilder:
                 'parameters': parameters,
                 'operation_type': op['type'],  # Pass type for return type determination
                 'description': f"{op['name']} operation",
-                'alias_name': None  # Could add noun form aliasing later
+                'alias_name': alias_name  # Noun form for queries
             }
 
             # Categorize by type

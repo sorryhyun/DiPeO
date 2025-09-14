@@ -337,7 +337,7 @@ GET_DIAGRAM_QUERY = """query GetDiagram($diagram_id: String!) {
 
 
 GET_EXECUTION_QUERY = """query GetExecution($execution_id: String!) {
-  get_execution(execution_id: $execution_id) {
+  execution(execution_id: $execution_id) {
     id
     status
     diagram_id

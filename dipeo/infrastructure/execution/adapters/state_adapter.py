@@ -15,7 +15,6 @@ from dipeo.domain.execution.state import (
     ExecutionStateService,
 )
 from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
-from dipeo.infrastructure.execution.state import EventBasedStateStore
 
 
 class StateServiceAdapter(ExecutionStateService):
@@ -76,10 +75,10 @@ class StateServiceAdapter(ExecutionStateService):
 
 
 class StateCacheAdapter(ExecutionCachePort):
-    """Adapter implementing ExecutionCachePort using EventBasedStateStore's cache."""
+    """Adapter implementing ExecutionCachePort using state store's cache."""
 
-    def __init__(self, state_store: StateStorePort | None = None):
-        self._store = state_store or EventBasedStateStore()
+    def __init__(self, state_store: StateStorePort):
+        self._store = state_store
 
     async def get_state_from_cache(self, execution_id: str) -> ExecutionState | None:
         if hasattr(self._store, "_execution_cache"):

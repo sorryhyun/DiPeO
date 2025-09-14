@@ -9,8 +9,11 @@ Integration models for external services
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List, Union
-from .domain_models import ToolType, LLMUsage
+from typing import Optional, Dict, Any, List, Union, TYPE_CHECKING
+from .enums import ToolType
+
+if TYPE_CHECKING:
+    from .domain_models import LLMUsage
 
 {%- if integrations and integrations.models %}
 {%- for model in integrations.models %}

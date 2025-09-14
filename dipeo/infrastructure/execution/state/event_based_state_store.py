@@ -6,6 +6,7 @@ import logging
 import os
 import sqlite3
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -260,11 +261,13 @@ class EventBasedStateStore(StateStorePort):
 
     async def save_state(self, state: ExecutionState):
         """Save execution state."""
+        # Always persist to database first to ensure data is saved
+        await self._persist_state(state)
+
+        # Update cache only if state is active
         if state.is_active:
             cache = await self._execution_cache.get_cache(state.id)
             await cache.set_state(state)
-
-        await self._persist_state(state)
 
     async def _persist_state(self, state: ExecutionState):
         """Persist state to database without global lock."""
@@ -297,10 +300,13 @@ class EventBasedStateStore(StateStorePort):
 
     async def get_state(self, execution_id: str) -> ExecutionState | None:
         """Get execution state, preferring cache."""
+        # Try to get from cache first
         cache = await self._execution_cache.get_cache(execution_id)
         cached_state = await cache.get_state()
         if cached_state:
             return cached_state
+
+        # If not in cache, query database
         cursor = await self._execute(
             """
             SELECT execution_id, status, diagram_id, started_at, ended_at,
@@ -328,8 +334,11 @@ class EventBasedStateStore(StateStorePort):
                     "trace_id": "",
                     "produced_by": node_id,
                     "content_type": "raw_text",
+                    "schema_id": None,
+                    "serialization_format": None,
                     "body": output_data,
-                    "meta": {},
+                    "meta": {"timestamp": time.time()},
+                    "representations": None,
                 }
 
         state_data = {
@@ -528,6 +537,10 @@ class EventBasedStateStore(StateStorePort):
 
     async def persist_final_state(self, state: ExecutionState):
         """Persist final state and delay cache removal to avoid race conditions."""
+        # Mark state as inactive before final persistence
+        state.is_active = False
+
+        # Ensure the final state is properly persisted to database
         await self._persist_state(state)
 
         async def delayed_cache_removal():

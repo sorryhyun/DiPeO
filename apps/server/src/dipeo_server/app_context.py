@@ -73,6 +73,7 @@ async def create_server_container() -> Container:
 
     # Get state repository and initialize
     from dipeo.application.bootstrap.lifecycle import initialize_service
+    from dipeo.application.registry import ServiceKey
     from dipeo.application.registry.keys import STATE_REPOSITORY
 
     state_store = container.registry.resolve(STATE_REPOSITORY)
@@ -81,33 +82,17 @@ async def create_server_container() -> Container:
     # Register for backward compatibility
     container.registry.register(STATE_STORE, state_store)
 
-    # Create state manager as separate service
-    from dipeo.infrastructure.execution.state import AsyncStateManager
+    # AsyncStateManager is now wired and subscribed in wiring.py
+    # Execute event subscriptions to activate AsyncStateManager
+    from dipeo.application.bootstrap.wiring import execute_event_subscriptions
 
-    state_manager = AsyncStateManager(state_store)
+    await execute_event_subscriptions(container.registry)
 
-    # Subscribe state manager to the EventBus
-    state_events = [
-        EventType.EXECUTION_STARTED,
-        EventType.NODE_STARTED,
-        EventType.NODE_COMPLETED,
-        EventType.NODE_ERROR,
-        EventType.EXECUTION_COMPLETED,
-        EventType.METRICS_COLLECTED,
-    ]
-
-    if domain_event_bus is not None:
-        from dipeo.domain.events.types import EventPriority
-
-        await domain_event_bus.subscribe(
-            event_types=state_events,
-            handler=state_manager,
-            priority=EventPriority.LOW,
-        )
-    elif hasattr(event_bus, "subscribe"):
-        # Legacy event bus subscription
-        for event_type in state_events[:5]:  # Exclude METRICS_COLLECTED for legacy
-            await event_bus.subscribe(event_type, state_manager)
+    # Get async state manager if registered
+    async_state_manager_key = ServiceKey("async_state_manager")
+    state_manager = None
+    if container.registry.has(async_state_manager_key):
+        state_manager = container.registry.resolve(async_state_manager_key)
 
     # Initialize and wire MessageRouter
     await message_router.initialize()
@@ -195,8 +180,7 @@ async def create_server_container() -> Container:
         await domain_event_bus.start()
     if hasattr(event_bus, "start"):
         await event_bus.start()
-    if hasattr(state_manager, "initialize"):
-        await state_manager.initialize()
+    # state_manager is initialized via execute_event_subscriptions
     if hasattr(metrics_observer, "start"):
         await metrics_observer.start()
 

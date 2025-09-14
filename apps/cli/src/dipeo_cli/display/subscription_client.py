@@ -144,12 +144,18 @@ class SimpleSubscriptionClient:
 
     async def subscribe_to_execution(self, callback: Callable[[dict[str, Any]], None]):
         """Poll for execution updates with state tracking."""
+        consecutive_none_count = 0
+        max_consecutive_none = 20  # Allow up to 10 seconds of None responses (20 * 0.5s)
+
         while not self._stop_event.is_set():
             try:
                 # Get execution state
                 result = self.server_manager.get_execution_result(self.execution_id)
 
                 if result:
+                    # Reset the None counter when we get a valid result
+                    consecutive_none_count = 0
+
                     # Check for status changes
                     status = result.get("status")
                     if status and status != self.last_status:
@@ -217,6 +223,25 @@ class SimpleSubscriptionClient:
 
                     # Check if execution is done
                     if status in ["COMPLETED", "FAILED", "ABORTED", "MAXITER_REACHED"]:
+                        break
+                else:
+                    # Result is None - increment counter
+                    consecutive_none_count += 1
+
+                    # If we had a previous status that was completed, assume execution is done
+                    if self.last_status in ["COMPLETED", "FAILED", "ABORTED", "MAXITER_REACHED"]:
+                        break
+
+                    # If too many consecutive None responses, assume something is wrong
+                    if consecutive_none_count >= max_consecutive_none:
+                        # Emit a completion event based on last known status
+                        event = {
+                            "execution_id": self.execution_id,
+                            "event_type": "EXECUTION_STATUS_CHANGED",
+                            "data": {"status": self.last_status or "COMPLETED"},
+                            "timestamp": None,
+                        }
+                        await asyncio.get_event_loop().run_in_executor(None, callback, event)
                         break
 
             except Exception as e:

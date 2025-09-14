@@ -29,18 +29,39 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
         StateCacheAdapter,
         StateServiceAdapter,
     )
-    from dipeo.infrastructure.execution.state import EventBasedStateStore
+    from dipeo.infrastructure.execution.state import AsyncStateManager, CacheFirstStateStore
 
     use_redis = os.getenv("DIPEO_STATE_BACKEND", "memory").lower() == "redis"
 
     if use_redis and redis_client:
         # TODO: Redis state adapters need to be reimplemented in new architecture
-        store = EventBasedStateStore()
+        # For now, use CacheFirstStateStore even with Redis
+        cache_size = int(os.getenv("DIPEO_STATE_CACHE_SIZE", "1000"))
+        checkpoint_interval = int(os.getenv("DIPEO_STATE_CHECKPOINT_INTERVAL", "10"))
+        warm_cache_size = int(os.getenv("DIPEO_STATE_WARM_CACHE_SIZE", "20"))
+        persistence_delay = float(os.getenv("DIPEO_STATE_PERSISTENCE_DELAY", "5.0"))
+
+        store = CacheFirstStateStore(
+            cache_size=cache_size,
+            checkpoint_interval=checkpoint_interval,
+            warm_cache_size=warm_cache_size,
+            persistence_delay=persistence_delay,
+        )
         repository = store
         service = StateServiceAdapter(repository)
         cache = StateCacheAdapter(store)
     else:
-        store = EventBasedStateStore()
+        cache_size = int(os.getenv("DIPEO_STATE_CACHE_SIZE", "1000"))
+        checkpoint_interval = int(os.getenv("DIPEO_STATE_CHECKPOINT_INTERVAL", "10"))
+        warm_cache_size = int(os.getenv("DIPEO_STATE_WARM_CACHE_SIZE", "20"))
+        persistence_delay = float(os.getenv("DIPEO_STATE_PERSISTENCE_DELAY", "5.0"))
+
+        store = CacheFirstStateStore(
+            cache_size=cache_size,
+            checkpoint_interval=checkpoint_interval,
+            warm_cache_size=warm_cache_size,
+            persistence_delay=persistence_delay,
+        )
         repository = store
         service = StateServiceAdapter(repository)
         cache = StateCacheAdapter(store)
@@ -48,6 +69,12 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
     registry.register(STATE_REPOSITORY, repository)
     registry.register(STATE_SERVICE, service)
     registry.register(STATE_CACHE, cache)
+
+    # Create and register AsyncStateManager for async state persistence
+    # Configurable write interval for batching optimizations
+    write_interval = float(os.getenv("DIPEO_ASYNC_WRITE_INTERVAL", "0.1"))
+    async_state_manager = AsyncStateManager(repository, write_interval=write_interval)
+    registry.register(ServiceKey("async_state_manager"), async_state_manager)
 
 
 def wire_messaging_services(registry: ServiceRegistry) -> None:
@@ -195,6 +222,37 @@ def wire_event_services(registry: ServiceRegistry) -> None:
     if not registry.has(EVENT_BUS):
         registry.register(EVENT_BUS, domain_event_bus)
 
+    # Wire AsyncStateManager to event bus for async state persistence
+    async_state_manager_key = ServiceKey("async_state_manager")
+    if registry.has(async_state_manager_key):
+        async_state_manager = registry.resolve(async_state_manager_key)
+
+        # State-related events that AsyncStateManager should handle
+        state_events = [
+            EventType.EXECUTION_STARTED,
+            EventType.NODE_STARTED,
+            EventType.NODE_COMPLETED,
+            EventType.NODE_ERROR,
+            EventType.EXECUTION_COMPLETED,
+            EventType.METRICS_COLLECTED,
+        ]
+
+        async def subscribe_state_manager():
+            from dipeo.domain.events.types import EventPriority
+
+            # Subscribe with LOW priority so state updates happen after other handlers
+            await domain_event_bus.subscribe(
+                event_types=state_events,
+                handler=async_state_manager,
+                priority=EventPriority.LOW,
+            )
+
+            # Initialize the async state manager
+            if hasattr(async_state_manager, "initialize"):
+                await async_state_manager.initialize()
+
+        registry.register(ServiceKey("state_manager_subscription"), subscribe_state_manager)
+
     if registry.has(MESSAGE_ROUTER):
         router = registry.resolve(MESSAGE_ROUTER)
 
@@ -290,6 +348,39 @@ def wire_feature_flags(registry: ServiceRegistry, features: list[str]) -> None:
 
     if "blob_storage" in features:
         wire_storage_services(registry)
+
+
+async def execute_event_subscriptions(registry: ServiceRegistry) -> None:
+    """Execute all registered event subscriptions.
+
+    This should be called after all services are wired to actually subscribe
+    handlers to the event bus.
+    """
+    import inspect
+
+    # Execute state manager subscription if registered
+    state_manager_sub_key = ServiceKey("state_manager_subscription")
+    if registry.has(state_manager_sub_key):
+        subscribe_fn = registry.resolve(state_manager_sub_key)
+        # Check if it's a coroutine function or already a coroutine
+        if inspect.iscoroutinefunction(subscribe_fn):
+            await subscribe_fn()
+        elif inspect.iscoroutine(subscribe_fn):
+            await subscribe_fn
+        else:
+            logger.warning(f"Unexpected type for state_manager_subscription: {type(subscribe_fn)}")
+
+    # Execute router subscription if registered
+    router_sub_key = ServiceKey("router_subscription")
+    if registry.has(router_sub_key):
+        subscribe_fn = registry.resolve(router_sub_key)
+        # Check if it's a coroutine function or already a coroutine
+        if inspect.iscoroutinefunction(subscribe_fn):
+            await subscribe_fn()
+        elif inspect.iscoroutine(subscribe_fn):
+            await subscribe_fn
+        else:
+            logger.warning(f"Unexpected type for router_subscription: {type(subscribe_fn)}")
 
 
 wire_all_services = wire_minimal

@@ -143,19 +143,8 @@ class TypedExecutionEngine:
                 status=Status.COMPLETED, total_steps=step_count, execution_path=execution_path
             )
 
-            # Explicitly update execution status to ensure it's marked as inactive
-            from dipeo.application.registry.keys import STATE_STORE
-
-            state_store = self.service_registry.get(STATE_STORE)
-            if state_store:
-                try:
-                    await state_store.update_status(
-                        execution_id=str(context.execution_id),
-                        status=Status.COMPLETED,
-                        error=None,
-                    )
-                except Exception as e:
-                    logger.warning(f"Failed to update execution status: {e}")
+            # State is now persisted asynchronously via AsyncStateManager listening to events
+            # No need for direct state_store calls - the event bus handles persistence
 
             yield {
                 "type": "execution_complete",

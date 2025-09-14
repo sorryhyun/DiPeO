@@ -11,35 +11,8 @@ from strawberry.schema.config import StrawberryConfig
 
 from dipeo.application.registry import ServiceRegistry
 
-# Import subscription types for registration
-from dipeo.diagram_generated.graphql.domain_types import ExecutionUpdate
-
 # Import generated schema (Now includes fixed Subscription)
 from dipeo.diagram_generated.graphql.generated_schema import Mutation, Query, Subscription
-
-# Import generated types
-from dipeo.diagram_generated.graphql.strawberry_nodes import (
-    ApiJobDataType,
-    CodeJobDataType,
-    ConditionDataType,
-    DbDataType,
-    EndpointDataType,
-    HookDataType,
-    IntegratedApiDataType,
-    JsonSchemaValidatorDataType,
-    PersonJobDataType,
-    StartDataType,
-    SubDiagramDataType,
-    TemplateJobDataType,
-    TypescriptAstDataType,
-    UserResponseDataType,
-)
-
-# Note: strawberry_domain.py needs to be regenerated
-# from dipeo.diagram_generated.graphql.strawberry_domain import (
-#     MemorySettingsType,
-#     ToolConfigType,
-# )
 
 
 def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
@@ -81,9 +54,10 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
             # Register JSON scalar type
             dict: JSON
         },
-        # Register all scalar and generated types
+        # Register only custom scalar types that Strawberry can't auto-discover
+        # Domain types referenced by Query/Mutation/Subscription fields are auto-discovered
         types=[
-            # Scalar types
+            # Custom scalar types (required for GraphQL schema)
             NodeIDScalar,
             HandleIDScalar,
             ArrowIDScalar,
@@ -93,26 +67,6 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
             ExecutionIDScalar,
             HookIDScalar,
             TaskIDScalar,
-            # Generated node data types
-            ApiJobDataType,
-            CodeJobDataType,
-            ConditionDataType,
-            DbDataType,
-            EndpointDataType,
-            HookDataType,
-            IntegratedApiDataType,
-            JsonSchemaValidatorDataType,
-            PersonJobDataType,
-            StartDataType,
-            SubDiagramDataType,
-            TemplateJobDataType,
-            TypescriptAstDataType,
-            UserResponseDataType,
-            # Subscription types
-            ExecutionUpdate,
-            # Domain types (need to be regenerated)
-            # MemorySettingsType,
-            # ToolConfigType,
         ],
     )
 
