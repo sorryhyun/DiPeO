@@ -113,25 +113,23 @@ class TypedNodeHandler[T](TokenHandlerMixin, ABC):
         node = request.node
         trace_id = request.execution_id or ""
 
+        # All handlers should return Envelope directly
         if isinstance(result, Envelope):
             return result
+
+        # Fallback for dict (handlers should migrate to returning Envelope)
         elif isinstance(result, dict):
-            if set(result.keys()) == {"results"}:
-                raise ValueError(
-                    f"Handler {self.node_type} returned deprecated {{results: ...}} format. "
-                    f"Handlers must return Envelope or list[Envelope] directly."
-                )
             return EnvelopeFactory.create(body=result, produced_by=node.id, trace_id=trace_id)
-        elif isinstance(result, list | tuple):
-            return EnvelopeFactory.create(
-                body={"default": result}, produced_by=node.id, trace_id=trace_id
-            ).with_meta(wrapped_list=True)
+
+        # Exception handling
         elif isinstance(result, Exception):
             return EnvelopeFactory.create(
                 body={"error": str(result), "type": result.__class__.__name__},
                 produced_by=str(node.id),
                 trace_id=trace_id,
             )
+
+        # String fallback (handlers should migrate to returning Envelope)
         else:
             return EnvelopeFactory.create(body=str(result), produced_by=node.id, trace_id=trace_id)
 
@@ -144,10 +142,7 @@ class TypedNodeHandler[T](TokenHandlerMixin, ABC):
             envelope = self.serialize_output(result, request)
             envelope = self.post_execute(request, envelope)
 
-            # Emit node completion event
-            exec_count = request.context.state.get_node_execution_count(request.node.id)
-            await request.context.events.emit_node_completed(request.node, envelope, exec_count)
-
+            # Event emission is now handled by the engine, not the handler
             return envelope
 
         except Exception as exc:

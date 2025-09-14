@@ -25,8 +25,6 @@ from dipeo.diagram_generated import (
 from dipeo.domain.execution.envelope import serialize_protocol
 from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
 
-from .execution_state_cache import ExecutionStateCache
-
 logger = logging.getLogger(__name__)
 
 
@@ -44,7 +42,6 @@ class EventBasedStateStore(StateStorePort):
         self._executor_shutdown = False
         self._thread_id: int | None = None
         self.message_store = message_store
-        self._execution_cache = ExecutionStateCache(ttl_seconds=3600)
         self._reconnect_lock = asyncio.Lock()
         self._initialized = False
         self._db_lock = asyncio.Lock()
@@ -61,13 +58,10 @@ class EventBasedStateStore(StateStorePort):
 
             await self._connect()
             await self._init_schema()
-            await self._execution_cache.start()
             self._initialized = True
 
     async def cleanup(self):
         """Cleanup resources."""
-        await self._execution_cache.stop()
-
         async with self._db_lock:
             if self._conn:
                 import contextlib
@@ -253,21 +247,14 @@ class EventBasedStateStore(StateStorePort):
             executed_nodes=[],
         )
 
-        cache = await self._execution_cache.get_cache(exec_id)
-        await cache.set_state(state)
         await self._persist_state(state)
 
         return state
 
     async def save_state(self, state: ExecutionState):
         """Save execution state."""
-        # Always persist to database first to ensure data is saved
+        # Persist to database to ensure data is saved
         await self._persist_state(state)
-
-        # Update cache only if state is active
-        if state.is_active:
-            cache = await self._execution_cache.get_cache(state.id)
-            await cache.set_state(state)
 
     async def _persist_state(self, state: ExecutionState):
         """Persist state to database without global lock."""
@@ -299,14 +286,8 @@ class EventBasedStateStore(StateStorePort):
         )
 
     async def get_state(self, execution_id: str) -> ExecutionState | None:
-        """Get execution state, preferring cache."""
-        # Try to get from cache first
-        cache = await self._execution_cache.get_cache(execution_id)
-        cached_state = await cache.get_state()
-        if cached_state:
-            return cached_state
-
-        # If not in cache, query database
+        """Get execution state from database."""
+        # Query database directly
         cursor = await self._execute(
             """
             SELECT execution_id, status, diagram_id, started_at, ended_at,
@@ -387,13 +368,9 @@ class EventBasedStateStore(StateStorePort):
         llm_usage: LLMUsage | dict | None = None,
     ) -> None:
         """Update node output."""
-        cache = await self._execution_cache.get_cache(execution_id)
-        state = await cache.get_state()
-
+        state = await self.get_state(execution_id)
         if not state:
-            state = await self.get_state(execution_id)
-            if not state:
-                raise ValueError(f"Execution {execution_id} not found")
+            raise ValueError(f"Execution {execution_id} not found")
 
         if hasattr(output, "__class__") and hasattr(output, "to_dict"):
             serialized_output = serialize_protocol(output)
@@ -418,10 +395,7 @@ class EventBasedStateStore(StateStorePort):
                 wrapped_output = EnvelopeFactory.create(body=str(output), produced_by=str(node_id))
             serialized_output = serialize_protocol(wrapped_output)
 
-        serialized_node_output = serialized_output
-
-        await cache.set_node_output(node_id, serialized_output)
-        state.node_outputs[node_id] = serialized_node_output
+        state.node_outputs[node_id] = serialized_output
 
         if llm_usage:
             await self.add_llm_usage(execution_id, llm_usage)
@@ -436,13 +410,9 @@ class EventBasedStateStore(StateStorePort):
         error: str | None = None,
     ):
         """Update node status."""
-        cache = await self._execution_cache.get_cache(execution_id)
-        state = await cache.get_state()
-
+        state = await self.get_state(execution_id)
         if not state:
-            state = await self.get_state(execution_id)
-            if not state:
-                raise ValueError(f"Execution {execution_id} not found")
+            raise ValueError(f"Execution {execution_id} not found")
 
         now = datetime.now().isoformat()
 
@@ -471,15 +441,10 @@ class EventBasedStateStore(StateStorePort):
         if error:
             state.node_states[node_id].error = error
 
-        await cache.set_node_status(node_id, status, error)
         await self.save_state(state)
 
     async def get_node_output(self, execution_id: str, node_id: str) -> dict[str, Any] | None:
         """Get node output."""
-        cache = await self._execution_cache.get_cache(execution_id)
-        output = await cache.get_node_output(node_id)
-        if output is not None:
-            return output
         state = await self.get_state(execution_id)
         if not state:
             return None
@@ -492,10 +457,6 @@ class EventBasedStateStore(StateStorePort):
             raise ValueError(f"Execution {execution_id} not found")
 
         state.variables.update(variables)
-
-        cache = await self._execution_cache.get_cache(execution_id)
-        await cache.update_variables(variables)
-
         await self.save_state(state)
 
     async def update_metrics(self, execution_id: str, metrics: dict[str, Any]):
@@ -516,9 +477,6 @@ class EventBasedStateStore(StateStorePort):
                 cached=usage.get("cached"),
                 total=usage.get("total", 0),
             )
-
-        cache = await self._execution_cache.get_cache(execution_id)
-        await cache.add_llm_usage(usage)
 
         state = await self.get_state(execution_id)
         if not state:
@@ -543,12 +501,7 @@ class EventBasedStateStore(StateStorePort):
         # Ensure the final state is properly persisted to database
         await self._persist_state(state)
 
-        async def delayed_cache_removal():
-            await asyncio.sleep(10)
-            await self._execution_cache.remove_cache(state.id)
-            logger.debug(f"Removed cache for completed execution {state.id}")
-
-        _ = asyncio.create_task(delayed_cache_removal())
+        # No cache to remove anymore - state is persisted to database
 
     async def list_executions(
         self,

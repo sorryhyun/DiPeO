@@ -28,13 +28,15 @@ class ExecutionDisplay:
         # Create layout
         self.layout = ExecutionLayout(diagram_name, execution_id)
 
-        # State tracking
-        self.nodes = {}
-        self.node_order = []
+        # Display-only state (minimal tracking for UI rendering)
+        # We only track what's needed for the current display, not the full execution state
+        self.current_node_display = None  # Current node being displayed
         self.completed_count = 0
         self.total_count = 0
-        self.current_node_id = None
-        self.statistics = {
+        self.last_completed_node = None  # For showing recent progress
+
+        # Statistics for display only (updated from events)
+        self.display_stats = {
             "token_usage": {"input": 0, "output": 0, "cached": 0},
             "errors": 0,
             "warnings": 0,
@@ -111,10 +113,8 @@ class ExecutionDisplay:
         """Handle node started event."""
         node_id = data.get("node_id")
         if node_id:
-            self.current_node_id = node_id
-
-            # Store node info
-            self.nodes[node_id] = {
+            # Create display info for current node
+            self.current_node_display = {
                 "node_id": node_id,
                 "node_type": data.get("node_type", "UNKNOWN"),
                 "name": data.get("name", node_id),
@@ -123,10 +123,12 @@ class ExecutionDisplay:
             }
 
             # Update displays
-            self.layout.update_node(self.nodes[node_id])
-            if node_id not in self.node_order:
-                self.node_order.append(node_id)
-                self.total_count = len(self.node_order)
+            self.layout.update_node(self.current_node_display)
+
+            # Increment total count if this is a new node
+            # (we can detect this from the event data if needed)
+            if data.get("is_new_node", True):
+                self.total_count += 1
 
             # Update progress
             self.layout.update_progress(self.total_count, self.completed_count)
@@ -134,106 +136,114 @@ class ExecutionDisplay:
     def _handle_node_completed(self, data: dict[str, Any]):
         """Handle node completed event."""
         node_id = data.get("node_id")
-        if node_id and node_id in self.nodes:
-            node = self.nodes[node_id]
-            node["status"] = "COMPLETED"
-            if "start_time" in node:
-                node["duration"] = time.time() - node["start_time"]
-
+        if node_id:
             self.completed_count += 1
 
+            # Create a display record for the completed node
+            completed_node = {
+                "node_id": node_id,
+                "node_type": data.get("node_type", "UNKNOWN"),
+                "name": data.get("name", node_id),
+                "status": "COMPLETED",
+            }
+
+            # Add duration if we were tracking this node
+            if (
+                self.current_node_display
+                and self.current_node_display.get("node_id") == node_id
+                and "start_time" in self.current_node_display
+            ):
+                completed_node["duration"] = time.time() - self.current_node_display["start_time"]
+
+            self.last_completed_node = completed_node
+
             # Clear current node if it was this one
-            if self.current_node_id == node_id:
-                self.current_node_id = None
+            if self.current_node_display and self.current_node_display.get("node_id") == node_id:
+                self.current_node_display = None
                 self.layout.update_node(None)
 
             # Update progress with recent node
-            self.layout.update_progress(self.total_count, self.completed_count, node)
+            self.layout.update_progress(self.total_count, self.completed_count, completed_node)
 
     def _handle_node_failed(self, data: dict[str, Any]):
         """Handle node failed event."""
         node_id = data.get("node_id")
-        if node_id and node_id in self.nodes:
-            node = self.nodes[node_id]
-            node["status"] = "FAILED"
-            node["error"] = data.get("error")
-            if "start_time" in node:
-                node["duration"] = time.time() - node["start_time"]
+        if node_id:
+            # Create a display record for the failed node
+            failed_node = {
+                "node_id": node_id,
+                "node_type": data.get("node_type", "UNKNOWN"),
+                "name": data.get("name", node_id),
+                "status": "FAILED",
+                "error": data.get("error"),
+            }
 
-            self.statistics["nodes_failed"] += 1
-            self.statistics["errors"] += 1
+            # Add duration if we were tracking this node
+            if (
+                self.current_node_display
+                and self.current_node_display.get("node_id") == node_id
+                and "start_time" in self.current_node_display
+            ):
+                failed_node["duration"] = time.time() - self.current_node_display["start_time"]
+
+            self.display_stats["nodes_failed"] += 1
+            self.display_stats["errors"] += 1
 
             # Clear current node if it was this one
-            if self.current_node_id == node_id:
-                self.current_node_id = None
+            if self.current_node_display and self.current_node_display.get("node_id") == node_id:
+                self.current_node_display = None
                 self.layout.update_node(None)
 
             # Update displays
-            self.layout.update_progress(self.total_count, self.completed_count, node)
-            self.layout.update_statistics(self.statistics)
+            self.layout.update_progress(self.total_count, self.completed_count, failed_node)
+            self.layout.update_statistics(self.display_stats)
 
     def _handle_node_status_changed(self, data: dict[str, Any]):
         """Handle node status change event."""
-        node_id = data.get("node_id")
         status = data.get("status")
 
-        if node_id and status:
-            if node_id not in self.nodes:
-                self.nodes[node_id] = {"node_id": node_id}
-
-            self.nodes[node_id]["status"] = status
-
-            if status == "SKIPPED":
-                self.statistics["nodes_skipped"] += 1
-                self.layout.update_statistics(self.statistics)
+        if status == "SKIPPED":
+            self.display_stats["nodes_skipped"] += 1
+            self.layout.update_statistics(self.display_stats)
 
     def _handle_execution_status_changed(self, data: dict[str, Any]):
         """Handle execution status change event."""
         status = data.get("status")
         if status in ["COMPLETED", "FAILED", "ABORTED", "MAXITER_REACHED"]:
             # Clear current node display
-            self.current_node_id = None
+            self.current_node_display = None
             self.layout.update_node(None)
 
     def _handle_metrics(self, data: dict[str, Any]):
         """Handle metrics update event."""
         if "token_usage" in data:
-            self.statistics["token_usage"] = data["token_usage"]
+            self.display_stats["token_usage"] = data["token_usage"]
 
         for key in ["errors", "warnings"]:
             if key in data:
-                self.statistics[key] = data[key]
+                self.display_stats[key] = data[key]
 
-        self.layout.update_statistics(self.statistics)
+        self.layout.update_statistics(self.display_stats)
 
     def update_from_state(self, execution_state: dict[str, Any]):
         """Update display from execution state (for initial state or recovery)."""
         with self._update_lock:
-            # Update node states
+            # Only extract display-relevant information from the state
             node_states = execution_state.get("node_states", {})
-            for node_id, state in node_states.items():
-                if node_id not in self.nodes:
-                    self.nodes[node_id] = {
-                        "node_id": node_id,
-                        "node_type": state.get("node_type", "UNKNOWN"),
-                        "name": state.get("name", node_id),
-                        "status": state.get("status", "PENDING"),
-                    }
-                else:
-                    self.nodes[node_id]["status"] = state.get("status", "PENDING")
 
-                if state.get("status") == "COMPLETED":
-                    self.completed_count += 1
-
+            # Count completed nodes
+            self.completed_count = sum(
+                1 for state in node_states.values() if state.get("status") == "COMPLETED"
+            )
             self.total_count = len(node_states)
 
             # Update token usage
             if "token_usage" in execution_state:
-                self.statistics["token_usage"] = execution_state["token_usage"]
+                self.display_stats["token_usage"] = execution_state["token_usage"]
 
             # Update displays
             self.layout.update_progress(self.total_count, self.completed_count)
-            self.layout.update_statistics(self.statistics)
+            self.layout.update_statistics(self.display_stats)
 
 
 @contextmanager

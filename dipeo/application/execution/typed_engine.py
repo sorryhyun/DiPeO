@@ -6,6 +6,7 @@ import time
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any, Optional
 
+from dipeo.application.execution.event_pipeline import EventPipeline
 from dipeo.application.execution.scheduler import NodeScheduler
 from dipeo.application.execution.typed_execution_context import TypedExecutionContext
 from dipeo.config import get_settings
@@ -45,6 +46,7 @@ class TypedExecutionEngine:
 
         context = None
         log_handler = None
+        event_pipeline = None
         try:
             from dipeo.application.execution.states.execution_state_persistence import (
                 ExecutionStatePersistence,
@@ -77,6 +79,14 @@ class TypedExecutionEngine:
             if "parent_metadata" in options:
                 context._parent_metadata = options["parent_metadata"]
 
+            # Initialize the unified event pipeline
+            event_pipeline = EventPipeline(
+                execution_id=str(execution_state.id),
+                diagram_id=str(execution_state.diagram_id),
+                event_bus=self.event_bus,
+                state_tracker=context.state,
+            )
+
             from dipeo.infrastructure.execution.logging_handler import setup_execution_logging
 
             log_handler = setup_execution_logging(
@@ -91,7 +101,10 @@ class TypedExecutionEngine:
             for key, value in options.get("metadata", {}).items():
                 context.set_execution_metadata(key, value)
 
-            await context.events.emit_execution_started()
+            await event_pipeline.emit(
+                "execution_started",
+                variables=execution_state.variables or {},
+            )
 
             from dipeo.application.registry import ServiceKey
 
@@ -111,7 +124,7 @@ class TypedExecutionEngine:
                     continue
 
                 step_count += 1
-                results = await self._execute_nodes(ready_nodes, context)
+                results = await self._execute_nodes(ready_nodes, context, event_pipeline)
 
                 for node_id in results:
                     self._scheduler.mark_node_completed(NodeID(node_id), context)
@@ -130,8 +143,11 @@ class TypedExecutionEngine:
 
             execution_path = [str(node_id) for node_id in context.state.get_completed_nodes()]
 
-            await context.events.emit_execution_completed(
-                status=Status.COMPLETED, total_steps=step_count, execution_path=execution_path
+            await event_pipeline.emit(
+                "execution_completed",
+                status=Status.COMPLETED,
+                total_steps=step_count,
+                execution_path=execution_path,
             )
 
             # State is now persisted asynchronously via CacheFirstStateStore listening to events
@@ -146,8 +162,8 @@ class TypedExecutionEngine:
         except Exception as e:
             from dipeo.diagram_generated import Status
 
-            if context:
-                await context.events.emit_execution_error(e)
+            if event_pipeline:
+                await event_pipeline.emit("execution_error", exc=e)
 
             yield {
                 "type": "execution_error",
@@ -165,20 +181,23 @@ class TypedExecutionEngine:
             # Event bus cleanup handled externally
 
     async def _execute_nodes(
-        self, nodes: list[ExecutableNode], context: TypedExecutionContext
+        self,
+        nodes: list[ExecutableNode],
+        context: TypedExecutionContext,
+        event_pipeline: EventPipeline,
     ) -> dict[str, dict[str, Any]]:
         max_concurrent = 20
 
         if len(nodes) == 1:
             node = nodes[0]
-            result = await self._execute_single_node(node, context)
+            result = await self._execute_single_node(node, context, event_pipeline)
             return {str(node.id): result}
 
         semaphore = asyncio.Semaphore(max_concurrent)
 
         async def execute_with_semaphore(node: ExecutableNode) -> tuple[str, dict[str, Any]]:
             async with semaphore:
-                result = await self._execute_single_node(node, context)
+                result = await self._execute_single_node(node, context, event_pipeline)
                 return str(node.id), result
 
         tasks = [execute_with_semaphore(node) for node in nodes]
@@ -193,7 +212,7 @@ class TypedExecutionEngine:
         return output
 
     async def _execute_single_node(
-        self, node: ExecutableNode, context: TypedExecutionContext
+        self, node: ExecutableNode, context: TypedExecutionContext, event_pipeline: EventPipeline
     ) -> dict[str, Any]:
         node_id = node.id
         start_time = time.time()
@@ -202,13 +221,13 @@ class TypedExecutionEngine:
         if self._scheduler:
             self._scheduler.mark_node_running(node_id, epoch)
 
-        await self._emit_node_started(context, node)
+        await event_pipeline.emit("node_started", node=node)
 
         try:
             if await self._should_skip_max_iteration(node, context):
-                return await self._handle_max_iteration_reached(node, context)
+                return await self._handle_max_iteration_reached(node, context, event_pipeline)
 
-            output = await self._execute_node_handler(node, context)
+            output = await self._execute_node_handler(node, context, event_pipeline)
 
             from dipeo.diagram_generated import NodeType
 
@@ -221,13 +240,24 @@ class TypedExecutionEngine:
             duration_ms = (time.time() - start_time) * 1000
             llm_usage = self._extract_llm_usage(output)
 
-            await self._handle_node_completion(node, output, context)
+            # Add metadata to envelope if applicable
+            if hasattr(output, "meta") and isinstance(output.meta, dict):
+                output.meta["execution_time_ms"] = duration_ms
+                if llm_usage:
+                    output.meta["token_usage"] = llm_usage
+
+            await self._handle_node_completion(node, output, context, event_pipeline)
 
             if self._scheduler:
                 self._scheduler.mark_node_complete(node_id, epoch)
 
-            await self._emit_node_completed(
-                context, node, output, duration_ms, start_time, llm_usage
+            exec_count = context.state.get_node_execution_count(node.id)
+            await event_pipeline.emit(
+                "node_completed",
+                node=node,
+                envelope=output,
+                exec_count=exec_count,
+                duration_ms=duration_ms,
             )
 
             return self._format_node_result(output)
@@ -235,7 +265,7 @@ class TypedExecutionEngine:
         except Exception as e:
             if self._scheduler:
                 self._scheduler.mark_node_complete(node_id, epoch)
-            await self._handle_node_failure(context, node, e)
+            await self._handle_node_failure(context, node, e, event_pipeline)
             raise
 
     async def _should_skip_max_iteration(
@@ -249,7 +279,7 @@ class TypedExecutionEngine:
         return False
 
     async def _handle_max_iteration_reached(
-        self, node: ExecutableNode, context: TypedExecutionContext
+        self, node: ExecutableNode, context: TypedExecutionContext, event_pipeline: EventPipeline
     ) -> dict[str, Any]:
         from dipeo.diagram_generated.enums import Status
         from dipeo.domain.execution.envelope import EnvelopeFactory
@@ -270,20 +300,22 @@ class TypedExecutionEngine:
 
         from dipeo.diagram_generated import Status
 
-        await context.events.emit_node_status_changed(node_id, Status.COMPLETED)
-        await context.events.emit_node_completed(node, None, current_count)
+        await event_pipeline.emit("node_status_changed", node_id=node_id, status=Status.COMPLETED)
+        await event_pipeline.emit(
+            "node_completed", node=node, envelope=None, exec_count=current_count
+        )
 
         return {"value": "", "status": "MAXITER_REACHED"}
 
     async def _execute_node_handler(
-        self, node: ExecutableNode, context: TypedExecutionContext
+        self, node: ExecutableNode, context: TypedExecutionContext, event_pipeline: EventPipeline
     ) -> Any:
         with context.executing_node(node.id):
             context.state.transition_to_running(node.id, context.current_epoch())
 
             from dipeo.diagram_generated import Status
 
-            await context.events.emit_node_status_changed(node.id, Status.RUNNING)
+            await event_pipeline.emit("node_status_changed", node_id=node.id, status=Status.RUNNING)
 
             handler = self._get_handler(node.type)
             inputs = await handler.resolve_envelope_inputs(
@@ -340,38 +372,20 @@ class TypedExecutionEngine:
                     return llm_usage
         return None
 
-    async def _emit_node_started(
-        self, context: TypedExecutionContext, node: ExecutableNode
-    ) -> None:
-        await context.events.emit_node_started(node)
-
-    async def _emit_node_completed(
+    async def _handle_node_failure(
         self,
         context: TypedExecutionContext,
         node: ExecutableNode,
-        envelope: Any,
-        duration_ms: float,
-        start_time: float,
-        llm_usage: dict | None,
-    ) -> None:
-        if hasattr(envelope, "meta") and isinstance(envelope.meta, dict):
-            envelope.meta["execution_time_ms"] = duration_ms
-            if llm_usage:
-                envelope.meta["token_usage"] = llm_usage
-
-        exec_count = context.state.get_node_execution_count(node.id)
-        await context.events.emit_node_completed(node, envelope, exec_count)
-
-    async def _handle_node_failure(
-        self, context: TypedExecutionContext, node: ExecutableNode, error: Exception
+        error: Exception,
+        event_pipeline: EventPipeline,
     ) -> None:
         logger.error(f"Error executing node {node.id}: {error}", exc_info=True)
         context.state.transition_to_failed(node.id, str(error))
 
         from dipeo.diagram_generated import Status
 
-        await context.events.emit_node_status_changed(node.id, Status.FAILED)
-        await context.events.emit_node_error(node, error)
+        await event_pipeline.emit("node_status_changed", node_id=node.id, status=Status.FAILED)
+        await event_pipeline.emit("node_error", node=node, exc=error)
 
     def _format_node_result(self, envelope: Any) -> dict[str, Any]:
         if hasattr(envelope, "body"):
@@ -412,9 +426,10 @@ class TypedExecutionEngine:
         node: ExecutableNode,
         envelope: Any,
         context: TypedExecutionContext,
+        event_pipeline: EventPipeline,
     ) -> None:
         context.state.transition_to_completed(node.id, envelope)
 
         from dipeo.diagram_generated import Status
 
-        await context.events.emit_node_status_changed(node.id, Status.COMPLETED)
+        await event_pipeline.emit("node_status_changed", node_id=node.id, status=Status.COMPLETED)
