@@ -7,6 +7,7 @@ scalar_mappings:
   any: JSONScalar
   "Record<*>": JSONScalar
   "Dict<*>": JSONScalar
+  Upload: Upload  # File upload type from strawberry.file_uploads
 
 # Special type patterns
 patterns:

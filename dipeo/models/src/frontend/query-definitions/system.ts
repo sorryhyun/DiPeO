@@ -41,7 +41,7 @@ export const systemQueries: EntityQueryDefinitions = {
       name: 'GetExecutionOrder',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'execution_id', type: 'ID', required: true }
+        { name: 'execution_id', type: 'String', required: true }
       ],
       fields: [
         {
@@ -58,7 +58,7 @@ export const systemQueries: EntityQueryDefinitions = {
       name: 'GetExecutionMetrics',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'execution_id', type: 'ID', required: true }
+        { name: 'execution_id', type: 'String', required: true }
       ],
       fields: [
         {
@@ -75,7 +75,7 @@ export const systemQueries: EntityQueryDefinitions = {
       name: 'GetExecutionHistory',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'diagram_id', type: 'ID' },
+        { name: 'diagram_id', type: 'String' },
         { name: 'limit', type: 'Int' },
         { name: 'include_metrics', type: 'Boolean' }
       ],

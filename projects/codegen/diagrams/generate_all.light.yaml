@@ -39,19 +39,11 @@ nodes:
       diagram_format: light
       passInputData: false
 
-  # Generate Python GraphQL operations from TypeScript definitions
-  - label: Generate Python GraphQL
-    type: sub_diagram
-    position: {x: 400, y: 500}
-    props:
-      diagram_name: projects/codegen/diagrams/backend/generate_python_graphql
-      diagram_format: light
-      passInputData: false
-
   # Generate Strawberry GraphQL types using unified IR-based flow
+  # This now also handles operations generation from TypeScript definitions
   - label: Generate Strawberry
     type: sub_diagram
-    position: {x: 400, y: 600}
+    position: {x: 400, y: 500}
     props:
       diagram_name: projects/codegen/diagrams/generate_strawberry
       diagram_format: light
@@ -79,16 +71,14 @@ connections:
   # First parse all TypeScript files
   - {from: Start, to: Parse All TypeScript}
 
-  # After parsing, run backend, frontend, Python GraphQL, and Strawberry generation in parallel
+  # After parsing, run backend, frontend, and Strawberry generation in parallel
   - {from: Parse All TypeScript, to: Generate Backend}
   - {from: Parse All TypeScript, to: Generate Frontend}
-  - {from: Parse All TypeScript, to: Generate Python GraphQL}
   - {from: Parse All TypeScript, to: Generate Strawberry}
 
   # All generation pipelines converge to End
   - {from: Generate Backend, to: End}
   - {from: Generate Frontend, to: End}
-  - {from: Generate Python GraphQL, to: End}
   - {from: Generate Strawberry, to: End}
 
   # End to terminate

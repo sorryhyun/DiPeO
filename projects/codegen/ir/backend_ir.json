@@ -1,0 +1,2408 @@
+{
+  "version": 1,
+  "generated_at": "2025-09-14T14:01:37.892646",
+  "node_specs": [
+    {
+      "node_type": "user_response",
+      "node_name": "UserResponse",
+      "display_name": "User Response",
+      "category": "integration",
+      "description": "Collect user input",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "Question to ask the user",
+          "validation": {}
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": 300,
+          "description": "Response timeout in seconds",
+          "validation": {}
+        }
+      ],
+      "icon": "\ud83d\udcac",
+      "color": "#E91E63"
+    },
+    {
+      "node_type": "db",
+      "node_name": "Db",
+      "display_name": "Database",
+      "category": "integration",
+      "description": "Database operations",
+      "fields": [
+        {
+          "name": "file",
+          "type": "Any",
+          "required": false,
+          "default": null,
+          "description": "File path or array of file paths",
+          "validation": {}
+        },
+        {
+          "name": "collection",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Database collection name",
+          "validation": {}
+        },
+        {
+          "name": "sub_type",
+          "type": "enum",
+          "required": true,
+          "default": null,
+          "description": "Database operation type",
+          "validation": {
+            "allowedValues": [
+              "fixed_prompt",
+              "file",
+              "code",
+              "api_tool"
+            ]
+          }
+        },
+        {
+          "name": "operation",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "Operation configuration",
+          "validation": {}
+        },
+        {
+          "name": "query",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Query configuration",
+          "validation": {}
+        },
+        {
+          "name": "data",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Data configuration",
+          "validation": {}
+        },
+        {
+          "name": "serialize_json",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Serialize structured data to JSON string (for backward compatibility)",
+          "validation": {}
+        },
+        {
+          "name": "format",
+          "type": "str",
+          "required": false,
+          "default": "json",
+          "description": "Data format (json, yaml, csv, text, etc.)",
+          "validation": {}
+        }
+      ],
+      "icon": "\ud83d\uddc4\ufe0f",
+      "color": "#795548"
+    },
+    {
+      "node_type": "start",
+      "node_name": "Start",
+      "display_name": "Start Node",
+      "category": "control",
+      "description": "Entry point for diagram execution",
+      "fields": [
+        {
+          "name": "trigger_mode",
+          "type": "enum",
+          "required": false,
+          "default": "none",
+          "description": "How this start node is triggered",
+          "validation": {
+            "allowedValues": [
+              "none",
+              "manual",
+              "hook"
+            ]
+          }
+        },
+        {
+          "name": "custom_data",
+          "type": "Any",
+          "required": false,
+          "default": null,
+          "description": "Custom data to pass when manually triggered",
+          "validation": {}
+        },
+        {
+          "name": "output_data_structure",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Expected output data structure",
+          "validation": {}
+        },
+        {
+          "name": "hook_event",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Event name to listen for",
+          "validation": {}
+        },
+        {
+          "name": "hook_filters",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Filters to apply to incoming events",
+          "validation": {}
+        }
+      ],
+      "icon": "\ud83d\ude80",
+      "color": "#4CAF50"
+    },
+    {
+      "node_type": "sub_diagram",
+      "node_name": "SubDiagram",
+      "display_name": "Sub-Diagram",
+      "category": "compute",
+      "description": "Execute another diagram as a node within the current diagram",
+      "fields": [
+        {
+          "name": "diagram_name",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Name of the diagram to execute (e.g., 'workflow/process')",
+          "validation": {}
+        },
+        {
+          "name": "diagram_data",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Inline diagram data (alternative to diagram_name)",
+          "validation": {}
+        },
+        {
+          "name": "input_mapping",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Map node inputs to sub-diagram variables",
+          "validation": {}
+        },
+        {
+          "name": "output_mapping",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Map sub-diagram outputs to node outputs",
+          "validation": {}
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Execution timeout in seconds",
+          "validation": {
+            "min": 1,
+            "max": 3600
+          }
+        },
+        {
+          "name": "wait_for_completion",
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "description": "Whether to wait for sub-diagram completion",
+          "validation": {}
+        },
+        {
+          "name": "isolate_conversation",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Create isolated conversation context for sub-diagram",
+          "validation": {}
+        },
+        {
+          "name": "ignoreIfSub",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Skip execution if this diagram is being run as a sub-diagram",
+          "validation": {}
+        },
+        {
+          "name": "diagram_format",
+          "type": "enum",
+          "required": false,
+          "default": null,
+          "description": "Format of the diagram file (yaml, json, or light)",
+          "validation": {
+            "allowedValues": [
+              "yaml",
+              "json",
+              "light"
+            ]
+          }
+        },
+        {
+          "name": "batch",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Execute sub-diagram in batch mode for multiple inputs",
+          "validation": {}
+        },
+        {
+          "name": "batch_input_key",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Key in inputs containing the array of items for batch processing",
+          "validation": {}
+        },
+        {
+          "name": "batch_parallel",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Execute batch items in parallel",
+          "validation": {}
+        }
+      ],
+      "icon": "\ud83d\udcca",
+      "color": "#8B5CF6"
+    },
+    {
+      "node_type": "person_job",
+      "node_name": "PersonJob",
+      "display_name": "Person Job",
+      "category": "ai",
+      "description": "Execute tasks using AI language models",
+      "fields": [
+        {
+          "name": "person",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "AI person to use",
+          "validation": {}
+        },
+        {
+          "name": "first_only_prompt",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "Prompt used only on first execution",
+          "validation": {}
+        },
+        {
+          "name": "first_prompt_file",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "External prompt file for first iteration only",
+          "validation": {}
+        },
+        {
+          "name": "default_prompt",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Default prompt template",
+          "validation": {}
+        },
+        {
+          "name": "prompt_file",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to prompt file in /files/prompts/",
+          "validation": {}
+        },
+        {
+          "name": "max_iteration",
+          "type": "float",
+          "required": true,
+          "default": 100,
+          "description": "Maximum execution iterations",
+          "validation": {}
+        },
+        {
+          "name": "memorize_to",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria.",
+          "validation": {}
+        },
+        {
+          "name": "at_most",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Select at most N messages to keep (system messages may be preserved in addition).",
+          "validation": {
+            "min": 1,
+            "max": 500
+          }
+        },
+        {
+          "name": "ignore_person",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Comma-separated list of person IDs whose messages should be excluded from memory selection.",
+          "validation": {}
+        },
+        {
+          "name": "tools",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Tools available to the AI agent",
+          "validation": {}
+        },
+        {
+          "name": "text_format",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "JSON schema or response format for structured outputs",
+          "validation": {}
+        },
+        {
+          "name": "text_format_file",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to Python file containing Pydantic models for structured outputs",
+          "validation": {}
+        },
+        {
+          "name": "resolved_prompt",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Pre-resolved prompt content from compile-time",
+          "validation": {}
+        },
+        {
+          "name": "resolved_first_prompt",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Pre-resolved first prompt content from compile-time",
+          "validation": {}
+        },
+        {
+          "name": "batch",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Enable batch mode for processing multiple items",
+          "validation": {}
+        },
+        {
+          "name": "batch_input_key",
+          "type": "str",
+          "required": false,
+          "default": "items",
+          "description": "Key containing the array to iterate over in batch mode",
+          "validation": {}
+        },
+        {
+          "name": "batch_parallel",
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "description": "Execute batch items in parallel",
+          "validation": {}
+        },
+        {
+          "name": "max_concurrent",
+          "type": "float",
+          "required": false,
+          "default": 10,
+          "description": "Maximum concurrent executions in batch mode",
+          "validation": {
+            "min": 1,
+            "max": 100
+          }
+        }
+      ],
+      "icon": "\ud83e\udd16",
+      "color": "#2196F3"
+    },
+    {
+      "node_type": "template_job",
+      "node_name": "TemplateJob",
+      "display_name": "Template Job",
+      "category": "codegen",
+      "description": "Process templates with data",
+      "fields": [
+        {
+          "name": "template_path",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to template file",
+          "validation": {}
+        },
+        {
+          "name": "template_content",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Inline template content",
+          "validation": {}
+        },
+        {
+          "name": "output_path",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Output file path",
+          "validation": {}
+        },
+        {
+          "name": "variables",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Variables configuration",
+          "validation": {}
+        },
+        {
+          "name": "engine",
+          "type": "enum",
+          "required": false,
+          "default": "jinja2",
+          "description": "Template engine to use",
+          "validation": {
+            "allowedValues": [
+              "internal",
+              "jinja2"
+            ]
+          }
+        },
+        {
+          "name": "preprocessor",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Preprocessor function to apply before templating",
+          "validation": {}
+        }
+      ],
+      "icon": "\ud83d\udcdd",
+      "color": "#3F51B5"
+    },
+    {
+      "node_type": "api_job",
+      "node_name": "ApiJob",
+      "display_name": "API Job",
+      "category": "integration",
+      "description": "Make HTTP API requests",
+      "fields": [
+        {
+          "name": "url",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "API endpoint URL",
+          "validation": {}
+        },
+        {
+          "name": "method",
+          "type": "enum",
+          "required": true,
+          "default": null,
+          "description": "HTTP method",
+          "validation": {
+            "allowedValues": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE",
+              "PATCH"
+            ]
+          }
+        },
+        {
+          "name": "headers",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "HTTP headers",
+          "validation": {}
+        },
+        {
+          "name": "params",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Query parameters",
+          "validation": {}
+        },
+        {
+          "name": "body",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Request body",
+          "validation": {}
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Request timeout in seconds",
+          "validation": {}
+        },
+        {
+          "name": "auth_type",
+          "type": "enum",
+          "required": false,
+          "default": null,
+          "description": "Authentication type",
+          "validation": {
+            "allowedValues": [
+              "none",
+              "bearer",
+              "basic",
+              "api_key"
+            ]
+          }
+        },
+        {
+          "name": "auth_config",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Authentication configuration",
+          "validation": {}
+        }
+      ],
+      "icon": "\ud83c\udf10",
+      "color": "#00BCD4"
+    },
+    {
+      "node_type": "condition",
+      "node_name": "Condition",
+      "display_name": "Condition",
+      "category": "control",
+      "description": "Conditional branching based on expressions",
+      "fields": [
+        {
+          "name": "condition_type",
+          "type": "enum",
+          "required": false,
+          "default": "custom",
+          "description": "Type of condition to evaluate",
+          "validation": {
+            "allowedValues": [
+              "detect_max_iterations",
+              "check_nodes_executed",
+              "custom",
+              "llm_decision"
+            ]
+          }
+        },
+        {
+          "name": "expression",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Boolean expression to evaluate",
+          "validation": {}
+        },
+        {
+          "name": "node_indices",
+          "type": "array",
+          "required": false,
+          "default": null,
+          "description": "Node indices for detect_max_iteration condition",
+          "validation": {
+            "itemType": "string"
+          }
+        },
+        {
+          "name": "person",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "AI agent to use for decision making",
+          "validation": {}
+        },
+        {
+          "name": "judge_by",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Prompt for LLM to make a judgment",
+          "validation": {}
+        },
+        {
+          "name": "judge_by_file",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "External prompt file path",
+          "validation": {}
+        },
+        {
+          "name": "memorize_to",
+          "type": "str",
+          "required": false,
+          "default": "GOLDFISH",
+          "description": "Memory control strategy (e.g., GOLDFISH for fresh evaluation)",
+          "validation": {}
+        },
+        {
+          "name": "at_most",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Maximum messages to keep in memory",
+          "validation": {}
+        },
+        {
+          "name": "expose_index_as",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Variable name to expose the condition node's execution count (0-based index) to downstream nodes",
+          "validation": {}
+        },
+        {
+          "name": "skippable",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "When true, downstream nodes can execute even if this condition hasn't been evaluated yet",
+          "validation": {}
+        }
+      ],
+      "icon": "\ud83d\udd00",
+      "color": "#FF9800"
+    },
+    {
+      "node_type": "code_job",
+      "node_name": "CodeJob",
+      "display_name": "Code Job",
+      "category": "compute",
+      "description": "Execute custom code functions",
+      "fields": [
+        {
+          "name": "language",
+          "type": "enum",
+          "required": true,
+          "default": null,
+          "description": "Programming language",
+          "validation": {
+            "allowedValues": [
+              "python",
+              "typescript",
+              "bash",
+              "shell"
+            ]
+          }
+        },
+        {
+          "name": "filePath",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to code file",
+          "validation": {}
+        },
+        {
+          "name": "code",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Inline code to execute (alternative to filePath)",
+          "validation": {}
+        },
+        {
+          "name": "functionName",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Function to execute",
+          "validation": {}
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Execution timeout in seconds",
+          "validation": {}
+        }
+      ],
+      "icon": "\ud83d\udcbb",
+      "color": "#9C27B0"
+    },
+    {
+      "node_type": "integrated_api",
+      "node_name": "IntegratedApi",
+      "display_name": "Integrated API",
+      "category": "integration",
+      "description": "Connect to external APIs like Notion, Slack, GitHub, and more",
+      "fields": [
+        {
+          "name": "provider",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "API provider to connect to",
+          "validation": {}
+        },
+        {
+          "name": "operation",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "Operation to perform (provider-specific)",
+          "validation": {}
+        },
+        {
+          "name": "resource_id",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Resource identifier (e.g., page ID, channel ID)",
+          "validation": {}
+        },
+        {
+          "name": "config",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Provider-specific configuration",
+          "validation": {}
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Request timeout in seconds",
+          "validation": {
+            "min": 1,
+            "max": 300
+          }
+        },
+        {
+          "name": "max_retries",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Maximum retry attempts",
+          "validation": {
+            "min": 0,
+            "max": 10
+          }
+        }
+      ],
+      "icon": "\ud83d\udd0c",
+      "color": "#8b5cf6"
+    },
+    {
+      "node_type": "hook",
+      "node_name": "Hook",
+      "display_name": "Hook",
+      "category": "compute",
+      "description": "Executes hooks at specific points in the diagram execution",
+      "fields": [
+        {
+          "name": "hook_type",
+          "type": "enum",
+          "required": true,
+          "default": "shell",
+          "description": "Type of hook to execute",
+          "validation": {
+            "allowedValues": [
+              "shell",
+              "http",
+              "python",
+              "file"
+            ]
+          }
+        },
+        {
+          "name": "command",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Shell command to run (for shell hooks)",
+          "validation": {}
+        },
+        {
+          "name": "url",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Webhook URL (for HTTP hooks)",
+          "validation": {
+            "pattern": "^https?://"
+          }
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": 60,
+          "description": "Execution timeout in seconds",
+          "validation": {
+            "min": 1,
+            "max": 300
+          }
+        },
+        {
+          "name": "retry_count",
+          "type": "float",
+          "required": false,
+          "default": 0,
+          "description": "Number of retries on failure",
+          "validation": {
+            "min": 0,
+            "max": 5
+          }
+        }
+      ],
+      "icon": "\ud83e\ude9d",
+      "color": "#9333ea"
+    },
+    {
+      "node_type": "typescript_ast",
+      "node_name": "TypescriptAst",
+      "display_name": "TypeScript AST Parser",
+      "category": "codegen",
+      "description": "Parses TypeScript source code and extracts AST, interfaces, types, and enums",
+      "fields": [
+        {
+          "name": "source",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "TypeScript source code to parse",
+          "validation": {}
+        },
+        {
+          "name": "extractPatterns",
+          "type": "array",
+          "required": false,
+          "default": [
+            "interface",
+            "type",
+            "enum"
+          ],
+          "description": "Patterns to extract from the AST",
+          "validation": {
+            "itemType": "string",
+            "allowedValues": [
+              "interface",
+              "type",
+              "enum",
+              "class",
+              "function",
+              "const",
+              "export"
+            ]
+          }
+        },
+        {
+          "name": "includeJSDoc",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Include JSDoc comments in the extracted data",
+          "validation": {}
+        },
+        {
+          "name": "parseMode",
+          "type": "enum",
+          "required": false,
+          "default": "module",
+          "description": "TypeScript parsing mode",
+          "validation": {
+            "allowedValues": [
+              "module",
+              "script"
+            ]
+          }
+        },
+        {
+          "name": "transformEnums",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Transform enum definitions to a simpler format",
+          "validation": {}
+        },
+        {
+          "name": "flattenOutput",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Flatten the output structure for easier consumption",
+          "validation": {}
+        },
+        {
+          "name": "outputFormat",
+          "type": "enum",
+          "required": false,
+          "default": "standard",
+          "description": "Output format for the parsed data",
+          "validation": {
+            "allowedValues": [
+              "standard",
+              "for_codegen",
+              "for_analysis"
+            ]
+          }
+        },
+        {
+          "name": "batch",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Enable batch processing mode",
+          "validation": {}
+        },
+        {
+          "name": "batchInputKey",
+          "type": "str",
+          "required": false,
+          "default": "sources",
+          "description": "Key to extract batch items from input",
+          "validation": {}
+        }
+      ],
+      "icon": "\ud83d\udd0d",
+      "color": "#3178c6"
+    },
+    {
+      "node_type": "json_schema_validator",
+      "node_name": "JsonSchemaValidator",
+      "display_name": "JSON Schema Validator",
+      "category": "codegen",
+      "description": "Validate data against JSON schema",
+      "fields": [
+        {
+          "name": "schema_path",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to JSON schema file",
+          "validation": {}
+        },
+        {
+          "name": "schema",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Inline JSON schema",
+          "validation": {}
+        },
+        {
+          "name": "data_path",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Data Path configuration",
+          "validation": {}
+        },
+        {
+          "name": "strict_mode",
+          "type": "bool",
+          "required": false,
+          "default": null,
+          "description": "Strict Mode configuration",
+          "validation": {}
+        },
+        {
+          "name": "error_on_extra",
+          "type": "bool",
+          "required": false,
+          "default": null,
+          "description": "Error On Extra configuration",
+          "validation": {}
+        }
+      ],
+      "icon": "\u2713",
+      "color": "#8BC34A"
+    },
+    {
+      "node_type": "endpoint",
+      "node_name": "Endpoint",
+      "display_name": "End Node",
+      "category": "control",
+      "description": "Exit point for diagram execution",
+      "fields": [
+        {
+          "name": "save_to_file",
+          "type": "bool",
+          "required": true,
+          "default": null,
+          "description": "Save results to file",
+          "validation": {}
+        },
+        {
+          "name": "file_name",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Output filename",
+          "validation": {}
+        }
+      ],
+      "icon": "\ud83c\udfc1",
+      "color": "#F44336"
+    }
+  ],
+  "enums": [],
+  "integrations": {
+    "models": [],
+    "functions": [],
+    "configs": []
+  },
+  "conversions": {
+    "node_type_map": {},
+    "type_conversions": {},
+    "field_mappings": {}
+  },
+  "unified_models": [
+    {
+      "class_name": "UserResponse",
+      "display_name": "User Response",
+      "description": "Collect user input",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "Question to ask the user",
+          "validation": {}
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": 300,
+          "description": "Response timeout in seconds",
+          "validation": {}
+        }
+      ],
+      "category": "integration",
+      "icon": "\ud83d\udcac",
+      "color": "#E91E63"
+    },
+    {
+      "class_name": "Db",
+      "display_name": "Database",
+      "description": "Database operations",
+      "fields": [
+        {
+          "name": "file",
+          "type": "Any",
+          "required": false,
+          "default": null,
+          "description": "File path or array of file paths",
+          "validation": {}
+        },
+        {
+          "name": "collection",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Database collection name",
+          "validation": {}
+        },
+        {
+          "name": "sub_type",
+          "type": "enum",
+          "required": true,
+          "default": null,
+          "description": "Database operation type",
+          "validation": {
+            "allowedValues": [
+              "fixed_prompt",
+              "file",
+              "code",
+              "api_tool"
+            ]
+          }
+        },
+        {
+          "name": "operation",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "Operation configuration",
+          "validation": {}
+        },
+        {
+          "name": "query",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Query configuration",
+          "validation": {}
+        },
+        {
+          "name": "data",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Data configuration",
+          "validation": {}
+        },
+        {
+          "name": "serialize_json",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Serialize structured data to JSON string (for backward compatibility)",
+          "validation": {}
+        },
+        {
+          "name": "format",
+          "type": "str",
+          "required": false,
+          "default": "json",
+          "description": "Data format (json, yaml, csv, text, etc.)",
+          "validation": {}
+        }
+      ],
+      "category": "integration",
+      "icon": "\ud83d\uddc4\ufe0f",
+      "color": "#795548"
+    },
+    {
+      "class_name": "Start",
+      "display_name": "Start Node",
+      "description": "Entry point for diagram execution",
+      "fields": [
+        {
+          "name": "trigger_mode",
+          "type": "enum",
+          "required": false,
+          "default": "none",
+          "description": "How this start node is triggered",
+          "validation": {
+            "allowedValues": [
+              "none",
+              "manual",
+              "hook"
+            ]
+          }
+        },
+        {
+          "name": "custom_data",
+          "type": "Any",
+          "required": false,
+          "default": null,
+          "description": "Custom data to pass when manually triggered",
+          "validation": {}
+        },
+        {
+          "name": "output_data_structure",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Expected output data structure",
+          "validation": {}
+        },
+        {
+          "name": "hook_event",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Event name to listen for",
+          "validation": {}
+        },
+        {
+          "name": "hook_filters",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Filters to apply to incoming events",
+          "validation": {}
+        }
+      ],
+      "category": "control",
+      "icon": "\ud83d\ude80",
+      "color": "#4CAF50"
+    },
+    {
+      "class_name": "SubDiagram",
+      "display_name": "Sub-Diagram",
+      "description": "Execute another diagram as a node within the current diagram",
+      "fields": [
+        {
+          "name": "diagram_name",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Name of the diagram to execute (e.g., 'workflow/process')",
+          "validation": {}
+        },
+        {
+          "name": "diagram_data",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Inline diagram data (alternative to diagram_name)",
+          "validation": {}
+        },
+        {
+          "name": "input_mapping",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Map node inputs to sub-diagram variables",
+          "validation": {}
+        },
+        {
+          "name": "output_mapping",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Map sub-diagram outputs to node outputs",
+          "validation": {}
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Execution timeout in seconds",
+          "validation": {
+            "min": 1,
+            "max": 3600
+          }
+        },
+        {
+          "name": "wait_for_completion",
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "description": "Whether to wait for sub-diagram completion",
+          "validation": {}
+        },
+        {
+          "name": "isolate_conversation",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Create isolated conversation context for sub-diagram",
+          "validation": {}
+        },
+        {
+          "name": "ignoreIfSub",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Skip execution if this diagram is being run as a sub-diagram",
+          "validation": {}
+        },
+        {
+          "name": "diagram_format",
+          "type": "enum",
+          "required": false,
+          "default": null,
+          "description": "Format of the diagram file (yaml, json, or light)",
+          "validation": {
+            "allowedValues": [
+              "yaml",
+              "json",
+              "light"
+            ]
+          }
+        },
+        {
+          "name": "batch",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Execute sub-diagram in batch mode for multiple inputs",
+          "validation": {}
+        },
+        {
+          "name": "batch_input_key",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Key in inputs containing the array of items for batch processing",
+          "validation": {}
+        },
+        {
+          "name": "batch_parallel",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Execute batch items in parallel",
+          "validation": {}
+        }
+      ],
+      "category": "compute",
+      "icon": "\ud83d\udcca",
+      "color": "#8B5CF6"
+    },
+    {
+      "class_name": "PersonJob",
+      "display_name": "Person Job",
+      "description": "Execute tasks using AI language models",
+      "fields": [
+        {
+          "name": "person",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "AI person to use",
+          "validation": {}
+        },
+        {
+          "name": "first_only_prompt",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "Prompt used only on first execution",
+          "validation": {}
+        },
+        {
+          "name": "first_prompt_file",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "External prompt file for first iteration only",
+          "validation": {}
+        },
+        {
+          "name": "default_prompt",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Default prompt template",
+          "validation": {}
+        },
+        {
+          "name": "prompt_file",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to prompt file in /files/prompts/",
+          "validation": {}
+        },
+        {
+          "name": "max_iteration",
+          "type": "float",
+          "required": true,
+          "default": 100,
+          "description": "Maximum execution iterations",
+          "validation": {}
+        },
+        {
+          "name": "memorize_to",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria.",
+          "validation": {}
+        },
+        {
+          "name": "at_most",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Select at most N messages to keep (system messages may be preserved in addition).",
+          "validation": {
+            "min": 1,
+            "max": 500
+          }
+        },
+        {
+          "name": "ignore_person",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Comma-separated list of person IDs whose messages should be excluded from memory selection.",
+          "validation": {}
+        },
+        {
+          "name": "tools",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Tools available to the AI agent",
+          "validation": {}
+        },
+        {
+          "name": "text_format",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "JSON schema or response format for structured outputs",
+          "validation": {}
+        },
+        {
+          "name": "text_format_file",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to Python file containing Pydantic models for structured outputs",
+          "validation": {}
+        },
+        {
+          "name": "resolved_prompt",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Pre-resolved prompt content from compile-time",
+          "validation": {}
+        },
+        {
+          "name": "resolved_first_prompt",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Pre-resolved first prompt content from compile-time",
+          "validation": {}
+        },
+        {
+          "name": "batch",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Enable batch mode for processing multiple items",
+          "validation": {}
+        },
+        {
+          "name": "batch_input_key",
+          "type": "str",
+          "required": false,
+          "default": "items",
+          "description": "Key containing the array to iterate over in batch mode",
+          "validation": {}
+        },
+        {
+          "name": "batch_parallel",
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "description": "Execute batch items in parallel",
+          "validation": {}
+        },
+        {
+          "name": "max_concurrent",
+          "type": "float",
+          "required": false,
+          "default": 10,
+          "description": "Maximum concurrent executions in batch mode",
+          "validation": {
+            "min": 1,
+            "max": 100
+          }
+        }
+      ],
+      "category": "ai",
+      "icon": "\ud83e\udd16",
+      "color": "#2196F3"
+    },
+    {
+      "class_name": "TemplateJob",
+      "display_name": "Template Job",
+      "description": "Process templates with data",
+      "fields": [
+        {
+          "name": "template_path",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to template file",
+          "validation": {}
+        },
+        {
+          "name": "template_content",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Inline template content",
+          "validation": {}
+        },
+        {
+          "name": "output_path",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Output file path",
+          "validation": {}
+        },
+        {
+          "name": "variables",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Variables configuration",
+          "validation": {}
+        },
+        {
+          "name": "engine",
+          "type": "enum",
+          "required": false,
+          "default": "jinja2",
+          "description": "Template engine to use",
+          "validation": {
+            "allowedValues": [
+              "internal",
+              "jinja2"
+            ]
+          }
+        },
+        {
+          "name": "preprocessor",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Preprocessor function to apply before templating",
+          "validation": {}
+        }
+      ],
+      "category": "codegen",
+      "icon": "\ud83d\udcdd",
+      "color": "#3F51B5"
+    },
+    {
+      "class_name": "ApiJob",
+      "display_name": "API Job",
+      "description": "Make HTTP API requests",
+      "fields": [
+        {
+          "name": "url",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "API endpoint URL",
+          "validation": {}
+        },
+        {
+          "name": "method",
+          "type": "enum",
+          "required": true,
+          "default": null,
+          "description": "HTTP method",
+          "validation": {
+            "allowedValues": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE",
+              "PATCH"
+            ]
+          }
+        },
+        {
+          "name": "headers",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "HTTP headers",
+          "validation": {}
+        },
+        {
+          "name": "params",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Query parameters",
+          "validation": {}
+        },
+        {
+          "name": "body",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Request body",
+          "validation": {}
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Request timeout in seconds",
+          "validation": {}
+        },
+        {
+          "name": "auth_type",
+          "type": "enum",
+          "required": false,
+          "default": null,
+          "description": "Authentication type",
+          "validation": {
+            "allowedValues": [
+              "none",
+              "bearer",
+              "basic",
+              "api_key"
+            ]
+          }
+        },
+        {
+          "name": "auth_config",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Authentication configuration",
+          "validation": {}
+        }
+      ],
+      "category": "integration",
+      "icon": "\ud83c\udf10",
+      "color": "#00BCD4"
+    },
+    {
+      "class_name": "Condition",
+      "display_name": "Condition",
+      "description": "Conditional branching based on expressions",
+      "fields": [
+        {
+          "name": "condition_type",
+          "type": "enum",
+          "required": false,
+          "default": "custom",
+          "description": "Type of condition to evaluate",
+          "validation": {
+            "allowedValues": [
+              "detect_max_iterations",
+              "check_nodes_executed",
+              "custom",
+              "llm_decision"
+            ]
+          }
+        },
+        {
+          "name": "expression",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Boolean expression to evaluate",
+          "validation": {}
+        },
+        {
+          "name": "node_indices",
+          "type": "array",
+          "required": false,
+          "default": null,
+          "description": "Node indices for detect_max_iteration condition",
+          "validation": {
+            "itemType": "string"
+          }
+        },
+        {
+          "name": "person",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "AI agent to use for decision making",
+          "validation": {}
+        },
+        {
+          "name": "judge_by",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Prompt for LLM to make a judgment",
+          "validation": {}
+        },
+        {
+          "name": "judge_by_file",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "External prompt file path",
+          "validation": {}
+        },
+        {
+          "name": "memorize_to",
+          "type": "str",
+          "required": false,
+          "default": "GOLDFISH",
+          "description": "Memory control strategy (e.g., GOLDFISH for fresh evaluation)",
+          "validation": {}
+        },
+        {
+          "name": "at_most",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Maximum messages to keep in memory",
+          "validation": {}
+        },
+        {
+          "name": "expose_index_as",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Variable name to expose the condition node's execution count (0-based index) to downstream nodes",
+          "validation": {}
+        },
+        {
+          "name": "skippable",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "When true, downstream nodes can execute even if this condition hasn't been evaluated yet",
+          "validation": {}
+        }
+      ],
+      "category": "control",
+      "icon": "\ud83d\udd00",
+      "color": "#FF9800"
+    },
+    {
+      "class_name": "CodeJob",
+      "display_name": "Code Job",
+      "description": "Execute custom code functions",
+      "fields": [
+        {
+          "name": "language",
+          "type": "enum",
+          "required": true,
+          "default": null,
+          "description": "Programming language",
+          "validation": {
+            "allowedValues": [
+              "python",
+              "typescript",
+              "bash",
+              "shell"
+            ]
+          }
+        },
+        {
+          "name": "filePath",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to code file",
+          "validation": {}
+        },
+        {
+          "name": "code",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Inline code to execute (alternative to filePath)",
+          "validation": {}
+        },
+        {
+          "name": "functionName",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Function to execute",
+          "validation": {}
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Execution timeout in seconds",
+          "validation": {}
+        }
+      ],
+      "category": "compute",
+      "icon": "\ud83d\udcbb",
+      "color": "#9C27B0"
+    },
+    {
+      "class_name": "IntegratedApi",
+      "display_name": "Integrated API",
+      "description": "Connect to external APIs like Notion, Slack, GitHub, and more",
+      "fields": [
+        {
+          "name": "provider",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "API provider to connect to",
+          "validation": {}
+        },
+        {
+          "name": "operation",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "Operation to perform (provider-specific)",
+          "validation": {}
+        },
+        {
+          "name": "resource_id",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Resource identifier (e.g., page ID, channel ID)",
+          "validation": {}
+        },
+        {
+          "name": "config",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Provider-specific configuration",
+          "validation": {}
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Request timeout in seconds",
+          "validation": {
+            "min": 1,
+            "max": 300
+          }
+        },
+        {
+          "name": "max_retries",
+          "type": "float",
+          "required": false,
+          "default": null,
+          "description": "Maximum retry attempts",
+          "validation": {
+            "min": 0,
+            "max": 10
+          }
+        }
+      ],
+      "category": "integration",
+      "icon": "\ud83d\udd0c",
+      "color": "#8b5cf6"
+    },
+    {
+      "class_name": "Hook",
+      "display_name": "Hook",
+      "description": "Executes hooks at specific points in the diagram execution",
+      "fields": [
+        {
+          "name": "hook_type",
+          "type": "enum",
+          "required": true,
+          "default": "shell",
+          "description": "Type of hook to execute",
+          "validation": {
+            "allowedValues": [
+              "shell",
+              "http",
+              "python",
+              "file"
+            ]
+          }
+        },
+        {
+          "name": "command",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Shell command to run (for shell hooks)",
+          "validation": {}
+        },
+        {
+          "name": "url",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Webhook URL (for HTTP hooks)",
+          "validation": {
+            "pattern": "^https?://"
+          }
+        },
+        {
+          "name": "timeout",
+          "type": "float",
+          "required": false,
+          "default": 60,
+          "description": "Execution timeout in seconds",
+          "validation": {
+            "min": 1,
+            "max": 300
+          }
+        },
+        {
+          "name": "retry_count",
+          "type": "float",
+          "required": false,
+          "default": 0,
+          "description": "Number of retries on failure",
+          "validation": {
+            "min": 0,
+            "max": 5
+          }
+        }
+      ],
+      "category": "compute",
+      "icon": "\ud83e\ude9d",
+      "color": "#9333ea"
+    },
+    {
+      "class_name": "TypescriptAst",
+      "display_name": "TypeScript AST Parser",
+      "description": "Parses TypeScript source code and extracts AST, interfaces, types, and enums",
+      "fields": [
+        {
+          "name": "source",
+          "type": "str",
+          "required": true,
+          "default": null,
+          "description": "TypeScript source code to parse",
+          "validation": {}
+        },
+        {
+          "name": "extractPatterns",
+          "type": "array",
+          "required": false,
+          "default": [
+            "interface",
+            "type",
+            "enum"
+          ],
+          "description": "Patterns to extract from the AST",
+          "validation": {
+            "itemType": "string",
+            "allowedValues": [
+              "interface",
+              "type",
+              "enum",
+              "class",
+              "function",
+              "const",
+              "export"
+            ]
+          }
+        },
+        {
+          "name": "includeJSDoc",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Include JSDoc comments in the extracted data",
+          "validation": {}
+        },
+        {
+          "name": "parseMode",
+          "type": "enum",
+          "required": false,
+          "default": "module",
+          "description": "TypeScript parsing mode",
+          "validation": {
+            "allowedValues": [
+              "module",
+              "script"
+            ]
+          }
+        },
+        {
+          "name": "transformEnums",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Transform enum definitions to a simpler format",
+          "validation": {}
+        },
+        {
+          "name": "flattenOutput",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Flatten the output structure for easier consumption",
+          "validation": {}
+        },
+        {
+          "name": "outputFormat",
+          "type": "enum",
+          "required": false,
+          "default": "standard",
+          "description": "Output format for the parsed data",
+          "validation": {
+            "allowedValues": [
+              "standard",
+              "for_codegen",
+              "for_analysis"
+            ]
+          }
+        },
+        {
+          "name": "batch",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Enable batch processing mode",
+          "validation": {}
+        },
+        {
+          "name": "batchInputKey",
+          "type": "str",
+          "required": false,
+          "default": "sources",
+          "description": "Key to extract batch items from input",
+          "validation": {}
+        }
+      ],
+      "category": "codegen",
+      "icon": "\ud83d\udd0d",
+      "color": "#3178c6"
+    },
+    {
+      "class_name": "JsonSchemaValidator",
+      "display_name": "JSON Schema Validator",
+      "description": "Validate data against JSON schema",
+      "fields": [
+        {
+          "name": "schema_path",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to JSON schema file",
+          "validation": {}
+        },
+        {
+          "name": "schema",
+          "type": "Dict[str, Any]",
+          "required": false,
+          "default": null,
+          "description": "Inline JSON schema",
+          "validation": {}
+        },
+        {
+          "name": "data_path",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Data Path configuration",
+          "validation": {}
+        },
+        {
+          "name": "strict_mode",
+          "type": "bool",
+          "required": false,
+          "default": null,
+          "description": "Strict Mode configuration",
+          "validation": {}
+        },
+        {
+          "name": "error_on_extra",
+          "type": "bool",
+          "required": false,
+          "default": null,
+          "description": "Error On Extra configuration",
+          "validation": {}
+        }
+      ],
+      "category": "codegen",
+      "icon": "\u2713",
+      "color": "#8BC34A"
+    },
+    {
+      "class_name": "Endpoint",
+      "display_name": "End Node",
+      "description": "Exit point for diagram execution",
+      "fields": [
+        {
+          "name": "save_to_file",
+          "type": "bool",
+          "required": true,
+          "default": null,
+          "description": "Save results to file",
+          "validation": {}
+        },
+        {
+          "name": "file_name",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Output filename",
+          "validation": {}
+        }
+      ],
+      "category": "control",
+      "icon": "\ud83c\udfc1",
+      "color": "#F44336"
+    }
+  ],
+  "factory_data": {
+    "nodes": [
+      {
+        "type": "user_response",
+        "name": "UserResponse",
+        "display_name": "User Response",
+        "category": "integration",
+        "fields": [
+          "prompt",
+          "timeout"
+        ]
+      },
+      {
+        "type": "db",
+        "name": "Db",
+        "display_name": "Database",
+        "category": "integration",
+        "fields": [
+          "file",
+          "collection",
+          "sub_type",
+          "operation",
+          "query",
+          "data",
+          "serialize_json",
+          "format"
+        ]
+      },
+      {
+        "type": "start",
+        "name": "Start",
+        "display_name": "Start Node",
+        "category": "control",
+        "fields": [
+          "trigger_mode",
+          "custom_data",
+          "output_data_structure",
+          "hook_event",
+          "hook_filters"
+        ]
+      },
+      {
+        "type": "sub_diagram",
+        "name": "SubDiagram",
+        "display_name": "Sub-Diagram",
+        "category": "compute",
+        "fields": [
+          "diagram_name",
+          "diagram_data",
+          "input_mapping",
+          "output_mapping",
+          "timeout",
+          "wait_for_completion",
+          "isolate_conversation",
+          "ignoreIfSub",
+          "diagram_format",
+          "batch",
+          "batch_input_key",
+          "batch_parallel"
+        ]
+      },
+      {
+        "type": "person_job",
+        "name": "PersonJob",
+        "display_name": "Person Job",
+        "category": "ai",
+        "fields": [
+          "person",
+          "first_only_prompt",
+          "first_prompt_file",
+          "default_prompt",
+          "prompt_file",
+          "max_iteration",
+          "memorize_to",
+          "at_most",
+          "ignore_person",
+          "tools",
+          "text_format",
+          "text_format_file",
+          "resolved_prompt",
+          "resolved_first_prompt",
+          "batch",
+          "batch_input_key",
+          "batch_parallel",
+          "max_concurrent"
+        ]
+      },
+      {
+        "type": "template_job",
+        "name": "TemplateJob",
+        "display_name": "Template Job",
+        "category": "codegen",
+        "fields": [
+          "template_path",
+          "template_content",
+          "output_path",
+          "variables",
+          "engine",
+          "preprocessor"
+        ]
+      },
+      {
+        "type": "api_job",
+        "name": "ApiJob",
+        "display_name": "API Job",
+        "category": "integration",
+        "fields": [
+          "url",
+          "method",
+          "headers",
+          "params",
+          "body",
+          "timeout",
+          "auth_type",
+          "auth_config"
+        ]
+      },
+      {
+        "type": "condition",
+        "name": "Condition",
+        "display_name": "Condition",
+        "category": "control",
+        "fields": [
+          "condition_type",
+          "expression",
+          "node_indices",
+          "person",
+          "judge_by",
+          "judge_by_file",
+          "memorize_to",
+          "at_most",
+          "expose_index_as",
+          "skippable"
+        ]
+      },
+      {
+        "type": "code_job",
+        "name": "CodeJob",
+        "display_name": "Code Job",
+        "category": "compute",
+        "fields": [
+          "language",
+          "filePath",
+          "code",
+          "functionName",
+          "timeout"
+        ]
+      },
+      {
+        "type": "integrated_api",
+        "name": "IntegratedApi",
+        "display_name": "Integrated API",
+        "category": "integration",
+        "fields": [
+          "provider",
+          "operation",
+          "resource_id",
+          "config",
+          "timeout",
+          "max_retries"
+        ]
+      },
+      {
+        "type": "hook",
+        "name": "Hook",
+        "display_name": "Hook",
+        "category": "compute",
+        "fields": [
+          "hook_type",
+          "command",
+          "url",
+          "timeout",
+          "retry_count"
+        ]
+      },
+      {
+        "type": "typescript_ast",
+        "name": "TypescriptAst",
+        "display_name": "TypeScript AST Parser",
+        "category": "codegen",
+        "fields": [
+          "source",
+          "extractPatterns",
+          "includeJSDoc",
+          "parseMode",
+          "transformEnums",
+          "flattenOutput",
+          "outputFormat",
+          "batch",
+          "batchInputKey"
+        ]
+      },
+      {
+        "type": "json_schema_validator",
+        "name": "JsonSchemaValidator",
+        "display_name": "JSON Schema Validator",
+        "category": "codegen",
+        "fields": [
+          "schema_path",
+          "schema",
+          "data_path",
+          "strict_mode",
+          "error_on_extra"
+        ]
+      },
+      {
+        "type": "endpoint",
+        "name": "Endpoint",
+        "display_name": "End Node",
+        "category": "control",
+        "fields": [
+          "save_to_file",
+          "file_name"
+        ]
+      }
+    ],
+    "node_map": {
+      "user_response": "UserResponse",
+      "db": "Db",
+      "start": "Start",
+      "sub_diagram": "SubDiagram",
+      "person_job": "PersonJob",
+      "template_job": "TemplateJob",
+      "api_job": "ApiJob",
+      "condition": "Condition",
+      "code_job": "CodeJob",
+      "integrated_api": "IntegratedApi",
+      "hook": "Hook",
+      "typescript_ast": "TypescriptAst",
+      "json_schema_validator": "JsonSchemaValidator",
+      "endpoint": "Endpoint"
+    },
+    "categories": [
+      "ai",
+      "codegen",
+      "compute",
+      "control",
+      "integration"
+    ]
+  },
+  "typescript_indexes": {
+    "node_specs": [],
+    "types": [],
+    "utils": []
+  },
+  "metadata": {
+    "node_count": 14,
+    "enum_count": 0,
+    "integration_model_count": 0,
+    "categories": [
+      "ai",
+      "codegen",
+      "compute",
+      "control",
+      "integration"
+    ]
+  }
+}

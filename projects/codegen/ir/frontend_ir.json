@@ -1,0 +1,7595 @@
+{
+  "version": 1,
+  "generated_at": "2025-09-14T14:01:37.894691",
+  "node_configs": [
+    {
+      "name": "UserResponseConfig",
+      "node_type": "user_response",
+      "node_name": "UserResponse",
+      "display_name": "User Response",
+      "category": "integration",
+      "description": "Collect user input",
+      "icon": "\ud83d\udcac",
+      "color": "#E91E63",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "string",
+          "label": "prompt",
+          "placeholder": "",
+          "help_text": "Question to ask the user",
+          "required": true,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "label": "timeout",
+          "placeholder": "",
+          "help_text": "Response timeout in seconds",
+          "required": false,
+          "default_value": 300,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "DbConfig",
+      "node_type": "db",
+      "node_name": "Db",
+      "display_name": "Database",
+      "category": "integration",
+      "description": "Database operations",
+      "icon": "\ud83d\uddc4\ufe0f",
+      "color": "#795548",
+      "fields": [
+        {
+          "name": "file",
+          "type": "any",
+          "label": "file",
+          "placeholder": "",
+          "help_text": "File path or array of file paths",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "collection",
+          "type": "string",
+          "label": "collection",
+          "placeholder": "",
+          "help_text": "Database collection name",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "sub_type",
+          "type": "enum",
+          "label": "sub_type",
+          "placeholder": "",
+          "help_text": "Database operation type",
+          "required": true,
+          "default_value": null,
+          "validation": {
+            "allowedValues": [
+              "fixed_prompt",
+              "file",
+              "code",
+              "api_tool"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "label": "operation",
+          "placeholder": "",
+          "help_text": "Operation configuration",
+          "required": true,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "label": "query",
+          "placeholder": "",
+          "help_text": "Query configuration",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "data",
+          "type": "object",
+          "label": "data",
+          "placeholder": "",
+          "help_text": "Data configuration",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "serialize_json",
+          "type": "boolean",
+          "label": "serialize_json",
+          "placeholder": "",
+          "help_text": "Serialize structured data to JSON string (for backward compatibility)",
+          "required": false,
+          "default_value": false,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "format",
+          "type": "string",
+          "label": "format",
+          "placeholder": "",
+          "help_text": "Data format (json, yaml, csv, text, etc.)",
+          "required": false,
+          "default_value": "json",
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "StartConfig",
+      "node_type": "start",
+      "node_name": "Start",
+      "display_name": "Start Node",
+      "category": "control",
+      "description": "Entry point for diagram execution",
+      "icon": "\ud83d\ude80",
+      "color": "#4CAF50",
+      "fields": [
+        {
+          "name": "trigger_mode",
+          "type": "enum",
+          "label": "trigger_mode",
+          "placeholder": "",
+          "help_text": "How this start node is triggered",
+          "required": false,
+          "default_value": "none",
+          "validation": {
+            "allowedValues": [
+              "none",
+              "manual",
+              "hook"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "custom_data",
+          "type": "any",
+          "label": "custom_data",
+          "placeholder": "",
+          "help_text": "Custom data to pass when manually triggered",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "output_data_structure",
+          "type": "object",
+          "label": "output_data_structure",
+          "placeholder": "",
+          "help_text": "Expected output data structure",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "hook_event",
+          "type": "string",
+          "label": "hook_event",
+          "placeholder": "",
+          "help_text": "Event name to listen for",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "hook_filters",
+          "type": "object",
+          "label": "hook_filters",
+          "placeholder": "",
+          "help_text": "Filters to apply to incoming events",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "SubDiagramConfig",
+      "node_type": "sub_diagram",
+      "node_name": "SubDiagram",
+      "display_name": "Sub-Diagram",
+      "category": "compute",
+      "description": "Execute another diagram as a node within the current diagram",
+      "icon": "\ud83d\udcca",
+      "color": "#8B5CF6",
+      "fields": [
+        {
+          "name": "diagram_name",
+          "type": "string",
+          "label": "diagram_name",
+          "placeholder": "",
+          "help_text": "Name of the diagram to execute (e.g., 'workflow/process')",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "diagram_data",
+          "type": "object",
+          "label": "diagram_data",
+          "placeholder": "",
+          "help_text": "Inline diagram data (alternative to diagram_name)",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "input_mapping",
+          "type": "object",
+          "label": "input_mapping",
+          "placeholder": "",
+          "help_text": "Map node inputs to sub-diagram variables",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "output_mapping",
+          "type": "object",
+          "label": "output_mapping",
+          "placeholder": "",
+          "help_text": "Map sub-diagram outputs to node outputs",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "label": "timeout",
+          "placeholder": "",
+          "help_text": "Execution timeout in seconds",
+          "required": false,
+          "default_value": null,
+          "validation": {
+            "min": 1,
+            "max": 3600
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "wait_for_completion",
+          "type": "boolean",
+          "label": "wait_for_completion",
+          "placeholder": "",
+          "help_text": "Whether to wait for sub-diagram completion",
+          "required": false,
+          "default_value": true,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "isolate_conversation",
+          "type": "boolean",
+          "label": "isolate_conversation",
+          "placeholder": "",
+          "help_text": "Create isolated conversation context for sub-diagram",
+          "required": false,
+          "default_value": false,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "ignoreIfSub",
+          "type": "boolean",
+          "label": "ignoreIfSub",
+          "placeholder": "",
+          "help_text": "Skip execution if this diagram is being run as a sub-diagram",
+          "required": false,
+          "default_value": false,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "diagram_format",
+          "type": "enum",
+          "label": "diagram_format",
+          "placeholder": "",
+          "help_text": "Format of the diagram file (yaml, json, or light)",
+          "required": false,
+          "default_value": null,
+          "validation": {
+            "allowedValues": [
+              "yaml",
+              "json",
+              "light"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "batch",
+          "type": "boolean",
+          "label": "batch",
+          "placeholder": "",
+          "help_text": "Execute sub-diagram in batch mode for multiple inputs",
+          "required": false,
+          "default_value": false,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "batch_input_key",
+          "type": "string",
+          "label": "batch_input_key",
+          "placeholder": "",
+          "help_text": "Key in inputs containing the array of items for batch processing",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "batch_parallel",
+          "type": "boolean",
+          "label": "batch_parallel",
+          "placeholder": "",
+          "help_text": "Execute batch items in parallel",
+          "required": false,
+          "default_value": false,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "PersonJobConfig",
+      "node_type": "person_job",
+      "node_name": "PersonJob",
+      "display_name": "Person Job",
+      "category": "ai",
+      "description": "Execute tasks using AI language models",
+      "icon": "\ud83e\udd16",
+      "color": "#2196F3",
+      "fields": [
+        {
+          "name": "person",
+          "type": "string",
+          "label": "person",
+          "placeholder": "",
+          "help_text": "AI person to use",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "first_only_prompt",
+          "type": "string",
+          "label": "first_only_prompt",
+          "placeholder": "",
+          "help_text": "Prompt used only on first execution",
+          "required": true,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "first_prompt_file",
+          "type": "string",
+          "label": "first_prompt_file",
+          "placeholder": "",
+          "help_text": "External prompt file for first iteration only",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "default_prompt",
+          "type": "string",
+          "label": "default_prompt",
+          "placeholder": "",
+          "help_text": "Default prompt template",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "prompt_file",
+          "type": "string",
+          "label": "prompt_file",
+          "placeholder": "",
+          "help_text": "Path to prompt file in /files/prompts/",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "max_iteration",
+          "type": "number",
+          "label": "max_iteration",
+          "placeholder": "",
+          "help_text": "Maximum execution iterations",
+          "required": true,
+          "default_value": 100,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "memorize_to",
+          "type": "string",
+          "label": "memorize_to",
+          "placeholder": "",
+          "help_text": "Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria.",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "at_most",
+          "type": "number",
+          "label": "at_most",
+          "placeholder": "",
+          "help_text": "Select at most N messages to keep (system messages may be preserved in addition).",
+          "required": false,
+          "default_value": null,
+          "validation": {
+            "min": 1,
+            "max": 500
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "ignore_person",
+          "type": "string",
+          "label": "ignore_person",
+          "placeholder": "",
+          "help_text": "Comma-separated list of person IDs whose messages should be excluded from memory selection.",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "tools",
+          "type": "string",
+          "label": "tools",
+          "placeholder": "",
+          "help_text": "Tools available to the AI agent",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "text_format",
+          "type": "string",
+          "label": "text_format",
+          "placeholder": "",
+          "help_text": "JSON schema or response format for structured outputs",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "text_format_file",
+          "type": "string",
+          "label": "text_format_file",
+          "placeholder": "",
+          "help_text": "Path to Python file containing Pydantic models for structured outputs",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "resolved_prompt",
+          "type": "string",
+          "label": "resolved_prompt",
+          "placeholder": "",
+          "help_text": "Pre-resolved prompt content from compile-time",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "resolved_first_prompt",
+          "type": "string",
+          "label": "resolved_first_prompt",
+          "placeholder": "",
+          "help_text": "Pre-resolved first prompt content from compile-time",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "batch",
+          "type": "boolean",
+          "label": "batch",
+          "placeholder": "",
+          "help_text": "Enable batch mode for processing multiple items",
+          "required": false,
+          "default_value": false,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "batch_input_key",
+          "type": "string",
+          "label": "batch_input_key",
+          "placeholder": "",
+          "help_text": "Key containing the array to iterate over in batch mode",
+          "required": false,
+          "default_value": "items",
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "batch_parallel",
+          "type": "boolean",
+          "label": "batch_parallel",
+          "placeholder": "",
+          "help_text": "Execute batch items in parallel",
+          "required": false,
+          "default_value": true,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "max_concurrent",
+          "type": "number",
+          "label": "max_concurrent",
+          "placeholder": "",
+          "help_text": "Maximum concurrent executions in batch mode",
+          "required": false,
+          "default_value": 10,
+          "validation": {
+            "min": 1,
+            "max": 100
+          },
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "TemplateJobConfig",
+      "node_type": "template_job",
+      "node_name": "TemplateJob",
+      "display_name": "Template Job",
+      "category": "codegen",
+      "description": "Process templates with data",
+      "icon": "\ud83d\udcdd",
+      "color": "#3F51B5",
+      "fields": [
+        {
+          "name": "template_path",
+          "type": "string",
+          "label": "template_path",
+          "placeholder": "",
+          "help_text": "Path to template file",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "template_content",
+          "type": "string",
+          "label": "template_content",
+          "placeholder": "",
+          "help_text": "Inline template content",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "output_path",
+          "type": "string",
+          "label": "output_path",
+          "placeholder": "",
+          "help_text": "Output file path",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "variables",
+          "type": "object",
+          "label": "variables",
+          "placeholder": "",
+          "help_text": "Variables configuration",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "engine",
+          "type": "enum",
+          "label": "engine",
+          "placeholder": "",
+          "help_text": "Template engine to use",
+          "required": false,
+          "default_value": "jinja2",
+          "validation": {
+            "allowedValues": [
+              "internal",
+              "jinja2"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "preprocessor",
+          "type": "string",
+          "label": "preprocessor",
+          "placeholder": "",
+          "help_text": "Preprocessor function to apply before templating",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "ApiJobConfig",
+      "node_type": "api_job",
+      "node_name": "ApiJob",
+      "display_name": "API Job",
+      "category": "integration",
+      "description": "Make HTTP API requests",
+      "icon": "\ud83c\udf10",
+      "color": "#00BCD4",
+      "fields": [
+        {
+          "name": "url",
+          "type": "string",
+          "label": "url",
+          "placeholder": "",
+          "help_text": "API endpoint URL",
+          "required": true,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "method",
+          "type": "enum",
+          "label": "method",
+          "placeholder": "",
+          "help_text": "HTTP method",
+          "required": true,
+          "default_value": null,
+          "validation": {
+            "allowedValues": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE",
+              "PATCH"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "headers",
+          "type": "object",
+          "label": "headers",
+          "placeholder": "",
+          "help_text": "HTTP headers",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "params",
+          "type": "object",
+          "label": "params",
+          "placeholder": "",
+          "help_text": "Query parameters",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "body",
+          "type": "object",
+          "label": "body",
+          "placeholder": "",
+          "help_text": "Request body",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "label": "timeout",
+          "placeholder": "",
+          "help_text": "Request timeout in seconds",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "auth_type",
+          "type": "enum",
+          "label": "auth_type",
+          "placeholder": "",
+          "help_text": "Authentication type",
+          "required": false,
+          "default_value": null,
+          "validation": {
+            "allowedValues": [
+              "none",
+              "bearer",
+              "basic",
+              "api_key"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "auth_config",
+          "type": "object",
+          "label": "auth_config",
+          "placeholder": "",
+          "help_text": "Authentication configuration",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "ConditionConfig",
+      "node_type": "condition",
+      "node_name": "Condition",
+      "display_name": "Condition",
+      "category": "control",
+      "description": "Conditional branching based on expressions",
+      "icon": "\ud83d\udd00",
+      "color": "#FF9800",
+      "fields": [
+        {
+          "name": "condition_type",
+          "type": "enum",
+          "label": "condition_type",
+          "placeholder": "",
+          "help_text": "Type of condition to evaluate",
+          "required": false,
+          "default_value": "custom",
+          "validation": {
+            "allowedValues": [
+              "detect_max_iterations",
+              "check_nodes_executed",
+              "custom",
+              "llm_decision"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "expression",
+          "type": "string",
+          "label": "expression",
+          "placeholder": "",
+          "help_text": "Boolean expression to evaluate",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "node_indices",
+          "type": "array",
+          "label": "node_indices",
+          "placeholder": "",
+          "help_text": "Node indices for detect_max_iteration condition",
+          "required": false,
+          "default_value": null,
+          "validation": {
+            "itemType": "string"
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "person",
+          "type": "string",
+          "label": "person",
+          "placeholder": "",
+          "help_text": "AI agent to use for decision making",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "judge_by",
+          "type": "string",
+          "label": "judge_by",
+          "placeholder": "",
+          "help_text": "Prompt for LLM to make a judgment",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "judge_by_file",
+          "type": "string",
+          "label": "judge_by_file",
+          "placeholder": "",
+          "help_text": "External prompt file path",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "memorize_to",
+          "type": "string",
+          "label": "memorize_to",
+          "placeholder": "",
+          "help_text": "Memory control strategy (e.g., GOLDFISH for fresh evaluation)",
+          "required": false,
+          "default_value": "GOLDFISH",
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "at_most",
+          "type": "number",
+          "label": "at_most",
+          "placeholder": "",
+          "help_text": "Maximum messages to keep in memory",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "expose_index_as",
+          "type": "string",
+          "label": "expose_index_as",
+          "placeholder": "",
+          "help_text": "Variable name to expose the condition node's execution count (0-based index) to downstream nodes",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "skippable",
+          "type": "boolean",
+          "label": "skippable",
+          "placeholder": "",
+          "help_text": "When true, downstream nodes can execute even if this condition hasn't been evaluated yet",
+          "required": false,
+          "default_value": false,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "CodeJobConfig",
+      "node_type": "code_job",
+      "node_name": "CodeJob",
+      "display_name": "Code Job",
+      "category": "compute",
+      "description": "Execute custom code functions",
+      "icon": "\ud83d\udcbb",
+      "color": "#9C27B0",
+      "fields": [
+        {
+          "name": "language",
+          "type": "enum",
+          "label": "language",
+          "placeholder": "",
+          "help_text": "Programming language",
+          "required": true,
+          "default_value": null,
+          "validation": {
+            "allowedValues": [
+              "python",
+              "typescript",
+              "bash",
+              "shell"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "filePath",
+          "type": "string",
+          "label": "filePath",
+          "placeholder": "",
+          "help_text": "Path to code file",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "label": "code",
+          "placeholder": "",
+          "help_text": "Inline code to execute (alternative to filePath)",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "functionName",
+          "type": "string",
+          "label": "functionName",
+          "placeholder": "",
+          "help_text": "Function to execute",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "label": "timeout",
+          "placeholder": "",
+          "help_text": "Execution timeout in seconds",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "IntegratedApiConfig",
+      "node_type": "integrated_api",
+      "node_name": "IntegratedApi",
+      "display_name": "Integrated API",
+      "category": "integration",
+      "description": "Connect to external APIs like Notion, Slack, GitHub, and more",
+      "icon": "\ud83d\udd0c",
+      "color": "#8b5cf6",
+      "fields": [
+        {
+          "name": "provider",
+          "type": "string",
+          "label": "provider",
+          "placeholder": "",
+          "help_text": "API provider to connect to",
+          "required": true,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "label": "operation",
+          "placeholder": "",
+          "help_text": "Operation to perform (provider-specific)",
+          "required": true,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "resource_id",
+          "type": "string",
+          "label": "resource_id",
+          "placeholder": "",
+          "help_text": "Resource identifier (e.g., page ID, channel ID)",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "config",
+          "type": "object",
+          "label": "config",
+          "placeholder": "",
+          "help_text": "Provider-specific configuration",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "label": "timeout",
+          "placeholder": "",
+          "help_text": "Request timeout in seconds",
+          "required": false,
+          "default_value": null,
+          "validation": {
+            "min": 1,
+            "max": 300
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "max_retries",
+          "type": "number",
+          "label": "max_retries",
+          "placeholder": "",
+          "help_text": "Maximum retry attempts",
+          "required": false,
+          "default_value": null,
+          "validation": {
+            "min": 0,
+            "max": 10
+          },
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "HookConfig",
+      "node_type": "hook",
+      "node_name": "Hook",
+      "display_name": "Hook",
+      "category": "compute",
+      "description": "Executes hooks at specific points in the diagram execution",
+      "icon": "\ud83e\ude9d",
+      "color": "#9333ea",
+      "fields": [
+        {
+          "name": "hook_type",
+          "type": "enum",
+          "label": "hook_type",
+          "placeholder": "",
+          "help_text": "Type of hook to execute",
+          "required": true,
+          "default_value": "shell",
+          "validation": {
+            "allowedValues": [
+              "shell",
+              "http",
+              "python",
+              "file"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "command",
+          "type": "string",
+          "label": "command",
+          "placeholder": "",
+          "help_text": "Shell command to run (for shell hooks)",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "url",
+          "type": "string",
+          "label": "url",
+          "placeholder": "",
+          "help_text": "Webhook URL (for HTTP hooks)",
+          "required": false,
+          "default_value": null,
+          "validation": {
+            "pattern": "^https?://"
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "label": "timeout",
+          "placeholder": "",
+          "help_text": "Execution timeout in seconds",
+          "required": false,
+          "default_value": 60,
+          "validation": {
+            "min": 1,
+            "max": 300
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "retry_count",
+          "type": "number",
+          "label": "retry_count",
+          "placeholder": "",
+          "help_text": "Number of retries on failure",
+          "required": false,
+          "default_value": 0,
+          "validation": {
+            "min": 0,
+            "max": 5
+          },
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "TypescriptAstConfig",
+      "node_type": "typescript_ast",
+      "node_name": "TypescriptAst",
+      "display_name": "TypeScript AST Parser",
+      "category": "codegen",
+      "description": "Parses TypeScript source code and extracts AST, interfaces, types, and enums",
+      "icon": "\ud83d\udd0d",
+      "color": "#3178c6",
+      "fields": [
+        {
+          "name": "source",
+          "type": "string",
+          "label": "source",
+          "placeholder": "",
+          "help_text": "TypeScript source code to parse",
+          "required": true,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "extractPatterns",
+          "type": "array",
+          "label": "extractPatterns",
+          "placeholder": "",
+          "help_text": "Patterns to extract from the AST",
+          "required": false,
+          "default_value": [
+            "interface",
+            "type",
+            "enum"
+          ],
+          "validation": {
+            "itemType": "string",
+            "allowedValues": [
+              "interface",
+              "type",
+              "enum",
+              "class",
+              "function",
+              "const",
+              "export"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "includeJSDoc",
+          "type": "boolean",
+          "label": "includeJSDoc",
+          "placeholder": "",
+          "help_text": "Include JSDoc comments in the extracted data",
+          "required": false,
+          "default_value": false,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "parseMode",
+          "type": "enum",
+          "label": "parseMode",
+          "placeholder": "",
+          "help_text": "TypeScript parsing mode",
+          "required": false,
+          "default_value": "module",
+          "validation": {
+            "allowedValues": [
+              "module",
+              "script"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "transformEnums",
+          "type": "boolean",
+          "label": "transformEnums",
+          "placeholder": "",
+          "help_text": "Transform enum definitions to a simpler format",
+          "required": false,
+          "default_value": false,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "flattenOutput",
+          "type": "boolean",
+          "label": "flattenOutput",
+          "placeholder": "",
+          "help_text": "Flatten the output structure for easier consumption",
+          "required": false,
+          "default_value": false,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "outputFormat",
+          "type": "enum",
+          "label": "outputFormat",
+          "placeholder": "",
+          "help_text": "Output format for the parsed data",
+          "required": false,
+          "default_value": "standard",
+          "validation": {
+            "allowedValues": [
+              "standard",
+              "for_codegen",
+              "for_analysis"
+            ]
+          },
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "batch",
+          "type": "boolean",
+          "label": "batch",
+          "placeholder": "",
+          "help_text": "Enable batch processing mode",
+          "required": false,
+          "default_value": false,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "batchInputKey",
+          "type": "string",
+          "label": "batchInputKey",
+          "placeholder": "",
+          "help_text": "Key to extract batch items from input",
+          "required": false,
+          "default_value": "sources",
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "JsonSchemaValidatorConfig",
+      "node_type": "json_schema_validator",
+      "node_name": "JsonSchemaValidator",
+      "display_name": "JSON Schema Validator",
+      "category": "codegen",
+      "description": "Validate data against JSON schema",
+      "icon": "\u2713",
+      "color": "#8BC34A",
+      "fields": [
+        {
+          "name": "schema_path",
+          "type": "string",
+          "label": "schema_path",
+          "placeholder": "",
+          "help_text": "Path to JSON schema file",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "schema",
+          "type": "object",
+          "label": "schema",
+          "placeholder": "",
+          "help_text": "Inline JSON schema",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "data_path",
+          "type": "string",
+          "label": "data_path",
+          "placeholder": "",
+          "help_text": "Data Path configuration",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "strict_mode",
+          "type": "boolean",
+          "label": "strict_mode",
+          "placeholder": "",
+          "help_text": "Strict Mode configuration",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "error_on_extra",
+          "type": "boolean",
+          "label": "error_on_extra",
+          "placeholder": "",
+          "help_text": "Error On Extra configuration",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "EndpointConfig",
+      "node_type": "endpoint",
+      "node_name": "Endpoint",
+      "display_name": "End Node",
+      "category": "control",
+      "description": "Exit point for diagram execution",
+      "icon": "\ud83c\udfc1",
+      "color": "#F44336",
+      "fields": [
+        {
+          "name": "save_to_file",
+          "type": "boolean",
+          "label": "save_to_file",
+          "placeholder": "",
+          "help_text": "Save results to file",
+          "required": true,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        },
+        {
+          "name": "file_name",
+          "type": "string",
+          "label": "file_name",
+          "placeholder": "",
+          "help_text": "Output filename",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "ui_type": "text",
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    }
+  ],
+  "field_configs": [
+    {
+      "type": "text",
+      "component": "TextField",
+      "props": {
+        "variant": "outlined",
+        "fullWidth": true
+      },
+      "validation_rules": [
+        "string",
+        "max:255"
+      ]
+    }
+  ],
+  "zod_schemas": [
+    {
+      "name": "UserResponseSchema",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "z.string()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "timeout",
+          "type": "z.number()",
+          "required": false,
+          "validations": []
+        }
+      ]
+    },
+    {
+      "name": "DbSchema",
+      "fields": [
+        {
+          "name": "file",
+          "type": "z.any()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "collection",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "sub_type",
+          "type": "z.string()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "operation",
+          "type": "z.string()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "query",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "data",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "serialize_json",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "format",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        }
+      ]
+    },
+    {
+      "name": "StartSchema",
+      "fields": [
+        {
+          "name": "trigger_mode",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "custom_data",
+          "type": "z.any()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "output_data_structure",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "hook_event",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "hook_filters",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        }
+      ]
+    },
+    {
+      "name": "SubDiagramSchema",
+      "fields": [
+        {
+          "name": "diagram_name",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "diagram_data",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "input_mapping",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "output_mapping",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "timeout",
+          "type": "z.number()",
+          "required": false,
+          "validations": [
+            "min(1)",
+            "max(3600)"
+          ]
+        },
+        {
+          "name": "wait_for_completion",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "isolate_conversation",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "ignoreIfSub",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "diagram_format",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "batch",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "batch_input_key",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "batch_parallel",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        }
+      ]
+    },
+    {
+      "name": "PersonJobSchema",
+      "fields": [
+        {
+          "name": "person",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "first_only_prompt",
+          "type": "z.string()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "first_prompt_file",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "default_prompt",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "prompt_file",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "max_iteration",
+          "type": "z.number()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "memorize_to",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "at_most",
+          "type": "z.number()",
+          "required": false,
+          "validations": [
+            "min(1)",
+            "max(500)"
+          ]
+        },
+        {
+          "name": "ignore_person",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "tools",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "text_format",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "text_format_file",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "resolved_prompt",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "resolved_first_prompt",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "batch",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "batch_input_key",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "batch_parallel",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "max_concurrent",
+          "type": "z.number()",
+          "required": false,
+          "validations": [
+            "min(1)",
+            "max(100)"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TemplateJobSchema",
+      "fields": [
+        {
+          "name": "template_path",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "template_content",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "output_path",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "variables",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "engine",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "preprocessor",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        }
+      ]
+    },
+    {
+      "name": "ApiJobSchema",
+      "fields": [
+        {
+          "name": "url",
+          "type": "z.string()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "method",
+          "type": "z.string()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "headers",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "params",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "body",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "timeout",
+          "type": "z.number()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "auth_type",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "auth_config",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        }
+      ]
+    },
+    {
+      "name": "ConditionSchema",
+      "fields": [
+        {
+          "name": "condition_type",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "expression",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "node_indices",
+          "type": "z.array()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "person",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "judge_by",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "judge_by_file",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "memorize_to",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "at_most",
+          "type": "z.number()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "expose_index_as",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "skippable",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        }
+      ]
+    },
+    {
+      "name": "CodeJobSchema",
+      "fields": [
+        {
+          "name": "language",
+          "type": "z.string()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "filePath",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "code",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "functionName",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "timeout",
+          "type": "z.number()",
+          "required": false,
+          "validations": []
+        }
+      ]
+    },
+    {
+      "name": "IntegratedApiSchema",
+      "fields": [
+        {
+          "name": "provider",
+          "type": "z.string()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "operation",
+          "type": "z.string()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "resource_id",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "config",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "timeout",
+          "type": "z.number()",
+          "required": false,
+          "validations": [
+            "min(1)",
+            "max(300)"
+          ]
+        },
+        {
+          "name": "max_retries",
+          "type": "z.number()",
+          "required": false,
+          "validations": [
+            "max(10)"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HookSchema",
+      "fields": [
+        {
+          "name": "hook_type",
+          "type": "z.string()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "command",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "url",
+          "type": "z.string()",
+          "required": false,
+          "validations": [
+            "regex(/^https?:///)"
+          ]
+        },
+        {
+          "name": "timeout",
+          "type": "z.number()",
+          "required": false,
+          "validations": [
+            "min(1)",
+            "max(300)"
+          ]
+        },
+        {
+          "name": "retry_count",
+          "type": "z.number()",
+          "required": false,
+          "validations": [
+            "max(5)"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TypescriptAstSchema",
+      "fields": [
+        {
+          "name": "source",
+          "type": "z.string()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "extractPatterns",
+          "type": "z.array()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "includeJSDoc",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "parseMode",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "transformEnums",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "flattenOutput",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "outputFormat",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "batch",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "batchInputKey",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        }
+      ]
+    },
+    {
+      "name": "JsonSchemaValidatorSchema",
+      "fields": [
+        {
+          "name": "schema_path",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "schema",
+          "type": "z.object()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "data_path",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "strict_mode",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        },
+        {
+          "name": "error_on_extra",
+          "type": "z.boolean()",
+          "required": false,
+          "validations": []
+        }
+      ]
+    },
+    {
+      "name": "EndpointSchema",
+      "fields": [
+        {
+          "name": "save_to_file",
+          "type": "z.boolean()",
+          "required": true,
+          "validations": []
+        },
+        {
+          "name": "file_name",
+          "type": "z.string()",
+          "required": false,
+          "validations": []
+        }
+      ]
+    }
+  ],
+  "graphql_queries": [
+    {
+      "name": "GetExecution",
+      "entity": "Execution",
+      "type": "query",
+      "variables": [
+        {
+          "name": "execution_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "get_execution",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "status",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "diagram_id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "started_at",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "ended_at",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "node_states",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "node_outputs",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "variables",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "metrics",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "llm_usage",
+              "args": [],
+              "fields": [
+                {
+                  "name": "input",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "output",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "cached",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "total",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ListExecutions",
+      "entity": "Execution",
+      "type": "query",
+      "variables": [
+        {
+          "name": "filter",
+          "type": "ExecutionFilterInput",
+          "graphql_type": "ExecutionFilterInput",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "executions",
+          "args": [
+            {
+              "name": "filter",
+              "value": "filter",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "status",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "diagram_id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "started_at",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "ended_at",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ExecutionUpdates",
+      "entity": "Execution",
+      "type": "subscription",
+      "variables": [
+        {
+          "name": "execution_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "execution_updates",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "execution_id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "event_type",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "data",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "timestamp",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ControlExecution",
+      "entity": "Execution",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "ExecutionControlInput",
+          "graphql_type": "ExecutionControlInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "control_execution",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "execution",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "status",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SendInteractiveResponse",
+      "entity": "Execution",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "InteractiveResponseInput",
+          "graphql_type": "InteractiveResponseInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "send_interactive_response",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UpdateNodeState",
+      "entity": "Execution",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "UpdateNodeStateInput",
+          "graphql_type": "UpdateNodeStateInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "update_node_state",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "execution",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "status",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ListConversations",
+      "entity": "Conversation",
+      "type": "query",
+      "variables": [
+        {
+          "name": "person_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        },
+        {
+          "name": "execution_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        },
+        {
+          "name": "search",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        },
+        {
+          "name": "show_forgotten",
+          "type": "boolean",
+          "graphql_type": "Boolean",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        },
+        {
+          "name": "since",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "conversations",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            },
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            },
+            {
+              "name": "search",
+              "value": "search",
+              "isVariable": true
+            },
+            {
+              "name": "show_forgotten",
+              "value": "show_forgotten",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            },
+            {
+              "name": "since",
+              "value": "since",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "UploadFile",
+      "entity": "File",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "file",
+          "type": "File",
+          "graphql_type": "Upload",
+          "required": true
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "upload_file",
+          "args": [
+            {
+              "name": "file",
+              "value": "file",
+              "isVariable": true
+            },
+            {
+              "name": "path",
+              "value": "path",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "UploadDiagram",
+      "entity": "File",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "file",
+          "type": "File",
+          "graphql_type": "Upload",
+          "required": true
+        },
+        {
+          "name": "format",
+          "type": "DiagramFormatGraphQL",
+          "graphql_type": "DiagramFormatGraphQL",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "upload_diagram",
+          "args": [
+            {
+              "name": "file",
+              "value": "file",
+              "isVariable": true
+            },
+            {
+              "name": "format",
+              "value": "format",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "ValidateDiagram",
+      "entity": "File",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "content",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "format",
+          "type": "DiagramFormatGraphQL",
+          "graphql_type": "DiagramFormatGraphQL",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "validate_diagram",
+          "args": [
+            {
+              "name": "content",
+              "value": "content",
+              "isVariable": true
+            },
+            {
+              "name": "format",
+              "value": "format",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "ConvertDiagramFormat",
+      "entity": "File",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "content",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "from_format",
+          "type": "DiagramFormatGraphQL",
+          "graphql_type": "DiagramFormatGraphQL",
+          "required": true
+        },
+        {
+          "name": "to_format",
+          "type": "DiagramFormatGraphQL",
+          "graphql_type": "DiagramFormatGraphQL",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "convert_diagram_format",
+          "args": [
+            {
+              "name": "content",
+              "value": "content",
+              "isVariable": true
+            },
+            {
+              "name": "from_format",
+              "value": "from_format",
+              "isVariable": true
+            },
+            {
+              "name": "to_format",
+              "value": "to_format",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "data",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "format",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ListPromptFiles",
+      "entity": "Prompt",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "prompt_files",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetPromptFile",
+      "entity": "Prompt",
+      "type": "query",
+      "variables": [
+        {
+          "name": "filename",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "prompt_file",
+          "args": [
+            {
+              "name": "filename",
+              "value": "filename",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetDiagram",
+      "entity": "Diagram",
+      "type": "query",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "diagram",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "nodes",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "type",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "position",
+                  "args": [],
+                  "fields": [
+                    {
+                      "name": "x",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "y",
+                      "args": [],
+                      "fields": []
+                    }
+                  ]
+                },
+                {
+                  "name": "data",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "handles",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "node_id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "direction",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "data_type",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "position",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "arrows",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "source",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "target",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "content_type",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "data",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "persons",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "llm_config",
+                  "args": [],
+                  "fields": [
+                    {
+                      "name": "service",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "model",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "api_key_id",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "system_prompt",
+                      "args": [],
+                      "fields": []
+                    }
+                  ]
+                },
+                {
+                  "name": "type",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "metadata",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "name",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "description",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "version",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "created",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "modified",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "author",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "tags",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ListDiagrams",
+      "entity": "Diagram",
+      "type": "query",
+      "variables": [
+        {
+          "name": "filter",
+          "type": "DiagramFilterInput",
+          "graphql_type": "DiagramFilterInput",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "diagrams",
+          "args": [
+            {
+              "name": "filter",
+              "value": "filter",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "metadata",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "name",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "description",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "author",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "created",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "modified",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "tags",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "nodeCount",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "arrowCount",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CreateDiagram",
+      "entity": "Diagram",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "CreateDiagramInput",
+          "graphql_type": "CreateDiagramInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "create_diagram",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "diagram",
+              "args": [],
+              "fields": [
+                {
+                  "name": "metadata",
+                  "args": [],
+                  "fields": [
+                    {
+                      "name": "id",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "name",
+                      "args": [],
+                      "fields": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ExecuteDiagram",
+      "entity": "Diagram",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "ExecuteDiagramInput",
+          "graphql_type": "ExecuteDiagramInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "execute_diagram",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "execution",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DeleteDiagram",
+      "entity": "Diagram",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "delete_diagram",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GetPerson",
+      "entity": "Person",
+      "type": "query",
+      "variables": [
+        {
+          "name": "person_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "person",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "label",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "type",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "llm_config",
+              "args": [],
+              "fields": [
+                {
+                  "name": "service",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "model",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "api_key_id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "system_prompt",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ListPersons",
+      "entity": "Person",
+      "type": "query",
+      "variables": [
+        {
+          "name": "limit",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "persons",
+          "args": [
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "label",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "type",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "llm_config",
+              "args": [],
+              "fields": [
+                {
+                  "name": "service",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "model",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "api_key_id",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CreatePerson",
+      "entity": "Person",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "CreatePersonInput",
+          "graphql_type": "CreatePersonInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "create_person",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "person",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UpdatePerson",
+      "entity": "Person",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "person_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "input",
+          "type": "UpdatePersonInput",
+          "graphql_type": "UpdatePersonInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "update_person",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "person",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DeletePerson",
+      "entity": "Person",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "person_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "delete_person",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GetSupportedFormats",
+      "entity": "Format",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "supported_formats",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "CreateNode",
+      "entity": "Node",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "input",
+          "type": "CreateNodeInput",
+          "graphql_type": "CreateNodeInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "create_node",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "node",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "type",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "position",
+                  "args": [],
+                  "fields": [
+                    {
+                      "name": "x",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "y",
+                      "args": [],
+                      "fields": []
+                    }
+                  ]
+                },
+                {
+                  "name": "data",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UpdateNode",
+      "entity": "Node",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "input",
+          "type": "UpdateNodeInput",
+          "graphql_type": "UpdateNodeInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "update_node",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "node_id",
+              "value": "node_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DeleteNode",
+      "entity": "Node",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "delete_node",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "node_id",
+              "value": "node_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GetProviders",
+      "entity": "Provider",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "providers",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetProviderOperations",
+      "entity": "Provider",
+      "type": "query",
+      "variables": [
+        {
+          "name": "provider",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "provider_operations",
+          "args": [
+            {
+              "name": "provider",
+              "value": "provider",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetOperationSchema",
+      "entity": "Provider",
+      "type": "query",
+      "variables": [
+        {
+          "name": "provider",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "operation_schema",
+          "args": [
+            {
+              "name": "provider",
+              "value": "provider",
+              "isVariable": true
+            },
+            {
+              "name": "operation",
+              "value": "operation",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "RegisterCliSession",
+      "entity": "CliSession",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "RegisterCliSessionInput",
+          "graphql_type": "RegisterCliSessionInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "register_cli_session",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UnregisterCliSession",
+      "entity": "CliSession",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "UnregisterCliSessionInput",
+          "graphql_type": "UnregisterCliSessionInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "unregister_cli_session",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GetSystemInfo",
+      "entity": "System",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "system_info",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionCapabilities",
+      "entity": "System",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "execution_capabilities",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "HealthCheck",
+      "entity": "System",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "health_check",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionOrder",
+      "entity": "System",
+      "type": "query",
+      "variables": [
+        {
+          "name": "execution_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "execution_order",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionMetrics",
+      "entity": "System",
+      "type": "query",
+      "variables": [
+        {
+          "name": "execution_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "execution_metrics",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionHistory",
+      "entity": "System",
+      "type": "query",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        },
+        {
+          "name": "include_metrics",
+          "type": "boolean",
+          "graphql_type": "Boolean",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "execution_history",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "include_metrics",
+              "value": "include_metrics",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetActiveCliSession",
+      "entity": "System",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "active_cli_session",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetApiKeys",
+      "entity": "ApiKey",
+      "type": "query",
+      "variables": [
+        {
+          "name": "service",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "api_keys",
+          "args": [
+            {
+              "name": "service",
+              "value": "service",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetApiKey",
+      "entity": "ApiKey",
+      "type": "query",
+      "variables": [
+        {
+          "name": "api_key_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "api_key",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "label",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "service",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GetAvailableModels",
+      "entity": "ApiKey",
+      "type": "query",
+      "variables": [
+        {
+          "name": "service",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "api_key_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "available_models",
+          "args": [
+            {
+              "name": "service",
+              "value": "service",
+              "isVariable": true
+            },
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "CreateApiKey",
+      "entity": "ApiKey",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "CreateApiKeyInput",
+          "graphql_type": "CreateApiKeyInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "create_api_key",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "api_key",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "service",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TestApiKey",
+      "entity": "ApiKey",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "api_key_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "test_api_key",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DeleteApiKey",
+      "entity": "ApiKey",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "api_key_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "delete_api_key",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "registry_data": {
+    "nodes": {
+      "user_response": {
+        "component": "UserResponseNode",
+        "config": "UserResponseConfig",
+        "category": "integration"
+      },
+      "db": {
+        "component": "DbNode",
+        "config": "DbConfig",
+        "category": "integration"
+      },
+      "start": {
+        "component": "StartNode",
+        "config": "StartConfig",
+        "category": "control"
+      },
+      "sub_diagram": {
+        "component": "SubDiagramNode",
+        "config": "SubDiagramConfig",
+        "category": "compute"
+      },
+      "person_job": {
+        "component": "PersonJobNode",
+        "config": "PersonJobConfig",
+        "category": "ai"
+      },
+      "template_job": {
+        "component": "TemplateJobNode",
+        "config": "TemplateJobConfig",
+        "category": "codegen"
+      },
+      "api_job": {
+        "component": "ApiJobNode",
+        "config": "ApiJobConfig",
+        "category": "integration"
+      },
+      "condition": {
+        "component": "ConditionNode",
+        "config": "ConditionConfig",
+        "category": "control"
+      },
+      "code_job": {
+        "component": "CodeJobNode",
+        "config": "CodeJobConfig",
+        "category": "compute"
+      },
+      "integrated_api": {
+        "component": "IntegratedApiNode",
+        "config": "IntegratedApiConfig",
+        "category": "integration"
+      },
+      "hook": {
+        "component": "HookNode",
+        "config": "HookConfig",
+        "category": "compute"
+      },
+      "typescript_ast": {
+        "component": "TypescriptAstNode",
+        "config": "TypescriptAstConfig",
+        "category": "codegen"
+      },
+      "json_schema_validator": {
+        "component": "JsonSchemaValidatorNode",
+        "config": "JsonSchemaValidatorConfig",
+        "category": "codegen"
+      },
+      "endpoint": {
+        "component": "EndpointNode",
+        "config": "EndpointConfig",
+        "category": "control"
+      }
+    },
+    "categories": {
+      "integration": [
+        "user_response",
+        "db",
+        "api_job",
+        "integrated_api"
+      ],
+      "control": [
+        "start",
+        "condition",
+        "endpoint"
+      ],
+      "compute": [
+        "sub_diagram",
+        "code_job",
+        "hook"
+      ],
+      "ai": [
+        "person_job"
+      ],
+      "codegen": [
+        "template_job",
+        "typescript_ast",
+        "json_schema_validator"
+      ]
+    },
+    "icons": {
+      "user_response": "\ud83d\udcac",
+      "db": "\ud83d\uddc4\ufe0f",
+      "start": "\ud83d\ude80",
+      "sub_diagram": "\ud83d\udcca",
+      "person_job": "\ud83e\udd16",
+      "template_job": "\ud83d\udcdd",
+      "api_job": "\ud83c\udf10",
+      "condition": "\ud83d\udd00",
+      "code_job": "\ud83d\udcbb",
+      "integrated_api": "\ud83d\udd0c",
+      "hook": "\ud83e\ude9d",
+      "typescript_ast": "\ud83d\udd0d",
+      "json_schema_validator": "\u2713",
+      "endpoint": "\ud83c\udfc1"
+    }
+  },
+  "typescript_models": [
+    {
+      "name": "UserResponseModel",
+      "interface_name": "IUserResponse",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "string",
+          "optional": false,
+          "description": "Question to ask the user"
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "optional": true,
+          "description": "Response timeout in seconds"
+        }
+      ]
+    },
+    {
+      "name": "DbModel",
+      "interface_name": "IDb",
+      "fields": [
+        {
+          "name": "file",
+          "type": "any",
+          "optional": true,
+          "description": "File path or array of file paths"
+        },
+        {
+          "name": "collection",
+          "type": "string",
+          "optional": true,
+          "description": "Database collection name"
+        },
+        {
+          "name": "sub_type",
+          "type": "enum",
+          "optional": false,
+          "description": "Database operation type"
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "optional": false,
+          "description": "Operation configuration"
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "optional": true,
+          "description": "Query configuration"
+        },
+        {
+          "name": "data",
+          "type": "object",
+          "optional": true,
+          "description": "Data configuration"
+        },
+        {
+          "name": "serialize_json",
+          "type": "boolean",
+          "optional": true,
+          "description": "Serialize structured data to JSON string (for backward compatibility)"
+        },
+        {
+          "name": "format",
+          "type": "string",
+          "optional": true,
+          "description": "Data format (json, yaml, csv, text, etc.)"
+        }
+      ]
+    },
+    {
+      "name": "StartModel",
+      "interface_name": "IStart",
+      "fields": [
+        {
+          "name": "trigger_mode",
+          "type": "enum",
+          "optional": true,
+          "description": "How this start node is triggered"
+        },
+        {
+          "name": "custom_data",
+          "type": "any",
+          "optional": true,
+          "description": "Custom data to pass when manually triggered"
+        },
+        {
+          "name": "output_data_structure",
+          "type": "object",
+          "optional": true,
+          "description": "Expected output data structure"
+        },
+        {
+          "name": "hook_event",
+          "type": "string",
+          "optional": true,
+          "description": "Event name to listen for"
+        },
+        {
+          "name": "hook_filters",
+          "type": "object",
+          "optional": true,
+          "description": "Filters to apply to incoming events"
+        }
+      ]
+    },
+    {
+      "name": "SubDiagramModel",
+      "interface_name": "ISubDiagram",
+      "fields": [
+        {
+          "name": "diagram_name",
+          "type": "string",
+          "optional": true,
+          "description": "Name of the diagram to execute (e.g., 'workflow/process')"
+        },
+        {
+          "name": "diagram_data",
+          "type": "object",
+          "optional": true,
+          "description": "Inline diagram data (alternative to diagram_name)"
+        },
+        {
+          "name": "input_mapping",
+          "type": "object",
+          "optional": true,
+          "description": "Map node inputs to sub-diagram variables"
+        },
+        {
+          "name": "output_mapping",
+          "type": "object",
+          "optional": true,
+          "description": "Map sub-diagram outputs to node outputs"
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "optional": true,
+          "description": "Execution timeout in seconds"
+        },
+        {
+          "name": "wait_for_completion",
+          "type": "boolean",
+          "optional": true,
+          "description": "Whether to wait for sub-diagram completion"
+        },
+        {
+          "name": "isolate_conversation",
+          "type": "boolean",
+          "optional": true,
+          "description": "Create isolated conversation context for sub-diagram"
+        },
+        {
+          "name": "ignoreIfSub",
+          "type": "boolean",
+          "optional": true,
+          "description": "Skip execution if this diagram is being run as a sub-diagram"
+        },
+        {
+          "name": "diagram_format",
+          "type": "enum",
+          "optional": true,
+          "description": "Format of the diagram file (yaml, json, or light)"
+        },
+        {
+          "name": "batch",
+          "type": "boolean",
+          "optional": true,
+          "description": "Execute sub-diagram in batch mode for multiple inputs"
+        },
+        {
+          "name": "batch_input_key",
+          "type": "string",
+          "optional": true,
+          "description": "Key in inputs containing the array of items for batch processing"
+        },
+        {
+          "name": "batch_parallel",
+          "type": "boolean",
+          "optional": true,
+          "description": "Execute batch items in parallel"
+        }
+      ]
+    },
+    {
+      "name": "PersonJobModel",
+      "interface_name": "IPersonJob",
+      "fields": [
+        {
+          "name": "person",
+          "type": "string",
+          "optional": true,
+          "description": "AI person to use"
+        },
+        {
+          "name": "first_only_prompt",
+          "type": "string",
+          "optional": false,
+          "description": "Prompt used only on first execution"
+        },
+        {
+          "name": "first_prompt_file",
+          "type": "string",
+          "optional": true,
+          "description": "External prompt file for first iteration only"
+        },
+        {
+          "name": "default_prompt",
+          "type": "string",
+          "optional": true,
+          "description": "Default prompt template"
+        },
+        {
+          "name": "prompt_file",
+          "type": "string",
+          "optional": true,
+          "description": "Path to prompt file in /files/prompts/"
+        },
+        {
+          "name": "max_iteration",
+          "type": "number",
+          "optional": false,
+          "description": "Maximum execution iterations"
+        },
+        {
+          "name": "memorize_to",
+          "type": "string",
+          "optional": true,
+          "description": "Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria."
+        },
+        {
+          "name": "at_most",
+          "type": "number",
+          "optional": true,
+          "description": "Select at most N messages to keep (system messages may be preserved in addition)."
+        },
+        {
+          "name": "ignore_person",
+          "type": "string",
+          "optional": true,
+          "description": "Comma-separated list of person IDs whose messages should be excluded from memory selection."
+        },
+        {
+          "name": "tools",
+          "type": "string",
+          "optional": true,
+          "description": "Tools available to the AI agent"
+        },
+        {
+          "name": "text_format",
+          "type": "string",
+          "optional": true,
+          "description": "JSON schema or response format for structured outputs"
+        },
+        {
+          "name": "text_format_file",
+          "type": "string",
+          "optional": true,
+          "description": "Path to Python file containing Pydantic models for structured outputs"
+        },
+        {
+          "name": "resolved_prompt",
+          "type": "string",
+          "optional": true,
+          "description": "Pre-resolved prompt content from compile-time"
+        },
+        {
+          "name": "resolved_first_prompt",
+          "type": "string",
+          "optional": true,
+          "description": "Pre-resolved first prompt content from compile-time"
+        },
+        {
+          "name": "batch",
+          "type": "boolean",
+          "optional": true,
+          "description": "Enable batch mode for processing multiple items"
+        },
+        {
+          "name": "batch_input_key",
+          "type": "string",
+          "optional": true,
+          "description": "Key containing the array to iterate over in batch mode"
+        },
+        {
+          "name": "batch_parallel",
+          "type": "boolean",
+          "optional": true,
+          "description": "Execute batch items in parallel"
+        },
+        {
+          "name": "max_concurrent",
+          "type": "number",
+          "optional": true,
+          "description": "Maximum concurrent executions in batch mode"
+        }
+      ]
+    },
+    {
+      "name": "TemplateJobModel",
+      "interface_name": "ITemplateJob",
+      "fields": [
+        {
+          "name": "template_path",
+          "type": "string",
+          "optional": true,
+          "description": "Path to template file"
+        },
+        {
+          "name": "template_content",
+          "type": "string",
+          "optional": true,
+          "description": "Inline template content"
+        },
+        {
+          "name": "output_path",
+          "type": "string",
+          "optional": true,
+          "description": "Output file path"
+        },
+        {
+          "name": "variables",
+          "type": "object",
+          "optional": true,
+          "description": "Variables configuration"
+        },
+        {
+          "name": "engine",
+          "type": "enum",
+          "optional": true,
+          "description": "Template engine to use"
+        },
+        {
+          "name": "preprocessor",
+          "type": "string",
+          "optional": true,
+          "description": "Preprocessor function to apply before templating"
+        }
+      ]
+    },
+    {
+      "name": "ApiJobModel",
+      "interface_name": "IApiJob",
+      "fields": [
+        {
+          "name": "url",
+          "type": "string",
+          "optional": false,
+          "description": "API endpoint URL"
+        },
+        {
+          "name": "method",
+          "type": "enum",
+          "optional": false,
+          "description": "HTTP method"
+        },
+        {
+          "name": "headers",
+          "type": "object",
+          "optional": true,
+          "description": "HTTP headers"
+        },
+        {
+          "name": "params",
+          "type": "object",
+          "optional": true,
+          "description": "Query parameters"
+        },
+        {
+          "name": "body",
+          "type": "object",
+          "optional": true,
+          "description": "Request body"
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "optional": true,
+          "description": "Request timeout in seconds"
+        },
+        {
+          "name": "auth_type",
+          "type": "enum",
+          "optional": true,
+          "description": "Authentication type"
+        },
+        {
+          "name": "auth_config",
+          "type": "object",
+          "optional": true,
+          "description": "Authentication configuration"
+        }
+      ]
+    },
+    {
+      "name": "ConditionModel",
+      "interface_name": "ICondition",
+      "fields": [
+        {
+          "name": "condition_type",
+          "type": "enum",
+          "optional": true,
+          "description": "Type of condition to evaluate"
+        },
+        {
+          "name": "expression",
+          "type": "string",
+          "optional": true,
+          "description": "Boolean expression to evaluate"
+        },
+        {
+          "name": "node_indices",
+          "type": "array",
+          "optional": true,
+          "description": "Node indices for detect_max_iteration condition"
+        },
+        {
+          "name": "person",
+          "type": "string",
+          "optional": true,
+          "description": "AI agent to use for decision making"
+        },
+        {
+          "name": "judge_by",
+          "type": "string",
+          "optional": true,
+          "description": "Prompt for LLM to make a judgment"
+        },
+        {
+          "name": "judge_by_file",
+          "type": "string",
+          "optional": true,
+          "description": "External prompt file path"
+        },
+        {
+          "name": "memorize_to",
+          "type": "string",
+          "optional": true,
+          "description": "Memory control strategy (e.g., GOLDFISH for fresh evaluation)"
+        },
+        {
+          "name": "at_most",
+          "type": "number",
+          "optional": true,
+          "description": "Maximum messages to keep in memory"
+        },
+        {
+          "name": "expose_index_as",
+          "type": "string",
+          "optional": true,
+          "description": "Variable name to expose the condition node's execution count (0-based index) to downstream nodes"
+        },
+        {
+          "name": "skippable",
+          "type": "boolean",
+          "optional": true,
+          "description": "When true, downstream nodes can execute even if this condition hasn't been evaluated yet"
+        }
+      ]
+    },
+    {
+      "name": "CodeJobModel",
+      "interface_name": "ICodeJob",
+      "fields": [
+        {
+          "name": "language",
+          "type": "enum",
+          "optional": false,
+          "description": "Programming language"
+        },
+        {
+          "name": "filePath",
+          "type": "string",
+          "optional": true,
+          "description": "Path to code file"
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "optional": true,
+          "description": "Inline code to execute (alternative to filePath)"
+        },
+        {
+          "name": "functionName",
+          "type": "string",
+          "optional": true,
+          "description": "Function to execute"
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "optional": true,
+          "description": "Execution timeout in seconds"
+        }
+      ]
+    },
+    {
+      "name": "IntegratedApiModel",
+      "interface_name": "IIntegratedApi",
+      "fields": [
+        {
+          "name": "provider",
+          "type": "string",
+          "optional": false,
+          "description": "API provider to connect to"
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "optional": false,
+          "description": "Operation to perform (provider-specific)"
+        },
+        {
+          "name": "resource_id",
+          "type": "string",
+          "optional": true,
+          "description": "Resource identifier (e.g., page ID, channel ID)"
+        },
+        {
+          "name": "config",
+          "type": "object",
+          "optional": true,
+          "description": "Provider-specific configuration"
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "optional": true,
+          "description": "Request timeout in seconds"
+        },
+        {
+          "name": "max_retries",
+          "type": "number",
+          "optional": true,
+          "description": "Maximum retry attempts"
+        }
+      ]
+    },
+    {
+      "name": "HookModel",
+      "interface_name": "IHook",
+      "fields": [
+        {
+          "name": "hook_type",
+          "type": "enum",
+          "optional": false,
+          "description": "Type of hook to execute"
+        },
+        {
+          "name": "command",
+          "type": "string",
+          "optional": true,
+          "description": "Shell command to run (for shell hooks)"
+        },
+        {
+          "name": "url",
+          "type": "string",
+          "optional": true,
+          "description": "Webhook URL (for HTTP hooks)"
+        },
+        {
+          "name": "timeout",
+          "type": "number",
+          "optional": true,
+          "description": "Execution timeout in seconds"
+        },
+        {
+          "name": "retry_count",
+          "type": "number",
+          "optional": true,
+          "description": "Number of retries on failure"
+        }
+      ]
+    },
+    {
+      "name": "TypescriptAstModel",
+      "interface_name": "ITypescriptAst",
+      "fields": [
+        {
+          "name": "source",
+          "type": "string",
+          "optional": false,
+          "description": "TypeScript source code to parse"
+        },
+        {
+          "name": "extractPatterns",
+          "type": "array",
+          "optional": true,
+          "description": "Patterns to extract from the AST"
+        },
+        {
+          "name": "includeJSDoc",
+          "type": "boolean",
+          "optional": true,
+          "description": "Include JSDoc comments in the extracted data"
+        },
+        {
+          "name": "parseMode",
+          "type": "enum",
+          "optional": true,
+          "description": "TypeScript parsing mode"
+        },
+        {
+          "name": "transformEnums",
+          "type": "boolean",
+          "optional": true,
+          "description": "Transform enum definitions to a simpler format"
+        },
+        {
+          "name": "flattenOutput",
+          "type": "boolean",
+          "optional": true,
+          "description": "Flatten the output structure for easier consumption"
+        },
+        {
+          "name": "outputFormat",
+          "type": "enum",
+          "optional": true,
+          "description": "Output format for the parsed data"
+        },
+        {
+          "name": "batch",
+          "type": "boolean",
+          "optional": true,
+          "description": "Enable batch processing mode"
+        },
+        {
+          "name": "batchInputKey",
+          "type": "string",
+          "optional": true,
+          "description": "Key to extract batch items from input"
+        }
+      ]
+    },
+    {
+      "name": "JsonSchemaValidatorModel",
+      "interface_name": "IJsonSchemaValidator",
+      "fields": [
+        {
+          "name": "schema_path",
+          "type": "string",
+          "optional": true,
+          "description": "Path to JSON schema file"
+        },
+        {
+          "name": "schema",
+          "type": "object",
+          "optional": true,
+          "description": "Inline JSON schema"
+        },
+        {
+          "name": "data_path",
+          "type": "string",
+          "optional": true,
+          "description": "Data Path configuration"
+        },
+        {
+          "name": "strict_mode",
+          "type": "boolean",
+          "optional": true,
+          "description": "Strict Mode configuration"
+        },
+        {
+          "name": "error_on_extra",
+          "type": "boolean",
+          "optional": true,
+          "description": "Error On Extra configuration"
+        }
+      ]
+    },
+    {
+      "name": "EndpointModel",
+      "interface_name": "IEndpoint",
+      "fields": [
+        {
+          "name": "save_to_file",
+          "type": "boolean",
+          "optional": false,
+          "description": "Save results to file"
+        },
+        {
+          "name": "file_name",
+          "type": "string",
+          "optional": true,
+          "description": "Output filename"
+        }
+      ]
+    }
+  ],
+  "queries": [
+    {
+      "name": "GetExecution",
+      "entity": "Execution",
+      "type": "query",
+      "variables": [
+        {
+          "name": "execution_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "get_execution",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "status",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "diagram_id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "started_at",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "ended_at",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "node_states",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "node_outputs",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "variables",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "metrics",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "llm_usage",
+              "args": [],
+              "fields": [
+                {
+                  "name": "input",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "output",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "cached",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "total",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ListExecutions",
+      "entity": "Execution",
+      "type": "query",
+      "variables": [
+        {
+          "name": "filter",
+          "type": "ExecutionFilterInput",
+          "graphql_type": "ExecutionFilterInput",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "executions",
+          "args": [
+            {
+              "name": "filter",
+              "value": "filter",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "status",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "diagram_id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "started_at",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "ended_at",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ListConversations",
+      "entity": "Conversation",
+      "type": "query",
+      "variables": [
+        {
+          "name": "person_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        },
+        {
+          "name": "execution_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        },
+        {
+          "name": "search",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        },
+        {
+          "name": "show_forgotten",
+          "type": "boolean",
+          "graphql_type": "Boolean",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        },
+        {
+          "name": "since",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "conversations",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            },
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            },
+            {
+              "name": "search",
+              "value": "search",
+              "isVariable": true
+            },
+            {
+              "name": "show_forgotten",
+              "value": "show_forgotten",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            },
+            {
+              "name": "since",
+              "value": "since",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "ListPromptFiles",
+      "entity": "Prompt",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "prompt_files",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetPromptFile",
+      "entity": "Prompt",
+      "type": "query",
+      "variables": [
+        {
+          "name": "filename",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "prompt_file",
+          "args": [
+            {
+              "name": "filename",
+              "value": "filename",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetDiagram",
+      "entity": "Diagram",
+      "type": "query",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "diagram",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "nodes",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "type",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "position",
+                  "args": [],
+                  "fields": [
+                    {
+                      "name": "x",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "y",
+                      "args": [],
+                      "fields": []
+                    }
+                  ]
+                },
+                {
+                  "name": "data",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "handles",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "node_id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "direction",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "data_type",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "position",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "arrows",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "source",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "target",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "content_type",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "data",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "persons",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "llm_config",
+                  "args": [],
+                  "fields": [
+                    {
+                      "name": "service",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "model",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "api_key_id",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "system_prompt",
+                      "args": [],
+                      "fields": []
+                    }
+                  ]
+                },
+                {
+                  "name": "type",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "metadata",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "name",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "description",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "version",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "created",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "modified",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "author",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "tags",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ListDiagrams",
+      "entity": "Diagram",
+      "type": "query",
+      "variables": [
+        {
+          "name": "filter",
+          "type": "DiagramFilterInput",
+          "graphql_type": "DiagramFilterInput",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        },
+        {
+          "name": "offset",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "diagrams",
+          "args": [
+            {
+              "name": "filter",
+              "value": "filter",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "metadata",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "name",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "description",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "author",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "created",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "modified",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "tags",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "nodeCount",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "arrowCount",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GetPerson",
+      "entity": "Person",
+      "type": "query",
+      "variables": [
+        {
+          "name": "person_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "person",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "label",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "type",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "llm_config",
+              "args": [],
+              "fields": [
+                {
+                  "name": "service",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "model",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "api_key_id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "system_prompt",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ListPersons",
+      "entity": "Person",
+      "type": "query",
+      "variables": [
+        {
+          "name": "limit",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "persons",
+          "args": [
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "label",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "type",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "llm_config",
+              "args": [],
+              "fields": [
+                {
+                  "name": "service",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "model",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "api_key_id",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GetSupportedFormats",
+      "entity": "Format",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "supported_formats",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetProviders",
+      "entity": "Provider",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "providers",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetProviderOperations",
+      "entity": "Provider",
+      "type": "query",
+      "variables": [
+        {
+          "name": "provider",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "provider_operations",
+          "args": [
+            {
+              "name": "provider",
+              "value": "provider",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetOperationSchema",
+      "entity": "Provider",
+      "type": "query",
+      "variables": [
+        {
+          "name": "provider",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "operation_schema",
+          "args": [
+            {
+              "name": "provider",
+              "value": "provider",
+              "isVariable": true
+            },
+            {
+              "name": "operation",
+              "value": "operation",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetSystemInfo",
+      "entity": "System",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "system_info",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionCapabilities",
+      "entity": "System",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "execution_capabilities",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "HealthCheck",
+      "entity": "System",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "health_check",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionOrder",
+      "entity": "System",
+      "type": "query",
+      "variables": [
+        {
+          "name": "execution_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "execution_order",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionMetrics",
+      "entity": "System",
+      "type": "query",
+      "variables": [
+        {
+          "name": "execution_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "execution_metrics",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionHistory",
+      "entity": "System",
+      "type": "query",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "number",
+          "graphql_type": "Int",
+          "required": false
+        },
+        {
+          "name": "include_metrics",
+          "type": "boolean",
+          "graphql_type": "Boolean",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "execution_history",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "include_metrics",
+              "value": "include_metrics",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetActiveCliSession",
+      "entity": "System",
+      "type": "query",
+      "variables": [],
+      "fields": [
+        {
+          "name": "active_cli_session",
+          "args": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetApiKeys",
+      "entity": "ApiKey",
+      "type": "query",
+      "variables": [
+        {
+          "name": "service",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "api_keys",
+          "args": [
+            {
+              "name": "service",
+              "value": "service",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "GetApiKey",
+      "entity": "ApiKey",
+      "type": "query",
+      "variables": [
+        {
+          "name": "api_key_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "api_key",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "label",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "service",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GetAvailableModels",
+      "entity": "ApiKey",
+      "type": "query",
+      "variables": [
+        {
+          "name": "service",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "api_key_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "available_models",
+          "args": [
+            {
+              "name": "service",
+              "value": "service",
+              "isVariable": true
+            },
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    }
+  ],
+  "mutations": [
+    {
+      "name": "ControlExecution",
+      "entity": "Execution",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "ExecutionControlInput",
+          "graphql_type": "ExecutionControlInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "control_execution",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "execution",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "status",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SendInteractiveResponse",
+      "entity": "Execution",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "InteractiveResponseInput",
+          "graphql_type": "InteractiveResponseInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "send_interactive_response",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UpdateNodeState",
+      "entity": "Execution",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "UpdateNodeStateInput",
+          "graphql_type": "UpdateNodeStateInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "update_node_state",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "execution",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "status",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UploadFile",
+      "entity": "File",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "file",
+          "type": "File",
+          "graphql_type": "Upload",
+          "required": true
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "graphql_type": "String",
+          "required": false
+        }
+      ],
+      "fields": [
+        {
+          "name": "upload_file",
+          "args": [
+            {
+              "name": "file",
+              "value": "file",
+              "isVariable": true
+            },
+            {
+              "name": "path",
+              "value": "path",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "UploadDiagram",
+      "entity": "File",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "file",
+          "type": "File",
+          "graphql_type": "Upload",
+          "required": true
+        },
+        {
+          "name": "format",
+          "type": "DiagramFormatGraphQL",
+          "graphql_type": "DiagramFormatGraphQL",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "upload_diagram",
+          "args": [
+            {
+              "name": "file",
+              "value": "file",
+              "isVariable": true
+            },
+            {
+              "name": "format",
+              "value": "format",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "ValidateDiagram",
+      "entity": "File",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "content",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "format",
+          "type": "DiagramFormatGraphQL",
+          "graphql_type": "DiagramFormatGraphQL",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "validate_diagram",
+          "args": [
+            {
+              "name": "content",
+              "value": "content",
+              "isVariable": true
+            },
+            {
+              "name": "format",
+              "value": "format",
+              "isVariable": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "ConvertDiagramFormat",
+      "entity": "File",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "content",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "from_format",
+          "type": "DiagramFormatGraphQL",
+          "graphql_type": "DiagramFormatGraphQL",
+          "required": true
+        },
+        {
+          "name": "to_format",
+          "type": "DiagramFormatGraphQL",
+          "graphql_type": "DiagramFormatGraphQL",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "convert_diagram_format",
+          "args": [
+            {
+              "name": "content",
+              "value": "content",
+              "isVariable": true
+            },
+            {
+              "name": "from_format",
+              "value": "from_format",
+              "isVariable": true
+            },
+            {
+              "name": "to_format",
+              "value": "to_format",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "data",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "format",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CreateDiagram",
+      "entity": "Diagram",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "CreateDiagramInput",
+          "graphql_type": "CreateDiagramInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "create_diagram",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "diagram",
+              "args": [],
+              "fields": [
+                {
+                  "name": "metadata",
+                  "args": [],
+                  "fields": [
+                    {
+                      "name": "id",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "name",
+                      "args": [],
+                      "fields": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ExecuteDiagram",
+      "entity": "Diagram",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "ExecuteDiagramInput",
+          "graphql_type": "ExecuteDiagramInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "execute_diagram",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "execution",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DeleteDiagram",
+      "entity": "Diagram",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "delete_diagram",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CreatePerson",
+      "entity": "Person",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "CreatePersonInput",
+          "graphql_type": "CreatePersonInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "create_person",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "person",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UpdatePerson",
+      "entity": "Person",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "person_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "input",
+          "type": "UpdatePersonInput",
+          "graphql_type": "UpdatePersonInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "update_person",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "person",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DeletePerson",
+      "entity": "Person",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "person_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "delete_person",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CreateNode",
+      "entity": "Node",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "input",
+          "type": "CreateNodeInput",
+          "graphql_type": "CreateNodeInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "create_node",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "node",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "type",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "position",
+                  "args": [],
+                  "fields": [
+                    {
+                      "name": "x",
+                      "args": [],
+                      "fields": []
+                    },
+                    {
+                      "name": "y",
+                      "args": [],
+                      "fields": []
+                    }
+                  ]
+                },
+                {
+                  "name": "data",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UpdateNode",
+      "entity": "Node",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "input",
+          "type": "UpdateNodeInput",
+          "graphql_type": "UpdateNodeInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "update_node",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "node_id",
+              "value": "node_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DeleteNode",
+      "entity": "Node",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "diagram_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        },
+        {
+          "name": "node_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "delete_node",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "node_id",
+              "value": "node_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "RegisterCliSession",
+      "entity": "CliSession",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "RegisterCliSessionInput",
+          "graphql_type": "RegisterCliSessionInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "register_cli_session",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UnregisterCliSession",
+      "entity": "CliSession",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "UnregisterCliSessionInput",
+          "graphql_type": "UnregisterCliSessionInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "unregister_cli_session",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CreateApiKey",
+      "entity": "ApiKey",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "input",
+          "type": "CreateApiKeyInput",
+          "graphql_type": "CreateApiKeyInput",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "create_api_key",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "api_key",
+              "args": [],
+              "fields": [
+                {
+                  "name": "id",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "label",
+                  "args": [],
+                  "fields": []
+                },
+                {
+                  "name": "service",
+                  "args": [],
+                  "fields": []
+                }
+              ]
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TestApiKey",
+      "entity": "ApiKey",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "api_key_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "test_api_key",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "error",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DeleteApiKey",
+      "entity": "ApiKey",
+      "type": "mutation",
+      "variables": [
+        {
+          "name": "api_key_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "delete_api_key",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "success",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "message",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "subscriptions": [
+    {
+      "name": "ExecutionUpdates",
+      "entity": "Execution",
+      "type": "subscription",
+      "variables": [
+        {
+          "name": "execution_id",
+          "type": "string",
+          "graphql_type": "String",
+          "required": true
+        }
+      ],
+      "fields": [
+        {
+          "name": "execution_updates",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ],
+          "fields": [
+            {
+              "name": "execution_id",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "event_type",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "data",
+              "args": [],
+              "fields": []
+            },
+            {
+              "name": "timestamp",
+              "args": [],
+              "fields": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "node_count": 14,
+    "field_type_count": 1,
+    "schema_count": 14,
+    "query_count": 23,
+    "mutation_count": 21,
+    "subscription_count": 1,
+    "categories": [
+      "integration",
+      "control",
+      "compute",
+      "ai",
+      "codegen"
+    ]
+  }
+}

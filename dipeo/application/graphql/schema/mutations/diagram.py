@@ -10,9 +10,9 @@ from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 from dipeo.diagram_generated.domain_models import DiagramID
-from dipeo.diagram_generated.graphql_backups.enums import DiagramFormatGraphQL
-from dipeo.diagram_generated.graphql_backups.inputs import CreateDiagramInput
-from dipeo.diagram_generated.graphql_backups.operations import (
+from dipeo.diagram_generated.graphql.enums import DiagramFormatGraphQL
+from dipeo.diagram_generated.graphql.inputs import CreateDiagramInput
+from dipeo.diagram_generated.graphql.operations import (
     CREATE_DIAGRAM_MUTATION,
     DELETE_DIAGRAM_MUTATION,
     VALIDATE_DIAGRAM_MUTATION,
@@ -20,7 +20,7 @@ from dipeo.diagram_generated.graphql_backups.operations import (
     DeleteDiagramOperation,
     ValidateDiagramOperation,
 )
-from dipeo.diagram_generated.graphql_backups.results import DeleteResult, DiagramResult
+from dipeo.diagram_generated.graphql.results import DeleteResult, DiagramResult
 from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
 
 logger = logging.getLogger(__name__)

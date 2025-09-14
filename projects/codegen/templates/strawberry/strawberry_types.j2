@@ -44,7 +44,7 @@ from dipeo.diagram_generated.graphql.scalars import *
 # Generate Strawberry types for node data
 {% for type_info in node_specs %}
 @strawberry.type
-class {{ type_info.class_name }}DataType:
+class {{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType:
     """{{ type_info.description }} - Data fields only"""
     # Base fields (all nodes have these)
     id: NodeIDScalar
@@ -68,7 +68,7 @@ class {{ type_info.class_name }}DataType:
     {% endfor %}
 
     @classmethod
-    def from_pydantic(cls, node: {{ type_info.pydantic_model }}Node) -> "{{ type_info.class_name }}DataType":
+    def from_pydantic(cls, node: {{ type_info.pydantic_model }}Node) -> "{{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType":
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
@@ -101,7 +101,7 @@ NodeDataUnion = strawberry.union(
     "NodeDataUnion",
     (
 {% for type_info in node_specs %}
-        {{ type_info.class_name }}DataType,
+        {{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType,
 {% endfor %}
     )
 )
@@ -121,6 +121,6 @@ NodeDataUnion = PlaceholderNodeData
 __all__ = [
     'NodeDataUnion',
 {% for type_info in types %}
-    '{{ type_info.class_name }}DataType',
+    '{{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType',
 {% endfor %}
 ]

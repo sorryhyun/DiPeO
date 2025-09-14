@@ -10,6 +10,7 @@ from typing import Optional, List, Any
 from strawberry.scalars import JSON
 
 import strawberry
+from .enums import DiagramFormatGraphQL
 
 
 # Import enums from generated modules
@@ -27,10 +28,8 @@ class {{ input_type.name }}:
     {%- endif %}
     {%- for field in input_type.fields %}
     {%- set py_type = field.type | ts_graphql_input_to_python(field.name) %}
-    {%- if field.is_optional and not py_type.startswith('Optional[') %}
-    {{ field.name }}: Optional[{{ py_type }}]{% if field.default_value %} = {{ field.default_value }}{% else %} = None{% endif %}
-    {%- elif field.is_optional %}
-    {{ field.name }}: {{ py_type }}{% if field.default_value %} = {{ field.default_value }}{% else %} = None{% endif %}
+    {%- if field.is_optional %}
+    {{ field.name }}: {{ py_type | ensure_optional }}{% if field.default_value %} = {{ field.default_value }}{% else %} = None{% endif %}
     {%- else %}
     {{ field.name }}: {{ py_type }}{% if field.default_value %} = {{ field.default_value }}{% endif %}
     {%- endif %}

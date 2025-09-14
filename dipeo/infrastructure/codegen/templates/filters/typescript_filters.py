@@ -590,7 +590,7 @@ class TypeScriptToPythonFilters:
             Python type string
         """
         if not ts_type:
-            return "Any"
+            return "JSON"  # Default to JSON instead of Any for GraphQL
 
         ts_type = ts_type.strip()
 
@@ -608,7 +608,7 @@ class TypeScriptToPythonFilters:
                 "DateTime": "datetime",
                 "Date": "datetime",
                 "Time": "str",
-                "JSON": "Any",
+                "JSON": "JSON",  # Map to strawberry.scalars.JSON
                 "BigInt": "int",
             }
             return scalar_map.get(scalar_type, scalar_type)
@@ -650,13 +650,38 @@ class TypeScriptToPythonFilters:
         if ts_type in cls.BRANDED_IDS:
             return "str"  # All branded IDs are strings in Python
 
+        # Handle special field names that should be JSON
+        json_field_names = {
+            "data",
+            "variables",
+            "metadata",
+            "output",
+            "input",
+            "diagram_data",
+            "node_data",
+            "body",
+            "headers",
+            "params",
+            "config",
+            "options",
+            "settings",
+            "props",
+            "properties",
+        }
+
+        # If field name suggests JSON data, use JSON type
+        if field_name in json_field_names or field_name.endswith("_data"):
+            if ts_type in ["any", "Any", "unknown", "object", "{}", "Record<string, any>"]:
+                return "JSON"
+
         # Handle primitive types
         primitive_map = {
             "string": "str",
             "number": "float",
             "boolean": "bool",
-            "any": "Any",
-            "unknown": "Any",
+            "any": "JSON",  # Map 'any' to JSON for GraphQL compatibility
+            "unknown": "JSON",  # Map 'unknown' to JSON
+            "object": "JSON",  # Map 'object' to JSON
             "void": "None",
             "null": "None",
             "undefined": "None",
@@ -675,6 +700,15 @@ class TypeScriptToPythonFilters:
             inner_type = array_suffix_match.group(1)
             python_type = cls.ts_graphql_input_to_python(inner_type, field_name)
             return f"List[{python_type}]"
+
+        # Handle Record<K, V> pattern - should map to JSON
+        record_match = re.match(r"Record<(.+),\s*(.+)>", ts_type)
+        if record_match:
+            return "JSON"
+
+        # Handle Dict pattern - should map to JSON
+        if ts_type.startswith("Dict") or ts_type.startswith("dict"):
+            return "JSON"
 
         # Default: return as-is (likely a type reference)
         return ts_type

@@ -9,8 +9,8 @@ from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR
 from dipeo.diagram_generated import DomainPerson
 from dipeo.diagram_generated.domain_models import ApiKeyID, LLMService, PersonID, PersonLLMConfig
-from dipeo.diagram_generated.graphql_backups.inputs import CreatePersonInput, UpdatePersonInput
-from dipeo.diagram_generated.graphql_backups.results import DeleteResult, PersonResult
+from dipeo.diagram_generated.graphql.inputs import CreatePersonInput, UpdatePersonInput
+from dipeo.diagram_generated.graphql.results import DeleteResult, PersonResult
 
 logger = logging.getLogger(__name__)
 

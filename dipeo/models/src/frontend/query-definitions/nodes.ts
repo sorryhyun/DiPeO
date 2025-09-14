@@ -8,7 +8,7 @@ export const nodeQueries: EntityQueryDefinitions = {
       name: 'CreateNode',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'diagram_id', type: 'ID', required: true },
+        { name: 'diagram_id', type: 'String', required: true },
         { name: 'input', type: 'CreateNodeInput', required: true }
       ],
       fields: [
@@ -45,8 +45,8 @@ export const nodeQueries: EntityQueryDefinitions = {
       name: 'UpdateNode',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'diagram_id', type: 'ID', required: true },
-        { name: 'node_id', type: 'ID', required: true },
+        { name: 'diagram_id', type: 'String', required: true },
+        { name: 'node_id', type: 'String', required: true },
         { name: 'input', type: 'UpdateNodeInput', required: true }
       ],
       fields: [
@@ -69,8 +69,8 @@ export const nodeQueries: EntityQueryDefinitions = {
       name: 'DeleteNode',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'diagram_id', type: 'ID', required: true },
-        { name: 'node_id', type: 'ID', required: true }
+        { name: 'diagram_id', type: 'String', required: true },
+        { name: 'node_id', type: 'String', required: true }
       ],
       fields: [
         {

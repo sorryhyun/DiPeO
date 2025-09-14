@@ -11,13 +11,13 @@ from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT, MESSAGE_ROUTER, STATE_STORE
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import EventType, Status
-from dipeo.diagram_generated.graphql_backups.inputs import (
+from dipeo.diagram_generated.graphql.inputs import (
     ExecuteDiagramInput,
     ExecutionControlInput,
     InteractiveResponseInput,
     UpdateNodeStateInput,
 )
-from dipeo.diagram_generated.graphql_backups.operations import (
+from dipeo.diagram_generated.graphql.operations import (
     CONTROL_EXECUTION_MUTATION,
     EXECUTE_DIAGRAM_MUTATION,
     SEND_INTERACTIVE_RESPONSE_MUTATION,
@@ -27,7 +27,7 @@ from dipeo.diagram_generated.graphql_backups.operations import (
     SendInteractiveResponseOperation,
     UpdateNodeStateOperation,
 )
-from dipeo.diagram_generated.graphql_backups.results import ExecutionResult
+from dipeo.diagram_generated.graphql.results import ExecutionResult
 from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
 
 logger = logging.getLogger(__name__)

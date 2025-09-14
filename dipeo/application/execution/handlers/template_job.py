@@ -450,6 +450,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             registry = create_filter_registry()
             for name, func in registry.get_all_filters().items():
                 env.filters[name] = func
+                # Also add as globals for direct function calls in templates
+                env.globals[name] = func
 
             # Create and render template
             jinja_template = env.from_string(template)

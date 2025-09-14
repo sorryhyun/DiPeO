@@ -9,8 +9,8 @@ from typing import Any
 
 import strawberry
 
-from dipeo.diagram_generated.graphql_backups import node_mutations as nm
-from dipeo.diagram_generated.graphql_backups.enums import NodeTypeGraphQL
+from dipeo.diagram_generated.graphql import node_mutations as nm
+from dipeo.diagram_generated.graphql.enums import NodeTypeGraphQL
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +201,7 @@ class NodeTypeRegistry:
             raise ValueError(f"Invalid node data: {error}")
 
         # Create the input object
-        from dipeo.diagram_generated.graphql_backups.inputs import Vec2Input
+        from dipeo.diagram_generated.graphql.inputs import Vec2Input
 
         return input_class(
             diagram_id=diagram_id, position=Vec2Input(x=position["x"], y=position["y"]), data=data
@@ -237,7 +237,7 @@ class NodeTypeRegistry:
         # Create the update input object
         kwargs = {}
         if position:
-            from dipeo.diagram_generated.graphql_backups.inputs import Vec2Input
+            from dipeo.diagram_generated.graphql.inputs import Vec2Input
 
             kwargs["position"] = Vec2Input(x=position["x"], y=position["y"])
         if data is not None:

@@ -8,11 +8,11 @@ export const executionQueries: EntityQueryDefinitions = {
       name: 'GetExecution',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'execution_id', type: 'ID', required: true }
+        { name: 'execution_id', type: 'String', required: true }
       ],
       fields: [
         {
-          name: 'execution',
+          name: 'get_execution',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
@@ -71,7 +71,7 @@ export const executionQueries: EntityQueryDefinitions = {
       name: 'ExecutionUpdates',
       type: QueryOperationType.SUBSCRIPTION,
       variables: [
-        { name: 'execution_id', type: 'ID', required: true }
+        { name: 'execution_id', type: 'String', required: true }
       ],
       fields: [
         {

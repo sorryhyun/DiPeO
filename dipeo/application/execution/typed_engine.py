@@ -154,9 +154,6 @@ class TypedExecutionEngine:
                         status=Status.COMPLETED,
                         error=None,
                     )
-                    logger.debug(
-                        f"Execution {context.execution_id} marked as COMPLETED in state store"
-                    )
                 except Exception as e:
                     logger.warning(f"Failed to update execution status: {e}")
 

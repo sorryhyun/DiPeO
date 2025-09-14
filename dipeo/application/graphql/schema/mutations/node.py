@@ -9,13 +9,13 @@ from strawberry.scalars import JSON
 from dipeo.application.graphql.node_registry import NodeTypeRegistry
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT
-from dipeo.diagram_generated.graphql_backups.enums import NodeTypeGraphQL
-from dipeo.diagram_generated.graphql_backups.inputs import (
+from dipeo.diagram_generated.graphql.enums import NodeTypeGraphQL
+from dipeo.diagram_generated.graphql.inputs import (
     CreateNodeInput,
     UpdateNodeInput,
     Vec2Input,
 )
-from dipeo.diagram_generated.graphql_backups.results import DeleteResult, NodeResult
+from dipeo.diagram_generated.graphql.results import DeleteResult, NodeResult
 
 logger = logging.getLogger(__name__)
 

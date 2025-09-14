@@ -1,31 +1,308 @@
 interfaces:
+  Vec2:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []
+  LLMUsage:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []
+  PersonLLMConfig:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []
+  DomainHandle:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []
+  DomainApiKey:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []
+  FileType:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []
+  CliSession:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []
+  CliSessionResult:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []
+  ConversationMetadata:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []
+  DiagramMetadata:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []
   NodeState:
     simple_fields: false
     custom_fields:
-      - name: status
-        type: Status
-        is_enum: true
-        is_auto: false
-      - name: started_at
-        is_auto: true
-      - name: ended_at
-        is_auto: true
+    - name: status
+      is_auto: false
+      is_enum: true
+      type: Status
+    - name: started_at
+      is_auto: true
+    - name: ended_at
+      is_auto: true
+    - name: error
+      is_auto: true
+    - name: llm_usage
+      is_auto: true
     field_methods:
-      - name: output
-        return_type: Optional[JSONScalar]
-        description: Node output data
-
+    - name: output
+      return_type: Optional[JSONScalar]
+      is_optional: true
+      description: Node output data
+  EnvelopeMeta:
+    simple_fields: false
+    custom_fields:
+    - name: node_id
+      is_auto: false
+      is_optional: true
+      type: str
+      default: None
+    - name: llm_usage
+      is_auto: false
+      is_optional: true
+      type: LLMUsageType
+      default: None
+    - name: execution_time
+      is_auto: false
+      is_optional: true
+      type: float
+      default: None
+    - name: retry_count
+      is_auto: false
+      is_optional: true
+      type: int
+      default: None
+    - name: error
+      is_auto: false
+      is_optional: true
+      type: str
+      default: None
+    - name: error_type
+      is_auto: false
+      is_optional: true
+      type: str
+      default: None
+    - name: timestamp
+      is_auto: false
+      is_optional: true
+      type: JSONScalar
+      default: None
+    field_methods: []
+  SerializedEnvelope:
+    simple_fields: false
+    custom_fields:
+    - name: envelope_format
+      is_auto: true
+    - name: id
+      is_auto: true
+    - name: trace_id
+      is_auto: true
+    - name: produced_by
+      is_auto: true
+    - name: content_type
+      is_auto: true
+    - name: schema_id
+      is_auto: true
+    - name: serialization_format
+      is_auto: true
+    - name: body
+      is_auto: false
+      is_optional: true
+      type: JSONScalar
+      default: None
+    - name: meta
+      is_auto: true
+    field_methods: []
   DomainNode:
     simple_fields: false
     custom_fields:
-      - name: id
-        is_auto: true
-      - name: position
-        is_auto: true
+    - name: id
+      is_auto: true
+    - name: position
+      is_auto: true
     field_methods:
-      - name: type
-        return_type: str
-        description: Return the enum value (lowercase)
-      - name: data
-        return_type: JSONScalar
-        description: Node configuration data
+    - name: type
+      return_type: str
+      is_optional: false
+      description: Return the enum value (lowercase) instead of the enum name.
+    - name: data
+      return_type: JSONScalar
+      is_optional: false
+      description: Node configuration data
+  DomainArrow:
+    simple_fields: false
+    custom_fields:
+    - name: id
+      is_auto: true
+    - name: source
+      is_auto: true
+    - name: target
+      is_auto: true
+    - name: content_type
+      is_auto: true
+    - name: label
+      is_auto: true
+    field_methods:
+    - name: data
+      return_type: Optional[JSONScalar]
+      is_optional: true
+      description: Arrow data as JSON
+  DomainPerson:
+    simple_fields: false
+    custom_fields:
+    - name: id
+      type: PersonIDScalar
+      is_auto: true
+    - name: label
+      type: str
+      is_auto: true
+    - name: llm_config
+      type: "'PersonLLMConfigType'"
+      is_auto: true
+    field_methods:
+    - name: type
+      return_type: str
+      is_optional: false
+      description: Returns the person type
+  Message:
+    simple_fields: false
+    has_all_fields: true
+    custom_fields:
+    - name: from_person_id
+      type: str
+    - name: to_person_id
+      type: PersonIDScalar
+    - name: content
+      type: str
+    - name: timestamp
+      type: str
+      is_optional: true
+      default: None
+    - name: token_count
+      type: float
+      is_optional: true
+      default: None
+    - name: message_type
+      type: str
+    - name: metadata
+      type: JSONScalar
+      is_optional: true
+      default: None
+    field_methods: []
+  ExecutionOptions:
+    simple_fields: false
+    custom_fields:
+    - name: mode
+      is_auto: true
+    - name: timeout
+      is_auto: true
+    field_methods:
+    - name: variables
+      return_type: JSONScalar
+      is_optional: false
+      description: Execution variables
+  ExecutionState:
+    simple_fields: false
+    custom_fields:
+    - name: id
+      is_auto: true
+    - name: status
+      type: Status
+      is_enum: true
+    - name: diagram_id
+      is_auto: true
+    - name: started_at
+      is_auto: true
+    - name: ended_at
+      is_auto: true
+    - name: llm_usage
+      is_auto: true
+    - name: error
+      is_auto: true
+    - name: duration_seconds
+      is_auto: true
+    - name: is_active
+      is_auto: true
+    - name: executed_nodes
+      is_auto: true
+    field_methods:
+    - name: node_states
+      return_type: JSONScalar
+      is_optional: false
+      description: Node execution states
+    - name: node_outputs
+      return_type: JSONScalar
+      is_optional: false
+      description: Node execution outputs
+    - name: variables
+      return_type: Optional[JSONScalar]
+      is_optional: true
+      description: Execution variables
+    - name: exec_counts
+      return_type: JSONScalar
+      is_optional: false
+      description: Node execution counts
+    - name: metrics
+      return_type: Optional[JSONScalar]
+      is_optional: true
+      description: Execution metrics
+  ExecutionMetrics:
+    simple_fields: false
+    custom_fields:
+    - name: execution_id
+      is_auto: true
+    - name: start_time
+      is_auto: true
+    - name: end_time
+      is_auto: true
+    - name: total_duration_ms
+      is_auto: true
+    - name: critical_path
+      is_auto: true
+    - name: parallelizable_groups
+      is_auto: true
+    field_methods:
+    - name: node_metrics
+      return_type: JSONScalar
+      is_optional: false
+      description: Node metrics as JSON
+  DomainDiagram:
+    simple_fields: false
+    custom_fields:
+    - name: nodes
+      is_auto: true
+    - name: handles
+      is_auto: true
+    - name: arrows
+      is_auto: true
+    - name: persons
+      is_auto: true
+    - name: metadata
+      is_auto: true
+    field_methods:
+    - name: nodeCount
+      return_type: int
+      is_optional: false
+      description: Returns the total number of nodes in the diagram
+    - name: arrowCount
+      return_type: int
+      is_optional: false
+      description: Returns the total number of arrows in the diagram
+  NodeMetrics:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []
+  Bottleneck:
+    simple_fields: true
+    custom_fields: []
+    field_methods: []

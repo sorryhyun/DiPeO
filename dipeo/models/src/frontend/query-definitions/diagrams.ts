@@ -8,7 +8,7 @@ export const diagramQueries: EntityQueryDefinitions = {
       name: 'GetDiagram',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'diagram_id', type: 'ID', required: true }
+        { name: 'diagram_id', type: 'String', required: true }
       ],
       fields: [
         {
@@ -185,7 +185,7 @@ export const diagramQueries: EntityQueryDefinitions = {
       name: 'DeleteDiagram',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'diagram_id', type: 'ID', required: true }
+        { name: 'diagram_id', type: 'String', required: true }
       ],
       fields: [
         {

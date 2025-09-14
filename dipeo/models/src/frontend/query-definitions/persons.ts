@@ -8,7 +8,7 @@ export const personQueries: EntityQueryDefinitions = {
       name: 'GetPerson',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'person_id', type: 'ID', required: true }
+        { name: 'person_id', type: 'String', required: true }
       ],
       fields: [
         {
@@ -92,7 +92,7 @@ export const personQueries: EntityQueryDefinitions = {
       name: 'UpdatePerson',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'person_id', type: 'ID', required: true },
+        { name: 'person_id', type: 'String', required: true },
         { name: 'input', type: 'UpdatePersonInput', required: true }
       ],
       fields: [
@@ -121,7 +121,7 @@ export const personQueries: EntityQueryDefinitions = {
       name: 'DeletePerson',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'person_id', type: 'ID', required: true }
+        { name: 'person_id', type: 'String', required: true }
       ],
       fields: [
         {

@@ -2,7 +2,7 @@
 GraphQL input types for DiPeO mutations.
 Auto-generated from TypeScript definitions.
 
-Generated at: 2025-09-13T16:47:42.128948
+Generated at: 2025-09-14T13:40:21.486217
 """
 
 from datetime import datetime
@@ -10,6 +10,7 @@ from typing import Optional, List, Any
 from strawberry.scalars import JSON
 
 import strawberry
+from .enums import DiagramFormatGraphQL
 
 
 # Import enums from generated modules
@@ -36,14 +37,14 @@ class PersonLLMConfigInput:
 
 @strawberry.input
 class CreateNodeInput:
-    data: Any
+    data: JSON
     position: Vec2Input
     type: NodeType
 
 
 @strawberry.input
 class UpdateNodeInput:
-    data: Optional[Any] = None
+    data: Optional[JSON] = None
     position: Optional[Vec2Input] = None
 
 
@@ -87,12 +88,12 @@ class CreateApiKeyInput:
 @strawberry.input
 class ExecuteDiagramInput:
     debug_mode: Optional[bool] = None
-    diagram_data: Optional[Any] = None
+    diagram_data: Optional[JSON] = None
     diagram_id: Optional[str] = None
     max_iterations: Optional[int] = None
     timeout_seconds: Optional[int] = None
     use_unified_monitoring: Optional[bool] = None
-    variables: Optional[Any] = None
+    variables: Optional[JSON] = None
 
 
 @strawberry.input
@@ -115,14 +116,14 @@ class UpdateNodeStateInput:
     error: Optional[str] = None
     execution_id: str
     node_id: str
-    output: Optional[Any] = None
+    output: Optional[JSON] = None
     status: Status
 
 
 @strawberry.input
 class InteractiveResponseInput:
     execution_id: str
-    metadata: Optional[Any] = None
+    metadata: Optional[JSON] = None
     node_id: str
     response: str
 
@@ -132,7 +133,7 @@ class RegisterCliSessionInput:
     execution_id: str
     diagram_name: str
     diagram_format: DiagramFormatGraphQL
-    diagram_data: Optional[Any] = None
+    diagram_data: Optional[JSON] = None
 
 
 @strawberry.input

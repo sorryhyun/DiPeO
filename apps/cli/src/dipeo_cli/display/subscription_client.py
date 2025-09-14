@@ -58,12 +58,28 @@ class SubscriptionClient:
             return False
 
     async def disconnect(self):
-        """Disconnect from the WebSocket."""
+        """Disconnect from the WebSocket and shut down transport cleanly."""
         self._stop_event.set()
-        if self.session:
-            await self.client.close_async()
+        try:
+            if self.session:
+                # Close GQL client (awaits WS shutdown)
+                await self.client.close_async()
+        except Exception as e:
+            logger.debug(f"Client close error: {e}")
+        finally:
+            # Belt-and-suspenders: also close the underlying transport
+            try:
+                transport = getattr(self.client, "transport", None)
+                if transport:
+                    close = getattr(transport, "close", None)
+                    if callable(close):
+                        res = close()
+                        if asyncio.iscoroutine(res):
+                            await res
+            except Exception as e:
+                logger.debug(f"Transport close error: {e}")
             self.session = None
-        logger.info("Disconnected from WebSocket")
+            logger.info("Disconnected from WebSocket")
 
     async def subscribe_to_execution(self, callback: Callable[[dict[str, Any]], None]):
         """Subscribe to execution updates and call callback for each event."""
@@ -72,7 +88,7 @@ class SubscriptionClient:
             return
 
         # Import and use generated subscription
-        from dipeo.diagram_generated.graphql_backups.operations import (
+        from dipeo.diagram_generated.graphql.operations import (
             EXECUTION_UPDATES_SUBSCRIPTION,
         )
 

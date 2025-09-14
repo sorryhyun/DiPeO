@@ -1,5 +1,6 @@
 """Server management for DiPeO CLI."""
 
+import contextlib
 import subprocess
 import sys
 import time
@@ -102,15 +103,24 @@ class ServerManager:
             process = self.process
             self.process = None  # Mark as stopped immediately to prevent double-stop
 
+            # First try terminate
             process.terminate()
             try:
-                # Wait up to 5 seconds for graceful shutdown
-                process.wait(timeout=5)
+                # Wait up to 2 seconds for graceful shutdown
+                process.wait(timeout=2)
             except subprocess.TimeoutExpired:
                 # Force kill if graceful shutdown fails
                 print("⚠️  Server didn't stop gracefully, forcing shutdown...")
                 process.kill()
-                process.wait()
+                try:
+                    process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    # If even kill doesn't work, use OS-level kill
+                    import os as os_module
+                    import signal
+
+                    with contextlib.suppress(ProcessLookupError):
+                        os_module.kill(process.pid, signal.SIGKILL)
 
     def execute_diagram(
         self,
@@ -158,7 +168,6 @@ class ServerManager:
                 diagram_name=diagram_name or "unknown",
                 diagram_format=diagram_format or "native",
                 diagram_data=diagram_data,  # Send diagram data for faster loading
-                diagram_path=diagram_id,  # Pass the file path
             )
 
         return execution_result
@@ -183,7 +192,9 @@ class ServerManager:
             result = response.json()
 
             if "errors" in result:
-                print(f"[ERROR] GraphQL errors: {result['errors']}")
+                print(
+                    f"[ERROR] GraphQL errors while fetching execution {execution_id}: {result['errors']}"
+                )
                 return None
 
             if "data" not in result or result["data"] is None:
@@ -239,7 +250,6 @@ class ServerManager:
             diagram_name=diagram_name,
             diagram_format=diagram_format_upper,
             diagram_data=diagram_data,
-            diagram_path=diagram_path,
         )
 
         # Use operation class to get query and build variables (now with Strawberry object)

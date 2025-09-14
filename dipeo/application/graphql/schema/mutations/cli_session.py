@@ -6,11 +6,11 @@ import strawberry
 
 from dipeo.application.execution.use_cases import CliSessionService
 from dipeo.application.registry import CLI_SESSION_SERVICE, ServiceRegistry
-from dipeo.diagram_generated.graphql_backups.inputs import (
+from dipeo.diagram_generated.graphql.inputs import (
     RegisterCliSessionInput,
     UnregisterCliSessionInput,
 )
-from dipeo.diagram_generated.graphql_backups.results import CliSessionResult
+from dipeo.diagram_generated.graphql.results import CliSessionResult
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +29,9 @@ async def register_cli_session(
 
         # If diagram_data is not provided, try to load it from file
         diagram_data = input.diagram_data
-        if diagram_data is None and (input.diagram_path or input.diagram_name):
-            # Use diagram_path if provided, otherwise fall back to diagram_name
-            diagram_path = input.diagram_path or input.diagram_name
+        if diagram_data is None and input.diagram_name:
+            # Use diagram_name as the path
+            diagram_path = input.diagram_name
             try:
                 # Load diagram from file using the diagram service
                 from dipeo.application.registry.keys import DIAGRAM_PORT
@@ -162,9 +162,9 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
 
                 # If diagram_data is not provided, try to load it from file
                 diagram_data = input.diagram_data
-                if diagram_data is None and (input.diagram_path or input.diagram_name):
-                    # Use diagram_path if provided, otherwise fall back to diagram_name
-                    diagram_path = input.diagram_path or input.diagram_name
+                if diagram_data is None and input.diagram_name:
+                    # Use diagram_name as the path
+                    diagram_path = input.diagram_name
                     try:
                         # Load diagram from file using the diagram service
                         from dipeo.application.registry.keys import DIAGRAM_PORT

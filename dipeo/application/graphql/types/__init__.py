@@ -7,10 +7,10 @@ additional GraphQL-specific types needed for the schema.
 # Re-export all generated domain types
 from dipeo.diagram_generated.domain_models import *
 from dipeo.diagram_generated.enums import *
-from dipeo.diagram_generated.graphql_backups import *
+from dipeo.diagram_generated.graphql import *
 
 # Import Strawberry domain types from generated code
-from dipeo.diagram_generated.graphql_backups.domain_types import (
+from dipeo.diagram_generated.graphql.domain_types import (
     DiagramMetadataType,
     DomainApiKeyType,
     DomainArrowType,
@@ -31,13 +31,13 @@ from dipeo.diagram_generated.graphql_backups.domain_types import (
 )
 
 # Import GraphQL-specific types
-from dipeo.diagram_generated.graphql_backups.inputs import *
+from dipeo.diagram_generated.graphql.inputs import *
 
 # Import generated results instead of deprecated ones
-from dipeo.diagram_generated.graphql_backups.results import *
+from dipeo.diagram_generated.graphql.results import *
 
 # Import generated scalars instead of manual ones
-from dipeo.diagram_generated.graphql_backups.scalars import *
+from dipeo.diagram_generated.graphql.scalars import *
 
 # from dipeo.diagram_generated.models.api_job_model import ApiJobNodeData
 # from dipeo.diagram_generated.models.code_job_model import CodeJobNodeData

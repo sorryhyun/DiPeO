@@ -5,7 +5,7 @@ import traceback
 
 import requests
 
-from dipeo.diagram_generated.graphql_backups.operations import (
+from dipeo.diagram_generated.graphql.operations import (
     GET_EXECUTION_HISTORY_QUERY,
     GET_EXECUTION_QUERY,
     LIST_EXECUTIONS_QUERY,

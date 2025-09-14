@@ -12,13 +12,13 @@ from strawberry.schema.config import StrawberryConfig
 from dipeo.application.registry import ServiceRegistry
 
 # Import subscription types for registration
-from dipeo.diagram_generated.graphql_backups.domain_types import ExecutionUpdate
+from dipeo.diagram_generated.graphql.domain_types import ExecutionUpdate
 
 # Import generated schema (Now includes fixed Subscription)
-from dipeo.diagram_generated.graphql_backups.generated_schema import Mutation, Query, Subscription
+from dipeo.diagram_generated.graphql.generated_schema import Mutation, Query, Subscription
 
 # Import generated types
-from dipeo.diagram_generated.graphql_backups.strawberry_nodes import (
+from dipeo.diagram_generated.graphql.strawberry_nodes import (
     ApiJobDataType,
     CodeJobDataType,
     ConditionDataType,
@@ -52,7 +52,7 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
         A Strawberry GraphQL schema ready to be served
     """
     # Import scalar types from generated code
-    from dipeo.diagram_generated.graphql_backups.scalars import (
+    from dipeo.diagram_generated.graphql.scalars import (
         ApiKeyIDScalar,
         ArrowIDScalar,
         DiagramIDScalar,

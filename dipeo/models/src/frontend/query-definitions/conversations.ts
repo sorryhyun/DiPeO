@@ -8,8 +8,8 @@ export const conversationQueries: EntityQueryDefinitions = {
       name: 'ListConversations',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'person_id', type: 'ID' },
-        { name: 'execution_id', type: 'ID' },
+        { name: 'person_id', type: 'String' },
+        { name: 'execution_id', type: 'String' },
         { name: 'search', type: 'String' },
         { name: 'show_forgotten', type: 'Boolean' },
         { name: 'limit', type: 'Int' },

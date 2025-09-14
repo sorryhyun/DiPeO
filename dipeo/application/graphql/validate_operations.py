@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root))
 
 from dipeo.application.graphql.operation_executor import OperationExecutor  # noqa: E402
 from dipeo.application.registry.service_registry import ServiceRegistry  # noqa: E402
-from dipeo.diagram_generated.graphql_backups import operations  # noqa: E402
+from dipeo.diagram_generated.graphql import operations  # noqa: E402
 
 
 def get_all_generated_operations() -> set[str]:

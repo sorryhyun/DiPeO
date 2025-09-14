@@ -24,7 +24,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       name: 'GetApiKey',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'api_key_id', type: 'ID', required: true }
+        { name: 'api_key_id', type: 'String', required: true }
       ],
       fields: [
         {
@@ -45,7 +45,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       variables: [
         { name: 'service', type: 'String', required: true },
-        { name: 'api_key_id', type: 'ID', required: true }
+        { name: 'api_key_id', type: 'String', required: true }
       ],
       fields: [
         {
@@ -89,7 +89,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       name: 'TestApiKey',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'api_key_id', type: 'ID', required: true }
+        { name: 'api_key_id', type: 'String', required: true }
       ],
       fields: [
         {
@@ -109,7 +109,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       name: 'DeleteApiKey',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'api_key_id', type: 'ID', required: true }
+        { name: 'api_key_id', type: 'String', required: true }
       ],
       fields: [
         {

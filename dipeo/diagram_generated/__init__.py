@@ -76,7 +76,6 @@ __all__ = [
     "ApiKeyID",
     "ArrowID",
     # Other models
-    "BaseNodeData",
     "ChatResult",
     "ContentType",
     "Conversation",

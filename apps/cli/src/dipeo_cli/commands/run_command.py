@@ -1,7 +1,9 @@
 """Run command for executing diagrams."""
 
 import asyncio
+import contextlib
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -72,7 +74,7 @@ class RunCommand:
                 diagram_id=diagram_path,  # Pass file path as diagram_id
                 input_variables=input_variables,
                 use_unified_monitoring=use_unified,
-                diagram_name=diagram_name or Path(diagram_path).stem,
+                diagram_name=diagram_name or diagram_path,  # Pass full path for backend to load
                 diagram_format=diagram_format,
             )
 
@@ -107,10 +109,14 @@ class RunCommand:
             # Always stop server when execute() exits, regardless of outcome
             # Unregister CLI session if we have an execution_id
             if execution_id:
-                self.server.unregister_cli_session(execution_id)
+                with contextlib.suppress(Exception):
+                    self.server.unregister_cli_session(execution_id)
 
             # Stop the server
             self.server.stop()
+
+            # Small delay to ensure server cleanup completes
+            time.sleep(0.1)
 
     def _wait_for_completion_simple(self, execution_id: str, timeout: int, debug: bool) -> bool:
         """Poll for execution completion in simple mode."""
@@ -176,27 +182,19 @@ class RunCommand:
             if exec_result:
                 display.update_from_state(exec_result)
 
-            # Run async subscription
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
+            # Run async subscription with a clean loop (ensures full teardown)
             async def run_subscription():
                 await client.connect()
-
-                # Create task for subscription
-                subscription_task = asyncio.create_task(
-                    client.subscribe_to_execution(display.handle_event)
-                )
-
                 try:
-                    # Also run timeout checker
-                    start_time = time.time()
+                    subscription_task = asyncio.create_task(
+                        client.subscribe_to_execution(display.handle_event)
+                    )
+                    start = time.time()
                     while True:
                         # Check timeout
-                        if time.time() - start_time > timeout:
+                        if time.time() - start > timeout:
                             print(f"\n⏰ Execution timed out after {timeout} seconds")
                             subscription_task.cancel()
-                            await client.disconnect()
                             return False
 
                         # Check execution status
@@ -209,7 +207,6 @@ class RunCommand:
                                 else:
                                     print("\n✅ Execution completed successfully!")
                                 subscription_task.cancel()
-                                await client.disconnect()
                                 return True
                             elif status in ["FAILED", "ABORTED"]:
                                 if status == "ABORTED":
@@ -219,31 +216,19 @@ class RunCommand:
                                         f"\n❌ Execution failed: {exec_result.get('error', 'Unknown error')}"
                                     )
                                 subscription_task.cancel()
-                                await client.disconnect()
                                 return False
 
                         await asyncio.sleep(1)
                 except asyncio.CancelledError:
-                    subscription_task.cancel()
-                    await client.disconnect()
                     raise
+                finally:
+                    await client.disconnect()
 
             try:
-                result = loop.run_until_complete(run_subscription())
-                return result
+                return asyncio.run(run_subscription())
             except KeyboardInterrupt:
-                # Handle Ctrl+C gracefully
-                loop.run_until_complete(client.disconnect())
                 raise
             finally:
-                # Clean up any pending tasks
-                pending = asyncio.all_tasks(loop)
-                for task in pending:
-                    task.cancel()
-                # Wait for all tasks to complete cancellation
-                if pending:
-                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-                loop.close()
                 display.stop()
 
         except KeyboardInterrupt:

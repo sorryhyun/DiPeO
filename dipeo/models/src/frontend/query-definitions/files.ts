@@ -10,7 +10,7 @@ export const fileQueries: EntityQueryDefinitions = {
       name: 'UploadFile',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'file', type: 'JSON', required: true },
+        { name: 'file', type: 'Upload', required: true },
         { name: 'path', type: 'String' }
       ],
       fields: [
@@ -28,7 +28,7 @@ export const fileQueries: EntityQueryDefinitions = {
       name: 'UploadDiagram',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'file', type: 'JSON', required: true },
+        { name: 'file', type: 'Upload', required: true },
         { name: 'format', type: 'DiagramFormatGraphQL', required: true }
       ],
       fields: [
