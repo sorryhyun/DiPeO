@@ -1,0 +1,314 @@
+"""Persistence management for cache-first state store."""
+
+import asyncio
+import json
+import logging
+import sqlite3
+import time
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+from uuid import uuid4
+
+from dipeo.diagram_generated import ExecutionState, NodeState, Status
+
+from .models import CacheEntry, CacheMetrics
+
+logger = logging.getLogger(__name__)
+
+
+class PersistenceManager:
+    """Manages database operations and persistence."""
+
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+        self._conn: sqlite3.Connection | None = None
+        self._executor = ThreadPoolExecutor(max_workers=2)
+        self._metrics = CacheMetrics()
+
+    @property
+    def metrics(self) -> CacheMetrics:
+        """Get persistence metrics."""
+        return self._metrics
+
+    async def connect(self) -> None:
+        """Connect to the database."""
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+
+        loop = asyncio.get_event_loop()
+
+        def _connect_sync():
+            conn = sqlite3.connect(
+                self.db_path,
+                check_same_thread=False,
+                isolation_level=None,
+                timeout=30.0,
+            )
+            # Performance optimizations
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            conn.execute("PRAGMA cache_size=10000")
+            conn.execute("PRAGMA temp_store=MEMORY")
+            conn.execute("PRAGMA mmap_size=268435456")
+            return conn
+
+        self._conn = await loop.run_in_executor(self._executor, _connect_sync)
+
+    async def disconnect(self) -> None:
+        """Disconnect from database."""
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+        # Don't shutdown executor as it might be reused
+
+    def shutdown(self) -> None:
+        """Shutdown the executor (call only when completely done)."""
+        self._executor.shutdown(wait=False)
+
+    async def init_schema(self) -> None:
+        """Initialize database schema."""
+        schema = """
+        CREATE TABLE IF NOT EXISTS execution_states (
+            execution_id TEXT PRIMARY KEY,
+            status TEXT NOT NULL,
+            diagram_id TEXT,
+            started_at TEXT NOT NULL,
+            ended_at TEXT,
+            node_states TEXT NOT NULL,
+            node_outputs TEXT NOT NULL,
+            llm_usage TEXT NOT NULL,
+            error TEXT,
+            variables TEXT NOT NULL,
+            exec_counts TEXT NOT NULL DEFAULT '{}',
+            executed_nodes TEXT NOT NULL DEFAULT '[]',
+            metrics TEXT DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            access_count INTEGER DEFAULT 0,
+            last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_status ON execution_states(status);
+        CREATE INDEX IF NOT EXISTS idx_started_at ON execution_states(started_at);
+        CREATE INDEX IF NOT EXISTS idx_diagram_id ON execution_states(diagram_id);
+        CREATE INDEX IF NOT EXISTS idx_access_count ON execution_states(access_count DESC);
+        CREATE INDEX IF NOT EXISTS idx_last_accessed ON execution_states(last_accessed DESC);
+        """
+
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(self._executor, self._conn.executescript, schema)
+
+    async def execute(self, query: str, params: tuple = ()) -> sqlite3.Cursor:
+        """Execute a database query."""
+        loop = asyncio.get_event_loop()
+        cursor = await loop.run_in_executor(self._executor, self._conn.execute, query, params)
+
+        # Update metrics
+        if query.strip().upper().startswith("SELECT"):
+            self._metrics.db_reads += 1
+        else:
+            self._metrics.db_writes += 1
+
+        return cursor
+
+    async def persist_entry(self, execution_id: str, entry: CacheEntry) -> None:
+        """Persist a cache entry to database."""
+        state_dict = entry.state.model_dump()
+
+        await self.execute(
+            """
+            INSERT INTO execution_states
+            (execution_id, status, diagram_id, started_at, ended_at,
+             node_states, node_outputs, llm_usage, error, variables,
+             exec_counts, executed_nodes, metrics, access_count, last_accessed)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(execution_id) DO UPDATE SET
+                status=excluded.status,
+                ended_at=excluded.ended_at,
+                node_states=excluded.node_states,
+                node_outputs=excluded.node_outputs,
+                llm_usage=excluded.llm_usage,
+                error=excluded.error,
+                variables=excluded.variables,
+                exec_counts=excluded.exec_counts,
+                executed_nodes=excluded.executed_nodes,
+                metrics=excluded.metrics,
+                access_count=excluded.access_count,
+                last_accessed=excluded.last_accessed
+            """,
+            (
+                entry.state.id,
+                entry.state.status.value,
+                entry.state.diagram_id,
+                entry.state.started_at,
+                entry.state.ended_at,
+                json.dumps(state_dict["node_states"]),
+                json.dumps(state_dict["node_outputs"]),
+                json.dumps(state_dict["llm_usage"]),
+                entry.state.error,
+                json.dumps(state_dict["variables"]),
+                json.dumps(state_dict["exec_counts"]),
+                json.dumps(state_dict["executed_nodes"]),
+                json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None,
+                entry.access_count,
+                datetime.now().isoformat(),
+            ),
+        )
+
+        entry.is_dirty = False
+        entry.is_persisted = True
+
+    async def load_state(self, execution_id: str) -> ExecutionState | None:
+        """Load execution state from database."""
+        cursor = await self.execute(
+            """
+            SELECT execution_id, status, diagram_id, started_at, ended_at,
+                   node_states, node_outputs, llm_usage, error, variables,
+                   exec_counts, executed_nodes, metrics, access_count
+            FROM execution_states
+            WHERE execution_id = ?
+            """,
+            (execution_id,),
+        )
+
+        loop = asyncio.get_event_loop()
+        row = await loop.run_in_executor(self._executor, cursor.fetchone)
+
+        if not row:
+            return None
+
+        return self._parse_state_from_row(row)
+
+    async def load_warm_cache_states(self, limit: int) -> list[tuple[ExecutionState, int]]:
+        """Load frequently accessed states for cache warming."""
+        cursor = await self.execute(
+            """
+            SELECT execution_id, status, diagram_id, started_at, ended_at,
+                   node_states, node_outputs, llm_usage, error, variables,
+                   exec_counts, executed_nodes, metrics, access_count
+            FROM execution_states
+            WHERE status IN (?, ?)
+            ORDER BY access_count DESC, last_accessed DESC
+            LIMIT ?
+            """,
+            (Status.RUNNING.value, Status.PENDING.value, limit),
+        )
+
+        loop = asyncio.get_event_loop()
+        rows = await loop.run_in_executor(self._executor, cursor.fetchall)
+
+        states = []
+        for row in rows:
+            state = self._parse_state_from_row(row)
+            access_count = row[13] if len(row) > 13 else 0
+            states.append((state, access_count))
+
+        return states
+
+    async def update_access_tracking(self, execution_id: str) -> None:
+        """Update access count and timestamp for an execution."""
+        await self.execute(
+            """
+            UPDATE execution_states
+            SET access_count = access_count + 1,
+                last_accessed = ?
+            WHERE execution_id = ?
+            """,
+            (datetime.now().isoformat(), execution_id),
+        )
+
+    async def list_executions(
+        self,
+        diagram_id: str | None = None,
+        status: Status | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[ExecutionState]:
+        """List executions from database."""
+        query = """
+        SELECT execution_id, status, diagram_id, started_at, ended_at,
+               node_states, node_outputs, llm_usage, error, variables,
+               exec_counts, executed_nodes, metrics
+        FROM execution_states
+        """
+        conditions = []
+        params = []
+
+        if diagram_id:
+            conditions.append("diagram_id = ?")
+            params.append(diagram_id)
+
+        if status:
+            conditions.append("status = ?")
+            params.append(status.value)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY started_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor = await self.execute(query, tuple(params))
+
+        loop = asyncio.get_event_loop()
+        rows = await loop.run_in_executor(self._executor, cursor.fetchall)
+
+        executions = []
+        for row in rows:
+            state = self._parse_state_from_row(row)
+            executions.append(state)
+
+        return executions
+
+    async def cleanup_old_states(self, days: int = 7) -> None:
+        """Cleanup old execution states."""
+        from datetime import timedelta
+
+        cutoff_date = datetime.now() - timedelta(days=days)
+        cutoff_iso = cutoff_date.isoformat()
+
+        await self.execute("DELETE FROM execution_states WHERE started_at < ?", (cutoff_iso,))
+        await self.execute("VACUUM")
+
+    def _parse_state_from_row(self, row) -> ExecutionState:
+        """Parse ExecutionState from database row."""
+        raw_outputs = json.loads(row[6]) if row[6] else {}
+        node_outputs = {}
+
+        for node_id, output_data in raw_outputs.items():
+            if isinstance(output_data, dict):
+                node_outputs[node_id] = output_data
+            else:
+                node_outputs[node_id] = {
+                    "envelope_format": True,
+                    "id": str(uuid4()),
+                    "trace_id": "",
+                    "produced_by": node_id,
+                    "content_type": "raw_text",
+                    "schema_id": None,
+                    "serialization_format": None,
+                    "body": output_data,
+                    "meta": {"timestamp": time.time()},
+                    "representations": None,
+                }
+
+        state_data = {
+            "id": row[0],
+            "status": row[1],
+            "diagram_id": row[2],
+            "started_at": row[3],
+            "ended_at": row[4],
+            "node_states": json.loads(row[5]) if row[5] else {},
+            "node_outputs": node_outputs,
+            "llm_usage": json.loads(row[7])
+            if row[7]
+            else {"input": 0, "output": 0, "cached": None, "total": 0},
+            "error": row[8],
+            "variables": json.loads(row[9]) if row[9] else {},
+            "exec_counts": json.loads(row[10]) if len(row) > 10 and row[10] else {},
+            "executed_nodes": json.loads(row[11]) if len(row) > 11 and row[11] else [],
+            "metrics": json.loads(row[12]) if len(row) > 12 and row[12] else None,
+            "is_active": row[1] in [Status.RUNNING.value, Status.PENDING.value],
+        }
+
+        return ExecutionState(**state_data)

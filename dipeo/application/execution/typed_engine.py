@@ -143,7 +143,7 @@ class TypedExecutionEngine:
                 status=Status.COMPLETED, total_steps=step_count, execution_path=execution_path
             )
 
-            # State is now persisted asynchronously via AsyncStateManager listening to events
+            # State is now persisted asynchronously via CacheFirstStateStore listening to events
             # No need for direct state_store calls - the event bus handles persistence
 
             yield {
@@ -222,7 +222,9 @@ class TypedExecutionEngine:
 
             from dipeo.diagram_generated import NodeType
 
-            if node.type != NodeType.CONDITION and output:
+            # Always emit tokens for non-condition nodes, even if output is empty/falsy
+            # This ensures downstream nodes receive tokens and can become ready
+            if node.type != NodeType.CONDITION:
                 outputs = {"default": output} if not isinstance(output, dict) else output
                 context.emit_outputs_as_tokens(node_id, outputs, epoch)
 

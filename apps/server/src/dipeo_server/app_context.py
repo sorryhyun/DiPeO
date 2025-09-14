@@ -82,17 +82,11 @@ async def create_server_container() -> Container:
     # Register for backward compatibility
     container.registry.register(STATE_STORE, state_store)
 
-    # AsyncStateManager is now wired and subscribed in wiring.py
-    # Execute event subscriptions to activate AsyncStateManager
+    # CacheFirstStateStore is now wired and subscribed in wiring.py
+    # Execute event subscriptions to activate state store event handling
     from dipeo.application.bootstrap.wiring import execute_event_subscriptions
 
     await execute_event_subscriptions(container.registry)
-
-    # Get async state manager if registered
-    async_state_manager_key = ServiceKey("async_state_manager")
-    state_manager = None
-    if container.registry.has(async_state_manager_key):
-        state_manager = container.registry.resolve(async_state_manager_key)
 
     # Initialize and wire MessageRouter
     await message_router.initialize()
@@ -123,7 +117,6 @@ async def create_server_container() -> Container:
 
     # Create and subscribe metrics observer
     from dipeo.application.execution.observers import MetricsObserver
-    from dipeo.application.registry.keys import ServiceKey
 
     metrics_observer = MetricsObserver(event_bus=event_bus)
 

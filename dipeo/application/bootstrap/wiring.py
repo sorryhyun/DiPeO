@@ -29,7 +29,7 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
         StateCacheAdapter,
         StateServiceAdapter,
     )
-    from dipeo.infrastructure.execution.state import AsyncStateManager, CacheFirstStateStore
+    from dipeo.infrastructure.execution.state import CacheFirstStateStore
 
     use_redis = os.getenv("DIPEO_STATE_BACKEND", "memory").lower() == "redis"
 
@@ -69,12 +69,6 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
     registry.register(STATE_REPOSITORY, repository)
     registry.register(STATE_SERVICE, service)
     registry.register(STATE_CACHE, cache)
-
-    # Create and register AsyncStateManager for async state persistence
-    # Configurable write interval for batching optimizations
-    write_interval = float(os.getenv("DIPEO_ASYNC_WRITE_INTERVAL", "0.1"))
-    async_state_manager = AsyncStateManager(repository, write_interval=write_interval)
-    registry.register(ServiceKey("async_state_manager"), async_state_manager)
 
 
 def wire_messaging_services(registry: ServiceRegistry) -> None:
@@ -222,36 +216,39 @@ def wire_event_services(registry: ServiceRegistry) -> None:
     if not registry.has(EVENT_BUS):
         registry.register(EVENT_BUS, domain_event_bus)
 
-    # Wire AsyncStateManager to event bus for async state persistence
-    async_state_manager_key = ServiceKey("async_state_manager")
-    if registry.has(async_state_manager_key):
-        async_state_manager = registry.resolve(async_state_manager_key)
+    # Wire CacheFirstStateStore to event bus for async state persistence
+    if registry.has(STATE_REPOSITORY):
+        state_store = registry.resolve(STATE_REPOSITORY)
 
-        # State-related events that AsyncStateManager should handle
-        state_events = [
-            EventType.EXECUTION_STARTED,
-            EventType.NODE_STARTED,
-            EventType.NODE_COMPLETED,
-            EventType.NODE_ERROR,
-            EventType.EXECUTION_COMPLETED,
-            EventType.METRICS_COLLECTED,
-        ]
+        # Only subscribe if it's CacheFirstStateStore with handle_event method
+        from dipeo.infrastructure.execution.state import CacheFirstStateStore
 
-        async def subscribe_state_manager():
-            from dipeo.domain.events.types import EventPriority
+        if isinstance(state_store, CacheFirstStateStore):
+            # State-related events that CacheFirstStateStore should handle
+            state_events = [
+                EventType.EXECUTION_STARTED,
+                EventType.NODE_STARTED,
+                EventType.NODE_COMPLETED,
+                EventType.NODE_ERROR,
+                EventType.EXECUTION_COMPLETED,
+                EventType.METRICS_COLLECTED,
+            ]
 
-            # Subscribe with LOW priority so state updates happen after other handlers
-            await domain_event_bus.subscribe(
-                event_types=state_events,
-                handler=async_state_manager,
-                priority=EventPriority.LOW,
-            )
+            async def subscribe_state_store():
+                from dipeo.domain.events.types import EventPriority
 
-            # Initialize the async state manager
-            if hasattr(async_state_manager, "initialize"):
-                await async_state_manager.initialize()
+                # Subscribe with LOW priority so state updates happen after other handlers
+                await domain_event_bus.subscribe(
+                    event_types=state_events,
+                    handler=state_store.handle_event,
+                    priority=EventPriority.LOW,
+                )
 
-        registry.register(ServiceKey("state_manager_subscription"), subscribe_state_manager)
+                # Initialize the state store if needed
+                if hasattr(state_store, "initialize"):
+                    await state_store.initialize()
+
+            registry.register(ServiceKey("state_store_subscription"), subscribe_state_store)
 
     if registry.has(MESSAGE_ROUTER):
         router = registry.resolve(MESSAGE_ROUTER)
