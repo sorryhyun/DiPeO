@@ -69,7 +69,6 @@ nodes:
             batch_items.append({
                 'node_spec_path': file_name
             })
-        print(batch_items)
         return {'items': batch_items}
 
   # Generate frontend components using batch sub_diagram
@@ -115,7 +114,7 @@ nodes:
     type: sub_diagram
     position: {x: 800, y: 520}
     props:
-      diagram_name: projects/codegen/diagrams/frontend/generate_frontend_registry
+      diagram_name: projects/codegen/diagrams/models/generate_frontend_registry
       diagram_format: light
       passInputData: false
 

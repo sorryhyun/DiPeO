@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-14T15:18:58.153116",
+  "generated_at": "2025-09-14T15:40:46.324904",
   "interfaces": [
     {
       "name": "CliSession",
