@@ -221,7 +221,7 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[IntegratedApiNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        envelope_inputs = self.consume_token_inputs(request, inputs)
+        envelope_inputs = self.get_effective_inputs(request, inputs)
 
         return await super().prepare_inputs(request, envelope_inputs)
 

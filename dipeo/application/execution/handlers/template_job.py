@@ -207,7 +207,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         from datetime import datetime
 
         # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
-        envelope_inputs = self.consume_token_inputs(request, inputs)
+        envelope_inputs = self.get_effective_inputs(request, inputs)
 
         node = request.node
         template_vars = {}

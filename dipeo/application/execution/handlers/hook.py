@@ -114,7 +114,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[HookNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        envelope_inputs = self.consume_token_inputs(request, inputs)
+        envelope_inputs = self.get_effective_inputs(request, inputs)
 
         prepared_inputs = {}
         for key, envelope in envelope_inputs.items():

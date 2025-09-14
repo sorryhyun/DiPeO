@@ -6,28 +6,16 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from gql import Client, gql
+from gql.transport.websockets import WebsocketsTransport
+
 logger = logging.getLogger(__name__)
-
-# Try to import WebSocket dependencies
-try:
-    from gql import Client, gql
-    from gql.transport.websockets import WebsocketsTransport
-
-    HAS_WEBSOCKET_SUPPORT = True
-except ImportError:
-    HAS_WEBSOCKET_SUPPORT = False
-    logger.debug("WebSocket support not available, will use polling")
 
 
 class SubscriptionClient:
     """Client for GraphQL subscriptions."""
 
     def __init__(self, url: str, execution_id: str):
-        if not HAS_WEBSOCKET_SUPPORT:
-            raise ImportError(
-                "WebSocket support not available. Install with: uv pip install 'gql[websockets]'"
-            )
-
         self.execution_id = execution_id
 
         # Convert HTTP URL to WebSocket URL
@@ -122,130 +110,3 @@ class SubscriptionClient:
         except Exception as e:
             logger.error(f"Subscription error: {e}")
             raise
-
-
-class SimpleSubscriptionClient:
-    """Simplified subscription client using HTTP polling as fallback."""
-
-    def __init__(self, server_manager, execution_id: str):
-        self.server_manager = server_manager
-        self.execution_id = execution_id
-        self._stop_event = asyncio.Event()
-        self.last_node_states = {}
-        self.last_status = None
-
-    async def connect(self):
-        """No-op for polling client."""
-        return True
-
-    async def disconnect(self):
-        """Stop polling."""
-        self._stop_event.set()
-
-    async def subscribe_to_execution(self, callback: Callable[[dict[str, Any]], None]):
-        """Poll for execution updates with state tracking."""
-        consecutive_none_count = 0
-        max_consecutive_none = 20  # Allow up to 10 seconds of None responses (20 * 0.5s)
-
-        while not self._stop_event.is_set():
-            try:
-                # Get execution state
-                result = self.server_manager.get_execution_result(self.execution_id)
-
-                if result:
-                    # Reset the None counter when we get a valid result
-                    consecutive_none_count = 0
-
-                    # Check for status changes
-                    status = result.get("status")
-                    if status and status != self.last_status:
-                        self.last_status = status
-                        event = {
-                            "execution_id": self.execution_id,
-                            "event_type": "EXECUTION_STATUS_CHANGED",
-                            "data": {"status": status},
-                            "timestamp": None,
-                        }
-                        await asyncio.get_event_loop().run_in_executor(None, callback, event)
-
-                    # Check for node state changes
-                    node_states = result.get("node_states", {})
-                    for node_id, state in node_states.items():
-                        if isinstance(state, dict):
-                            node_status = state.get("status")
-                            prev_status = self.last_node_states.get(node_id, {}).get("status")
-
-                            # Emit event if status changed
-                            if node_status != prev_status:
-                                # Determine event type based on new status
-                                if node_status == "RUNNING":
-                                    event_type = "NODE_STARTED"
-                                elif node_status == "COMPLETED":
-                                    event_type = "NODE_COMPLETED"
-                                elif node_status == "FAILED":
-                                    event_type = "NODE_FAILED"
-                                elif node_status == "SKIPPED":
-                                    event_type = "NODE_STATUS_CHANGED"
-                                else:
-                                    event_type = "NODE_STATUS_CHANGED"
-
-                                event = {
-                                    "execution_id": self.execution_id,
-                                    "event_type": event_type,
-                                    "data": {
-                                        "node_id": node_id,
-                                        "node_type": state.get("node_type", "UNKNOWN"),
-                                        "name": state.get("name", node_id),
-                                        "status": node_status,
-                                        "error": state.get("error")
-                                        if node_status == "FAILED"
-                                        else None,
-                                    },
-                                    "timestamp": None,
-                                }
-                                await asyncio.get_event_loop().run_in_executor(
-                                    None, callback, event
-                                )
-
-                                # Update tracked state
-                                self.last_node_states[node_id] = state
-
-                    # Get metrics including token usage
-                    metrics = self.server_manager.get_execution_metrics(self.execution_id)
-                    if metrics and "token_usage" in metrics:
-                        event = {
-                            "execution_id": self.execution_id,
-                            "event_type": "METRICS_COLLECTED",
-                            "data": {"token_usage": metrics["token_usage"]},
-                            "timestamp": None,
-                        }
-                        await asyncio.get_event_loop().run_in_executor(None, callback, event)
-
-                    # Check if execution is done
-                    if status in ["COMPLETED", "FAILED", "ABORTED", "MAXITER_REACHED"]:
-                        break
-                else:
-                    # Result is None - increment counter
-                    consecutive_none_count += 1
-
-                    # If we had a previous status that was completed, assume execution is done
-                    if self.last_status in ["COMPLETED", "FAILED", "ABORTED", "MAXITER_REACHED"]:
-                        break
-
-                    # If too many consecutive None responses, assume something is wrong
-                    if consecutive_none_count >= max_consecutive_none:
-                        # Emit a completion event based on last known status
-                        event = {
-                            "execution_id": self.execution_id,
-                            "event_type": "EXECUTION_STATUS_CHANGED",
-                            "data": {"status": self.last_status or "COMPLETED"},
-                            "timestamp": None,
-                        }
-                        await asyncio.get_event_loop().run_in_executor(None, callback, event)
-                        break
-
-            except Exception as e:
-                logger.debug(f"Polling error: {e}")
-
-            # Wait before next poll (shorter interval for more responsive updates)
-            await asyncio.sleep(0.5)

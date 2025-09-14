@@ -51,12 +51,18 @@ class ExecutionDisplay:
     def start(self):
         """Start the live display."""
         if self._live is None:
+            # Clear the console and start fresh
+            self.console.clear()
+
+            # Render initial layout
+            self._cached_layout = self.layout.render()
             self._live = Live(
-                self.layout.render(),
+                self._cached_layout,
                 console=self.console,
-                refresh_per_second=10,
-                screen=False,  # Don't clear screen
-                vertical_overflow="visible",
+                refresh_per_second=4,  # Balanced refresh rate
+                screen=True,  # Use full screen mode for stable display
+                vertical_overflow="ellipsis",  # Handle overflow properly
+                transient=False,  # Keep display after completion
             )
             self._live.start()
 
@@ -78,8 +84,9 @@ class ExecutionDisplay:
         while not self._stop_event.is_set():
             with self._update_lock:
                 if self._live:
+                    # Always update to keep the display fresh
                     self._live.update(self.layout.render())
-            time.sleep(0.1)  # Update every 100ms
+            time.sleep(0.25)  # Update every 250ms to match 4fps refresh rate
 
     def handle_event(self, event: dict[str, Any]):
         """Handle an execution event and update the display."""

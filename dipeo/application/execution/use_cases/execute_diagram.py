@@ -117,10 +117,9 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
                 EventType.EXECUTION_COMPLETED,
             ]
 
-            # Subscribe based on event bus type
-            if hasattr(event_bus, "subscribe"):
-                for event_type in metrics_events:
-                    await event_bus.subscribe(event_type, metrics_observer)
+            # Subscribe metrics observer to events
+            for event_type in metrics_events:
+                await event_bus.subscribe(event_type, metrics_observer)
 
         # Create engine with event bus only (observers are deprecated)
         engine = TypedExecutionEngine(

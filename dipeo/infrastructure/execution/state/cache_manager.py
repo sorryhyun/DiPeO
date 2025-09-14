@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from collections import defaultdict
+from collections.abc import Callable
 from typing import Any
 
 from dipeo.diagram_generated import ExecutionState, Status
@@ -77,7 +78,7 @@ class CacheManager:
     async def update_entry(
         self,
         execution_id: str,
-        update_func: callable,
+        update_func: Callable,
     ) -> CacheEntry:
         """Update cache entry with a function."""
         async with self._cache_lock:
@@ -129,7 +130,7 @@ class CacheManager:
         if states:
             logger.info(f"Warmed cache with {len(states)} frequently accessed executions")
 
-    async def evict_if_needed(self, persist_callback: callable | None = None) -> None:
+    async def evict_if_needed(self, persist_callback: Callable | None = None) -> None:
         """Evict cache entries if cache is full."""
         async with self._cache_lock:
             if len(self._cache) <= self._cache_size:

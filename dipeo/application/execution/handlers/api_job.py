@@ -102,7 +102,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         """Prepare API request inputs from envelopes and node configuration."""
         node = request.node
 
-        envelope_inputs = self.consume_token_inputs(request, inputs)
+        envelope_inputs = self.get_effective_inputs(request, inputs)
 
         api_config = {
             "api_service": self._current_api_service,

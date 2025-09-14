@@ -11,7 +11,7 @@ from typing import Any
 from dipeo.infrastructure.logging_config import setup_logging
 
 from ..display.execution_display import ExecutionDisplay, SimpleDisplay
-from ..display.subscription_client import SimpleSubscriptionClient, SubscriptionClient
+from ..display.subscription_client import SubscriptionClient
 from ..server_manager import ServerManager
 from .base import DiagramLoader
 
@@ -193,14 +193,9 @@ class RunCommand:
             display = ExecutionDisplay(diagram_name, execution_id, debug)
             display.start()
 
-            # Try WebSocket client first, fallback to polling if it fails
-            try:
-                # Use WebSocket subscription client for real-time updates
-                ws_url = f"http://localhost:{self.server.port}"
-                client = SubscriptionClient(ws_url, execution_id)
-            except Exception:
-                # Fallback to polling client
-                client = SimpleSubscriptionClient(self.server, execution_id)
+            # Use WebSocket subscription client for real-time updates (required)
+            ws_url = f"http://localhost:{self.server.port}"
+            client = SubscriptionClient(ws_url, execution_id)
 
             # Get initial state
             exec_result = self.server.get_execution_result(execution_id)

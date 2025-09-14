@@ -1,1339 +1,771 @@
 {
   "architecture": {
-    "overview": "Single-page React 18+ application (Vite) implemented in TypeScript. Core provides domain contracts, events and utilities. Providers wire cross-cutting concerns (React Query, auth, theme, mock-server, websocket). Design system is token-driven (Tailwind + tokens) with accessible, composable UI primitives. Features are organized as domain folders (dashboard, reports, builder, alerts, exports, predictions) exposing components, hooks and service adapters. App supports development-only mock API and WebSocket feeds so it can run standalone.",
+    "overview": "Ultra-Premium Landing for \"Absolutely Nothing\u2122\" built with React 18+, TypeScript, Vite and Tailwind. The app is a single-page landing experience composed of feature-focused modules (hero, void animation, pricing, testimonials, simulator, etc.). Business logic is organized into a lightweight core (contracts, events, DI, utils), foundation providers (theme, Query, Auth, stores), feature modules (each exposing data/service + presentational composition of Radix primitives and Tailwind), and page compositions. Heavy animation and 3D effects (Framer Motion, Three.js, GSAP), data fetching (React Query + MSW in dev), local state (Zustand) and forms (React Hook Form + Zod) are used.",
     "patterns": [
-      "Container/Presentational separation for feature components",
-      "Atomic Design for shared UI primitives (atoms/molecules/organisms)",
-      "Feature-sliced folders: src/features/<feature>/{components,hooks,services}",
-      "Provider pattern for global services (Auth, Query, Theme, MockServer, WebSocket)",
-      "React Query for server state, Suspense + Error Boundaries for UX",
-      "Context API + lightweight zustand store for UI/local state where needed",
-      "Dependency inversion via src/core/di for test/mock substitution"
+      "Feature-sliced architecture: core \u2192 providers \u2192 features \u2192 pages",
+      "Container/Presentational: feature containers hold logic, compose presentational UI (Radix + Tailwind)",
+      "Domain-oriented services: service layer for APIs, analytics, chat, pricing rules",
+      "React Query for server state + caching; Zustand for ephemeral client state",
+      "Hook-first APIs: reusable hooks for business behaviors (useVoidParticles, useSimulator, useABTest)",
+      "Extension points via event bus and hooks registry for easter eggs and A/B testing"
     ],
-    "data_flow": "User interactions dispatch local UI state (zustand) and call feature hooks which use React Query to fetch or mutate data through services/api clients. Services use the DI registry to resolve implementations (production API client or mock client). Real-time updates come through WebSocket provider and update React Query caches (queryClient.setQueryData) or push to zustand local store for ephemeral metrics. Auth tokens stored via secure storage abstraction; in development they persist to localStorage. Caching and background refresh handled by React Query; optimistic updates supported for mutations.",
-    "folder_structure": "src/\n  app/\n    config.ts\n    App.tsx\n    main.tsx\n  core/\n    contracts.ts\n    events.ts\n    hooks.ts\n    di.ts\n    utils.ts\n  theme/\n    index.ts\n    animations.ts\n    tokens.ts\n  styles/\n    tailwind.css\n    globals.css\n  i18n/\n    index.ts\n    locales/\n      en.ts\n      es.ts\n  providers/\n    ThemeProvider.tsx\n    AuthProvider.tsx\n    QueryProvider.tsx\n    MockServerProvider.tsx\n    WebsocketProvider.tsx\n    ErrorBoundary.tsx\n    ToastProvider.tsx\n  shared/\n    components/\n      Button.tsx\n      Icon.tsx\n      IconButton.tsx\n      Input.tsx\n      Select.tsx\n      Checkbox.tsx\n      Switch.tsx\n      Card.tsx\n      Modal.tsx\n      Tooltip.tsx\n      Spinner.tsx\n      Skeleton.tsx\n      Toast.tsx\n      Table.tsx\n      DateRangePicker.tsx\n      DataExportButton.tsx\n    layouts/\n      MainLayout.tsx\n      DashboardLayout.tsx\n      AuthLayout.tsx\n    hooks/\n      useLocalStorage.ts\n      useDebounce.ts\n      useKeyboardNav.ts\n      useAuth.ts\n      useWebsocket.ts\n      useToast.ts\n    icons/\n      index.ts\n    a11y/\n      focusManager.ts\n    utils/\n      date.ts\n      formatters.ts\n      csvExport.ts\n  services/\n    api/\n      client.ts\n      analytics.ts\n      reports.ts\n      dashboards.ts\n      predictions.ts\n      alerts.ts\n      exports.ts\n    socket/\n      socket.ts\n    mock/\n      mockServer.ts\n      handlers/\n        metrics.ts\n        reports.ts\n        dashboards.ts\n        predictions.ts\n        alerts.ts\n        exports.ts\n      data/\n        sample-metrics.json\n        sample-dashboards.json\n        sample-reports.json\n  state/\n    ui.ts\n  features/\n    dashboard/\n      DashboardPage.tsx\n      components/\n        MetricCard.tsx\n        KPIWidget.tsx\n        RealTimeTicker.tsx\n        DrillDownModal.tsx\n      hooks/\n        useMetrics.ts\n    reports/\n      ReportsPage.tsx\n      components/\n        ReportTable.tsx\n        ReportFilters.tsx\n      hooks/\n        useReports.ts\n    builder/\n      BuilderPage.tsx\n      components/\n        ReportBuilderForm.tsx\n        FieldPalette.tsx\n      hooks/\n        useReportBuilder.ts\n    alerts/\n      AlertsPage.tsx\n      components/\n        AlertList.tsx\n        AlertConfigPanel.tsx\n      hooks/\n        useAlerts.ts\n    exports/\n      ExportsPage.tsx\n      components/\n        ExportForm.tsx\n      hooks/\n        useExports.ts\n    predictions/\n      PredictionsPage.tsx\n      components/\n        PredictiveChart.tsx\n      hooks/\n        usePredictions.ts\n  routes/\n    index.tsx\n    ProtectedRoute.tsx\n  pages/\n    LoginPage.tsx\n    NotFoundPage.tsx\n  mocks/\n    index.ts\n    websocketMock.ts\n  utils/\n    errorResponses.ts\n",
+    "data_flow": "UI components call feature hooks/services which use React Query for remote data and Zustand for local persisted state. Services emit/subscribe to core events. Providers (QueryProvider, AuthProvider) initialize contexts (React Query client, Auth). MSW provides mock endpoints in development. Analytics service collects events and pushes to a reporting store. A/B ExperimentManager can swap feature variants. Forms use React Hook Form + Zod for validation. import.meta.env variables are read from src/app/config.ts.",
+    "folder_structure": "src/\n  app/\n    config.ts\n  core/\n    contracts.ts\n    events.ts\n    hooks.ts\n    di.ts\n    utils.ts\n  mocks/\n    server.ts\n    handlers.ts\n  providers/\n    QueryProvider.tsx\n    AuthProvider.tsx\n  theme/\n    index.ts\n    animations.ts\n  state/\n    use-nothing-store.ts\n  shared/\n    layouts/\n      LandingLayout.tsx\n      CenterStageLayout.tsx\n  features/\n    hero/\n      existential-hero.tsx\n    void/\n      void-animation-system.tsx\n      use-void-particles.ts\n    pricing/\n      pricing.service.ts\n      pricing-tiers.tsx\n    testimonials/\n      testimonial.service.ts\n      testimonial-generator.tsx\n    counter/\n      animated-zero-counter.tsx\n    faq/\n      faq-section.tsx\n    team/\n      team-showcase.tsx\n    simulator/\n      void-simulator.tsx\n      use-simulator.ts\n    newsletter/\n      newsletter.service.ts\n      newsletter-form.tsx\n    chat/\n      chat.service.ts\n      live-chat-bot.tsx\n    comparison/\n      product-comparison-chart.tsx\n    casestudies/\n      case-studies.tsx\n    roadmap/\n      roadmap-timeline.tsx\n    showcase/\n      rotating-showcase-3d.tsx\n    reviews/\n      reviews-widget.tsx\n    moneyback/\n      moneyback-badge.tsx\n    affiliate/\n      affiliate-program.tsx\n    press/\n      press-kit-provider.tsx\n    apidocs/\n      api-docs.tsx\n    status/\n      status-page.tsx\n    cookies/\n      cookie-banner.tsx\n    analytics/\n      analytics.service.ts\n      analytics-dashboard.tsx\n    easter-eggs/\n      easter-egg-manager.tsx\n    experiments/\n      experiment-manager.ts\n    sound/\n      silence-audio.ts\n  pages/\n    landing.tsx\n    docs.tsx\n    status.tsx\n    404.tsx\n  generated/ <-- output dir for build artifacts and mocks",
     "tech_stack": [
-      "React 18+ (Suspense, concurrent-safe patterns)",
-      "TypeScript with strict mode",
-      "Vite (import.meta.env)",
-      "TailwindCSS with token-driven design + dark mode",
-      "React Query (TanStack Query) for data fetching & caching",
-      "Zustand (small) for local UI state where useful",
-      "React Router v6 for client routing",
-      "i18next for i18n",
-      "Charting: Recharts or Chart.js wrapper (encapsulated behind Chart component)",
-      "Framer Motion for micro-interactions and page transitions",
-      "msw (Mock Service Worker) abstracted in src/services/mock for dev-mode",
-      "native WebSocket API with mock fallback"
+      "React 18+ (Suspense, Error Boundaries, Context API)",
+      "TypeScript",
+      "Vite (use import.meta.env)",
+      "Tailwind CSS (dark mode enabled)",
+      "Radix UI primitives via @/components/ui/*",
+      "CVA (class-variance-authority) for Tailwind variants",
+      "Framer Motion for UI animations",
+      "Three.js for 3D showcase",
+      "GSAP for advanced timeline animations",
+      "Recharts for charts",
+      "React Query for server state",
+      "Zustand for local client state",
+      "React Hook Form + Zod for forms",
+      "Sonner for toasts",
+      "TanStack Table (for product comparison table if needed)",
+      "MSW for dev API mocks",
+      "Lucide React for icons"
     ]
   },
   "kernel_specs": {
-    "overview": "The core kernel provides a single source of truth for domain types, runtime configuration, eventing, extension hooks, dependency injection tokens and common utilities. All features and providers should import types, tokens and helpers from these files. The kernel is small, framework-agnostic (but Vite-aware via import.meta.env), strictly typed, and designed to support easy mocking and test-time overrides via the DI container and hook registry."
+    "overview": "The Core Kernel glues together React Query, Zustand, React Hook Form + Zod, MSW, Radix UI, Sonner toasts and i18n for the Nothing landing app. It provides typed contracts (Zod + TS), a typed QueryClient with sensible defaults and toast-integrated error handling, a development MSW bootstrap with handlers driven by runtime config, a central library re-export/wrapper layer (typed useQuery/useMutation, typed useForm), and a Sonner toast wrapper with typed convenience functions. All runtime configuration uses import.meta.env and appConfig flags to control mocks, analytics, persistence and feature toggles."
   },
   "sections": [
     {
       "id": "app-config",
       "file_path": "src/app/config.ts",
-      "description": "Materialized runtime configuration using import.meta.env. Exposes app constants, feature flags (enable_mock_data), API base URL, websocket URL and environment flags for development mode.",
-      "dependencies": [
-        "src/core/contracts.ts"
-      ],
+      "description": "Materialized runtime configuration using import.meta.env with typed wrappers. Exposes feature flags, API base, mock toggles, analytics keys and app meta (title, target audience).",
+      "dependencies": [],
       "exports": [
-        "AppConfig object",
-        "isDev, enableMockData, apiBaseUrl, websocketUrl"
+        "AppConfig",
+        "appConfig",
+        "isDev",
+        "enableMocks"
       ],
       "priority": 1,
-      "purpose": "Materializes runtime configuration using import.meta.env. Exposes typed application configuration, computed flags, feature toggles, API & websocket URLs and development-mode mock data.",
-      "content": "/* src/app/config.ts\n\nRuntime materialized app configuration. Uses Vite's import.meta.env. Avoid accessing process.env.\nProvide safe defaults so app can run standalone in development with mock data.\n*/\n\nimport type { User } from '@/core/contracts';\n\n// Define the shape of the materialized configuration\nexport interface AppConfigShape {\n  appType: 'analytics' | string;\n  framework: 'react' | string;\n  stylingApproach: 'tailwind' | string;\n  objective: string;\n  features: string[];\n  targetAudience: string;\n  outputDir: string;\n  developmentMode: {\n    enableMockData: boolean;\n    mockAuthUsers: User[];\n    mockApiEndpoints: string[];\n    disableWebsocketInDev: boolean;\n    useLocalstoragePersistence: boolean;\n  };\n  // runtime environment variables from Vite\n  env: Record<string, string | boolean | undefined>;\n}\n\n// Read raw environment values from Vite (import.meta.env)\nconst VITE_API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? '/api';\nconst VITE_WS_URL = (import.meta.env.VITE_WS_URL as string | undefined) ?? (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';\nconst MODE = (import.meta.env.MODE as string | undefined) ?? 'development';\n\n// Static application defaults derived from the product specification\nconst DEFAULT_APP_SPEC = {\n  appType: 'analytics',\n  framework: 'react',\n  stylingApproach: 'tailwind',\n  objective: 'Business Intelligence Analytics Platform',\n  features: [\n    'interactive data dashboards',\n    'custom report builder',\n    'real-time metrics display',\n    'data export functionality',\n    'predictive analytics charts',\n    'KPI monitoring widgets',\n    'drill-down capabilities',\n    'alert configuration panel'\n  ],\n  targetAudience: 'Business Analysts and Executives',\n  outputDir: './generated'\n};\n\n// Development-mode defaults (seeded mock users from product config)\nconst DEV_MOCK_USERS: User[] = [\n  { id: 'u-analyst', email: 'analyst@corp.com', name: 'Analyst', role: 'analyst' },\n  { id: 'u-exec', email: 'executive@corp.com', name: 'Executive', role: 'executive' },\n  { id: 'u-viewer', email: 'viewer@corp.com', name: 'Viewer', role: 'viewer' }\n];\n\n// Compose the runtime AppConfig\nexport const AppConfig: AppConfigShape = {\n  ...DEFAULT_APP_SPEC,\n  developmentMode: {\n    enableMockData: ((import.meta.env.VITE_ENABLE_MOCK_DATA as string) === 'true') ?? (MODE === 'development'),\n    mockAuthUsers: DEV_MOCK_USERS,\n    mockApiEndpoints: [\n      '/api/analytics/metrics',\n      '/api/analytics/reports',\n      '/api/analytics/dashboards',\n      '/api/analytics/predictions',\n      '/api/analytics/alerts',\n      '/api/analytics/exports'\n    ],\n    disableWebsocketInDev: ((import.meta.env.VITE_DISABLE_WS_IN_DEV as string) === 'true') ?? false,\n    useLocalstoragePersistence: ((import.meta.env.VITE_USE_LOCALSTORAGE as string) === 'true') ?? true\n  },\n  env: {\n    MODE,\n    VITE_API_BASE,\n    VITE_WS_URL,\n    VITE_ENABLE_MOCK_DATA: import.meta.env.VITE_ENABLE_MOCK_DATA as string | undefined,\n    VITE_DISABLE_WS_IN_DEV: import.meta.env.VITE_DISABLE_WS_IN_DEV as string | undefined\n  }\n};\n\n// Computed helpers exported for convenience\nexport const isDevelopment = import.meta.env.MODE === 'development' || MODE === 'development';\nexport const shouldUseMockData = Boolean(AppConfig.developmentMode.enableMockData) || isDevelopment;\nexport const apiBaseUrl = (import.meta.env.VITE_API_BASE as string | undefined) ?? VITE_API_BASE;\nexport const websocketUrl = (import.meta.env.VITE_WS_URL as string | undefined) ?? VITE_WS_URL;\n\n// Feature flags map derived from features array for quick checks\nexport const FEATURE_FLAGS = Object.fromEntries(AppConfig.features.map(f => [f, true])) as Record<string, boolean>;\n\n// Export mock users (only exported so providers can seed auth in dev)\nexport const MOCK_USERS: User[] = shouldUseMockData ? AppConfig.developmentMode.mockAuthUsers : [];\n\n/* Example usage:\n\nimport { apiBaseUrl, shouldUseMockData, MOCK_USERS } from '@/app/config';\n\nif (shouldUseMockData) {\n  // seed mock server with MOCK_USERS\n}\n\nfetch(`${apiBaseUrl}/analytics/metrics`)\n\n*/"
+      "purpose": "Materialized runtime config using import.meta.env. Exposes a typed appConfig used by providers, services and MSW. Contains flags for mocks, analytics keys, API base URL, React Query defaults and i18n settings.",
+      "content": "/* src/app/config.ts\n\nThis module reads environment variables via import.meta.env and composes a typed `appConfig` object used across the app. It also exposes React Query default options used to configure the QueryClient. Use import.meta.env (Vite) only.\n*/\n\nimport { DefaultOptions } from '@tanstack/react-query';\n\nexport type AppConfig = {\n  env: 'development' | 'production' | 'test';\n  appName: string;\n  apiBase: string;\n  enableMocks: boolean;\n  enableDevTools: boolean;\n  analyticsKey?: string;\n  defaultLanguage: string;\n  supportedLanguages: string[];\n  theme: {\n    default: 'light' | 'dark' | 'system';\n    enableSystemToggle: boolean;\n  };\n  development_mode: {\n    enable_mock_data: boolean;\n    mock_auth_users: Array<{ email: string; password: string; role: string }>;\n    mock_api_endpoints: string[];\n    disable_websocket_in_dev: boolean;\n    use_localstorage_persistence: boolean;\n  };\n};\n\nconst raw = import.meta.env;\n\nexport const isDev = (raw.MODE === 'development' || raw.VITE_ENABLE_DEV === 'true');\n\nexport const appConfig: AppConfig = {\n  env: (raw.MODE as 'development' | 'production' | 'test') ?? 'development',\n  appName: raw.VITE_APP_NAME ?? 'Absolutely Nothing\u2122',\n  apiBase: raw.VITE_API_BASE ?? '/api',\n  enableMocks: (raw.VITE_ENABLE_MOCKS ?? 'true') === 'true',\n  enableDevTools: (raw.VITE_ENABLE_DEVTOOLS ?? 'false') === 'true',\n  analyticsKey: raw.VITE_ANALYTICS_KEY ?? undefined,\n  defaultLanguage: raw.VITE_DEFAULT_LOCALE ?? 'en',\n  supportedLanguages: (raw.VITE_SUPPORTED_LOCALES ?? 'en').split(',').map(s => s.trim()),\n  theme: {\n    default: (raw.VITE_THEME_DEFAULT as any) ?? 'system',\n    enableSystemToggle: (raw.VITE_ENABLE_THEME_TOGGLE ?? 'true') === 'true'\n  },\n  development_mode: {\n    enable_mock_data: (raw.VITE_ENABLE_MOCK_DATA ?? 'true') === 'true',\n    mock_auth_users: JSON.parse(raw.VITE_MOCK_AUTH_USERS ?? '[{\"email\":\"nothing@void.com\",\"password\":\"nothing123\",\"role\":\"nothing_user\"}]'),\n    mock_api_endpoints: JSON.parse(raw.VITE_MOCK_API_ENDPOINTS ?? '[\"/api/nothing\",\"/api/testimonials/nothing\",\"/api/pricing/nothing\",\"/api/support/nothing\",\"/api/newsletter/nothing\",\"/api/analytics/nothing\",\"/api/checkout/nothing\"]'),\n    disable_websocket_in_dev: (raw.VITE_DISABLE_WEBSOCKET_IN_DEV ?? 'false') === 'true',\n    use_localstorage_persistence: (raw.VITE_USE_LOCALSTORAGE_PERSISTENCE ?? 'true') === 'true'\n  }\n};\n\n// React Query default options exposed here so QueryProvider can import them\nexport const defaultQueryOptions: DefaultOptions = {\n  queries: {\n    retry: (failureCount, error) => {\n      // fail fast for 4xx client errors\n      const status = (error as any)?.response?.status;\n      if (status && status >= 400 && status < 500) return false;\n      return failureCount < 2;\n    },\n    cacheTime: 1000 * 60 * 5, // 5 minutes\n    staleTime: 1000 * 60, // 1 minute\n    refetchOnWindowFocus: false,\n    suspense: true\n  },\n  mutations: {\n    retry: false\n  }\n};\n\n// i18n configuration object (consumed by i18next initialization elsewhere)\nexport const i18nConfig = {\n  lng: appConfig.defaultLanguage,\n  fallbackLng: 'en',\n  supportedLngs: appConfig.supportedLanguages,\n  ns: ['common', 'hero', 'pricing', 'testimonials'] as const,\n  defaultNS: 'common'\n};\n\n// Theme configuration (consumed by ThemeProvider)\nexport const themeConfig = {\n  default: appConfig.theme.default,\n  enableSystemToggle: appConfig.theme.enableSystemToggle,\n  // Tailwind dark-mode strategy used in app: 'class'\n  tailwindDarkClass: 'dark'\n};\n\n// Example usage:\n// import { appConfig, defaultQueryOptions } from '@/app/config'\n// if (appConfig.enableMocks) { startMockServer() }\n"
     },
     {
       "id": "core-contracts",
       "file_path": "src/core/contracts.ts",
-      "description": "Domain types, DTOs, API response contracts and shared enums for analytics domain (Metric, Dashboard, Report, Prediction, Alert, ExportJob, User, Roles). Central place for cross-file TypeScript types.",
+      "description": "Domain types, API contract interfaces, shared enums and models used throughout the app (PricingTier, Testimonial, CaseStudy, RoadmapItem, SimulationState, AuthUser, AnalyticsEvent). Central single source of truth for shape of business data.",
       "dependencies": [],
       "exports": [
-        "types: User, Role, Metric, Dashboard, Report, Prediction, Alert, ExportJob, ApiError",
-        "API request/response contract interfaces"
+        "PricingTier",
+        "Testimonial",
+        "CaseStudy",
+        "RoadmapItem",
+        "SimulationState",
+        "AuthUser",
+        "AnalyticsEvent",
+        "PricingLevel"
       ],
       "priority": 1,
-      "purpose": "Domain types, DTOs, API response contracts and shared enums for both analytics and healthcare domain models. This file centralizes cross-cutting TypeScript interfaces used across features, services and providers.",
-      "content": "/* src/core/contracts.ts\n\nCentralized domain contracts used across the app. This file intentionally contains BOTH analytics domain models (for the BI product) and a small set of healthcare domain models required by product requirements. Keep contracts stable and backward-compatible: add fields as optional where necessary.\n*/\n\n// Generic utility types\nexport type Nullable<T> = T | null | undefined;\n\n// Roles used across the app (from config) - extend if new roles are needed\nexport type Role = 'analyst' | 'executive' | 'viewer' | 'admin' | 'patient' | 'doctor' | 'nurse';\n\n// Core User model used by AuthProvider and sections\nexport interface User {\n  id: string;\n  email: string;\n  name?: string;\n  avatarUrl?: string;\n  role: Role;\n  // token is optional in contracts; token storage is handled by AuthService\n  token?: string;\n  metadata?: Record<string, unknown>;\n}\n\n// Healthcare domain (kept compact and serializable)\nexport interface Patient extends User {\n  role: 'patient';\n  dateOfBirth?: string; // ISO\n  medicalRecordId?: string;\n}\n\nexport interface Doctor extends User {\n  role: 'doctor';\n  specialty?: string;\n  licenseNumber?: string;\n}\n\nexport interface Nurse extends User {\n  role: 'nurse';\n  ward?: string;\n}\n\nexport interface Appointment {\n  id: string;\n  patientId: string;\n  doctorId?: string;\n  nurseId?: string;\n  scheduledAt: string; // ISO\n  status: 'scheduled' | 'cancelled' | 'completed' | 'no-show';\n  notes?: string;\n}\n\nexport interface MedicalRecord {\n  id: string;\n  patientId: string;\n  diagnoses?: string[];\n  allergies?: string[];\n  notes?: string;\n  updatedAt?: string;\n}\n\nexport interface Prescription {\n  id: string;\n  patientId: string;\n  prescribedBy: string; // doctorId\n  medication: string;\n  dose?: string;\n  instructions?: string;\n  issuedAt: string;\n}\n\nexport interface LabResult {\n  id: string;\n  patientId: string;\n  type: string;\n  value: string | number;\n  unit?: string;\n  measuredAt: string;\n}\n\n// Analytics domain models\nexport interface MetricPoint {\n  timestamp: string; // ISO\n  value: number;\n}\n\nexport interface Metric {\n  id: string;\n  key: string;\n  title: string;\n  description?: string;\n  unit?: string;\n  current?: number;\n  trend?: number; // % change\n  series?: MetricPoint[];\n}\n\nexport type WidgetType = 'kpi' | 'timeseries' | 'table' | 'custom';\n\nexport interface DashboardWidget {\n  id: string;\n  type: WidgetType;\n  metricKey?: string;\n  title?: string;\n  config?: Record<string, unknown>;\n}\n\nexport interface Dashboard {\n  id: string;\n  title: string;\n  description?: string;\n  widgets: DashboardWidget[];\n  ownerId?: string;\n  updatedAt?: string;\n}\n\nexport interface Report {\n  id: string;\n  title: string;\n  description?: string;\n  ownerId?: string;\n  createdAt?: string;\n  columns?: string[];\n  rows?: Record<string, unknown>[];\n}\n\nexport interface Prediction {\n  id: string;\n  metricKey: string;\n  horizonDays: number;\n  generatedAt: string;\n  series: MetricPoint[];\n  confidenceLow?: MetricPoint[];\n  confidenceHigh?: MetricPoint[];\n}\n\nexport interface Alert {\n  id: string;\n  name: string;\n  enabled: boolean;\n  targetMetric: string;\n  threshold: number;\n  comparator: 'gt' | 'lt' | 'gte' | 'lte';\n  lastFiredAt?: string;\n}\n\nexport interface ExportJob {\n  id: string;\n  status: 'queued' | 'running' | 'completed' | 'failed';\n  requestedBy: string;\n  createdAt: string;\n  completedAt?: string;\n  artifactUrl?: string;\n  format?: 'csv' | 'xlsx' | 'json';\n}\n\n// Generic API response contracts\nexport interface ApiError {\n  code: string;\n  message: string;\n  status?: number;\n  details?: Record<string, unknown>;\n}\n\nexport interface ApiResult<T> {\n  data?: T;\n  error?: ApiError;\n}\n\nexport interface PaginatedResponse<T> {\n  items: T[];\n  total: number;\n  page: number;\n  pageSize: number;\n}\n\n// WebSocket event types used by the SocketClient and WebsocketProvider\nexport type WsEventType =\n  | 'ws:metrics:update'\n  | 'ws:alerts:fired'\n  | 'ws:reports:run'\n  | 'ws:export:status';\n\nexport interface WsEvent<T = unknown> {\n  type: WsEventType;\n  payload: T;\n  receivedAt?: string;\n}\n\nexport interface WsPayloadMap {\n  'ws:metrics:update': { metricKey: string; point: MetricPoint };\n  'ws:alerts:fired': { alertId: string; triggeredAt: string; values?: Record<string, unknown> };\n  'ws:reports:run': { reportId: string; status: 'started' | 'completed' | 'failed' };\n  'ws:export:status': { exportId: string; status: ExportJob['status']; artifactUrl?: string };\n}\n\n// UI helper types\nexport type LoadingState = 'idle' | 'loading' | 'success' | 'error';\n\nexport interface FormState {\n  values: Record<string, unknown>;\n  touched: Record<string, boolean>;\n  errors: Record<string, string | undefined>;\n  isSubmitting: boolean;\n}\n\n/* Example usage:\n\nimport type { Dashboard, ApiResult } from '@/core/contracts';\n\nasync function loadDashboard(): Promise<ApiResult<Dashboard>> {\n  // service returns ApiResult<Dashboard>\n}\n\n*/"
+      "purpose": "Domain types, API contracts, and Zod runtime schemas. Exports TypeScript interfaces together with their Zod schemas for runtime validation. These are the canonical shapes used by services, mock handlers and forms.",
+      "content": "/* src/core/contracts.ts\n\nThis file exports both Zod schemas and TypeScript types for all core domain entities. Exported names are used across MSW handlers, React Query services, form validation and state persistence. Keep schemas canonical so MSW and services can import for runtime validation.\n\nNotes:\n- Use Zod for runtime validation and to infer TS types via z.infer.\n- Export a grouped `schemas` and `types` object for convenience imports.\n*/\n\nimport { z } from 'zod';\n\n// Enums / simple types\nexport const PricingLevel = z.enum(['basic', 'pro', 'enterprise']);\nexport type PricingLevel = z.infer<typeof PricingLevel>;\n\n// Pricing tier schema + TS type\nexport const PricingTierSchema = z.object({\n  id: z.string(),\n  level: PricingLevel,\n  title: z.string(),\n  priceCents: z.number().int().nonnegative(),\n  interval: z.enum(['monthly', 'yearly']),\n  features: z.array(z.string()),\n  tagline: z.string().optional(),\n  meta: z.record(z.any()).optional()\n});\nexport type PricingTier = z.infer<typeof PricingTierSchema>;\n\n// Testimonials\nexport const TestimonialSchema = z.object({\n  id: z.string(),\n  author: z.string(),\n  role: z.string().optional(),\n  content: z.string(),\n  rating: z.number().min(0).max(5).int(),\n  date: z.string(),\n  meta: z.record(z.any()).optional()\n});\nexport type Testimonial = z.infer<typeof TestimonialSchema>;\n\n// Case study\nexport const CaseStudySchema = z.object({\n  id: z.string(),\n  title: z.string(),\n  summary: z.string(),\n  highlights: z.array(z.string()).optional(),\n  publishedAt: z.string(),\n  assets: z.array(z.string()).optional()\n});\nexport type CaseStudy = z.infer<typeof CaseStudySchema>;\n\n// Roadmap item\nexport const RoadmapItemSchema = z.object({\n  id: z.string(),\n  title: z.string(),\n  description: z.string(),\n  quarter: z.string(),\n  completed: z.boolean()\n});\nexport type RoadmapItem = z.infer<typeof RoadmapItemSchema>;\n\n// Simulation state for the void simulator\nexport const SimulationStateSchema = z.object({\n  running: z.boolean(),\n  depth: z.number().min(0).max(100),\n  density: z.number().min(0).max(100),\n  silence: z.number().min(0).max(1),\n  seed: z.string().optional()\n});\nexport type SimulationState = z.infer<typeof SimulationStateSchema>;\n\n// Auth user\nexport const AuthUserSchema = z.object({\n  id: z.string(),\n  email: z.string().email(),\n  role: z.string(),\n  displayName: z.string().optional(),\n  createdAt: z.string().optional()\n});\nexport type AuthUser = z.infer<typeof AuthUserSchema>;\n\n// Analytics event\nexport const AnalyticsEventSchema = z.object({\n  id: z.string(),\n  name: z.string(),\n  payload: z.record(z.any()).optional(),\n  ts: z.string()\n});\nexport type AnalyticsEvent = z.infer<typeof AnalyticsEventSchema>;\n\n// Generic API response container\nexport const ApiResultSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>\n  z.object({\n    success: z.boolean(),\n    data: dataSchema.optional(),\n    error: z.string().optional()\n  });\nexport type ApiResult<T> = { success: boolean; data?: T; error?: string };\n\n// Paginated response\nexport const PaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>\n  z.object({\n    items: z.array(itemSchema),\n    total: z.number().int(),\n    page: z.number().int(),\n    pageSize: z.number().int()\n  });\nexport type PaginatedResponse<T> = { items: T[]; total: number; page: number; pageSize: number };\n\n// Form schemas (example: newsletter signup, faq search)\nexport const NewsletterSignupSchema = z.object({\n  email: z.string().email(),\n  consent: z.boolean().optional().default(true)\n});\nexport type NewsletterSignup = z.infer<typeof NewsletterSignupSchema>;\n\nexport const FaqSearchSchema = z.object({\n  query: z.string().min(0).max(200).optional()\n});\nexport type FaqSearch = z.infer<typeof FaqSearchSchema>;\n\n// Export grouped objects for convenience\nexport const schemas = {\n  PricingTierSchema,\n  TestimonialSchema,\n  CaseStudySchema,\n  RoadmapItemSchema,\n  SimulationStateSchema,\n  AuthUserSchema,\n  AnalyticsEventSchema,\n  NewsletterSignupSchema,\n  FaqSearchSchema,\n  ApiResultSchema,\n  PaginatedResponseSchema,\n  PricingLevel\n};\n\nexport const types = {\n  PricingTier: undefined as unknown as PricingTier,\n  Testimonial: undefined as unknown as Testimonial,\n  CaseStudy: undefined as unknown as CaseStudy,\n  RoadmapItem: undefined as unknown as RoadmapItem,\n  SimulationState: undefined as unknown as SimulationState,\n  AuthUser: undefined as unknown as AuthUser,\n  AnalyticsEvent: undefined as unknown as AnalyticsEvent\n};\n\n// Example usage (for documentation):\n// import { PricingTierSchema } from '@/core/contracts'\n// const validated = PricingTierSchema.parse(apiResponse)\n"
     },
     {
       "id": "core-di",
       "file_path": "src/core/di.ts",
-      "description": "Simple dependency injection container for resolving service implementations (e.g., API client, socket). Allows replacing implementations in tests or mock mode.",
+      "description": "Simple dependency injection container used for wiring services in the app (analytics, pricing, chat). Supports override for tests/mocks and lazy resolution.",
       "dependencies": [
-        "src/core/contracts.ts"
+        "src/app/config.ts"
       ],
       "exports": [
-        "DIContainer, register, resolve"
+        "container",
+        "registerService",
+        "resolveService"
       ],
-      "priority": 1,
-      "purpose": "A minimal type-safe dependency injection container. Define tokens for services (ApiClient, AuthService, StorageService, SocketService), register implementations and resolve dependencies. Enables test-time/mocking overrides.\n",
-      "content": "/* src/core/di.ts\n\nTiny DI container for front-end usage. Tokens are created via createToken<T>(description) which returns a unique symbol typed to T.\n\nConsumers should import tokens and register implementations early (e.g., in App bootstrap or in MockServerProvider in dev).\n*/\n\nexport type InjectionToken<T> = symbol & { __type?: T };\n\nexport function createToken<T = unknown>(desc: string): InjectionToken<T> {\n  return Symbol(desc) as InjectionToken<T>;\n}\n\nexport class DIContainer {\n  private registry = new Map<InjectionToken<any>, any>();\n\n  register<T>(token: InjectionToken<T>, impl: T): void {\n    this.registry.set(token, impl);\n  }\n\n  resolve<T>(token: InjectionToken<T>): T {\n    if (!this.registry.has(token)) {\n      throw new Error(`DI: no implementation registered for token ${String(token)}`);\n    }\n    return this.registry.get(token) as T;\n  }\n\n  has(token: InjectionToken<any>): boolean {\n    return this.registry.has(token);\n  }\n\n  // convenience: registerIfAbsent\n  registerIfAbsent<T>(token: InjectionToken<T>, impl: T): void {\n    if (!this.has(token)) this.register(token, impl);\n  }\n\n  clear() {\n    this.registry.clear();\n  }\n}\n\nexport const defaultContainer = new DIContainer();\n\nexport const register = <T>(token: InjectionToken<T>, impl: T) => defaultContainer.register(token, impl);\nexport const resolve = <T>(token: InjectionToken<T>) => defaultContainer.resolve(token);\n\n/* Predefined tokens used by core providers and services. Implementations should follow the implied shape documented below. */\n\nexport const ApiClientToken = createToken<{ fetch: (input: RequestInfo, init?: RequestInit) => Promise<Response> }>('ApiClient');\nexport const AuthServiceToken = createToken<{\n  login: (email: string, password: string) => Promise<{ userId: string; token?: string }>; \n  logout: () => Promise<void>;\n  getCurrentUser: () => Promise<unknown | null>;\n}>('AuthService');\n\nexport const StorageServiceToken = createToken<{\n  getItem<T = unknown>(key: string): Promise<T | null> | (T | null);\n  setItem<T = unknown>(key: string, value: T): Promise<void> | void;\n  removeItem(key: string): Promise<void> | void;\n}>('StorageService');\n\nexport const SocketServiceToken = createToken<{\n  connect: () => void;\n  disconnect: () => void;\n  subscribe: (topic: string, handler: (payload: unknown) => void) => () => void;\n  send?: (topic: string, payload: unknown) => void;\n}>('SocketService');\n\n/* Example registration in bootstrap (App main):\n\nimport { register } from '@/core/di';\nimport { ApiClientToken } from '@/core/di';\n\nregister(ApiClientToken, { fetch: window.fetch.bind(window) });\n\n// In tests or mock provider override:\nregister(ApiClientToken, mockApiClient);\n\n*/"
+      "priority": 1
     },
     {
       "id": "core-events",
       "file_path": "src/core/events.ts",
-      "description": "Lightweight typed event bus for decoupled components (subscribe/publish). Used for cross-cutting events like 'auth:logout', 'toast:show', 'ws:update'.",
+      "description": "Lightweight event bus for cross-feature communication (e.g., 'purchase:nothing', 'analytics:event', 'easter:found'). Supports typed payloads from core/contracts and allows plugin subscriptions.",
       "dependencies": [
         "src/core/contracts.ts"
       ],
       "exports": [
-        "EventBus class instance",
-        "on, off, emit helpers"
+        "EventBus",
+        "emitEvent",
+        "onEvent",
+        "offEvent"
       ],
-      "priority": 1,
-      "purpose": "Typed lightweight event bus for decoupled communication between providers, components and services. Supports synchronous and asynchronous handlers and returns an unsubscribe function when registering handlers.",
-      "content": "/* src/core/events.ts\n\nA tiny typed event bus used for cross-cutting events like 'auth:logout', 'toast:show', 'ws:update'. Handlers can be sync or async. The EventBus is intentionally minimal and suitable for front-end usage inside browser.\n*/\n\nimport type { ApiError, ExportJob, MetricPoint } from '@/core/contracts';\n\n// Define the event map used across the app. Extend as new events are introduced.\nexport interface AppEventMap {\n  'auth:login': { userId: string };\n  'auth:logout': { userId?: string };\n  'toast:show': { id?: string; level: 'info' | 'success' | 'error' | 'warning'; title?: string; message: string; duration?: number };\n  'ws:metrics:update': { metricKey: string; point: MetricPoint };\n  'ws:alerts:fired': { alertId: string; triggeredAt: string };\n  'export:job:started': { jobId: string };\n  'export:job:updated': { jobId: string; status: ExportJob['status'] };\n  'api:error': { error: ApiError };\n  'route:change': { path: string };\n}\n\nexport type AppEventKey = keyof AppEventMap;\nexport type AppEventHandler<K extends AppEventKey = AppEventKey> = (payload: AppEventMap[K]) => void | Promise<void>;\n\nexport class EventBus {\n  private handlers: Map<string, Set<AppEventHandler<any>>> = new Map();\n\n  on<K extends AppEventKey>(event: K, handler: AppEventHandler<K>): () => void {\n    const key = String(event);\n    const set = this.handlers.get(key) ?? new Set<AppEventHandler<any>>();\n    set.add(handler as AppEventHandler<any>);\n    this.handlers.set(key, set);\n    return () => this.off(event, handler);\n  }\n\n  off<K extends AppEventKey>(event: K, handler?: AppEventHandler<K>): void {\n    const key = String(event);\n    const set = this.handlers.get(key);\n    if (!set) return;\n    if (!handler) {\n      set.clear();\n      this.handlers.delete(key);\n      return;\n    }\n    set.delete(handler as AppEventHandler<any>);\n    if (set.size === 0) this.handlers.delete(key);\n  }\n\n  async emit<K extends AppEventKey>(event: K, payload: AppEventMap[K]): Promise<void> {\n    const key = String(event);\n    const set = this.handlers.get(key);\n    if (!set) return;\n    // call handlers in registration order; await each in sequence to keep predictable ordering\n    for (const handler of Array.from(set)) {\n      try {\n        // handler may be sync or async\n        const res = handler(payload);\n        if (res instanceof Promise) await res;\n      } catch (err) {\n        // swallow by default, optionally emit api:error or log\n        // avoid recursive emit of api:error to prevent loops\n        // eslint-disable-next-line no-console\n        console.error('EventBus handler error for', event, err);\n      }\n    }\n  }\n\n  // convenience: once - register a one-time handler\n  once<K extends AppEventKey>(event: K, handler: AppEventHandler<K>): () => void {\n    const wrapper: AppEventHandler<K> = async (payload) => {\n      try {\n        await handler(payload);\n      } finally {\n        this.off(event, wrapper);\n      }\n    };\n    return this.on(event, wrapper);\n  }\n}\n\n// singleton bus used throughout the application\nexport const eventBus = new EventBus();\n\n// thin helpers to make import sites concise\nexport const on = <K extends AppEventKey>(event: K, handler: AppEventHandler<K>) => eventBus.on(event, handler);\nexport const off = <K extends AppEventKey>(event: K, handler?: AppEventHandler<K>) => eventBus.off(event, handler as AppEventHandler<K> | undefined);\nexport const emit = <K extends AppEventKey>(event: K, payload: AppEventMap[K]) => eventBus.emit(event, payload);\n\n/* Example usage:\n\nimport { on, emit } from '@/core/events';\n\nconst unsub = on('toast:show', payload => console.log('toast', payload));\nemit('toast:show', { level: 'info', message: 'Hello' });\n\n*/"
+      "priority": 1
     },
     {
       "id": "core-hooks-registry",
       "file_path": "src/core/hooks.ts",
-      "description": "Extension hook registry for runtime-registered hooks (analytics plugins, custom widgets). Lightweight API to register and retrieve hooks.",
+      "description": "Hooks registry and extension API: allows features and A/B experiments to register lifecycle hooks, UI injections, and side-effect handlers (used by EasterEggManager and ExperimentManager).",
       "dependencies": [
-        "src/core/events.ts"
+        "src/core/events.ts",
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "registerHook, getHook, useRegisteredHook"
+        "registerHook",
+        "unregisterHook",
+        "useRegisteredHooks"
       ],
-      "priority": 1,
-      "purpose": "Registry for runtime extension hooks. Plugins and features can register callbacks for lifecycle events (beforeApiRequest, afterApiResponse, onLogin, onLogout, onRouteChange). Hooks run sequentially and can be async. Hooks receive a typed context object and may mutate it where allowed.",
-      "content": "/* src/core/hooks.ts\n\nA lightweight hook registry for extension points. Hooks are organized by HookPoint and are executed in registration order. Useful for plugins, analytics, logging, auth side-effects and api augmentation.\n*/\n\nimport { eventBus } from '@/core/events';\nimport type { ApiError, ApiResult } from '@/core/contracts';\n\nexport type HookPoint =\n  | 'beforeApiRequest'\n  | 'afterApiResponse'\n  | 'onLogin'\n  | 'onLogout'\n  | 'onRouteChange';\n\nexport interface BeforeApiRequestContext {\n  url: string;\n  init: RequestInit;\n  meta?: Record<string, unknown>;\n}\n\nexport interface AfterApiResponseContext<T = unknown> {\n  url: string;\n  response?: Response;\n  result?: ApiResult<T>;\n  error?: ApiError | null;\n  meta?: Record<string, unknown>;\n}\n\nexport interface OnLoginContext {\n  userId: string;\n  user?: Record<string, unknown>;\n}\n\nexport interface OnLogoutContext {\n  userId?: string;\n}\n\nexport interface OnRouteChangeContext {\n  path: string;\n  from?: string;\n  to?: string;\n}\n\nexport type HookContextMap = {\n  beforeApiRequest: BeforeApiRequestContext;\n  afterApiResponse: AfterApiResponseContext;\n  onLogin: OnLoginContext;\n  onLogout: OnLogoutContext;\n  onRouteChange: OnRouteChangeContext;\n};\n\nexport type HookHandler<K extends HookPoint> = (ctx: HookContextMap[K]) => void | Promise<void>;\n\nexport class HookRegistry {\n  private registry: Map<HookPoint, Set<HookHandler<any>>> = new Map();\n\n  register<K extends HookPoint>(point: K, handler: HookHandler<K>): () => void {\n    const set = this.registry.get(point) ?? new Set();\n    set.add(handler as HookHandler<any>);\n    this.registry.set(point, set);\n    return () => this.unregister(point, handler);\n  }\n\n  unregister<K extends HookPoint>(point: K, handler?: HookHandler<K>): void {\n    const set = this.registry.get(point);\n    if (!set) return;\n    if (!handler) {\n      set.clear();\n      this.registry.delete(point);\n      return;\n    }\n    set.delete(handler as HookHandler<any>);\n    if (set.size === 0) this.registry.delete(point);\n  }\n\n  async run<K extends HookPoint>(point: K, ctx: HookContextMap[K]): Promise<void> {\n    const set = this.registry.get(point);\n    if (!set) return;\n    for (const handler of Array.from(set)) {\n      try {\n        const res = handler(ctx);\n        if (res instanceof Promise) await res;\n      } catch (err) {\n        // Hook errors should not break host flow. Fire an event to surface to telemetry if needed.\n        try {\n          // best-effort: emit an api:error type event\n          // @ts-ignore \u2014 payload shape may differ per app\n          eventBus.emit('api:error', { error: { code: 'hook_error', message: String(err) } });\n        } catch {}\n        // eslint-disable-next-line no-console\n        console.warn('HookRegistry handler error on', point, err);\n      }\n    }\n  }\n}\n\nexport const hooks = new HookRegistry();\n\n// convenience helpers\nexport const registerHook = <K extends HookPoint>(point: K, handler: HookHandler<K>) => hooks.register(point, handler);\nexport const runHooks = <K extends HookPoint>(point: K, ctx: HookContextMap[K]) => hooks.run(point, ctx);\n\n/* Standard hook usage examples:\n\nimport { registerHook, runHooks } from '@/core/hooks';\n\n// augment outgoing api requests with a correlation id\nregisterHook('beforeApiRequest', ctx => {\n  ctx.init = ctx.init || {};\n  ctx.init.headers = { ...(ctx.init.headers as Record<string, string>), 'x-correlation-id': 'cid-' + Date.now() };\n});\n\n// in api client, call:\n// await runHooks('beforeApiRequest', { url, init });\n\n*/"
+      "priority": 1
     },
     {
       "id": "core-utils",
       "file_path": "src/core/utils.ts",
-      "description": "Common utility helpers used across the app (safeParse, sleep, guard helpers, typed localStorage helpers).",
-      "dependencies": [],
-      "exports": [
-        "safeJsonParse, sleep, invariant, storage helpers"
-      ],
-      "priority": 1,
-      "purpose": "Common utility helpers used across the app: safe JSON parse/stringify, sleep, invariant/assertion helpers and a typed localStorage wrapper. Small, dependency-free helpers intended for broad reuse across providers and features.",
-      "content": "/* src/core/utils.ts\n\nGeneral utilities used by many modules. Keep zero runtime dependencies. All functions are small and well-typed.\n*/\n\nexport function safeJsonParse<T = unknown>(input: string | null | undefined, fallback: T | null = null): T | null {\n  if (!input) return fallback;\n  try {\n    return JSON.parse(input) as T;\n  } catch (err) {\n    // eslint-disable-next-line no-console\n    console.warn('safeJsonParse failed', err);\n    return fallback;\n  }\n}\n\nexport function safeJsonStringify(value: unknown): string | null {\n  try {\n    return JSON.stringify(value);\n  } catch (err) {\n    // eslint-disable-next-line no-console\n    console.warn('safeJsonStringify failed', err);\n    return null;\n  }\n}\n\nexport function sleep(ms: number): Promise<void> {\n  return new Promise(resolve => setTimeout(resolve, ms));\n}\n\nexport function nowISO(): string {\n  return new Date().toISOString();\n}\n\nexport function invariant(condition: unknown, message?: string): asserts condition {\n  if (!condition) throw new Error(message || 'Invariant failed');\n}\n\n// Typed localStorage helpers with JSON serialization and graceful fallback for SSR or disabled storage\nexport const createStorage = (storage: Storage | null) => ({\n  getItem<T = unknown>(key: string): T | null {\n    if (!storage) return null;\n    const raw = storage.getItem(key);\n    return safeJsonParse<T>(raw, null);\n  },\n  setItem<T = unknown>(key: string, value: T | null): void {\n    if (!storage) return;\n    if (value === null) {\n      storage.removeItem(key);\n      return;\n    }\n    const raw = safeJsonStringify(value);\n    if (raw !== null) storage.setItem(key, raw);\n  },\n  removeItem(key: string) {\n    if (!storage) return;\n    storage.removeItem(key);\n  }\n});\n\nexport const localStorageWrapper = typeof window !== 'undefined' && window.localStorage ? createStorage(window.localStorage) : createStorage(null);\n\n/* Example usage:\n\nimport { localStorageWrapper, sleep } from '@/core/utils';\n\nlocalStorageWrapper.setItem('lastSync', { ts: nowISO() });\nconst last = localStorageWrapper.getItem<{ ts: string }>('lastSync');\n\nawait sleep(200);\n\n*/"
-    },
-    {
-      "id": "i18n-index",
-      "file_path": "src/i18n/index.ts",
-      "description": "i18n bootstrap using i18next. Loads locales and exports translator hooks and init function. Sets default language and fallback.",
+      "description": "General-purpose utilities: formatters, random generators for mock content, safe localStorage helpers (with import.meta.env toggle), debounce/throttle, progressive reveal helpers used by animations.",
       "dependencies": [
-        "src/i18n/locales/en.ts",
-        "src/i18n/locales/es.ts"
+        "src/app/config.ts"
       ],
       "exports": [
-        "i18n instance, t, useTranslation"
+        "noop",
+        "storage",
+        "randomChoice",
+        "formatCurrency",
+        "sleep"
       ],
       "priority": 1
     },
     {
-      "id": "locale-en",
-      "file_path": "src/i18n/locales/en.ts",
-      "description": "English translations for the app strings used by UI (dashboard, reports, auth labels, errors).",
-      "dependencies": [],
-      "exports": [
-        "en translation namespace"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "locale-es",
-      "file_path": "src/i18n/locales/es.ts",
-      "description": "Spanish translations (partial) - used to demonstrate i18n capability.",
-      "dependencies": [],
-      "exports": [
-        "es translation namespace"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-data-dashboards",
-      "file_path": "src/mocks/data/sample-dashboards.json",
-      "description": "Sample dashboards dataset (layout + widget configs) used in development mode.",
-      "dependencies": [],
-      "exports": [
-        "JSON dataset (import)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-data-metrics",
-      "file_path": "src/mocks/data/sample-metrics.json",
-      "description": "Sample metrics and time-series JSON used by mock handlers.",
-      "dependencies": [],
-      "exports": [
-        "JSON dataset (import)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-data-reports",
-      "file_path": "src/mocks/data/sample-reports.json",
-      "description": "Sample reports metadata and rows used by mock report endpoint.",
-      "dependencies": [],
-      "exports": [
-        "JSON dataset (import)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-handler-alerts",
-      "file_path": "src/mocks/handlers/alerts.ts",
-      "description": "Handler for alerts CRUD endpoints with persisted mock state in memory (for dev).",
+      "id": "mocks-handlers",
+      "file_path": "src/mocks/handlers.ts",
+      "description": "MSW request handlers that implement the mock API surface defined in development_mode.mock_api_endpoints. Returns realistic mock payloads for pricing, testimonials, newsletter, analytics, checkout and nothing resource endpoints.",
       "dependencies": [
-        "src/core/contracts.ts"
+        "src/core/contracts.ts",
+        "src/app/config.ts"
       ],
       "exports": [
-        "alertsHandler"
+        "handlers"
       ],
       "priority": 1
     },
     {
-      "id": "mocks-handler-dashboards",
-      "file_path": "src/mocks/handlers/dashboards.ts",
-      "description": "Handler for dashboards endpoints using sample dashboards dataset.",
+      "id": "mocks-server",
+      "file_path": "src/mocks/server.ts",
+      "description": "MSW server bootstrapping used in development. Exposes start/stop hooks and ensures handlers are registered when appConfig enables mocks.",
       "dependencies": [
-        "src/mocks/data/sample-dashboards.json",
-        "src/core/contracts.ts"
+        "src/mocks/handlers.ts",
+        "src/app/config.ts"
       ],
       "exports": [
-        "dashboardsHandler"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-handler-exports",
-      "file_path": "src/mocks/handlers/exports.ts",
-      "description": "Handler that simulates export job creation and status polling for /api/analytics/exports.",
-      "dependencies": [
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "exportsHandler"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-handler-metrics",
-      "file_path": "src/mocks/handlers/metrics.ts",
-      "description": "Handler that returns sample metrics and time-series data for /api/analytics/metrics. Uses sample data file and supports query params (range, granularity).",
-      "dependencies": [
-        "src/mocks/data/sample-metrics.json",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "metricsHandler"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-handler-predictions",
-      "file_path": "src/mocks/handlers/predictions.ts",
-      "description": "Handler for /api/analytics/predictions returning predictive series and model metadata.",
-      "dependencies": [
-        "src/mocks/data/sample-metrics.json",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "predictionsHandler"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-handler-reports",
-      "file_path": "src/mocks/handlers/reports.ts",
-      "description": "Handler for /api/analytics/reports returning mock report list and run results.",
-      "dependencies": [
-        "src/mocks/data/sample-reports.json",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "reportsHandler"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "mocks-websocket",
-      "file_path": "src/mocks/websocketMock.ts",
-      "description": "Mock WebSocket broadcaster used in dev to emit periodic metric updates and alerts. Exposes subscribe/emit interface compatible with SocketClient.",
-      "dependencies": [
-        "src/mocks/data/sample-metrics.json"
-      ],
-      "exports": [
-        "createMockWebsocket, startMockTicker"
+        "startMockServer",
+        "stopMockServer"
       ],
       "priority": 1
     },
     {
       "id": "providers-auth",
       "file_path": "src/providers/AuthProvider.tsx",
-      "description": "Auth context and hooks handling login/logout, token storage (localStorage in dev), role checks and protected-route helper. Supports mock auth when enable_mock_data is true.",
+      "description": "Auth context providing mock authentication flow per development_mode.mock_auth_users. Exposes login/logout, current user and role-based helpers. Persists to localStorage when enabled.",
       "dependencies": [
-        "src/core/contracts.ts",
         "src/app/config.ts",
-        "src/services/mock/mockServer.ts",
-        "src/core/di.ts",
-        "src/shared/hooks/useLocalStorage.ts"
-      ],
-      "exports": [
-        "AuthProvider component, useAuth hook, requireRole helper"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-errorboundary",
-      "file_path": "src/providers/ErrorBoundary.tsx",
-      "description": "React Error Boundary that logs errors to service and renders fallback UI. Works with Suspense to provide robust error handling.",
-      "dependencies": [
+        "src/core/contracts.ts",
         "src/core/events.ts"
       ],
       "exports": [
-        "ErrorBoundary component"
+        "AuthProvider",
+        "useAuth"
       ],
-      "priority": 1
-    },
-    {
-      "id": "providers-mockserver",
-      "file_path": "src/providers/MockServerProvider.tsx",
-      "description": "Sets up MSW or an in-app fetch interceptor in dev mode to return mock responses for listed endpoints. Registers handlers for analytics endpoints and exposes controls to seed/mock data.",
-      "dependencies": [
-        "src/app/config.ts",
-        "src/services/mock/mockServer.ts"
-      ],
-      "exports": [
-        "MockServerProvider component"
-      ],
-      "priority": 1
+      "priority": 2
     },
     {
       "id": "providers-query",
       "file_path": "src/providers/QueryProvider.tsx",
-      "description": "Sets up React Query QueryClient with default options, error handling, and devtools. Exposes QueryClientProvider wrapper component.",
+      "description": "React Query client provider configured with sensible defaults, retry behavior, suspense integration and devtools toggle. Initializes based on appConfig.",
       "dependencies": [
-        "src/core/events.ts",
         "src/app/config.ts"
       ],
       "exports": [
-        "React component: QueryProvider (wraps children)"
+        "QueryProvider"
       ],
-      "priority": 1
+      "priority": 2
     },
     {
-      "id": "providers-theme",
-      "file_path": "src/providers/ThemeProvider.tsx",
-      "description": "React context provider that uses tokens and theme utilities to manage and persist theme choice (dark/light). Integrates with Tailwind dark class and respects system preference.",
+      "id": "shared-layout-centerstage",
+      "file_path": "src/shared/layouts/CenterStageLayout.tsx",
+      "description": "Centered showcase layout used for hero, rotating 3D showcase and simulator pages; handles responsive stage sizing and parallax anchor.",
+      "dependencies": [
+        "src/theme/animations.ts",
+        "src/state/use-nothing-store.ts"
+      ],
+      "exports": [
+        "CenterStageLayout"
+      ],
+      "priority": 2
+    },
+    {
+      "id": "shared-layout-landing",
+      "file_path": "src/shared/layouts/LandingLayout.tsx",
+      "description": "Main landing layout composing header, footer and content slots. Provides background layers (void canvas) and handles dark-mode class toggles and scroll container for smooth reveals.",
       "dependencies": [
         "src/theme/index.ts",
-        "src/shared/hooks/useLocalStorage.ts"
+        "src/features/void/void-animation-system.tsx",
+        "src/state/use-nothing-store.ts"
       ],
       "exports": [
-        "ThemeProvider component, useTheme hook (re-export)"
+        "LandingLayout"
       ],
-      "priority": 1
+      "priority": 2
     },
     {
-      "id": "providers-toast",
-      "file_path": "src/providers/ToastProvider.tsx",
-      "description": "Global toast/notifications provider. Provides API via context and listens to 'toast:show' events. Accessible by any component to show non-blocking alerts.",
-      "dependencies": [
-        "src/core/events.ts",
-        "src/shared/components/Toast.tsx"
-      ],
-      "exports": [
-        "ToastProvider component, useToast hook"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "providers-websocket",
-      "file_path": "src/providers/WebsocketProvider.tsx",
-      "description": "WebSocket provider abstraction. Connects to real WS in prod, and to a mock socket in dev; exposes hooks to subscribe to channels and emits events into React Query or event bus.",
+      "id": "state-nothing-store",
+      "file_path": "src/state/use-nothing-store.ts",
+      "description": "Zustand store for ephemeral UI state and persistent flags (newsletter subscribed, cookie banner dismissed, active simulation params, AB test enrollment). Supports localStorage persistence based on appConfig.",
       "dependencies": [
         "src/app/config.ts",
-        "src/services/socket/socket.ts",
-        "src/core/events.ts"
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "WebsocketProvider component, useWebsocket hook (re-export)"
+        "useNothingStore",
+        "persistor"
       ],
-      "priority": 1
-    },
-    {
-      "id": "services-api-client",
-      "file_path": "src/services/api/client.ts",
-      "description": "Thin API client built on fetch. Handles base URL from config, JSON parsing, common error wrapping and token injection. Uses DI to allow mock replacement.",
-      "dependencies": [
-        "src/app/config.ts",
-        "src/core/contracts.ts",
-        "src/core/di.ts"
-      ],
-      "exports": [
-        "apiFetch helper, createApiClient"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "services-mock-mockserver",
-      "file_path": "src/services/mock/mockServer.ts",
-      "description": "Mock server registration: sets up handlers for all listed mock API endpoints in development mode. Seeds mock data and exports a start/stop API. Uses MSW or simple fetch override if MSW unavailable.",
-      "dependencies": [
-        "src/mocks/handlers/metrics.ts",
-        "src/mocks/handlers/reports.ts",
-        "src/mocks/handlers/dashboards.ts",
-        "src/mocks/handlers/predictions.ts",
-        "src/mocks/handlers/alerts.ts",
-        "src/mocks/handlers/exports.ts",
-        "src/app/config.ts"
-      ],
-      "exports": [
-        "startMockServer, stopMockServer, seedMockData"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "shared-hooks-uselocalstorage",
-      "file_path": "src/shared/hooks/useLocalStorage.ts",
-      "description": "Typed localStorage hook with JSON serialization and fallback. Used by ThemeProvider and AuthProvider for persistence (dev mode).",
-      "dependencies": [
-        "src/core/utils.ts"
-      ],
-      "exports": [
-        "useLocalStorage hook",
-        "setItem, getItem helpers"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "shared-icons-index",
-      "file_path": "src/shared/icons/index.ts",
-      "description": "Exports a set of SVG icon React components used across the app (SearchIcon, BellIcon, ChartIcon, ExportIcon, UserIcon).",
-      "dependencies": [],
-      "exports": [
-        "named icon components"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "styles-tailwind",
-      "file_path": "src/styles/tailwind.css",
-      "description": "Tailwind base imports and custom utilities. Contains dark mode roots and design token CSS variables derived from tokens.",
-      "dependencies": [
-        "src/theme/tokens.ts"
-      ],
-      "exports": [
-        "global tailwind CSS (import only)"
-      ],
-      "priority": 1
+      "priority": 2
     },
     {
       "id": "theme-animations",
       "file_path": "src/theme/animations.ts",
-      "description": "Animation presets and Framer Motion variants used across app for transitions, micro-interactions, and chart animations.",
-      "dependencies": [],
-      "exports": [
-        "pageTransition, fadeIn, subtlePop variants"
+      "description": "Shared Framer Motion presets, animation variants, motion utilities and timing curves used across hero, testimonials and counters. Also exports helper types for complex sequences (glitch, reverse-progress).",
+      "dependencies": [
+        "src/core/utils.ts"
       ],
-      "priority": 1
+      "exports": [
+        "fadeIn",
+        "parallaxVoid",
+        "glitchHover",
+        "reverseProgress",
+        "floatyBubble"
+      ],
+      "priority": 2
     },
     {
       "id": "theme-index",
       "file_path": "src/theme/index.ts",
-      "description": "Theme utilities and runtime theme provider values. Provides functions to read system preference, toggle dark mode and map tokens to className values. Exposes ThemeContext types.",
+      "description": "Theme provider integration: tailwind + dark-mode context, system preference detection, and CVA variants glue for shared theme tokens. Exposes ThemeProvider component and useTheme hook.",
       "dependencies": [
-        "src/theme/tokens.ts"
+        "src/core/utils.ts"
       ],
       "exports": [
-        "ThemeContext, useTheme, theme classes and helpers"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "theme-tokens",
-      "file_path": "src/theme/tokens.ts",
-      "description": "Design tokens: color palette (light/dark), spacing, radii, elevations, font sizes, breakpoints. Used to generate Tailwind theme and to share with CSS-in-JS if needed.",
-      "dependencies": [],
-      "exports": [
-        "tokens object (colors, spacing, typography, radii, shadows)"
-      ],
-      "priority": 1
-    },
-    {
-      "id": "a11y-focusmanager",
-      "file_path": "src/a11y/focusManager.ts",
-      "description": "Utilities for focus trapping, restoring focus and programmatic focus management used by modals and overlays.",
-      "dependencies": [],
-      "exports": [
-        "trapFocus, restoreFocus helpers"
+        "ThemeProvider",
+        "useTheme"
       ],
       "priority": 2
     },
     {
-      "id": "features-alerts-components-alertconfigpanel",
-      "file_path": "src/features/alerts/components/AlertConfigPanel.tsx",
-      "description": "Panel to create or edit alert rules: condition builder, threshold inputs, notification targets and test trigger.",
-      "dependencies": [
-        "src/shared/components/Input.tsx",
-        "src/shared/components/Select.tsx",
-        "src/shared/hooks/useToast.ts",
-        "src/features/alerts/hooks/useAlerts.ts"
-      ],
-      "exports": [
-        "AlertConfigPanel component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-alerts-components-alertlist",
-      "file_path": "src/features/alerts/components/AlertList.tsx",
-      "description": "List of configured alerts with quick enable/disable toggles and test action. Accessible keyboard list.",
-      "dependencies": [
-        "src/features/alerts/hooks/useAlerts.ts",
-        "src/shared/components/Switch.tsx",
-        "src/shared/components/Table.tsx"
-      ],
-      "exports": [
-        "AlertList component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-alerts-hooks-usealerts",
-      "file_path": "src/features/alerts/hooks/useAlerts.ts",
-      "description": "React Query hooks for listing alerts, subscribing to alert triggers and updating alert config.",
-      "dependencies": [
-        "src/services/api/alerts.ts",
-        "src/providers/QueryProvider.tsx"
-      ],
-      "exports": [
-        "useAlertsQuery, useCreateAlertMutation, useUpdateAlertMutation"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-builder-components-reportbuilderform",
-      "file_path": "src/features/builder/components/ReportBuilderForm.tsx",
-      "description": "Primary form for creating and editing custom reports: fields palette, grouping, aggregations and preview pane.",
-      "dependencies": [
-        "src/features/builder/hooks/useReportBuilder.ts",
-        "src/shared/components/Button.tsx",
-        "src/shared/components/Input.tsx",
-        "src/shared/components/Select.tsx"
-      ],
-      "exports": [
-        "ReportBuilderForm component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-builder-hooks-usereportbuilder",
-      "file_path": "src/features/builder/hooks/useReportBuilder.ts",
-      "description": "Stateful hook used by the report builder to manage canvas state, drag/drop fields and preview queries. Saves drafts to localStorage in dev.",
-      "dependencies": [
-        "src/shared/hooks/useLocalStorage.ts",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "useReportBuilder hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-dashboard-components-drilldownmodal",
-      "file_path": "src/features/dashboard/components/DrillDownModal.tsx",
-      "description": "Modal that shows detailed drill-down view for a metric including a larger chart and row-level table. Integrates with Modal primitive and accessible focus trap.",
-      "dependencies": [
-        "src/shared/components/Modal.tsx",
-        "src/features/dashboard/hooks/useMetrics.ts",
-        "src/shared/components/Table.tsx"
-      ],
-      "exports": [
-        "DrillDownModal component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-dashboard-components-kiwidget",
-      "file_path": "src/features/dashboard/components/KPIWidget.tsx",
-      "description": "Composable KPI widget with threshold indicators, small trend sparkline and optional drill-down trigger.",
-      "dependencies": [
-        "src/shared/components/Card.tsx",
-        "src/shared/utils/formatters.ts",
-        "src/shared/components/IconButton.tsx",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "KPIWidget component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-dashboard-components-metriccard",
-      "file_path": "src/features/dashboard/components/MetricCard.tsx",
-      "description": "Presentational KPI/metric card used in dashboards with animation transitions, value formatting and inline sparkline chart.",
-      "dependencies": [
-        "src/shared/components/Card.tsx",
-        "src/shared/components/Skeleton.tsx",
-        "src/shared/utils/formatters.ts",
-        "src/features/dashboard/hooks/useMetrics.ts",
-        "src/shared/components/Spinner.tsx"
-      ],
-      "exports": [
-        "MetricCard component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-dashboard-components-realtimeticker",
-      "file_path": "src/features/dashboard/components/RealTimeTicker.tsx",
-      "description": "Small component that subscribes to websocket topic for real-time metric updates and shows animated transitions for incoming values.",
-      "dependencies": [
-        "src/shared/components/Spinner.tsx",
-        "src/shared/components/Skeleton.tsx",
-        "src/shared/hooks/useWebsocket.ts",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "RealTimeTicker component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-dashboard-hooks-usemetrics",
-      "file_path": "src/features/dashboard/hooks/useMetrics.ts",
-      "description": "React Query hooks to fetch metrics and timeseries data. Exposes useMetricsQuery and useMetricSeriesQuery with built-in caching, staleTime and error handling.",
-      "dependencies": [
-        "src/services/api/analytics.ts",
-        "src/providers/QueryProvider.tsx",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "useMetricsQuery, useMetricSeriesQuery"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-exports-components-exportform",
-      "file_path": "src/features/exports/components/ExportForm.tsx",
-      "description": "Form to configure export options (format, fields, schedule) and start an export job. Provides job status feedback.",
-      "dependencies": [
-        "src/shared/components/Select.tsx",
-        "src/shared/components/Button.tsx",
-        "src/features/exports/hooks/useExports.ts"
-      ],
-      "exports": [
-        "ExportForm component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-exports-hooks-useexports",
-      "file_path": "src/features/exports/hooks/useExports.ts",
-      "description": "Hooks to initiate exports, poll export job status and download completed artifacts.",
-      "dependencies": [
-        "src/services/api/exports.ts",
-        "src/providers/QueryProvider.tsx",
-        "src/shared/hooks/useToast.ts"
-      ],
-      "exports": [
-        "useExportJob hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-predictions-components-predictivechart",
-      "file_path": "src/features/predictions/components/PredictiveChart.tsx",
-      "description": "Chart component wrapping chosen chart library. Displays historical + predicted series and confidence intervals. Accessible SVG with title/desc for screen readers.",
-      "dependencies": [
-        "src/shared/utils/formatters.ts",
-        "src/theme/animations.ts"
-      ],
-      "exports": [
-        "PredictiveChart component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-predictions-hooks-usepredictions",
-      "file_path": "src/features/predictions/hooks/usePredictions.ts",
-      "description": "Hooks for fetching predictive analytics data and model metadata. Provides caching and background refetch behavior.",
-      "dependencies": [
-        "src/services/api/predictions.ts",
-        "src/providers/QueryProvider.tsx"
-      ],
-      "exports": [
-        "usePredictionsQuery"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-reports-components-reportfilters",
-      "file_path": "src/features/reports/components/ReportFilters.tsx",
-      "description": "Form used to filter reports (date range, owner, tags) with validation and error display. Uses React Hook Form (note: the actual RHF dependency exists in package but not listed here as a file).",
-      "dependencies": [
-        "src/shared/components/DateRangePicker.tsx",
-        "src/shared/components/Select.tsx",
-        "src/shared/hooks/useDebounce.ts"
-      ],
-      "exports": [
-        "ReportFilters component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-reports-components-reporttable",
-      "file_path": "src/features/reports/components/ReportTable.tsx",
-      "description": "Report listing table with server-side pagination, column filters and export action per row.",
-      "dependencies": [
-        "src/shared/components/Table.tsx",
-        "src/shared/components/DataExportButton.tsx",
-        "src/features/reports/hooks/useReports.ts"
-      ],
-      "exports": [
-        "ReportTable component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "features-reports-hooks-usereports",
-      "file_path": "src/features/reports/hooks/useReports.ts",
-      "description": "React Query hooks to fetch and run reports, with pagination and filter support and optimistic updates for report bookmarking.",
-      "dependencies": [
-        "src/services/api/reports.ts",
-        "src/providers/QueryProvider.tsx"
-      ],
-      "exports": [
-        "useReportsQuery, useRunReportMutation"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "services-api-alerts",
-      "file_path": "src/services/api/alerts.ts",
-      "description": "Alert management endpoints: list alerts, create/update alerts, test alert triggers.",
-      "dependencies": [
-        "src/services/api/client.ts",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "listAlerts, createAlert, updateAlert, deleteAlert"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "services-api-analytics",
-      "file_path": "src/services/api/analytics.ts",
-      "description": "Analytics-specific API wrappers: fetch metrics, time series, aggregations. Returns typed responses using contracts.",
-      "dependencies": [
-        "src/services/api/client.ts",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "fetchMetrics, fetchMetricSeries, fetchKpis"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "services-api-dashboards",
-      "file_path": "src/services/api/dashboards.ts",
-      "description": "Dashboard CRUD and layout APIs. Fetch dashboards and their widget configurations.",
-      "dependencies": [
-        "src/services/api/client.ts",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "listDashboards, getDashboardById"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "services-api-exports",
-      "file_path": "src/services/api/exports.ts",
-      "description": "Export endpoints for scheduling/export jobs and retrieving export artifacts.",
-      "dependencies": [
-        "src/services/api/client.ts",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "startExportJob, getExportStatus, downloadExport"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "services-api-predictions",
-      "file_path": "src/services/api/predictions.ts",
-      "description": "Prediction/predictive-analytics endpoints wrappers (fetch predictions, model metadata).",
-      "dependencies": [
-        "src/services/api/client.ts",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "fetchPredictions, getModelInfo"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "services-api-reports",
-      "file_path": "src/services/api/reports.ts",
-      "description": "Report-related API wrappers: list reports, create report, run report, download report snapshot.",
-      "dependencies": [
-        "src/services/api/client.ts",
-        "src/core/contracts.ts"
-      ],
-      "exports": [
-        "listReports, createReport, runReport"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "services-socket",
-      "file_path": "src/services/socket/socket.ts",
-      "description": "WebSocket wrapper implementing reconnection, backoff, topic subscription and event dispatch. Provides an interface compatible with mock socket implementation.",
-      "dependencies": [
-        "src/app/config.ts",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "SocketClient class, createSocketClient helper"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-button",
-      "file_path": "src/shared/components/Button.tsx",
-      "description": "Accessible button primitive with variants (primary, secondary, ghost). Uses Tailwind classes, supports icon slot, loading state and proper ARIA attributes.",
-      "dependencies": [
-        "src/shared/icons/index.ts",
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "Button component (props: variant, size, loading, iconLeft, iconRight)"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-card",
-      "file_path": "src/shared/components/Card.tsx",
-      "description": "Card primitive with glassmorphism styles (backdrop blur, gradient) and elevation tokens. Used for KPI cards and panels.",
-      "dependencies": [
-        "src/theme/tokens.ts"
-      ],
-      "exports": [
-        "Card component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-dataexportbutton",
-      "file_path": "src/shared/components/DataExportButton.tsx",
-      "description": "Button to export current dataset to CSV/Excel. Integrates with csvExport helper and shows success/failure toasts.",
-      "dependencies": [
-        "src/shared/utils/csvExport.ts",
-        "src/core/events.ts",
-        "src/shared/components/Button.tsx"
-      ],
-      "exports": [
-        "DataExportButton component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-daterangepicker",
-      "file_path": "src/shared/components/DateRangePicker.tsx",
-      "description": "Date range picker control used by filters. Uses accessible ARIA patterns and supports quick ranges.",
-      "dependencies": [
-        "src/shared/components/Input.tsx",
-        "src/shared/utils/date.ts"
-      ],
-      "exports": [
-        "DateRangePicker component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-iconbutton",
-      "file_path": "src/shared/components/IconButton.tsx",
-      "description": "Round icon button with focus rings and keyboard accessible behavior.",
-      "dependencies": [
-        "src/shared/icons/index.ts"
-      ],
-      "exports": [
-        "IconButton component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-input",
-      "file_path": "src/shared/components/Input.tsx",
-      "description": "Accessible text input with label, error message and keyboard support. Integrates with React Hook Form via forwarding ref.",
-      "dependencies": [
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "Input component (forwardRef)"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-modal",
-      "file_path": "src/shared/components/Modal.tsx",
-      "description": "Accessible modal dialog with backdrop blur, focus trap, keyboard close and portal rendering.",
-      "dependencies": [
-        "src/shared/components/Button.tsx",
-        "src/a11y/focusManager.ts"
-      ],
-      "exports": [
-        "Modal component, useModal hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-select",
-      "file_path": "src/shared/components/Select.tsx",
-      "description": "Accessible select control with keyboard navigation and ARIA attributes.",
-      "dependencies": [
-        "src/shared/components/Input.tsx"
-      ],
-      "exports": [
-        "Select component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-select-checkbox",
-      "file_path": "src/shared/components/Checkbox.tsx",
-      "description": "Accessible checkbox used in forms and filter UIs.",
-      "dependencies": [
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "Checkbox component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-skeleton",
-      "file_path": "src/shared/components/Skeleton.tsx",
-      "description": "Skeleton UI primitive for loading placeholders with accessible ARIA attributes.",
-      "dependencies": [
-        "src/theme/animations.ts"
-      ],
-      "exports": [
-        "Skeleton component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-spinner",
-      "file_path": "src/shared/components/Spinner.tsx",
-      "description": "Small animated spinner used in loading states.",
-      "dependencies": [
-        "src/theme/animations.ts"
-      ],
-      "exports": [
-        "Spinner component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-switch",
-      "file_path": "src/shared/components/Switch.tsx",
-      "description": "Accessible switch/toggle component used for enabling/disabling alerts or widgets.",
-      "dependencies": [
-        "src/theme/index.ts"
-      ],
-      "exports": [
-        "Switch component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-table",
-      "file_path": "src/shared/components/Table.tsx",
-      "description": "Accessible data table with keyboard navigation, sortable columns and virtualized rows hook support placeholder.",
-      "dependencies": [
-        "src/shared/components/Skeleton.tsx",
-        "src/shared/hooks/useDebounce.ts"
-      ],
-      "exports": [
-        "Table component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-toast",
-      "file_path": "src/shared/components/Toast.tsx",
-      "description": "Toast notification item used by ToastProvider. Handles enter/exit animation and ARIA-live regions.",
-      "dependencies": [
-        "src/theme/animations.ts"
-      ],
-      "exports": [
-        "Toast component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-components-tooltip",
-      "file_path": "src/shared/components/Tooltip.tsx",
-      "description": "Tooltip primitive with accessible ARIA attributes and keyboard support.",
-      "dependencies": [
-        "src/theme/animations.ts"
-      ],
-      "exports": [
-        "Tooltip component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-hooks-useauth",
-      "file_path": "src/shared/hooks/useAuth.ts",
-      "description": "Convenience hook that uses AuthProvider context for login/logout and role discovery. Re-exports auth state and helpers.",
-      "dependencies": [
-        "src/providers/AuthProvider.tsx"
-      ],
-      "exports": [
-        "useAuth hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-hooks-usedebounce",
-      "file_path": "src/shared/hooks/useDebounce.ts",
-      "description": "Common debounce hook for search inputs and filter updates.",
-      "dependencies": [],
-      "exports": [
-        "useDebounce hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-hooks-usekeydown",
-      "file_path": "src/shared/hooks/useKeyboardNav.ts",
-      "description": "Hook for keyboard navigation management and accessible list navigation (ArrowUp/Down, Enter, Escape).",
-      "dependencies": [
-        "src/a11y/focusManager.ts"
-      ],
-      "exports": [
-        "useKeyboardNav hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-hooks-usetoast",
-      "file_path": "src/shared/hooks/useToast.ts",
-      "description": "Hook to show toast notifications via events or context API.",
-      "dependencies": [
-        "src/providers/ToastProvider.tsx",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "useToast hook (show, success, error helpers)"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-hooks-usewebsocket",
-      "file_path": "src/shared/hooks/useWebsocket.ts",
-      "description": "Hook to subscribe to websocket topics and receive streaming updates; integrates with provider.",
-      "dependencies": [
-        "src/providers/WebsocketProvider.tsx",
-        "src/core/events.ts"
-      ],
-      "exports": [
-        "useWebsocket hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-layouts-authlayout",
-      "file_path": "src/shared/layouts/AuthLayout.tsx",
-      "description": "Layout used for authentication pages (Login). Centered card, responsive and accessible.",
-      "dependencies": [
-        "src/shared/components/Card.tsx"
-      ],
-      "exports": [
-        "AuthLayout component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-layouts-dashboardlayout",
-      "file_path": "src/shared/layouts/DashboardLayout.tsx",
-      "description": "Specialized layout for dashboard pages offering widget grid, widget editor controls, and drill-down handling.",
-      "dependencies": [
-        "src/shared/layouts/MainLayout.tsx",
-        "src/features/dashboard/components/MetricCard.tsx",
-        "src/features/dashboard/components/KPIWidget.tsx"
-      ],
-      "exports": [
-        "DashboardLayout component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-layouts-mainlayout",
-      "file_path": "src/shared/layouts/MainLayout.tsx",
-      "description": "Main application layout with sidebar, topbar, content area and responsive collapse behavior. Handles keyboard shortcuts and focus management.",
-      "dependencies": [
-        "src/shared/components/IconButton.tsx",
-        "src/shared/icons/index.ts",
-        "src/state/ui.ts",
-        "src/providers/ThemeProvider.tsx"
-      ],
-      "exports": [
-        "MainLayout component"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-utils-csvexport",
-      "file_path": "src/shared/utils/csvExport.ts",
-      "description": "Utility to convert arrays of records to CSV/Excel blobs and trigger download in browser.",
-      "dependencies": [],
-      "exports": [
-        "exportToCsv, exportToXlsx helpers"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-utils-date",
-      "file_path": "src/shared/utils/date.ts",
-      "description": "Date utilities and formatting helpers used by charts, filters and tables. Uses Intl.DateTimeFormat and UTC-safe helpers.",
-      "dependencies": [],
-      "exports": [
-        "formatDate, parseISO, startOfDay helpers"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "shared-utils-formatters",
-      "file_path": "src/shared/utils/formatters.ts",
-      "description": "Number and currency formatters, compact notation and percentage helpers for KPI display.",
-      "dependencies": [],
-      "exports": [
-        "formatNumber, formatCurrency, formatPercentage"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "state-ui",
-      "file_path": "src/state/ui.ts",
-      "description": "Zustand store for UI-level state such as sidebar collapsed, activeDashboardId, filter presets and ephemeral drill-down selection.",
+      "id": "affiliate-program",
+      "file_path": "src/features/affiliate/affiliate-program.tsx",
+      "description": "Affiliate program business rules: generates affiliate codes (all worthless), tracks referrals, and exposes integration endpoints for signup and payouts (mocked).",
       "dependencies": [
         "src/core/contracts.ts",
-        "src/shared/hooks/useLocalStorage.ts"
-      ],
-      "exports": [
-        "useUiStore hook"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "utils-errorresponses",
-      "file_path": "src/utils/errorResponses.ts",
-      "description": "Standardized error-response mapping for UI: maps ApiError to user-friendly messages and i18n keys.",
-      "dependencies": [
-        "src/core/contracts.ts",
-        "src/i18n/index.ts"
-      ],
-      "exports": [
-        "getErrorMessage helper"
-      ],
-      "priority": 2
-    },
-    {
-      "id": "app-app",
-      "file_path": "src/app/App.tsx",
-      "description": "Root app component. Composes providers (QueryProvider, AuthProvider, ThemeProvider, MockServerProvider, WebsocketProvider, ToastProvider, ErrorBoundary) and renders Routes inside Suspense with fallback skeletons.",
-      "dependencies": [
-        "src/providers/QueryProvider.tsx",
-        "src/providers/AuthProvider.tsx",
-        "src/providers/ThemeProvider.tsx",
-        "src/providers/MockServerProvider.tsx",
-        "src/providers/WebsocketProvider.tsx",
-        "src/providers/ToastProvider.tsx",
-        "src/providers/ErrorBoundary.tsx",
-        "src/routes/index.tsx",
-        "src/styles/tailwind.css"
-      ],
-      "exports": [
-        "App component (default export)"
-      ],
-      "priority": 3
-    },
-    {
-      "id": "app-main",
-      "file_path": "src/app/main.tsx",
-      "description": "Application bootstrap entry that mounts React into DOM. Invokes i18n init and conditionally registers service worker. Reads import.meta.env via config.",
-      "dependencies": [
-        "src/app/App.tsx",
-        "src/i18n/index.ts",
+        "src/core/di.ts",
         "src/app/config.ts"
       ],
       "exports": [
-        "mount function (default exported by main file - typical entry)"
+        "AffiliateProgram",
+        "generateAffiliateCode"
       ],
       "priority": 3
     },
     {
-      "id": "features-alerts-page",
-      "file_path": "src/features/alerts/AlertsPage.tsx",
-      "description": "Alerts management page where users configure alert rules, view firing alerts and test triggers. Uses AlertList and AlertConfigPanel.",
+      "id": "analytics-dashboard",
+      "file_path": "src/features/analytics/analytics-dashboard.tsx",
+      "description": "Feature: Analytics Dashboard for Nothing (admin view) using Recharts. Business logic composes analytics.service outputs and offers mock-filters for sessions and events showing 'time spent contemplating existence'.",
       "dependencies": [
-        "src/shared/layouts/MainLayout.tsx",
-        "src/features/alerts/components/AlertList.tsx",
-        "src/features/alerts/components/AlertConfigPanel.tsx"
+        "src/features/analytics/analytics.service.ts",
+        "src/core/contracts.ts",
+        "src/features/reviews/reviews-widget.tsx"
       ],
       "exports": [
-        "AlertsPage component"
+        "AnalyticsDashboard"
       ],
       "priority": 3
     },
     {
-      "id": "features-builder-page",
-      "file_path": "src/features/builder/BuilderPage.tsx",
-      "description": "Custom report builder page with canvas, field palette and save/run controls. Integrates useReportBuilder for state management and draft persistence.",
+      "id": "analytics-service",
+      "file_path": "src/features/analytics/analytics.service.ts",
+      "description": "Analytics service that records UI events, mocks remote post in dev, and provides a React Query-backed dashboard data source. Also exposes a small in-memory store for rapid inspection.",
       "dependencies": [
-        "src/shared/layouts/MainLayout.tsx",
-        "src/features/builder/components/ReportBuilderForm.tsx"
+        "src/core/contracts.ts",
+        "src/app/config.ts",
+        "src/core/di.ts"
       ],
       "exports": [
-        "BuilderPage component"
+        "trackEvent",
+        "useAnalyticsEvents",
+        "analyticsStore"
       ],
       "priority": 3
     },
     {
-      "id": "features-dashboard-page",
-      "file_path": "src/features/dashboard/DashboardPage.tsx",
-      "description": "High-level dashboard page composed of KPI widgets, charts and real-time ticker. Uses DashboardLayout and React Query hooks to load data. Supports drill-down via DrillDownModal.",
+      "id": "animated-zero-counter",
+      "file_path": "src/features/counter/animated-zero-counter.tsx",
+      "description": "Animated counter component that always shows '0 features delivered' with elaborate typing & erase timing, reverse-progress bar, and recursive loading bar that never completes. Exposes control props for speed and glitch intensity.",
       "dependencies": [
-        "src/shared/layouts/DashboardLayout.tsx",
-        "src/features/dashboard/hooks/useMetrics.ts",
-        "src/features/dashboard/components/MetricCard.tsx",
-        "src/features/dashboard/components/DrillDownModal.tsx",
-        "src/shared/hooks/useWebsocket.ts"
+        "src/theme/animations.ts",
+        "src/core/events.ts"
       ],
       "exports": [
-        "DashboardPage component"
+        "AnimatedZeroCounter"
       ],
       "priority": 3
     },
     {
-      "id": "features-exports-page",
-      "file_path": "src/features/exports/ExportsPage.tsx",
-      "description": "Exports page to create and monitor export jobs; shows status and links to download artifacts.",
+      "id": "api-docs",
+      "file_path": "src/features/apidocs/api-docs.tsx",
+      "description": "API documentation viewer for the Nothing API. Generates interactive examples (that return nothing), includes try-it calls via pricing.service and analytics hooks, and provides code snippets.",
       "dependencies": [
-        "src/shared/layouts/MainLayout.tsx",
-        "src/features/exports/components/ExportForm.tsx",
-        "src/features/exports/hooks/useExports.ts"
+        "src/features/pricing/pricing.service.ts",
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "ExportsPage component"
+        "ApiDocs"
       ],
       "priority": 3
     },
     {
-      "id": "features-predictions-page",
-      "file_path": "src/features/predictions/PredictionsPage.tsx",
-      "description": "Page showcasing predictive charts and model metadata with controls for horizon and scenario selection.",
+      "id": "case-studies",
+      "file_path": "src/features/casestudies/case-studies.tsx",
+      "description": "Loads and composes case studies of successful nothing implementations, handles filtering, and triggers deep-link analytics for each case study.",
       "dependencies": [
-        "src/shared/layouts/MainLayout.tsx",
-        "src/features/predictions/components/PredictiveChart.tsx",
-        "src/features/predictions/hooks/usePredictions.ts"
+        "src/core/contracts.ts",
+        "src/app/config.ts"
       ],
       "exports": [
-        "PredictionsPage component"
+        "CaseStudies"
       ],
       "priority": 3
     },
     {
-      "id": "features-reports-page",
-      "file_path": "src/features/reports/ReportsPage.tsx",
-      "description": "Reports listing page that shows available reports with filters and actions to run/export. Uses ReportTable and ReportFilters.",
+      "id": "chat-service",
+      "file_path": "src/features/chat/chat.service.ts",
+      "description": "Service layer for live chat support (that provides no help). Simulates responses, integrates with MSW endpoint in dev, records conversation to analytics, and exposes hooks for LiveChatBot.",
       "dependencies": [
-        "src/shared/layouts/MainLayout.tsx",
-        "src/features/reports/components/ReportTable.tsx",
-        "src/features/reports/components/ReportFilters.tsx"
+        "src/app/config.ts",
+        "src/core/contracts.ts",
+        "src/core/events.ts"
       ],
       "exports": [
-        "ReportsPage component"
+        "useChat",
+        "sendChatMessage"
       ],
       "priority": 3
     },
     {
-      "id": "pages-login",
-      "file_path": "src/pages/LoginPage.tsx",
-      "description": "Login page with mock auth support in dev, form validation, error handling and accessibility. Uses AuthProvider to perform login and persists user in localStorage when mock is enabled.",
+      "id": "cookie-banner",
+      "file_path": "src/features/cookies/cookie-banner.tsx",
+      "description": "Cookie consent business logic specialized for 'nothing cookies': handles consent persistence, shows playful consent text, and integrates with analytics toggles.",
       "dependencies": [
-        "src/providers/AuthProvider.tsx",
-        "src/shared/layouts/AuthLayout.tsx",
-        "src/shared/components/Input.tsx",
-        "src/shared/components/Button.tsx",
-        "src/shared/hooks/useToast.ts",
-        "react-hook-form"
+        "src/state/use-nothing-store.ts",
+        "src/core/events.ts"
       ],
       "exports": [
-        "LoginPage component"
+        "CookieBanner"
       ],
       "priority": 3
     },
     {
-      "id": "pages-notfound",
-      "file_path": "src/pages/NotFoundPage.tsx",
-      "description": "404 page with a call-to-action to navigate back to dashboard or login.",
+      "id": "easter-egg-manager",
+      "file_path": "src/features/easter-eggs/easter-egg-manager.tsx",
+      "description": "Manages easter eggs across the app: registers hooks, watches for secret sequences (click patterns), and triggers deep-nothing reveals. Integrates with EventBus and Hook registry.",
       "dependencies": [
-        "src/shared/components/Button.tsx"
+        "src/core/hooks.ts",
+        "src/core/events.ts",
+        "src/state/use-nothing-store.ts"
       ],
       "exports": [
-        "NotFoundPage component"
+        "EasterEggManager",
+        "registerEasterEgg"
       ],
       "priority": 3
     },
     {
-      "id": "routes-index",
-      "file_path": "src/routes/index.tsx",
-      "description": "Application route definitions using React Router v6. Declares public routes (login), protected routes (dashboard, reports, builder, alerts, exports, predictions) and a 404 page. Integrates Suspense boundaries for data-loading routes.",
+      "id": "experiment-manager",
+      "file_path": "src/features/experiments/experiment-manager.ts",
+      "description": "A/B testing manager: enrolls users into experiments, serves variant config (e.g., hero variant A/B), and exposes helper hooks used in feature components. Persists enrollment in Zustand.",
       "dependencies": [
-        "react-router-dom",
-        "src/pages/LoginPage.tsx",
-        "src/pages/NotFoundPage.tsx",
-        "src/features/dashboard/DashboardPage.tsx",
-        "src/features/reports/ReportsPage.tsx",
-        "src/features/builder/BuilderPage.tsx",
-        "src/features/alerts/AlertsPage.tsx",
-        "src/features/exports/ExportsPage.tsx",
-        "src/features/predictions/PredictionsPage.tsx",
-        "src/providers/ErrorBoundary.tsx"
+        "src/state/use-nothing-store.ts",
+        "src/core/di.ts",
+        "src/app/config.ts"
       ],
       "exports": [
-        "Routes component (AppRoutes)"
+        "ExperimentManager",
+        "useExperiment"
       ],
       "priority": 3
     },
     {
-      "id": "routes-indexpage",
-      "file_path": "src/pages/IndexPage.tsx",
-      "description": "Optional landing or redirect page; small wrapper to redirect to /dashboard when authenticated.",
+      "id": "faq-section",
+      "file_path": "src/features/faq/faq-section.tsx",
+      "description": "FAQ business logic: loads FAQ items (with A/B variants), tracks which answers are revealed (for analytics), and supports question search that returns no useful results. Uses React Hook Form for search input with Zod validation.",
       "dependencies": [
-        "react-router-dom",
-        "src/shared/hooks/useAuth.ts"
+        "src/core/contracts.ts",
+        "src/features/experiments/experiment-manager.ts"
       ],
       "exports": [
-        "IndexPage component"
+        "FaqSection",
+        "useFaqSearch"
       ],
       "priority": 3
     },
     {
-      "id": "routes-protectedroute",
-      "file_path": "src/routes/ProtectedRoute.tsx",
-      "description": "Route wrapper that ensures user is authenticated and optionally enforces role-based access. Redirects to login for unauthorized users.",
+      "id": "hero-existential-hero",
+      "file_path": "src/features/hero/existential-hero.tsx",
+      "description": "Hero section component with epic headline, parallax void animation integration, glitch-hover for the word 'nothing', typing/erase animations, and CTA that triggers simulated checkout for nothing. Uses Framer Motion and ties into EventBus and A/B experiments.",
       "dependencies": [
-        "src/shared/hooks/useAuth.ts",
-        "react-router-dom",
-        "src/pages/LoginPage.tsx"
+        "src/theme/animations.ts",
+        "src/features/void/void-animation-system.tsx",
+        "src/core/events.ts",
+        "src/features/experiments/experiment-manager.ts",
+        "src/features/sound/silence-audio.ts",
+        "src/core/contracts.ts"
       ],
       "exports": [
-        "ProtectedRoute component"
+        "ExistentialHero"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "live-chat-bot",
+      "file_path": "src/features/chat/live-chat-bot.tsx",
+      "description": "Chat UI container that uses chat.service. Contains business logic to present intentionally unhelpful replies, donut-loading silence effects, and escalation to 'no support'. Emits analytics events and supports mocked websocket toggles.",
+      "dependencies": [
+        "src/features/chat/chat.service.ts",
+        "src/features/sound/silence-audio.ts",
+        "src/core/events.ts"
+      ],
+      "exports": [
+        "LiveChatBot"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "moneyback-badge",
+      "file_path": "src/features/moneyback/moneyback-badge.tsx",
+      "description": "Money-back guarantee business logic: conditions for refund, claim flow, and mock refund API integration. Exposes UI props for badges and claim status.",
+      "dependencies": [
+        "src/features/pricing/pricing.service.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "MoneyBackBadge",
+        "claimRefund"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "newsletter-form",
+      "file_path": "src/features/newsletter/newsletter-form.tsx",
+      "description": "Form wiring using React Hook Form + Zod for the newsletter signup; triggers newsletter.service and records analytics event on submission. UI uses Radix Input/Button.",
+      "dependencies": [
+        "src/features/newsletter/newsletter.service.ts",
+        "src/core/contracts.ts",
+        "src/features/sound/silence-audio.ts"
+      ],
+      "exports": [
+        "NewsletterForm"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "newsletter-service",
+      "file_path": "src/features/newsletter/newsletter.service.ts",
+      "description": "Handles newsletter signup flows: client-side validation, API call via React Query, optimistic UI, and toast notifications. Includes mock-friendly behavior when appConfig.enableMocks is true.",
+      "dependencies": [
+        "src/core/contracts.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "useNewsletterSignup",
+        "subscribeToNewsletter"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "pages-404",
+      "file_path": "src/pages/404.tsx",
+      "description": "404 page that redirects to more nothing (auto-redirects to landing). Contains animation logic and a playful CTA to embrace nothingness.",
+      "dependencies": [
+        "src/shared/layouts/LandingLayout.tsx",
+        "src/theme/animations.ts"
+      ],
+      "exports": [
+        "NotFoundPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "pages-docs",
+      "file_path": "src/pages/docs.tsx",
+      "description": "Documentation page composition that renders ApiDocs and PressKitProvider. Includes routing metadata and search indexing for docs pages.",
+      "dependencies": [
+        "src/features/apidocs/api-docs.tsx",
+        "src/features/press/press-kit-provider.tsx"
+      ],
+      "exports": [
+        "DocsPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "pages-landing",
+      "file_path": "src/pages/landing.tsx",
+      "description": "Landing page composition: assembles LandingLayout with ExistentialHero, PricingTiers, TestimonialGenerator, AnimatedZeroCounter, VoidSimulator, NewsletterForm, LiveChatBot and all feature sections into a polished flow. Orchestrates lazy loading via React.Suspense.",
+      "dependencies": [
+        "src/shared/layouts/LandingLayout.tsx",
+        "src/features/hero/existential-hero.tsx",
+        "src/features/pricing/pricing-tiers.tsx",
+        "src/features/testimonials/testimonial-generator.tsx",
+        "src/features/counter/animated-zero-counter.tsx",
+        "src/features/simulator/void-simulator.tsx",
+        "src/features/newsletter/newsletter-form.tsx",
+        "src/features/chat/live-chat-bot.tsx",
+        "src/features/cookies/cookie-banner.tsx",
+        "src/features/easter-eggs/easter-egg-manager.tsx"
+      ],
+      "exports": [
+        "LandingPage"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "pages-status",
+      "file_path": "src/pages/status.tsx",
+      "description": "Public status page route composing StatusPage and AnalyticsDashboard summary. Designed to always show 100% uptime and quirky messaging.",
+      "dependencies": [
+        "src/features/status/status-page.tsx",
+        "src/features/analytics/analytics-dashboard.tsx"
+      ],
+      "exports": [
+        "StatusRoute"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "press-kit-provider",
+      "file_path": "src/features/press/press-kit-provider.tsx",
+      "description": "Provides press kit assets and metadata (logos, SVGs, brand guidelines for nothing). Business logic to package downloads and serve variants for printing/web.",
+      "dependencies": [
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "PressKitProvider",
+        "usePressAssets"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "pricing-service",
+      "file_path": "src/features/pricing/pricing.service.ts",
+      "description": "Business rules and remote API integration for pricing tiers. Computes prices (Basic Nothing, Pro Nothing, Enterprise Nothing), handles promotions (reverse-progress discounts), and exposes React Query hooks for pricing data and checkout flow.",
+      "dependencies": [
+        "src/core/contracts.ts",
+        "src/core/di.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "getPricingTiers",
+        "usePricingQuery",
+        "checkoutNothing"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "pricing-tiers",
+      "file_path": "src/features/pricing/pricing-tiers.tsx",
+      "description": "UI container that composes pricing.service outputs into presentational tiers (uses Radix Card primitives), handles tier selection and starts checkout via pricing.service. Contains business logic for tier comparison and gating enterprise flow.",
+      "dependencies": [
+        "src/features/pricing/pricing.service.ts",
+        "src/core/events.ts",
+        "src/features/experiments/experiment-manager.ts"
+      ],
+      "exports": [
+        "PricingTiers"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "product-comparison-chart",
+      "file_path": "src/features/comparison/product-comparison-chart.tsx",
+      "description": "Comparison component that creates a product comparison chart (Nothing vs Something vs Everything) using Recharts. Contains logic to assemble comparison metrics and to generate a printable press-friendly CSV.",
+      "dependencies": [
+        "src/core/contracts.ts",
+        "src/features/press/press-kit-provider.tsx"
+      ],
+      "exports": [
+        "ProductComparisonChart",
+        "exportComparisonCSV"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "reviews-widget",
+      "file_path": "src/features/reviews/reviews-widget.tsx",
+      "description": "Aggregates customer reviews and computes humorous 5-star average for nothing. Business logic for paginated loading, moderation (auto-approve), and review submission via React Query.",
+      "dependencies": [
+        "src/core/contracts.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "ReviewsWidget"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "roadmap-timeline",
+      "file_path": "src/features/roadmap/roadmap-timeline.tsx",
+      "description": "Timeline component showing future releases of nothing. Handles progressive reveal animations and supports timeline events that can be toggled by A/B experiments.",
+      "dependencies": [
+        "src/core/contracts.ts",
+        "src/features/experiments/experiment-manager.ts",
+        "src/theme/animations.ts"
+      ],
+      "exports": [
+        "RoadmapTimeline"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "rotating-showcase-3d",
+      "file_path": "src/features/showcase/rotating-showcase-3d.tsx",
+      "description": "3D rotating nothing showcase built with Three.js: loads assets (logos/brands from PressKitProvider), orchestrates rotation animations and integrates with VoidAnimationSystem.",
+      "dependencies": [
+        "src/features/void/void-animation-system.tsx",
+        "src/features/press/press-kit-provider.tsx",
+        "src/theme/animations.ts"
+      ],
+      "exports": [
+        "RotatingShowcase3D"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "silence-audio",
+      "file_path": "src/features/sound/silence-audio.ts",
+      "description": "Utility to play 'silence' sound effects or intentionally absent audio. Exposes noop audio controllers used by buttons, chat and simulator to comply with prompt's sound interactions.",
+      "dependencies": [
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "playSilence",
+        "stopSilence",
+        "useSilence"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "status-page",
+      "file_path": "src/features/status/status-page.tsx",
+      "description": "Status page showing 100% nothing uptime. Business logic polls a mocked status endpoint, reconciles incidents (none), and exposes health-check hooks for embed use.",
+      "dependencies": [
+        "src/app/config.ts",
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "StatusPage",
+        "useStatus"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "team-showcase",
+      "file_path": "src/features/team/team-showcase.tsx",
+      "description": "Presents a stylized team of experts in nothing with bios (tongue-in-cheek). Business logic for rotating bios, link tracking, and easter-egg reveal when interacting with avatars.",
+      "dependencies": [
+        "src/core/events.ts",
+        "src/features/easter-eggs/easter-egg-manager.ts"
+      ],
+      "exports": [
+        "TeamShowcase"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "testimonial-generator",
+      "file_path": "src/features/testimonials/testimonial-generator.tsx",
+      "description": "Generates floating testimonial bubbles (drifting into nothingness), handles lazy loading of more testimonials (infinite load of nothing), and maps to UI with motion effects. Uses useVoidParticles for physics.",
+      "dependencies": [
+        "src/features/testimonials/testimonial.service.ts",
+        "src/features/void/use-void-particles.ts",
+        "src/theme/animations.ts"
+      ],
+      "exports": [
+        "TestimonialGenerator"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "testimonial-service",
+      "file_path": "src/features/testimonials/testimonial.service.ts",
+      "description": "Retrieves testimonials, aggregates sentiment (always positive about nothing), generates synthetic floating bubble content for the TestimonialGenerator. Provides React Query hooks and mock-fallback data.",
+      "dependencies": [
+        "src/core/contracts.ts",
+        "src/app/config.ts"
+      ],
+      "exports": [
+        "useTestimonials",
+        "fetchTestimonials",
+        "generateFloatingBubbles"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "use-simulator",
+      "file_path": "src/features/simulator/use-simulator.ts",
+      "description": "Hook implementing the simulator state machine: start/stop, parameter updates, metrics (nothingness index), and event emissions. Controls audio silence and recursive progress behaviors.",
+      "dependencies": [
+        "src/core/events.ts",
+        "src/core/utils.ts",
+        "src/state/use-nothing-store.ts"
+      ],
+      "exports": [
+        "useSimulator",
+        "SimulatorControls"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "use-void-particles",
+      "file_path": "src/features/void/use-void-particles.ts",
+      "description": "Hook managing particle physics for the void: spawning logic, lifecycle, drift behaviors for floating testimonial bubbles and infinite zero rain. Supports deterministic seeds for A/B tests.",
+      "dependencies": [
+        "src/core/utils.ts",
+        "src/core/contracts.ts"
+      ],
+      "exports": [
+        "useVoidParticles",
+        "ParticleConfig"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "void-animation-system",
+      "file_path": "src/features/void/void-animation-system.tsx",
+      "description": "High-level orchestrator for void visuals: composes Three.js canvas, particle system, matrix-of-zeros rain, parallax layers and Framer Motion hooks. Exposes programmatic controls to start/stop special effects and provides context for children (bubbles, 3D showcase).",
+      "dependencies": [
+        "src/theme/animations.ts",
+        "src/features/void/use-void-particles.ts",
+        "src/core/events.ts"
+      ],
+      "exports": [
+        "VoidAnimationSystem",
+        "VoidVisualsContext",
+        "useVoidVisuals"
+      ],
+      "priority": 3
+    },
+    {
+      "id": "void-simulator",
+      "file_path": "src/features/simulator/void-simulator.tsx",
+      "description": "Interactive void simulator responsible for user-configurable parameters (depth, density, silence) that run a visual simulation. Contains the core simulation loop logic via useSimulator hook and persistence to Zustand store.",
+      "dependencies": [
+        "src/features/simulator/use-simulator.ts",
+        "src/state/use-nothing-store.ts",
+        "src/features/void/void-animation-system.tsx"
+      ],
+      "exports": [
+        "VoidSimulator"
       ],
       "priority": 3
     }
@@ -1345,594 +777,326 @@
     "src/core/events.ts",
     "src/core/hooks.ts",
     "src/core/utils.ts",
-    "src/i18n/index.ts",
-    "src/i18n/locales/en.ts",
-    "src/i18n/locales/es.ts",
-    "src/mocks/data/sample-dashboards.json",
-    "src/mocks/data/sample-metrics.json",
-    "src/mocks/data/sample-reports.json",
-    "src/mocks/handlers/alerts.ts",
-    "src/mocks/handlers/dashboards.ts",
-    "src/mocks/handlers/exports.ts",
-    "src/mocks/handlers/metrics.ts",
-    "src/mocks/handlers/predictions.ts",
-    "src/mocks/handlers/reports.ts",
-    "src/mocks/websocketMock.ts",
+    "src/mocks/handlers.ts",
+    "src/mocks/server.ts",
     "src/providers/AuthProvider.tsx",
-    "src/providers/ErrorBoundary.tsx",
-    "src/providers/MockServerProvider.tsx",
     "src/providers/QueryProvider.tsx",
-    "src/providers/ThemeProvider.tsx",
-    "src/providers/ToastProvider.tsx",
-    "src/providers/WebsocketProvider.tsx",
-    "src/services/api/client.ts",
-    "src/services/mock/mockServer.ts",
-    "src/shared/hooks/useLocalStorage.ts",
-    "src/shared/icons/index.ts",
-    "src/styles/tailwind.css",
+    "src/shared/layouts/CenterStageLayout.tsx",
+    "src/shared/layouts/LandingLayout.tsx",
+    "src/state/use-nothing-store.ts",
     "src/theme/animations.ts",
     "src/theme/index.ts",
-    "src/theme/tokens.ts",
-    "src/a11y/focusManager.ts",
-    "src/features/alerts/components/AlertConfigPanel.tsx",
-    "src/features/alerts/components/AlertList.tsx",
-    "src/features/alerts/hooks/useAlerts.ts",
-    "src/features/builder/components/ReportBuilderForm.tsx",
-    "src/features/builder/hooks/useReportBuilder.ts",
-    "src/features/dashboard/components/DrillDownModal.tsx",
-    "src/features/dashboard/components/KPIWidget.tsx",
-    "src/features/dashboard/components/MetricCard.tsx",
-    "src/features/dashboard/components/RealTimeTicker.tsx",
-    "src/features/dashboard/hooks/useMetrics.ts",
-    "src/features/exports/components/ExportForm.tsx",
-    "src/features/exports/hooks/useExports.ts",
-    "src/features/predictions/components/PredictiveChart.tsx",
-    "src/features/predictions/hooks/usePredictions.ts",
-    "src/features/reports/components/ReportFilters.tsx",
-    "src/features/reports/components/ReportTable.tsx",
-    "src/features/reports/hooks/useReports.ts",
-    "src/services/api/alerts.ts",
-    "src/services/api/analytics.ts",
-    "src/services/api/dashboards.ts",
-    "src/services/api/exports.ts",
-    "src/services/api/predictions.ts",
-    "src/services/api/reports.ts",
-    "src/services/socket/socket.ts",
-    "src/shared/components/Button.tsx",
-    "src/shared/components/Card.tsx",
-    "src/shared/components/DataExportButton.tsx",
-    "src/shared/components/DateRangePicker.tsx",
-    "src/shared/components/IconButton.tsx",
-    "src/shared/components/Input.tsx",
-    "src/shared/components/Modal.tsx",
-    "src/shared/components/Select.tsx",
-    "src/shared/components/Checkbox.tsx",
-    "src/shared/components/Skeleton.tsx",
-    "src/shared/components/Spinner.tsx",
-    "src/shared/components/Switch.tsx",
-    "src/shared/components/Table.tsx",
-    "src/shared/components/Toast.tsx",
-    "src/shared/components/Tooltip.tsx",
-    "src/shared/hooks/useAuth.ts",
-    "src/shared/hooks/useDebounce.ts",
-    "src/shared/hooks/useKeyboardNav.ts",
-    "src/shared/hooks/useToast.ts",
-    "src/shared/hooks/useWebsocket.ts",
-    "src/shared/layouts/AuthLayout.tsx",
-    "src/shared/layouts/DashboardLayout.tsx",
-    "src/shared/layouts/MainLayout.tsx",
-    "src/shared/utils/csvExport.ts",
-    "src/shared/utils/date.ts",
-    "src/shared/utils/formatters.ts",
-    "src/state/ui.ts",
-    "src/utils/errorResponses.ts",
-    "src/app/App.tsx",
-    "src/app/main.tsx",
-    "src/features/alerts/AlertsPage.tsx",
-    "src/features/builder/BuilderPage.tsx",
-    "src/features/dashboard/DashboardPage.tsx",
-    "src/features/exports/ExportsPage.tsx",
-    "src/features/predictions/PredictionsPage.tsx",
-    "src/features/reports/ReportsPage.tsx",
-    "src/pages/LoginPage.tsx",
-    "src/pages/NotFoundPage.tsx",
-    "src/routes/index.tsx",
-    "src/pages/IndexPage.tsx",
-    "src/routes/ProtectedRoute.tsx"
+    "src/features/affiliate/affiliate-program.tsx",
+    "src/features/analytics/analytics-dashboard.tsx",
+    "src/features/analytics/analytics.service.ts",
+    "src/features/counter/animated-zero-counter.tsx",
+    "src/features/apidocs/api-docs.tsx",
+    "src/features/casestudies/case-studies.tsx",
+    "src/features/chat/chat.service.ts",
+    "src/features/cookies/cookie-banner.tsx",
+    "src/features/easter-eggs/easter-egg-manager.tsx",
+    "src/features/experiments/experiment-manager.ts",
+    "src/features/faq/faq-section.tsx",
+    "src/features/hero/existential-hero.tsx",
+    "src/features/chat/live-chat-bot.tsx",
+    "src/features/moneyback/moneyback-badge.tsx",
+    "src/features/newsletter/newsletter-form.tsx",
+    "src/features/newsletter/newsletter.service.ts",
+    "src/pages/404.tsx",
+    "src/pages/docs.tsx",
+    "src/pages/landing.tsx",
+    "src/pages/status.tsx",
+    "src/features/press/press-kit-provider.tsx",
+    "src/features/pricing/pricing.service.ts",
+    "src/features/pricing/pricing-tiers.tsx",
+    "src/features/comparison/product-comparison-chart.tsx",
+    "src/features/reviews/reviews-widget.tsx",
+    "src/features/roadmap/roadmap-timeline.tsx",
+    "src/features/showcase/rotating-showcase-3d.tsx",
+    "src/features/sound/silence-audio.ts",
+    "src/features/status/status-page.tsx",
+    "src/features/team/team-showcase.tsx",
+    "src/features/testimonials/testimonial-generator.tsx",
+    "src/features/testimonials/testimonial.service.ts",
+    "src/features/simulator/use-simulator.ts",
+    "src/features/void/use-void-particles.ts",
+    "src/features/void/void-animation-system.tsx",
+    "src/features/simulator/void-simulator.tsx"
   ],
   "descriptions": [
-    "Materialized runtime configuration using import.meta.env. Exposes app constants, feature flags (enable_mock_data), API base URL, websocket URL and environment flags for development mode.",
-    "Domain types, DTOs, API response contracts and shared enums for analytics domain (Metric, Dashboard, Report, Prediction, Alert, ExportJob, User, Roles). Central place for cross-file TypeScript types.",
-    "Simple dependency injection container for resolving service implementations (e.g., API client, socket). Allows replacing implementations in tests or mock mode.",
-    "Lightweight typed event bus for decoupled components (subscribe/publish). Used for cross-cutting events like 'auth:logout', 'toast:show', 'ws:update'.",
-    "Extension hook registry for runtime-registered hooks (analytics plugins, custom widgets). Lightweight API to register and retrieve hooks.",
-    "Common utility helpers used across the app (safeParse, sleep, guard helpers, typed localStorage helpers).",
-    "i18n bootstrap using i18next. Loads locales and exports translator hooks and init function. Sets default language and fallback.",
-    "English translations for the app strings used by UI (dashboard, reports, auth labels, errors).",
-    "Spanish translations (partial) - used to demonstrate i18n capability.",
-    "Sample dashboards dataset (layout + widget configs) used in development mode.",
-    "Sample metrics and time-series JSON used by mock handlers.",
-    "Sample reports metadata and rows used by mock report endpoint.",
-    "Handler for alerts CRUD endpoints with persisted mock state in memory (for dev).",
-    "Handler for dashboards endpoints using sample dashboards dataset.",
-    "Handler that simulates export job creation and status polling for /api/analytics/exports.",
-    "Handler that returns sample metrics and time-series data for /api/analytics/metrics. Uses sample data file and supports query params (range, granularity).",
-    "Handler for /api/analytics/predictions returning predictive series and model metadata.",
-    "Handler for /api/analytics/reports returning mock report list and run results.",
-    "Mock WebSocket broadcaster used in dev to emit periodic metric updates and alerts. Exposes subscribe/emit interface compatible with SocketClient.",
-    "Auth context and hooks handling login/logout, token storage (localStorage in dev), role checks and protected-route helper. Supports mock auth when enable_mock_data is true.",
-    "React Error Boundary that logs errors to service and renders fallback UI. Works with Suspense to provide robust error handling.",
-    "Sets up MSW or an in-app fetch interceptor in dev mode to return mock responses for listed endpoints. Registers handlers for analytics endpoints and exposes controls to seed/mock data.",
-    "Sets up React Query QueryClient with default options, error handling, and devtools. Exposes QueryClientProvider wrapper component.",
-    "React context provider that uses tokens and theme utilities to manage and persist theme choice (dark/light). Integrates with Tailwind dark class and respects system preference.",
-    "Global toast/notifications provider. Provides API via context and listens to 'toast:show' events. Accessible by any component to show non-blocking alerts.",
-    "WebSocket provider abstraction. Connects to real WS in prod, and to a mock socket in dev; exposes hooks to subscribe to channels and emits events into React Query or event bus.",
-    "Thin API client built on fetch. Handles base URL from config, JSON parsing, common error wrapping and token injection. Uses DI to allow mock replacement.",
-    "Mock server registration: sets up handlers for all listed mock API endpoints in development mode. Seeds mock data and exports a start/stop API. Uses MSW or simple fetch override if MSW unavailable.",
-    "Typed localStorage hook with JSON serialization and fallback. Used by ThemeProvider and AuthProvider for persistence (dev mode).",
-    "Exports a set of SVG icon React components used across the app (SearchIcon, BellIcon, ChartIcon, ExportIcon, UserIcon).",
-    "Tailwind base imports and custom utilities. Contains dark mode roots and design token CSS variables derived from tokens.",
-    "Animation presets and Framer Motion variants used across app for transitions, micro-interactions, and chart animations.",
-    "Theme utilities and runtime theme provider values. Provides functions to read system preference, toggle dark mode and map tokens to className values. Exposes ThemeContext types.",
-    "Design tokens: color palette (light/dark), spacing, radii, elevations, font sizes, breakpoints. Used to generate Tailwind theme and to share with CSS-in-JS if needed.",
-    "Utilities for focus trapping, restoring focus and programmatic focus management used by modals and overlays.",
-    "Panel to create or edit alert rules: condition builder, threshold inputs, notification targets and test trigger.",
-    "List of configured alerts with quick enable/disable toggles and test action. Accessible keyboard list.",
-    "React Query hooks for listing alerts, subscribing to alert triggers and updating alert config.",
-    "Primary form for creating and editing custom reports: fields palette, grouping, aggregations and preview pane.",
-    "Stateful hook used by the report builder to manage canvas state, drag/drop fields and preview queries. Saves drafts to localStorage in dev.",
-    "Modal that shows detailed drill-down view for a metric including a larger chart and row-level table. Integrates with Modal primitive and accessible focus trap.",
-    "Composable KPI widget with threshold indicators, small trend sparkline and optional drill-down trigger.",
-    "Presentational KPI/metric card used in dashboards with animation transitions, value formatting and inline sparkline chart.",
-    "Small component that subscribes to websocket topic for real-time metric updates and shows animated transitions for incoming values.",
-    "React Query hooks to fetch metrics and timeseries data. Exposes useMetricsQuery and useMetricSeriesQuery with built-in caching, staleTime and error handling.",
-    "Form to configure export options (format, fields, schedule) and start an export job. Provides job status feedback.",
-    "Hooks to initiate exports, poll export job status and download completed artifacts.",
-    "Chart component wrapping chosen chart library. Displays historical + predicted series and confidence intervals. Accessible SVG with title/desc for screen readers.",
-    "Hooks for fetching predictive analytics data and model metadata. Provides caching and background refetch behavior.",
-    "Form used to filter reports (date range, owner, tags) with validation and error display. Uses React Hook Form (note: the actual RHF dependency exists in package but not listed here as a file).",
-    "Report listing table with server-side pagination, column filters and export action per row.",
-    "React Query hooks to fetch and run reports, with pagination and filter support and optimistic updates for report bookmarking.",
-    "Alert management endpoints: list alerts, create/update alerts, test alert triggers.",
-    "Analytics-specific API wrappers: fetch metrics, time series, aggregations. Returns typed responses using contracts.",
-    "Dashboard CRUD and layout APIs. Fetch dashboards and their widget configurations.",
-    "Export endpoints for scheduling/export jobs and retrieving export artifacts.",
-    "Prediction/predictive-analytics endpoints wrappers (fetch predictions, model metadata).",
-    "Report-related API wrappers: list reports, create report, run report, download report snapshot.",
-    "WebSocket wrapper implementing reconnection, backoff, topic subscription and event dispatch. Provides an interface compatible with mock socket implementation.",
-    "Accessible button primitive with variants (primary, secondary, ghost). Uses Tailwind classes, supports icon slot, loading state and proper ARIA attributes.",
-    "Card primitive with glassmorphism styles (backdrop blur, gradient) and elevation tokens. Used for KPI cards and panels.",
-    "Button to export current dataset to CSV/Excel. Integrates with csvExport helper and shows success/failure toasts.",
-    "Date range picker control used by filters. Uses accessible ARIA patterns and supports quick ranges.",
-    "Round icon button with focus rings and keyboard accessible behavior.",
-    "Accessible text input with label, error message and keyboard support. Integrates with React Hook Form via forwarding ref.",
-    "Accessible modal dialog with backdrop blur, focus trap, keyboard close and portal rendering.",
-    "Accessible select control with keyboard navigation and ARIA attributes.",
-    "Accessible checkbox used in forms and filter UIs.",
-    "Skeleton UI primitive for loading placeholders with accessible ARIA attributes.",
-    "Small animated spinner used in loading states.",
-    "Accessible switch/toggle component used for enabling/disabling alerts or widgets.",
-    "Accessible data table with keyboard navigation, sortable columns and virtualized rows hook support placeholder.",
-    "Toast notification item used by ToastProvider. Handles enter/exit animation and ARIA-live regions.",
-    "Tooltip primitive with accessible ARIA attributes and keyboard support.",
-    "Convenience hook that uses AuthProvider context for login/logout and role discovery. Re-exports auth state and helpers.",
-    "Common debounce hook for search inputs and filter updates.",
-    "Hook for keyboard navigation management and accessible list navigation (ArrowUp/Down, Enter, Escape).",
-    "Hook to show toast notifications via events or context API.",
-    "Hook to subscribe to websocket topics and receive streaming updates; integrates with provider.",
-    "Layout used for authentication pages (Login). Centered card, responsive and accessible.",
-    "Specialized layout for dashboard pages offering widget grid, widget editor controls, and drill-down handling.",
-    "Main application layout with sidebar, topbar, content area and responsive collapse behavior. Handles keyboard shortcuts and focus management.",
-    "Utility to convert arrays of records to CSV/Excel blobs and trigger download in browser.",
-    "Date utilities and formatting helpers used by charts, filters and tables. Uses Intl.DateTimeFormat and UTC-safe helpers.",
-    "Number and currency formatters, compact notation and percentage helpers for KPI display.",
-    "Zustand store for UI-level state such as sidebar collapsed, activeDashboardId, filter presets and ephemeral drill-down selection.",
-    "Standardized error-response mapping for UI: maps ApiError to user-friendly messages and i18n keys.",
-    "Root app component. Composes providers (QueryProvider, AuthProvider, ThemeProvider, MockServerProvider, WebsocketProvider, ToastProvider, ErrorBoundary) and renders Routes inside Suspense with fallback skeletons.",
-    "Application bootstrap entry that mounts React into DOM. Invokes i18n init and conditionally registers service worker. Reads import.meta.env via config.",
-    "Alerts management page where users configure alert rules, view firing alerts and test triggers. Uses AlertList and AlertConfigPanel.",
-    "Custom report builder page with canvas, field palette and save/run controls. Integrates useReportBuilder for state management and draft persistence.",
-    "High-level dashboard page composed of KPI widgets, charts and real-time ticker. Uses DashboardLayout and React Query hooks to load data. Supports drill-down via DrillDownModal.",
-    "Exports page to create and monitor export jobs; shows status and links to download artifacts.",
-    "Page showcasing predictive charts and model metadata with controls for horizon and scenario selection.",
-    "Reports listing page that shows available reports with filters and actions to run/export. Uses ReportTable and ReportFilters.",
-    "Login page with mock auth support in dev, form validation, error handling and accessibility. Uses AuthProvider to perform login and persists user in localStorage when mock is enabled.",
-    "404 page with a call-to-action to navigate back to dashboard or login.",
-    "Application route definitions using React Router v6. Declares public routes (login), protected routes (dashboard, reports, builder, alerts, exports, predictions) and a 404 page. Integrates Suspense boundaries for data-loading routes.",
-    "Optional landing or redirect page; small wrapper to redirect to /dashboard when authenticated.",
-    "Route wrapper that ensures user is authenticated and optionally enforces role-based access. Redirects to login for unauthorized users."
+    "Materialized runtime configuration using import.meta.env with typed wrappers. Exposes feature flags, API base, mock toggles, analytics keys and app meta (title, target audience).",
+    "Domain types, API contract interfaces, shared enums and models used throughout the app (PricingTier, Testimonial, CaseStudy, RoadmapItem, SimulationState, AuthUser, AnalyticsEvent). Central single source of truth for shape of business data.",
+    "Simple dependency injection container used for wiring services in the app (analytics, pricing, chat). Supports override for tests/mocks and lazy resolution.",
+    "Lightweight event bus for cross-feature communication (e.g., 'purchase:nothing', 'analytics:event', 'easter:found'). Supports typed payloads from core/contracts and allows plugin subscriptions.",
+    "Hooks registry and extension API: allows features and A/B experiments to register lifecycle hooks, UI injections, and side-effect handlers (used by EasterEggManager and ExperimentManager).",
+    "General-purpose utilities: formatters, random generators for mock content, safe localStorage helpers (with import.meta.env toggle), debounce/throttle, progressive reveal helpers used by animations.",
+    "MSW request handlers that implement the mock API surface defined in development_mode.mock_api_endpoints. Returns realistic mock payloads for pricing, testimonials, newsletter, analytics, checkout and nothing resource endpoints.",
+    "MSW server bootstrapping used in development. Exposes start/stop hooks and ensures handlers are registered when appConfig enables mocks.",
+    "Auth context providing mock authentication flow per development_mode.mock_auth_users. Exposes login/logout, current user and role-based helpers. Persists to localStorage when enabled.",
+    "React Query client provider configured with sensible defaults, retry behavior, suspense integration and devtools toggle. Initializes based on appConfig.",
+    "Centered showcase layout used for hero, rotating 3D showcase and simulator pages; handles responsive stage sizing and parallax anchor.",
+    "Main landing layout composing header, footer and content slots. Provides background layers (void canvas) and handles dark-mode class toggles and scroll container for smooth reveals.",
+    "Zustand store for ephemeral UI state and persistent flags (newsletter subscribed, cookie banner dismissed, active simulation params, AB test enrollment). Supports localStorage persistence based on appConfig.",
+    "Shared Framer Motion presets, animation variants, motion utilities and timing curves used across hero, testimonials and counters. Also exports helper types for complex sequences (glitch, reverse-progress).",
+    "Theme provider integration: tailwind + dark-mode context, system preference detection, and CVA variants glue for shared theme tokens. Exposes ThemeProvider component and useTheme hook.",
+    "Affiliate program business rules: generates affiliate codes (all worthless), tracks referrals, and exposes integration endpoints for signup and payouts (mocked).",
+    "Feature: Analytics Dashboard for Nothing (admin view) using Recharts. Business logic composes analytics.service outputs and offers mock-filters for sessions and events showing 'time spent contemplating existence'.",
+    "Analytics service that records UI events, mocks remote post in dev, and provides a React Query-backed dashboard data source. Also exposes a small in-memory store for rapid inspection.",
+    "Animated counter component that always shows '0 features delivered' with elaborate typing & erase timing, reverse-progress bar, and recursive loading bar that never completes. Exposes control props for speed and glitch intensity.",
+    "API documentation viewer for the Nothing API. Generates interactive examples (that return nothing), includes try-it calls via pricing.service and analytics hooks, and provides code snippets.",
+    "Loads and composes case studies of successful nothing implementations, handles filtering, and triggers deep-link analytics for each case study.",
+    "Service layer for live chat support (that provides no help). Simulates responses, integrates with MSW endpoint in dev, records conversation to analytics, and exposes hooks for LiveChatBot.",
+    "Cookie consent business logic specialized for 'nothing cookies': handles consent persistence, shows playful consent text, and integrates with analytics toggles.",
+    "Manages easter eggs across the app: registers hooks, watches for secret sequences (click patterns), and triggers deep-nothing reveals. Integrates with EventBus and Hook registry.",
+    "A/B testing manager: enrolls users into experiments, serves variant config (e.g., hero variant A/B), and exposes helper hooks used in feature components. Persists enrollment in Zustand.",
+    "FAQ business logic: loads FAQ items (with A/B variants), tracks which answers are revealed (for analytics), and supports question search that returns no useful results. Uses React Hook Form for search input with Zod validation.",
+    "Hero section component with epic headline, parallax void animation integration, glitch-hover for the word 'nothing', typing/erase animations, and CTA that triggers simulated checkout for nothing. Uses Framer Motion and ties into EventBus and A/B experiments.",
+    "Chat UI container that uses chat.service. Contains business logic to present intentionally unhelpful replies, donut-loading silence effects, and escalation to 'no support'. Emits analytics events and supports mocked websocket toggles.",
+    "Money-back guarantee business logic: conditions for refund, claim flow, and mock refund API integration. Exposes UI props for badges and claim status.",
+    "Form wiring using React Hook Form + Zod for the newsletter signup; triggers newsletter.service and records analytics event on submission. UI uses Radix Input/Button.",
+    "Handles newsletter signup flows: client-side validation, API call via React Query, optimistic UI, and toast notifications. Includes mock-friendly behavior when appConfig.enableMocks is true.",
+    "404 page that redirects to more nothing (auto-redirects to landing). Contains animation logic and a playful CTA to embrace nothingness.",
+    "Documentation page composition that renders ApiDocs and PressKitProvider. Includes routing metadata and search indexing for docs pages.",
+    "Landing page composition: assembles LandingLayout with ExistentialHero, PricingTiers, TestimonialGenerator, AnimatedZeroCounter, VoidSimulator, NewsletterForm, LiveChatBot and all feature sections into a polished flow. Orchestrates lazy loading via React.Suspense.",
+    "Public status page route composing StatusPage and AnalyticsDashboard summary. Designed to always show 100% uptime and quirky messaging.",
+    "Provides press kit assets and metadata (logos, SVGs, brand guidelines for nothing). Business logic to package downloads and serve variants for printing/web.",
+    "Business rules and remote API integration for pricing tiers. Computes prices (Basic Nothing, Pro Nothing, Enterprise Nothing), handles promotions (reverse-progress discounts), and exposes React Query hooks for pricing data and checkout flow.",
+    "UI container that composes pricing.service outputs into presentational tiers (uses Radix Card primitives), handles tier selection and starts checkout via pricing.service. Contains business logic for tier comparison and gating enterprise flow.",
+    "Comparison component that creates a product comparison chart (Nothing vs Something vs Everything) using Recharts. Contains logic to assemble comparison metrics and to generate a printable press-friendly CSV.",
+    "Aggregates customer reviews and computes humorous 5-star average for nothing. Business logic for paginated loading, moderation (auto-approve), and review submission via React Query.",
+    "Timeline component showing future releases of nothing. Handles progressive reveal animations and supports timeline events that can be toggled by A/B experiments.",
+    "3D rotating nothing showcase built with Three.js: loads assets (logos/brands from PressKitProvider), orchestrates rotation animations and integrates with VoidAnimationSystem.",
+    "Utility to play 'silence' sound effects or intentionally absent audio. Exposes noop audio controllers used by buttons, chat and simulator to comply with prompt's sound interactions.",
+    "Status page showing 100% nothing uptime. Business logic polls a mocked status endpoint, reconciles incidents (none), and exposes health-check hooks for embed use.",
+    "Presents a stylized team of experts in nothing with bios (tongue-in-cheek). Business logic for rotating bios, link tracking, and easter-egg reveal when interacting with avatars.",
+    "Generates floating testimonial bubbles (drifting into nothingness), handles lazy loading of more testimonials (infinite load of nothing), and maps to UI with motion effects. Uses useVoidParticles for physics.",
+    "Retrieves testimonials, aggregates sentiment (always positive about nothing), generates synthetic floating bubble content for the TestimonialGenerator. Provides React Query hooks and mock-fallback data.",
+    "Hook implementing the simulator state machine: start/stop, parameter updates, metrics (nothingness index), and event emissions. Controls audio silence and recursive progress behaviors.",
+    "Hook managing particle physics for the void: spawning logic, lifecycle, drift behaviors for floating testimonial bubbles and infinite zero rain. Supports deterministic seeds for A/B tests.",
+    "High-level orchestrator for void visuals: composes Three.js canvas, particle system, matrix-of-zeros rain, parallax layers and Framer Motion hooks. Exposes programmatic controls to start/stop special effects and provides context for children (bubbles, 3D showcase).",
+    "Interactive void simulator responsible for user-configurable parameters (depth, density, silence) that run a visual simulation. Contains the core simulation loop logic via useSimulator hook and persistence to Zustand store."
   ],
   "dependencies": [
-    [
-      "src/core/contracts.ts"
-    ],
-    [],
-    [
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/core/events.ts"
-    ],
-    [],
-    [
-      "src/i18n/locales/en.ts",
-      "src/i18n/locales/es.ts"
-    ],
-    [],
-    [],
-    [],
     [],
     [],
     [
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/mocks/data/sample-dashboards.json",
-      "src/core/contracts.ts"
+      "src/app/config.ts"
     ],
     [
       "src/core/contracts.ts"
-    ],
-    [
-      "src/mocks/data/sample-metrics.json",
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/mocks/data/sample-metrics.json",
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/mocks/data/sample-reports.json",
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/mocks/data/sample-metrics.json"
-    ],
-    [
-      "src/core/contracts.ts",
-      "src/app/config.ts",
-      "src/services/mock/mockServer.ts",
-      "src/core/di.ts",
-      "src/shared/hooks/useLocalStorage.ts"
-    ],
-    [
-      "src/core/events.ts"
-    ],
-    [
-      "src/app/config.ts",
-      "src/services/mock/mockServer.ts"
     ],
     [
       "src/core/events.ts",
+      "src/core/contracts.ts"
+    ],
+    [
       "src/app/config.ts"
+    ],
+    [
+      "src/core/contracts.ts",
+      "src/app/config.ts"
+    ],
+    [
+      "src/mocks/handlers.ts",
+      "src/app/config.ts"
+    ],
+    [
+      "src/app/config.ts",
+      "src/core/contracts.ts",
+      "src/core/events.ts"
+    ],
+    [
+      "src/app/config.ts"
+    ],
+    [
+      "src/theme/animations.ts",
+      "src/state/use-nothing-store.ts"
     ],
     [
       "src/theme/index.ts",
-      "src/shared/hooks/useLocalStorage.ts"
-    ],
-    [
-      "src/core/events.ts",
-      "src/shared/components/Toast.tsx"
+      "src/features/void/void-animation-system.tsx",
+      "src/state/use-nothing-store.ts"
     ],
     [
       "src/app/config.ts",
-      "src/services/socket/socket.ts",
-      "src/core/events.ts"
-    ],
-    [
-      "src/app/config.ts",
-      "src/core/contracts.ts",
-      "src/core/di.ts"
-    ],
-    [
-      "src/mocks/handlers/metrics.ts",
-      "src/mocks/handlers/reports.ts",
-      "src/mocks/handlers/dashboards.ts",
-      "src/mocks/handlers/predictions.ts",
-      "src/mocks/handlers/alerts.ts",
-      "src/mocks/handlers/exports.ts",
-      "src/app/config.ts"
+      "src/core/contracts.ts"
     ],
     [
       "src/core/utils.ts"
     ],
-    [],
     [
-      "src/theme/tokens.ts"
-    ],
-    [],
-    [
-      "src/theme/tokens.ts"
-    ],
-    [],
-    [],
-    [
-      "src/shared/components/Input.tsx",
-      "src/shared/components/Select.tsx",
-      "src/shared/hooks/useToast.ts",
-      "src/features/alerts/hooks/useAlerts.ts"
-    ],
-    [
-      "src/features/alerts/hooks/useAlerts.ts",
-      "src/shared/components/Switch.tsx",
-      "src/shared/components/Table.tsx"
-    ],
-    [
-      "src/services/api/alerts.ts",
-      "src/providers/QueryProvider.tsx"
-    ],
-    [
-      "src/features/builder/hooks/useReportBuilder.ts",
-      "src/shared/components/Button.tsx",
-      "src/shared/components/Input.tsx",
-      "src/shared/components/Select.tsx"
-    ],
-    [
-      "src/shared/hooks/useLocalStorage.ts",
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/shared/components/Modal.tsx",
-      "src/features/dashboard/hooks/useMetrics.ts",
-      "src/shared/components/Table.tsx"
-    ],
-    [
-      "src/shared/components/Card.tsx",
-      "src/shared/utils/formatters.ts",
-      "src/shared/components/IconButton.tsx",
-      "src/core/events.ts"
-    ],
-    [
-      "src/shared/components/Card.tsx",
-      "src/shared/components/Skeleton.tsx",
-      "src/shared/utils/formatters.ts",
-      "src/features/dashboard/hooks/useMetrics.ts",
-      "src/shared/components/Spinner.tsx"
-    ],
-    [
-      "src/shared/components/Spinner.tsx",
-      "src/shared/components/Skeleton.tsx",
-      "src/shared/hooks/useWebsocket.ts",
-      "src/core/events.ts"
-    ],
-    [
-      "src/services/api/analytics.ts",
-      "src/providers/QueryProvider.tsx",
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/shared/components/Select.tsx",
-      "src/shared/components/Button.tsx",
-      "src/features/exports/hooks/useExports.ts"
-    ],
-    [
-      "src/services/api/exports.ts",
-      "src/providers/QueryProvider.tsx",
-      "src/shared/hooks/useToast.ts"
-    ],
-    [
-      "src/shared/utils/formatters.ts",
-      "src/theme/animations.ts"
-    ],
-    [
-      "src/services/api/predictions.ts",
-      "src/providers/QueryProvider.tsx"
-    ],
-    [
-      "src/shared/components/DateRangePicker.tsx",
-      "src/shared/components/Select.tsx",
-      "src/shared/hooks/useDebounce.ts"
-    ],
-    [
-      "src/shared/components/Table.tsx",
-      "src/shared/components/DataExportButton.tsx",
-      "src/features/reports/hooks/useReports.ts"
-    ],
-    [
-      "src/services/api/reports.ts",
-      "src/providers/QueryProvider.tsx"
-    ],
-    [
-      "src/services/api/client.ts",
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/services/api/client.ts",
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/services/api/client.ts",
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/services/api/client.ts",
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/services/api/client.ts",
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/services/api/client.ts",
-      "src/core/contracts.ts"
-    ],
-    [
-      "src/app/config.ts",
-      "src/core/events.ts"
-    ],
-    [
-      "src/shared/icons/index.ts",
-      "src/theme/index.ts"
-    ],
-    [
-      "src/theme/tokens.ts"
-    ],
-    [
-      "src/shared/utils/csvExport.ts",
-      "src/core/events.ts",
-      "src/shared/components/Button.tsx"
-    ],
-    [
-      "src/shared/components/Input.tsx",
-      "src/shared/utils/date.ts"
-    ],
-    [
-      "src/shared/icons/index.ts"
-    ],
-    [
-      "src/theme/index.ts"
-    ],
-    [
-      "src/shared/components/Button.tsx",
-      "src/a11y/focusManager.ts"
-    ],
-    [
-      "src/shared/components/Input.tsx"
-    ],
-    [
-      "src/theme/index.ts"
-    ],
-    [
-      "src/theme/animations.ts"
-    ],
-    [
-      "src/theme/animations.ts"
-    ],
-    [
-      "src/theme/index.ts"
-    ],
-    [
-      "src/shared/components/Skeleton.tsx",
-      "src/shared/hooks/useDebounce.ts"
-    ],
-    [
-      "src/theme/animations.ts"
-    ],
-    [
-      "src/theme/animations.ts"
-    ],
-    [
-      "src/providers/AuthProvider.tsx"
-    ],
-    [],
-    [
-      "src/a11y/focusManager.ts"
-    ],
-    [
-      "src/providers/ToastProvider.tsx",
-      "src/core/events.ts"
-    ],
-    [
-      "src/providers/WebsocketProvider.tsx",
-      "src/core/events.ts"
-    ],
-    [
-      "src/shared/components/Card.tsx"
-    ],
-    [
-      "src/shared/layouts/MainLayout.tsx",
-      "src/features/dashboard/components/MetricCard.tsx",
-      "src/features/dashboard/components/KPIWidget.tsx"
-    ],
-    [
-      "src/shared/components/IconButton.tsx",
-      "src/shared/icons/index.ts",
-      "src/state/ui.ts",
-      "src/providers/ThemeProvider.tsx"
-    ],
-    [],
-    [],
-    [],
-    [
-      "src/core/contracts.ts",
-      "src/shared/hooks/useLocalStorage.ts"
+      "src/core/utils.ts"
     ],
     [
       "src/core/contracts.ts",
-      "src/i18n/index.ts"
-    ],
-    [
-      "src/providers/QueryProvider.tsx",
-      "src/providers/AuthProvider.tsx",
-      "src/providers/ThemeProvider.tsx",
-      "src/providers/MockServerProvider.tsx",
-      "src/providers/WebsocketProvider.tsx",
-      "src/providers/ToastProvider.tsx",
-      "src/providers/ErrorBoundary.tsx",
-      "src/routes/index.tsx",
-      "src/styles/tailwind.css"
-    ],
-    [
-      "src/app/App.tsx",
-      "src/i18n/index.ts",
+      "src/core/di.ts",
       "src/app/config.ts"
     ],
     [
-      "src/shared/layouts/MainLayout.tsx",
-      "src/features/alerts/components/AlertList.tsx",
-      "src/features/alerts/components/AlertConfigPanel.tsx"
+      "src/features/analytics/analytics.service.ts",
+      "src/core/contracts.ts",
+      "src/features/reviews/reviews-widget.tsx"
     ],
     [
-      "src/shared/layouts/MainLayout.tsx",
-      "src/features/builder/components/ReportBuilderForm.tsx"
+      "src/core/contracts.ts",
+      "src/app/config.ts",
+      "src/core/di.ts"
     ],
     [
-      "src/shared/layouts/DashboardLayout.tsx",
-      "src/features/dashboard/hooks/useMetrics.ts",
-      "src/features/dashboard/components/MetricCard.tsx",
-      "src/features/dashboard/components/DrillDownModal.tsx",
-      "src/shared/hooks/useWebsocket.ts"
+      "src/theme/animations.ts",
+      "src/core/events.ts"
     ],
     [
-      "src/shared/layouts/MainLayout.tsx",
-      "src/features/exports/components/ExportForm.tsx",
-      "src/features/exports/hooks/useExports.ts"
+      "src/features/pricing/pricing.service.ts",
+      "src/core/contracts.ts"
     ],
     [
-      "src/shared/layouts/MainLayout.tsx",
-      "src/features/predictions/components/PredictiveChart.tsx",
-      "src/features/predictions/hooks/usePredictions.ts"
+      "src/core/contracts.ts",
+      "src/app/config.ts"
     ],
     [
-      "src/shared/layouts/MainLayout.tsx",
-      "src/features/reports/components/ReportTable.tsx",
-      "src/features/reports/components/ReportFilters.tsx"
+      "src/app/config.ts",
+      "src/core/contracts.ts",
+      "src/core/events.ts"
     ],
     [
-      "src/providers/AuthProvider.tsx",
-      "src/shared/layouts/AuthLayout.tsx",
-      "src/shared/components/Input.tsx",
-      "src/shared/components/Button.tsx",
-      "src/shared/hooks/useToast.ts",
-      "react-hook-form"
+      "src/state/use-nothing-store.ts",
+      "src/core/events.ts"
     ],
     [
-      "src/shared/components/Button.tsx"
+      "src/core/hooks.ts",
+      "src/core/events.ts",
+      "src/state/use-nothing-store.ts"
     ],
     [
-      "react-router-dom",
-      "src/pages/LoginPage.tsx",
-      "src/pages/NotFoundPage.tsx",
-      "src/features/dashboard/DashboardPage.tsx",
-      "src/features/reports/ReportsPage.tsx",
-      "src/features/builder/BuilderPage.tsx",
-      "src/features/alerts/AlertsPage.tsx",
-      "src/features/exports/ExportsPage.tsx",
-      "src/features/predictions/PredictionsPage.tsx",
-      "src/providers/ErrorBoundary.tsx"
+      "src/state/use-nothing-store.ts",
+      "src/core/di.ts",
+      "src/app/config.ts"
     ],
     [
-      "react-router-dom",
-      "src/shared/hooks/useAuth.ts"
+      "src/core/contracts.ts",
+      "src/features/experiments/experiment-manager.ts"
     ],
     [
-      "src/shared/hooks/useAuth.ts",
-      "react-router-dom",
-      "src/pages/LoginPage.tsx"
+      "src/theme/animations.ts",
+      "src/features/void/void-animation-system.tsx",
+      "src/core/events.ts",
+      "src/features/experiments/experiment-manager.ts",
+      "src/features/sound/silence-audio.ts",
+      "src/core/contracts.ts"
+    ],
+    [
+      "src/features/chat/chat.service.ts",
+      "src/features/sound/silence-audio.ts",
+      "src/core/events.ts"
+    ],
+    [
+      "src/features/pricing/pricing.service.ts",
+      "src/app/config.ts"
+    ],
+    [
+      "src/features/newsletter/newsletter.service.ts",
+      "src/core/contracts.ts",
+      "src/features/sound/silence-audio.ts"
+    ],
+    [
+      "src/core/contracts.ts",
+      "src/app/config.ts"
+    ],
+    [
+      "src/shared/layouts/LandingLayout.tsx",
+      "src/theme/animations.ts"
+    ],
+    [
+      "src/features/apidocs/api-docs.tsx",
+      "src/features/press/press-kit-provider.tsx"
+    ],
+    [
+      "src/shared/layouts/LandingLayout.tsx",
+      "src/features/hero/existential-hero.tsx",
+      "src/features/pricing/pricing-tiers.tsx",
+      "src/features/testimonials/testimonial-generator.tsx",
+      "src/features/counter/animated-zero-counter.tsx",
+      "src/features/simulator/void-simulator.tsx",
+      "src/features/newsletter/newsletter-form.tsx",
+      "src/features/chat/live-chat-bot.tsx",
+      "src/features/cookies/cookie-banner.tsx",
+      "src/features/easter-eggs/easter-egg-manager.tsx"
+    ],
+    [
+      "src/features/status/status-page.tsx",
+      "src/features/analytics/analytics-dashboard.tsx"
+    ],
+    [
+      "src/app/config.ts"
+    ],
+    [
+      "src/core/contracts.ts",
+      "src/core/di.ts",
+      "src/app/config.ts"
+    ],
+    [
+      "src/features/pricing/pricing.service.ts",
+      "src/core/events.ts",
+      "src/features/experiments/experiment-manager.ts"
+    ],
+    [
+      "src/core/contracts.ts",
+      "src/features/press/press-kit-provider.tsx"
+    ],
+    [
+      "src/core/contracts.ts",
+      "src/app/config.ts"
+    ],
+    [
+      "src/core/contracts.ts",
+      "src/features/experiments/experiment-manager.ts",
+      "src/theme/animations.ts"
+    ],
+    [
+      "src/features/void/void-animation-system.tsx",
+      "src/features/press/press-kit-provider.tsx",
+      "src/theme/animations.ts"
+    ],
+    [
+      "src/app/config.ts"
+    ],
+    [
+      "src/app/config.ts",
+      "src/core/contracts.ts"
+    ],
+    [
+      "src/core/events.ts",
+      "src/features/easter-eggs/easter-egg-manager.ts"
+    ],
+    [
+      "src/features/testimonials/testimonial.service.ts",
+      "src/features/void/use-void-particles.ts",
+      "src/theme/animations.ts"
+    ],
+    [
+      "src/core/contracts.ts",
+      "src/app/config.ts"
+    ],
+    [
+      "src/core/events.ts",
+      "src/core/utils.ts",
+      "src/state/use-nothing-store.ts"
+    ],
+    [
+      "src/core/utils.ts",
+      "src/core/contracts.ts"
+    ],
+    [
+      "src/theme/animations.ts",
+      "src/features/void/use-void-particles.ts",
+      "src/core/events.ts"
+    ],
+    [
+      "src/features/simulator/use-simulator.ts",
+      "src/state/use-nothing-store.ts",
+      "src/features/void/void-animation-system.tsx"
     ]
   ],
-  "total_files": 100
+  "total_files": 51
 }

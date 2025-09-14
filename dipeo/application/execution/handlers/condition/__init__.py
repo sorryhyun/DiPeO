@@ -135,7 +135,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         from dipeo.diagram_generated.enums import ContentType
 
         # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
-        envelope_inputs = self.consume_token_inputs(request, inputs)
+        envelope_inputs = self.get_effective_inputs(request, inputs)
 
         # Convert envelopes to appropriate format based on content type
         legacy_inputs = {}

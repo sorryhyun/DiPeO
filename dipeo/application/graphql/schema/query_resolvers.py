@@ -207,9 +207,9 @@ async def get_execution_metrics(
 
     execution = await execution_resolver.get_execution(execution_id_typed)
     if not execution or not hasattr(execution, "metrics"):
-        return None
+        return {}
 
-    return execution.metrics
+    return execution.metrics or {}
 
 
 async def get_execution_history(

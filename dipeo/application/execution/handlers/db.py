@@ -408,7 +408,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         Phase 5: Now consumes tokens from incoming edges when available.
         """
         # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
-        envelope_inputs = self.consume_token_inputs(request, inputs)
+        envelope_inputs = self.get_effective_inputs(request, inputs)
 
         # Call parent prepare_inputs for default envelope conversion
         return await super().prepare_inputs(request, envelope_inputs)

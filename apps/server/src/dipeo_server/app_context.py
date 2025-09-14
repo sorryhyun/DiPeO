@@ -59,17 +59,9 @@ async def create_server_container() -> Container:
     # Get or create domain event bus
     # Event bus is already imported above as EVENT_BUS
 
-    if container.registry.has(EVENT_BUS):
-        domain_event_bus = container.registry.resolve(EVENT_BUS)
-        event_bus = domain_event_bus
-    else:
-        # Fallback to InMemoryEventBus
-        from dipeo.infrastructure.events.adapters import InMemoryEventBus
-
-        queue_size = getattr(settings.messaging, "queue_size", 50000)
-        event_bus = InMemoryEventBus(max_queue_size=queue_size)
-        domain_event_bus = None
-        container.registry.register(EVENT_BUS, event_bus)
+    # Event bus is required - no fallback
+    domain_event_bus = container.registry.resolve(EVENT_BUS)
+    event_bus = domain_event_bus
 
     # Get state repository and initialize
     from dipeo.application.bootstrap.lifecycle import initialize_service
@@ -133,9 +125,9 @@ async def create_server_container() -> Container:
         EventType.EXECUTION_COMPLETED,
     ]
 
-    if hasattr(event_bus, "subscribe"):
-        for event_type in metrics_events:
-            await event_bus.subscribe(event_type, metrics_observer)
+    # Subscribe metrics observer to events
+    for event_type in metrics_events:
+        await event_bus.subscribe(event_type, metrics_observer)
 
     # Initialize provider registry for webhook integration
     from dipeo.infrastructure.integrations.drivers.integrated_api.registry import (
@@ -168,14 +160,12 @@ async def create_server_container() -> Container:
 
     container.registry.register(PROVIDER_REGISTRY, provider_registry)
 
-    # Start services
-    if domain_event_bus is not None and hasattr(domain_event_bus, "start"):
-        await domain_event_bus.start()
-    if hasattr(event_bus, "start"):
-        await event_bus.start()
+    # Initialize services
+    if domain_event_bus is not None:
+        await domain_event_bus.initialize()
+    await event_bus.initialize()
     # state_manager is initialized via execute_event_subscriptions
-    if hasattr(metrics_observer, "start"):
-        await metrics_observer.start()
+    # metrics_observer doesn't require initialization
 
     # Register CLI session service if not already registered
     from dipeo.application.execution.use_cases import CliSessionService

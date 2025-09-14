@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import logging
 from collections import defaultdict
+from collections.abc import Callable
 from typing import Any
 from uuid import uuid4
 
@@ -162,11 +163,11 @@ class InMemoryEventBus(EventBus):
 
         logger.debug(f"Unsubscribed {subscription_id}")
 
-    async def start(self) -> None:
-        """Start the event bus."""
+    async def initialize(self) -> None:
+        """Initialize the event bus."""
         self._running = True
 
-    async def stop(self) -> None:
+    async def cleanup(self) -> None:
         """Stop the event bus and clean up resources."""
         self._running = False
 
@@ -212,3 +213,32 @@ class InMemoryEventBus(EventBus):
     def clear_event_store(self) -> None:
         """Clear the event store (for testing)."""
         self._event_store.clear()
+
+    async def register_connection(self, connection_id: str, handler: Callable) -> None:
+        """Register a connection handler for execution updates."""
+        # Not needed for in-memory event bus
+        pass
+
+    async def unregister_connection(self, connection_id: str) -> None:
+        """Unregister a connection."""
+        # Not needed for in-memory event bus
+        pass
+
+    async def broadcast_to_execution(self, execution_id: str, message: dict) -> None:
+        """Broadcast message to all connections subscribed to execution."""
+        # Not needed for in-memory event bus
+        pass
+
+    async def subscribe_connection_to_execution(
+        self, connection_id: str, execution_id: str
+    ) -> None:
+        """Subscribe connection to execution updates."""
+        # Not needed for in-memory event bus
+        pass
+
+    async def unsubscribe_connection_from_execution(
+        self, connection_id: str, execution_id: str
+    ) -> None:
+        """Unsubscribe connection from execution updates."""
+        # Not needed for in-memory event bus
+        pass

@@ -26,20 +26,12 @@ class TypedExecutionEngine:
     def __init__(
         self,
         service_registry: "ServiceRegistry",
-        event_bus: EventBus | None = None,
+        event_bus: EventBus,
     ):
         self.service_registry = service_registry
         self._settings = get_settings()
-        self._managed_event_bus = False
+        self.event_bus = event_bus
         self._scheduler: NodeScheduler | None = None
-
-        if not event_bus:
-            from dipeo.infrastructure.events.adapters import InMemoryEventBus
-
-            self.event_bus = InMemoryEventBus()
-            self._managed_event_bus = True
-        else:
-            self.event_bus = event_bus
 
     async def execute(
         self,
@@ -49,8 +41,7 @@ class TypedExecutionEngine:
         container: Optional["Container"] = None,
         interactive_handler: Any | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
-        if self._managed_event_bus:
-            await self.event_bus.start()
+        # Event bus should already be started
 
         context = None
         log_handler = None
@@ -171,8 +162,7 @@ class TypedExecutionEngine:
 
                 teardown_execution_logging(log_handler)
 
-            if self._managed_event_bus:
-                await self.event_bus.stop()
+            # Event bus cleanup handled externally
 
     async def _execute_nodes(
         self, nodes: list[ExecutableNode], context: TypedExecutionContext

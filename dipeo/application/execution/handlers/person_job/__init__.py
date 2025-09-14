@@ -140,7 +140,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         node = request.node
 
         # Phase 5: Consume tokens from incoming edges
-        envelope_inputs = self.consume_token_inputs(request, inputs)
+        envelope_inputs = self.get_effective_inputs(request, inputs)
         self._envelope_inputs = envelope_inputs
         inputs = envelope_inputs
 

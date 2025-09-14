@@ -21,14 +21,20 @@ TNode = TypeVar("TNode")
 class TokenHandlerMixin:
     """Mixin for handlers to support token-based execution."""
 
-    def consume_token_inputs(
-        self, request: ExecutionRequest, fallback_inputs: dict[str, Envelope]
-    ) -> dict[str, Envelope]:
+    def consume_token_inputs(self, request: ExecutionRequest) -> dict[str, Envelope] | None:
+        """Consume token inputs if available. Returns None if no tokens."""
         context = request.context
         node_id = request.node.id
+        return context.consume_inbound(node_id)
 
-        token_inputs = context.consume_inbound(node_id)
-        return token_inputs if token_inputs else fallback_inputs
+    def get_effective_inputs(
+        self, request: ExecutionRequest, resolved_inputs: dict[str, Envelope]
+    ) -> dict[str, Envelope]:
+        """Get effective inputs - tokens if available, otherwise resolved inputs."""
+        token_inputs = self.consume_token_inputs(request)
+        if token_inputs:
+            return token_inputs
+        return resolved_inputs
 
     def emit_token_outputs(
         self, request: ExecutionRequest, output: Envelope, port: str = "default"
@@ -138,9 +144,9 @@ class TypedNodeHandler[T](TokenHandlerMixin, ABC):
             envelope = self.serialize_output(result, request)
             envelope = self.post_execute(request, envelope)
 
-            if hasattr(request.context, "events"):
-                exec_count = request.context.state.get_node_execution_count(request.node.id)
-                await request.context.events.emit_node_completed(request.node, envelope, exec_count)
+            # Emit node completion event
+            exec_count = request.context.state.get_node_execution_count(request.node.id)
+            await request.context.events.emit_node_completed(request.node, envelope, exec_count)
 
             return envelope
 
