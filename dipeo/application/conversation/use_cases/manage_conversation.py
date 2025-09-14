@@ -1,62 +1,41 @@
 """Use case for managing conversations."""
 
-from dipeo.diagram_generated import Message
+from typing import Any
+
+from dipeo.diagram_generated import Message, PersonID
 from dipeo.domain.conversation import Conversation
 from dipeo.domain.conversation.ports import ConversationRepository
 
 
 class ManageConversationUseCase:
-    """Use case for managing conversation state and messages.
-
-    This use case orchestrates conversation operations including:
-    - Adding messages to conversations
-    - Retrieving conversation history
-    - Clearing conversations
-    - Getting conversation statistics
-    """
+    """Orchestrates conversation operations and message management."""
 
     def __init__(self, conversation_repository: ConversationRepository):
-        """Initialize the use case with required dependencies.
-
-        Args:
-            conversation_repository: Repository for persisting conversations
-        """
         self.conversation_repository = conversation_repository
 
     def add_message(self, message: Message) -> None:
-        """Add a message to the global conversation.
-
-        Args:
-            message: The message to add
-        """
         self.conversation_repository.add_message(message)
 
-    def get_conversation_history(self) -> list[Message]:
-        """Get all messages from the conversation.
+    def add_message_with_context(
+        self, message: Message, execution_id: str, node_id: str | None = None
+    ) -> None:
+        self.conversation_repository.add_message(message, execution_id, node_id)
 
-        Returns:
-            List of all messages in chronological order
-        """
+    def get_conversation_history(self) -> list[Message]:
         return self.conversation_repository.get_messages()
 
-    def get_latest_message(self) -> Message | None:
-        """Get the most recent message.
+    def get_person_conversation_history(self, person_id: PersonID | str) -> list[dict[str, Any]]:
+        """Get conversation history formatted for person's perspective."""
+        person_id_obj = PersonID(person_id) if isinstance(person_id, str) else person_id
+        return self.conversation_repository.get_conversation_history(person_id_obj)
 
-        Returns:
-            The latest message or None if conversation is empty
-        """
+    def get_latest_message(self) -> Message | None:
         return self.conversation_repository.get_latest_message()
 
     def clear_conversation(self) -> None:
-        """Clear all messages from the conversation."""
         self.conversation_repository.clear()
 
     def get_conversation_stats(self) -> dict:
-        """Get statistics about the conversation.
-
-        Returns:
-            Dictionary containing conversation statistics
-        """
         return {
             "message_count": self.conversation_repository.get_message_count(),
             "has_messages": self.conversation_repository.get_message_count() > 0,
@@ -64,9 +43,5 @@ class ManageConversationUseCase:
         }
 
     def get_global_conversation(self) -> Conversation:
-        """Get the global conversation object.
-
-        Returns:
-            The global conversation shared by all persons
-        """
+        """Get the global conversation shared by all persons."""
         return self.conversation_repository.get_global_conversation()

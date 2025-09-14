@@ -29,10 +29,9 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
         self.api_key_service = api_key_service
         self._adapter_pool: dict[str, dict[str, Any]] = {}
         self._adapter_pool_lock = asyncio.Lock()
-        self._adapter_cache = SingleFlightCache()  # For deduplicating adapter creation
+        self._adapter_cache = SingleFlightCache()
         self._settings = get_settings()
 
-        # Model-specific keywords that help infer the provider
         self._model_keywords = {
             "gpt": LLMServiceName.OPENAI.value,
             "o1": LLMServiceName.OPENAI.value,
@@ -78,24 +77,11 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
     async def _get_client(
         self, service: str, model: str, api_key_id: str, async_mode: bool = True
     ) -> Any:
-        """
-        Get or create an LLM adapter client.
-
-        Args:
-            service: The LLM service provider
-            model: The model to use
-            api_key_id: The API key identifier
-            async_mode: If True, creates async adapter; if False, creates sync adapter
-
-        Returns:
-            An LLM adapter instance
-        """
         provider = normalize_service_name(service)
 
         if provider not in VALID_LLM_SERVICES:
             raise LLMServiceError(service=service, message=f"Unsupported LLM service: {service}")
 
-        # Include async_mode in cache key to separate sync and async adapters
         cache_key = f"{self._create_cache_key(provider, model, api_key_id)}:{'async' if async_mode else 'sync'}"
 
         async with self._adapter_pool_lock:
@@ -132,21 +118,17 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
         )
 
     async def _call_llm_with_retry(self, client: Any, messages: list[dict], **kwargs) -> Any:
-        """Call LLM with retry logic, handling both sync and async adapters."""
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(3),
             wait=wait_exponential(multiplier=1, min=1, max=10),
             retry=retry_if_exception_type((ConnectionError, TimeoutError)),
         ):
             with attempt:
-                # Check if this is a unified client (has async_chat method)
                 if hasattr(client, "async_chat"):
                     return await client.async_chat(messages=messages, **kwargs)
-                # Check if this is an old async adapter (has chat_async method)
                 elif hasattr(client, "chat_async"):
                     return await client.chat_async(messages=messages, **kwargs)
                 else:
-                    # Sync adapter - run in thread pool
                     return await asyncio.to_thread(client.chat, messages=messages, **kwargs)
 
     async def complete(  # type: ignore[override]
@@ -156,7 +138,6 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             if messages is None:
                 messages = []
 
-            # Extract execution_phase before validation (adapter-specific parameter)
             execution_phase = kwargs.pop("execution_phase", None)
 
             service = kwargs.pop("service", None)
@@ -166,16 +147,12 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
                 service = normalize_service_name(str(service))
             else:
                 service = self._infer_service_from_model(model)
-            # Validation is now handled by infrastructure adapters
-            # The adapters have comprehensive validation in their implementations
 
-            # Always use async adapters for better performance
             adapter = await self._get_client(service, model, api_key_id, async_mode=True)
 
             messages_list = messages
 
             adapter_kwargs = {**kwargs}
-            # Re-add execution_phase for adapters that support it
             if execution_phase:
                 adapter_kwargs["execution_phase"] = execution_phase
 
@@ -185,9 +162,7 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
                 result = await self._call_llm_with_retry(adapter, messages_list, **adapter_kwargs)
 
                 if hasattr(self, "logger") and result:
-                    # Safely extract response text for logging
                     if isinstance(result, type):
-                        # It's a class (like Pydantic model class), not an instance
                         response_text = f"<class {result.__name__}>"
                     elif hasattr(result, "content"):
                         response_text = str(result.content)[:50]
@@ -197,15 +172,10 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
                         response_text = str(result)[:50]
                     self.log_debug(f"LLM response: {response_text}")
 
-                # Convert LLMResponse to ChatResult
-                # If result is already a ChatResult, return it directly
                 if isinstance(result, ChatResult):
                     return result
 
-                # Extract LLMUsage directly (no conversion needed)
                 llm_usage = result.usage if hasattr(result, "usage") else None
-
-                # Convert LLMResponse to ChatResult
                 chat_result = ChatResult(
                     text=result.content if hasattr(result, "content") else str(result),
                     llm_usage=llm_usage,
@@ -213,10 +183,7 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
                     tool_outputs=result.tool_outputs if hasattr(result, "tool_outputs") else None,
                 )
 
-                # If there's structured output, attach it to the ChatResult
                 if hasattr(result, "structured_output"):
-                    # Store structured output in raw_response for now
-                    # This will be accessible to the decision adapter
                     chat_result.raw_response = result
 
                 return chat_result
@@ -233,12 +200,10 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
     def _infer_service_from_model(self, model: str) -> str:
         model_lower = model.lower()
 
-        # First try normalize_service_name in case it's a direct service name
         normalized = normalize_service_name(model_lower)
         if normalized in VALID_LLM_SERVICES:
             return normalized
 
-        # Then check for model-specific keywords
         for keyword, provider in self._model_keywords.items():
             if keyword in model_lower:
                 return provider
@@ -259,7 +224,6 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             ) from e
 
     def get_token_counts(self, client_name: str, usage: Any) -> Any:
-        """Extract token usage information from provider response."""
         if hasattr(usage, "tokenUsage"):
             return usage.tokenUsage
         elif hasattr(usage, "token_usage"):
@@ -268,9 +232,7 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             return None
 
     async def validate_api_key(self, api_key_id: str, provider: str | None = None) -> bool:
-        """Validate an API key is functional."""
         try:
-            # Try a minimal completion to validate the key
             model = (
                 "gpt-5-nano-2025-08-07"
                 if not provider
@@ -287,11 +249,9 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             return False
 
     async def get_provider_for_model(self, model: str) -> str | None:
-        """Determine which provider supports a given model."""
         return self._infer_service_from_model(model)
 
     def _get_default_model_for_provider(self, provider: str) -> str:
-        """Get a default model for a provider."""
         provider = normalize_service_name(provider)
         if provider == LLMServiceName.OPENAI.value:
             return "gpt-5-nano-2025-08-07"

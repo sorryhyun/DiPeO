@@ -14,16 +14,12 @@ from .typed_engine import TypedExecutionEngine
 from .use_cases import ExecuteDiagramUseCase
 
 __all__ = [
-    # Use cases
     "ExecuteDiagramUseCase",
-    # Types
     "ExecutionContext",
     "ExecutionOptions",
     "HandlerRegistry",
-    # Observers
     "MetricsObserver",
     "TypedExecutionEngine",
-    # Handlers
     "TypedNodeHandler",
     "get_global_registry",
     "register_handler",

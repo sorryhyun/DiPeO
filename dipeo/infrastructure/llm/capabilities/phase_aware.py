@@ -95,21 +95,8 @@ class PhaseHandler:
             params["max_tokens"] = MEMORY_SELECTION_MAX_TOKENS
 
             if self.provider == ProviderType.OPENAI:
-                params["response_format"] = {
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "memory_selection",
-                        "strict": True,
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "message_ids": {"type": "array", "items": {"type": "string"}}
-                            },
-                            "required": ["message_ids"],
-                            "additionalProperties": False,
-                        },
-                    },
-                }
+                # Use Pydantic model for structured output with new OpenAI API
+                params["text_format"] = MemorySelectionOutput
             elif self.provider == ProviderType.ANTHROPIC:
                 params["tool_choice"] = {"type": "tool", "name": "select_messages"}
                 params["tools"] = [

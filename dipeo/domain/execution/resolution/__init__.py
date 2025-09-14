@@ -36,25 +36,20 @@ __all__ = [
     "BaseNodeTypeStrategy",
     "CollectNodeStrategy",
     "ConditionNodeStrategy",
-    # Data Structures
     "InputResolutionContext",
     "InputResolutionError",
-    # Node Strategies
     "NodeTypeStrategy",
     "NodeTypeStrategyRegistry",
     "PersonJobNodeStrategy",
-    # Errors
     "ResolutionError",
     "ResolutionPath",
     "ResolutionStep",
     "SpreadCollisionError",
     "StandardTransformationEngine",
     "TransformationContext",
-    # Transformation
     "TransformationEngine",
     "TransformationError",
     "ValidationResult",
     "create_default_strategy_registry",
-    # API
     "resolve_inputs",
 ]

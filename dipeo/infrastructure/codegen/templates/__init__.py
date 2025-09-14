@@ -11,10 +11,7 @@ The architecture follows the drivers/adapters pattern:
 - Filters provide language-specific transformations
 """
 
-# Filter exports
 from .adapters import Jinja2Adapter, TemplateEngineAdapter
-
-# New architecture exports
 from .drivers import (
     CodegenTemplateService,
     MacroDefinition,
@@ -29,14 +26,11 @@ from .drivers import create_filter_registry as driver_create_filter_registry
 from .filters import FilterRegistry, create_filter_registry
 
 __all__ = [
-    # Driver/Service exports
     "CodegenTemplateService",
-    # Filter exports
     "FilterRegistry",
     "Jinja2Adapter",
     "MacroDefinition",
     "MacroLibrary",
-    # Adapter exports
     "TemplateEngineAdapter",
     "create_custom_template_service",
     "create_filter_registry",

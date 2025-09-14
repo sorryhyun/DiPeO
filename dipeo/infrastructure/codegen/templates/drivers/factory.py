@@ -21,7 +21,6 @@ def get_enhanced_template_service(template_dirs: list[str] | None = None) -> Cod
     Returns:
         Configured CodegenTemplateService instance
     """
-    # Default template directories for code generation
     if template_dirs is None:
         template_dirs = [
             "projects/codegen/templates",
@@ -30,24 +29,18 @@ def get_enhanced_template_service(template_dirs: list[str] | None = None) -> Cod
             "projects/codegen/templates/frontend",
         ]
 
-    # Filter existing directories
     existing_dirs = [d for d in template_dirs if Path(d).exists()]
 
-    # Create adapter
     adapter = Jinja2Adapter(template_dirs=existing_dirs)
 
-    # Create filter registry with all collections
     filter_registry = create_filter_registry()
 
-    # Create macro library
     macro_library = MacroLibrary()
 
-    # Create service
     service = CodegenTemplateService(
         adapter=adapter, filter_registry=filter_registry, macro_library=macro_library
     )
 
-    # Set codegen profile by default
     service.set_filter_profile("codegen")
 
     return service
@@ -62,24 +55,18 @@ def get_basic_template_service(template_dirs: list[str] | None = None) -> Codege
     Returns:
         Configured CodegenTemplateService instance
     """
-    # Filter existing directories
     existing_dirs = [d for d in template_dirs if Path(d).exists()] if template_dirs else []
 
-    # Create adapter
     adapter = Jinja2Adapter(template_dirs=existing_dirs)
 
-    # Create filter registry with just base filters
     filter_registry = create_filter_registry()
 
-    # Create minimal macro library
     macro_library = MacroLibrary()
 
-    # Create service
     service = CodegenTemplateService(
         adapter=adapter, filter_registry=filter_registry, macro_library=macro_library
     )
 
-    # Set minimal profile
     service.set_filter_profile("minimal")
 
     return service
@@ -97,14 +84,12 @@ def get_template_service_for_context(
     Returns:
         Configured CodegenTemplateService instance
     """
-    # Auto-detect context if not provided
     if context is None:
         if os.environ.get("DIPEO_CODEGEN_MODE") or "codegen" in os.getcwd():
             context = "codegen"
         else:
             context = "default"
 
-    # Create service based on context
     if context == "codegen":
         service = get_enhanced_template_service(template_dirs)
     elif context == "api":
@@ -139,25 +124,20 @@ def create_custom_template_service(
     Returns:
         Configured CodegenTemplateService instance
     """
-    # Create adapter if not provided
     if adapter is None:
         existing_dirs = []
         if template_dirs:
             existing_dirs = [d for d in template_dirs if Path(d).exists()]
         adapter = Jinja2Adapter(template_dirs=existing_dirs)
 
-    # Create filter registry
     filter_registry = create_filter_registry()
 
-    # Create macro library
     macro_library = MacroLibrary()
 
-    # Create service
     service = CodegenTemplateService(
         adapter=adapter, filter_registry=filter_registry, macro_library=macro_library
     )
 
-    # Apply profile or collections
     if profile:
         service.set_filter_profile(profile)
     elif filter_collections:

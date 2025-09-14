@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import logging
 from collections import defaultdict
+from collections.abc import Callable
 from typing import Any
 from uuid import uuid4
 
@@ -50,7 +51,6 @@ class InMemoryEventBus(EventBus):
 
     async def _handle_legacy_event(self, event: Any) -> None:
         """Handle legacy event types."""
-        # For now, just process them directly
         for subscription in self._subscriptions.values():
             try:
                 await subscription.handler.handle(event)
@@ -60,36 +60,28 @@ class InMemoryEventBus(EventBus):
     async def publish(self, event: DomainEvent) -> None:
         """Publish a domain event."""
         if not self._running:
-            logger.warning("Event bus not running, event dropped")
+            # logger.warning("Event bus not running, event dropped")
             return
 
-        # Store event if enabled
         if self._enable_event_store:
             self._event_store.append(event)
 
-        # Find matching subscriptions
         subscriptions = self._handlers_by_type.get(event.type, [])
-
-        # Sort by priority (higher priority first)
         sorted_subs = sorted(subscriptions, key=lambda s: s.priority.value, reverse=True)
 
         for subscription in sorted_subs:
             if not subscription.active:
                 continue
 
-            # Apply EventFilter if specified
             if subscription.filter and not subscription.filter.matches(event):
                 continue
 
-            # Add to handler's queue
             queue = self._queues.get(subscription.subscription_id)
             if queue:
                 try:
                     if subscription.priority == EventPriority.CRITICAL:
-                        # Critical events bypass the queue
                         await subscription.handler.handle(event)
                     else:
-                        # Non-critical events go through the queue
                         queue.put_nowait(event)
                 except asyncio.QueueFull:
                     logger.warning(
@@ -101,8 +93,6 @@ class InMemoryEventBus(EventBus):
 
     async def publish_batch(self, events: list[DomainEvent]) -> None:
         """Publish multiple events atomically."""
-        # In-memory implementation publishes them sequentially
-        # but ensures all-or-nothing semantics
         try:
             for event in events:
                 await self.publish(event)
@@ -128,19 +118,15 @@ class InMemoryEventBus(EventBus):
             active=True,
         )
 
-        # Store subscription
         self._subscriptions[subscription_id] = subscription
 
-        # Index by event type for fast lookup
         for event_type in event_types:
             self._handlers_by_type[event_type].append(subscription)
 
-        # Create queue and processing task for non-critical subscriptions
         if priority != EventPriority.CRITICAL:
             queue = asyncio.Queue(maxsize=self._max_queue_size)
             self._queues[subscription_id] = queue
 
-            # Start processing task
             task = asyncio.create_task(self._process_queue(subscription, queue))
             self._tasks[subscription_id] = task
 
@@ -153,10 +139,8 @@ class InMemoryEventBus(EventBus):
         if subscription_id not in self._subscriptions:
             return
 
-        # Mark as inactive
         subscription.active = False
 
-        # Remove from indexes
         for event_type in subscription.event_types:
             if event_type in self._handlers_by_type:
                 self._handlers_by_type[event_type] = [
@@ -165,7 +149,6 @@ class InMemoryEventBus(EventBus):
                     if s.subscription_id != subscription_id
                 ]
 
-        # Cancel processing task
         if subscription_id in self._tasks:
             task = self._tasks[subscription_id]
             task.cancel()
@@ -173,32 +156,27 @@ class InMemoryEventBus(EventBus):
                 await task
             del self._tasks[subscription_id]
 
-        # Remove queue
         if subscription_id in self._queues:
             del self._queues[subscription_id]
 
-        # Remove subscription
         del self._subscriptions[subscription_id]
 
         logger.debug(f"Unsubscribed {subscription_id}")
 
-    async def start(self) -> None:
-        """Start the event bus."""
+    async def initialize(self) -> None:
+        """Initialize the event bus."""
         self._running = True
 
-    async def stop(self) -> None:
+    async def cleanup(self) -> None:
         """Stop the event bus and clean up resources."""
         self._running = False
 
-        # Cancel all processing tasks
         for task in self._tasks.values():
             task.cancel()
 
-        # Wait for tasks to complete
         if self._tasks:
             await asyncio.gather(*self._tasks.values(), return_exceptions=True)
 
-        # Clear all data structures
         self._subscriptions.clear()
         self._handlers_by_type.clear()
         self._queues.clear()
@@ -219,7 +197,7 @@ class InMemoryEventBus(EventBus):
                 await subscription.handler.handle(event)
 
             except asyncio.CancelledError:
-                logger.debug(f"Queue processor cancelled for {subscription.subscription_id}")
+                # logger.debug(f"Queue processor cancelled for {subscription.subscription_id}")
                 break
             except Exception as e:
                 logger.error(
@@ -235,3 +213,32 @@ class InMemoryEventBus(EventBus):
     def clear_event_store(self) -> None:
         """Clear the event store (for testing)."""
         self._event_store.clear()
+
+    async def register_connection(self, connection_id: str, handler: Callable) -> None:
+        """Register a connection handler for execution updates."""
+        # Not needed for in-memory event bus
+        pass
+
+    async def unregister_connection(self, connection_id: str) -> None:
+        """Unregister a connection."""
+        # Not needed for in-memory event bus
+        pass
+
+    async def broadcast_to_execution(self, execution_id: str, message: dict) -> None:
+        """Broadcast message to all connections subscribed to execution."""
+        # Not needed for in-memory event bus
+        pass
+
+    async def subscribe_connection_to_execution(
+        self, connection_id: str, execution_id: str
+    ) -> None:
+        """Subscribe connection to execution updates."""
+        # Not needed for in-memory event bus
+        pass
+
+    async def unsubscribe_connection_from_execution(
+        self, connection_id: str, execution_id: str
+    ) -> None:
+        """Unsubscribe connection from execution updates."""
+        # Not needed for in-memory event bus
+        pass

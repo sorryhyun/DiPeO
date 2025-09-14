@@ -44,29 +44,24 @@ class ValidateDiagramUseCase:
         """
         errors = []
 
-        # Check for required nodes
         if not domain_diagram.nodes:
             errors.append("Diagram must have at least one node")
             return False, errors
 
-        # Check for start node
         start_nodes = [n for n in domain_diagram.nodes if n.node_type == "StartNode"]
         if not start_nodes:
             errors.append("Diagram must have a StartNode")
         elif len(start_nodes) > 1:
             errors.append("Diagram can only have one StartNode")
 
-        # Check for endpoint
         endpoint_nodes = [n for n in domain_diagram.nodes if n.node_type == "EndpointNode"]
         if not endpoint_nodes:
             errors.append("Diagram must have at least one EndpointNode")
 
-        # Validate node IDs are unique
         node_ids = [node.id for node in domain_diagram.nodes]
         if len(node_ids) != len(set(node_ids)):
             errors.append("Duplicate node IDs found")
 
-        # Validate arrows reference existing nodes
         node_id_set = set(node_ids)
         for arrow in domain_diagram.arrows:
             if arrow.source_node_id not in node_id_set:
@@ -92,10 +87,8 @@ class ValidateDiagramUseCase:
         errors = []
         warnings = []
 
-        # Build node type lookup
         node_types = {node.id: node.node_type for node in domain_diagram.nodes}
 
-        # Check connection rules
         for arrow in domain_diagram.arrows:
             source_type = node_types.get(arrow.source_node_id)
             target_type = node_types.get(arrow.target_node_id)
@@ -107,7 +100,6 @@ class ValidateDiagramUseCase:
             ):
                 errors.append(f"Invalid connection: {source_type} -> {target_type}")
 
-        # Check for unreachable nodes
         reachable = self._find_reachable_nodes(domain_diagram)
         all_nodes = set(node.id for node in domain_diagram.nodes)
         unreachable = all_nodes - reachable
@@ -116,7 +108,6 @@ class ValidateDiagramUseCase:
             for node_id in unreachable:
                 warnings.append(f"Node {node_id} is unreachable from start")
 
-        # Check for nodes with no outgoing connections (except endpoints)
         nodes_with_output = set(arrow.source_node_id for arrow in domain_diagram.arrows)
         for node in domain_diagram.nodes:
             if node.node_type != "EndpointNode" and node.id not in nodes_with_output:
@@ -133,17 +124,14 @@ class ValidateDiagramUseCase:
         Returns:
             Set of reachable node IDs
         """
-        # Build adjacency list
         graph = {}
         for arrow in diagram.arrows:
             if arrow.source_node_id not in graph:
                 graph[arrow.source_node_id] = []
             graph[arrow.source_node_id].append(arrow.target_node_id)
 
-        # Find start nodes
         start_nodes = [n.id for n in diagram.nodes if n.node_type == "StartNode"]
 
-        # BFS from start nodes
         visited = set()
         queue = list(start_nodes)
 

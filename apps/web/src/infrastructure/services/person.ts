@@ -111,7 +111,7 @@ export class PersonService {
     const input = PersonConverter.toGraphQL(updated);
     const result = await GraphQLService.mutate(
       UpdatePersonDocument,
-      { id, input },
+      { person_id: id, input },
     );
 
     const updatedPerson = PersonConverter.toDomain(result.update_person.person);
@@ -126,7 +126,7 @@ export class PersonService {
   static async deletePerson(id: PersonID): Promise<boolean> {
     const result = await GraphQLService.mutate(
       DeletePersonDocument,
-      { id },
+      { person_id: id },
     );
 
     this.personsCache.delete(id);
@@ -145,7 +145,7 @@ export class PersonService {
     // Fetch from backend
     const result = await GraphQLService.query(
       GetPersonDocument,
-      { id },
+      { person_id: id },
     );
 
     if (!result.person) {

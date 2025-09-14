@@ -13,7 +13,6 @@ class DiagramFormatDetector:
     """Handles all diagram format-related operations including detection, validation, and transformation."""
 
     def detect_format(self, content: str) -> DiagramFormat:
-        """Detect diagram format from content."""
         content = content.strip()
 
         if content.startswith("{"):
@@ -43,7 +42,6 @@ class DiagramFormatDetector:
         raise ValueError("Unable to detect diagram format")
 
     def detect_format_from_filename(self, filename: str) -> DiagramFormat | None:
-        """Determine format from filename patterns."""
         if filename.endswith(".native.json"):
             return DiagramFormat.NATIVE
         elif filename.endswith(".light.yaml") or filename.endswith(".light.yml"):
@@ -61,7 +59,6 @@ class DiagramFormatDetector:
         return None
 
     def validate_format(self, content: str, format: DiagramFormat) -> bool:
-        """Validate content matches expected format."""
         try:
             detected_format = self.detect_format(content)
             if detected_format != format:
@@ -76,7 +73,6 @@ class DiagramFormatDetector:
     def validate_diagram_structure(
         self, data: DomainDiagram | dict[str, Any], format: DiagramFormat | None = None
     ) -> None:
-        """Validate diagram data structure based on format."""
         # Convert DomainDiagram to dict for validation
         if isinstance(data, DomainDiagram):
             data = data.model_dump()
@@ -98,7 +94,6 @@ class DiagramFormatDetector:
             self._validate_readable_structure(data)
 
     def _validate_native_structure(self, data: dict[str, Any]) -> None:
-        """Validate native format structure."""
         if "nodes" not in data:
             raise ValidationError("Native format requires 'nodes' field")
         if "arrows" not in data:
@@ -126,7 +121,6 @@ class DiagramFormatDetector:
                 raise ValidationError("Each arrow must have 'source' and 'target' fields")
 
     def _validate_light_structure(self, data: dict[str, Any]) -> None:
-        """Validate light format structure."""
         required_fields = ["nodes", "connections", "persons"]
         for field in required_fields:
             if field not in data:
@@ -152,12 +146,10 @@ class DiagramFormatDetector:
                 raise ValidationError("Each connection must have 'from' and 'to' fields")
 
     def _validate_readable_structure(self, data: dict[str, Any]) -> None:
-        """Validate readable format structure."""
         if data.get("format") != "readable" and "readable" not in str(data):
             raise ValidationError("Readable format should indicate its format type")
 
     def get_file_extension(self, format: DiagramFormat) -> str:
-        """Get appropriate file extension for format."""
         if format == DiagramFormat.NATIVE:
             return ".native.json"
         elif format == DiagramFormat.LIGHT:
@@ -170,7 +162,6 @@ class DiagramFormatDetector:
     def construct_search_patterns(
         self, diagram_id: str, formats: list[DiagramFormat] | None = None
     ) -> list[str]:
-        """Construct file search patterns for diagram loading."""
         if formats is None:
             formats = [DiagramFormat.NATIVE, DiagramFormat.LIGHT, DiagramFormat.READABLE]
 
@@ -206,7 +197,6 @@ class DiagramFormatDetector:
     def transform_for_export(
         self, diagram: DomainDiagram | dict[str, Any], target_format: DiagramFormat
     ) -> dict[str, Any]:
-        """Transform diagram data for export to specific format."""
         # Convert DomainDiagram to dict if needed
         if isinstance(diagram, DomainDiagram):
             diagram = diagram.model_dump()
@@ -245,7 +235,6 @@ class DiagramFormatDetector:
         return data
 
     def extract_node_id_from_handle(self, handle_id: str) -> str:
-        """Extract node ID from a handle identifier."""
         parts = handle_id.rsplit("_", 2)  # Split from right, max 2 splits
 
         if len(parts) >= 3 and parts[-2] in [label.value for label in HandleLabel]:

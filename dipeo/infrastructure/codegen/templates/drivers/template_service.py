@@ -66,7 +66,6 @@ class CodegenTemplateService:
         # Add macros to context
         context["macros"] = self._macro_library.get_all()
 
-        # Render template
         result = await self._adapter.render(template_path, context)
         return result
 
@@ -95,7 +94,6 @@ class CodegenTemplateService:
         # Add macros to context
         context["macros"] = self._macro_library.get_all()
 
-        # Render template string
         result = await self._adapter.render_string(template_str, context)
         return result
 
@@ -108,7 +106,6 @@ class CodegenTemplateService:
         self._filter_profile = profile_name
         filters = self._filter_registry.get_profile_filters(profile_name)
 
-        # Register all filters from the profile
         for name, func in filters.items():
             self._adapter.register_filter(name, func)
 
@@ -121,7 +118,6 @@ class CodegenTemplateService:
         if collection_name not in self._active_filters:
             self._active_filters.append(collection_name)
 
-            # Get and register the filters
             filters = self._filter_registry.get_collection(collection_name)
             if filters:
                 for name, func in filters.items():
@@ -156,7 +152,6 @@ class CodegenTemplateService:
             macro: Macro definition to register
         """
         self._macro_library.register(macro)
-        # Also register with adapter for direct use
         self._adapter.register_macro(macro.name, macro.template)
 
     def clear_cache(self) -> None:
@@ -175,7 +170,6 @@ class CodegenTemplateService:
         Returns:
             Rendered template string
         """
-        # Use active filters if any, otherwise use profile
         filter_collections = self._active_filters if self._active_filters else None
         return await self.render_template(template_path, context, filter_collections)
 

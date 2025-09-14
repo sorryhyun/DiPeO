@@ -49,7 +49,7 @@ class TransformRules:
         return self.rules.get(rule_type)
 
     def merge_with(self, other: "TransformRules") -> "TransformRules":
-        """Merge with another set of rules, other takes precedence."""
+        """Merge rules with other taking precedence."""
         merged = TransformRules(self.rules.copy())
         merged.rules.update(other.rules)
         return merged
@@ -66,15 +66,7 @@ class CompileTimeResolver(ABC):
     def resolve_connections(
         self, arrows: list[DomainArrow], nodes: list[DomainNode]
     ) -> list[Connection]:
-        """Resolve arrows to concrete connections between nodes.
-
-        Args:
-            arrows: List of domain arrows defining connections
-            nodes: List of domain nodes in the diagram
-
-        Returns:
-            List of resolved connections with source/target information
-        """
+        """Resolve arrows to concrete connections between nodes."""
         pass
 
     @abstractmethod
@@ -85,15 +77,5 @@ class CompileTimeResolver(ABC):
         target_node_type: NodeType,
         nodes_by_id: dict[NodeID, DomainNode],
     ) -> TransformRules:
-        """Determine all transformation rules for a connection.
-
-        Args:
-            connection: The resolved connection
-            source_node_type: Type of the source node
-            target_node_type: Type of the target node
-            nodes_by_id: Mapping of node IDs to nodes
-
-        Returns:
-            Transformation rules to apply for this connection
-        """
+        """Determine transformation rules for a connection."""
         pass

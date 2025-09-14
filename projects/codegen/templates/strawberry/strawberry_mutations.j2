@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: {{ mutations.generated_at | default('N/A') }}
+Generated at: {{ generated_at | default('N/A') }}
 """
 
 import strawberry
@@ -22,9 +22,9 @@ from dipeo.application.registry.keys import *
 
 
 # Generate input types for each node
-{% for type_info in mutations.strawberry_types %}
+{% for type_info in node_specs %}
 @strawberry.input
-class Create{{ type_info.class_name }}Input:
+class Create{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input:
     """Input for creating a {{ type_info.display_name }} node"""
     diagram_id: str
     position: Vec2Input
@@ -33,7 +33,7 @@ class Create{{ type_info.class_name }}Input:
     data: strawberry.scalars.JSON
 
 @strawberry.input
-class Update{{ type_info.class_name }}Input:
+class Update{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input:
     """Input for updating a {{ type_info.display_name }} node"""
     # TODO: Add node-specific fields from spec
     # For now, we accept a generic data dict that will be validated
@@ -47,7 +47,7 @@ class Update{{ type_info.class_name }}Input:
 class NodeMutations:
     """Type-safe mutations for node operations"""
 
-{% for mutation in mutations.mutations %}
+{% for mutation in operations.mutations %}
     @strawberry.mutation
     async def {{ mutation.name }}(
         self,
@@ -100,8 +100,8 @@ class NodeMutations:
 # Export mutations
 __all__ = [
     'NodeMutations',
-{% for type_info in mutations.strawberry_types %}
-    'Create{{ type_info.class_name }}Input',
-    'Update{{ type_info.class_name }}Input',
+{% for type_info in node_specs %}
+    'Create{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input',
+    'Update{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input',
 {% endfor %}
 ]

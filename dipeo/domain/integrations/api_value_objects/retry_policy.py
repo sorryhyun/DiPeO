@@ -30,7 +30,7 @@ class RetryPolicy:
             raise ValueError("Attempt number must be non-negative")
 
         if attempt == 0:
-            return 0  # No delay for first attempt
+            return 0
 
         if self.strategy == RetryStrategy.CONSTANT:
             base_delay = self.initial_delay_ms
@@ -67,7 +67,6 @@ class RetryPolicy:
 
     @property
     def total_possible_delay_ms(self) -> int:
-        """Maximum total delay without jitter."""
         total = 0
         for attempt in range(1, self.max_attempts + 1):
             if self.strategy == RetryStrategy.CONSTANT:

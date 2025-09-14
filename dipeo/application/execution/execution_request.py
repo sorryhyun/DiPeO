@@ -55,15 +55,12 @@ class ExecutionRequest[T: ExecutableNode]:
         if isinstance(self.services, dict):
             return self.services.get(name)
         else:
-            # Try to resolve from ServiceRegistry properly
             from dipeo.application.registry import ServiceKey
 
             key = ServiceKey(name)
-            # Use resolve() instead of get() to properly handle factories
             try:
                 return self.services.resolve(key)
             except KeyError:
-                # Fall back to get() with None default
                 return self.services.get(key)
 
     def get_input(self, name: str, default: Any = None) -> Any:
@@ -78,14 +75,12 @@ class ExecutionRequest[T: ExecutableNode]:
         else:
             from dipeo.application.registry import ServiceKey
 
-            key = ServiceKey(name)
-            return self.services.has(key)
+            return self.services.has(ServiceKey(name))
 
     def has_input(self, name: str) -> bool:
         return name in self.inputs
 
     def create_sub_registry(self) -> Optional["ServiceRegistry"]:
-        """Create a hierarchical registry for sub-execution."""
         if self.parent_registry:
             return self.parent_registry.create_child()
         return None

@@ -91,7 +91,7 @@ export const useApiKeyOperations = () => {
 
   const deleteApiKey = async (id: string) => {
     const result = await deleteMutation({
-      variables: { id }
+      variables: { api_key_id: id }
     });
 
     if (result.data) {
@@ -103,13 +103,13 @@ export const useApiKeyOperations = () => {
 
   const testApiKey = async (id: string) => {
     return testMutation({
-      variables: { id }
+      variables: { api_key_id: id }
     });
   };
 
   const getAvailableModels = (service: string, apiKeyId: string) => {
     return useGetAvailableModelsQuery(
-      { service, apiKeyId },
+      { service, api_key_id: apiKeyId },
       { skip: !service || !apiKeyId }
     );
   };

@@ -33,6 +33,9 @@ from dipeo.diagram_generated.graphql.domain_types import (
 # Import GraphQL-specific types
 from dipeo.diagram_generated.graphql.inputs import *
 
+# Import generated results instead of deprecated ones
+from dipeo.diagram_generated.graphql.results import *
+
 # Import generated scalars instead of manual ones
 from dipeo.diagram_generated.graphql.scalars import *
 
@@ -51,7 +54,6 @@ from dipeo.diagram_generated.graphql.scalars import *
 # from dipeo.diagram_generated.models.template_job_model import TemplateJobNodeData
 # from dipeo.diagram_generated.models.typescript_ast_model import TypescriptAstNodeData
 # from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
-from .results import *
 
 __all__ = [
     "ApiJobNodeData",

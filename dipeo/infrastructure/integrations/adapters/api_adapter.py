@@ -24,7 +24,6 @@ class ApiProviderRegistryAdapter(ApiProviderRegistry):
         """Register a new API provider."""
         self._providers[provider_name] = provider_instance
 
-        # Also register with underlying service if it supports it
         if hasattr(self._service, "register_provider"):
             await self._service.register_provider(provider_name, provider_instance)
 
@@ -41,7 +40,6 @@ class ApiProviderRegistryAdapter(ApiProviderRegistry):
 
     def list_providers(self) -> list[str]:
         """List all registered provider names."""
-        # Get from underlying service if available
         if hasattr(self._service, "list_providers"):
             return self._service.list_providers()
         return list(self._providers.keys())
@@ -52,7 +50,6 @@ class ApiProviderRegistryAdapter(ApiProviderRegistry):
         if provider:
             return provider.manifest
 
-        # Try underlying service
         if hasattr(self._service, "get_provider_manifest"):
             return self._service.get_provider_manifest(provider_name)
         return None
@@ -75,7 +72,6 @@ class ApiInvokerAdapter(ApiInvoker):
         max_retries: int = 3,
     ) -> dict[str, Any]:
         """Invoke an API operation with automatic auth and retries."""
-        # Use the underlying service's execute_operation
         return await self._service.execute_operation(
             provider=provider,
             operation=operation,
@@ -92,12 +88,10 @@ class ApiInvokerAdapter(ApiInvoker):
     ) -> bool:
         """Validate if an operation can be executed."""
         try:
-            # Try to get the provider and check if operation is supported
             if hasattr(self._service, "get_provider_capabilities"):
                 capabilities = await self._service.get_provider_capabilities(provider)
                 return operation in capabilities.get("operations", [])
 
-            # Fallback: try to prepare the request and see if it succeeds
             await self.prepare_request(provider, operation, config)
             return True
         except Exception:
@@ -111,7 +105,6 @@ class ApiInvokerAdapter(ApiInvoker):
         api_key_id: str | None = None,
     ) -> dict[str, Any]:
         """Prepare request with auth headers and transformed config."""
-        # This would typically transform the config and add auth headers
         prepared = {
             "provider": provider,
             "operation": operation,
@@ -119,7 +112,6 @@ class ApiInvokerAdapter(ApiInvoker):
             "headers": {},
         }
 
-        # Add auth if available
         if api_key_id and hasattr(self._service, "api_key_service"):
             try:
                 api_key = self._service.api_key_service.get_api_key(api_key_id)
@@ -136,7 +128,6 @@ class ApiInvokerAdapter(ApiInvoker):
         response: Any,
     ) -> dict[str, Any]:
         """Map provider-specific response to standard format."""
-        # Standard response mapping
         if isinstance(response, dict):
             return response
 
@@ -192,7 +183,6 @@ class SimpleApiProvider(ApiProvider):
         if operation not in self.supported_operations:
             raise ValueError(f"Operation {operation} not supported")
 
-        # Simple echo implementation
         if operation == "echo":
             return config or {"echo": "response"}
         elif operation == "ping":

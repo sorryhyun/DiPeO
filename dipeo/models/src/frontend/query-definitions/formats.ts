@@ -10,14 +10,8 @@ export const formatQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'supported_formats',
-          fields: [
-            { name: 'format' },
-            { name: 'name' },
-            { name: 'description' },
-            { name: 'extension' },
-            { name: 'supports_import' },
-            { name: 'supports_export' }
-          ]
+          // Returns JSONScalar with dynamic fields
+          fields: []
         }
       ]
     }

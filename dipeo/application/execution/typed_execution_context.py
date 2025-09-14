@@ -1,8 +1,4 @@
-"""Simplified execution context using focused components.
-
-This module provides a cleaner implementation of ExecutionContext that
-delegates responsibilities to specialized managers.
-"""
+"""Simplified execution context using focused components."""
 
 import logging
 from collections import defaultdict
@@ -28,43 +24,28 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class TypedExecutionContext(ExecutionContextProtocol):
-    """Simplified execution context with clean separation of concerns.
-
-    This context delegates to specialized components:
-    - TokenManager: Token flow and edge management
-    - StateTracker: Node states and execution history
-    - Core context: Service access and coordination
-    """
+    """Simplified execution context with clean separation of concerns."""
 
     # Core identifiers
     execution_id: str
     diagram_id: str
     diagram: ExecutableDiagram
 
-    # Component managers (private)
     _token_manager: TokenManager = field(init=False)
     _state_tracker: StateTracker = field(init=False)
     _event_manager: EventManager = field(init=False)
-
-    # Runtime data
     _variables: dict[str, Any] = field(default_factory=dict)
     _metadata: dict[str, Any] = field(default_factory=dict)
     _current_node_id: NodeID | None = None
-    _parent_metadata: dict[str, Any] = field(default_factory=dict)  # For nested sub-diagrams
-
-    # Scope management for sub-diagrams
+    _parent_metadata: dict[str, Any] = field(default_factory=dict)
     _scope_stack: list[str] = field(default_factory=list)
     _scoped_vars: dict[str, dict[str, Any]] = field(default_factory=lambda: defaultdict(dict))
-
-    # Services (optional)
     service_registry: "ServiceRegistry | None" = None
     container: "Container | None" = None
-    scheduler: Any = None  # Optional scheduler for notifications
+    scheduler: Any = None
     event_bus: EventBus | None = None
 
     def __post_init__(self):
-        """Initialize domain managers."""
-        # Initialize managers
         self._state_tracker = StateTracker()
         self._token_manager = TokenManager(self.diagram, execution_tracker=self._state_tracker)
         self._event_manager = EventManager(
@@ -74,60 +55,39 @@ class TypedExecutionContext(ExecutionContextProtocol):
             state_tracker=self._state_tracker,
         )
 
-        # Configure join policies from diagram
         if self.scheduler and hasattr(self.scheduler, "configure_join_policies"):
             self.scheduler.configure_join_policies(self.diagram)
 
-    # ========== Manager Properties ==========
-
     @property
     def state(self) -> StateTracker:
-        """Direct access to state tracker for state operations."""
         return self._state_tracker
 
     @property
     def tokens(self) -> TokenManager:
-        """Direct access to token manager for token operations."""
         return self._token_manager
 
     @property
     def events(self) -> EventManager:
-        """Direct access to event manager for event operations."""
         return self._event_manager
 
-    # ========== Epoch Management ==========
-
     def current_epoch(self) -> int:
-        """Get the current execution epoch."""
         return self._token_manager.current_epoch()
 
     def begin_epoch(self) -> int:
-        """Start a new epoch (for loop entry)."""
         return self._token_manager.begin_epoch()
 
-    # ========== Context-Specific Logic ==========
-
     def consume_inbound(self, node_id: NodeID, epoch: int | None = None) -> dict[str, Envelope]:
-        """Consume all available input tokens for a node.
-
-        This method adds context-specific logic on top of token manager.
-        """
         return self._token_manager.consume_inbound(node_id, epoch)
 
     def emit_outputs_as_tokens(
         self, node_id: NodeID, outputs: dict[str, Envelope], epoch: int | None = None
     ) -> None:
-        """Emit node outputs as tokens on outgoing edges.
-
-        This method adds scheduler notification on top of token manager.
-        """
         import logging
 
         logger = logging.getLogger(__name__)
 
         self._token_manager.emit_outputs(node_id, outputs, epoch)
 
-        # Notify scheduler if available
         if self.scheduler:
             if hasattr(self.scheduler, "on_token_published"):
                 edges = self._token_manager._out_edges.get(node_id, [])
@@ -137,94 +97,56 @@ class TypedExecutionContext(ExecutionContextProtocol):
             logger.debug("[CONTEXT] No scheduler available")
 
     def has_new_inputs(self, node_id: NodeID, epoch: int | None = None) -> bool:
-        """Check if a node has unconsumed tokens ready.
-
-        This method adds join policy resolution on top of token manager.
-        """
-        # Get join policy for this node
-        join_policy = "all"  # Default
-
-        # First check if node has compiled join_policy
+        join_policy = "all"
         node = self.diagram.get_node(node_id)
+
         if node and hasattr(node, "join_policy"):
             node_join_policy = getattr(node, "join_policy", None)
             if node_join_policy is not None:
                 join_policy = node_join_policy
-        # Then check if scheduler has join policy configured
         elif self.scheduler and hasattr(self.scheduler, "_join_policies"):
             policy = self.scheduler._join_policies.get(node_id)
             if policy:
                 join_policy = policy.policy_type
-        # Finally, fallback to type-based defaults
         elif node and hasattr(node, "type") and node.type == NodeType.CONDITION:
             join_policy = "any"
 
         return self._token_manager.has_new_inputs(node_id, epoch, join_policy)
 
-    # ========== Scope Management ==========
-
     @contextmanager
     def enter_scope(self, name: str):
-        """Enter a new variable scope for sub-diagram execution.
-
-        This creates an isolated namespace for variables that prevents
-        sub-diagrams from overwriting parent context variables.
-
-        Args:
-            name: The scope name (typically "sub:{node_id}")
-        """
         self._scope_stack.append(name)
         try:
             yield
         finally:
             self._scope_stack.pop()
-            # Clean up scoped variables when exiting scope
             self._scoped_vars.pop(name, None)
 
     def set_var(self, key: str, value: Any) -> None:
-        """Set a variable in the current scope.
-
-        If in a scope, the variable is isolated to that scope.
-        Otherwise, it's set in the global variables.
-
-        Args:
-            key: Variable name
-            value: Variable value
-        """
         scope = self._scope_stack[-1] if self._scope_stack else ""
         if scope:
             self._scoped_vars[scope][key] = value
         else:
             self._variables[key] = value
 
-    # ========== Variables ==========
-
     def get_variable(self, name: str) -> Any:
-        """Get a variable value, checking scoped variables first."""
-        # Check for branch decisions first
         if name.startswith("branch[") and name.endswith("]"):
             node_id = NodeID(name[7:-1])
             return self._token_manager.get_branch_decision(node_id)
 
-        # Check current scope first
         if self._scope_stack:
             scope = self._scope_stack[-1]
             if scope in self._scoped_vars and name in self._scoped_vars[scope]:
                 return self._scoped_vars[scope][name]
 
-        # Fall back to global variables
         return self._variables.get(name)
 
     def set_variable(self, name: str, value: Any) -> None:
-        """Set a variable value in the appropriate scope."""
-        # Use set_var for consistent scope handling
         self.set_var(name, value)
 
     def get_variables(self) -> dict[str, Any]:
-        """Get all variables including scoped ones."""
         result = dict(self._variables)
 
-        # Overlay current scope variables if in a scope
         if self._scope_stack:
             scope = self._scope_stack[-1]
             if scope in self._scoped_vars:
@@ -233,46 +155,30 @@ class TypedExecutionContext(ExecutionContextProtocol):
         return result
 
     def set_variables(self, variables: dict[str, Any]) -> None:
-        """Set multiple variables in the current scope."""
         for key, value in variables.items():
             self.set_var(key, value)
 
-    # ========== Metadata ==========
-
     def get_execution_metadata(self) -> dict[str, Any]:
-        """Get execution metadata."""
         return dict(self._metadata)
 
     def set_execution_metadata(self, key: str, value: Any) -> None:
-        """Set execution metadata."""
         self._metadata[key] = value
 
     def get_node_metadata(self, node_id: NodeID) -> dict[str, Any]:
-        """Get node-specific metadata."""
         return self._state_tracker.get_node_metadata(node_id)
 
     def set_node_metadata(self, node_id: NodeID, key: str, value: Any) -> None:
-        """Set node-specific metadata."""
         self._state_tracker.set_node_metadata(node_id, key, value)
 
-    # ========== Execution State ==========
-
     def can_execute_in_loop(self, node_id: NodeID, epoch: int | None = None) -> bool:
-        """Check if node can execute in current epoch considering loop limits.
-
-        Returns:
-            True if node can execute, False if it hit iteration limit
-        """
         return self._state_tracker.can_execute_in_loop(node_id, epoch or self.current_epoch())
 
     @property
     def current_node_id(self) -> NodeID | None:
-        """Get the currently executing node ID."""
         return self._current_node_id
 
     @contextmanager
     def executing_node(self, node_id: NodeID):
-        """Context manager for tracking currently executing node."""
         prev = self._current_node_id
         self._current_node_id = node_id
         try:
@@ -281,14 +187,8 @@ class TypedExecutionContext(ExecutionContextProtocol):
             self._current_node_id = prev
 
     def is_execution_complete(self) -> bool:
-        """Check if execution is complete.
-
-        Returns:
-            True if all endpoints are completed or failed
-        """
         endpoint_nodes = self.diagram.get_nodes_by_type(NodeType.ENDPOINT)
         if not endpoint_nodes:
-            # No endpoints, check if all nodes are done
             all_states = self._state_tracker.get_all_node_states()
             if not all_states:
                 return False
@@ -298,7 +198,6 @@ class TypedExecutionContext(ExecutionContextProtocol):
                     return False
             return True
 
-        # Check if all endpoints are completed
         for endpoint in endpoint_nodes:
             state = self._state_tracker.get_node_state(endpoint.id)
             if not state or state.status not in (Status.COMPLETED, Status.FAILED):
@@ -306,10 +205,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
         return True
 
     def is_first_execution(self, node_id: NodeID) -> bool:
-        """Check if this is the first execution of a node."""
         return self._state_tracker.get_node_execution_count(node_id) == 0
-
-    # ========== Template Context Building ==========
 
     def build_template_context(
         self,
@@ -317,44 +213,23 @@ class TypedExecutionContext(ExecutionContextProtocol):
         locals_: dict[str, Any] | None = None,
         globals_win: bool = True,
     ) -> dict[str, Any]:
-        """Build a consistent template context merging globals, inputs, and locals.
-
-        This method merges variables from different scopes for use in template rendering.
-        It provides both namespaced access (globals.var, inputs.var, local.var) and
-        flat access (var) for ergonomic template syntax.
-
-        When in a scope (e.g., sub-diagram execution), the scope overlay takes precedence
-        to ensure proper variable isolation.
-
-        Args:
-            inputs: Input values from the node
-            locals_: Local variables (e.g., foreach loop variables)
-            globals_win: If True, globals override inputs/locals. If False, locals override.
-
-        Returns:
-            Merged context with both namespaced and flat access patterns
-        """
         reserved_local_keys = {"this", "@index", "@first", "@last"}
 
         inputs = inputs or {}
         locals_ = locals_ or {}
-        globals_ = self.get_variables()  # This already includes scope overlay
+        globals_ = self.get_variables()
 
-        # Get scope overlay if in a scope
         scope_overlay = {}
         if self._scope_stack:
             scope = self._scope_stack[-1]
             scope_overlay = self._scoped_vars.get(scope, {})
 
-        # Namespaced copies to avoid collisions in templates if desired
         merged = {
             "globals": {k: v for k, v in globals_.items() if k not in reserved_local_keys},
             "inputs": inputs,
             "local": locals_,
         }
 
-        # Flat root for ergonomic {{ var }} access:
-        # Compose context from globals + inputs + locals + scope overlay
         if globals_win:
             flat = {**inputs, **locals_, **globals_, **scope_overlay}
         else:
@@ -363,11 +238,5 @@ class TypedExecutionContext(ExecutionContextProtocol):
         merged.update(flat)
         return merged
 
-    # ========== Compatibility Methods ==========
-
     def get_tracker(self) -> Any:
-        """Get the underlying execution tracker.
-
-        For advanced use cases requiring direct tracker access.
-        """
         return self._state_tracker._tracker

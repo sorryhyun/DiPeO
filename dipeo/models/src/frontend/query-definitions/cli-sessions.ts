@@ -1,6 +1,13 @@
 import { EntityQueryDefinitions } from './types';
 import { QueryOperationType } from '../query-enums';
 
+// Shared field patterns as const objects
+const RESULT_FIELDS = [
+  { name: 'success' },
+  { name: 'message' },
+  { name: 'error' }
+];
+
 export const cliSessionQueries: EntityQueryDefinitions = {
   entity: 'CliSession',
   queries: [
@@ -16,11 +23,7 @@ export const cliSessionQueries: EntityQueryDefinitions = {
           args: [
             { name: 'input', value: 'input', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: RESULT_FIELDS
         }
       ]
     },
@@ -36,11 +39,7 @@ export const cliSessionQueries: EntityQueryDefinitions = {
           args: [
             { name: 'input', value: 'input', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: RESULT_FIELDS
         }
       ]
     }

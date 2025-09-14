@@ -59,7 +59,7 @@ jobs:
           path: |
             ~\AppData\Local\uv\cache
             .venv
-          key: ${{ runner.os }}-uv-${{ hashFiles('requirements.txt', 'pyproject.toml', 'uv.lock') }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml', 'uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-
 
@@ -73,17 +73,11 @@ jobs:
 
           Write-Host "Installing Python dependencies with uv..."
 
-          # Install all dependencies from requirements.txt (includes editable installs)
-          uv pip sync requirements.txt
-
-          # Install development dependencies
-          uv pip install "ruff>=0.8.0" mypy pytest-asyncio pytest-cov isort black import-linter
+          # Install all dependencies using uv sync
+          uv sync --all-extras
 
           # Install PyInstaller for building executables
           uv pip install pyinstaller==6.14.2
-
-          # Install CLI package
-          uv pip install -e apps/cli
 
           # Quick version checks
           Write-Host "Python version: $(python --version)"

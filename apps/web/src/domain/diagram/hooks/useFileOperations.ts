@@ -45,7 +45,7 @@ export const useFileOperations = () => {
       // Load the diagram content directly without URL changes
       if (result.diagramId) {
         const { data, error } = await getDiagram({
-          variables: { id: result.diagramId }
+          variables: { diagram_id: result.diagramId }
         });
 
         if (error) {

@@ -1,0 +1,24 @@
+# TypeScript to Python type mappings
+scalar_mappings:
+  string: str
+  number: float
+  boolean: bool
+  Date: datetime
+  any: JSONScalar
+  "Record<*>": JSONScalar
+  "Dict<*>": JSONScalar
+  Upload: Upload  # File upload type from strawberry.file_uploads
+
+# Special type patterns
+patterns:
+  - pattern: "*ID"
+    type: strawberry.ID
+  - pattern: "*Status"
+    type: Status
+    is_enum: true
+
+# Complex type mappings
+complex_types:
+  LLMUsage: LLMUsageType
+  PersonLLMConfig: PersonLLMConfigType
+  Vec2: Vec2Type

@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: {{ strawberry_types.generated_at | default('N/A') }}
+Generated at: {{ generated_at | default('N/A') }}
 """
 
 import strawberry
@@ -31,7 +31,7 @@ from ..unified_nodes.typescript_ast_node import TypescriptAstNode
 from ..unified_nodes.user_response_node import UserResponseNode
 
 # Import Pydantic models
-{% if strawberry_types and strawberry_types.strawberry_types %}
+{% if types %}
 from ..domain_models import *
 {% else %}
 # No node types found - this file will be populated after initial node spec generation
@@ -42,21 +42,66 @@ from dipeo.diagram_generated.graphql.scalars import *
 
 
 # Generate Strawberry types for node data
-{% for type_info in strawberry_types.strawberry_types %}
-@strawberry.experimental.pydantic.type({{ type_info.pydantic_model }}Node, all_fields=True)
-class {{ type_info.class_name }}DataType:
+{% for type_info in node_specs %}
+@strawberry.type
+class {{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType:
     """{{ type_info.description }} - Data fields only"""
-    pass
+    # Base fields (all nodes have these)
+    id: NodeIDScalar
+    position: Vec2Type
+    type: strawberry.Private[NodeType]  # Not exposed in GraphQL
+    label: Optional[str] = None
+    flipped: Optional[bool] = False
+    metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
+
+    # Node-specific fields from specification
+    {% for field in type_info.fields %}
+    {% if field.is_dict_type %}
+    {{ field.name }}: Optional[JSONScalar] = None  # {{ field.description }}
+    {% else %}
+    {% if field.required %}
+    {{ field.name }}: str  # {{ field.description }}
+    {% else %}
+    {{ field.name }}: Optional[str] = None  # {{ field.description }}
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+
+    @classmethod
+    def from_pydantic(cls, node: {{ type_info.pydantic_model }}Node) -> "{{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType":
+        """Convert from Pydantic model to Strawberry type."""
+        # Convert Dict fields to JSONScalar
+        metadata = node.metadata if node.metadata else None
+
+        # Get node-specific fields with Dict conversion
+        field_values = {}
+        {% for field in type_info.fields %}
+        {% if field.is_dict_type %}
+        field_values["{{ field.name }}"] = getattr(node, "{{ field.name }}", None)
+        {% else %}
+        field_values["{{ field.name }}"] = getattr(node, "{{ field.name }}", None)
+        {% endif %}
+        {% endfor %}
+
+        return cls(
+            id=node.id,
+            position=Vec2Type(x=node.position.x, y=node.position.y),
+            type=node.type,
+            label=node.label,
+            flipped=node.flipped,
+            metadata=metadata,
+            **field_values
+        )
 
 {% endfor %}
-{% if strawberry_types and strawberry_types.strawberry_types %}
+{% if node_specs %}
 
 # Create union type for all node data types
 NodeDataUnion = strawberry.union(
     "NodeDataUnion",
     (
-{% for type_info in strawberry_types.strawberry_types %}
-        {{ type_info.class_name }}DataType,
+{% for type_info in node_specs %}
+        {{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType,
 {% endfor %}
     )
 )
@@ -75,7 +120,7 @@ NodeDataUnion = PlaceholderNodeData
 # Export all types
 __all__ = [
     'NodeDataUnion',
-{% for type_info in strawberry_types.strawberry_types %}
-    '{{ type_info.class_name }}DataType',
+{% for type_info in types %}
+    '{{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType',
 {% endfor %}
 ]

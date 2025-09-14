@@ -21,11 +21,10 @@ class IntegratedApiService(
     """Service that manages multiple API providers through a unified interface."""
 
     def __init__(self, api_service=None, api_key_port: APIKeyPort | None = None):
-        # Initialize mixins
         InitializationMixin.__init__(self)
         ConfigurationMixin.__init__(self, {})
-        self._api_service = api_service  # For providers that need APIService
-        self._api_key_port = api_key_port  # For resolving API keys
+        self._api_service = api_service
+        self._api_key_port = api_key_port
         self.provider_registry = ProviderRegistry()
 
     async def initialize(self) -> None:
@@ -35,23 +34,15 @@ class IntegratedApiService(
 
         logger.info("Initializing IntegratedApiService")
 
-        # Initialize the provider registry
         await self.provider_registry.initialize()
-
-        # Load manifest-based providers if configured
         await self._load_manifest_providers()
-
-        # Load providers from entry points
         await self._load_entrypoint_providers()
-
-        # Load MCP providers
         await self._load_mcp_providers()
 
         self._initialized = True
 
     async def _load_manifest_providers(self) -> None:
         """Load manifest-based providers from the filesystem."""
-        # Look for provider manifests in standard locations
         manifest_locations = [
             "integrations/**/provider.yaml",
             "integrations/**/provider.yml",
@@ -78,13 +69,8 @@ class IntegratedApiService(
 
             logger.info("Loading MCP providers")
 
-            # Get the MCP registry and initialize it
             mcp_registry = await get_mcp_registry()
-
-            # Create an MCP provider with all registered tools
             mcp_provider = mcp_registry.create_provider("mcp")
-
-            # Register the MCP provider with the main registry
             await self.provider_registry.register(
                 "mcp",
                 mcp_provider,
@@ -95,8 +81,6 @@ class IntegratedApiService(
                 },
             )
 
-            # Also register individual MCP tool providers if they exist
-            # This allows using specific tool sets like mcp_browser, mcp_filesystem
             for category in ["browser", "filesystem"]:
                 category_tools = mcp_registry.get_tools_by_category(category)
                 if category_tools:
@@ -145,7 +129,6 @@ class IntegratedApiService(
         max_retries: int = 3,
     ) -> dict[str, Any]:
         """Execute an operation on a specific provider."""
-        # Ensure service is initialized
         if not self._initialized:
             await self.initialize()
 

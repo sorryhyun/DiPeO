@@ -9,39 +9,60 @@ persons:
       You are a senior product/front-end architect with expertise in React, TypeScript, and modern web architecture.
 
       Your task is to:
-      1. Define the overall architecture and folder structure
-      2. Split work into sections where EACH section represents ONE specific file
-      3. List all files that need to be implemented with clear descriptions
+      1. Define the overall architecture using pre-installed UI libraries
+      2. Split work into sections where EACH section represents ONE business logic file
+      3. List ONLY domain-specific files (exclude standard UI components)
+
+      Available Libraries (already installed):
+      - UI Components: Radix UI primitives in @/components/ui/*
+      - State: React Query, Zustand
+      - Forms: React Hook Form + Zod
+      - Icons: Lucide React
+      - Charts: Recharts
+      - Toasts: Sonner
+      - Tables: TanStack Table
+      - Animations: Framer Motion
 
       Focus on:
-      - COMPLETENESS: Include every file that will be imported anywhere
-      - Clear file paths and responsibilities
-      - Logical grouping and dependencies between files
-      - Modern React 18+ and TypeScript patterns
+      - Business logic components only (MetricCard, KPIWidget, etc.)
+      - Feature-specific pages and hooks
+      - Service integration layers
+      - DO NOT include Button, Input, Modal, Table, etc. (use libraries)
       - Vite-based application (use import.meta.env, not process.env)
 
-      Note: You don't need to provide detailed implementation steps. The Core Kernel will handle shared contracts, and the Frontend Generator will handle implementation details.
+      Note: Standard UI components come from @/components/ui/*. Only plan business-specific components.
 
   Core Kernel Architect:
     service: openai
     model: gpt-5-mini-2025-08-07
     api_key_id: APIKEY_52609F
     system_prompt: |
-      You are an expert TypeScript architect specializing in creating foundational contracts and utilities.
+      You are an expert TypeScript architect specializing in library integration and glue code.
 
-      Your task is to generate the Core Kernel - a set of 5-7 foundational files that ALL sections will depend on.
-      These files establish the single source of truth for types, configuration, events, hooks, and utilities.
+      Your task is to generate the Core Kernel - integration files that connect pre-installed libraries with application logic.
 
-      Generate complete, production-ready TypeScript code with:
-      - Comprehensive domain types and API contracts
-      - Materialized configuration from the app config
-      - Event bus for decoupled communication
-      - Hook system for extension points
-      - Dependency injection tokens
+      Available Libraries to integrate:
+      - React Query for data fetching
+      - Zustand for state management
+      - React Hook Form + Zod for forms
+      - MSW for API mocking
+      - Radix UI components (wrapped in @/components/ui/*)
+      - Sonner for toasts
+      - i18next for translations
 
-      IMPORTANT: Use `import.meta.env` for environment variables (NOT `process.env`) as this is a Vite-based browser application.
+      Generate library integration code:
+      - React Query client configuration
+      - MSW mock handlers setup
+      - Zod schemas with TypeScript types
+      - Library re-exports and typed wrappers
+      - Configuration that ties libraries together
 
-      Every file must be immediately usable with no placeholders or TODOs.
+      IMPORTANT:
+      - Use `import.meta.env` for environment variables (NOT `process.env`)
+      - Focus on integration, not implementation
+      - Import UI from @/components/ui/*, don't create new components
+
+      Every file must integrate with existing libraries, not recreate functionality.
 
   Frontend Generator:
 #    service: openai
@@ -53,6 +74,8 @@ persons:
     system_prompt: |
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
 
+      The section details will specify exactly what to implement. Follow the dependencies and imports specified.
+
       KEY FOCUS:
       - Generate raw code without explanations or commentary
       - Follow conventions and contracts defined in the prompt
@@ -60,11 +83,13 @@ persons:
       - Code must be complete, working, and deployable as-is
       - IMPORTANT: Use `import.meta.env` for environment variables (NOT `process.env`) as this is a Vite-based browser application
 
+      Libraries are pre-installed, so you can import from them as needed.
+
 
   Frontend Verdict:
-#   service: openai
-#   model: gpt-5-mini-2025-08-07
-#   api_key_id: APIKEY_52609F
+#    service: openai
+#    model: gpt-5-mini-2025-08-07
+#    api_key_id: APIKEY_52609F
     service: claude-code
     model: claude-code
     api_key_id: APIKEY_CLAUDE
@@ -80,116 +105,116 @@ nodes:
       custom_data:
         # Default config file path - can be overridden via --input-data
         config_file: projects/frontend_auto/variants/nothing_landing_config.json
-#
-#  - label: Load Config
-#    type: db
-#    position: {x: 300, y: 240}
-#    props:
-#      operation: read
-#      sub_type: file
-#      format: json
-#      file: "{config_file}"
-#
-#  - label: Setup Generated Directory
-#    type: code_job
-#    position: {x: 450, y: 240}
-#    props:
-#      language: python
-#      filePath: projects/frontend_auto/setup_generated_dir.py
-#      functionName: setup_generated_directory
-#
-#  - label: Plan Sections
-#    type: person_job
-#    position: {x: 600, y: 240}
-#    props:
-#      person: Section Planner
-#      text_format_file: projects/frontend_auto/section_models.py
-#      prompt_file: section_planner.txt
-#
-#  - label: Extract Section Properties
-#    type: code_job
-#    position: {x: 800, y: 0}
-#    props:
-#      language: python
-#      code: |
-#        # Extract file_paths and descriptions from sections
-#        sections = sections_data.get('sections', [])
-#
-#        file_paths = [section['file_path'] for section in sections]
-#        descriptions = [section['description'] for section in sections]
-#
-#        # Return data with extracted properties at same level
-#        result = {
-#            'architecture': sections_data.get('architecture', {}),
-#            'sections': sections,
-#            'file_paths': file_paths,
-#            'descriptions': descriptions
-#        }
-#
-#  - label: Generate Core Kernel
-#    type: person_job
-#    position: {x: 1050, y: 0}
-#    props:
-#      person: Core Kernel Architect
-#      text_format_file: projects/frontend_auto/core_kernel_models.py
-#      prompt_file: core_kernel_generator.txt
-#      memorize_to: "as-is"
-#
-#  - label: Merge Kernel and Sections
-#    type: code_job
-#    position: {x: 1200, y: 240}
-#    props:
-#      language: python
-#      code: |
-#        import json
-#        from pathlib import Path
-#
-#        # Get sections and sort by priority
-#        sections = sections_data.get('sections', [])
-#        sections.sort(key=lambda x: (x.get('priority', 2), x.get('id', '')))
-#
-#        # Create a map of kernel files by file_path for easy lookup
-#        kernel_files_map = {}
-#        if 'files' in kernel:
-#            for kf in kernel['files']:
-#                kernel_files_map[kf['file_path']] = kf
-#
-#        # Merge kernel details into corresponding sections
-#        for section in sections:
-#            # Check if this section corresponds to a kernel file
-#            if section['file_path'] in kernel_files_map:
-#                kernel_file = kernel_files_map[section['file_path']]
-#                # Merge the detailed kernel specs into the section
-#                section['purpose'] = kernel_file.get('purpose', '')
-#                section['content'] = kernel_file.get('content', '')
-#                # Keep the original description as fallback
-#                if not section.get('description'):
-#                    section['description'] = kernel_file.get('purpose', '')
-#
-#        # Extract file paths and descriptions from sorted sections
-#        file_paths = [section['file_path'] for section in sections]
-#        descriptions = [section.get('description', '') for section in sections]
-#        dependencies = [section['dependencies'] for section in sections]
-#
-#        # Return merged data with kernel overview (without duplicate files array)
-#        result = {
-#            'architecture': sections_data.get('architecture', {}),
-#            'kernel_specs': {'overview': kernel.get('overview', '')},  # Only keep overview
-#            'sections': sections,  # Now contains merged kernel details
-#            'file_paths': file_paths,
-#            'descriptions': descriptions,
-#            'dependencies': dependencies,
-#            'total_files': len(sections)
-#        }
-#
-#  - label: Save Merged Data
-#    type: db
-#    position: {x: 1500, y: 240}
-#    props:
-#      operation: write
-#      sub_type: file
-#      format: json
-#      file: projects/frontend_auto/generated/sections_data.json
+
+  - label: Load Config
+    type: db
+    position: {x: 300, y: 240}
+    props:
+      operation: read
+      sub_type: file
+      format: json
+      file: "{config_file}"
+
+  - label: Setup Generated Directory
+    type: code_job
+    position: {x: 450, y: 240}
+    props:
+      language: python
+      filePath: projects/frontend_auto/setup_generated_dir.py
+      functionName: setup_generated_directory
+
+  - label: Plan Sections
+    type: person_job
+    position: {x: 600, y: 240}
+    props:
+      person: Section Planner
+      text_format_file: projects/frontend_auto/section_models.py
+      prompt_file: section_planner.txt
+
+  - label: Extract Section Properties
+    type: code_job
+    position: {x: 800, y: 0}
+    props:
+      language: python
+      code: |
+        # Extract file_paths and descriptions from sections
+        sections = sections_data.get('sections', [])
+
+        file_paths = [section['file_path'] for section in sections]
+        descriptions = [section['description'] for section in sections]
+
+        # Return data with extracted properties at same level
+        result = {
+            'architecture': sections_data.get('architecture', {}),
+            'sections': sections,
+            'file_paths': file_paths,
+            'descriptions': descriptions
+        }
+
+  - label: Generate Core Kernel
+    type: person_job
+    position: {x: 1050, y: 0}
+    props:
+      person: Core Kernel Architect
+      text_format_file: projects/frontend_auto/core_kernel_models.py
+      prompt_file: core_kernel_generator.txt
+      memorize_to: "as-is"
+
+  - label: Merge Kernel and Sections
+    type: code_job
+    position: {x: 1200, y: 240}
+    props:
+      language: python
+      code: |
+        import json
+        from pathlib import Path
+
+        # Get sections and sort by priority
+        sections = sections_data.get('sections', [])
+        sections.sort(key=lambda x: (x.get('priority', 2), x.get('id', '')))
+
+        # Create a map of kernel files by file_path for easy lookup
+        kernel_files_map = {}
+        if 'files' in kernel:
+            for kf in kernel['files']:
+                kernel_files_map[kf['file_path']] = kf
+
+        # Merge kernel details into corresponding sections
+        for section in sections:
+            # Check if this section corresponds to a kernel file
+            if section['file_path'] in kernel_files_map:
+                kernel_file = kernel_files_map[section['file_path']]
+                # Merge the detailed kernel specs into the section
+                section['purpose'] = kernel_file.get('purpose', '')
+                section['content'] = kernel_file.get('content', '')
+                # Keep the original description as fallback
+                if not section.get('description'):
+                    section['description'] = kernel_file.get('purpose', '')
+
+        # Extract file paths and descriptions from sorted sections
+        file_paths = [section['file_path'] for section in sections]
+        descriptions = [section.get('description', '') for section in sections]
+        dependencies = [section['dependencies'] for section in sections]
+
+        # Return merged data with kernel overview (without duplicate files array)
+        result = {
+            'architecture': sections_data.get('architecture', {}),
+            'kernel_specs': {'overview': kernel.get('overview', '')},  # Only keep overview
+            'sections': sections,  # Now contains merged kernel details
+            'file_paths': file_paths,
+            'descriptions': descriptions,
+            'dependencies': dependencies,
+            'total_files': len(sections)
+        }
+
+  - label: Save Merged Data
+    type: db
+    position: {x: 1500, y: 240}
+    props:
+      operation: write
+      sub_type: file
+      format: json
+      file: projects/frontend_auto/generated/sections_data.json
 
   - label: load Data
     type: db
@@ -224,9 +249,9 @@ nodes:
     position: {x: 2100, y: 850}
     props:
       person: Frontend Generator
-      max_iteration: 100
-      memorize_to: "Only prior sections that this file imports or explicitly depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
-      at_most: 7
+      max_iteration: 150
+      memorize_to: "Only prior sections that this file imports or explicitly depends on (providers, hooks, shared components referenced in file_to_implement), excluding requests for each section."
+      at_most: 10
       prompt_file: frontend_generator.txt
       ignore_person: Frontend Verdict
 
@@ -264,8 +289,8 @@ nodes:
     position: {x: 2800, y: 1000}
     props:
       person: Frontend Generator
-      memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement). Exclude generic commentary."
-      at_most: 6
+      memorize_to: "Only prior sections that this file imports or depends on (providers, hooks, shared components referenced in file_to_implement), excluding requests for each section."
+      at_most: 8
       prompt_file: frontend_reviser.txt
 
   - label: Write Section Result
@@ -323,21 +348,21 @@ nodes:
 
 connections:
   # Initial setup
-#  - {from: Start, to: Load Config, label: default, content_type: object}
-#  - {from: Load Config, to: Setup Generated Directory, label: config, content_type: object}
-#  - {from: Setup Generated Directory, to: Plan Sections, label: config, content_type: object}
-#  - {from: Setup Generated Directory, to: Generate Core Kernel, label: config, content_type: object}
-#
-#  - {from: Plan Sections, to: Extract Section Properties, label: sections_data, content_type: object}
-#  - {from: Plan Sections, to: Generate Core Kernel, label: sections_data, content_type: object}
-#
-#  # Merge kernel and sections (direct connections)
-#  - {from: Extract Section Properties, to: Merge Kernel and Sections, label: sections_data, content_type: object}
-#  - {from: Generate Core Kernel, to: Merge Kernel and Sections, label: kernel, content_type: object}
-#  - {from: Merge Kernel and Sections, to: Save Merged Data, content_type: object}
-#  - {from: Save Merged Data, to: load Data, content_type: object}
+  - {from: Start, to: Load Config, label: default, content_type: object}
+  - {from: Load Config, to: Setup Generated Directory, label: config, content_type: object}
+  - {from: Load Config, to: Plan Sections, label: config, content_type: object}
+  - {from: Load Config, to: Generate Core Kernel, label: config, content_type: object}
 
-  - {from: Start, to: load Data, label: default, content_type: object}
+  - {from: Plan Sections, to: Extract Section Properties, label: sections_data, content_type: object}
+  - {from: Plan Sections, to: Generate Core Kernel, label: sections_data, content_type: object}
+
+  # Merge kernel and sections (direct connections)
+  - {from: Extract Section Properties, to: Merge Kernel and Sections, label: sections_data, content_type: object}
+  - {from: Generate Core Kernel, to: Merge Kernel and Sections, label: kernel, content_type: object}
+  - {from: Merge Kernel and Sections, to: Save Merged Data, content_type: object}
+  - {from: Save Merged Data, to: load Data, content_type: object}
+
+#  - {from: Start, to: load Data, label: default, content_type: object}
 
   - { from: load Data, to: Check Continue, content_type: object }
 

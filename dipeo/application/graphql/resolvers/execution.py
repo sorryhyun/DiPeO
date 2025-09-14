@@ -17,7 +17,6 @@ class ExecutionResolver:
         self.registry = registry
 
     async def get_execution(self, id: ExecutionID) -> ExecutionState | None:
-        """Get a single execution by ID."""
         try:
             state_store = self.registry.resolve(STATE_STORE)
             execution = await state_store.get_state(str(id))
@@ -25,7 +24,6 @@ class ExecutionResolver:
             if not execution:
                 return None
 
-            # Strawberry will handle the conversion to GraphQL type
             return execution
 
         except Exception as e:
@@ -35,12 +33,8 @@ class ExecutionResolver:
     async def list_executions(
         self, filter: ExecutionFilterInput | None = None, limit: int = 100, offset: int = 0
     ) -> list[ExecutionState]:
-        """List executions with optional filtering."""
         try:
             state_store = self.registry.resolve(STATE_STORE)
-
-            # Get executions from state store
-            # Note: EventBasedStateStore only supports diagram_id and status filters
             executions = await state_store.list_executions(
                 diagram_id=filter.diagram_id if filter else None,
                 status=filter.status if filter else None,

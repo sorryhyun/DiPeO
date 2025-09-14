@@ -22,7 +22,6 @@ class LocalBlobAdapter(LoggingMixin, InitializationMixin, BlobStorePort):
     """Local filesystem implementation of BlobStorePort with versioning support."""
 
     def __init__(self, base_path: str | Path):
-        # Initialize mixins
         InitializationMixin.__init__(self)
         self.base_path = Path(base_path).resolve()
         self._initialized = False
@@ -159,7 +158,6 @@ class LocalFileSystemAdapter(LoggingMixin, InitializationMixin, FileSystemPort):
     """Local filesystem implementation of FileSystemPort."""
 
     def __init__(self, base_path: str | Path | None = None):
-        # Initialize mixins
         InitializationMixin.__init__(self)
         self.base_path = Path(base_path).resolve() if base_path else Path.cwd()
         self._initialized = False
@@ -173,9 +171,7 @@ class LocalFileSystemAdapter(LoggingMixin, InitializationMixin, FileSystemPort):
         logger.info(f"LocalFileSystemAdapter initialized at: {self.base_path}")
 
     def _resolve_path(self, path: Path) -> Path:
-        if path.is_absolute():
-            return path
-        return self.base_path / path
+        return path if path.is_absolute() else self.base_path / path
 
     def open(self, path: Path, mode: str = "r") -> BinaryIO:
         resolved_path = self._resolve_path(path)
@@ -187,9 +183,7 @@ class LocalFileSystemAdapter(LoggingMixin, InitializationMixin, FileSystemPort):
             raise StorageError(f"Failed to open {path}: {e}") from e
 
     def exists(self, path: Path) -> bool:
-        resolved = self._resolve_path(path)
-        result = resolved.exists()
-        return result
+        return self._resolve_path(path).exists()
 
     def mkdir(self, path: Path, parents: bool = True) -> None:
         resolved_path = self._resolve_path(path)

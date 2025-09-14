@@ -50,7 +50,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
         Phase 5: Now consumes tokens from incoming edges when available.
         """
         # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
-        envelope_inputs = self.consume_token_inputs(request, inputs)
+        envelope_inputs = self.get_effective_inputs(request, inputs)
 
         # Convert envelope inputs to text for context
         input_context = None

@@ -15,12 +15,10 @@ class DiagramValidator(BaseValidator):
         self.api_key_service = api_key_service
 
     def _perform_validation(self, target: Any, result: ValidationResult) -> None:
-        """Perform diagram validation using the domain compiler as source of truth."""
         if isinstance(target, DomainDiagram):
             self._validate_diagram(target, result)
         elif isinstance(target, dict):
             try:
-                # Convert dict to DomainDiagram for validation
                 diagram = DomainDiagram.model_validate(target)
                 self._validate_diagram(diagram, result)
             except Exception as e:
@@ -34,21 +32,14 @@ class DiagramValidator(BaseValidator):
         This is now a façade that delegates to the domain compiler for
         all validation logic, ensuring a single source of truth.
         """
-        # Use the compiler for validation
         compilation_result = validate_via_compiler(diagram)
 
-        # Convert compilation errors to validation errors
         for error in compilation_result.errors:
             result.add_error(error.to_validation_error())
 
-        # Convert compilation warnings to validation warnings
         for warning in compilation_result.warnings:
             result.add_warning(warning.to_validation_warning())
 
-        # Additional validations not covered by the compiler
-        # (These are specific to runtime concerns like API keys)
-
-        # Validate persons references
         person_ids = {person.id for person in diagram.persons} if diagram.persons else set()
 
         if diagram.nodes:
@@ -62,7 +53,6 @@ class DiagramValidator(BaseValidator):
                             )
                         )
 
-        # Validate API keys if service is available
         if self.api_key_service and diagram.persons:
             for person in diagram.persons:
                 if person.api_key_id and not self.api_key_service.get_api_key(person.api_key_id):
@@ -73,11 +63,9 @@ class DiagramValidator(BaseValidator):
                     )
 
 
-# Convenience methods for backward compatibility
 def validate_or_raise(
     diagram: DomainDiagram | dict[str, Any], api_key_service: Any | None = None
 ) -> None:
-    """Validate diagram and raise ValidationError if invalid."""
     validator = DiagramValidator(api_key_service)
     result = validator.validate(diagram)
     if not result.is_valid:
@@ -86,7 +74,6 @@ def validate_or_raise(
 
 
 def is_valid(diagram: DomainDiagram | dict[str, Any], api_key_service: Any | None = None) -> bool:
-    """Check if diagram is valid."""
     validator = DiagramValidator(api_key_service)
     result = validator.validate(diagram)
     return result.is_valid

@@ -10,42 +10,31 @@ enum APIServiceType {
   CLAUDE_CODE
 }
 
-"""Unique identifier type for apikey entities"""
+"""Scalar type for ApiKeyID"""
 scalar ApiKeyID
 
 type ApiKeyResult {
   success: Boolean!
   message: String
   error: String
-  api_key: DomainApiKeyType
+  error_type: String
+  envelope: JSON
+  data: DomainApiKeyType
+  api_key: DomainApiKeyType @deprecated(reason: "Use 'data' field instead")
 }
 
-"""Unique identifier type for arrow entities"""
+"""Scalar type for ArrowID"""
 scalar ArrowID
-
-type AuthConfigType {
-  strategy: String!
-  header: String
-  query_param: String
-  format: String
-  scopes: [String!]
-}
-
-type CliSession {
-  execution_id: String!
-  diagram_name: String!
-  diagram_format: String!
-  started_at: DateTime!
-  is_active: Boolean!
-  diagram_data: String
-  node_states: JSON
-  session_id: String!
-}
 
 type CliSessionResult {
   success: Boolean!
   message: String
   error: String
+  error_type: String
+  envelope: JSON
+  data: JSON
+  session_id: String
+  execution_id: String
 }
 
 enum ContentType {
@@ -59,28 +48,28 @@ enum ContentType {
 }
 
 input CreateApiKeyInput {
+  key: String!
   label: String!
   service: APIServiceType!
-  key: String!
 }
 
 input CreateDiagramInput {
-  name: String!
-  description: String = null
   author: String = null
-  tags: [String!]! = []
+  description: String = null
+  name: String!
+  tags: [String!] = null
 }
 
 input CreateNodeInput {
-  type: NodeType!
-  position: Vec2Input!
   data: JSON!
+  position: Vec2Input!
+  type: NodeType!
 }
 
 input CreatePersonInput {
   label: String!
   llm_config: PersonLLMConfigInput!
-  type: String! = "user"
+  type: String = null
 }
 
 enum DataType {
@@ -99,41 +88,28 @@ type DeleteResult {
   success: Boolean!
   message: String
   error: String
+  error_type: String
+  envelope: JSON
+  data: JSON
   deleted_id: String
-}
-
-type DiagramConvertResult {
-  success: Boolean!
-  message: String
-  content: String
-  format: DiagramFormat
-  error: String
+  deleted_count: Int
 }
 
 input DiagramFilterInput {
-  name: String = null
   author: String = null
-  tags: [String!] = null
   created_after: DateTime = null
   created_before: DateTime = null
+  name: String = null
+  tags: [String!] = null
 }
 
-enum DiagramFormat {
-  native
-  light
-  readable
+enum DiagramFormatGraphQL {
+  NATIVE
+  LIGHT
+  READABLE
 }
 
-type DiagramFormatInfo {
-  format: String!
-  name: String!
-  extension: String!
-  supports_export: Boolean!
-  supports_import: Boolean!
-  description: String
-}
-
-"""Unique identifier type for diagram entities"""
+"""Scalar type for DiagramID"""
 scalar DiagramID
 
 type DiagramMetadataType {
@@ -150,16 +126,12 @@ type DiagramMetadataType {
 
 type DiagramResult {
   success: Boolean!
-  diagram: DomainDiagramType
   message: String
   error: String
-}
-
-type DiagramValidationResult {
-  success: Boolean!
-  message: String
-  errors: [String!]
-  warnings: [String!]
+  error_type: String
+  envelope: JSON
+  data: DomainDiagramType
+  diagram: DomainDiagramType @deprecated(reason: "Use 'data' field instead")
 }
 
 type DomainApiKeyType {
@@ -212,37 +184,39 @@ type DomainPersonType {
 }
 
 input ExecuteDiagramInput {
-  diagram_id: ID = null
-  diagram_data: JSON = null
-  variables: JSON = null
   debug_mode: Boolean = null
+  diagram_data: JSON = null
+  diagram_id: String = null
   max_iterations: Int = null
   timeout_seconds: Int = null
   use_unified_monitoring: Boolean = null
+  variables: JSON = null
 }
 
 input ExecutionControlInput {
-  execution_id: ID!
   action: String!
+  execution_id: String!
   reason: String = null
 }
 
 input ExecutionFilterInput {
-  diagram_id: ID = null
-  status: Status = null
+  diagram_id: String = null
   started_after: DateTime = null
   started_before: DateTime = null
+  status: Status = null
 }
 
-"""Unique identifier type for execution entities"""
+"""Scalar type for ExecutionID"""
 scalar ExecutionID
 
 type ExecutionResult {
   success: Boolean!
-  execution_id: String
-  execution: ExecutionStateType
   message: String
   error: String
+  error_type: String
+  envelope: JSON
+  data: ExecutionStateType
+  execution: ExecutionStateType @deprecated(reason: "Use 'data' field instead")
 }
 
 type ExecutionStateType {
@@ -270,13 +244,15 @@ type ExecutionUpdate {
   timestamp: String!
 }
 
-type FileUploadResult {
+type FormatConversionResult {
   success: Boolean!
   message: String
-  path: String
-  size_bytes: Int
-  content_type: String
   error: String
+  error_type: String
+  envelope: JSON
+  data: String
+  format: String
+  original_format: String
 }
 
 enum HandleDirection {
@@ -284,7 +260,7 @@ enum HandleDirection {
   OUTPUT
 }
 
-"""Unique identifier type for handle entities"""
+"""Scalar type for HandleID"""
 scalar HandleID
 
 enum HandleLabel {
@@ -297,14 +273,14 @@ enum HandleLabel {
   RESULTS
 }
 
-"""Unique identifier for hooks"""
+"""Scalar type for HookID"""
 scalar HookID
 
 input InteractiveResponseInput {
-  execution_id: ID!
-  node_id: ID!
-  response: String!
+  execution_id: String!
   metadata: JSON = null
+  node_id: String!
+  response: String!
 }
 
 """
@@ -332,37 +308,40 @@ type LLMUsageType {
 }
 
 type Mutation {
-  create_diagram(input: CreateDiagramInput!): DiagramResult!
-  delete_diagram(id: ID!): DeleteResult!
-  execute_diagram(input: ExecuteDiagramInput!): ExecutionResult!
-  update_node_state(input: UpdateNodeStateInput!): ExecutionResult!
   control_execution(input: ExecutionControlInput!): ExecutionResult!
-  send_interactive_response(input: InteractiveResponseInput!): ExecutionResult!
-  create_person(input: CreatePersonInput!): PersonResult!
-  update_person(id: ID!, input: UpdatePersonInput!): PersonResult!
-  delete_person(id: ID!): DeleteResult!
+  convert_diagram_format(content: String!, from_format: DiagramFormatGraphQL!, to_format: DiagramFormatGraphQL!): FormatConversionResult!
   create_api_key(input: CreateApiKeyInput!): ApiKeyResult!
-  delete_api_key(id: ID!): DeleteResult!
-  test_api_key(id: ID!): TestApiKeyResult!
-  create_node(diagram_id: ID!, input: CreateNodeInput!): NodeResult!
-  update_node(diagram_id: ID!, node_id: ID!, input: UpdateNodeInput!): NodeResult!
-  delete_node(diagram_id: ID!, node_id: ID!): DeleteResult!
-  upload_file(file: Upload!, path: String = null): FileUploadResult!
-  upload_diagram(file: Upload!, format: DiagramFormat!): DiagramResult!
-  validate_diagram(content: String!, format: DiagramFormat!): DiagramValidationResult!
-  convert_diagram_format(content: String!, from_format: DiagramFormat!, to_format: DiagramFormat!): DiagramConvertResult!
+  create_diagram(input: CreateDiagramInput!): DiagramResult!
+  create_node(diagram_id: String!, input: CreateNodeInput!): NodeResult!
+  create_person(input: CreatePersonInput!): PersonResult!
+  delete_api_key(api_key_id: String!): DeleteResult!
+  delete_diagram(diagram_id: String!): DeleteResult!
+  delete_node(diagram_id: String!, node_id: String!): DeleteResult!
+  delete_person(person_id: String!): DeleteResult!
+  execute_diagram(input: ExecuteDiagramInput!): ExecutionResult!
   register_cli_session(input: RegisterCliSessionInput!): CliSessionResult!
+  send_interactive_response(input: InteractiveResponseInput!): ExecutionResult!
+  test_api_key(api_key_id: String!): ApiKeyResult!
   unregister_cli_session(input: UnregisterCliSessionInput!): CliSessionResult!
+  update_node(diagram_id: String!, node_id: String!, input: UpdateNodeInput!): NodeResult!
+  update_node_state(input: UpdateNodeStateInput!): ExecutionResult!
+  update_person(person_id: String!, input: UpdatePersonInput!): PersonResult!
+  upload_diagram(file: Upload!, format: DiagramFormatGraphQL!): JSON!
+  upload_file(file: Upload!, path: String): JSON!
+  validate_diagram(content: String!, format: DiagramFormatGraphQL!): JSON!
 }
 
-"""Unique identifier type for node entities"""
+"""Scalar type for NodeID"""
 scalar NodeID
 
 type NodeResult {
   success: Boolean!
-  node: DomainNodeType
   message: String
   error: String
+  error_type: String
+  envelope: JSON
+  data: DomainNodeType
+  node: DomainNodeType @deprecated(reason: "Use 'data' field instead")
 }
 
 enum NodeType {
@@ -382,33 +361,13 @@ enum NodeType {
   INTEGRATED_API
 }
 
-type OperationSchemaType {
-  operation: String!
-  method: String!
-  path: String!
-  description: String
-  request_body: JSON
-  query_params: JSON
-  response: JSON
-}
-
-type OperationType {
-  name: String!
-  method: String!
-  path: String!
-  description: String
-  required_scopes: [String!]
-  has_pagination: Boolean!
-  timeout_override: Float
-}
-
-"""Unique identifier type for person entities"""
+"""Scalar type for PersonID"""
 scalar PersonID
 
 input PersonLLMConfigInput {
-  service: LLMService!
+  api_key_id: String!
   model: String!
-  api_key_id: ID!
+  service: LLMService!
   system_prompt: String = null
 }
 
@@ -422,87 +381,45 @@ type PersonLLMConfigType {
 
 type PersonResult {
   success: Boolean!
-  person: DomainPersonType
   message: String
   error: String
-}
-
-type ProviderMetadataType {
-  version: String!
-  type: String!
-  manifest_path: String
-  description: String
-  documentation_url: String
-  support_email: String
-}
-
-type ProviderStatisticsType {
-  total_providers: Int!
-  total_operations: Int!
-  provider_types: JSON!
-  providers: [JSON!]!
-}
-
-type ProviderType {
-  name: String!
-  operations: [OperationType!]!
-  metadata: ProviderMetadataType!
-  base_url: String
-  auth_config: AuthConfigType
-  rate_limit: RateLimitConfigType
-  retry_policy: RetryPolicyType
-  default_timeout: Float!
+  error_type: String
+  envelope: JSON
+  data: DomainPersonType
+  person: DomainPersonType @deprecated(reason: "Use 'data' field instead")
 }
 
 type Query {
-  diagram(id: ID!): DomainDiagramType
-  diagrams(filter: DiagramFilterInput = null, limit: Int! = 100, offset: Int! = 0): [DomainDiagramType!]!
-  execution(id: ID!): ExecutionStateType
-  executions(filter: ExecutionFilterInput = null, limit: Int! = 100, offset: Int! = 0): [ExecutionStateType!]!
-  person(id: ID!): DomainPersonType
-  persons(limit: Int! = 100): [DomainPersonType!]!
-  api_key(id: ID!): DomainApiKeyType
-  api_keys(service: String = null): [DomainApiKeyType!]!
-  available_models(service: String!, api_key_id: ID!): [String!]!
-  providers: [ProviderType!]!
-  provider(name: String!): ProviderType
-  provider_operations(provider: String!): [OperationType!]!
-  operation_schema(provider: String!, operation: String!): OperationSchemaType
-  provider_statistics: ProviderStatisticsType!
-  system_info: JSON!
+  active_cli_session: JSON!
+  api_key(api_key_id: String!): DomainApiKeyType!
+  api_keys(service: String): JSON!
+  available_models(service: String!, api_key_id: String!): JSON!
+  diagram(diagram_id: String!): DomainDiagramType!
+  execution(execution_id: String!): ExecutionStateType!
   execution_capabilities: JSON!
-  health: JSON!
-  conversations(person_id: ID = null, execution_id: ID = null, search: String = null, show_forgotten: Boolean! = false, limit: Int! = 100, offset: Int! = 0, since: DateTime = null): JSON!
-  supported_formats: [DiagramFormatInfo!]!
-  execution_order(execution_id: ID!): JSON!
-  prompt_files: [JSON!]!
+  execution_history(diagram_id: String, limit: Int, include_metrics: Boolean): JSON!
+  execution_metrics(execution_id: String!): JSON!
+  execution_order(execution_id: String!): JSON!
+  operation_schema(provider: String!, operation: String!): JSON!
+  person(person_id: String!): DomainPersonType!
   prompt_file(filename: String!): JSON!
-  active_cli_session: CliSession
-  execution_metrics(execution_id: ID!): JSON
-  execution_history(diagram_id: ID = null, limit: Int! = 100, include_metrics: Boolean! = false): [ExecutionStateType!]!
-}
-
-type RateLimitConfigType {
-  algorithm: String!
-  capacity: Int!
-  refill_per_sec: Float!
-  window_size_sec: Int
+  provider_operations(provider: String!): JSON!
+  providers: JSON!
+  supported_formats: JSON!
+  system_info: JSON!
+  health_check: JSON!
+  conversations(person_id: String, execution_id: String, search: String, show_forgotten: Boolean, limit: Int, offset: Int, since: String): [JSON!]!
+  diagrams(filter: DiagramFilterInput, limit: Int, offset: Int): [DomainDiagramType!]!
+  executions(filter: ExecutionFilterInput, limit: Int, offset: Int): [ExecutionStateType!]!
+  persons(limit: Int): [DomainPersonType!]!
+  prompt_files: [JSON!]!
 }
 
 input RegisterCliSessionInput {
   execution_id: String!
   diagram_name: String!
-  diagram_format: String!
+  diagram_format: DiagramFormatGraphQL!
   diagram_data: JSON = null
-  diagram_path: String = null
-}
-
-type RetryPolicyType {
-  strategy: String!
-  max_retries: Int!
-  base_delay_ms: Int!
-  max_delay_ms: Int
-  retry_on_status: [Int!]!
 }
 
 enum Status {
@@ -517,37 +434,27 @@ enum Status {
 }
 
 type Subscription {
-  execution_updates(execution_id: ID!): ExecutionUpdate!
-  node_updates(execution_id: ID!, node_id: String = null): JSON!
-  interactive_prompts(execution_id: ID!): JSON!
-  execution_logs(execution_id: ID!): JSON!
+  execution_updates(execution_id: String!): ExecutionUpdate!
 }
 
-"""Unique identifier for tasks"""
+"""Scalar type for TaskID"""
 scalar TaskID
-
-type TestApiKeyResult {
-  success: Boolean!
-  message: String
-  error: String
-  model_info: JSON
-}
 
 input UnregisterCliSessionInput {
   execution_id: String!
 }
 
 input UpdateNodeInput {
-  position: Vec2Input = null
   data: JSON = null
+  position: Vec2Input = null
 }
 
 input UpdateNodeStateInput {
-  execution_id: ID!
-  node_id: ID!
-  status: Status!
-  output: JSON = null
   error: String = null
+  execution_id: String!
+  node_id: String!
+  output: JSON = null
+  status: Status!
 }
 
 input UpdatePersonInput {

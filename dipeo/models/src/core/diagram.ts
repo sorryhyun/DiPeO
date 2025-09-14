@@ -18,13 +18,14 @@ export interface Vec2 {
   y: number;
 }
 
-
 export type NodeID = string & { readonly __brand: 'NodeID' };
 export type ArrowID = string & { readonly __brand: 'ArrowID' };
 export type HandleID = string & { readonly __brand: 'HandleID' };
 export type PersonID = string & { readonly __brand: 'PersonID' };
 export type ApiKeyID = string & { readonly __brand: 'ApiKeyID' };
 export type DiagramID = string & { readonly __brand: 'DiagramID' };
+export type HookID = string & { readonly __brand: 'HookID' };
+export type TaskID = string & { readonly __brand: 'TaskID' };
 
 export interface DomainHandle {
   id: HandleID;

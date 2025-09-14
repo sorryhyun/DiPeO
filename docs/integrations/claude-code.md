@@ -6,7 +6,7 @@ DiPeO now supports Claude Code SDK as an LLM provider, enabling integration with
 
 ### Prerequisites
 
-The Claude Code SDK is already included in DiPeO's dependencies (version 0.0.20 in requirements.txt). No additional installation required.
+The Claude Code SDK is already included in DiPeO's dependencies. No additional installation required.
 
 ## Configuration
 

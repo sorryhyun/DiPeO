@@ -24,19 +24,10 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
         "supports_export": True,
     }
 
-    # ---- Typed deserialization ------------------------------------------------ #
     def deserialize_to_domain(self, content: str, diagram_path: str | None = None) -> DomainDiagram:
-        """Deserialize native format JSON to DomainDiagram."""
-        # Parse JSON
         data = self.parse(content)
-
-        # Clean GraphQL fields
         data = self._clean_graphql_fields(data)
-
-        # NativeDiagram is just DomainDiagram, so we can validate directly
-        # First handle the case where nodes might be a dict instead of list
         if "nodes" in data and isinstance(data["nodes"], dict):
-            # Convert dict format to list format
             nodes_list = []
             for node_id, node_data in data["nodes"].items():
                 if isinstance(node_data, dict):
@@ -44,7 +35,6 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
                     nodes_list.append(node_data)
             data["nodes"] = nodes_list
 
-        # Similarly for arrows
         if "arrows" in data and isinstance(data["arrows"], dict):
             arrows_list = []
             for arrow_id, arrow_data in data["arrows"].items():
@@ -53,7 +43,6 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
                     arrows_list.append(arrow_data)
             data["arrows"] = arrows_list
 
-        # Similarly for handles
         if "handles" in data and isinstance(data["handles"], dict):
             handles_list = []
             for handle_id, handle_data in data["handles"].items():
@@ -62,7 +51,6 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
                     handles_list.append(handle_data)
             data["handles"] = handles_list
 
-        # Similarly for persons
         if "persons" in data and isinstance(data["persons"], dict):
             persons_list = []
             for person_id, person_data in data["persons"].items():
@@ -71,25 +59,18 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
                     persons_list.append(person_data)
             data["persons"] = persons_list
 
-        # Create NativeDiagram (which is just a DomainDiagram)
         try:
             native_diagram = NativeDiagram(**data)
-            # NativeDiagram IS a DomainDiagram, just return it
             return native_diagram
         except Exception as e:
             log.error(f"Failed to parse native diagram: {e}")
             raise ValueError(f"Invalid native diagram format: {e}") from e
 
-    # ---- Typed serialization -------------------------------------------------- #
     def serialize_from_domain(self, diagram: DomainDiagram) -> str:
-        """Serialize DomainDiagram to native format JSON."""
-        # NativeDiagram is just DomainDiagram, so use it directly
         native_diagram = NativeDiagram(**diagram.model_dump())
 
-        # Convert to dict format with nodes/arrows/etc as dicts keyed by ID
         data = native_diagram.model_dump(by_alias=True, exclude_none=True)
 
-        # Convert lists to dict format for native style
         if "nodes" in data and isinstance(data["nodes"], list):
             nodes_dict = {}
             for node in data["nodes"]:
@@ -118,10 +99,8 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
                 persons_dict[person_id] = person
             data["persons"] = persons_dict
 
-        # Format as JSON
         return self.format(data)
 
-    # ---- heuristics ------------------------------------------------------- #
     def detect_confidence(self, data: dict[str, Any]) -> float:
         return 0.95 if {"nodes", "arrows"}.issubset(data) else 0.1
 

@@ -96,16 +96,16 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            condition_type=data.get('condition_type', None),
+            condition_type=data.get('condition_type', "custom"),
             expression=data.get('expression', None),
             node_indices=data.get('node_indices', None),
             person=data.get('person', None),
             judge_by=data.get('judge_by', None),
             judge_by_file=data.get('judge_by_file', None),
-            memorize_to=data.get('memorize_to', None),
+            memorize_to=data.get('memorize_to', "GOLDFISH"),
             at_most=data.get('at_most', None),
             expose_index_as=data.get('expose_index_as', None),
-            skippable=data.get('skippable', None),
+            skippable=data.get('skippable', False),
         )
 
     elif node_type == NodeType.DB:
@@ -127,8 +127,8 @@ def create_executable_node(
             # DB node special handling for backward compatibility
             data=data.get('data', None),
             # Serialize JSON field may have camelCase variants
-            serialize_json=data.get('serialize_json', data.get('serializeJson', None)),
-            format=data.get('format', None),
+            serialize_json=data.get('serialize_json', data.get('serializeJson', False)),
+            format=data.get('format', "json"),
         )
 
     elif node_type == NodeType.ENDPOINT:
@@ -149,11 +149,11 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            hook_type=data.get('hook_type', None),
+            hook_type=data.get('hook_type', "shell"),
             command=data.get('command', None),
             url=data.get('url', None),
-            timeout=data.get('timeout', None),
-            retry_count=data.get('retry_count', None),
+            timeout=data.get('timeout', 60),
+            retry_count=data.get('retry_count', 0),
         )
 
     elif node_type == NodeType.INTEGRATED_API:
@@ -198,7 +198,7 @@ def create_executable_node(
             first_prompt_file=data.get('first_prompt_file', None),
             default_prompt=data.get('default_prompt', None),
             prompt_file=data.get('prompt_file', None),
-            max_iteration=data.get('max_iteration', None),
+            max_iteration=data.get('max_iteration', 100),
             memorize_to=data.get('memorize_to', None),
             at_most=data.get('at_most', None),
             ignore_person=data.get('ignore_person', None),
@@ -207,10 +207,10 @@ def create_executable_node(
             text_format_file=data.get('text_format_file', None),
             resolved_prompt=data.get('resolved_prompt', None),
             resolved_first_prompt=data.get('resolved_first_prompt', None),
-            batch=data.get('batch', None),
-            batch_input_key=data.get('batch_input_key', None),
-            batch_parallel=data.get('batch_parallel', None),
-            max_concurrent=data.get('max_concurrent', None),
+            batch=data.get('batch', False),
+            batch_input_key=data.get('batch_input_key', "items"),
+            batch_parallel=data.get('batch_parallel', True),
+            max_concurrent=data.get('max_concurrent', 10),
         )
 
     elif node_type == NodeType.START:
@@ -220,7 +220,7 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            trigger_mode=data.get('trigger_mode', None),
+            trigger_mode=data.get('trigger_mode', "none"),
             custom_data=data.get('custom_data', None),
             output_data_structure=data.get('output_data_structure', None),
             hook_event=data.get('hook_event', None),
@@ -239,13 +239,13 @@ def create_executable_node(
             input_mapping=data.get('input_mapping', None),
             output_mapping=data.get('output_mapping', None),
             timeout=data.get('timeout', None),
-            wait_for_completion=data.get('wait_for_completion', None),
-            isolate_conversation=data.get('isolate_conversation', None),
-            ignore_if_sub=data.get('ignoreIfSub', None),
+            wait_for_completion=data.get('wait_for_completion', True),
+            isolate_conversation=data.get('isolate_conversation', False),
+            ignore_if_sub=data.get('ignoreIfSub', False),
             diagram_format=data.get('diagram_format', None),
-            batch=data.get('batch', None),
+            batch=data.get('batch', False),
             batch_input_key=data.get('batch_input_key', None),
-            batch_parallel=data.get('batch_parallel', None),
+            batch_parallel=data.get('batch_parallel', False),
         )
 
     elif node_type == NodeType.TEMPLATE_JOB:
@@ -259,7 +259,7 @@ def create_executable_node(
             template_content=data.get('template_content', None),
             output_path=data.get('output_path', None),
             variables=data.get('variables', None),
-            engine=data.get('engine', None),
+            engine=data.get('engine', "jinja2"),
             preprocessor=data.get('preprocessor', None),
         )
 
@@ -271,14 +271,14 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             source=data.get('source', None),
-            extract_patterns=data.get('extractPatterns', None),
-            include_js_doc=data.get('includeJSDoc', None),
-            parse_mode=data.get('parseMode', None),
-            transform_enums=data.get('transformEnums', None),
-            flatten_output=data.get('flattenOutput', None),
-            output_format=data.get('outputFormat', None),
-            batch=data.get('batch', None),
-            batch_input_key=data.get('batchInputKey', None),
+            extract_patterns=data.get('extractPatterns', ['interface', 'type', 'enum']),
+            include_js_doc=data.get('includeJSDoc', False),
+            parse_mode=data.get('parseMode', "module"),
+            transform_enums=data.get('transformEnums', False),
+            flatten_output=data.get('flattenOutput', False),
+            output_format=data.get('outputFormat', "standard"),
+            batch=data.get('batch', False),
+            batch_input_key=data.get('batchInputKey', "sources"),
         )
 
     elif node_type == NodeType.USER_RESPONSE:
@@ -289,7 +289,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             prompt=data.get('prompt', None),
-            timeout=data.get('timeout', None),
+            timeout=data.get('timeout', 300),
         )
 
     else:

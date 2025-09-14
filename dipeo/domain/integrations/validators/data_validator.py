@@ -12,12 +12,9 @@ class DataValidator(BaseValidator):
     ALLOWED_DB_OPERATIONS = ["prompt", "read", "write", "append"]
 
     def _perform_validation(self, target: Any, result: ValidationResult) -> None:
-        """Perform data validation."""
         if isinstance(target, dict):
-            # Check if it's a database operation
             if "operation" in target:
                 self._validate_db_operation(target, result)
-            # Check if it's data to be stored
             elif "data" in target:
                 self._validate_data_content(target, result)
             else:
@@ -27,11 +24,9 @@ class DataValidator(BaseValidator):
         elif isinstance(target, str):
             self._validate_string_data(target, result)
         else:
-            # For primitive types, just do basic validation
             self._validate_primitive_data(target, result)
 
     def _validate_db_operation(self, config: dict[str, Any], result: ValidationResult) -> None:
-        """Validate database operation configuration."""
         operation = config.get("operation")
 
         if not operation:
@@ -46,7 +41,6 @@ class DataValidator(BaseValidator):
                 )
             )
 
-        # Validate operation-specific requirements
         value = config.get("value")
 
         if operation in ["write", "append"]:
@@ -64,24 +58,20 @@ class DataValidator(BaseValidator):
                     )
                 )
 
-        # Validate database/collection name if present
         db_name = config.get("database") or config.get("collection")
         if db_name:
             self._validate_db_name(db_name, result)
 
-        # Validate key if present
         if "key" in config:
             self._validate_db_key(config["key"], result)
 
     def _validate_data_content(self, data_dict: dict[str, Any], result: ValidationResult) -> None:
-        """Validate data content for storage."""
         data = data_dict.get("data")
 
         if data is None:
             result.add_error(ValidationError("Data field is required"))
             return
 
-        # Check data size (warn if large)
         try:
             import json
 
@@ -93,27 +83,21 @@ class DataValidator(BaseValidator):
                     )
                 )
         except Exception:
-            # If we can't serialize, it might have issues
             result.add_warning(
                 ValidationWarning("Data may not be JSON serializable", field_name="data")
             )
 
-        # Check for sensitive data patterns
         self._check_sensitive_data(data, result)
 
     def _validate_generic_data(self, data: dict[str, Any], result: ValidationResult) -> None:
-        """Validate generic data dictionary."""
-        # Check for common issues
         if not data:
             result.add_warning(ValidationWarning("Empty data dictionary"))
 
-        # Check for very large dictionaries
         if len(data) > 1000:
             result.add_warning(
                 ValidationWarning(f"Very large dictionary with {len(data)} keys", field_name="data")
             )
 
-        # Check keys
         for key in data:
             if not isinstance(key, str):
                 result.add_error(
@@ -123,11 +107,9 @@ class DataValidator(BaseValidator):
                 result.add_error(ValidationError("Empty string key in dictionary"))
 
     def _validate_data_collection(self, collection: list | tuple, result: ValidationResult) -> None:
-        """Validate data collections (lists/tuples)."""
         if not collection:
             result.add_warning(ValidationWarning("Empty collection"))
 
-        # Warn about very large collections
         if len(collection) > 10000:
             result.add_warning(
                 ValidationWarning(
@@ -135,8 +117,7 @@ class DataValidator(BaseValidator):
                 )
             )
 
-        # Check for mixed types
-        types = set(type(item).__name__ for item in collection[:100])  # Sample first 100
+        types = set(type(item).__name__ for item in collection[:100])
         if len(types) > 3:
             result.add_warning(
                 ValidationWarning(
@@ -145,21 +126,18 @@ class DataValidator(BaseValidator):
             )
 
     def _validate_string_data(self, data: str, result: ValidationResult) -> None:
-        """Validate string data."""
         if not data:
             result.add_warning(ValidationWarning("Empty string data"))
-        elif len(data) > 1_000_000:  # 1MB
+        elif len(data) > 1_000_000:
             result.add_warning(
                 ValidationWarning(
                     f"Very large string: {len(data) / 1_000_000:.2f}MB", field_name="string_data"
                 )
             )
 
-        # Check for null bytes
         if "\0" in data:
             result.add_error(ValidationError("String contains null bytes"))
 
-        # Check for potential issues
         if data.strip() != data:
             result.add_warning(
                 ValidationWarning(
@@ -168,25 +146,20 @@ class DataValidator(BaseValidator):
             )
 
     def _validate_primitive_data(self, data: Any, result: ValidationResult) -> None:
-        """Validate primitive data types."""
-        # Check for None
         if data is None:
             result.add_warning(ValidationWarning("Data is None"))
 
-        # Check numeric values
         elif isinstance(data, int | float) and isinstance(data, float):
-            if data != data:  # NaN check
+            if data != data:
                 result.add_error(ValidationError("Float value is NaN"))
             elif data == float("inf") or data == float("-inf"):
                 result.add_warning(ValidationWarning("Float value is infinite"))
 
     def _validate_db_name(self, name: str, result: ValidationResult) -> None:
-        """Validate database/collection name."""
         if not name:
             result.add_error(ValidationError("Database/collection name cannot be empty"))
             return
 
-        # Check for invalid characters
         invalid_chars = ["/", "\\", ".", " ", '"', "$"]
         for char in invalid_chars:
             if char in name:
@@ -197,7 +170,6 @@ class DataValidator(BaseValidator):
                     )
                 )
 
-        # Check length
         if len(name) > 64:
             result.add_warning(
                 ValidationWarning(
@@ -206,7 +178,6 @@ class DataValidator(BaseValidator):
             )
 
     def _validate_db_key(self, key: str, result: ValidationResult) -> None:
-        """Validate database key."""
         if not key:
             result.add_error(ValidationError("Database key cannot be empty"))
             return
@@ -217,7 +188,6 @@ class DataValidator(BaseValidator):
             )
             return
 
-        # Check for problematic characters
         if "\0" in key:
             result.add_error(ValidationError("Database key contains null byte"))
 
@@ -228,7 +198,6 @@ class DataValidator(BaseValidator):
                 )
             )
 
-        # Check length
         if len(key) > 1024:
             result.add_warning(
                 ValidationWarning(
@@ -237,11 +206,8 @@ class DataValidator(BaseValidator):
             )
 
     def _check_sensitive_data(self, data: Any, result: ValidationResult) -> None:
-        """Check for potentially sensitive data patterns."""
-        # Convert to string for pattern matching
         data_str = str(data).lower()
 
-        # Common sensitive patterns
         sensitive_patterns = [
             ("password", "password"),
             ("api_key", "api key"),
@@ -262,9 +228,7 @@ class DataValidator(BaseValidator):
                     )
                 )
 
-    # Convenience methods for backward compatibility
     def validate_operation(self, operation: str, allowed_operations: list[str]) -> None:
-        """Validate that an operation is allowed (raises exception)."""
         if operation not in allowed_operations:
             raise ValidationError(
                 f"Operation '{operation}' is not allowed. Must be one of: {', '.join(allowed_operations)}",

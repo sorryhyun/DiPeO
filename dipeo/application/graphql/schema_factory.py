@@ -11,34 +11,8 @@ from strawberry.schema.config import StrawberryConfig
 
 from dipeo.application.registry import ServiceRegistry
 
-from .schema.mutation_factory import create_mutation_type
-from .schema.queries import create_query_type
-from .schema.subscriptions import create_subscription_type
-
-# Import generated types
-# TODO: Fix Dict field handling in generated types
-# from dipeo.diagram_generated.graphql.strawberry_nodes import (
-#     ApiJobDataType,
-#     CodeJobDataType,
-#     ConditionDataType,
-#     DBDataType,
-#     EndpointDataType,
-#     HookDataType,
-#     IntegratedApiDataType,
-#     JsonSchemaValidatorDataType,
-#     PersonBatchJobDataType,
-#     PersonJobDataType,
-#     StartDataType,
-#     SubDiagramDataType,
-#     TemplateJobDataType,
-#     TypescriptAstDataType,
-#     UserResponseDataType,
-# )
-# Note: strawberry_domain.py needs to be regenerated
-# from dipeo.diagram_generated.graphql.strawberry_domain import (
-#     MemorySettingsType,
-#     ToolConfigType,
-# )
+# Import generated schema (Now includes fixed Subscription)
+from dipeo.diagram_generated.graphql.generated_schema import Mutation, Query, Subscription
 
 
 def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
@@ -50,8 +24,8 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
     Returns:
         A Strawberry GraphQL schema ready to be served
     """
-    # Import scalar types
-    from .types.scalars import (
+    # Import scalar types from generated code
+    from dipeo.diagram_generated.graphql.scalars import (
         ApiKeyIDScalar,
         ArrowIDScalar,
         DiagramIDScalar,
@@ -63,10 +37,10 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
         TaskIDScalar,
     )
 
-    # Create schema components with injected registry
-    query = create_query_type(registry)
-    mutation = create_mutation_type(registry)
-    subscription = create_subscription_type(registry)
+    # Use generated schema for Query, Mutation, and Subscription
+    query = Query
+    mutation = Mutation
+    subscription = Subscription
 
     # Create the schema with configuration
     schema = strawberry.Schema(
@@ -80,9 +54,10 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
             # Register JSON scalar type
             dict: JSON
         },
-        # Register all scalar and generated types
+        # Register only custom scalar types that Strawberry can't auto-discover
+        # Domain types referenced by Query/Mutation/Subscription fields are auto-discovered
         types=[
-            # Scalar types
+            # Custom scalar types (required for GraphQL schema)
             NodeIDScalar,
             HandleIDScalar,
             ArrowIDScalar,
@@ -92,26 +67,6 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
             ExecutionIDScalar,
             HookIDScalar,
             TaskIDScalar,
-            # Generated node data types
-            # TODO: Fix Dict field handling before enabling
-            # ApiJobDataType,
-            # CodeJobDataType,
-            # ConditionDataType,
-            # DBDataType,
-            # EndpointDataType,
-            # HookDataType,
-            # IntegratedApiDataType,
-            # JsonSchemaValidatorDataType,
-            # PersonBatchJobDataType,
-            # PersonJobDataType,
-            # StartDataType,
-            # SubDiagramDataType,
-            # TemplateJobDataType,
-            # TypescriptAstDataType,
-            # UserResponseDataType,
-            # Domain types (need to be regenerated)
-            # MemorySettingsType,
-            # ToolConfigType,
         ],
     )
 

@@ -47,19 +47,16 @@ class CompileDiagramUseCase:
         errors = []
 
         try:
-            # Validate diagram structure first
             if not domain_diagram.nodes:
                 errors.append("Diagram has no nodes")
                 return None, errors
 
-            # Check for start node
             start_nodes = [n for n in domain_diagram.nodes if n.node_type == "StartNode"]
             if not start_nodes:
                 errors.append("Diagram must have at least one StartNode")
             elif len(start_nodes) > 1:
                 errors.append("Diagram can only have one StartNode")
 
-            # Check for endpoint node
             endpoint_nodes = [n for n in domain_diagram.nodes if n.node_type == "EndpointNode"]
             if not endpoint_nodes:
                 errors.append("Diagram must have at least one EndpointNode")
@@ -67,7 +64,6 @@ class CompileDiagramUseCase:
             if errors:
                 return None, errors
 
-            # Attempt compilation
             compiled = self.diagram_compiler.compile(domain_diagram)
             return compiled, []
 
@@ -86,10 +82,8 @@ class CompileDiagramUseCase:
         """
         errors = []
 
-        # Build node lookup
         node_ids = {node.id for node in domain_diagram.nodes}
 
-        # Validate arrows
         for arrow in domain_diagram.arrows:
             if arrow.source_node_id not in node_ids:
                 errors.append(f"Arrow references non-existent source node: {arrow.source_node_id}")

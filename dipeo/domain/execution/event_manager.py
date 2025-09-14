@@ -63,11 +63,8 @@ class EventManager:
         self.state_tracker = state_tracker
 
     async def _publish(self, event: DomainEvent) -> None:
-        """Publish an event if event bus is available."""
         if self.event_bus:
             await self.event_bus.publish(event)
-
-    # === Execution-level Events ===
 
     async def emit_execution_started(
         self,
@@ -75,7 +72,6 @@ class EventManager:
         variables: dict[str, Any] | None = None,
         initiated_by: str | None = None,
     ) -> None:
-        """Emit execution started event."""
         event = execution_started(
             execution_id=self.execution_id,
             diagram_id=self.diagram_id or diagram_name,
@@ -92,7 +88,6 @@ class EventManager:
         total_duration_ms: int | None = None,
         total_tokens_used: int | None = None,
     ) -> None:
-        """Emit execution completed event."""
         event = execution_completed(
             execution_id=self.execution_id,
             status=status,
@@ -100,7 +95,6 @@ class EventManager:
             total_tokens_used=total_tokens_used,
             node_count=total_steps,
         )
-        # Store execution path in meta for backward compatibility
         if execution_path:
             event = DomainEvent(
                 type=event.type,
@@ -111,13 +105,11 @@ class EventManager:
         await self._publish(event)
 
     async def emit_execution_error(self, exc: Exception) -> None:
-        """Emit execution error event."""
         event = execution_error(
             execution_id=self.execution_id,
             error_message=str(exc),
             error_type=exc.__class__.__name__,
         )
-        # Add diagram_id to meta for backward compatibility
         event = DomainEvent(
             type=event.type,
             scope=event.scope,
@@ -126,22 +118,17 @@ class EventManager:
         )
         await self._publish(event)
 
-    # === Node-level Events ===
-
     async def emit_node_started(
         self,
         node: ExecutableNode,
         inputs: dict[str, Any] | None = None,
         iteration: int | None = None,
     ) -> None:
-        """Emit node started event."""
-        # Get current node state from tracker if available
         node_state = None
         if self.state_tracker:
             node_state = self.state_tracker.get_node_state(node.id)
 
         if not node_state:
-            # Create default state if not tracked yet
             node_state = NodeState(
                 node_id=str(node.id),
                 status=Status.RUNNING,
@@ -165,27 +152,22 @@ class EventManager:
         exec_count: int,
         duration_ms: int | None = None,
     ) -> None:
-        """Emit node completed event."""
-        # Get current node state if available
         node_state = None
         if self.state_tracker:
             node_state = self.state_tracker.get_node_state(node.id)
 
         if not node_state:
-            # Create state if not tracked
             node_state = NodeState(
                 node_id=str(node.id),
                 status=Status.COMPLETED,
                 execution_count=exec_count,
             )
 
-        # Extract output for event
         output = None
         output_summary = None
         token_usage = None
         if envelope:
             output = envelope.body
-            # Create a brief summary for the event
             if isinstance(output, str):
                 output_summary = output[:100] + "..." if len(output) > 100 else output
             elif isinstance(output, dict):
@@ -193,12 +175,9 @@ class EventManager:
             elif isinstance(output, list):
                 output_summary = f"Array with {len(output)} items"
 
-            # Extract token usage from envelope metadata
             if hasattr(envelope, "meta") and isinstance(envelope.meta, dict):
-                # Check for both token_usage and llm_usage keys
                 llm_usage = envelope.meta.get("llm_usage") or envelope.meta.get("token_usage")
                 if llm_usage:
-                    # Convert to dict format if needed
                     if hasattr(llm_usage, "model_dump"):
                         token_usage = llm_usage.model_dump()
                     elif isinstance(llm_usage, dict):
@@ -230,14 +209,11 @@ class EventManager:
         retryable: bool = False,
         retry_count: int = 0,
     ) -> None:
-        """Emit node error event."""
-        # Get current node state if available
         node_state = None
         if self.state_tracker:
             node_state = self.state_tracker.get_node_state(node.id)
 
         if not node_state:
-            # Create error state if not tracked
             node_state = NodeState(
                 node_id=str(node.id),
                 status=Status.FAILED,
@@ -261,11 +237,6 @@ class EventManager:
         node_id: NodeID,
         status: Status,
     ) -> None:
-        """Emit node status changed event.
-
-        This is a generic status change event for UI updates.
-        Uses the meta field for backward compatibility.
-        """
         if self.event_bus:
             event = DomainEvent(
                 type=EventType.NODE_STATUS_CHANGED,
@@ -281,10 +252,7 @@ class EventManager:
             )
             await self._publish(event)
 
-    # === Legacy Support ===
-
     async def emit_event(self, event_type: EventType, data: dict[str, Any] | None = None) -> None:
-        """Emit a generic domain event (legacy method for backward compatibility)."""
         if self.event_bus:
             from dipeo.domain.events import EventScope
 

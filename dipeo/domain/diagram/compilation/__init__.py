@@ -22,7 +22,6 @@ __all__ = [
     "CompilationPhase",
     "CompilationResult",
     "CompileTimeResolver",
-    # Compile-time resolution
     "Connection",
     "ConnectionResolver",
     "DomainDiagramCompiler",

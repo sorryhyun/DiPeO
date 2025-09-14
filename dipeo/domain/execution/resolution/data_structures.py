@@ -26,11 +26,9 @@ class InputResolutionContext:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def has_output(self, node_id: NodeID) -> bool:
-        """Check if a node has produced output."""
         return node_id in self.node_outputs
 
     def get_output(self, node_id: NodeID, default: Any = None) -> Any:
-        """Get output from a node, with optional default."""
         return self.node_outputs.get(node_id, default)
 
 
@@ -56,22 +54,18 @@ class ValidationResult:
     warnings: list[str] = field(default_factory=list)
 
     def add_error(self, error: str) -> None:
-        """Add an error message."""
         self.errors.append(error)
         self.is_valid = False
 
     def add_warning(self, warning: str) -> None:
-        """Add a warning message."""
         self.warnings.append(warning)
 
     @classmethod
     def success(cls) -> "ValidationResult":
-        """Create a successful validation result."""
         return cls(is_valid=True)
 
     @classmethod
     def failure(cls, error: str) -> "ValidationResult":
-        """Create a failed validation result with an error."""
         return cls(is_valid=False, errors=[error])
 
 
@@ -86,11 +80,9 @@ class ResolutionPath:
     steps: list["ResolutionStep"] = field(default_factory=list)
 
     def add_step(self, step: "ResolutionStep") -> None:
-        """Add a step to the resolution path."""
         self.steps.append(step)
 
     def to_string(self) -> str:
-        """Convert the path to a human-readable string."""
         if not self.steps:
             return "No resolution steps"
         return " -> ".join(str(step) for step in self.steps)

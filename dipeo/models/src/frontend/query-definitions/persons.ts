@@ -1,6 +1,51 @@
 import { EntityQueryDefinitions } from './types';
 import { QueryOperationType } from '../query-enums';
 
+// Shared field patterns
+const LLM_CONFIG_FULL = [
+  { name: 'service' },
+  { name: 'model' },
+  { name: 'api_key_id' },
+  { name: 'system_prompt' }
+];
+
+const LLM_CONFIG_COMPACT = [
+  { name: 'service' },
+  { name: 'model' },
+  { name: 'api_key_id' }
+];
+
+const PERSON_DETAIL_FIELDS = [
+  { name: 'id' },
+  { name: 'label' },
+  { name: 'type' },
+  {
+    name: 'llm_config',
+    fields: LLM_CONFIG_FULL
+  }
+];
+
+const PERSON_LIST_FIELDS = [
+  { name: 'id' },
+  { name: 'label' },
+  { name: 'type' },
+  {
+    name: 'llm_config',
+    fields: LLM_CONFIG_COMPACT
+  }
+];
+
+const PERSON_COMPACT_FIELDS = [
+  { name: 'id' },
+  { name: 'label' }
+];
+
+const RESULT_FIELDS = [
+  { name: 'success' },
+  { name: 'message' },
+  { name: 'error' }
+];
+
 export const personQueries: EntityQueryDefinitions = {
   entity: 'Person',
   queries: [
@@ -8,28 +53,15 @@ export const personQueries: EntityQueryDefinitions = {
       name: 'GetPerson',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'person_id', type: 'String', required: true }
       ],
       fields: [
         {
           name: 'person',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'person_id', value: 'person_id', isVariable: true }
           ],
-          fields: [
-            { name: 'id' },
-            { name: 'label' },
-            { name: 'type' },
-            {
-              name: 'llm_config',
-              fields: [
-                { name: 'service' },
-                { name: 'model' },
-                { name: 'api_key_id' },
-                { name: 'system_prompt' }
-              ]
-            }
-          ]
+          fields: PERSON_DETAIL_FIELDS
         }
       ]
     },
@@ -45,19 +77,7 @@ export const personQueries: EntityQueryDefinitions = {
           args: [
             { name: 'limit', value: 'limit', isVariable: true }
           ],
-          fields: [
-            { name: 'id' },
-            { name: 'label' },
-            { name: 'type' },
-            {
-              name: 'llm_config',
-              fields: [
-                { name: 'service' },
-                { name: 'model' },
-                { name: 'api_key_id' }
-              ]
-            }
-          ]
+          fields: PERSON_LIST_FIELDS
         }
       ]
     },
@@ -77,10 +97,7 @@ export const personQueries: EntityQueryDefinitions = {
             { name: 'success' },
             {
               name: 'person',
-              fields: [
-                { name: 'id' },
-                { name: 'label' }
-              ]
+              fields: PERSON_COMPACT_FIELDS
             },
             { name: 'message' },
             { name: 'error' }
@@ -92,24 +109,21 @@ export const personQueries: EntityQueryDefinitions = {
       name: 'UpdatePerson',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'id', type: 'ID', required: true },
+        { name: 'person_id', type: 'String', required: true },
         { name: 'input', type: 'UpdatePersonInput', required: true }
       ],
       fields: [
         {
           name: 'update_person',
           args: [
-            { name: 'id', value: 'id', isVariable: true },
+            { name: 'person_id', value: 'person_id', isVariable: true },
             { name: 'input', value: 'input', isVariable: true }
           ],
           fields: [
             { name: 'success' },
             {
               name: 'person',
-              fields: [
-                { name: 'id' },
-                { name: 'label' }
-              ]
+              fields: PERSON_COMPACT_FIELDS
             },
             { name: 'message' },
             { name: 'error' }
@@ -121,19 +135,15 @@ export const personQueries: EntityQueryDefinitions = {
       name: 'DeletePerson',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'person_id', type: 'String', required: true }
       ],
       fields: [
         {
           name: 'delete_person',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'person_id', value: 'person_id', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: RESULT_FIELDS
         }
       ]
     }

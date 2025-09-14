@@ -30,7 +30,9 @@ nodes:
             'temp/core/diagram.ts.json',
             'temp/core/execution.ts.json',
             'temp/core/conversation.ts.json',
-            'temp/core/integration.ts.json'
+            'temp/core/integration.ts.json',
+            'temp/core/file.ts.json',
+            'temp/core/cli-session.ts.json'
         ]
 
         all_cache_exists = True

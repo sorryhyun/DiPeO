@@ -186,7 +186,6 @@ class InvalidDiagramError(DiagramError):
         super().__init__(message, details)
 
 
-# Error code to exception class mapping
 ERROR_CODE_MAP = {
     "VALIDATION_ERROR": ValidationError,
     "CONFIGURATION_ERROR": ConfigurationError,

@@ -4,14 +4,14 @@ This module loads parsed TypeScript AST data and transforms it into a format
 suitable for the Jinja2 template that generates GraphQL queries.
 """
 
-import ast
-import json
 import os
 
 # Import type transformer from infrastructure
 import sys
 from pathlib import Path
 from typing import Any, Optional, Union
+
+from projects.codegen.code.core.utils import parse_dipeo_output
 
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
 from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python
@@ -355,15 +355,9 @@ def prepare_query_data_for_template(inputs: Any) -> dict[str, Any]:
 
     # Parse string to dict if needed (DiPeO returns Python dict strings)
     if isinstance(raw_data, str):
-        try:
-            # Try ast.literal_eval first (for Python dict format with single quotes)
-            loaded_data = ast.literal_eval(raw_data)
-        except (ValueError, SyntaxError):
-            # If that fails, try JSON
-            try:
-                loaded_data = json.loads(raw_data)
-            except json.JSONDecodeError:
-                loaded_data = {}
+        loaded_data = parse_dipeo_output(raw_data)
+        if not loaded_data:
+            loaded_data = {}
     else:
         loaded_data = raw_data if isinstance(raw_data, dict) else {}
 

@@ -137,6 +137,31 @@ class BaseFilters:
         lang_defaults = defaults.get(language, {})
         return lang_defaults.get(type_name, "null" if language == "typescript" else "None")
 
+    @staticmethod
+    def ensure_optional(type_str: str) -> str:
+        """Ensure a type is properly wrapped with Optional, avoiding double wrapping."""
+        if not type_str:
+            return "Optional[Any]"
+
+        # If already has Optional, return as-is
+        if type_str.startswith("Optional["):
+            return type_str
+
+        # Otherwise, wrap with Optional
+        return f"Optional[{type_str}]"
+
+    @staticmethod
+    def strip_optional(type_str: str) -> str:
+        """Remove Optional wrapper from a type string."""
+        if not type_str:
+            return "Any"
+
+        if type_str.startswith("Optional[") and type_str.endswith("]"):
+            # Extract the inner type
+            return type_str[9:-1]
+
+        return type_str
+
     @classmethod
     def get_all_filters(cls) -> dict:
         filters = {}

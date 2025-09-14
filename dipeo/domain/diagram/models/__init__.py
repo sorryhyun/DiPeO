@@ -21,7 +21,6 @@ from .format_models import (
 )
 
 __all__ = [
-    # Executable models
     "BaseExecutableNode",
     "DiagramFormat",
     "ExecutableDiagram",
@@ -29,7 +28,6 @@ __all__ = [
     "ExecutableNode",
     "LightConnection",
     "LightDiagram",
-    # Format models
     "LightNode",
     "NativeDiagram",
     "NodeOutputProtocolV2",

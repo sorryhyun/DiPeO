@@ -1,6 +1,46 @@
 import { EntityQueryDefinitions } from './types';
 import { QueryOperationType } from '../query-enums';
 
+// Shared field patterns as const objects
+const POSITION_FIELDS = [
+  { name: 'x' },
+  { name: 'y' }
+];
+
+const LLM_CONFIG_FIELDS = [
+  { name: 'service' },
+  { name: 'model' },
+  { name: 'api_key_id' },
+  { name: 'system_prompt' }
+];
+
+const METADATA_FULL_FIELDS = [
+  { name: 'id' },
+  { name: 'name' },
+  { name: 'description' },
+  { name: 'version' },
+  { name: 'created' },
+  { name: 'modified' },
+  { name: 'author' },
+  { name: 'tags' }
+];
+
+const METADATA_COMPACT_FIELDS = [
+  { name: 'id' },
+  { name: 'name' },
+  { name: 'description' },
+  { name: 'author' },
+  { name: 'created' },
+  { name: 'modified' },
+  { name: 'tags' }
+];
+
+const RESULT_FIELDS = [
+  { name: 'success' },
+  { name: 'message' },
+  { name: 'error' }
+];
+
 export const diagramQueries: EntityQueryDefinitions = {
   entity: 'Diagram',
   queries: [
@@ -8,13 +48,13 @@ export const diagramQueries: EntityQueryDefinitions = {
       name: 'GetDiagram',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'diagram_id', type: 'String', required: true }
       ],
       fields: [
         {
           name: 'diagram',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'diagram_id', value: 'diagram_id', isVariable: true }
           ],
           fields: [
             {
@@ -24,10 +64,7 @@ export const diagramQueries: EntityQueryDefinitions = {
                 { name: 'type' },
                 {
                   name: 'position',
-                  fields: [
-                    { name: 'x' },
-                    { name: 'y' }
-                  ]
+                  fields: POSITION_FIELDS
                 },
                 { name: 'data' }
               ]
@@ -61,28 +98,14 @@ export const diagramQueries: EntityQueryDefinitions = {
                 { name: 'label' },
                 {
                   name: 'llm_config',
-                  fields: [
-                    { name: 'service' },
-                    { name: 'model' },
-                    { name: 'api_key_id' },
-                    { name: 'system_prompt' }
-                  ]
+                  fields: LLM_CONFIG_FIELDS
                 },
                 { name: 'type' }
               ]
             },
             {
               name: 'metadata',
-              fields: [
-                { name: 'id' },
-                { name: 'name' },
-                { name: 'description' },
-                { name: 'version' },
-                { name: 'created' },
-                { name: 'modified' },
-                { name: 'author' },
-                { name: 'tags' }
-              ]
+              fields: METADATA_FULL_FIELDS
             }
           ]
         }
@@ -107,15 +130,7 @@ export const diagramQueries: EntityQueryDefinitions = {
           fields: [
             {
               name: 'metadata',
-              fields: [
-                { name: 'id' },
-                { name: 'name' },
-                { name: 'description' },
-                { name: 'author' },
-                { name: 'created' },
-                { name: 'modified' },
-                { name: 'tags' }
-              ]
+              fields: METADATA_COMPACT_FIELDS
             },
             { name: 'nodeCount' },
             { name: 'arrowCount' }
@@ -185,19 +200,15 @@ export const diagramQueries: EntityQueryDefinitions = {
       name: 'DeleteDiagram',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'diagram_id', type: 'String', required: true }
       ],
       fields: [
         {
           name: 'delete_diagram',
           args: [
-            { name: 'id', value: 'id', isVariable: true }
+            { name: 'diagram_id', value: 'diagram_id', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: RESULT_FIELDS
         }
       ]
     }

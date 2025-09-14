@@ -140,7 +140,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         node = request.node
 
         # Phase 5: Consume tokens from incoming edges
-        envelope_inputs = self.consume_token_inputs(request, inputs)
+        envelope_inputs = self.get_effective_inputs(request, inputs)
         self._envelope_inputs = envelope_inputs
         inputs = envelope_inputs
 
@@ -366,11 +366,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             **complete_kwargs,
         )
 
-        # Handle GOLDFISH mode
-        if memorize_to and memorize_to.strip().upper() == "GOLDFISH":
-            if hasattr(self._execution_orchestrator, "clear_person_messages"):
-                self._execution_orchestrator.clear_person_messages(person.id)
-
+        # GOLDFISH mode is handled by memory strategy returning empty list
         # Add messages to conversation
         if hasattr(self._execution_orchestrator, "add_message"):
             self._execution_orchestrator.add_message(
@@ -402,15 +398,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         selected_messages: list | None = None,
     ) -> Envelope:
         """Build node output with envelope support for single execution."""
-        from dataclasses import replace
-
         # Extract LLM usage
         llm_usage = None
         if hasattr(result, "llm_usage") and result.llm_usage:
             llm_usage = result.llm_usage
-            logger.debug(
-                f"[PersonJob] Extracted LLM usage: input={llm_usage.input}, output={llm_usage.output}, total={llm_usage.total}"
-            )
 
         # Get person and conversation IDs
         person_id = str(person.id) if person.id else None
@@ -448,7 +439,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         if conversation_repr is not None:
             representations["conversation"] = conversation_repr
 
-        return replace(primary_envelope, representations=representations)
+        return primary_envelope.with_meta(representations=representations)
 
     # ==============================================================================
     # HELPER METHODS (shared by both single and batch execution)

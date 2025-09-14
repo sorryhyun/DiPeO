@@ -54,34 +54,27 @@ class LoadDiagramUseCase:
         Raises:
             ValueError: If neither diagram_name nor diagram_data is provided
         """
-        # Handle inline diagram data
         if diagram_data is not None:
             logger.debug("Loading diagram from inline data")
             return await self._load_from_data(diagram_data)
 
-        # Handle file-based diagram
         if diagram_name is None:
             raise ValueError("Either diagram_name or diagram_data must be provided")
 
-        # Check cache first
         cache_key = f"{diagram_name}:{diagram_format or 'auto'}"
         if cache_key in self._diagram_cache:
             logger.debug(f"Returning cached diagram for {cache_key}")
             return self._diagram_cache[cache_key]
 
-        # Construct file path
         file_path = self._construct_file_path(diagram_name, diagram_format)
 
-        # Load from file
         logger.debug(f"Loading diagram from file: {file_path}")
 
-        # Ensure diagram service is initialized
         if hasattr(self._diagram_service, "initialize"):
             await self._diagram_service.initialize()
 
         diagram = await self._diagram_service.load_from_file(str(file_path))
 
-        # Cache the loaded diagram
         self._diagram_cache[cache_key] = diagram
 
         return diagram
@@ -102,14 +95,11 @@ class LoadDiagramUseCase:
         Returns:
             Path to the diagram file as string
         """
-        # If already a path with extension, use as-is
         if "." in Path(diagram_name).name:
             return str(diagram_name)
 
-        # Determine format suffix
         format_suffix = self.FORMAT_MAP.get(diagram_format or "light", ".light.yaml")
 
-        # Construct full file path based on prefix
         if diagram_name.startswith("projects/"):
             file_path = f"{diagram_name}{format_suffix}"
         elif diagram_name.startswith("codegen/"):
@@ -117,7 +107,6 @@ class LoadDiagramUseCase:
         elif diagram_name.startswith("examples/"):
             file_path = f"{diagram_name}{format_suffix}"
         else:
-            # Default to examples directory
             file_path = f"examples/{diagram_name}{format_suffix}"
 
         return file_path
@@ -143,11 +132,9 @@ class LoadDiagramUseCase:
         Returns:
             DomainDiagram created from the data
         """
-        # Use diagram service to convert data to DomainDiagram
         if hasattr(self._diagram_service, "load_from_dict"):
             return await self._diagram_service.load_from_dict(data)
 
-        # Fallback to direct instantiation if service doesn't support dict loading
         return DomainDiagram(**data)
 
     def clear_cache(self) -> None:

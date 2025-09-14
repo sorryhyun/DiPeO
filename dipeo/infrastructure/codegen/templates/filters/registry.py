@@ -108,14 +108,12 @@ def create_filter_registry_profile(profile: str = "full") -> FilterRegistry:
 
 def _create_filter_registry_profile(profile: str) -> FilterRegistry:
     registry = FilterRegistry()
-    # Lazy imports keep optional deps optional.
     from .backend_filters import BackendFilters
     from .base_filters import BaseFilters
     from .graphql_filters import TypeScriptToGraphQLFilters
     from .typescript_filters import TypeScriptToPythonFilters
 
     if profile == "codegen":
-        # Minimal, proven-by-templates set
         base = BaseFilters.get_all_filters()
         ts = TypeScriptToPythonFilters.get_all_filters()
         be = BackendFilters.get_all_filters()
@@ -155,8 +153,6 @@ def _create_filter_registry_profile(profile: str) -> FilterRegistry:
             },
         )
         return registry
-
-    # Fallback: previous behavior (register everything)
     registry.register_filter_collection("base", BaseFilters.get_all_filters())
     registry.register_filter_collection("typescript", TypeScriptToPythonFilters.get_all_filters())
     registry.register_filter_collection("backend", BackendFilters.get_all_filters())

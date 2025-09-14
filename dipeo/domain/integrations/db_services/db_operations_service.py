@@ -7,8 +7,6 @@ from dipeo.domain.base.exceptions import ValidationError
 
 
 class DBOperationsDomainService:
-    """Domain service independent of infrastructure concerns."""
-
     ALLOWED_OPERATIONS = ["prompt", "read", "write", "append"]
 
     def __init__(self):
@@ -28,7 +26,6 @@ class DBOperationsDomainService:
             )
 
     def construct_db_path(self, db_name: str) -> str:
-        """Pure business logic to construct safe database path."""
         if not db_name:
             raise ValidationError(
                 "Database name cannot be None or empty", details={"db_name": db_name}
@@ -39,7 +36,6 @@ class DBOperationsDomainService:
 
         safe_db_name = db_name.replace("/", "_").replace("\\", "_")
 
-        # Only append .json if the file doesn't have any extension
         import os
 
         if "." not in os.path.basename(safe_db_name):
@@ -83,7 +79,6 @@ class DBOperationsDomainService:
         }
 
     def ensure_json_serializable(self, value: Any) -> dict | list | str | int | float | bool | None:
-        """Enforces business rule about accepted data types."""
         if isinstance(value, dict | list | str | int | float | bool | type(None)):
             return value
         elif hasattr(value, "dict"):
@@ -94,7 +89,6 @@ class DBOperationsDomainService:
             return str(value)
 
     def prepare_data_for_append(self, existing_data: Any, new_value: Any) -> list:
-        """Converts non-list data to list format for append operation."""
         if not isinstance(existing_data, list):
             if isinstance(existing_data, dict) and not existing_data:
                 existing_data = []

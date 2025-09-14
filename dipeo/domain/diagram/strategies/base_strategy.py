@@ -17,57 +17,30 @@ class BaseConversionStrategy(FormatStrategy, ABC):
 
     @abstractmethod
     def serialize_from_domain(self, diagram: DomainDiagram) -> str:
-        """Serialize a DomainDiagram to string format.
-
-        Args:
-            diagram: The DomainDiagram to serialize
-
-        Returns:
-            String representation in the target format
-        """
+        """Serialize a DomainDiagram to string format."""
         pass
 
     @abstractmethod
     def deserialize_to_domain(self, content: str, diagram_path: str | None = None) -> DomainDiagram:
-        """Deserialize string content to a DomainDiagram.
-
-        Args:
-            content: String content to deserialize
-            diagram_path: Optional path to the diagram file for context (e.g., prompt resolution)
-
-        Returns:
-            DomainDiagram instance
-        """
+        """Deserialize string content to a DomainDiagram."""
         pass
 
     @abstractmethod
     def parse(self, content: str) -> Any:
-        """Parse string content to intermediate format.
-
-        Override in subclasses for format-specific parsing.
-        """
+        """Parse string content to intermediate format."""
         pass
 
     @abstractmethod
     def format(self, data: Any) -> str:
-        """Format data to string representation.
-
-        Override in subclasses for format-specific formatting.
-        """
+        """Format data to string representation."""
         pass
 
     def detect_confidence(self, data: dict[str, Any]) -> float:
-        """Detect confidence level for this format.
-
-        Override in subclasses for format-specific detection.
-        """
+        """Detect confidence level for this format."""
         return 0.5
 
     def quick_match(self, content: str) -> bool:
-        """Quick check if content matches this format.
-
-        Override in subclasses for better performance.
-        """
+        """Quick check if content matches this format."""
         try:
             self.parse(content)
             return True
@@ -75,7 +48,6 @@ class BaseConversionStrategy(FormatStrategy, ABC):
             return False
 
     def _clean_graphql_fields(self, data: Any) -> Any:
-        """Remove GraphQL-specific fields from data."""
         if isinstance(data, dict):
             return {
                 k: self._clean_graphql_fields(v) for k, v in data.items() if not k.startswith("__")

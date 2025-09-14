@@ -6,7 +6,6 @@ from typing import Any
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode, NodeType
 from dipeo.domain.execution.execution_context import ExecutionContext
 
-from ..conversation_aggregator import ConversationAggregator
 from .base import BaseConditionEvaluator, EvaluationResult
 
 logger = logging.getLogger(__name__)
@@ -14,9 +13,6 @@ logger = logging.getLogger(__name__)
 
 class MaxIterationsEvaluator(BaseConditionEvaluator):
     """Evaluates whether all person_job nodes have reached max iterations."""
-
-    def __init__(self):
-        self._aggregator = ConversationAggregator()
 
     async def evaluate(
         self, node: ConditionNode, context: ExecutionContext, inputs: dict[str, Any]
@@ -42,11 +38,6 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
 
                 # Check if execution count has reached max_iteration
                 node_state = context.state.get_node_state(node.id)
-                logger.debug(
-                    f"PersonJobNode {node.id}: exec_count={exec_count}, "
-                    f"max_iteration={node.max_iteration}, "
-                    f"status={node_state.status if node_state else 'None'}"
-                )
 
                 # Check if this node has reached its max iterations
                 # Use >= because if exec_count equals max_iteration, we've done all iterations
@@ -56,15 +47,8 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
 
         result = found_executed and all_reached_max
 
-        # Prepare output data based on result
-        if result:
-            # Aggregate all conversation states when max iterations reached
-            aggregated = self._aggregator.aggregate_conversations(context, context.diagram)
-            output_data = aggregated if aggregated else inputs
-        else:
-            # Get latest conversation state for false branch
-            latest_conversation = self._aggregator.get_latest_conversation(context, context.diagram)
-            output_data = latest_conversation if latest_conversation else inputs
+        # Simply pass through inputs
+        output_data = inputs
 
         # Log evaluation details
         logger.debug(

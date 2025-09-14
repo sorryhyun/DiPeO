@@ -9,12 +9,10 @@ class DiagramStatisticsService:
     """Service for calculating diagram statistics and analysis."""
 
     def calculate_statistics(self, diagram: DomainDiagram) -> dict[str, Any]:
-        """Calculate comprehensive statistics for a diagram."""
         node_count = len(diagram.nodes) if diagram.nodes else 0
         arrow_count = len(diagram.arrows) if diagram.arrows else 0
         person_count = len(diagram.persons) if diagram.persons else 0
 
-        # Count node types
         node_types = {}
         if diagram.nodes:
             for node in diagram.nodes:
@@ -74,7 +72,6 @@ class DiagramStatisticsService:
         return any(node not in visited and has_cycle(node) for node in graph)
 
     def _check_connectivity(self, diagram: DomainDiagram) -> bool:
-        """Check if the diagram is fully connected."""
         if not diagram.nodes or len(diagram.nodes) <= 1:
             return True
 
@@ -109,7 +106,6 @@ class DiagramStatisticsService:
         return len(visited) == len(node_ids)
 
     def _has_start_node(self, diagram: DomainDiagram) -> bool:
-        """Check if diagram has at least one START node."""
         if not diagram.nodes:
             return False
 
@@ -121,7 +117,6 @@ class DiagramStatisticsService:
         return False
 
     def _has_end_node(self, diagram: DomainDiagram) -> bool:
-        """Check if diagram has at least one END node."""
         if not diagram.nodes:
             return False
 
@@ -133,7 +128,6 @@ class DiagramStatisticsService:
         return False
 
     def generate_safe_filename(self, diagram_name: str, extension: str = ".json") -> str:
-        """Generate a safe filename from diagram name."""
         safe_name = "".join(c for c in diagram_name if c.isalnum() or c in " -_")
         safe_name = safe_name[:50]  # Limit length
         if not safe_name.endswith(extension):

@@ -31,7 +31,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'health',
+          name: 'health_check',
           // Returns JSONScalar with dynamic fields
           fields: []
         }
@@ -41,7 +41,7 @@ export const systemQueries: EntityQueryDefinitions = {
       name: 'GetExecutionOrder',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'execution_id', type: 'ID', required: true }
+        { name: 'execution_id', type: 'String', required: true }
       ],
       fields: [
         {
@@ -58,7 +58,7 @@ export const systemQueries: EntityQueryDefinitions = {
       name: 'GetExecutionMetrics',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'execution_id', type: 'ID', required: true }
+        { name: 'execution_id', type: 'String', required: true }
       ],
       fields: [
         {
@@ -75,22 +75,20 @@ export const systemQueries: EntityQueryDefinitions = {
       name: 'GetExecutionHistory',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'diagram_id', type: 'ID' },
+        { name: 'diagram_id', type: 'String' },
         { name: 'limit', type: 'Int' },
         { name: 'include_metrics', type: 'Boolean' }
       ],
       fields: [
         {
           name: 'execution_history',
-          fields: [
-            { name: 'id' },
-            { name: 'status' },
-            { name: 'diagram_id' },
-            { name: 'started_at' },
-            { name: 'ended_at' },
-            { name: 'error' },
-            { name: 'metrics' }
-          ]
+          args: [
+            { name: 'diagram_id', value: 'diagram_id', isVariable: true },
+            { name: 'limit', value: 'limit', isVariable: true },
+            { name: 'include_metrics', value: 'include_metrics', isVariable: true }
+          ],
+          // Returns JSONScalar with dynamic fields
+          fields: []
         }
       ]
     },
@@ -100,14 +98,8 @@ export const systemQueries: EntityQueryDefinitions = {
       fields: [
         {
           name: 'active_cli_session',
-          fields: [
-            { name: 'execution_id' },
-            { name: 'diagram_name' },
-            { name: 'diagram_format' },
-            { name: 'started_at' },
-            { name: 'is_active' },
-            { name: 'diagram_data' }
-          ]
+          // Returns JSONScalar with dynamic fields
+          fields: []
         }
       ]
     }

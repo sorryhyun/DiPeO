@@ -86,22 +86,18 @@ class CompilationResult:
 
     @property
     def is_valid(self) -> bool:
-        """Check if compilation succeeded without errors."""
         return self.diagram is not None and not self.errors
 
     @property
     def has_warnings(self) -> bool:
-        """Check if compilation produced warnings."""
         return bool(self.warnings)
 
     def add_error(self, phase: CompilationPhase, message: str, **kwargs):
-        """Add a compilation error."""
         self.errors.append(
             CompilationError(phase=phase, message=message, severity="error", **kwargs)
         )
 
     def add_warning(self, phase: CompilationPhase, message: str, **kwargs):
-        """Add a compilation warning."""
         self.warnings.append(
             CompilationError(phase=phase, message=message, severity="warning", **kwargs)
         )
@@ -146,7 +142,6 @@ class DomainDiagramCompiler(DiagramCompiler):
         self.edge_builder = EdgeBuilder()
 
     def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:
-        """Compile domain diagram through all phases."""
         result = self.compile_with_diagnostics(domain_diagram)
 
         if not result.is_valid:
@@ -161,12 +156,7 @@ class DomainDiagramCompiler(DiagramCompiler):
     def compile_with_diagnostics(
         self, domain_diagram: DomainDiagram, stop_after: CompilationPhase | None = None
     ) -> CompilationResult:
-        """Compile with detailed diagnostics and error reporting.
-
-        Args:
-            domain_diagram: The diagram to compile
-            stop_after: Optional phase to stop after (useful for validation-only)
-        """
+        """Compile with detailed diagnostics and error reporting."""
         context = CompilationContext(domain_diagram)
 
         # Execute compilation phases
@@ -183,10 +173,8 @@ class DomainDiagramCompiler(DiagramCompiler):
             try:
                 handler(context)
                 if context.result.errors:
-                    # Stop on first phase with errors
                     break
                 if stop_after and phase == stop_after:
-                    # Stop after requested phase
                     break
             except Exception as e:
                 context.result.add_error(phase, f"Internal compiler error: {e!s}")
@@ -195,21 +183,17 @@ class DomainDiagramCompiler(DiagramCompiler):
         return context.result
 
     def _validation_phase(self, context: CompilationContext) -> None:
-        """Phase 1: Validate diagram structure and constraints."""
         diagram = context.domain_diagram
 
-        # Extract nodes and arrows as lists
         context.nodes_list = self._extract_nodes_list(diagram)
         context.arrows_list = self._extract_arrows_list(diagram)
 
-        # Basic validation
         if not context.nodes_list:
             context.result.add_error(
                 CompilationPhase.VALIDATION, "Diagram must contain at least one node"
             )
-            return  # Can't continue without nodes
+            return
 
-        # Check for duplicate node IDs
         node_ids = [node.id for node in context.nodes_list]
         if len(node_ids) != len(set(node_ids)):
             duplicates = [id for id in node_ids if node_ids.count(id) > 1]
@@ -219,10 +203,8 @@ class DomainDiagramCompiler(DiagramCompiler):
 
         node_id_set = set(node_ids)
 
-        # Validate node types
         for node in context.nodes_list:
             try:
-                # Check if node.type is a valid NodeType enum
                 if not isinstance(node.type, NodeType):
                     context.result.add_error(
                         CompilationPhase.VALIDATION,
@@ -236,7 +218,6 @@ class DomainDiagramCompiler(DiagramCompiler):
                     node_id=node.id,
                 )
 
-        # Validate start and endpoint nodes
         start_nodes = [n for n in context.nodes_list if n.type == NodeType.START]
         endpoint_nodes = [n for n in context.nodes_list if n.type == NodeType.ENDPOINT]
 
@@ -250,13 +231,11 @@ class DomainDiagramCompiler(DiagramCompiler):
                 "Diagram has no endpoint node - outputs may not be saved",
             )
 
-        # Validate arrows using shared utilities
         for arrow in context.arrows_list:
             arrow_errors = validate_arrow_handles(arrow, node_id_set)
             for error in arrow_errors:
                 context.result.add_error(CompilationPhase.VALIDATION, error, arrow_id=arrow.id)
 
-        # Count connections for each node
         incoming_counts = {node.id: 0 for node in context.nodes_list}
         outgoing_counts = {node.id: 0 for node in context.nodes_list}
         outgoing_handles = {node.id: [] for node in context.nodes_list}
@@ -277,16 +256,13 @@ class DomainDiagramCompiler(DiagramCompiler):
                 if target_parsed.node_id in node_id_set:
                     incoming_counts[target_parsed.node_id] += 1
 
-        # Validate node type connection rules
         for node in context.nodes_list:
-            # Check connection counts
             conn_errors = validate_node_type_connections(
                 node, incoming_counts[node.id], outgoing_counts[node.id]
             )
             for error in conn_errors:
                 context.result.add_error(CompilationPhase.VALIDATION, error, node_id=node.id)
 
-            # Check condition node branches
             if node.type == NodeType.CONDITION:
                 branch_warnings = validate_condition_node_branches(node, outgoing_handles[node.id])
                 for warning in branch_warnings:
@@ -295,18 +271,13 @@ class DomainDiagramCompiler(DiagramCompiler):
                     )
 
     def _node_transformation_phase(self, context: CompilationContext) -> None:
-        """Phase 2: Transform domain nodes to strongly-typed executable nodes."""
-        # Create typed nodes
         context.typed_nodes = self.node_factory.create_typed_nodes(context.nodes_list)
 
-        # Collect factory errors
         for error in self.node_factory.get_validation_errors():
             context.result.add_error(CompilationPhase.NODE_TRANSFORMATION, error)
 
-        # Build node map
         context.node_map = {node.id: node for node in context.typed_nodes}
 
-        # Collect metadata
         for node in context.typed_nodes:
             if node.type == NodeType.START:
                 context.start_nodes.add(node.id)
@@ -318,42 +289,34 @@ class DomainDiagramCompiler(DiagramCompiler):
                     context.person_nodes[person_id].append(node.id)
 
     def _connection_resolution_phase(self, context: CompilationContext) -> None:
-        """Phase 3: Resolve handle references to node connections."""
         resolved, errors = self.connection_resolver.resolve_connections(
             context.arrows_list, context.nodes_list
         )
 
         context.resolved_connections = resolved
 
-        # Collect resolver errors
         for error in errors:
             context.result.add_error(CompilationPhase.CONNECTION_RESOLUTION, error)
 
     def _edge_building_phase(self, context: CompilationContext) -> None:
-        """Phase 4: Build executable edges with transformation rules."""
         edges, errors = self.edge_builder.build_edges(
             context.arrows_list, context.resolved_connections, context.node_map
         )
 
         context.typed_edges = edges
 
-        # Collect builder errors
         for error in errors:
             context.result.add_error(CompilationPhase.EDGE_BUILDING, error)
 
-        # Build dependency graph
         for edge in edges:
             if edge.target_node_id not in context.node_dependencies:
                 context.node_dependencies[edge.target_node_id] = set()
             context.node_dependencies[edge.target_node_id].add(edge.source_node_id)
 
     def _optimization_phase(self, context: CompilationContext) -> None:
-        """Phase 5: Optimize execution paths and detect issues."""
-        # Detect unreachable nodes using shared utility
         unreachable = find_unreachable_nodes(context.nodes_list, context.arrows_list)
 
         for node_id in unreachable:
-            # Skip START nodes in unreachable check (they are entry points)
             node = next((n for n in context.typed_nodes if n.id == node_id), None)
             if node and node.type != NodeType.START:
                 context.result.add_warning(
@@ -363,7 +326,6 @@ class DomainDiagramCompiler(DiagramCompiler):
                     suggestion="Add a connection from a reachable node or start node",
                 )
 
-        # Detect cycles
         cycles = self._detect_cycles(context.node_dependencies)
         if cycles:
             context.result.add_warning(
@@ -372,7 +334,6 @@ class DomainDiagramCompiler(DiagramCompiler):
                 suggestion="Consider using condition nodes to break cycles",
             )
 
-        # Analyze parallelization opportunities
         parallel_groups = self._analyze_parallel_execution(
             context.start_nodes, context.node_dependencies
         )
@@ -380,12 +341,9 @@ class DomainDiagramCompiler(DiagramCompiler):
             context.result.metadata["parallel_groups"] = parallel_groups
 
     def _assembly_phase(self, context: CompilationContext) -> None:
-        """Phase 6: Assemble the final ExecutableDiagram."""
         if context.result.errors:
-            # Don't create diagram if there are errors
             return
 
-        # Extract persons data from domain diagram
         persons_metadata = {}
         if context.domain_diagram.persons:
             for person in context.domain_diagram.persons:
@@ -407,7 +365,6 @@ class DomainDiagramCompiler(DiagramCompiler):
                     person_data["system_prompt"] = person.llm_config.system_prompt
                 persons_metadata[person.label] = person_data
 
-        # Create metadata
         metadata = {
             "id": context.domain_diagram.metadata.id if context.domain_diagram.metadata else None,
             "name": context.domain_diagram.metadata.name
@@ -417,35 +374,28 @@ class DomainDiagramCompiler(DiagramCompiler):
             "start_nodes": list(context.start_nodes),
             "person_nodes": context.person_nodes,
             "node_dependencies": {k: list(v) for k, v in context.node_dependencies.items()},
-            "persons": persons_metadata,  # Add persons metadata
+            "persons": persons_metadata,
             **context.result.metadata,
         }
 
-        # Create executable diagram
         context.result.diagram = ExecutableDiagram(
             nodes=context.typed_nodes,
             edges=context.typed_edges,
-            execution_order=None,  # Dynamic ordering used
+            execution_order=None,
             metadata=metadata,
         )
 
-    # Helper methods
-
     def _extract_nodes_list(self, diagram: DomainDiagram) -> list:
-        """Extract nodes as list from domain diagram."""
         if isinstance(diagram.nodes, dict):
             return list(diagram.nodes.values())
         return diagram.nodes
 
     def _extract_arrows_list(self, diagram: DomainDiagram) -> list:
-        """Extract arrows as list from domain diagram."""
         if isinstance(diagram.arrows, dict):
             return list(diagram.arrows.values())
         return diagram.arrows
 
     def _detect_cycles(self, dependencies: dict[NodeID, set[NodeID]]) -> list[list[NodeID]]:
-        """Detect cycles in the dependency graph."""
-        # Simple cycle detection - could be enhanced
         cycles = []
 
         def has_path(start: NodeID, end: NodeID, visited: set[NodeID]) -> bool:
@@ -459,26 +409,18 @@ class DomainDiagramCompiler(DiagramCompiler):
 
         for node in dependencies:
             if has_path(node, node, set()):
-                cycles.append([node])  # Simplified - could trace full cycle
+                cycles.append([node])
 
         return cycles
 
     def _analyze_parallel_execution(
         self, start_nodes: set[NodeID], dependencies: dict[NodeID, set[NodeID]]
     ) -> list[set[NodeID]]:
-        """Analyze which nodes can execute in parallel."""
-        # Simple analysis - nodes with no dependencies between them
-        # can execute in parallel
         parallel_groups = []
-
-        # This is a simplified implementation
-        # A real implementation would use topological sorting
-        # and dependency analysis
 
         return parallel_groups
 
     def decompile(self, executable_diagram: ExecutableDiagram) -> DomainDiagram:
-        """Convert executable diagram back to domain representation."""
         from dipeo.diagram_generated import (
             ApiKeyID,
             ArrowID,
@@ -497,17 +439,14 @@ class DomainDiagramCompiler(DiagramCompiler):
         )
         from dipeo.diagram_generated.generated_nodes import PersonJobNode
 
-        # Convert typed nodes back to domain nodes
         domain_nodes = []
         for node in executable_diagram.nodes:
-            # Create data dict from node attributes
             data = {}
             exclude_fields = {"id", "type", "position", "label", "flipped", "metadata"}
             for attr_name in dir(node):
                 if not attr_name.startswith("_") and attr_name not in exclude_fields:
                     attr_value = getattr(node, attr_name, None)
                     if attr_value is not None and not callable(attr_value):
-                        # Convert enums to their values for data field
                         if hasattr(attr_value, "value"):
                             data[attr_name] = attr_value.value
                         elif hasattr(attr_value, "model_dump"):
@@ -523,22 +462,17 @@ class DomainDiagramCompiler(DiagramCompiler):
             )
             domain_nodes.append(domain_node)
 
-        # Convert edges back to arrows with proper handle IDs
         arrows = []
         handles = []
         handle_id_counter = 0
 
-        # Create handles for each edge connection
         for edge in executable_diagram.edges:
-            # Create source handle ID
             source_handle_id = HandleID(f"handle_{handle_id_counter}")
             handle_id_counter += 1
 
-            # Create target handle ID
             target_handle_id = HandleID(f"handle_{handle_id_counter}")
             handle_id_counter += 1
 
-            # Create handles
             source_handle = DomainHandle(
                 id=source_handle_id,
                 node_id=edge.source_node_id,
@@ -557,7 +491,6 @@ class DomainDiagramCompiler(DiagramCompiler):
             )
             handles.append(target_handle)
 
-            # Create arrow
             arrow = DomainArrow(
                 id=ArrowID(edge.id),
                 source=source_handle_id,
@@ -567,7 +500,6 @@ class DomainDiagramCompiler(DiagramCompiler):
             )
             arrows.append(arrow)
 
-        # Extract persons from PersonJobNodes
         persons = []
         person_ids_seen = set()
         for node in executable_diagram.nodes:
@@ -575,7 +507,6 @@ class DomainDiagramCompiler(DiagramCompiler):
                 person_id = node.person_id
                 if person_id and person_id not in person_ids_seen:
                     person_ids_seen.add(person_id)
-                    # Create a minimal person config for decompiled diagrams
                     persons.append(
                         DomainPerson(
                             id=person_id,
@@ -589,13 +520,11 @@ class DomainDiagramCompiler(DiagramCompiler):
                         )
                     )
 
-        # Convert metadata if it exists and is a dict
         metadata = None
         if executable_diagram.metadata:
             if isinstance(executable_diagram.metadata, DiagramMetadata):
                 metadata = executable_diagram.metadata
             elif isinstance(executable_diagram.metadata, dict):
-                # Create DiagramMetadata from dict if needed
                 metadata = DiagramMetadata(
                     id=executable_diagram.metadata.get("id"),
                     name=executable_diagram.metadata.get("name"),

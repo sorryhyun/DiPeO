@@ -23,14 +23,14 @@ if TYPE_CHECKING:
 @dataclass
 class NodeExecutionRecord:
     node_id: NodeID
-    execution_number: int  # 1-based counting for clarity
+    execution_number: int
     started_at: datetime
     ended_at: datetime | None
     status: CompletionStatus
     output: Envelope | None
     error: str | None
     token_usage: dict[str, int] | None = None
-    duration: float = 0.0  # seconds
+    duration: float = 0.0
 
     def is_complete(self) -> bool:
         return self.ended_at is not None
@@ -64,7 +64,6 @@ class ExecutionTracker:
         new_count = current_count + 1
         self._execution_counts[node_id] = new_count
 
-        # Create execution record
         record = NodeExecutionRecord(
             node_id=node_id,
             execution_number=new_count,

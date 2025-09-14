@@ -12,7 +12,7 @@ from dipeo.diagram_generated.enums import HandleDirection, HandleLabel
 
 
 class ParsedHandle(NamedTuple):
-    """Parsed handle components for efficient access."""
+    """Parsed handle components."""
 
     node_id: NodeID
     handle_label: HandleLabel
@@ -31,16 +31,15 @@ class HandleReference:
     _cache: dict[HandleID, "HandleReference"] = {}
 
     def __init__(self, handle_id: HandleID):
-        """Initialize handle reference with cached parsing."""
+        """Initialize with cached parsing."""
         self.handle_id = handle_id
         self._parsed: ParsedHandle | None = None
         self._parse_error: str | None = None
 
-        # Parse immediately to cache result
         self._ensure_parsed()
 
     def _ensure_parsed(self) -> None:
-        """Parse handle ID if not already parsed."""
+        """Parse handle ID if needed."""
         if self._parsed is None and self._parse_error is None:
             try:
                 node_id, handle_label, direction = parse_handle_id(self.handle_id)
@@ -50,28 +49,28 @@ class HandleReference:
 
     @property
     def node_id(self) -> NodeID:
-        """Get node ID from handle."""
+        """Get node ID."""
         if self._parsed:
             return self._parsed.node_id
         raise ValueError(f"Invalid handle ID: {self._parse_error}")
 
     @property
     def handle_label(self) -> HandleLabel:
-        """Get handle label from handle."""
+        """Get handle label."""
         if self._parsed:
             return self._parsed.handle_label
         raise ValueError(f"Invalid handle ID: {self._parse_error}")
 
     @property
     def direction(self) -> HandleDirection:
-        """Get direction from handle."""
+        """Get direction."""
         if self._parsed:
             return self._parsed.direction
         raise ValueError(f"Invalid handle ID: {self._parse_error}")
 
     @property
     def is_valid(self) -> bool:
-        """Check if handle ID is valid."""
+        """Check if valid."""
         return self._parsed is not None
 
     @classmethod
@@ -100,7 +99,6 @@ def create_handle_id(
     """Create a handle ID from node ID, handle label, and direction.
     Format: [nodeId]_[handleLabel]_[direction]
     """
-    # Use underscores for simpler format
     return HandleID(f"{node_id}_{handle_label.value}_{direction.value}")
 
 
@@ -117,7 +115,7 @@ def parse_handle_id(handle_id: HandleID) -> tuple[NodeID, HandleLabel, HandleDir
             f"Invalid handle ID format: {handle_id}. Expected format: nodeId_handleLabel_direction"
         )
 
-    # Extract parts from the end (direction and label are always last)
+    # Extract direction and label from end
     direction_str = parts[-1]
     handle_label_str = parts[-2]
     node_id_parts = parts[:-2]
@@ -126,24 +124,21 @@ def parse_handle_id(handle_id: HandleID) -> tuple[NodeID, HandleLabel, HandleDir
     if not node_id:
         raise ValueError(f"Invalid handle ID format: {handle_id}. Node ID cannot be empty")
 
-    # Validate direction
     try:
         direction = HandleDirection(direction_str)
     except ValueError as e:
         raise ValueError(f"Invalid direction '{direction_str}' in handle ID: {handle_id}") from e
 
-    # Validate handle label
     try:
         handle_label = HandleLabel(handle_label_str)
     except ValueError:
-        # Allow custom handle labels for DB nodes
         handle_label = HandleLabel(handle_label_str)
 
     return NodeID(node_id), handle_label, direction
 
 
 def parse_handle_id_safe(handle_id: HandleID) -> ParsedHandle | None:
-    """Parse a handle ID safely, returning None on invalid format."""
+    """Parse handle ID safely, return None if invalid."""
     try:
         node_id, handle_label, direction = parse_handle_id(handle_id)
         return ParsedHandle(node_id, handle_label, direction)

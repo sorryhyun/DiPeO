@@ -1,6 +1,6 @@
 """Dynamic objects that maintain state during diagram execution."""
 
-from .conversation import Conversation, ConversationContext
+from .conversation import Conversation
 from .memory_strategies import (
     DefaultMemoryStrategy,
     IntelligentMemoryStrategy,
@@ -10,10 +10,7 @@ from .memory_strategies import (
 from .person import Person
 
 __all__ = [
-    # Dynamic objects
     "Conversation",
-    "ConversationContext",
-    # Memory strategies
     "DefaultMemoryStrategy",
     "IntelligentMemoryStrategy",
     "MemoryConfig",

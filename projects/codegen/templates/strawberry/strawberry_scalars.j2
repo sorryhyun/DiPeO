@@ -20,11 +20,11 @@ from dipeo.diagram_generated.domain_models import (
 # Generate Strawberry scalar types for branded IDs
 {%- for scalar in scalars %}
 
-# {{ scalar.description }}
-{{ scalar.scalar_name }} = strawberry.scalar(
+# {{ scalar.description | default('Scalar type for ' + scalar.name, true) }}
+{{ scalar.name }}Scalar = strawberry.scalar(
     {{ scalar.name }},
     name="{{ scalar.name }}",
-    description="{{ scalar.description }}",
+    description="{{ scalar.description | default('Scalar type for ' + scalar.name, true) }}",
     serialize=lambda v: str(v) if v is not None else None,
     parse_value=lambda v: {{ scalar.name }}(v) if v is not None else None,
 )
@@ -34,7 +34,7 @@ from dipeo.diagram_generated.domain_models import (
 # Export all scalar types
 __all__ = [
 {%- for scalar in scalars %}
-    "{{ scalar.scalar_name }}",
+    "{{ scalar.name }}Scalar",
 {%- endfor %}
 ]
 
@@ -42,6 +42,6 @@ __all__ = [
 # Convenience dictionary for looking up scalars by name
 SCALAR_MAP = {
 {%- for scalar in scalars %}
-    "{{ scalar.name }}": {{ scalar.scalar_name }},
+    "{{ scalar.name }}": {{ scalar.name }}Scalar,
 {%- endfor %}
 }

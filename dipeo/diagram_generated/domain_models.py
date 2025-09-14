@@ -31,7 +31,8 @@ HookID = NewType('HookID', str)
 NodeID = NewType('NodeID', str)
 PersonID = NewType('PersonID', str)
 TaskID = NewType('TaskID', str)
-
+CliSessionID = NewType('CliSessionID', str)
+FileID = NewType('FileID', str)
 
 class Vec2(BaseModel):
     """Vec2 model"""
@@ -337,6 +338,56 @@ class Conversation(BaseModel):
     metadata: ConversationMetadata | None = Field(default=None)
 
 
+class CliSession(BaseModel):
+    """CLI session for terminal operations"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    id: CliSessionID
+    session_id: str
+    user_id: str | None = Field(default=None)
+    started_at: str
+    last_active: str | None = Field(default=None)
+    status: Literal['active', 'inactive', 'terminated']
+    metadata: dict[str, Any] | None = Field(default=None)
+    current_directory: str | None = Field(default=None)
+    environment: dict[str, str] | None = Field(default=None)
+
+
+class CliSessionResult(BaseModel):
+    """Result of CLI session operations"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    success: bool
+    session: CliSession | None = Field(default=None)
+    message: str | None = Field(default=None)
+    error: str | None = Field(default=None)
+
+
+class File(BaseModel):
+    """File representation for diagram operations and storage"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    id: FileID
+    name: str
+    path: str
+    content: str | None = Field(default=None)
+    size: int | None = Field(default=None)
+    mime_type: str | None = Field(default=None)
+    created_at: str | None = Field(default=None)
+    modified_at: str | None = Field(default=None)
+    metadata: dict[str, Any] | None = Field(default=None)
+
+
+class FileOperationResult(BaseModel):
+    """Result of file operations"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    success: bool
+    file: File | None = Field(default=None)
+    message: str | None = Field(default=None)
+    error: str | None = Field(default=None)
+
+
 class ToolConfig(BaseModel):
     """ToolConfig model"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
@@ -597,6 +648,54 @@ class TemplatePreprocessor(BaseModel):
     module: str = Field(..., description='Python module path, e.g. "projects.codegen.code.shared.context_builders"')
     args: Optional['JsonDictValidation'] = Field(None,
                                                  description='Optional arguments passed as kwargs to the function')
+
+
+class NodeUpdate(BaseModel):
+    """Node update payload for node-specific updates"""
+    model_config = ConfigDict(extra='forbid')
+
+    execution_id: ExecutionID
+    node_id: NodeID
+    status: Status
+    progress: Optional[float] = None
+    output: Optional[Any] = None
+    error: Optional[str] = None
+    metrics: Optional[Dict[str, Any]] = None
+    timestamp: str
+
+
+class InteractivePrompt(BaseModel):
+    """Interactive prompt payload for user interaction requests"""
+    model_config = ConfigDict(extra='forbid')
+
+    execution_id: ExecutionID
+    node_id: NodeID
+    prompt_id: str
+    prompt: str
+    timeout: Optional[float] = None
+    default_value: Optional[str] = None
+    options: Optional[List[str]] = None
+    timestamp: str
+
+
+class ExecutionLogEntry(BaseModel):
+    """Execution log entry for real-time log streaming"""
+    model_config = ConfigDict(extra='forbid')
+
+    execution_id: ExecutionID
+    node_id: Optional[NodeID] = None
+    level: Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+    message: str
+    context: Optional[Dict[str, Any]] = None
+    timestamp: str
+
+
+class KeepalivePayload(BaseModel):
+    """Keepalive payload for connection maintenance"""
+    model_config = ConfigDict(extra='forbid')
+
+    type: Literal['keepalive']
+    timestamp: str
 
 
 # Constants from TypeScript

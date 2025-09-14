@@ -6,31 +6,23 @@ DiPeO uses GraphQL subscriptions exclusively for real-time updates. GraphQL subs
 
 ### Available Subscriptions
 
-1. **execution_updates**: Main subscription for execution lifecycle events
-   - Handles all execution-related events (start, complete, fail, logs, etc.)
-   - Used by frontend monitoring and logging components
+1. **execution_updates**: Main subscription for all execution-related events
+   - Handles all execution lifecycle events (start, complete, fail, logs, etc.)
+   - Includes node status updates, interactive prompts, and execution logs
+   - Used by frontend monitoring, logging, and interactive components
+   - Currently the only generated subscription from TypeScript definitions
 
-2. **node_updates**: Node-specific status updates
-   - Tracks individual node state changes and progress
-   - Optional filtering by node_id
-
-3. **interactive_prompts**: User interaction requests
-   - Handles prompts requiring user input during execution
-   - Used by UserResponseNode and interactive workflows
-
-4. **execution_logs**: Dedicated log streaming
-   - Filters specifically for EXECUTION_LOG events
-   - Used by log viewing components
+**Note**: While the infrastructure supports multiple subscription types, only `execution_updates` is currently generated from the TypeScript query definitions. Additional subscriptions can be added by updating the query definitions and regenerating the code.
 
 ## Architecture
 
 ### Components
 
-1. **Backend Subscription Handler** (`/dipeo/application/graphql/schema/subscriptions.py`)
+1. **Backend Subscription Handler** (`/dipeo/application/graphql/schema/subscription_resolvers.py`)
    - Defines GraphQL subscription endpoints
    - Connects to MessageRouter for event distribution
    - Serializes data for JSON compatibility
-   - Currently implements 4 subscriptions: `execution_updates`, `node_updates`, `interactive_prompts`, `execution_logs`
+   - Currently implements 1 generated subscription: `execution_updates`
 
 2. **Event System** (`/dipeo/diagram_generated/enums.py`)
    - EventType enum defines all available event types

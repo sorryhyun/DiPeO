@@ -11,7 +11,7 @@ from strawberry.scalars import JSON as JSONScalar
 
 # Import the Pydantic domain models
 from dipeo.diagram_generated.domain_models import (
-{%- for type in domain_types %}
+{%- for type in types %}
     {{ type.name }},
 {%- endfor %}
 )
@@ -20,9 +20,9 @@ from dipeo.diagram_generated.domain_models import (
 from dipeo.diagram_generated.enums import Status
 
 # Import scalar types
-from dipeo.diagram_generated.graphql.scalars import (
-{%- for scalar in scalar_types %}
-    {{ scalar }}Scalar,
+from .scalars import (
+{%- for scalar in scalars %}
+    {{ scalar.name }}Scalar,
 {%- endfor %}
 )
 
@@ -39,36 +39,23 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 
 # Create Strawberry types from Pydantic models
 # Order matters - define types that are referenced by others first
+{% for type in types %}
+{% set has_custom_fields = type.custom_fields and type.custom_fields|length > 0 -%}
+{% set has_field_methods = type.field_methods and type.field_methods|length > 0 -%}
+{% set use_all_fields = type.has_all_fields or (not has_custom_fields and not has_field_methods) -%}
 
-{%- for type in domain_types %}
-
-{%- if type.has_simple_fields %}
+{% if use_all_fields -%}
 @strawberry.experimental.pydantic.type({{ type.name }}, all_fields=True)
 class {{ type.name }}Type:
-    pass
-{%- else %}
-@strawberry.experimental.pydantic.type({{ type.name }}{% if type.has_custom_fields %}){% else %}, all_fields=True){% endif %}
-class {{ type.name }}Type:
-{%- if type.has_custom_fields %}
-{%- for field in type.custom_fields %}
-{%- if field.is_auto %}
-    {{ field.name }}: strawberry.auto
-{%- elif field.is_enum %}
-    {{ field.name }}: {{ field.type }}  # Explicitly specify the enum type
-{%- elif field.is_optional %}
-    {{ field.name }}: Optional[{{ field.type }}] = {{ field.default }}
-{%- else %}
-    {{ field.name }}: {{ field.type }}
-{%- endif %}
-{%- endfor %}
-{%- endif %}
-
+{%- if has_field_methods %}
 {%- for method in type.field_methods %}
     @strawberry.field
     def {{ method.name }}(self) -> {{ method.return_type }}:
         """{{ method.description }}"""
 {%- if method.name == "type" and type.name == "DomainNode" %}
-        return self.type.value if hasattr(self, 'type') else ''
+        # Return the enum value (lowercase) instead of the enum name
+        node_type = self.type
+        return node_type.value if node_type else ''
 {%- elif method.name == "type" and type.name == "DomainPerson" %}
         return "person"
 {%- elif method.name == "data" %}
@@ -106,26 +93,106 @@ class {{ type.name }}Type:
         return self.exec_counts if hasattr(self, 'exec_counts') else {}
 {%- elif method.name == "metrics" %}
         return self.metrics if hasattr(self, 'metrics') else None
+{%- elif method.name == "node_metrics" %}
+        return self.node_metrics if hasattr(self, 'node_metrics') else {}
 {%- elif method.name == "nodeCount" %}
         return len(self.nodes) if hasattr(self, 'nodes') else 0
 {%- elif method.name == "arrowCount" %}
         return len(self.arrows) if hasattr(self, 'arrows') else 0
 {%- endif %}
 {%- endfor %}
-{%- if not type.has_custom_fields and not type.field_methods %}
+{%- else %}
     pass
 {%- endif %}
+{%- else %}
+@strawberry.experimental.pydantic.type({{ type.name }})
+class {{ type.name }}Type:
+{%- for field in type.custom_fields %}
+{%- if field.is_auto %}
+    {{ field.name }}: strawberry.auto
+{%- elif field.is_enum %}
+    {{ field.name }}: {{ field.type }}  # Explicitly specify the enum type
+{%- elif field.is_optional %}
+    {{ field.name }}: {{ field.type | ensure_optional }} = {{ field.default }}
+{%- else %}
+    {{ field.name }}: {{ field.type }}
 {%- endif %}
 {%- endfor %}
+
+{%- for method in type.field_methods %}
+    @strawberry.field
+    def {{ method.name }}(self) -> {{ method.return_type }}:
+        """{{ method.description }}"""
+{%- if method.name == "type" and type.name == "DomainNode" %}
+        # Return the enum value (lowercase) instead of the enum name
+        node_type = self.type
+        return node_type.value if node_type else ''
+{%- elif method.name == "type" and type.name == "DomainPerson" %}
+        return "person"
+{%- elif method.name == "data" %}
+{%- if method.is_optional %}
+        return self.data if hasattr(self, 'data') else None
+{%- else %}
+        return self.data if hasattr(self, 'data') else {}
+{%- endif %}
+{%- elif method.name == "output" %}
+        return self.output if hasattr(self, 'output') else None
+{%- elif method.name == "variables" %}
+{%- if method.is_optional %}
+        return self.variables if hasattr(self, 'variables') else None
+{%- else %}
+        return self.variables if hasattr(self, 'variables') else {}
+{%- endif %}
+{%- elif method.name == "node_states" %}
+        if hasattr(self, 'node_states') and self.node_states:
+            # Convert NodeState objects to dicts
+            return {k: v.model_dump() if hasattr(v, 'model_dump') else v
+                    for k, v in self.node_states.items()}
+        return {}
+{%- elif method.name == "node_outputs" %}
+        if hasattr(self, 'node_outputs') and self.node_outputs:
+            # Convert SerializedNodeOutput objects to dicts for GraphQL
+            result = {}
+            for key, output in self.node_outputs.items():
+                if hasattr(output, 'model_dump'):
+                    result[key] = output.model_dump()
+                else:
+                    result[key] = output
+            return result
+        return {}
+{%- elif method.name == "exec_counts" %}
+        return self.exec_counts if hasattr(self, 'exec_counts') else {}
+{%- elif method.name == "metrics" %}
+        return self.metrics if hasattr(self, 'metrics') else None
+{%- elif method.name == "node_metrics" %}
+        return self.node_metrics if hasattr(self, 'node_metrics') else {}
+{%- elif method.name == "nodeCount" %}
+        return len(self.nodes) if hasattr(self, 'nodes') else 0
+{%- elif method.name == "arrowCount" %}
+        return len(self.arrows) if hasattr(self, 'arrows') else 0
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{% endfor %}
+# Subscription-specific types (not from Pydantic models)
+@strawberry.type
+class ExecutionUpdate:
+    """Real-time execution update."""
+
+    execution_id: str
+    event_type: str
+    data: JSONScalar
+    timestamp: str
 
 # Alias for backward compatibility
 SerializedNodeOutputType = SerializedEnvelopeType
 
 # Export all types
 __all__ = [
-{%- for type in domain_types %}
+{%- for type in types %}
     '{{ type.name }}Type',
 {%- endfor %}
+    'ExecutionUpdate',  # For subscriptions
     'SerializedNodeOutputType',  # Alias
     'ToolConfigType',  # Re-exported from generated code
 ]

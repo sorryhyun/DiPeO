@@ -1,0 +1,144 @@
+"""
+{{ generated_warning }}
+
+Generated from TypeScript query definitions in dipeo/models/src/frontend/query-definitions/
+Total operations: {{ metadata.total_operations }} ({{ metadata.total_queries }} queries, {{ metadata.total_mutations }} mutations, {{ metadata.total_subscriptions }} subscriptions)
+"""
+
+from typing import Any, Optional, TypedDict, Protocol
+import strawberry
+{% if imports is defined %}
+{% for source, types in imports.items() -%}
+{% if types -%}
+from {{ source }} import {{ types | sort | join(', ') }}
+{% endif -%}
+{% endfor %}
+{% endif %}
+from .enums import DiagramFormatGraphQL
+
+# GraphQL query strings as constants
+{% for operation in operations %}
+{{ operation.name | snake_case | upper }}_{{ operation.type | upper }} = """{{ operation.query_string }}"""
+{% if not loop.last %}
+{% endif %}
+{% endfor %}
+
+# Typed operation classes
+{% for operation in operations %}
+
+class {{ operation.name | pascal_case }}Operation:
+    """
+    {{ operation.type | capitalize }} operation for {{ operation.entity }}.
+    GraphQL {{ operation.type }}: {{ operation.name }}
+    """
+
+    query = {{ operation.name | snake_case | upper }}_{{ operation.type | upper }}
+    operation_type = "{{ operation.type }}"
+    operation_name = "{{ operation.name }}"
+
+    {% if operation.has_variables %}
+    class Variables(TypedDict{% if operation.variables | selectattr('required', 'equalto', false) | list %}, total=False{% endif %}):
+        """Variable types for {{ operation.name }} {{ operation.type }}."""
+        {% for var in operation.variables %}
+        {{ var.name }}: {{ var.python_type | graphql_to_python_type(var.required) }}
+        {% endfor %}
+    {% else %}
+    class Variables(TypedDict):
+        """No variables for this operation."""
+        pass
+    {% endif %}
+
+    @classmethod
+    def get_query(cls) -> str:
+        """Get the GraphQL query string."""
+        return cls.query
+
+    @classmethod
+    def get_variables_dict(cls, {% for var in operation.variables %}{{ var.name }}: {{ var.union_type if var.union_type else (var.python_type | graphql_to_python_type(var.required)) }}{% if not var.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) -> dict[str, Any]:
+        """
+        Build variables dictionary for the operation.
+
+        Args:
+            {% for var in operation.variables %}
+            {{ var.name }}: {{ var.graphql_type }} - {% if var.required %}Required{% else %}Optional{% endif %} (accepts dict or Strawberry input object)
+            {% endfor %}
+
+        Returns:
+            Dictionary of variables for GraphQL execution
+        """
+        variables = {}
+        {% for var in operation.variables %}
+        {% if var.required %}
+        # Convert Strawberry input object to dict if needed
+        if hasattr({{ var.name }}, '__strawberry_definition__'):
+            variables["{{ var.name }}"] = strawberry.asdict({{ var.name }})
+        else:
+            variables["{{ var.name }}"] = {{ var.name }}
+        {% else %}
+        if {{ var.name }} is not None:
+            # Convert Strawberry input object to dict if needed
+            if hasattr({{ var.name }}, '__strawberry_definition__'):
+                variables["{{ var.name }}"] = strawberry.asdict({{ var.name }})
+            else:
+                variables["{{ var.name }}"] = {{ var.name }}
+        {% endif %}
+        {% endfor %}
+        return variables
+{% endfor %}
+
+# Operation registries for runtime lookup
+QUERIES = {
+    {% for operation in raw_queries %}
+    "{{ operation.name }}": {{ operation.name | pascal_case }}Operation,
+    {% endfor %}
+}
+
+MUTATIONS = {
+    {% for operation in raw_mutations %}
+    "{{ operation.name }}": {{ operation.name | pascal_case }}Operation,
+    {% endfor %}
+}
+
+SUBSCRIPTIONS = {
+    {% for operation in raw_subscriptions %}
+    "{{ operation.name }}": {{ operation.name | pascal_case }}Operation,
+    {% endfor %}
+}
+
+ALL_OPERATIONS = {
+    **QUERIES,
+    **MUTATIONS,
+    **SUBSCRIPTIONS,
+}
+
+# Helper functions
+def get_operation_by_name(name: str) -> Optional[type]:
+    """Get an operation class by its name."""
+    return ALL_OPERATIONS.get(name)
+
+def get_query_string(operation_name: str) -> Optional[str]:
+    """Get the GraphQL query string for an operation."""
+    operation_class = get_operation_by_name(operation_name)
+    if operation_class:
+        return operation_class.get_query()
+    return None
+
+# Export all operation classes
+__all__ = [
+    # Query strings
+    {% for operation in operations %}
+    "{{ operation.name | snake_case | upper }}_{{ operation.type | upper }}",
+    {% endfor %}
+    # Operation classes
+    {% for operation in operations %}
+    "{{ operation.name | pascal_case }}Operation",
+    {% endfor %}
+    # Registries
+    "QUERIES",
+    "MUTATIONS",
+    "SUBSCRIPTIONS",
+    "ALL_OPERATIONS",
+    # Helper functions
+    "get_operation_by_name",
+    "get_query_string",
+]

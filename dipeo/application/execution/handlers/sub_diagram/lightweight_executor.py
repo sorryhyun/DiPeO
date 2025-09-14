@@ -16,7 +16,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.diagram_generated import ExecutionID, ExecutionState, LLMUsage, NodeState, Status
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.infrastructure.execution.messaging import NullEventBus
+from dipeo.infrastructure.events.adapters import InMemoryEventBus
 
 from .base_executor import BaseSubDiagramExecutor
 from .parallel_executor import ParallelExecutionManager
@@ -293,10 +293,10 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         # Register persons from the diagram in the orchestrator/conversation manager
         await self._register_diagram_persons(diagram, isolated_registry)
 
-        # Create engine with null event bus (no events emitted)
+        # Create engine with isolated event bus (events stay within sub-diagram)
         engine = TypedExecutionEngine(
             service_registry=isolated_registry,
-            event_bus=NullEventBus(),  # No event emission
+            event_bus=InMemoryEventBus(),  # Isolated event bus for sub-diagram
         )
 
         # Run execution and collect outputs and errors

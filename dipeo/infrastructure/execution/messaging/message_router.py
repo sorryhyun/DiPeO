@@ -50,21 +50,15 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         self.connection_health: dict[str, ConnectionHealth] = {}
         self._message_queue_size: dict[str, int] = {}
         self._queue_lock = threading.Lock()
-        # Load configuration
         settings = get_settings()
         self.max_queue_size = settings.messaging.max_queue_size
-
-        # Event buffering for late connections
         self._event_buffer: dict[str, list[dict]] = {}
         self._buffer_max_size = settings.messaging.buffer_max_per_exec
         self._buffer_ttl_seconds = settings.messaging.buffer_ttl_s
-
-        # Event batching for performance
         self._batch_queue: dict[str, list[dict]] = {}
         self._batch_tasks: dict[str, asyncio.Task | None] = {}
-
         self._batch_broadcast_warning_threshold = settings.messaging.broadcast_warning_threshold_s
-        self._batch_interval = settings.messaging.batch_interval_ms / 1000.0  # Convert to seconds
+        self._batch_interval = settings.messaging.batch_interval_ms / 1000.0
         self._batch_max_size = settings.messaging.batch_max
 
     async def initialize(self) -> None:
@@ -74,7 +68,6 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         self._initialized = True
 
     async def cleanup(self) -> None:
-        # Cancel pending batch tasks and flush remaining batches
         for task in self._batch_tasks.values():
             if task and not task.done():
                 task.cancel()
@@ -185,10 +178,9 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
             execution_id: Execution identifier
             message: Message to broadcast
         """
-        # Quick exit if no connections and no need to buffer
         connection_ids = self.execution_subscriptions.get(execution_id, set())
         if not connection_ids and not self._should_buffer_events(execution_id):
-            return  # Skip all expensive operations
+            return
 
         if self._should_buffer_events(execution_id):
             await self._buffer_event(execution_id, message)
@@ -214,7 +206,6 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         await self._flush_batch(execution_id)
 
     async def _flush_batch(self, execution_id: str) -> None:
-        # Get batch and clear task reference
         messages = self._batch_queue.pop(execution_id, [])
         if execution_id in self._batch_tasks:
             self._batch_tasks[execution_id] = None
@@ -236,7 +227,6 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
             "batch_size": len(messages),
         }
 
-        # Publish to GraphQL streaming if available
         try:
             from dipeo_server.api.graphql.subscriptions import publish_execution_update
 
@@ -249,7 +239,6 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         successful_broadcasts = 0
         failed_broadcasts = 0
 
-        # Python 3.13+ always has TaskGroup
         try:
 
             async def track_broadcast(connection_id: str, msg: dict):
@@ -337,7 +326,6 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
         Skip buffering for batch item executions to save memory.
         """
-        # Don't buffer for batch item executions (they have _batch_ in the ID)
         return "_batch_" not in execution_id
 
     async def _buffer_event(self, execution_id: str, message: dict) -> None:
@@ -458,23 +446,16 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         Args:
             event: The domain event to route
         """
-        # Serialize the event once
         payload = event_to_json_payload(event)
 
-        # Route to connections if there's an execution context
         if event.scope.execution_id:
-            # Broadcast the original event
             await self.broadcast_to_execution(str(event.scope.execution_id), payload)
-
-            # Transform domain events into UI-friendly events
-            # This replaces StreamingMonitor's transformation logic
             from dipeo.domain.events import EventType
 
             if event.type == EventType.EXECUTION_STARTED:
-                # Also emit EXECUTION_STATUS_CHANGED for UI consistency
                 ui_payload = {
                     "type": "EXECUTION_STATUS_CHANGED",
-                    "event_type": "EXECUTION_STATUS_CHANGED",  # Include both for compatibility
+                    "event_type": "EXECUTION_STATUS_CHANGED",
                     "execution_id": str(event.scope.execution_id),
                     "data": {"status": "RUNNING", "timestamp": event.occurred_at.isoformat()},
                     "timestamp": event.occurred_at.isoformat(),
@@ -482,8 +463,6 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                 await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
 
             elif event.type == EventType.EXECUTION_COMPLETED:
-                # Transform to EXECUTION_STATUS_CHANGED that frontend expects
-                # Handle both dict and object payloads
                 if hasattr(event.payload, "status"):
                     status = event.payload.status
                 elif isinstance(event.payload, dict):
@@ -493,7 +472,7 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
                 ui_payload = {
                     "type": "EXECUTION_STATUS_CHANGED",
-                    "event_type": "EXECUTION_STATUS_CHANGED",  # Include both for compatibility
+                    "event_type": "EXECUTION_STATUS_CHANGED",
                     "execution_id": str(event.scope.execution_id),
                     "data": {
                         "status": status,
@@ -505,7 +484,6 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                 await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
 
             elif event.type == EventType.NODE_STATUS_CHANGED:
-                # Handle NODE_STATUS_CHANGED events directly
                 ui_payload = {
                     "type": "NODE_STATUS_CHANGED",
                     "event_type": "NODE_STATUS_CHANGED",
@@ -524,7 +502,6 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                 EventType.NODE_COMPLETED,
                 EventType.NODE_ERROR,
             ]:
-                # Also emit NODE_STATUS_CHANGED for UI consistency
                 node_status = (
                     "RUNNING"
                     if event.type == EventType.NODE_STARTED
@@ -534,7 +511,7 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                 )
                 ui_payload = {
                     "type": "NODE_STATUS_CHANGED",
-                    "event_type": "NODE_STATUS_CHANGED",  # Include both for compatibility
+                    "event_type": "NODE_STATUS_CHANGED",
                     "execution_id": str(event.scope.execution_id),
                     "data": {
                         "node_id": event.scope.node_id,
@@ -544,8 +521,17 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                     "timestamp": event.occurred_at.isoformat(),
                 }
                 await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
+
+            elif event.type == EventType.METRICS_COLLECTED:
+                ui_payload = {
+                    "type": "METRICS_COLLECTED",
+                    "event_type": "METRICS_COLLECTED",
+                    "execution_id": str(event.scope.execution_id),
+                    "data": payload.get("data", payload),
+                    "timestamp": event.occurred_at.isoformat(),
+                }
+                await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
         else:
-            # Handle global events (not tied to specific execution)
             logger.debug(f"Received global event: {event.type.value}")
 
 

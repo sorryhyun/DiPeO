@@ -15,7 +15,6 @@ from dipeo.domain.integrations.ports import APIKeyPort
 
 class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPort):
     def __init__(self, file_path: Path | None = None):
-        # Initialize mixins
         InitializationMixin.__init__(self)
         if file_path is None:
             file_path = Path.home() / ".dipeo" / "apikeys.json"
@@ -27,11 +26,9 @@ class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPo
 
     async def initialize(self) -> None:
         self._store = await self._load_all()
-        # Loaded API keys successfully
         self._logger.debug(f"APIKeyService.initialize() - Loaded keys: {list(self._store.keys())}")
 
     async def _load_all(self) -> dict[str, dict]:
-        """Load all API keys from file storage."""
         if not self.file_path.exists():
             return {}
 
@@ -43,7 +40,6 @@ class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPo
             return {}
 
     async def _save_store(self) -> None:
-        """Save all API keys to file storage."""
         try:
             with open(self.file_path, "w") as f:
                 json.dump(self._store, f, indent=2)
@@ -78,16 +74,10 @@ class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPo
             ["label", "service", "key"],
         )
 
-        # Validate service name
         normalized_service = validate_service_name(service)
-
-        # Validate API key format
         validate_api_key_format(key, normalized_service)
-
-        # Generate unique ID
         key_id = generate_api_key_id()
 
-        # Store the API key
         self._store[key_id] = {
             "label": label,
             "service": normalized_service,
@@ -138,8 +128,6 @@ class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPo
         }
 
 
-# API Key validation utilities
-
 VALID_SERVICES = VALID_LLM_SERVICES
 
 
@@ -158,11 +146,9 @@ def validate_api_key_format(key: str, service: str) -> None:
     if not key or not key.strip():
         raise ValidationError("API key cannot be empty")
 
-    # Ollama doesn't need real API keys - accept 'ollama' as a placeholder
     if service == APIServiceType.OLLAMA.value:
         if key.lower() in ["ollama", "local", "none", "claude-code"]:
-            return  # Accept common placeholders for Ollama
-        # Also accept any non-empty string for Ollama
+            return
         return
 
     if service == APIServiceType.OPENAI.value and not key.startswith("sk-"):
@@ -192,6 +178,6 @@ def extract_api_key_summary(key_id: str, info: dict) -> dict:
             "id": key_id,
             "label": info.get("label", key_id),
             "service": info["service"],
-            "key": info.get("key", ""),  # Include the key in the summary
+            "key": info.get("key", ""),
         }
     return None

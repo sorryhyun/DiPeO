@@ -1,6 +1,28 @@
 import { EntityQueryDefinitions } from './types';
 import { QueryOperationType } from '../query-enums';
 
+// Shared field patterns as const objects
+const RESULT_FIELDS = [
+  { name: 'success' },
+  { name: 'message' },
+  { name: 'error' }
+];
+
+const POSITION_FIELDS = [
+  { name: 'x' },
+  { name: 'y' }
+];
+
+const NODE_FIELDS = [
+  { name: 'id' },
+  { name: 'type' },
+  {
+    name: 'position',
+    fields: POSITION_FIELDS
+  },
+  { name: 'data' }
+];
+
 export const nodeQueries: EntityQueryDefinitions = {
   entity: 'Node',
   queries: [
@@ -8,7 +30,7 @@ export const nodeQueries: EntityQueryDefinitions = {
       name: 'CreateNode',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'diagram_id', type: 'ID', required: true },
+        { name: 'diagram_id', type: 'String', required: true },
         { name: 'input', type: 'CreateNodeInput', required: true }
       ],
       fields: [
@@ -22,18 +44,7 @@ export const nodeQueries: EntityQueryDefinitions = {
             { name: 'success' },
             {
               name: 'node',
-              fields: [
-                { name: 'id' },
-                { name: 'type' },
-                {
-                  name: 'position',
-                  fields: [
-                    { name: 'x' },
-                    { name: 'y' }
-                  ]
-                },
-                { name: 'data' }
-              ]
+              fields: NODE_FIELDS
             },
             { name: 'message' },
             { name: 'error' }
@@ -45,8 +56,8 @@ export const nodeQueries: EntityQueryDefinitions = {
       name: 'UpdateNode',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'diagram_id', type: 'ID', required: true },
-        { name: 'node_id', type: 'ID', required: true },
+        { name: 'diagram_id', type: 'String', required: true },
+        { name: 'node_id', type: 'String', required: true },
         { name: 'input', type: 'UpdateNodeInput', required: true }
       ],
       fields: [
@@ -57,11 +68,7 @@ export const nodeQueries: EntityQueryDefinitions = {
             { name: 'node_id', value: 'node_id', isVariable: true },
             { name: 'input', value: 'input', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: RESULT_FIELDS
         }
       ]
     },
@@ -69,8 +76,8 @@ export const nodeQueries: EntityQueryDefinitions = {
       name: 'DeleteNode',
       type: QueryOperationType.MUTATION,
       variables: [
-        { name: 'diagram_id', type: 'ID', required: true },
-        { name: 'node_id', type: 'ID', required: true }
+        { name: 'diagram_id', type: 'String', required: true },
+        { name: 'node_id', type: 'String', required: true }
       ],
       fields: [
         {
@@ -79,11 +86,7 @@ export const nodeQueries: EntityQueryDefinitions = {
             { name: 'diagram_id', value: 'diagram_id', isVariable: true },
             { name: 'node_id', value: 'node_id', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: RESULT_FIELDS
         }
       ]
     }

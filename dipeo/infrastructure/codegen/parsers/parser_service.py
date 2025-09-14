@@ -33,7 +33,6 @@ class ParserService(
                 - project_root: Project root directory path
                 - cache_enabled: Whether to enable AST caching (default: True)
         """
-        # Initialize mixins
         InitializationMixin.__init__(self)
         ConfigurationMixin.__init__(self, config)
         CachingMixin.__init__(self)
@@ -71,7 +70,6 @@ class ParserService(
             await self.initialize()
 
         try:
-            # Language parameter is ignored - this service is TypeScript-only
             result = await self._ts_parser.parse(source, extract_patterns, options or {})
             return result
         except Exception as e:
@@ -94,11 +92,9 @@ class ParserService(
         if not self._ts_parser:
             await self.initialize()
 
-        # Check if parser has a parse_file method
         if hasattr(self._ts_parser, "parse_file"):
             return await self._ts_parser.parse_file(file_path, extract_patterns, options or {})
         else:
-            # Fallback: read file and use parse method
             file_full_path = Path(self._project_root or ".") / file_path
             with open(file_full_path) as f:
                 source = f.read()
@@ -123,7 +119,6 @@ class ParserService(
         if not self._ts_parser:
             await self.initialize()
 
-        # TypeScript parser has parse_batch method for efficiency
         return await self._ts_parser.parse_batch(sources, extract_patterns, options or {})
 
     async def parse_files_batch(
@@ -150,7 +145,6 @@ class ParserService(
                 file_paths, extract_patterns, options or {}
             )
         else:
-            # Fallback: parse individually
             results = {}
             for path in file_paths:
                 results[path] = await self.parse_file(path, extract_patterns, options)

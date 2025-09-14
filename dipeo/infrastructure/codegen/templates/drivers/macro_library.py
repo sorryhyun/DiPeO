@@ -69,7 +69,6 @@ class MacroLibrary:
 
     def _register_default_macros(self) -> None:
         """Register default macros for common code generation patterns."""
-        # Python type hint macro
         self.register(
             MacroDefinition(
                 name="python_type_hint",
@@ -79,7 +78,6 @@ class MacroLibrary:
             )
         )
 
-        # TypeScript property macro
         self.register(
             MacroDefinition(
                 name="ts_property",
@@ -89,7 +87,6 @@ class MacroLibrary:
             )
         )
 
-        # GraphQL field macro
         self.register(
             MacroDefinition(
                 name="graphql_field",
@@ -99,7 +96,6 @@ class MacroLibrary:
             )
         )
 
-        # Documentation comment macro
         self.register(
             MacroDefinition(
                 name="doc_comment",
@@ -109,7 +105,6 @@ class MacroLibrary:
             )
         )
 
-        # Python class macro
         self.register(
             MacroDefinition(
                 name="python_class",
@@ -120,7 +115,6 @@ class MacroLibrary:
             )
         )
 
-        # TypeScript interface macro
         self.register(
             MacroDefinition(
                 name="ts_interface",
@@ -130,7 +124,6 @@ class MacroLibrary:
             )
         )
 
-        # Import statement macro
         self.register(
             MacroDefinition(
                 name="import_statement",

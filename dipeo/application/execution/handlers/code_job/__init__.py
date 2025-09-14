@@ -155,7 +155,7 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         node = request.node
 
         # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
-        envelope_inputs = self.consume_token_inputs(request, inputs)
+        envelope_inputs = self.get_effective_inputs(request, inputs)
 
         # Prepare execution context from envelopes
         exec_context = {}
@@ -293,8 +293,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             produced_by=node.id,
             trace_id=trace_id,
         )
-
-        # Representations no longer needed - removed deprecated with_representations() call
 
         # Add metadata
         if "meta" in output:

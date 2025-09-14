@@ -10,14 +10,8 @@ from dipeo.diagram_generated import DomainDiagram
 DomainDiagram.model_rebuild()
 
 
-# Generic helpers
-
-
 class _JsonMixin:
-    # Minimal JSON helpers
-
     def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
-        # Parse JSON content
         try:
             result = json.loads(content or "{}")
             if not isinstance(result, dict):
@@ -31,8 +25,6 @@ class _JsonMixin:
 
 
 class _YamlMixin:
-    # Minimal YAML helpers
-
     def parse(self, content: str) -> dict[str, Any]:  # type: ignore[override]
         return yaml.safe_load(content) or {}
 
@@ -47,13 +39,11 @@ class _YamlMixin:
 
         def str_representer(dumper, data):
             if "\n" in data:
-                # Use literal (block) style for multiline strings
                 return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
             return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
         def list_representer(dumper, data):
-            # Use inline flow style for boolean arrays (flipped property)
-            # Check if it's a 2-element boolean array
+            # Use inline flow style for 2-element boolean arrays
             if len(data) == 2 and all(isinstance(x, bool) for x in data):
                 return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
             return dumper.represent_list(data)
@@ -68,10 +58,18 @@ class _YamlMixin:
 
 
 def _node_id_map(nodes: list[dict[str, Any]]) -> dict[str, str]:
-    # Map label → node.id for already-built nodes
-
     label_map = {}
     for n in nodes:
         label = n.get("label") or n.get("data", {}).get("label") or n["id"]
         label_map[label] = n["id"]
     return label_map
+
+
+def diagram_maps_to_arrays(diagram: dict[str, Any]) -> dict[str, Any]:
+    """Convert map-based diagram to array-based structure."""
+    return {
+        "nodes": list(diagram.get("nodes", {}).values()),
+        "arrows": list(diagram.get("arrows", {}).values()),
+        "handles": list(diagram.get("handles", {}).values()),
+        "persons": list(diagram.get("persons", {}).values()),
+    }

@@ -27,18 +27,9 @@ from .unified_ports import EventBus
 
 
 class EventPublisher:
-    """Facade for publishing domain events with a clean API.
-
-    This class provides convenient methods for emitting all standard domain events,
-    handling the construction of event objects and payloads automatically.
-    """
+    """Facade for publishing domain events with a clean API."""
 
     def __init__(self, bus: EventBus):
-        """Initialize the publisher with a domain event bus.
-
-        Args:
-            bus: The event bus to publish events to
-        """
         self.bus = bus
 
     async def execution_started(
@@ -48,14 +39,6 @@ class EventPublisher:
         diagram_name: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Publish an execution started event.
-
-        Args:
-            execution_id: The execution identifier
-            diagram_id: The diagram being executed
-            diagram_name: Optional human-readable diagram name
-            metadata: Optional metadata for the event
-        """
         await self.bus.publish(
             DomainEvent(
                 type=EventType.EXECUTION_STARTED,
@@ -72,14 +55,6 @@ class EventPublisher:
         duration_ms: int | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Publish an execution completed event.
-
-        Args:
-            execution_id: The execution identifier
-            status: The final status (SUCCESS, FAILED, etc.)
-            duration_ms: Optional execution duration in milliseconds
-            metadata: Optional metadata for the event
-        """
         await self.bus.publish(
             DomainEvent(
                 type=EventType.EXECUTION_COMPLETED,
@@ -97,15 +72,6 @@ class EventPublisher:
         stack_trace: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Publish an execution error event.
-
-        Args:
-            execution_id: The execution identifier
-            error_message: The error message
-            error_type: Optional error type/class
-            stack_trace: Optional stack trace
-            metadata: Optional metadata for the event
-        """
         await self.bus.publish(
             DomainEvent(
                 type=EventType.EXECUTION_ERROR,
@@ -124,14 +90,6 @@ class EventPublisher:
         node_type: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Publish a node started event.
-
-        Args:
-            execution_id: The execution identifier
-            node_id: The node identifier
-            node_type: The type of node
-            metadata: Optional metadata for the event
-        """
         await self.bus.publish(
             DomainEvent(
                 type=EventType.NODE_STARTED,
@@ -149,15 +107,6 @@ class EventPublisher:
         duration_ms: int | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Publish a node completed event.
-
-        Args:
-            execution_id: The execution identifier
-            node_id: The node identifier
-            state: Optional node output state
-            duration_ms: Optional node execution duration
-            metadata: Optional metadata for the event
-        """
         await self.bus.publish(
             DomainEvent(
                 type=EventType.NODE_COMPLETED,
@@ -176,16 +125,6 @@ class EventPublisher:
         stack_trace: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Publish a node error event.
-
-        Args:
-            execution_id: The execution identifier
-            node_id: The node identifier
-            error_message: The error message
-            error_type: Optional error type/class
-            stack_trace: Optional stack trace
-            metadata: Optional metadata for the event
-        """
         await self.bus.publish(
             DomainEvent(
                 type=EventType.NODE_ERROR,
@@ -205,16 +144,6 @@ class EventPublisher:
         message: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Publish a node progress event.
-
-        Args:
-            execution_id: The execution identifier
-            node_id: The node identifier
-            progress: Progress percentage (0-100)
-            message: Optional progress message
-            metadata: Optional metadata for the event
-        """
-        # Use NodeOutputPayload with progress info as we don't have NodeProgressPayload
         await self.bus.publish(
             DomainEvent(
                 type=EventType.NODE_PROGRESS,
@@ -231,15 +160,6 @@ class EventPublisher:
         level: str = "INFO",
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Publish a general execution update event.
-
-        Args:
-            execution_id: The execution identifier
-            message: The update message
-            level: Log level (INFO, WARNING, ERROR, DEBUG)
-            metadata: Optional metadata for the event
-        """
-        # Use ExecutionLogPayload as we don't have ExecutionUpdatePayload
         await self.bus.publish(
             DomainEvent(
                 type=EventType.EXECUTION_UPDATE,
@@ -256,14 +176,6 @@ class EventPublisher:
         node_id: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Publish a metrics collected event.
-
-        Args:
-            execution_id: The execution identifier
-            metrics: The collected metrics
-            node_id: Optional node identifier if metrics are node-specific
-            metadata: Optional metadata for the event
-        """
         await self.bus.publish(
             DomainEvent(
                 type=EventType.METRICS_COLLECTED,
@@ -281,15 +193,6 @@ class EventPublisher:
         payload: dict[str, Any],
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Publish a webhook received event.
-
-        Args:
-            execution_id: The execution identifier
-            webhook_id: The webhook identifier
-            source: The webhook source/provider
-            payload: The webhook payload
-            metadata: Optional metadata for the event
-        """
         await self.bus.publish(
             DomainEvent(
                 type=EventType.WEBHOOK_RECEIVED,
@@ -302,11 +205,6 @@ class EventPublisher:
     async def publish_batch(
         self, events: list[tuple[EventType, EventScope, Any, dict[str, Any] | None]]
     ) -> None:
-        """Publish multiple events atomically.
-
-        Args:
-            events: List of tuples (event_type, scope, payload, metadata)
-        """
         domain_events = []
         for event_type, scope, payload, metadata in events:
             domain_events.append(

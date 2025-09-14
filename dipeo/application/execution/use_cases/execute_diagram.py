@@ -89,16 +89,37 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
         if event_filter:
             options["event_filter"] = event_filter
         from dipeo.application.execution.typed_engine import TypedExecutionEngine
-        from dipeo.application.registry.keys import DOMAIN_EVENT_BUS, EVENT_BUS
+        from dipeo.application.registry.keys import EVENT_BUS
 
         # Get event bus from registry if available
-        # Use DOMAIN_EVENT_BUS (which has MessageRouter subscribed) if available,
-        # otherwise fall back to EVENT_BUS for backward compatibility
         event_bus = None
-        if self.service_registry.has(DOMAIN_EVENT_BUS):
-            event_bus = self.service_registry.resolve(DOMAIN_EVENT_BUS)
-        elif self.service_registry.has(EVENT_BUS):
+        if self.service_registry.has(EVENT_BUS):
             event_bus = self.service_registry.resolve(EVENT_BUS)
+
+        # Subscribe MetricsObserver to the event bus if available
+        from dipeo.application.execution.observers import MetricsObserver
+        from dipeo.application.registry.keys import ServiceKey
+        from dipeo.domain.events import EventType
+
+        METRICS_OBSERVER_KEY = ServiceKey[MetricsObserver]("metrics_observer")
+        if self.service_registry.has(METRICS_OBSERVER_KEY) and event_bus:
+            metrics_observer = self.service_registry.resolve(METRICS_OBSERVER_KEY)
+
+            # Update the event_bus reference so METRICS_COLLECTED events go to the right place
+            metrics_observer.event_bus = event_bus
+
+            # Subscribe to execution and node events for metrics collection
+            metrics_events = [
+                EventType.EXECUTION_STARTED,
+                EventType.NODE_STARTED,
+                EventType.NODE_COMPLETED,
+                EventType.NODE_ERROR,
+                EventType.EXECUTION_COMPLETED,
+            ]
+
+            # Subscribe metrics observer to events
+            for event_type in metrics_events:
+                await event_bus.subscribe(event_type, metrics_observer)
 
         # Create engine with event bus only (observers are deprecated)
         engine = TypedExecutionEngine(
@@ -323,56 +344,24 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
             conversation_service = self.service_registry.resolve(EXECUTION_ORCHESTRATOR)
 
         if conversation_service:
-            # Extract person configs from typed nodes
+            # Register persons from typed nodes
             from dipeo.diagram_generated.generated_nodes import NodeType
 
-            person_configs = {}
             person_job_nodes = typed_diagram.get_nodes_by_type(NodeType.PERSON_JOB)
             for node in person_job_nodes:
                 if isinstance(node, PersonJobNode) and node.person:
-                    # Use the actual person_id from the node, not the node ID
                     person_id = str(node.person)
-                    # logger.debug(f"Processing PersonJobNode: node.person={node.person}, person_id={person_id}")
-                    # For PersonJobNode, we need to get person config from metadata or defaults
-                    # The node itself only has person_id reference
-                    config = {
-                        "name": person_id,  # Use person ID as default name
-                        "system_prompt": "",
-                        "model": "gpt-4.1-nano",
-                        "temperature": 0.7,
-                        "max_tokens": None,
-                    }
 
-                    # Try to get person config from diagram metadata if available
+                    # Get person config from metadata if available, otherwise empty dict
+                    person_config = {}
                     if typed_diagram.metadata and "persons" in typed_diagram.metadata:
                         persons_metadata = typed_diagram.metadata["persons"]
-                        # logger.debug(f"Found persons metadata: {persons_metadata}")
                         if person_id in persons_metadata:
-                            person_data = persons_metadata[person_id]
-                            # logger.debug(f"Found person data for {person_id}: {person_data}")
-                            config.update(
-                                {
-                                    "name": person_data.get("name", person_id),
-                                    "system_prompt": person_data.get("system_prompt", ""),
-                                    "service": person_data.get("service", "openai"),
-                                    "model": person_data.get("model", "gpt-4.1-nano"),
-                                    "temperature": person_data.get("temperature", 0.7),
-                                    "max_tokens": person_data.get("max_tokens"),
-                                    "api_key_id": person_data.get("api_key_id", ""),
-                                }
-                            )
-                            # logger.debug(f"Updated config for {person_id}: {config}")
-                    else:
-                        pass
-                        # logger.debug(f"No persons metadata found in diagram. metadata: {typed_diagram.metadata}")
+                            person_config = persons_metadata[person_id]
 
-                    person_configs[person_id] = config
-
-                    # Register person if conversation service supports it
+                    # Register person - repository will handle defaults
                     if hasattr(conversation_service, "register_person"):
-                        # logger.debug(f"Registering person {person_id} with config: {config}")
-                        conversation_service.register_person(person_id, config)
-                        # logger.debug(f"Successfully registered person {person_id}")
+                        conversation_service.register_person(person_id, person_config)
                     else:
                         # For services that don't have register_person,
                         # we can at least ensure the person memory is created

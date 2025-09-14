@@ -34,12 +34,8 @@ from .commands.base import DiagramLoader
 from .server_manager import ServerManager
 
 # Suppress non-critical warnings
-warnings.filterwarnings(
-    "ignore", message="Pydantic serializer warnings", category=UserWarning
-)
-warnings.filterwarnings(
-    "ignore", message="Field name.*shadows an attribute", category=UserWarning
-)
+warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
+warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
 
 
 class DiPeOCLI:
@@ -84,6 +80,7 @@ class DiPeOCLI:
         format_type: str | None = None,
         input_variables: dict[str, Any] | None = None,
         use_unified: bool = False,
+        simple: bool = False,
     ):
         """Run a diagram via server."""
         return self.run_command.execute(
@@ -94,6 +91,7 @@ class DiPeOCLI:
             format_type=format_type,
             input_variables=input_variables,
             use_unified=use_unified,
+            simple=simple,
         )
 
     def convert(
@@ -158,9 +156,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     # Ask command
-    ask_parser = subparsers.add_parser(
-        "ask", help="Generate diagram from natural language"
-    )
+    ask_parser = subparsers.add_parser("ask", help="Generate diagram from natural language")
     ask_parser.add_argument(
         "--to",
         type=str,
@@ -213,6 +209,11 @@ def main():
         action="store_true",
         help="Use legacy monitoring architecture (deprecated)",
     )
+    run_parser.add_argument(
+        "--simple",
+        action="store_true",
+        help="Use simple text display instead of rich UI",
+    )
 
     # Input data options (mutually exclusive)
     input_group = run_parser.add_mutually_exclusive_group()
@@ -229,15 +230,9 @@ def main():
 
     # Format options (mutually exclusive)
     format_group = run_parser.add_mutually_exclusive_group()
-    format_group.add_argument(
-        "--light", action="store_true", help="Use light format (YAML)"
-    )
-    format_group.add_argument(
-        "--native", action="store_true", help="Use native format (JSON)"
-    )
-    format_group.add_argument(
-        "--readable", action="store_true", help="Use readable format (YAML)"
-    )
+    format_group.add_argument("--light", action="store_true", help="Use light format (YAML)")
+    format_group.add_argument("--native", action="store_true", help="Use native format (JSON)")
+    format_group.add_argument("--readable", action="store_true", help="Use readable format (YAML)")
 
     # Convert command
     convert_parser = subparsers.add_parser("convert", help="Convert between formats")
@@ -281,9 +276,7 @@ def main():
     metrics_parser.add_argument("--json", action="store_true", help="Output as JSON")
 
     # Integrations command
-    integrations_parser = subparsers.add_parser(
-        "integrations", help="Manage API integrations"
-    )
+    integrations_parser = subparsers.add_parser("integrations", help="Manage API integrations")
     integrations_subparsers = integrations_parser.add_subparsers(
         dest="integrations_action", help="Integration commands"
     )
@@ -300,12 +293,8 @@ def main():
     validate_parser = integrations_subparsers.add_parser(
         "validate", help="Validate provider manifests"
     )
-    validate_parser.add_argument(
-        "--path", type=str, help="Path to integrations directory"
-    )
-    validate_parser.add_argument(
-        "--provider", type=str, help="Validate specific provider only"
-    )
+    validate_parser.add_argument("--path", type=str, help="Path to integrations directory")
+    validate_parser.add_argument("--provider", type=str, help="Validate specific provider only")
 
     # OpenAPI import subcommand
     openapi_parser = integrations_subparsers.add_parser(
@@ -317,18 +306,12 @@ def main():
     openapi_parser.add_argument("--base-url", type=str, help="Override base URL")
 
     # Test subcommand
-    test_parser = integrations_subparsers.add_parser(
-        "test", help="Test integration provider"
-    )
+    test_parser = integrations_subparsers.add_parser("test", help="Test integration provider")
     test_parser.add_argument("provider", help="Provider name to test")
     test_parser.add_argument("--operation", type=str, help="Specific operation to test")
     test_parser.add_argument("--config", type=str, help="Test configuration JSON")
-    test_parser.add_argument(
-        "--record", action="store_true", help="Record test for replay"
-    )
-    test_parser.add_argument(
-        "--replay", action="store_true", help="Replay recorded test"
-    )
+    test_parser.add_argument("--record", action="store_true", help="Record test for replay")
+    test_parser.add_argument("--replay", action="store_true", help="Replay recorded test")
 
     args = parser.parse_args()
 
@@ -348,7 +331,7 @@ def main():
                 run_timeout=args.run_timeout,
                 no_browser=not args.browser,  # Invert logic
             )
-            sys.exit(0 if success else 1)
+            os._exit(0 if success else 1)
         elif args.command == "run":
             # Determine format type
             format_type = None
@@ -394,8 +377,10 @@ def main():
                 format_type,
                 input_variables,
                 not args.legacy,  # Use unified by default, legacy only if flag is set
+                args.simple,  # Use simple display if flag is set
             )
-            sys.exit(0 if success else 1)
+            # Use os._exit for forced termination to ensure all threads/subprocesses are killed
+            os._exit(0 if success else 1)
         elif args.command == "convert":
             cli.convert(
                 args.input,
@@ -440,16 +425,16 @@ def main():
                 kwargs["replay"] = getattr(args, "replay", False)
 
             success = cli.integrations(args.integrations_action, **kwargs)
-            sys.exit(0 if success else 1)
+            os._exit(0 if success else 1)
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")
         cli.server.stop()
-        sys.exit(1)
+        os._exit(1)
     except Exception as e:
         print(f"Error: {e}")
         cli.server.stop()
-        sys.exit(1)
+        os._exit(1)
 
 
 if __name__ == "__main__":

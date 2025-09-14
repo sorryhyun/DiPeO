@@ -25,13 +25,10 @@ __all__ = (
     "extract_common_arrows",
 )
 
-# Internal helpers
-
 
 def _create_handle_id_from_enums(
     node_id: str, label: HandleLabel, direction: HandleDirection
 ) -> str:
-    # Use the handle_utils version which properly handles enums
     result = create_handle_id(NodeID(node_id), label, direction)
     return str(result)
 
@@ -68,9 +65,6 @@ def _make_handle(
     }
 
 
-# Public API
-
-
 class HandleGenerator:
     def generate_for_node(
         self,
@@ -92,7 +86,7 @@ class HandleGenerator:
             )
             return
 
-        # Condition nodes have one input and two outputs (true/false)
+        # Condition nodes: one input, two outputs (true/false)
         if node_type == NodeType.CONDITION.value:
             _push_handle(
                 diagram,
@@ -112,7 +106,6 @@ class HandleGenerator:
             )
             return
 
-        # Database nodes have input and output
         if node_type == NodeType.DB.value:
             _push_handle(
                 diagram,
@@ -124,7 +117,7 @@ class HandleGenerator:
             )
             return
 
-        # person_job nodes have specific handles: first input, default input, default output
+        # person_job nodes: first input, default input/output
         if node_type == NodeType.PERSON_JOB.value:
             _push_handle(
                 diagram,
@@ -140,7 +133,6 @@ class HandleGenerator:
             )
             return
 
-        # user_response nodes have default input and output
         if node_type == NodeType.USER_RESPONSE.value:
             _push_handle(
                 diagram,
@@ -206,9 +198,6 @@ class ArrowBuilder:
         s = str(create_handle_id(NodeID(source_node), source_label, HandleDirection.OUTPUT))
         t = str(create_handle_id(NodeID(target_node), target_label, HandleDirection.INPUT))
         return ArrowBuilder.create_arrow_id(s, t), s, t
-
-
-# Misc helpers
 
 
 def coerce_to_dict(

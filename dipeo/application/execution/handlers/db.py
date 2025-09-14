@@ -25,21 +25,12 @@ logger = logging.getLogger(__name__)
 
 @register_handler
 class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
-    """
-    Clean separation of concerns using Template Method Pattern:
-    1. validate() - Static/structural validation (compile-time checks)
-    2. pre_execute() - Runtime validation and setup
-    3. run() - Core execution logic
-    4. serialize_output() - Custom envelope creation
-
-    Now uses template method pattern to reduce code duplication.
-    """
+    """File-based DB node supporting read, write and append operations."""
 
     NODE_TYPE = NodeType.DB.value
 
     def __init__(self) -> None:
         super().__init__()
-        # Instance variables for passing data between methods
         self._current_db_service = None
         self._current_base_dir = None
         self._current_template_processor = None
@@ -348,26 +339,11 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             logger.exception("DB operation failed: %s", exc)
             raise  # Let base class handle error
 
-    def _format_as_table(self, query_result: Any) -> str:
-        """Format query result as a simple text table."""
-        if isinstance(query_result, dict):
-            # For dict, format as key-value pairs
-            lines = []
-            for key, value in query_result.items():
-                lines.append(f"{key}: {value}")
-            return "\n".join(lines)
-        elif isinstance(query_result, list):
-            # For list, format as numbered items
-            lines = []
-            for i, item in enumerate(query_result):
-                lines.append(f"{i+1}. {item}")
-            return "\n".join(lines)
-        else:
-            return str(query_result)
-
-    def _build_node_output(self, result: Any, request: ExecutionRequest[DbNode]) -> dict[str, Any]:
-        """Build multi-representation output for database operations."""
+    def serialize_output(self, result: Any, request: ExecutionRequest[DbNode]) -> Envelope:
+        """Custom serialization for DB results."""
         node = request.node
+        trace_id = request.execution_id or ""
+        factory = get_envelope_factory()
         operation = node.operation
 
         # Handle multiple files result
@@ -375,109 +351,52 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             file_count = result["file_count"]
             results = result["results"]
 
-            representations = {
-                "text": f"Read {file_count} files",
-                "object": results,
-                "metadata": {
-                    "affected_rows": file_count,
-                    "operation": operation,
-                    "file_count": file_count,
-                    "format": result.get("format"),
-                    "glob": result.get("glob", False),
-                },
-            }
+            # Create envelope with results as body
+            envelope = factory.create(body=results, produced_by=node.id, trace_id=trace_id)
 
-            return {
-                "primary": results,
-                "representations": representations,
-                "meta": {
-                    "multiple_files": True,
-                    "file_count": file_count,
-                    "format": result.get("format"),
-                    "serialize_json": result.get("serialize_json", False),
-                    "glob": result.get("glob", False),
-                },
-            }
+            # Add metadata about the operation
+            envelope = envelope.with_meta(
+                multiple_files=True,
+                file_count=file_count,
+                operation=operation,
+                format=result.get("format"),
+                serialize_json=result.get("serialize_json", False),
+                glob=result.get("glob", False),
+            )
+
+            return envelope
 
         # Handle single file result
         if isinstance(result, dict) and "value" in result:
             output_value = result["value"]
 
-            # Build representations
-            representations = {
-                "text": self._format_as_table(output_value)
-                if isinstance(output_value, dict | list)
-                else str(output_value),
-                "object": output_value,
-                "metadata": {
-                    "affected_rows": 1
-                    if operation == "write"
-                    else len(output_value)
-                    if isinstance(output_value, list | dict)
-                    else 1,
-                    "operation": operation,
-                    "format": result.get("format"),
-                },
-            }
-
-            # Determine primary value based on type
+            # Determine the body based on serialize_json flag
             if isinstance(output_value, dict | list):
                 if result.get("serialize_json", False) and not result.get("format"):
                     # Serialize to text if requested
-                    primary = json.dumps(output_value)
-                    primary_type = "text"
+                    body = json.dumps(output_value)
                 else:
                     # Keep as structured data
-                    primary = (
-                        output_value
-                        if isinstance(output_value, dict)
-                        else {"default": output_value}
-                    )
-                    primary_type = "json"
+                    body = output_value
             else:
-                primary = str(output_value)
-                primary_type = "text"
+                body = output_value
 
-            return {
-                "primary": primary,
-                "primary_type": primary_type,
-                "representations": representations,
-                "meta": {
-                    "operation": operation,
-                    "format": result.get("format"),
-                    "serialize_json": result.get("serialize_json", False),
-                },
-            }
+            # Create envelope
+            envelope = factory.create(body=body, produced_by=node.id, trace_id=trace_id)
+
+            # Add metadata
+            envelope = envelope.with_meta(
+                operation=operation,
+                format=result.get("format"),
+                serialize_json=result.get("serialize_json", False),
+            )
+
+            return envelope
 
         # Fallback for unexpected result format
-        return {
-            "primary": result,
-            "primary_type": "text",
-            "representations": {
-                "text": str(result),
-                "object": result,
-                "metadata": {"operation": operation},
-            },
-            "meta": {"operation": operation},
-        }
+        envelope = factory.create(body=result, produced_by=node.id, trace_id=trace_id)
 
-    def serialize_output(self, result: Any, request: ExecutionRequest[DbNode]) -> Envelope:
-        """Custom serialization for DB results with multi-representation."""
-        node = request.node
-        trace_id = request.execution_id or ""
-        factory = get_envelope_factory()
-
-        # Build multi-representation output
-        output = self._build_node_output(result, request)
-
-        # Create envelope with auto-detection
-        envelope = factory.create(body=output["primary"], produced_by=node.id, trace_id=trace_id)
-
-        # Representations no longer needed - removed deprecated with_representations() call
-
-        # Add metadata
-        if "meta" in output:
-            envelope = envelope.with_meta(**output["meta"])
+        envelope = envelope.with_meta(operation=operation)
 
         return envelope
 
@@ -489,7 +408,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         Phase 5: Now consumes tokens from incoming edges when available.
         """
         # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
-        envelope_inputs = self.consume_token_inputs(request, inputs)
+        envelope_inputs = self.get_effective_inputs(request, inputs)
 
         # Call parent prepare_inputs for default envelope conversion
         return await super().prepare_inputs(request, envelope_inputs)

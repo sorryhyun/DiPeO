@@ -9,7 +9,7 @@ from dipeo.diagram_generated import (
     HandleDirection,
     NodeType,
 )
-from dipeo.diagram_generated.conversions import diagram_maps_to_arrays, node_kind_to_domain_type
+from dipeo.diagram_generated.conversions import node_kind_to_domain_type
 from dipeo.domain.diagram.compilation.prompt_compiler import PromptFileCompiler
 from dipeo.domain.diagram.models.format_models import LightConnection, LightDiagram, LightNode
 from dipeo.domain.diagram.utils import (
@@ -23,6 +23,7 @@ from dipeo.domain.diagram.utils import (
     process_dotted_keys,
 )
 
+from ..utils.conversion_utils import diagram_maps_to_arrays
 from .base_strategy import BaseConversionStrategy
 
 log = logging.getLogger(__name__)
@@ -41,56 +42,32 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
     }
 
     def __init__(self):
-        """Initialize the strategy with optional prompt compilation."""
         super().__init__()
         self._prompt_compiler: PromptFileCompiler | None = None
-        # Enable prompt compilation by default, can be disabled via env var
         self._enable_prompt_compilation = (
             os.getenv("DIPEO_COMPILE_PROMPTS", "true").lower() == "true"
         )
         if self._enable_prompt_compilation:
             self._prompt_compiler = PromptFileCompiler()
 
-    # ---- New typed deserialization ---------------------------------------- #
     def deserialize_to_domain(self, content: str, diagram_path: str | None = None) -> DomainDiagram:
-        """Deserialize light format content to DomainDiagram using typed models.
-
-        Args:
-            content: The YAML content to deserialize
-            diagram_path: Optional path to the diagram file for prompt resolution
-        """
-        # Parse YAML to dict
         data = self.parse(content)
         data = self._clean_graphql_fields(data)
-
-        # Parse into typed LightDiagram model
         light_diagram = self._parse_to_light_diagram(data)
-
-        # Convert to intermediate dict format with all transformations
         diagram_dict = self._light_diagram_to_dict(light_diagram, data, diagram_path)
-
-        # Apply format-specific transformations
         diagram_dict = self._apply_format_transformations(diagram_dict, data)
-
-        # Convert map-based dict to array-based for DomainDiagram
         array_based_dict = diagram_maps_to_arrays(diagram_dict)
 
-        # Add metadata if present
         if "metadata" in diagram_dict:
             array_based_dict["metadata"] = diagram_dict["metadata"]
 
-        # Convert to DomainDiagram
         return DomainDiagram.model_validate(array_based_dict)
 
     def _parse_to_light_diagram(self, data: dict[str, Any]) -> LightDiagram:
-        """Parse dict data into typed LightDiagram model."""
-        # Convert nodes to LightNode objects
         nodes = []
         for node_data in data.get("nodes", []):
             if isinstance(node_data, dict):
-                # Extract props separately to handle extra fields
                 props = node_data.get("props", {})
-                # Also include any extra fields not in standard fields
                 for k, v in node_data.items():
                     if k not in {"type", "label", "position", "props"}:
                         props[k] = v
@@ -103,11 +80,9 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 )
                 nodes.append(node)
 
-        # Convert connections to LightConnection objects
         connections = []
         for conn_data in data.get("connections", []):
             if isinstance(conn_data, dict):
-                # Build connection data with proper field names
                 conn_dict = {
                     "from": conn_data.get("from", ""),
                     "to": conn_data.get("to", ""),
@@ -117,7 +92,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 if "content_type" in conn_data or "type" in conn_data:
                     conn_dict["type"] = conn_data.get("content_type") or conn_data.get("type")
 
-                # Add any extra fields
                 for k, v in conn_data.items():
                     if k not in {"from", "to", "label", "type", "content_type"}:
                         conn_dict[k] = v
@@ -125,12 +99,10 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 conn = LightConnection(**conn_dict)
                 connections.append(conn)
 
-        # Convert persons dict to list if needed
         persons = data.get("persons")
         if persons and isinstance(persons, dict):
             persons = list(persons.values())
 
-        # Convert api_keys dict to list if needed
         api_keys = data.get("api_keys")
         if api_keys and isinstance(api_keys, dict):
             api_keys = list(api_keys.values())
@@ -149,43 +121,32 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         original_data: dict[str, Any],
         diagram_path: str | None = None,
     ) -> dict[str, Any]:
-        """Convert LightDiagram to intermediate dict format with all complex logic."""
-        # Process nodes
         nodes_list = []
         for index, node in enumerate(light_diagram.nodes):
             node_dict = node.model_dump(exclude_none=True)
 
-            # Extract and process properties
             props = self._extract_node_props_from_light(node_dict)
 
-            # Add label to props if it exists
             if node.label:
                 props["label"] = node.label
 
-            # Build node with proper structure for DomainNode
             processed_node = {
                 "id": self._create_node_id(index),
                 "type": node.type,
                 "position": node.position or {"x": 0, "y": 0},
-                "data": props,  # All extra properties go in data field
+                "data": props,
             }
             nodes_list.append(processed_node)
 
-        # Apply prompt compilation if enabled
         if self._prompt_compiler and self._enable_prompt_compilation:
-            # Use the diagram_path parameter passed to this method,
-            # or fall back to metadata diagram_id if available
             effective_path = diagram_path or original_data.get("metadata", {}).get("diagram_id")
             nodes_list = self._prompt_compiler.resolve_prompt_files(nodes_list, effective_path)
 
-        # Build nodes dict
         nodes_dict = self._build_nodes_dict(nodes_list)
 
-        # Process arrows/connections with complex handle logic
         arrows_list = self._process_light_connections(light_diagram, nodes_list)
         arrows_dict = self._build_arrows_dict(arrows_list)
 
-        # Extract handles and persons
         handles_dict = self._extract_handles_dict(original_data)
         persons_dict = self._extract_persons_dict(original_data)
 
@@ -198,32 +159,25 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         }
 
     def _build_nodes_dict(self, nodes_list: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-        """Convert nodes list to dict indexed by node ID."""
         return {node["id"]: node for node in nodes_list}
 
     def _build_arrows_dict(self, arrows_list: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-        """Convert arrows list to dict indexed by arrow ID."""
         return {arrow["id"]: arrow for arrow in arrows_list}
 
     def _extract_handles_dict(self, data: dict[str, Any]) -> dict[str, dict[str, Any]]:
-        """Extract handles from data (if present)."""
         handles = data.get("handles", {})
         if isinstance(handles, list):
             return {h.get("id", f"handle_{i}"): h for i, h in enumerate(handles)}
         return handles if isinstance(handles, dict) else {}
 
     def _extract_node_props_from_light(self, node_data: dict[str, Any]) -> dict[str, Any]:
-        """Extract and process node properties from light format."""
-        # Get all fields except standard ones
         props = {}
         for k, v in node_data.items():
             if k not in {"type", "label", "position"}:
                 props[k] = v
 
-        # Process dotted keys
         props = process_dotted_keys(props)
 
-        # Map import fields
         node_type = node_data.get("type", "job")
         props = NodeFieldMapper.map_import_fields(node_type, props)
 
@@ -232,16 +186,13 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
     def _process_light_connections(
         self, light_diagram: LightDiagram, nodes: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
-        """Process LightConnection objects into arrow dicts with handle logic."""
         arrows: list[dict[str, Any]] = []
         label2id = _node_id_map(nodes)
 
         for idx, conn in enumerate(light_diagram.connections):
-            # Get source and destination from typed model
             src_raw = conn.from_
             dst_raw = conn.to
 
-            # Parse source and destination using shared utility
             src_id, src_handle_from_split, src_label = HandleParser.parse_label_with_handle(
                 src_raw, label2id
             )
@@ -255,11 +206,9 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 )
                 continue
 
-            # Get arrow data from connection's extra fields
             conn_dict = conn.model_dump(by_alias=True, exclude={"from", "to", "label", "type"})
             arrow_data = conn_dict.get("data", {})
 
-            # Determine handles using shared utility
             src_handle = HandleParser.determine_handle_name(
                 src_handle_from_split, arrow_data, is_source=True
             )
@@ -267,48 +216,36 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 dst_handle_from_split, arrow_data, is_source=False
             )
 
-            # Create arrow with data
             arrow_data_copy = arrow_data.copy() if arrow_data else {}
 
-            # If the destination handle was "_first", mark this edge as requiring first execution
-            # This is used by PersonJob nodes to determine whether to use first_prompt vs default_prompt
             if dst_handle_from_split == "_first":
                 arrow_data_copy["requires_first_execution"] = True
 
-            # Add branch data if this is from a condition handle and not already present
             if src_handle in ["condtrue", "condfalse"]:
                 if "branch" not in arrow_data_copy:
                     arrow_data_copy["branch"] = "true" if src_handle == "condtrue" else "false"
-                # Mark edges from condition nodes as conditional for proper scheduler handling
                 arrow_data_copy["is_conditional"] = True
 
-            # Create proper handle IDs
             source_handle_id, target_handle_id = HandleParser.create_handle_ids(
                 src_id, dst_id, src_handle, dst_handle
             )
 
-            # Build arrow using shared processor
             arrow_dict = ArrowDataProcessor.build_arrow_dict(
                 arrow_data.get("id", f"arrow_{idx}"),
                 source_handle_id,
                 target_handle_id,
                 arrow_data_copy,
-                conn.type,  # Use the typed field
-                conn.label,  # Use the typed field
+                conn.type,
+                conn.label,
             )
 
             arrows.append(arrow_dict)
         return arrows
 
-    # ---- Helper methods for backward compatibility ------------------------ #
     def _create_node_id(self, index: int, prefix: str = "node") -> str:
-        """Create a unique node ID."""
         return f"{prefix}_{index}"
 
-    # ---- Domain Conversion Overrides -------------------------------------- #
-
     def _extract_persons_dict(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Extract persons for light format with label-based structure."""
         persons_data = data.get("persons", {})
         if isinstance(persons_data, dict):
             return PersonExtractor.extract_from_dict(persons_data, is_light_format=True)
@@ -317,15 +254,12 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
     def _apply_format_transformations(
         self, diagram_dict: dict[str, Any], original_data: dict[str, Any]
     ) -> dict[str, Any]:
-        """Apply light format specific transformations."""
-        # Create person label to ID mapping
         person_label_to_id: dict[str, str] = {}
         if diagram_dict["persons"]:
             for person_id, person_data in diagram_dict["persons"].items():
                 label = person_data.get("label", person_id)
                 person_label_to_id[label] = person_id
 
-        # Resolve person labels to IDs in nodes
         if person_label_to_id:
             for _node_id, node in diagram_dict["nodes"].items():
                 if node.get("type") == "person_job":
@@ -351,45 +285,37 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                         if person_ref in person_label_to_id:
                             node["data"]["person"] = person_label_to_id[person_ref]
 
-        # Generate handles for nodes without them
         self._generate_missing_handles(diagram_dict)
 
-        # Create handles referenced by arrows
         self._create_arrow_handles(diagram_dict)
 
-        # Preserve content types for condition outputs
         self._preserve_condition_content_types(diagram_dict)
 
         return diagram_dict
 
     def _generate_missing_handles(self, diagram_dict: dict[str, Any]):
-        """Generate default handles for nodes that don't have any."""
         from dipeo.domain.diagram.utils.shared_components import HandleGenerator
 
         handle_generator = HandleGenerator()
 
         for node_id, node in diagram_dict["nodes"].items():
-            # Check if this node has any handles
             node_has_handles = any(
                 handle.get("nodeId") == node_id or handle.get("node_id") == node_id
                 for handle in diagram_dict["handles"].values()
             )
             if not node_has_handles:
-                # Convert node type string to enum
                 node_type_str = node.get("type", "code_job")
                 try:
                     node_type = node_kind_to_domain_type(node_type_str)
                 except ValueError:
                     node_type = NodeType.CODE_JOB
 
-                handle_generator.generate_for_node(diagram_dict, node_id, node_type.value)
+                handle_generator.generate_for_node(diagram_dict, node_id, node_type)
 
     def _create_arrow_handles(self, diagram_dict: dict[str, Any]):
-        """Create handles referenced by arrows but not yet defined."""
         nodes_dict = diagram_dict["nodes"]
 
         for _arrow_id, arrow in diagram_dict["arrows"].items():
-            # Process source handle
             if "_" in arrow.get("source", ""):
                 self._ensure_handle_exists(
                     arrow["source"],
@@ -399,7 +325,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                     arrow,
                 )
 
-            # Process target handle
             if "_" in arrow.get("target", ""):
                 self._ensure_handle_exists(
                     arrow["target"],
@@ -417,28 +342,23 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         handles_dict: dict[str, Any],
         arrow: dict[str, Any],
     ):
-        """Ensure a handle exists, creating it if necessary."""
         HandleParser.ensure_handle_exists(handle_ref, direction, nodes_dict, handles_dict, arrow)
 
     def _preserve_condition_content_types(self, diagram_dict: dict[str, Any]):
-        """Preserve content types for arrows from condition nodes."""
         nodes_dict = diagram_dict["nodes"]
         arrows_dict = diagram_dict["arrows"]
 
         for _arrow_id, arrow in arrows_dict.items():
             if arrow.get("source"):
                 try:
-                    # Parse source handle
                     node_id, handle_label, direction = parse_handle_id(arrow["source"])
                     source_node = nodes_dict.get(node_id)
 
-                    # If source is from condition node's condtrue/condfalse
                     if (
                         source_node
                         and source_node.get("type") == "condition"
                         and handle_label in ["condtrue", "condfalse"]
                     ):
-                        # Find input content types
                         input_content_types = []
                         for other_arrow in arrows_dict.values():
                             if (
@@ -448,7 +368,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                             ):
                                 input_content_types.append(other_arrow["content_type"])
 
-                        # Preserve if all inputs have same type
                         if input_content_types and all(
                             ct == input_content_types[0] for ct in input_content_types
                         ):
@@ -456,24 +375,15 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 except Exception:
                     pass
 
-    # ---- New typed serialization ------------------------------------------ #
     def serialize_from_domain(self, diagram: DomainDiagram) -> str:
-        """Serialize DomainDiagram to light format string using typed models."""
-        # Convert to LightDiagram
         light_diagram = self._domain_to_light_diagram(diagram)
-
-        # Convert to dict for YAML serialization
         data = self._light_diagram_to_export_dict(light_diagram)
-
-        # Format as YAML
         return self.format(data)
 
     def _domain_to_light_diagram(self, diagram: DomainDiagram) -> LightDiagram:
-        """Convert DomainDiagram to typed LightDiagram model."""
         id_to_label: dict[str, str] = {}
         label_counts: dict[str, int] = {}
 
-        # Create person ID to label mapping
         person_id_to_label: dict[str, str] = {}
         for p in diagram.persons:
             person_id_to_label[p.id] = p.label
@@ -483,7 +393,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             label_counts[base] = cnt + 1
             return f"{base}~{cnt}" if cnt else base
 
-        # Convert nodes
         nodes_out = []
         for n in diagram.nodes:
             base = n.data.get("label") or str(n.type).split(".")[-1].title()
@@ -491,26 +400,21 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             id_to_label[n.id] = label
             node_type = str(n.type).split(".")[-1].lower()
 
-            # Extract properties
             props = {
                 k: v
                 for k, v in (n.data or {}).items()
                 if k not in {"label", "position"}
                 and v not in (None, "", {})
-                # Don't filter out empty arrays for 'flipped' property
                 and not (k != "flipped" and v == [])
             }
 
-            # Replace person ID with person label for person_job nodes
             if node_type == "person_job" and "person" in props:
                 person_id = props["person"]
                 if person_id in person_id_to_label:
                     props["person"] = person_id_to_label[person_id]
 
-            # Map fields for export
             props = NodeFieldMapper.map_export_fields(node_type, props)
 
-            # Create typed LightNode
             node = LightNode(
                 type=node_type,
                 label=label,
@@ -519,44 +423,37 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             )
             nodes_out.append(node)
 
-        # Convert arrows to connections
         connections = []
         for a in diagram.arrows:
-            # Parse handle IDs
             s_node_id, s_handle, _ = parse_handle_id(a.source)
             t_node_id, t_handle, _ = parse_handle_id(a.target)
 
-            # Build connection strings
             from_str = f"{id_to_label[s_node_id]}{'_' + s_handle if s_handle != 'default' else ''}"
             to_str = f"{id_to_label[t_node_id]}{'_' + t_handle if t_handle != 'default' else ''}"
 
-            # Create extra data dict for connection
             extra_data = {}
             if a.data and ArrowDataProcessor.should_include_branch_data(s_handle, a.data):
                 extra_data["data"] = {"branch": a.data["branch"]}
 
-            # Create typed LightConnection
             conn = LightConnection(
                 from_=from_str,
                 to=to_str,
                 label=a.label,
-                type=a.content_type.value if a.content_type else None,
+                type=a.content_type if a.content_type else None,
                 **extra_data,
             )
             connections.append(conn)
 
-        # Convert persons
         persons_data = None
         if diagram.persons:
             persons_out = {}
             for p in diagram.persons:
                 person_data = {
-                    "service": p.llm_config.service.value
+                    "service": p.llm_config.service
                     if hasattr(p.llm_config.service, "value")
                     else str(p.llm_config.service),
                     "model": p.llm_config.model,
                 }
-                # Only include optional fields if they have values
                 if p.llm_config.system_prompt:
                     person_data["system_prompt"] = p.llm_config.system_prompt
                 if p.llm_config.api_key_id:
@@ -564,7 +461,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 persons_out[p.label] = person_data
             persons_data = persons_out
 
-        # Create typed LightDiagram
         return LightDiagram(
             nodes=nodes_out,
             connections=connections,
@@ -573,8 +469,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         )
 
     def _light_diagram_to_export_dict(self, light_diagram: LightDiagram) -> dict[str, Any]:
-        """Convert LightDiagram to dict for YAML export."""
-        # Convert nodes to dict format
         nodes_out = []
         for node in light_diagram.nodes:
             node_dict = {
@@ -582,7 +476,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 "type": node.type,
                 "position": node.position,
             }
-            # Add props if any
             props = {
                 k: v for k, v in node.model_dump(exclude={"type", "label", "position"}).items() if v
             }
@@ -590,7 +483,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 node_dict["props"] = props
             nodes_out.append(node_dict)
 
-        # Convert connections to dict format
         connections_out = []
         for conn in light_diagram.connections:
             conn_dict = {
@@ -601,13 +493,11 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 conn_dict["label"] = conn.label
             if conn.type:
                 conn_dict["content_type"] = conn.type
-            # Add any extra data
             extra = conn.model_dump(exclude={"from_", "to", "label", "type"})
             if extra:
                 conn_dict.update(extra)
             connections_out.append(conn_dict)
 
-        # Build final dict
         out: dict[str, Any] = {"version": "light", "nodes": nodes_out}
         if connections_out:
             out["connections"] = connections_out
@@ -617,7 +507,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             out["metadata"] = light_diagram.metadata
         return out
 
-    # ---- heuristics ------------------------------------------------------- #
     def detect_confidence(self, data: dict[str, Any]) -> float:
         return 0.8 if isinstance(data.get("nodes"), list) else 0.1
 

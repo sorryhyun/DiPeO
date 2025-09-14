@@ -13,25 +13,20 @@ class BackendFilters:
 
     @staticmethod
     def pythonize_name(name: str) -> str:
-        """Convert JavaScript camelCase to Python snake_case."""
         if not name:
             return ""
-        # Insert underscores before uppercase letters
         s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
         return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
     @classmethod
     def python_class_name(cls, node_type: str) -> str:
-        """Convert node type to Python class name."""
         if not node_type:
             return "UnknownNode"
-        # Convert snake_case to PascalCase and append 'Node'
         parts = node_type.split("_")
         return "".join(part.title() for part in parts) + "Node"
 
     @classmethod
     def handler_class_name(cls, node_type: str) -> str:
-        """Get handler class name for node type."""
         if not node_type:
             return "UnknownNodeHandler"
         parts = node_type.split("_")
@@ -42,7 +37,6 @@ class BackendFilters:
         """Generate Pydantic Field() definition for a field."""
         parts = []
 
-        # Default value
         if not field.get("required", False):
             default_val = field.get("default")
             if default_val is None:
@@ -54,17 +48,14 @@ class BackendFilters:
             else:
                 parts.append(f"default={default_val}")
 
-        # Description
         if desc := field.get("description"):
             parts.append(f'description="{desc}"')
 
-        # Alias if name needs pythonization
         original_name = field.get("name", "")
         python_name = BackendFilters.pythonize_name(original_name)
         if python_name != original_name:
             parts.append(f'alias="{original_name}"')
 
-        # Validation constraints
         if validation := field.get("validation"):
             if "minLength" in validation:
                 parts.append(f'min_length={validation["minLength"]}')
@@ -84,7 +75,6 @@ class BackendFilters:
 
     @staticmethod
     def needs_field_alias(field: dict[str, Any]) -> bool:
-        """Check if field needs an alias due to name transformation."""
         original = str(field.get("name", ""))
         pythonized = BackendFilters.pythonize_name(original)
         return original != pythonized
@@ -94,15 +84,12 @@ class BackendFilters:
         """Calculate Python imports needed for the model."""
         imports = set()
 
-        # Always need these for Pydantic models
         imports.add("from typing import Dict, Any, List, Optional, Union")
         imports.add("from pydantic import BaseModel, Field")
 
-        # Check if we need validators
         if any(field.get("validation") for field in spec_data.get("fields", [])):
             imports.add("from pydantic import validator")
 
-        # Check for specific types
         types_used = set()
         for field in spec_data.get("fields", []):
             field_type = field.get("type", "string")
@@ -115,7 +102,6 @@ class BackendFilters:
             if "|" in field_type and "Literal[" in field_type:
                 imports.add("from typing import Literal")
 
-        # Add domain imports
         node_type = spec_data.get("nodeType", "")
         if node_type:
             imports.add("from dipeo.diagram_generated.models.base import BaseNodeModel")
@@ -131,7 +117,6 @@ class BackendFilters:
             if validation := field.get("validation"):
                 field_name = BackendFilters.pythonize_name(field["name"])
 
-                # Custom validator
                 if "custom" in validation:
                     validators.append(
                         {
@@ -141,7 +126,6 @@ class BackendFilters:
                         }
                     )
 
-                # Pattern validator
                 elif "pattern" in validation and field.get("type") == "string":
                     validators.append(
                         {
@@ -166,11 +150,9 @@ class BackendFilters:
             "extra": "forbid",
         }
 
-        # Check if any fields need aliases
         if any(BackendFilters.needs_field_alias(f) for f in spec_data.get("fields", [])):
             config["allow_population_by_field_name"] = True
 
-        # Add any custom config from spec
         if custom_config := spec_data.get("modelConfig"):
             config.update(custom_config)
 
@@ -201,9 +183,6 @@ class BackendFilters:
             "from dipeo.domain.base.exceptions import ValidationError, ExecutionError",
         ]
 
-        # Note: Services are now accessed via DI container at runtime
-        # No need for type-specific imports - use request.services[KEY] pattern
-
         return sorted(list(set(imports)))
 
     @staticmethod
@@ -211,7 +190,6 @@ class BackendFilters:
         """Get main execution logic lines for a node type."""
         logic_map = {
             "person_job": [
-                "# Execute LLM call",
                 "llm_service = request.services[LLM_SERVICE]",
                 "response = await llm_service.generate(",
                 "    prompt=node.props.get('default_prompt', ''),",
@@ -221,7 +199,6 @@ class BackendFilters:
                 "return {'content': response.content}",
             ],
             "code_job": [
-                "# Execute code",
                 "code_executor = request.services[CODE_EXECUTOR]",
                 "result = await code_executor.execute(",
                 "    code=node.props.get('code', ''),",
@@ -231,7 +208,6 @@ class BackendFilters:
                 "return result",
             ],
             "api_job": [
-                "# Make API request",
                 "http_client = request.services[HTTP_CLIENT]",
                 "response = await http_client.request(",
                 "    method=node.props.get('method', 'GET'),",
@@ -242,7 +218,6 @@ class BackendFilters:
                 "return {'response': response.json()}",
             ],
             "condition": [
-                "# Evaluate condition",
                 "condition_type = node.props.get('condition_type')",
                 "if condition_type == 'custom':",
                 "    expression = node.props.get('expression', 'True')",
@@ -254,7 +229,6 @@ class BackendFilters:
                 "return {'result': bool(result)}",
             ],
             "template_job": [
-                "# Render template",
                 "template_service = request.services.get('template_service')",
                 "result = await template_service.render(",
                 "    engine=node.props.get('engine', 'jinja2'),",
@@ -270,7 +244,6 @@ class BackendFilters:
         return logic_map.get(
             node_type,
             [
-                "# Default execution logic",
                 "# TODO: Implement node-specific logic",
                 "return {'result': 'success'}",
             ],
@@ -289,7 +262,6 @@ class BackendFilters:
                     f"    raise ValidationError('Missing required field: {field_name}')"
                 )
 
-        # Add type-specific validations
         node_type = spec_data.get("nodeType", "")
         if node_type == "api_job":
             checks.extend(
@@ -317,13 +289,11 @@ class BackendFilters:
 
     @staticmethod
     def spec_to_camel_name(node_type: str) -> str:
-        """Convert node type to camelCase spec name (e.g., person_job -> personJobSpec)."""
         if not node_type:
             return "unknownSpec"
         parts = node_type.split("_")
         if not parts:
             return "unknownSpec"
-        # First part lowercase, rest title case
         camel = parts[0].lower() + "".join(p.title() for p in parts[1:])
         return f"{camel}Spec"
 
@@ -337,10 +307,8 @@ class BackendFilters:
         is_required = field.get("required", False)
         default_value = field.get("default")
 
-        # Get the base type first
         base_type = None
 
-        # Special handling for specific field names based on node type
         context_mappings = {
             "method": "HttpMethod",
             "sub_type": "DBBlockSubType",
@@ -352,13 +320,10 @@ class BackendFilters:
             "diagram_format": "DiagramFormat",
         }
 
-        # Check for context-specific mappings
         if field_name in context_mappings:
             base_type = context_mappings[field_name]
-        # Check if type exists in provided mappings
         elif mappings and "ts_to_py_type" in mappings and field_type in mappings["ts_to_py_type"]:
             base_type = str(mappings["ts_to_py_type"][field_type])
-        # Special handling for PersonJob fields
         elif node_type == "person_job":
             if field_name == "person_id":
                 base_type = "PersonID"
@@ -367,17 +332,13 @@ class BackendFilters:
             elif field_name == "memory_settings":
                 base_type = "MemorySettings"
             elif field_name == "memory_profile":
-                # memory_profile is a string identifier, not a MemoryProfile type
                 base_type = "str"
             elif field_name == "tools":
                 base_type = "List[ToolConfig]"
 
-        # If no special case matched, determine type from field_type
         if base_type is None:
-            # Check camelCase to underscore variations
             if field_name == "maxIteration" or field_name == "max_iteration":
                 base_type = "int"
-            # Handle complex types
             elif field_type == "object" or field_type == "dict":
                 base_type = "Dict[str, Any]"
             elif field_type == "array" or field_type == "list":
@@ -385,7 +346,6 @@ class BackendFilters:
             elif field_type == "string":
                 base_type = "str"
             elif field_type == "number":
-                # Check if it should be int
                 if field_name in {
                     "maxIteration",
                     "max_iteration",
@@ -408,8 +368,6 @@ class BackendFilters:
             elif field_type == "boolean":
                 base_type = "bool"
             elif field_type == "enum":
-                # Generate Literal type from enum values
-                # Check both 'values' and 'validation.allowedValues' for enum values
                 values = field.get("values", [])
                 if not values and field.get("validation"):
                     values = field.get("validation", {}).get("allowedValues", [])
@@ -422,22 +380,13 @@ class BackendFilters:
             elif field_type == "any":
                 base_type = "Any"
             else:
-                # Default to the type as-is (might be a custom type)
                 base_type = field_type
 
-        # Wrap in Optional if field is not required
-        # Check if field will have None as default (either explicit or implicit)
         if not is_required:
-            # Even Dict or List types need Optional if they can receive None
-            # They use default_factory for the default, but still need to accept None
             if field_type in ["object", "dict", "array", "list"]:
-                # These use default_factory but should still accept None
                 return f"Optional[{base_type}]"
-            # Check if field has an explicit non-None default
             if "default" in field and field["default"] is not None:
-                # Has a non-None default, don't wrap in Optional
                 return base_type
-            # Field is optional and will have None as default, wrap in Optional
             return f"Optional[{base_type}]"
 
         return base_type
@@ -448,7 +397,6 @@ class BackendFilters:
         field_type = field.get("type", "string")
         is_required = field.get("required", False)
 
-        # Check for explicit default
         if "default" in field:
             default_val = field["default"]
             if isinstance(default_val, str):
@@ -460,11 +408,9 @@ class BackendFilters:
             else:
                 return str(default_val)
 
-        # For optional fields without an explicit default, use None
         if not is_required:
             return "None"
 
-        # Type-based defaults for required fields
         if field_type in ["object", "dict"]:
             return "field(default_factory=dict)"
         elif field_type in ["array", "list"]:
@@ -480,11 +426,6 @@ class BackendFilters:
 
     @staticmethod
     def get_field_python_type(field: dict[str, Any], context: dict[str, Any]) -> str:
-        """Get Python type for a field using full context.
-
-        This is a wrapper that extracts nodeType and mappings from context
-        and calls python_type_with_context.
-        """
         node_type = context.get("nodeType", "")
         mappings = context.get("mappings", {})
         return BackendFilters.python_type_with_context(field, node_type, mappings)

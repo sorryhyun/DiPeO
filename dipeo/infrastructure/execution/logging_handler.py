@@ -53,13 +53,8 @@ class ExecutionLogHandler(logging.Handler):
             return
 
         try:
-            # Format the log message
             msg = self.format(record)
-
-            # Map Python log levels to our log levels
             level = record.levelname
-
-            # Create and publish the log event
             import asyncio
 
             event = DomainEvent(
@@ -73,20 +68,15 @@ class ExecutionLogHandler(logging.Handler):
                 ),
             )
 
-            # Get or create event loop and emit the event
             try:
                 asyncio.get_running_loop()
             except RuntimeError:
-                # No running loop, skip emission
                 return
 
-            # Schedule the event emission as a coroutine
             task = asyncio.create_task(self._emit_async(event))
-            # Task is fire-and-forget, we don't need to track it
             _ = task
 
         except Exception:
-            # Silently ignore errors to avoid disrupting execution
             self.handleError(record)
 
     async def _emit_async(self, event: DomainEvent) -> None:
@@ -118,11 +108,8 @@ def setup_execution_logging(
     handler = ExecutionLogHandler(event_bus, execution_id)
     handler.setLevel(log_level)
 
-    # Use a simple formatter
     formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
-
-    # Add to root logger
     logging.getLogger().addHandler(handler)
 
     return handler

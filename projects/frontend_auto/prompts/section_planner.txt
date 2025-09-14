@@ -1,4 +1,4 @@
-Analyze the requirements and create a modern, polished file structure plan:
+Analyze the requirements and create a modern, library-based file structure plan:
 
 App config: {{config}}
 
@@ -6,10 +6,10 @@ Your response MUST include:
 1. Architecture:
    - High-level overview of the application structure
    - Key patterns and technologies to use (React 18+, TypeScript, Vite)
-   - Design system approach (theme, tokens, components)
+   - UI library approach (Radix UI primitives, Tailwind, CVA for variants)
    - Folder structure showing organization
-   - Data flow and state management strategy
-   - UI/UX considerations: animations, micro-interactions, responsive design
+   - Data flow and state management strategy (React Query, Zustand)
+   - UI/UX considerations: animations (Framer Motion), responsive design
 
 2. Sections (one per file):
    - id: unique identifier
@@ -17,16 +17,21 @@ Your response MUST include:
    - description: what the file does
    - dependencies: other files it imports from
    - exports: what it provides to other files
-   - priority: 0=kernel, 1=foundational, 2=components, 3=pages
+   - priority: 0=kernel, 1=foundational, 2=features, 3=pages
 
 REQUIREMENTS:
 - Order sections by priority and dependencies
   * It's recommended to mention less-dependent sections first
-- Include ALL SOURCE FILES that will exist in the app (src/* only)
+- Include ONLY BUSINESS LOGIC FILES (src/* only)
 - EXCLUDE configuration files - these are provided as base infrastructure:
   * DO NOT include: package.json, tsconfig.json, vite.config.ts, tailwind.config.js
   * DO NOT include: postcss.config.js, .eslintrc.json, .gitignore, index.html
   * These config files are pre-existing and will be copied from base_configs/
+- EXCLUDE standard UI components - these come from libraries:
+  * DO NOT include: Button, Input, Select, Checkbox, Switch, Card, Modal, Table, Toast
+  * DO NOT include: Tooltip, Popover, Dialog, Dropdown, Tabs, Badge, Alert, Skeleton
+  * These are provided by @/components/ui/* (Radix UI wrappers)
+  * Import them as: `import { Button } from '@/components/ui/button'`
 - Start with core kernel files (priority 0):
   * src/core/contracts.ts - Domain types and API contracts
   * src/app/config.ts - Materialized configuration (use import.meta.env for env vars)
@@ -35,16 +40,21 @@ REQUIREMENTS:
   * src/core/di.ts - Dependency injection (if needed)
   * src/core/utils.ts - Common utilities (if needed)
 - Then design foundations (priority 1):
-  * src/theme/index.ts - Design tokens, colors, typography, spacing
-  * src/theme/animations.ts - Framer Motion or CSS animation presets
-  * src/shared/layouts/* - Responsive layout components
-- Include polished UI components:
-  * Glass morphism, gradients, shadows for depth
-  * Loading states with skeleton screens
-  * Smooth transitions between states
-  * Toast notifications, modals with backdrop blur
-  * Data visualization components if needed
+  * src/theme/index.ts - Theme provider integration
+  * src/theme/animations.ts - Framer Motion animation presets
+  * src/shared/layouts/* - Application-specific layout components
+- Include ONLY domain-specific components (priority 2):
+  * Business logic components (e.g., MetricCard, KPIWidget, ReportViewer)
+  * Feature-specific components that compose UI primitives
+  * Custom data visualization components
+  * Complex forms with business logic
 - Then include: pages, providers, services, features
-- Consider accessibility: ARIA labels, keyboard navigation, focus management
-- Every import must have a corresponding section
+- Use libraries for common functionality:
+  * React Query for data fetching
+  * React Hook Form + Zod for forms
+  * Recharts for charts
+  * Lucide React for icons
+  * Sonner for toasts
+  * MSW for mocking
+- Every import must have a corresponding section OR come from libraries
 - All file paths should start with "src/" (not root-level configs)

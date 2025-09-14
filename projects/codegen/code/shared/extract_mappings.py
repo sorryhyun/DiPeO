@@ -4,6 +4,8 @@ import json
 import re
 from typing import Any, Union
 
+from projects.codegen.code.core.utils import parse_dipeo_output
+
 
 def parse_object_expression(node: dict) -> dict:
     """Parse a TypeScript object expression from AST."""
@@ -333,7 +335,7 @@ def extract_zod_schemas(interfaces: list[dict], enums: list[dict], mappings: dic
                 break
 
         if not interface_data:
-            print(f"Warning: Interface {interface_name} not found")
+            # print(f"Warning: Interface {interface_name} not found")
             continue
 
         schema_code = generate_interface_schema(interface_data, enum_schemas, type_to_zod, base_fields)
@@ -489,7 +491,7 @@ def extract_specifications(ast_files: dict) -> list[dict]:
 
     for filepath, content in ast_files.items():
         if '.spec.ts.json' in filepath and 'index.ts.json' not in filepath:
-            ast_data = content if isinstance(content, dict) else json.loads(content)
+            ast_data = parse_dipeo_output(content)
 
             # Find specification constants
             for constant in ast_data.get('constants', []):
@@ -661,7 +663,7 @@ def main(inputs: dict) -> dict:
     # First, handle if 'default' is a string (JSON) and parse it
     if 'default' in inputs and isinstance(inputs['default'], str):
         try:
-            inputs['default'] = json.loads(inputs['default'])
+            inputs['default'] = parse_dipeo_output(inputs['default'])
         except json.JSONDecodeError:
             print("Failed to parse JSON from 'default' input")
 
@@ -681,14 +683,14 @@ def main(inputs: dict) -> dict:
             # First extract mappings from mappings.ts.json
             for filepath, content in default_data.items():
                 if 'mappings.ts.json' in filepath or 'codegen-mappings' in filepath:
-                    ast_data = content if isinstance(content, dict) else json.loads(content)
+                    ast_data = parse_dipeo_output(content)
                     mappings = extract_mappings(ast_data)
                     break
 
             # Then extract NODE_INTERFACE_MAP from node-interface-map.ts.json
             for filepath, content in default_data.items():
                 if 'node-interface-map.ts.json' in filepath:
-                    ast_data = content if isinstance(content, dict) else json.loads(content)
+                    ast_data = parse_dipeo_output(content)
                     # Extract NODE_INTERFACE_MAP from this file
                     for constant in ast_data.get('constants', []):
                         if constant.get('name') == 'NODE_INTERFACE_MAP':
@@ -717,7 +719,7 @@ def main(inputs: dict) -> dict:
 
                 if filename.endswith('.data.ts.json') or filename.endswith('.ts.json'):
                     # This is a node data file or other TypeScript file
-                    ast_data = content if isinstance(content, dict) else json.loads(content)
+                    ast_data = parse_dipeo_output(content)
                     interfaces = ast_data.get('interfaces', [])
                     enums = ast_data.get('enums', [])
                     all_interfaces.extend(interfaces)

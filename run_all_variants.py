@@ -40,7 +40,7 @@ def run_variant(config_file):
         "projects/frontend_auto/consolidated_generator",
         "--light",
         "--debug",
-        "--timeout=5400",
+        "--timeout=7200",
         "--input-data",
         input_data,
     ]

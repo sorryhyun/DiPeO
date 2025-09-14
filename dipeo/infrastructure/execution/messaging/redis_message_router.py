@@ -52,7 +52,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         settings = get_settings()
         self.redis_url = settings.messaging.redis_url
         if not self.redis_url:
-            # Try getting from environment directly as fallback
             import os
 
             self.redis_url = os.getenv("DIPEO_REDIS_URL")
@@ -61,32 +60,22 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                     "Redis URL not configured. Set DIPEO_REDIS_URL environment variable."
                 )
 
-        # Redis clients
         self.redis_client: redis.Redis | None = None
         self.pubsub_client: PubSub | None = None
-
-        # Local state per worker
         self.worker_id = f"worker-{id(self)}"
         self.local_handlers: dict[str, Callable] = {}
         self.execution_subscriptions: dict[str, set[str]] = {}
         self.connection_health: dict[str, ConnectionHealth] = {}
-
-        # Active Redis subscriptions per execution
         self._subscription_tasks: dict[str, asyncio.Task] = {}
         self._subscribed_executions: set[str] = set()
 
-        # Configuration
         self.max_queue_size = settings.messaging.max_queue_size
         self._buffer_max_size = settings.messaging.buffer_max_per_exec
         self._buffer_ttl_seconds = settings.messaging.buffer_ttl_s
         self._batch_interval = settings.messaging.batch_interval_ms / 1000.0
         self._batch_max_size = settings.messaging.batch_max
         self._batch_broadcast_warning_threshold = settings.messaging.broadcast_warning_threshold_s
-
-        # Event buffering (local per worker)
         self._event_buffer: dict[str, list[dict]] = {}
-
-        # Batch processing (local per worker)
         self._batch_queue: dict[str, list[dict]] = {}
         self._batch_tasks: dict[str, asyncio.Task | None] = {}
 
@@ -99,10 +88,7 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
             return
 
         try:
-            # Create Redis client for publishing
             self.redis_client = redis.from_url(self.redis_url, decode_responses=True)
-
-            # Test connection
             await self.redis_client.ping()
 
             self._initialized = True
@@ -115,28 +101,23 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
     async def cleanup(self) -> None:
         """Clean up Redis connections and subscriptions."""
         async with self._cleanup_lock:
-            # Cancel all subscription tasks
             for task in self._subscription_tasks.values():
                 if task and not task.done():
                     task.cancel()
                     with contextlib.suppress(asyncio.CancelledError):
                         await task
 
-            # Cancel pending batch tasks
             for task in self._batch_tasks.values():
                 if task and not task.done():
                     task.cancel()
 
-            # Flush remaining batches
             for execution_id in list(self._batch_queue.keys()):
                 await self._flush_batch(execution_id)
 
-            # Close Redis connections
             if self.redis_client:
                 await self.redis_client.aclose()
                 self.redis_client = None
 
-            # Clear local state
             self.local_handlers.clear()
             self.execution_subscriptions.clear()
             self.connection_health.clear()
@@ -160,12 +141,10 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         self.local_handlers.pop(connection_id, None)
         self.connection_health.pop(connection_id, None)
 
-        # Remove from execution subscriptions
         for exec_id, connections in list(self.execution_subscriptions.items()):
             connections.discard(connection_id)
             if not connections:
                 del self.execution_subscriptions[exec_id]
-                # Stop Redis subscription if no local connections
                 await self._unsubscribe_from_redis(exec_id)
 
         logger.debug(f"Unregistered connection {connection_id} from worker {self.worker_id}")
@@ -174,17 +153,14 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         self, connection_id: str, execution_id: str
     ) -> None:
         """Subscribe a connection to receive updates for a specific execution."""
-        # Add to local subscriptions
         if execution_id not in self.execution_subscriptions:
             self.execution_subscriptions[execution_id] = set()
 
         self.execution_subscriptions[execution_id].add(connection_id)
 
-        # Start Redis subscription if not already active
         if execution_id not in self._subscribed_executions:
             await self._subscribe_to_redis(execution_id)
 
-        # Replay buffered events
         await self._replay_buffered_events(connection_id, execution_id)
 
         logger.debug(
@@ -201,7 +177,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
             if not self.execution_subscriptions[execution_id]:
                 del self.execution_subscriptions[execution_id]
-                # Stop Redis subscription if no local connections
                 await self._unsubscribe_from_redis(execution_id)
 
     async def broadcast_to_execution(self, execution_id: str, message: dict) -> None:
@@ -212,11 +187,8 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         if not self._initialized:
             await self.initialize()
 
-        # Buffer events locally if needed
         if self._should_buffer_events(execution_id):
             await self._buffer_event(execution_id, message)
-
-        # Publish to Redis for cross-worker distribution
         channel = f"exec:{execution_id}"
         try:
             message_json = json.dumps(message)
@@ -235,7 +207,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         try:
             await handler(message)
 
-            # Update health metrics
             latency = time.time() - start_time
             health = self.connection_health.get(connection_id)
             if health:
@@ -269,7 +240,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
         self._subscribed_executions.add(execution_id)
 
-        # Create subscription task
         task = asyncio.create_task(self._redis_subscription_handler(execution_id))
         self._subscription_tasks[execution_id] = task
 
@@ -282,7 +252,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
         self._subscribed_executions.discard(execution_id)
 
-        # Cancel subscription task
         task = self._subscription_tasks.pop(execution_id, None)
         if task and not task.done():
             task.cancel()
@@ -295,7 +264,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         """Handle Redis subscription for a specific execution."""
         channel = f"exec:{execution_id}"
 
-        # Create a separate Redis client for subscriptions (required by redis-py)
         sub_client = redis.from_url(self.redis_url, decode_responses=True)
         pubsub = sub_client.pubsub()
 
@@ -306,21 +274,17 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
             async for message in pubsub.listen():
                 if message["type"] == "message":
                     try:
-                        # Parse the message
                         data = json.loads(message["data"])
 
-                        # Add to batch queue for local connections
                         if execution_id in self.execution_subscriptions:
                             if execution_id not in self._batch_queue:
                                 self._batch_queue[execution_id] = []
 
                             self._batch_queue[execution_id].append(data)
 
-                            # Flush if batch is full
                             if len(self._batch_queue[execution_id]) >= self._batch_max_size:
                                 await self._flush_batch(execution_id)
                             else:
-                                # Schedule delayed flush
                                 if (
                                     execution_id not in self._batch_tasks
                                     or self._batch_tasks[execution_id] is None
@@ -351,7 +315,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
     async def _flush_batch(self, execution_id: str) -> None:
         """Flush batched messages to local connections."""
-        # Get batch and clear task reference
         messages = self._batch_queue.pop(execution_id, [])
         if execution_id in self._batch_tasks:
             self._batch_tasks[execution_id] = None
@@ -365,7 +328,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
         start_time = time.time()
 
-        # Create batch message
         batch_message = {
             "type": "BATCH_UPDATE",
             "execution_id": execution_id,
@@ -374,7 +336,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
             "batch_size": len(messages),
         }
 
-        # Publish to GraphQL streaming if available
         try:
             from dipeo_server.api.graphql.subscriptions import publish_execution_update
 
@@ -384,11 +345,9 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         except Exception as e:
             logger.error(f"Failed to publish batch to streaming manager: {e}")
 
-        # Send to local connections
         successful_broadcasts = 0
         failed_broadcasts = 0
 
-        # Use TaskGroup for parallel delivery (Python 3.13+)
         try:
 
             async def track_broadcast(conn_id: str, msg: dict):
@@ -416,7 +375,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
             logger.error(f"TaskGroup error during batch broadcast: {e}")
             failed_broadcasts = len(connection_ids)
 
-        # Log slow broadcasts
         broadcast_time = time.time() - start_time
         if broadcast_time > self._batch_broadcast_warning_threshold:
             logger.warning(
@@ -427,7 +385,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
     def _should_buffer_events(self, execution_id: str) -> bool:
         """Check if events should be buffered for an execution."""
-        # Don't buffer for batch item executions to save memory
         return "_batch_" not in execution_id
 
     async def _buffer_event(self, execution_id: str, message: dict) -> None:
@@ -440,7 +397,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
         self._event_buffer[execution_id].append(message)
 
-        # Trim buffer if too large
         if len(self._event_buffer[execution_id]) > self._buffer_max_size:
             self._event_buffer[execution_id] = self._event_buffer[execution_id][
                 -self._buffer_max_size :
@@ -455,7 +411,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         if not buffered_events:
             return
 
-        # Skip certain event types when replaying
         for event in buffered_events:
             event_type = event.get("type", "")
             if event_type in ["HEARTBEAT", "CONNECTION_ESTABLISHED"]:
@@ -472,15 +427,10 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         This implements the EventHandler protocol, allowing the router
         to be subscribed directly to the DomainEventBus.
         """
-        # Serialize the event once
         payload = event_to_json_payload(event)
 
-        # Route to connections if there's an execution context
         if event.scope.execution_id:
-            # Broadcast via Redis (will be picked up by subscription handlers)
             await self.broadcast_to_execution(str(event.scope.execution_id), payload)
-
-            # Transform domain events into UI-friendly events
             from dipeo.domain.events import EventType
 
             if event.type == EventType.EXECUTION_STARTED:
@@ -494,7 +444,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                 await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
 
             elif event.type == EventType.EXECUTION_COMPLETED:
-                # Handle both dict and object payloads
                 if hasattr(event.payload, "status"):
                     status = event.payload.status
                 elif isinstance(event.payload, dict):
@@ -554,7 +503,6 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                 }
                 await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
         else:
-            # Handle global events
             logger.debug(f"Received global event: {event.type.value}")
 
     def get_stats(self) -> dict:

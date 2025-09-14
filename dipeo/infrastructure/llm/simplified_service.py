@@ -50,11 +50,9 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
         }
 
     async def initialize(self) -> None:
-        """Initialize the service."""
         pass
 
     def _get_api_key(self, api_key_id: str) -> str:
-        """Get API key from the key service."""
         try:
             api_key_data = self.api_key_service.get_api_key(api_key_id)
             return api_key_data["key"]
@@ -64,29 +62,23 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
             ) from e
 
     def _create_cache_key(self, provider: str, model: str, api_key_id: str) -> str:
-        """Create a cache key for the client."""
         key_string = f"{provider}:{model}:{api_key_id}"
         return hashlib.sha256(key_string.encode()).hexdigest()
 
     def _infer_service_from_model(self, model: str) -> str:
-        """Infer service provider from model name."""
         model_lower = model.lower()
 
-        # Check model keywords
         for keyword, service in self._model_keywords.items():
             if keyword in model_lower:
                 return service
 
-        # Default to OpenAI for unknown models
         return LLMServiceName.OPENAI.value
 
     def _create_provider_client(
         self, provider: str, model: str, api_key: str, base_url: str | None = None
     ) -> Any:
-        """Create a unified provider client."""
         from dipeo.infrastructure.llm.drivers.types import ProviderType
 
-        # Map provider name to ProviderType
         provider_type_map = {
             LLMServiceName.OPENAI.value: ProviderType.OPENAI,
             LLMServiceName.ANTHROPIC.value: ProviderType.ANTHROPIC,
@@ -98,7 +90,6 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
 
         provider_type = provider_type_map.get(provider, ProviderType.OPENAI)
 
-        # Create adapter config
         config = AdapterConfig(
             provider_type=provider_type,
             model=model,
@@ -110,7 +101,6 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
             retry_backoff=2.0,
         )
 
-        # Import and create the appropriate unified client
         if provider == LLMServiceName.OPENAI.value:
             from dipeo.infrastructure.llm.providers.openai.unified_client import UnifiedOpenAIClient
 
@@ -122,28 +112,21 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
 
             return UnifiedAnthropicClient(config)
         elif provider == LLMServiceName.OLLAMA.value:
-            # For now, fall back to existing adapter for Ollama
             from dipeo.infrastructure.llm.drivers.factory import create_adapter
 
             return create_adapter(provider, model, api_key, base_url=base_url, async_mode=True)
-        elif provider == LLMServiceName.GOOGLE.value:
-            # For now, fall back to existing adapter for Google
-            from dipeo.infrastructure.llm.drivers.factory import create_adapter
-
-            return create_adapter(provider, model, api_key, async_mode=True)
-        elif provider == LLMServiceName.CLAUDE_CODE.value:
-            # Claude Code has special requirements, use existing adapter
+        elif (
+            provider == LLMServiceName.GOOGLE.value or provider == LLMServiceName.CLAUDE_CODE.value
+        ):
             from dipeo.infrastructure.llm.drivers.factory import create_adapter
 
             return create_adapter(provider, model, api_key, async_mode=True)
         else:
-            # Fall back to factory for unknown providers
             from dipeo.infrastructure.llm.drivers.factory import create_adapter
 
             return create_adapter(provider, model, api_key, base_url=base_url, async_mode=True)
 
     async def _get_client(self, service: str, model: str, api_key_id: str) -> Any:
-        """Get or create a provider client."""
         provider = normalize_service_name(service)
 
         if provider not in VALID_LLM_SERVICES:
@@ -151,16 +134,14 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
 
         cache_key = self._create_cache_key(provider, model, api_key_id)
 
-        # Check cache
         async with self._client_pool_lock:
             if cache_key in self._client_pool:
                 entry = self._client_pool[cache_key]
-                if time.time() - entry["created_at"] <= 3600:  # 1 hour cache
+                if time.time() - entry["created_at"] <= 3600:
                     return entry["client"]
                 else:
                     del self._client_pool[cache_key]
 
-        # Create new client
         async def create_new_client():
             if provider == LLMServiceName.OLLAMA.value:
                 raw_key = ""
@@ -185,25 +166,19 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
         )
 
     def _convert_response_to_chat_result(self, response: LLMResponse) -> ChatResult:
-        """Convert LLMResponse to ChatResult."""
-        # Extract content as string
         if isinstance(response.content, str):
             content = response.content
         elif hasattr(response.content, "model_dump_json"):
-            # Pydantic model
             content = response.content.model_dump_json()
         elif hasattr(response.content, "dict"):
-            # Has dict method
             import json
 
             content = json.dumps(response.content.dict())
         else:
             content = str(response.content)
 
-        # Create ChatResult
         result = ChatResult(text=content)
 
-        # Add token usage if available
         if response.usage:
             result.llm_usage = response.usage
 
@@ -212,15 +187,12 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
     async def complete(  # type: ignore[override]
         self, messages: list[dict[str, str]], model: str, api_key_id: str, **kwargs
     ) -> ChatResult:
-        """Complete a chat request using the simplified architecture."""
         try:
             if messages is None:
                 messages = []
 
-            # Extract execution_phase before processing
             execution_phase = kwargs.pop("execution_phase", None)
 
-            # Determine service provider
             service = kwargs.pop("service", None)
             if service:
                 if hasattr(service, "value"):
@@ -229,36 +201,21 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
             else:
                 service = self._infer_service_from_model(model)
 
-            # Get or create client
             client = await self._get_client(service, model, api_key_id)
 
-            # Log if enabled
-            if hasattr(self, "logger"):
-                self.log_debug(f"Messages: {len(messages)}")
-
-            # Prepare kwargs for the client
             client_kwargs = {**kwargs}
-            # Set execution phase - default to DIRECT_EXECUTION if not specified
             if execution_phase:
                 client_kwargs["execution_phase"] = execution_phase
             else:
-                # Default to direct execution for regular completions
                 from dipeo.diagram_generated.enums import ExecutionPhase
 
                 client_kwargs["execution_phase"] = ExecutionPhase.DIRECT_EXECUTION
-
-            # Call the client
             if hasattr(client, "async_chat"):
-                # Unified client
                 response = await client.async_chat(messages=messages, **client_kwargs)
             elif hasattr(client, "chat_async"):
-                # Old adapter
                 response = await client.chat_async(messages=messages, **client_kwargs)
             else:
-                # Sync adapter - run in thread pool
                 response = await asyncio.to_thread(client.chat, messages=messages, **client_kwargs)
-
-            # Log response if enabled
             if hasattr(self, "logger") and response:
                 if isinstance(response, LLMResponse) or hasattr(response, "content"):
                     response_text = str(response.content)[:50]
@@ -267,14 +224,11 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
                 else:
                     response_text = str(response)
                 self.log_debug(f"LLM response: {response_text}")
-
-            # Convert response to ChatResult
             if isinstance(response, LLMResponse):
                 return self._convert_response_to_chat_result(response)
             elif isinstance(response, ChatResult):
                 return response
             else:
-                # Handle legacy response formats
                 if hasattr(response, "content"):
                     content = response.content
                 elif hasattr(response, "text"):
@@ -284,7 +238,6 @@ class SimplifiedLLMService(LoggingMixin, InitializationMixin, LLMServicePort):
 
                 result = ChatResult(content=content)
 
-                # Try to extract token usage
                 if hasattr(response, "prompt_tokens"):
                     result.prompt_tokens = response.prompt_tokens
                 if hasattr(response, "completion_tokens"):

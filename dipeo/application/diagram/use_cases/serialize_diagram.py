@@ -58,10 +58,7 @@ class SerializeDiagramUseCase:
         Returns:
             Converted string in target format
         """
-        # Deserialize from source format
         diagram = self.deserialize(content, source_format)
-
-        # Serialize to target format
         return self.serialize(diagram, target_format)
 
     def validate_content(self, content: str, format: str | None = None) -> tuple[bool, list[str]]:
@@ -111,30 +108,24 @@ class SerializeDiagramUseCase:
         Returns:
             Detected format name or None if unknown
         """
-        # Try to detect based on content structure
         content = content.strip()
-
-        # JSON detection
         if content.startswith("{") or content.startswith("["):
             try:
                 import json
 
                 json.loads(content)
-                # Check if it's light format (has specific structure)
                 data = json.loads(content)
                 if (
                     isinstance(data, dict)
                     and "nodes" in data
                     and isinstance(data.get("nodes"), list)
                 ):
-                    # Check for light format markers
                     if any(isinstance(node, dict) and "type" in node for node in data["nodes"]):
                         return "light"
                     return "json"
             except Exception:
                 pass
 
-        # YAML detection
         if not content.startswith("{"):
             try:
                 import yaml

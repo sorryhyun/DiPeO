@@ -18,12 +18,9 @@ class DiagramResolver:
         self.registry = registry
 
     async def get_diagram(self, id: DiagramID) -> DomainDiagram | None:
-        """Get a single diagram by ID."""
         try:
             service = self.registry.resolve(DIAGRAM_PORT)
             diagram_data = await service.get_diagram(id)
-
-            # Service now returns DomainDiagram directly
             return diagram_data
 
         except FileNotFoundError:
@@ -36,25 +33,18 @@ class DiagramResolver:
     async def list_diagrams(
         self, filter: DiagramFilterInput | None = None, limit: int = 100, offset: int = 0
     ) -> list[DomainDiagram]:
-        """List diagrams with optional filtering."""
         try:
             service = self.registry.resolve(DIAGRAM_PORT)
-
-            # Get diagram metadata
             all_infos = await service.list_diagrams()
             logger.debug(f"Retrieved {len(all_infos)} diagram infos")
 
-            # Apply filters if provided
             filtered_infos = all_infos
             if filter:
                 filtered_infos = [
                     info for info in all_infos if self._matches_info_filter(info, filter)
                 ]
 
-            # Apply pagination
             paginated_infos = filtered_infos[offset : offset + limit]
-
-            # Load full diagrams for the paginated results
             diagrams = []
             for info in paginated_infos:
                 try:
@@ -75,8 +65,6 @@ class DiagramResolver:
             return []
 
     def _matches_info_filter(self, info: DiagramInfo, filter: DiagramFilterInput) -> bool:
-        """Check if diagram info matches the filter criteria."""
-        # Extract name from path if metadata not available
         name = ""
         if info.metadata and "name" in info.metadata:
             name = info.metadata["name"]
@@ -95,8 +83,5 @@ class DiagramResolver:
             tags = info.metadata.get("tags", []) if info.metadata else []
             if not any(tag in tags for tag in filter.tags):
                 return False
-
-        # Date filters can use info.created and info.modified
-        # TODO: Add date filtering logic if needed
 
         return True

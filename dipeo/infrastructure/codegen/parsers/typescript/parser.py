@@ -36,18 +36,14 @@ class TypeScriptParser:
         """
         self.project_root = project_root or Path(os.getenv("DIPEO_BASE_DIR", os.getcwd()))
 
-        # Use provided script path or default to ts_parser_main.ts in the same directory
         if parser_script:
             self.parser_script = parser_script
         else:
-            # Direct path to the TypeScript parser script
             self.parser_script = (Path(__file__).parent / "ts_parser_main.ts").resolve()
 
-        # Only initialize cache if enabled
         self._cache: dict[str, dict[str, Any]] = {} if cache_enabled else None
         self.cache_enabled = cache_enabled
 
-        # Validate parser script exists
         if not self.parser_script.exists():
             raise ServiceError(f"Parser script not found: {self.parser_script}")
 

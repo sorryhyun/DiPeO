@@ -18,9 +18,7 @@ class ConversationRepository(Protocol):
     providing a complete interface for conversation management during execution.
     """
 
-    def get_global_conversation(self) -> Conversation:
-        """Get the global conversation shared by all persons."""
-        ...
+    def get_global_conversation(self) -> Conversation: ...
 
     def add_message(
         self, message: Message, execution_id: str | None = None, node_id: str | None = None
@@ -34,9 +32,7 @@ class ConversationRepository(Protocol):
         """
         ...
 
-    def get_messages(self) -> list[Message]:
-        """Get all messages from the global conversation."""
-        ...
+    def get_messages(self) -> list[Message]: ...
 
     def get_conversation_history(self, person_id: PersonID) -> list[dict[str, Any]]:
         """Get conversation history for a specific person.
@@ -49,25 +45,11 @@ class ConversationRepository(Protocol):
         """
         ...
 
-    def clear(self) -> None:
-        """Clear all messages from the conversation."""
-        ...
+    def clear(self) -> None: ...
 
-    def clear_person_messages(self, person_id: PersonID) -> None:
-        """Clear all messages involving a specific person.
+    def get_message_count(self) -> int: ...
 
-        Args:
-            person_id: The person whose messages to clear
-        """
-        ...
-
-    def get_message_count(self) -> int:
-        """Get the number of messages in the conversation."""
-        ...
-
-    def get_latest_message(self) -> Message | None:
-        """Get the most recent message, if any."""
-        ...
+    def get_latest_message(self) -> Message | None: ...
 
 
 class PersonRepository(Protocol):
@@ -85,9 +67,7 @@ class PersonRepository(Protocol):
         """
         ...
 
-    def save(self, person: Person) -> None:
-        """Save or update a person."""
-        ...
+    def save(self, person: Person) -> None: ...
 
     def create(
         self,
@@ -131,25 +111,15 @@ class PersonRepository(Protocol):
         """
         ...
 
-    def delete(self, person_id: PersonID) -> None:
-        """Delete a person by ID."""
-        ...
+    def delete(self, person_id: PersonID) -> None: ...
 
-    def exists(self, person_id: PersonID) -> bool:
-        """Check if a person exists."""
-        ...
+    def exists(self, person_id: PersonID) -> bool: ...
 
-    def get_all(self) -> dict[PersonID, Person]:
-        """Get all persons."""
-        ...
+    def get_all(self) -> dict[PersonID, Person]: ...
 
-    def get_by_service(self, service: LLMService) -> list[Person]:
-        """Get all persons using a specific LLM service."""
-        ...
+    def get_by_service(self, service: LLMService) -> list[Person]: ...
 
-    def clear(self) -> None:
-        """Clear all persons."""
-        ...
+    def clear(self) -> None: ...
 
 
 class MemorySelectionPort(Protocol):
@@ -193,19 +163,13 @@ class MemoryService(Protocol):
         person_id: PersonID,
         messages: list[Message],
         limit: int = 10,
-    ) -> list[Message]:
-        """Retrieve relevant memory for context."""
-        ...
+    ) -> list[Message]: ...
 
     async def store_interaction(
         self,
         person_id: PersonID,
         messages: list[Message],
         response: "ChatResult",
-    ) -> None:
-        """Store interaction in memory."""
-        ...
+    ) -> None: ...
 
-    async def clear_memory(self, person_id: PersonID) -> None:
-        """Clear all memory for a person."""
-        ...
+    async def clear_memory(self, person_id: PersonID) -> None: ...

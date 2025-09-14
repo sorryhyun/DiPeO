@@ -40,7 +40,3 @@ def setup_routes(app: FastAPI):
 
     # Include webhook router
     app.include_router(webhook_router)
-
-    # V2 GraphQL router - temporarily disabled during migration
-    # v2_graphql_router = create_v2_graphql_router(context_getter=get_request_context)
-    # app.include_router(v2_graphql_router, prefix="")

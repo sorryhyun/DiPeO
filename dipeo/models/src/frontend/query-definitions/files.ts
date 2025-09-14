@@ -1,6 +1,15 @@
 import { EntityQueryDefinitions } from './types';
 import { QueryOperationType } from '../query-enums';
 
+// Shared field patterns as const objects
+const CONVERSION_RESULT_FIELDS = [
+  { name: 'success' },
+  { name: 'data' },
+  { name: 'format' },
+  { name: 'message' },
+  { name: 'error' }
+];
+
 export const fileQueries: EntityQueryDefinitions = {
   entity: 'File',
   queries: [
@@ -20,14 +29,7 @@ export const fileQueries: EntityQueryDefinitions = {
             { name: 'file', value: 'file', isVariable: true },
             { name: 'path', value: 'path', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'path' },
-            { name: 'size_bytes' },
-            { name: 'content_type' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: []
         }
       ]
     },
@@ -36,7 +38,7 @@ export const fileQueries: EntityQueryDefinitions = {
       type: QueryOperationType.MUTATION,
       variables: [
         { name: 'file', type: 'Upload', required: true },
-        { name: 'format', type: 'DiagramFormat', required: true }
+        { name: 'format', type: 'DiagramFormatGraphQL', required: true }
       ],
       fields: [
         {
@@ -45,23 +47,7 @@ export const fileQueries: EntityQueryDefinitions = {
             { name: 'file', value: 'file', isVariable: true },
             { name: 'format', value: 'format', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            {
-              name: 'diagram',
-              fields: [
-                {
-                  name: 'metadata',
-                  fields: [
-                    { name: 'id' },
-                    { name: 'name' }
-                  ]
-                }
-              ]
-            },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: []
         }
       ]
     },
@@ -70,7 +56,7 @@ export const fileQueries: EntityQueryDefinitions = {
       type: QueryOperationType.MUTATION,
       variables: [
         { name: 'content', type: 'String', required: true },
-        { name: 'format', type: 'DiagramFormat', required: true }
+        { name: 'format', type: 'DiagramFormatGraphQL', required: true }
       ],
       fields: [
         {
@@ -79,12 +65,7 @@ export const fileQueries: EntityQueryDefinitions = {
             { name: 'content', value: 'content', isVariable: true },
             { name: 'format', value: 'format', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'errors' },
-            { name: 'warnings' },
-            { name: 'message' }
-          ]
+          fields: []
         }
       ]
     },
@@ -93,8 +74,8 @@ export const fileQueries: EntityQueryDefinitions = {
       type: QueryOperationType.MUTATION,
       variables: [
         { name: 'content', type: 'String', required: true },
-        { name: 'from_format', type: 'DiagramFormat', required: true },
-        { name: 'to_format', type: 'DiagramFormat', required: true }
+        { name: 'from_format', type: 'DiagramFormatGraphQL', required: true },
+        { name: 'to_format', type: 'DiagramFormatGraphQL', required: true }
       ],
       fields: [
         {
@@ -104,13 +85,7 @@ export const fileQueries: EntityQueryDefinitions = {
             { name: 'from_format', value: 'from_format', isVariable: true },
             { name: 'to_format', value: 'to_format', isVariable: true }
           ],
-          fields: [
-            { name: 'success' },
-            { name: 'content' },
-            { name: 'format' },
-            { name: 'message' },
-            { name: 'error' }
-          ]
+          fields: CONVERSION_RESULT_FIELDS
         }
       ]
     }
