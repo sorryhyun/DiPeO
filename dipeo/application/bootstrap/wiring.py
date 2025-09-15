@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> None:
-    """Wire state management services."""
+    """Wire state management services with enhanced durability options."""
 
     from dipeo.infrastructure.execution.adapters import (
         StateCacheAdapter,
@@ -31,41 +31,39 @@ def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> 
     )
     from dipeo.infrastructure.execution.state import CacheFirstStateStore
 
-    use_redis = os.getenv("DIPEO_STATE_BACKEND", "memory").lower() == "redis"
+    # Get configuration parameters
+    cache_size = int(os.getenv("DIPEO_STATE_CACHE_SIZE", "1000"))
+    checkpoint_interval = int(os.getenv("DIPEO_STATE_CHECKPOINT_INTERVAL", "10"))
+    warm_cache_size = int(os.getenv("DIPEO_STATE_WARM_CACHE_SIZE", "20"))
+    persistence_delay = float(os.getenv("DIPEO_STATE_PERSISTENCE_DELAY", "5.0"))
 
-    if use_redis and redis_client:
-        # TODO: Redis state adapters need to be reimplemented in new architecture
-        # For now, use CacheFirstStateStore even with Redis
-        cache_size = int(os.getenv("DIPEO_STATE_CACHE_SIZE", "1000"))
-        checkpoint_interval = int(os.getenv("DIPEO_STATE_CHECKPOINT_INTERVAL", "10"))
-        warm_cache_size = int(os.getenv("DIPEO_STATE_WARM_CACHE_SIZE", "20"))
-        persistence_delay = float(os.getenv("DIPEO_STATE_PERSISTENCE_DELAY", "5.0"))
-
-        store = CacheFirstStateStore(
-            cache_size=cache_size,
-            checkpoint_interval=checkpoint_interval,
-            warm_cache_size=warm_cache_size,
-            persistence_delay=persistence_delay,
+    # Check for DIPEO_STATE_BACKEND for backward compatibility
+    backend = os.getenv("DIPEO_STATE_BACKEND", "").lower()
+    if backend == "redis":
+        raise RuntimeError(
+            "Redis state store not yet implemented. "
+            "CacheFirstStateStore will be used for all environments."
         )
-        repository = store
-        service = StateServiceAdapter(repository)
-        cache = StateCacheAdapter(store)
-    else:
-        cache_size = int(os.getenv("DIPEO_STATE_CACHE_SIZE", "1000"))
-        checkpoint_interval = int(os.getenv("DIPEO_STATE_CHECKPOINT_INTERVAL", "10"))
-        warm_cache_size = int(os.getenv("DIPEO_STATE_WARM_CACHE_SIZE", "20"))
-        persistence_delay = float(os.getenv("DIPEO_STATE_PERSISTENCE_DELAY", "5.0"))
 
-        store = CacheFirstStateStore(
-            cache_size=cache_size,
-            checkpoint_interval=checkpoint_interval,
-            warm_cache_size=warm_cache_size,
-            persistence_delay=persistence_delay,
-        )
-        repository = store
-        service = StateServiceAdapter(repository)
-        cache = StateCacheAdapter(store)
+    # Always use CacheFirstStateStore for both dev and production
+    store = CacheFirstStateStore(
+        cache_size=cache_size,
+        checkpoint_interval=checkpoint_interval,
+        warm_cache_size=warm_cache_size,
+        persistence_delay=persistence_delay,
+        write_through_critical=True,  # Enable write-through for critical events
+    )
+    logger.info(
+        f"Using CacheFirstStateStore with durability enhancements "
+        f"(cache_size={cache_size}, persistence_delay={persistence_delay}s)"
+    )
 
+    # Create adapters
+    repository = store
+    service = StateServiceAdapter(repository)
+    cache = StateCacheAdapter(store)
+
+    # Register services
     registry.register(STATE_REPOSITORY, repository)
     registry.register(STATE_SERVICE, service)
     registry.register(STATE_CACHE, cache)

@@ -398,26 +398,15 @@ async def list_conversations(
     limit: int = 100,
     offset: int = 0,
     since: datetime | None = None,
-) -> JSON:
+) -> list[JSON]:
     """List conversations with optional filtering."""
     conversation_service = registry.resolve(EXECUTION_ORCHESTRATOR)
 
     if not conversation_service or not hasattr(conversation_service, "person_conversations"):
-        return {
-            "conversations": [],
-            "total": 0,
-            "limit": limit,
-            "offset": offset,
-            "has_more": False,
-        }
+        return []
 
-    return {
-        "conversations": [],
-        "total": 0,
-        "limit": limit,
-        "offset": offset,
-        "has_more": False,
-    }
+    # Return empty list for now - full implementation pending
+    return []
 
 
 async def get_supported_formats(registry: ServiceRegistry) -> list[DiagramFormatInfo]:
@@ -512,11 +501,11 @@ async def get_prompt_file(registry: ServiceRegistry, filename: str) -> JSON:
         }
 
 
-async def get_active_cli_session(registry: ServiceRegistry) -> dict | None:
+async def get_active_cli_session(registry: ServiceRegistry) -> dict:
     """Get the active CLI session if any."""
     cli_session_service = registry.resolve(CLI_SESSION_SERVICE)
     if not cli_session_service:
-        return None
+        return {}
 
     from dipeo.application.execution.use_cases import CliSessionService
 
@@ -537,4 +526,4 @@ async def get_active_cli_session(registry: ServiceRegistry) -> dict | None:
                 "session_id": f"cli_{session_data.execution_id}",  # Include computed field
             }
 
-    return None
+    return {}

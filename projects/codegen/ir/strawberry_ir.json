@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-14T21:21:07.176122",
+  "generated_at": "2025-09-15T11:20:50.509569",
   "interfaces": [
     {
       "name": "CliSession",
@@ -5572,7 +5572,7 @@
       "has_variables": true,
       "fields": [
         {
-          "name": "get_execution",
+          "name": "execution",
           "args": [
             {
               "name": "execution_id",
@@ -6712,7 +6712,7 @@
       "has_variables": true,
       "fields": [
         {
-          "name": "get_execution",
+          "name": "execution",
           "args": [
             {
               "name": "execution_id",

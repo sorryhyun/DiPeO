@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-14T21:21:07.144103",
+  "generated_at": "2025-09-15T11:20:50.523694",
   "node_configs": [
     {
       "name": "ApiJobConfig",
@@ -2334,7 +2334,7 @@
       ],
       "fields": [
         {
-          "name": "get_execution",
+          "name": "execution",
           "args": [
             {
               "name": "execution_id",
@@ -5029,7 +5029,7 @@
       ],
       "fields": [
         {
-          "name": "get_execution",
+          "name": "execution",
           "args": [
             {
               "name": "execution_id",

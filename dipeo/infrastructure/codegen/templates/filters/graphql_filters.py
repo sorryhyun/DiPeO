@@ -265,7 +265,7 @@ class TypeScriptToGraphQLFilters:
             elif operation_name == "GetRecentFiles":
                 return "list[FileTypeType]"
             elif operation_name == "GetActiveCliSession":
-                return "CliSessionTypeType"
+                return "Optional[JSON]"
 
         # For subscriptions, return proper typed objects
         if operation_type == "subscription":

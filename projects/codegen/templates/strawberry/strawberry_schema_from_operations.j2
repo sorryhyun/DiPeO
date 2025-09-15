@@ -69,7 +69,7 @@ class Query:
         self,
         info: Info{% if operation.parameters %},{% endif %}
         {% for param in operation.parameters %}
-        {{ param.name }}: {% if param.needs_conversion %}{{ param.type | graphql_to_python_type(not param.optional) }}{% else %}{{ param.type }}{% endif %}{% if not loop.last %},{% endif %}
+        {{ param.name }}: {% if param.needs_conversion %}{{ param.type | graphql_to_python_type(not param.optional) }}{% else %}{{ param.type }}{% endif %}{% if param.optional %} = None{% endif %}{% if not loop.last %},{% endif %}
         {% endfor %}
     ) -> {{ get_operation_return_type(operation.operation_name, operation.operation_type) }}:
         """
@@ -106,7 +106,7 @@ class Mutation:
         self,
         info: Info{% if operation.parameters %},{% endif %}
         {% for param in operation.parameters %}
-        {{ param.name }}: {% if param.needs_conversion %}{{ param.type | graphql_to_python_type(not param.optional) }}{% else %}{{ param.type }}{% endif %}{% if not loop.last %},{% endif %}
+        {{ param.name }}: {% if param.needs_conversion %}{{ param.type | graphql_to_python_type(not param.optional) }}{% else %}{{ param.type }}{% endif %}{% if param.optional %} = None{% endif %}{% if not loop.last %},{% endif %}
         {% endfor %}
     ) -> {{ get_operation_return_type(operation.operation_name, operation.operation_type) }}:
         """
@@ -143,7 +143,7 @@ class Subscription:
         self,
         info: Info{% if operation.parameters %},{% endif %}
         {% for param in operation.parameters %}
-        {{ param.name }}: {% if param.needs_conversion %}{{ param.type | graphql_to_python_type(not param.optional) }}{% else %}{{ param.type }}{% endif %}{% if not loop.last %},{% endif %}
+        {{ param.name }}: {% if param.needs_conversion %}{{ param.type | graphql_to_python_type(not param.optional) }}{% else %}{{ param.type }}{% endif %}{% if param.optional %} = None{% endif %}{% if not loop.last %},{% endif %}
         {% endfor %}
     ) -> AsyncGenerator[{{ get_operation_return_type(operation.operation_name, operation.operation_type) }}, None]:
         """

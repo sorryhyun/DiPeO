@@ -327,7 +327,7 @@ type Mutation {
   update_node_state(input: UpdateNodeStateInput!): ExecutionResult!
   update_person(person_id: String!, input: UpdatePersonInput!): PersonResult!
   upload_diagram(file: Upload!, format: DiagramFormatGraphQL!): JSON!
-  upload_file(file: Upload!, path: String): JSON!
+  upload_file(file: Upload!, path: String = null): JSON!
   validate_diagram(content: String!, format: DiagramFormatGraphQL!): JSON!
 }
 
@@ -392,12 +392,12 @@ type PersonResult {
 type Query {
   active_cli_session: JSON!
   api_key(api_key_id: String!): DomainApiKeyType!
-  api_keys(service: String): JSON!
+  api_keys(service: String = null): JSON!
   available_models(service: String!, api_key_id: String!): JSON!
   diagram(diagram_id: String!): DomainDiagramType!
   execution(execution_id: String!): ExecutionStateType!
   execution_capabilities: JSON!
-  execution_history(diagram_id: String, limit: Int, include_metrics: Boolean): JSON!
+  execution_history(diagram_id: String = null, limit: Int = null, include_metrics: Boolean = null): JSON!
   execution_metrics(execution_id: String!): JSON!
   execution_order(execution_id: String!): JSON!
   operation_schema(provider: String!, operation: String!): JSON!
@@ -408,10 +408,10 @@ type Query {
   supported_formats: JSON!
   system_info: JSON!
   health_check: JSON!
-  conversations(person_id: String, execution_id: String, search: String, show_forgotten: Boolean, limit: Int, offset: Int, since: String): [JSON!]!
-  diagrams(filter: DiagramFilterInput, limit: Int, offset: Int): [DomainDiagramType!]!
-  executions(filter: ExecutionFilterInput, limit: Int, offset: Int): [ExecutionStateType!]!
-  persons(limit: Int): [DomainPersonType!]!
+  conversations(person_id: String = null, execution_id: String = null, search: String = null, show_forgotten: Boolean = null, limit: Int = null, offset: Int = null, since: String = null): [JSON!]!
+  diagrams(filter: DiagramFilterInput = null, limit: Int = null, offset: Int = null): [DomainDiagramType!]!
+  executions(filter: ExecutionFilterInput = null, limit: Int = null, offset: Int = null): [ExecutionStateType!]!
+  persons(limit: Int = null): [DomainPersonType!]!
   prompt_files: [JSON!]!
 }
 

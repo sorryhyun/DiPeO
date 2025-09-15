@@ -119,8 +119,8 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
                 <span className="text-xs text-gray-500 dark:text-gray-500">
                   {formatsLoading ? 'Loading formats...' :
                    formatsData?.supported_formats
-                     ?.filter(f => f.supports_import)
-                     .map(f => f.format)
+                     ?.filter((f: any) => f.supports_import)
+                     .map((f: any) => f.format)
                      .join(', ') || 'Multiple formats supported'}
                 </span>
               </div>
@@ -156,15 +156,15 @@ export const DiagramFileManager: React.FC<DiagramFileManagerProps> = ({ classNam
               disabled={formatsLoading}
             >
               {formatsData?.supported_formats
-                ?.filter(format => format.supports_export)
-                .map(format => (
+                ?.filter((format: any) => format.supports_export)
+                .map((format: any) => (
                   <option key={format.format} value={format.format.toUpperCase() as DiagramFormat}>
                     {format.name}
                   </option>
                 )) || []}
             </Select>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {formatsData?.supported_formats?.find(f => f.format.toUpperCase() === selectedFormat)?.description}
+              {formatsData?.supported_formats?.find((f: any) => f.format.toUpperCase() === selectedFormat)?.description}
             </p>
           </div>
 

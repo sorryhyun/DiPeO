@@ -54,7 +54,7 @@ Top-level Container
 - `InitializationMixin` - 초기화 추적
 
 **직접 프로토콜 구현**: 불필요한 어댑터 레이어 제거:
-- `EventBasedStateStore`가 상태 프로토콜을 직접 구현
+- `CacheFirstStateStore`가 캐시 최적화와 함께 상태 프로토콜을 직접 구현
 - `PersonFactory`가 객체 생성 처리
 - `CleanInMemoryPersonRepository`는 순수 지속성에 집중
 
@@ -250,7 +250,7 @@ make dev-all
 시스템은 실행과 모니터링을 위해 완전한 이벤트 기반 아키텍처를 사용합니다:
 
 * **통합 EventBus 프로토콜** – DomainEventBus, EventEmitter, EventConsumer, MessageBus를 단일 인터페이스로 통합
-* **EventBasedStateStore** – 실행별 캐시를 가진 락-프리 상태 영속화, 프로토콜을 직접 구현(어댑터 레이어 없음)
+* **CacheFirstStateStore** – Phase 4 최적화를 갖춘 캐시 우선 상태 영속화, 프로토콜을 직접 구현(어댑터 레이어 없음)
 * **GraphQL Subscriptions** – UI에 실시간 업데이트(SSE 대체)
 * **글로벌 락 없음** – 실행별 격리로 진정한 병렬 실행
 * **이벤트 타입** – TypeScript 사양에서 생성된 표준화된 이벤트

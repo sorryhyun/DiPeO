@@ -93,6 +93,21 @@ class PersistenceManager:
         CREATE INDEX IF NOT EXISTS idx_diagram_id ON execution_states(diagram_id);
         CREATE INDEX IF NOT EXISTS idx_access_count ON execution_states(access_count DESC);
         CREATE INDEX IF NOT EXISTS idx_last_accessed ON execution_states(last_accessed DESC);
+
+        -- Transitions table for idempotency
+        CREATE TABLE IF NOT EXISTS transitions (
+            id TEXT PRIMARY KEY,
+            execution_id TEXT NOT NULL,
+            node_id TEXT,
+            phase TEXT NOT NULL,
+            seq INTEGER NOT NULL,
+            payload TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_exec_seq ON transitions(execution_id, seq);
+        CREATE INDEX IF NOT EXISTS idx_exec_transitions ON transitions(execution_id);
+        CREATE INDEX IF NOT EXISTS idx_created_at ON transitions(created_at DESC);
         """
 
         loop = asyncio.get_event_loop()
@@ -111,49 +126,70 @@ class PersistenceManager:
 
         return cursor
 
-    async def persist_entry(self, execution_id: str, entry: CacheEntry) -> None:
-        """Persist a cache entry to database."""
+    async def persist_entry(
+        self, execution_id: str, entry: CacheEntry, use_full_sync: bool = False
+    ) -> None:
+        """Persist a cache entry to database with optional enhanced durability."""
         state_dict = entry.state.model_dump()
 
-        await self.execute(
-            """
-            INSERT INTO execution_states
-            (execution_id, status, diagram_id, started_at, ended_at,
-             node_states, node_outputs, llm_usage, error, variables,
-             exec_counts, executed_nodes, metrics, access_count, last_accessed)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(execution_id) DO UPDATE SET
-                status=excluded.status,
-                ended_at=excluded.ended_at,
-                node_states=excluded.node_states,
-                node_outputs=excluded.node_outputs,
-                llm_usage=excluded.llm_usage,
-                error=excluded.error,
-                variables=excluded.variables,
-                exec_counts=excluded.exec_counts,
-                executed_nodes=excluded.executed_nodes,
-                metrics=excluded.metrics,
-                access_count=excluded.access_count,
-                last_accessed=excluded.last_accessed
-            """,
-            (
-                entry.state.id,
-                entry.state.status.value,
-                entry.state.diagram_id,
-                entry.state.started_at,
-                entry.state.ended_at,
-                json.dumps(state_dict["node_states"]),
-                json.dumps(state_dict["node_outputs"]),
-                json.dumps(state_dict["llm_usage"]),
-                entry.state.error,
-                json.dumps(state_dict["variables"]),
-                json.dumps(state_dict["exec_counts"]),
-                json.dumps(state_dict["executed_nodes"]),
-                json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None,
-                entry.access_count,
-                datetime.now().isoformat(),
-            ),
-        )
+        # Use enhanced durability for critical writes
+        if use_full_sync:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                self._executor, self._conn.execute, "PRAGMA synchronous=FULL"
+            )
+
+        try:
+            await self.execute(
+                """
+                INSERT INTO execution_states
+                (execution_id, status, diagram_id, started_at, ended_at,
+                 node_states, node_outputs, llm_usage, error, variables,
+                 exec_counts, executed_nodes, metrics, access_count, last_accessed)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(execution_id) DO UPDATE SET
+                    status=excluded.status,
+                    ended_at=excluded.ended_at,
+                    node_states=excluded.node_states,
+                    node_outputs=excluded.node_outputs,
+                    llm_usage=excluded.llm_usage,
+                    error=excluded.error,
+                    variables=excluded.variables,
+                    exec_counts=excluded.exec_counts,
+                    executed_nodes=excluded.executed_nodes,
+                    metrics=excluded.metrics,
+                    access_count=excluded.access_count,
+                    last_accessed=excluded.last_accessed
+                """,
+                (
+                    entry.state.id,
+                    entry.state.status.value,
+                    entry.state.diagram_id,
+                    entry.state.started_at,
+                    entry.state.ended_at,
+                    json.dumps(state_dict["node_states"]),
+                    json.dumps(state_dict["node_outputs"]),
+                    json.dumps(state_dict["llm_usage"]),
+                    entry.state.error,
+                    json.dumps(state_dict["variables"]),
+                    json.dumps(state_dict["exec_counts"]),
+                    json.dumps(state_dict["executed_nodes"]),
+                    json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None,
+                    entry.access_count,
+                    datetime.now().isoformat(),
+                ),
+            )
+
+            # Force commit for critical writes
+            if use_full_sync:
+                await loop.run_in_executor(self._executor, self._conn.commit)
+
+        finally:
+            # Restore normal synchronous mode after critical write
+            if use_full_sync:
+                await loop.run_in_executor(
+                    self._executor, self._conn.execute, "PRAGMA synchronous=NORMAL"
+                )
 
         entry.is_dirty = False
         entry.is_persisted = True
@@ -269,6 +305,53 @@ class PersistenceManager:
 
         await self.execute("DELETE FROM execution_states WHERE started_at < ?", (cutoff_iso,))
         await self.execute("VACUUM")
+
+    async def record_transition(
+        self,
+        execution_id: str,
+        node_id: str | None,
+        phase: str,
+        seq: int,
+        payload: dict[str, Any],
+    ) -> bool:
+        """Record a state transition with idempotency.
+
+        Returns True if this is a new transition, False if it already existed.
+        """
+        transition_id = f"{execution_id}:{seq}"
+
+        try:
+            await self.execute(
+                """
+                INSERT INTO transitions (id, execution_id, node_id, phase, seq, payload)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    transition_id,
+                    execution_id,
+                    node_id,
+                    phase,
+                    seq,
+                    json.dumps(payload),
+                ),
+            )
+            return True
+        except sqlite3.IntegrityError:
+            # Transition already exists - idempotent operation
+            logger.debug(f"Transition {transition_id} already exists (idempotent)")
+            return False
+
+    async def get_latest_sequence(self, execution_id: str) -> int:
+        """Get the latest sequence number for an execution."""
+        cursor = await self.execute(
+            "SELECT MAX(seq) FROM transitions WHERE execution_id = ?",
+            (execution_id,),
+        )
+
+        loop = asyncio.get_event_loop()
+        row = await loop.run_in_executor(self._executor, cursor.fetchone)
+
+        return row[0] if row and row[0] is not None else 0
 
     def _parse_state_from_row(self, row) -> ExecutionState:
         """Parse ExecutionState from database row."""

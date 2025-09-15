@@ -77,7 +77,7 @@ export const ExecutionMetricsView: React.FC<ExecutionMetricsViewProps> = ({
           compareValue = a.duration_ms - b.duration_ms;
           break;
         case 'tokens':
-          compareValue = a.token_usage.total - b.token_usage.total;
+          compareValue = (a.token_usage?.total || 0) - (b.token_usage?.total || 0);
           break;
       }
 
@@ -113,9 +113,9 @@ export const ExecutionMetricsView: React.FC<ExecutionMetricsViewProps> = ({
       node.node_id,
       node.node_type,
       node.duration_ms.toString(),
-      node.token_usage.input.toString(),
-      node.token_usage.output.toString(),
-      node.token_usage.total.toString(),
+      (node.token_usage?.input || 0).toString(),
+      (node.token_usage?.output || 0).toString(),
+      (node.token_usage?.total || 0).toString(),
       node.error || '',
     ]);
 
@@ -157,7 +157,7 @@ export const ExecutionMetricsView: React.FC<ExecutionMetricsViewProps> = ({
           </div>
           <div>
             <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-bold">{formatDuration(metrics.total_duration_ms)}</span>
+              <span className="text-2xl font-bold">{formatDuration(metrics.total_duration_ms || 0)}</span>
               <Clock className="h-4 w-4 text-gray-400" />
             </div>
           </div>
@@ -169,11 +169,11 @@ export const ExecutionMetricsView: React.FC<ExecutionMetricsViewProps> = ({
           </div>
           <div>
             <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-bold">{metrics.total_token_usage.total.toLocaleString()}</span>
+              <span className="text-2xl font-bold">{metrics.total_token_usage?.total?.toLocaleString() || '0'}</span>
               <Cpu className="h-4 w-4 text-gray-400" />
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              {metrics.total_token_usage.input.toLocaleString()} in / {metrics.total_token_usage.output.toLocaleString()} out
+              {metrics.total_token_usage?.input?.toLocaleString() || '0'} in / {metrics.total_token_usage?.output?.toLocaleString() || '0'} out
             </div>
           </div>
         </div>
@@ -184,8 +184,8 @@ export const ExecutionMetricsView: React.FC<ExecutionMetricsViewProps> = ({
           </div>
           <div>
             <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-bold">{metrics.node_count}</span>
-              {metrics.critical_path_length > 0 && (
+              <span className="text-2xl font-bold">{metrics.node_count || 0}</span>
+              {(metrics.critical_path_length || 0) > 0 && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                   {metrics.critical_path_length} critical
                 </span>
@@ -200,7 +200,7 @@ export const ExecutionMetricsView: React.FC<ExecutionMetricsViewProps> = ({
           </div>
           <div>
             <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-bold">{metrics.parallelizable_groups}</span>
+              <span className="text-2xl font-bold">{metrics.parallelizable_groups || 0}</span>
               <TrendingUp className="h-4 w-4 text-green-500" />
             </div>
             <div className="text-xs text-gray-500 mt-1">parallelizable groups</div>
@@ -293,9 +293,9 @@ export const ExecutionMetricsView: React.FC<ExecutionMetricsViewProps> = ({
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap text-right">
                       <div className="space-y-1">
-                        <div className="font-mono text-sm">{node.token_usage.total.toLocaleString()}</div>
+                        <div className="font-mono text-sm">{(node.token_usage?.total || 0).toLocaleString()}</div>
                         <div className="text-xs text-gray-500">
-                          {node.token_usage.input}↓ {node.token_usage.output}↑
+                          {node.token_usage?.input || 0}↓ {node.token_usage?.output || 0}↑
                         </div>
                       </div>
                     </td>

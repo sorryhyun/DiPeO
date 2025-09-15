@@ -62,7 +62,7 @@ export const executionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_execution',
+          name: 'execution',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],

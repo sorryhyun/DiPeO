@@ -187,7 +187,7 @@ export function useDiagramSave({ saveToFileSystem }: UseDiagramSaveOptions) {
       }
 
       // Get the converted content
-      const convertedContent = convertResult.data.convert_diagram_format.content;
+      const convertedContent = convertResult.data.convert_diagram_format.data;
       if (!convertedContent) {
         throw new Error('No content returned from conversion');
       }

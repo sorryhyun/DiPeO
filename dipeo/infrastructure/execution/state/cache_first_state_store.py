@@ -47,6 +47,7 @@ class CacheFirstStateStore(StateStorePort):
         checkpoint_interval: int = 10,  # Checkpoint every N nodes
         warm_cache_size: int = 20,  # Number of frequently accessed executions to keep warm
         persistence_delay: float = 5.0,  # Delay before persisting to database
+        write_through_critical: bool = False,  # Write-through for critical events
     ):
         self.db_path = db_path or os.getenv("STATE_STORE_PATH", str(STATE_DB_PATH))
         self.message_store = message_store
@@ -62,6 +63,7 @@ class CacheFirstStateStore(StateStorePort):
         self._checkpoint_interval = checkpoint_interval
         self._checkpoint_queue: asyncio.Queue = asyncio.Queue()
         self._persistence_delay = persistence_delay
+        self._write_through_critical = write_through_critical
 
         # Background tasks
         self._persistence_task: asyncio.Task | None = None
@@ -132,9 +134,32 @@ class CacheFirstStateStore(StateStorePort):
         self._log_metrics()
 
     async def handle_event(self, event: DomainEvent) -> None:
-        """Handle domain events for state persistence."""
+        """Handle domain events for state persistence with idempotency."""
         execution_id = event.scope.execution_id
         event_type = event.type
+
+        # Get sequence number from metadata if available (set by event_pipeline)
+        seq = event.meta.get("seq") if event.meta else None
+        if seq is not None:
+            # Record transition for idempotency
+            node_id = getattr(event.scope, "node_id", None)
+            payload = {
+                "event_type": event_type.value,
+                "data": getattr(event, "data", {}),
+            }
+            is_new = await self._persistence_manager.record_transition(
+                execution_id, node_id, event_type.value, seq, payload
+            )
+            if not is_new:
+                # Event already processed - skip
+                logger.debug(f"Skipping duplicate event {event_type} seq {seq} for {execution_id}")
+                return
+
+        # Check if this is a critical event requiring immediate persistence
+        is_critical = self._write_through_critical and event_type in [
+            EventType.NODE_COMPLETED,
+            EventType.EXECUTION_COMPLETED,
+        ]
 
         # For EXECUTION_COMPLETED, update status and persist immediately
         if event_type == EventType.EXECUTION_COMPLETED:
@@ -153,14 +178,18 @@ class CacheFirstStateStore(StateStorePort):
                     entry.state.ended_at = datetime.now().isoformat()
                     entry.is_dirty = True
 
-            # Create final checkpoint
-            checkpoint = PersistenceCheckpoint(
-                execution_id=execution_id,
-                checkpoint_time=time.time(),
-                node_count=len(entry.state.executed_nodes) if entry else 0,
-                is_final=True,
-            )
-            await self._checkpoint_queue.put(checkpoint)
+            # Handle critical persistence or normal checkpoint
+            if self._write_through_critical:
+                await self._persist_critical_event(execution_id)
+            else:
+                # Create final checkpoint
+                checkpoint = PersistenceCheckpoint(
+                    execution_id=execution_id,
+                    checkpoint_time=time.time(),
+                    node_count=len(entry.state.executed_nodes) if entry else 0,
+                    is_final=True,
+                )
+                await self._checkpoint_queue.put(checkpoint)
             return
 
         # For other events, update cache and let checkpoint system handle persistence
@@ -179,6 +208,9 @@ class CacheFirstStateStore(StateStorePort):
                     is_exception=False,
                     llm_usage=event.data.get("llm_usage"),
                 )
+            # Write-through for critical events
+            if is_critical:
+                await self._persist_critical_event(execution_id)
         elif event_type == EventType.NODE_ERROR:
             error_msg = None
             if hasattr(event, "data") and event.data:
@@ -225,6 +257,19 @@ class CacheFirstStateStore(StateStorePort):
         )
         for exec_id, entry in dirty_entries:
             await self._persistence_manager.persist_entry(exec_id, entry)
+
+    async def _persist_critical_event(self, execution_id: str):
+        """Immediately persist critical events with enhanced durability."""
+        entry = await self._cache_manager.get_entry(execution_id)
+        if not entry:
+            return
+
+        # Use enhanced durability settings for critical writes
+        await self._persistence_manager.persist_entry(execution_id, entry, use_full_sync=True)
+        entry.is_dirty = False
+        entry.is_persisted = True
+        self._persistence_manager.metrics.checkpoints += 1
+        logger.debug(f"Critical event persisted immediately for execution {execution_id}")
 
     async def _persist_all_dirty(self):
         """Persist all dirty cache entries."""
