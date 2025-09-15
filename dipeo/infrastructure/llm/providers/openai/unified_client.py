@@ -82,13 +82,17 @@ class UnifiedOpenAIClient:
         return any(model_lower.startswith(prefix) for prefix in valid_prefixes)
 
     def _prepare_messages(
-        self, messages: list[Message], execution_phase: ExecutionPhase | None = None
+        self, messages: list[Message], execution_phase: ExecutionPhase | None = None, **kwargs
     ) -> list[dict[str, Any]]:
         result = []
 
         # Add phase-specific system prompt if needed
         if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-            result.append({"role": "developer", "content": MEMORY_SELECTION_PROMPT})
+            # Get person name from kwargs if available
+            person_name = kwargs.get("person_name", "Assistant")
+            # Format the prompt with the person name
+            prompt_content = MEMORY_SELECTION_PROMPT.format(assistant_name=person_name)
+            result.append({"role": "developer", "content": prompt_content})
 
         elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
             result.append({"role": "developer", "content": LLM_DECISION_PROMPT})
@@ -194,7 +198,11 @@ class UnifiedOpenAIClient:
     ) -> LLMResponse:
         """Execute async chat completion with retry logic."""
         # Prepare messages with phase-specific system prompts
-        prepared_messages = self._prepare_messages(messages, execution_phase)
+        # Pass person_name if available in kwargs
+        person_name = kwargs.get("person_name")
+        prepared_messages = self._prepare_messages(
+            messages, execution_phase, person_name=person_name
+        )
 
         # Build request parameters
         params = {
@@ -268,7 +276,12 @@ class UnifiedOpenAIClient:
             raise NotImplementedError(f"{self.provider_type} does not support streaming")
 
         # Prepare messages
-        prepared_messages = self._prepare_messages(messages)
+        # Extract execution_phase and person_name from kwargs if available
+        execution_phase = kwargs.get("execution_phase")
+        person_name = kwargs.get("person_name")
+        prepared_messages = self._prepare_messages(
+            messages, execution_phase, person_name=person_name
+        )
 
         # Build request parameters
         params = {

@@ -142,7 +142,20 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
         )
 
     def _convert_response_to_chat_result(self, response: LLMResponse) -> ChatResult:
-        if isinstance(response.content, str):
+        # Check for structured output first (from responses.parse())
+        if response.structured_output is not None:
+            if hasattr(response.structured_output, "model_dump_json"):
+                content = response.structured_output.model_dump_json()
+                self.log_debug(f"Structured output converted via model_dump_json: {content[:200]}")
+            elif hasattr(response.structured_output, "dict"):
+                import json
+
+                content = json.dumps(response.structured_output.dict())
+                self.log_debug(f"Structured output converted via dict: {content[:200]}")
+            else:
+                content = str(response.structured_output)
+                self.log_debug(f"Structured output converted via str: {content[:200]}")
+        elif isinstance(response.content, str):
             content = response.content
         elif hasattr(response.content, "model_dump_json"):
             content = response.content.model_dump_json()
@@ -229,6 +242,8 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
         kwargs.pop("llm_service", None)
         kwargs.pop("person_id", None)
 
+        # person_name is already in kwargs if provided, so we don't need to extract and re-add it
+
         import json
 
         result = await self.complete(
@@ -245,15 +260,27 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
         # Parse MemorySelectionOutput from text response
         ids = []
         if result.text:
+            self.log_debug(f"Memory selection result.text: {result.text[:200]}")
             try:
-                ids = json.loads(result.text)
-                if not isinstance(ids, list):
+                # Try to parse as MemorySelectionOutput JSON if it's structured
+                parsed = json.loads(result.text)
+                if isinstance(parsed, dict) and "message_ids" in parsed:
+                    ids = parsed["message_ids"]
+                elif isinstance(parsed, list):
+                    ids = parsed
+                else:
+                    self.log_warning(f"Unexpected memory selection format: {type(parsed)}")
                     ids = []
-            except (json.JSONDecodeError, ValueError):
+            except (json.JSONDecodeError, ValueError) as e:
+                self.log_warning(f"Failed to parse memory selection JSON: {e}")
                 ids = []
+        else:
+            self.log_warning("Memory selection result.text is empty")
 
         output = MemorySelectionOutput(message_ids=ids)
-        self.log_info(f"Memory selection extracted {len(output.message_ids)} message IDs")
+        self.log_info(
+            f"Memory selection extracted {len(output.message_ids)} message IDs from candidates: {[msg.id for msg in candidate_messages[:3]]}"
+        )
         return output
 
     async def complete_decision(
@@ -448,7 +475,16 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
 
             client = await self._get_client(service_name, model, api_key_id)
 
-            client_kwargs = {**kwargs}
+            # Filter out provider-specific parameters
+            # person_name is only used by Claude Code for memory selection
+            claude_code_specific = {"person_name"}
+
+            client_kwargs = {k: v for k, v in kwargs.items() if k not in claude_code_specific}
+
+            # Add person_name back only for Claude Code
+            if service_name == "claude_code" and "person_name" in kwargs:
+                client_kwargs["person_name"] = kwargs["person_name"]
+
             if execution_phase:
                 client_kwargs["execution_phase"] = execution_phase
             else:

@@ -51,6 +51,17 @@ class SessionQueryWrapper:
         # Borrow a session from the pool (will connect on-demand)
         self._session = await self._pool.borrow()
 
+        # Log MCP server configuration if present
+        if hasattr(self.options, "mcp_servers") and self.options.mcp_servers:
+            logger.debug(
+                f"[SessionQueryWrapper] Session {self._session.session_id} initialized with MCP servers: "
+                f"{list(self.options.mcp_servers.keys())}, allowed_tools: {getattr(self.options, 'allowed_tools', [])}"
+            )
+        else:
+            logger.debug(
+                f"[SessionQueryWrapper] Session {self._session.session_id} initialized without MCP servers"
+            )
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -91,10 +102,40 @@ class SessionQueryWrapper:
         if not self._session:
             raise RuntimeError("SessionQueryWrapper not in context")
 
+        logger.debug(
+            f"[SessionQueryWrapper] Executing query on session {self._session.session_id}, "
+            f"execution_phase={self.execution_phase}, prompt_preview: {prompt[:200]}..."
+        )
+
         try:
             # Execute query on the session
+            message_count = 0
             async for message in self._session.query(prompt):
+                message_count += 1
+                message_type = type(message).__name__
+
+                # Log different message types
+                if hasattr(message, "result"):
+                    logger.debug(
+                        f"[SessionQueryWrapper] Session {self._session.session_id} received ResultMessage: "
+                        f"{str(message.result)[:500]}{'...' if len(str(message.result)) > 500 else ''}"
+                    )
+                elif hasattr(message, "content"):
+                    logger.debug(
+                        f"[SessionQueryWrapper] Session {self._session.session_id} received {message_type} "
+                        f"with {len(message.content) if hasattr(message.content, '__len__') else 0} content blocks"
+                    )
+                else:
+                    logger.debug(
+                        f"[SessionQueryWrapper] Session {self._session.session_id} received {message_type}"
+                    )
+
                 yield message
+
+            logger.debug(
+                f"[SessionQueryWrapper] Query completed on session {self._session.session_id}, "
+                f"processed {message_count} messages"
+            )
 
         except Exception as e:
             logger.error(

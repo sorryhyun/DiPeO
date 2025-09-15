@@ -75,8 +75,9 @@ class IntelligentMemoryStrategy:
         top_candidates = [msg for msg, score in scored_messages[: self.config.hard_cap]]
 
         person_id = kwargs.pop("person_id", PersonID("system"))
+        person_name = None
 
-        # Get person's LLM config if available
+        # Get person's LLM config and name if available
         if self.person_repository:
             try:
                 person = self.person_repository.get(person_id)
@@ -92,16 +93,20 @@ class IntelligentMemoryStrategy:
                     if hasattr(llm_config.service, "value")
                     else str(llm_config.service)
                 )
+                # Get the person name
+                person_name = person.name or str(person_id)
             except (KeyError, AttributeError):
                 # Fallback to defaults if person not found
                 model = kwargs.get("model", "gpt-5-nano-2025-08-07")
                 api_key_id = kwargs.get("api_key_id", "APIKEY_52609F")
                 service_name = kwargs.get("service_name", "openai")
+                person_name = str(person_id)
         else:
             # Use kwargs or defaults
             model = kwargs.get("model", "gpt-5-nano-2025-08-07")
             api_key_id = kwargs.get("api_key_id", "APIKEY_52609F")
             service_name = kwargs.get("service_name", "openai")
+            person_name = str(person_id)
 
         # Call LLM service directly
         output = await self.llm_service.complete_memory_selection(
@@ -112,6 +117,7 @@ class IntelligentMemoryStrategy:
             model=model,
             api_key_id=api_key_id,
             service_name=service_name,
+            person_name=person_name,
             **kwargs,
         )
 
