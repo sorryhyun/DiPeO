@@ -206,7 +206,3 @@ class LLMService(Protocol):
     async def validate_api_key(self, api_key_id: str, service: str | None = None) -> bool:
         """Validate an API key is functional."""
         ...
-
-    async def get_service_for_model(self, model: str) -> str | None:
-        """Determine which service supports a given model."""
-        ...

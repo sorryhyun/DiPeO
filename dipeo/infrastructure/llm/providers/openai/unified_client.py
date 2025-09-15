@@ -188,7 +188,7 @@ class UnifiedOpenAIClient:
         temperature: float | None = None,
         max_tokens: int | None = None,
         tools: list[ToolConfig] | None = None,
-        response_format: Any | None = None,
+        text_format: Any | None = None,
         execution_phase: ExecutionPhase | None = None,
         **kwargs,
     ) -> LLMResponse:
@@ -226,14 +226,11 @@ class UnifiedOpenAIClient:
 
                 text_format = DecisionOutput
 
-        structured_model = response_format or text_format
-
         # Add remaining kwargs
         kwargs_without_formats = {
             k: v
             for k, v in kwargs.items()
-            if k
-            not in ["response_format", "text_format", "messages", "execution_phase", "trace_id"]
+            if k not in ["text_format", "messages", "execution_phase", "trace_id"]
         }
         params.update(kwargs_without_formats)
 
@@ -246,12 +243,12 @@ class UnifiedOpenAIClient:
             with attempt:
                 # Handle structured output
                 if (
-                    structured_model
-                    and isinstance(structured_model, type)
-                    and issubclass(structured_model, BaseModel)
+                    text_format
+                    and isinstance(text_format, type)
+                    and issubclass(text_format, BaseModel)
                 ):
-                    params["text_format"] = structured_model
-                    logger.debug(f"Using structured output with model: {structured_model.__name__}")
+                    params["text_format"] = text_format
+                    logger.debug(f"Using structured output with model: {text_format.__name__}")
                     response = await self.async_client.responses.parse(**params)
                 else:
                     response = await self.async_client.responses.create(**params)

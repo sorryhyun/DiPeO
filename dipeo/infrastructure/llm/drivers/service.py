@@ -32,29 +32,6 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
         self._client_cache = SingleFlightCache()  # For deduplicating client creation
         self._settings = get_settings()
 
-        # Model-specific keywords for provider inference
-        self._model_keywords = {
-            "gpt": LLMServiceName.OPENAI.value,
-            "o1": LLMServiceName.OPENAI.value,
-            "o3": LLMServiceName.OPENAI.value,
-            "dall-e": LLMServiceName.OPENAI.value,
-            "whisper": LLMServiceName.OPENAI.value,
-            "embedding": LLMServiceName.OPENAI.value,
-            "haiku": LLMServiceName.ANTHROPIC.value,
-            "sonnet": LLMServiceName.ANTHROPIC.value,
-            "opus": LLMServiceName.ANTHROPIC.value,
-            "claude": LLMServiceName.ANTHROPIC.value,
-            "bison": LLMServiceName.GOOGLE.value,
-            "palm": LLMServiceName.GOOGLE.value,
-            "gemini": LLMServiceName.GOOGLE.value,
-            "llama": LLMServiceName.OLLAMA.value,
-            "mistral": LLMServiceName.OLLAMA.value,
-            "mixtral": LLMServiceName.OLLAMA.value,
-            "gemma": LLMServiceName.OLLAMA.value,
-            "phi": LLMServiceName.OLLAMA.value,
-            "qwen": LLMServiceName.OLLAMA.value,
-        }
-
     async def initialize(self) -> None:
         pass
 
@@ -70,15 +47,6 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
     def _create_cache_key(self, provider: str, model: str, api_key_id: str) -> str:
         key_string = f"{provider}:{model}:{api_key_id}"
         return hashlib.sha256(key_string.encode()).hexdigest()
-
-    def _infer_service_from_model(self, model: str) -> str:
-        model_lower = model.lower()
-
-        for keyword, service in self._model_keywords.items():
-            if keyword in model_lower:
-                return service
-
-        return LLMServiceName.OPENAI.value
 
     def _create_provider_client(
         self, provider: str, model: str, api_key: str, base_url: str | None = None
@@ -274,26 +242,19 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             **kwargs,
         )
 
-        # Extract or parse MemorySelectionOutput
-        if result.structured_output and isinstance(result.structured_output, MemorySelectionOutput):
-            self.log_info(
-                f"Memory selection extracted {len(result.structured_output.message_ids)} message IDs"
-            )
-            return result.structured_output
-        else:
-            # Fallback: parse from text and create MemorySelectionOutput
-            ids = []
-            if result.text:
-                try:
-                    ids = json.loads(result.text)
-                    if not isinstance(ids, list):
-                        ids = []
-                except (json.JSONDecodeError, ValueError):
+        # Parse MemorySelectionOutput from text response
+        ids = []
+        if result.text:
+            try:
+                ids = json.loads(result.text)
+                if not isinstance(ids, list):
                     ids = []
+            except (json.JSONDecodeError, ValueError):
+                ids = []
 
-            output = MemorySelectionOutput(message_ids=ids)
-            self.log_info(f"Memory selection extracted {len(output.message_ids)} message IDs")
-            return output
+        output = MemorySelectionOutput(message_ids=ids)
+        self.log_info(f"Memory selection extracted {len(output.message_ids)} message IDs")
+        return output
 
     async def complete_decision(
         self,
@@ -372,18 +333,13 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             **kwargs,
         )
 
-        # Extract or parse DecisionOutput
-        if result.structured_output and isinstance(result.structured_output, DecisionOutput):
-            self.log_debug(f"Decision evaluation result: {result.structured_output.decision}")
-            return result.structured_output
-        else:
-            # Fallback: parse from text and create DecisionOutput
-            response_text = result.text if hasattr(result, "text") else ""
-            decision = self._parse_text_decision(response_text)
+        # Parse DecisionOutput from text response
+        response_text = result.text if hasattr(result, "text") else ""
+        decision = self._parse_text_decision(response_text)
 
-            output = DecisionOutput(decision=decision)
-            self.log_debug(f"Decision evaluation result: {output.decision}")
-            return output
+        output = DecisionOutput(decision=decision)
+        self.log_debug(f"Decision evaluation result: {output.decision}")
+        return output
 
     def _parse_text_decision(self, response_text: str) -> bool:
         """Parse a binary decision from text response."""
@@ -487,7 +443,7 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             # Use the explicit service parameter if provided, otherwise infer from model
             if service_name:
                 if hasattr(service_name, "value"):
-                    service = service_name.value
+                    service_name = service_name.value
                 service_name = normalize_service_name(str(service_name))
 
             client = await self._get_client(service_name, model, api_key_id)
@@ -557,7 +513,3 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             return test_response is not None
         except Exception:
             return False
-
-    async def get_service_for_model(self, model: str) -> str | None:
-        """Determine which service supports a given model."""
-        return self._infer_service_from_model(model)
