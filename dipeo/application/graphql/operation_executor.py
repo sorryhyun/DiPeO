@@ -15,7 +15,9 @@ from typing import Any, Optional, Union, get_type_hints
 
 import strawberry
 
-from dipeo.application.registry.service_registry import ServiceRegistry
+from dipeo.application.registry.enhanced_service_registry import (
+    EnhancedServiceRegistry as ServiceRegistry,
+)
 from dipeo.diagram_generated.graphql import operations
 
 # Import result types for type checking
@@ -199,9 +201,9 @@ class OperationExecutor:
 
             if not found:
                 logger = logging.getLogger(__name__)
-                logger.debug(
-                    f"No resolver found for operation {op_cls.__name__}, expected function name: {func_name}"
-                )
+                # logger.debug(
+                #     f"No resolver found for operation {op_cls.__name__}, expected function name: {func_name}"
+                # )
 
     def _register_operation(
         self, operation_class: type, resolver_method: Callable, result_type: type | None = None

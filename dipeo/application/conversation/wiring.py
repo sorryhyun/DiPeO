@@ -3,7 +3,10 @@
 import logging
 from typing import TYPE_CHECKING
 
-from dipeo.application.registry.service_registry import ServiceKey, ServiceRegistry
+from dipeo.application.registry.enhanced_service_registry import EnhancedServiceKey as ServiceKey
+from dipeo.application.registry.enhanced_service_registry import (
+    EnhancedServiceRegistry as ServiceRegistry,
+)
 
 if TYPE_CHECKING:
     pass

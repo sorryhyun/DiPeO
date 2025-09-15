@@ -3,8 +3,11 @@
 import logging
 from typing import TYPE_CHECKING
 
+from dipeo.application.registry.enhanced_service_registry import EnhancedServiceKey as ServiceKey
+from dipeo.application.registry.enhanced_service_registry import (
+    EnhancedServiceRegistry as ServiceRegistry,
+)
 from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, PREPARE_DIAGRAM_USE_CASE
-from dipeo.application.registry.service_registry import ServiceKey, ServiceRegistry
 
 if TYPE_CHECKING:
     pass
@@ -39,11 +42,9 @@ def wire_execution(registry: ServiceRegistry) -> None:
     from dipeo.application.registry.keys import (
         FILESYSTEM_ADAPTER,
         LLM_SERVICE,
-        MEMORY_SELECTOR,
         PERSON_REPOSITORY,
         PROMPT_LOADING_SERVICE,
     )
-    from dipeo.infrastructure.llm.domain_adapters import LLMMemorySelectionAdapter
 
     def create_execution_orchestrator() -> ExecutionOrchestrator:
         """Factory for execution orchestrator with all dependencies."""
@@ -63,16 +64,9 @@ def wire_execution(registry: ServiceRegistry) -> None:
             person_repository=person_repo,
             manage_conversation_use_case=manage_conversation_use_case,
             prompt_loading_use_case=prompt_loading,
-            memory_selector=None,  # Will be set after creation
+            memory_selector=None,  # No longer using domain adapters
             llm_service=llm_service,
         )
-
-        # Create LLMMemorySelectionAdapter with orchestrator
-        memory_selector = LLMMemorySelectionAdapter(orchestrator)
-        registry.register(MEMORY_SELECTOR, memory_selector)
-
-        # Update orchestrator with memory_selector
-        orchestrator._memory_selector = memory_selector
 
         return orchestrator
 

@@ -11,7 +11,7 @@ from dipeo.diagram_generated import (
 from dipeo.diagram_generated.domain_models import PersonID
 
 if TYPE_CHECKING:
-    from dipeo.domain.conversation.memory_strategies import MemorySelectionStrategy
+    from dipeo.domain.conversation.memory_strategies import IntelligentMemoryStrategy
     from dipeo.domain.integrations.ports import LLMService as LLMServicePort
 
 
@@ -27,7 +27,7 @@ class Person:
         id: PersonID,
         name: str,
         llm_config: PersonLLMConfig,
-        memory_strategy: Optional["MemorySelectionStrategy"] = None,
+        memory_strategy: Optional["IntelligentMemoryStrategy"] = None,
     ):
         self.id = id
         self.name = name
@@ -88,7 +88,7 @@ class Person:
             messages=formatted_messages,
             model=self.llm_config.model,
             api_key_id=self.llm_config.api_key_id,
-            service=self.llm_config.service,
+            service_name=self.llm_config.service,
             **llm_options,
         )
 

@@ -25,6 +25,7 @@ from dipeo.infrastructure.llm.drivers.types import (
     ProviderCapabilities,
 )
 
+from ...drivers.types import ProviderType
 from .prompts import DIRECT_EXECUTION_PROMPT, LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
 from .transport.session_wrapper import SessionQueryWrapper
 
@@ -118,7 +119,9 @@ class UnifiedClaudeCodeClient:
 
         return None
 
-    def _parse_response(self, response: str) -> LLMResponse:
+    def _parse_response(
+        self, response: str, execution_phase: ExecutionPhase | None = None
+    ) -> LLMResponse:
         """Parse Claude Code response to unified format."""
         # Extract usage if present in response
         usage = self._extract_usage_from_response(response)
@@ -128,12 +131,50 @@ class UnifiedClaudeCodeClient:
             r"Tokens:\s*input=\d+,\s*output=\d+,\s*total=\d+", "", response
         ).strip()
 
+        # Parse phase-specific structured output
+        structured_output = None
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+            # Parse JSON array for memory selection
+            import json
+
+            try:
+                # Try to parse the response as JSON directly
+                message_ids = json.loads(clean_response)
+                if isinstance(message_ids, list):
+                    from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
+
+                    structured_output = MemorySelectionOutput(message_ids=message_ids)
+            except json.JSONDecodeError:
+                # Try to extract JSON array from text
+                match = re.search(r"\[.*?\]", clean_response, re.DOTALL)
+                if match:
+                    try:
+                        message_ids = json.loads(match.group(0))
+                        from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
+
+                        structured_output = MemorySelectionOutput(message_ids=message_ids)
+                    except json.JSONDecodeError:
+                        pass
+
+        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            # Parse YES/NO response for decision
+            response_upper = clean_response.strip().upper()
+            if response_upper.startswith("YES"):
+                from dipeo.infrastructure.llm.drivers.types import DecisionOutput
+
+                structured_output = DecisionOutput(decision=True)
+            elif response_upper.startswith("NO"):
+                from dipeo.infrastructure.llm.drivers.types import DecisionOutput
+
+                structured_output = DecisionOutput(decision=False)
+
         return LLMResponse(
             content=clean_response,
             raw_response=response,
             usage=usage,
             model="claude-code",
             provider=self.provider_type,
+            structured_output=structured_output,
         )
 
     async def async_chat(
@@ -219,7 +260,7 @@ class UnifiedClaudeCodeClient:
                         # This is the final, authoritative response
                         result_text = str(message.result)
                         break  # We have the result, no need to process further messages
-                return self._parse_response(result_text)
+                return self._parse_response(result_text, execution_phase)
 
         async for attempt in retry:
             with attempt:

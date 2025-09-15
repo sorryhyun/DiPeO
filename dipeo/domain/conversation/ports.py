@@ -122,39 +122,6 @@ class PersonRepository(Protocol):
     def clear(self) -> None: ...
 
 
-class MemorySelectionPort(Protocol):
-    """Simplified port for memory selection implementations.
-
-    This simplified interface focuses on the core responsibility of
-    selecting relevant message IDs based on criteria.
-    """
-
-    async def select_memories(
-        self,
-        *,
-        person_id: PersonID,
-        candidate_messages: Sequence[Message],
-        task_preview: str,
-        criteria: str,
-        at_most: int | None = None,
-        **kwargs,
-    ) -> list[str] | None:
-        """Select relevant message IDs based on criteria.
-
-        Args:
-            person_id: The person for whom we're selecting memories
-            candidate_messages: Pre-filtered and scored messages to select from
-            task_preview: Preview of the upcoming task for context
-            criteria: Selection criteria (natural language)
-            at_most: Maximum number of messages to select
-            **kwargs: Additional implementation-specific parameters
-
-        Returns:
-            List of selected message IDs, or None if selection not performed
-        """
-        ...
-
-
 class MemoryService(Protocol):
     """Service for managing conversation memory and context."""
 

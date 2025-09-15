@@ -137,16 +137,9 @@ def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) ->
 
             api_key_service = EnvironmentAPIKeyService()
 
-    use_simplified = os.getenv("DIPEO_USE_SIMPLIFIED_LLM", "true").lower() == "true"
+    from dipeo.infrastructure.llm.drivers.service import LLMInfraService
 
-    if use_simplified:
-        from dipeo.infrastructure.llm.simplified_service import SimplifiedLLMService
-
-        llm_infra = SimplifiedLLMService(api_key_service)
-    else:
-        from dipeo.infrastructure.llm.drivers.service import LLMInfraService
-
-        llm_infra = LLMInfraService(api_key_service)
+    llm_infra = LLMInfraService(api_key_service)
 
     registry.register(LLM_SERVICE, llm_infra)
 

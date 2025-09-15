@@ -12,13 +12,15 @@ import asyncio
 import sys
 from pathlib import Path
 
+from dipeo.application.graphql.operation_executor import OperationExecutor
+from dipeo.application.registry.enhanced_service_registry import (
+    EnhancedServiceRegistry as ServiceRegistry,
+)
+from dipeo.diagram_generated.graphql import operations
+
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
-
-from dipeo.application.graphql.operation_executor import OperationExecutor  # noqa: E402
-from dipeo.application.registry.service_registry import ServiceRegistry  # noqa: E402
-from dipeo.diagram_generated.graphql import operations  # noqa: E402
 
 
 def get_all_generated_operations() -> set[str]:

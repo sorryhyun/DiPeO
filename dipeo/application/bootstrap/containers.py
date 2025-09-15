@@ -5,7 +5,8 @@
 
 from typing import Any
 
-from dipeo.application.registry import ServiceKey, ServiceRegistry
+from dipeo.application.registry import ServiceKey
+from dipeo.application.registry.enhanced_service_registry import EnhancedServiceRegistry
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
 )
@@ -20,7 +21,7 @@ class Container:
 
     def __init__(self, config: AppSettings | None = None):
         self.config = config or get_settings()
-        self.registry = ServiceRegistry()
+        self.registry = EnhancedServiceRegistry()
 
         self.infrastructure = InfrastructureContainer(self.registry, self.config)
         self.application = ApplicationContainer(self.registry)
@@ -53,6 +54,10 @@ class Container:
         diagram_service = self.registry.resolve(DIAGRAM_PORT)
         if diagram_service:
             await initialize_service(diagram_service)
+
+        # Freeze registry in production to prevent accidental modifications
+        if self.config.env == "production":
+            self.registry.freeze()
 
     async def shutdown(self):
         """Shutdown resources including warm pools."""

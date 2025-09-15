@@ -20,11 +20,9 @@ from dipeo.application.graphql.types.provider_types import (
     ProviderStatisticsType,
     ProviderType,
 )
-from dipeo.application.graphql.types.query_types import DiagramFormatInfo
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     CLI_SESSION_SERVICE,
-    DIAGRAM_CONVERTER,
     DIAGRAM_PORT,
     EXECUTION_ORCHESTRATOR,
     FILESYSTEM_ADAPTER,
@@ -409,21 +407,8 @@ async def list_conversations(
     return []
 
 
-async def get_supported_formats(registry: ServiceRegistry) -> list[DiagramFormatInfo]:
-    """Get supported diagram formats."""
-    converter = registry.resolve(DIAGRAM_CONVERTER)
-    formats = converter.list_formats()
-    return [
-        DiagramFormatInfo(
-            format=fmt["id"],
-            name=fmt["name"],
-            description=fmt.get("description", ""),
-            extension=fmt["extension"],
-            supports_import=fmt.get("supports_import", True),
-            supports_export=fmt.get("supports_export", True),
-        )
-        for fmt in formats
-    ]
+# Note: get_supported_formats removed as DIAGRAM_CONVERTER service was unused
+# If needed in future, implement using DIAGRAM_SERIALIZER or other appropriate service
 
 
 async def list_prompt_files(registry: ServiceRegistry) -> list[JSON]:

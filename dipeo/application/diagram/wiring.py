@@ -5,6 +5,10 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from dipeo.application.registry.enhanced_service_registry import EnhancedServiceKey as ServiceKey
+from dipeo.application.registry.enhanced_service_registry import (
+    EnhancedServiceRegistry as ServiceRegistry,
+)
 from dipeo.application.registry.keys import (
     COMPILE_DIAGRAM_USE_CASE,
     DIAGRAM_COMPILER,
@@ -15,7 +19,6 @@ from dipeo.application.registry.keys import (
     TRANSFORMATION_ENGINE,
     VALIDATE_DIAGRAM_USE_CASE,
 )
-from dipeo.application.registry.service_registry import ServiceKey, ServiceRegistry
 
 if TYPE_CHECKING:
     pass

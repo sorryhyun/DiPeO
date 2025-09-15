@@ -193,7 +193,7 @@ class RedisMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         try:
             message_json = json.dumps(message)
             await self.redis_client.publish(channel, message_json)
-            logger.debug(f"Published message to Redis channel {channel}")
+            # logger.debug(f"Published message to Redis channel {channel}")
         except Exception as e:
             logger.error(f"Failed to publish to Redis channel {channel}: {e}")
 

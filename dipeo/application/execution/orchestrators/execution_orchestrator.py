@@ -11,8 +11,6 @@ if TYPE_CHECKING:
     from dipeo.application.conversation.use_cases import ManageConversationUseCase
     from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
     from dipeo.domain.integrations.ports import LLMService as LLMServicePort
-    from dipeo.infrastructure.llm.domain_adapters import LLMMemorySelectionAdapter
-    from dipeo.infrastructure.llm.domain_adapters.decision import LLMDecisionAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +23,7 @@ class ExecutionOrchestrator:
         person_repository: PersonRepository,
         manage_conversation_use_case: Optional["ManageConversationUseCase"] = None,
         prompt_loading_use_case: Optional["PromptLoadingUseCase"] = None,
-        memory_selector: Optional["LLMMemorySelectionAdapter"] = None,
+        memory_selector: Any = None,  # No longer using domain adapters
         llm_service: Optional["LLMServicePort"] = None,
     ):
         self._person_repo = person_repository
@@ -36,7 +34,6 @@ class ExecutionOrchestrator:
         self._execution_logs: dict[str, list[dict[str, Any]]] = {}
 
         self._person_cache: dict[PersonID, Person] = {}
-        self._decision_adapter: LLMDecisionAdapter | None = None
 
         if hasattr(self._person_repo, "set_orchestrator"):
             self._person_repo.set_orchestrator(self)
@@ -158,18 +155,35 @@ class ExecutionOrchestrator:
         memory_profile: str = "GOLDFISH",
         diagram: Any | None = None,
     ) -> tuple[bool, dict[str, Any]]:
-        if not self._decision_adapter:
-            from dipeo.infrastructure.llm.domain_adapters.decision import LLMDecisionAdapter
+        """Make LLM decision using direct LLMInfraService method."""
+        if not self._llm_service:
+            return False, {"error": "LLM service not available"}
 
-            self._decision_adapter = LLMDecisionAdapter(self)
+        # Get or create person to get LLM config
+        person = self.get_or_create_person(person_id, diagram=diagram)
+        llm_config = person.llm_config
 
-        return await self._decision_adapter.make_decision(
-            person_id=person_id,
+        # Use LLMInfraService's complete_decision method directly
+        output = await self._llm_service.complete_decision(
             prompt=prompt,
-            template_values=template_values,
-            memory_profile=memory_profile,
-            diagram=diagram,
+            context=template_values or {},
+            model=llm_config.model,
+            api_key_id=llm_config.api_key_id.value
+            if hasattr(llm_config.api_key_id, "value")
+            else str(llm_config.api_key_id),
+            service=llm_config.service.value
+            if hasattr(llm_config.service, "value")
+            else str(llm_config.service),
         )
+
+        # Build metadata for compatibility
+        metadata = {
+            "decision": output.decision,
+            "memory_profile": memory_profile,
+            "person": str(person_id),
+        }
+
+        return output.decision, metadata
 
     def load_prompt(
         self,

@@ -38,21 +38,21 @@ class InMemoryPersonRepository(PersonRepository):
         llm_config: PersonLLMConfig,
     ) -> Person:
         """Create person with memory strategy configured."""
-        from dipeo.domain.conversation.memory_strategies import (
-            DefaultMemoryStrategy,
-            IntelligentMemoryStrategy,
-        )
+        from dipeo.domain.conversation.memory_strategies import IntelligentMemoryStrategy
 
+        # Get LLM service from orchestrator and pass directly to IntelligentMemoryStrategy
         memory_strategy = None
-
         if self._orchestrator:
-            from dipeo.infrastructure.llm.domain_adapters import LLMMemorySelectionAdapter
+            llm_service = self._orchestrator.get_llm_service()
+            if llm_service:
+                memory_strategy = IntelligentMemoryStrategy(
+                    llm_service=llm_service, person_repository=self
+                )
 
-            memory_selector = LLMMemorySelectionAdapter(self._orchestrator)
-
-            memory_strategy = IntelligentMemoryStrategy(memory_selector=memory_selector)
-        else:
-            memory_strategy = DefaultMemoryStrategy()
+        # If no memory strategy created, use IntelligentMemoryStrategy without LLM service
+        # It will handle this gracefully by returning None when needed
+        if not memory_strategy:
+            memory_strategy = IntelligentMemoryStrategy()
 
         person = Person(
             id=person_id,

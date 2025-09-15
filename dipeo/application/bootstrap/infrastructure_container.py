@@ -51,21 +51,10 @@ class InfrastructureContainer:
         self.registry.register(API_KEY_SERVICE, APIKeyService(file_path=api_key_path))
 
     def _setup_llm_adapter(self):
-        import os
+        from dipeo.infrastructure.llm.drivers.service import LLMInfraService
 
         api_key_service = self.registry.resolve(API_KEY_SERVICE)
-        use_simplified = os.getenv("DIPEO_USE_SIMPLIFIED_LLM", "true").lower() == "true"
-
-        if use_simplified:
-            from dipeo.infrastructure.llm.simplified_service import SimplifiedLLMService
-
-            self.registry.register(
-                LLM_SERVICE, SimplifiedLLMService(api_key_service=api_key_service)
-            )
-        else:
-            from dipeo.infrastructure.llm.drivers.service import LLMInfraService
-
-            self.registry.register(LLM_SERVICE, LLMInfraService(api_key_service=api_key_service))
+        self.registry.register(LLM_SERVICE, LLMInfraService(api_key_service=api_key_service))
 
     def _setup_infrastructure_services(self):
         from dipeo.infrastructure.template import SimpleTemplateProcessor
