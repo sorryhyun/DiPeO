@@ -241,7 +241,7 @@ def wire_port_metrics(registry: "ServiceRegistry") -> None:
         EVENT_BUS,
         FILESYSTEM_ADAPTER,
         INTEGRATED_API_SERVICE,
-        LLM_SERVICE,  # LLM_CLIENT removed - no longer needed
+        LLM_SERVICE,
         MESSAGE_ROUTER,
         STATE_CACHE,
         STATE_REPOSITORY,
@@ -253,7 +253,6 @@ def wire_port_metrics(registry: "ServiceRegistry") -> None:
         (STATE_SERVICE, "StateService", True),
         (STATE_CACHE, "StateCache", True),
         (LLM_SERVICE, "LLMService", True),
-        # (LLM_CLIENT, "LLMClient", True),  # Removed - no longer needed
         (FILESYSTEM_ADAPTER, "FileSystem", True),
         (BLOB_STORE, "BlobStore", True),
         (MESSAGE_ROUTER, "MessageRouter", True),

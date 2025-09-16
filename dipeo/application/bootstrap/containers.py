@@ -70,12 +70,6 @@ class Container:
             logger = logging.getLogger(__name__)
             logger.error(f"Error shutting down warm pool manager: {e}")
 
-    def create_sub_container(self, execution_id: str) -> "Container":
-        """Create a sub-container for isolated execution.
-
-        Infrastructure services are shared, only execution context is isolated.
-        """
-        return self
 
 
 async def init_resources(container: Container):

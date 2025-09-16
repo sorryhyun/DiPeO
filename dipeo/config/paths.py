@@ -8,17 +8,25 @@ from pathlib import Path
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     BASE_DIR: Path = Path(sys.executable).parent.resolve()
 else:
-    # Find project root by looking for root pyproject.toml
-    current = Path(__file__).resolve().parent
-    while current != current.parent:
-        if (current / "pyproject.toml").exists() and (current / "dipeo").exists():
-            BASE_DIR: Path = current
-            break
-        current = current.parent
+    # First check for explicit environment variable
+    if env_base := os.getenv("DIPEO_BASE_DIR"):
+        BASE_DIR: Path = Path(env_base).resolve()
     else:
-        BASE_DIR: Path = Path(
-            os.getenv("DIPEO_BASE_DIR", Path(__file__).resolve().parents[2].as_posix())
-        ).resolve()
+        # Find project root by looking for monorepo structure (apps/ and dipeo/ directories)
+        current = Path(__file__).resolve().parent
+        while current != current.parent:
+            # Look for monorepo root with apps/ and dipeo/ directories
+            if (current / "apps").exists() and (current / "dipeo").exists():
+                BASE_DIR: Path = current
+                break
+            # Fallback: root pyproject.toml with dipeo directory
+            if (current / "pyproject.toml").exists() and (current / "dipeo").exists():
+                BASE_DIR: Path = current
+                break
+            current = current.parent
+        else:
+            # Ultimate fallback: 2 directories up from this file
+            BASE_DIR: Path = Path(__file__).resolve().parents[2]
 
 # Directory structure
 FILES_DIR: Path = BASE_DIR / "files"

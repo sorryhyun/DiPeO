@@ -29,6 +29,8 @@ dipeo/domain/conversions.py
 server/diagrams
 docs/deprecated
 plan.md
+# IR cache files (build artifacts)
+projects/codegen/ir/*.json
 *.tsbuildinfo
 .ruff_cache/
 .playwright-mcp/DiPeO-dev/.pyinstaller_hooks/*
