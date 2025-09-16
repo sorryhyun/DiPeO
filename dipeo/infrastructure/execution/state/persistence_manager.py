@@ -24,7 +24,8 @@ class PersistenceManager:
     def __init__(self, db_path: str):
         self.db_path = db_path
         self._conn: sqlite3.Connection | None = None
-        self._executor = ThreadPoolExecutor(max_workers=2)
+        # Use single worker to serialize database access and avoid threading issues
+        self._executor = ThreadPoolExecutor(max_workers=1)
         self._metrics = CacheMetrics()
 
     @property

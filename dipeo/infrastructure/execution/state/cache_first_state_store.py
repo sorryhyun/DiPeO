@@ -133,10 +133,20 @@ class CacheFirstStateStore(StateStorePort):
         # Log final metrics
         self._log_metrics()
 
+    async def handle(self, event: DomainEvent) -> None:
+        """Handle method for EventBus compatibility."""
+        await self.handle_event(event)
+
     async def handle_event(self, event: DomainEvent) -> None:
         """Handle domain events for state persistence with idempotency."""
         execution_id = event.scope.execution_id
         event_type = event.type
+
+        # Filter out events from sub-diagrams or executions we're not tracking
+        # Only process events for executions that exist in our cache
+        if not await self._cache_manager.has_execution(execution_id):
+            # Skip events for unknown executions (likely sub-diagrams)
+            return
 
         # Get sequence number from metadata if available (set by event_pipeline)
         seq = event.meta.get("seq") if event.meta else None
@@ -269,7 +279,7 @@ class CacheFirstStateStore(StateStorePort):
         entry.is_dirty = False
         entry.is_persisted = True
         self._persistence_manager.metrics.checkpoints += 1
-        logger.debug(f"Critical event persisted immediately for execution {execution_id}")
+        # logger.debug(f"Critical event persisted immediately for execution {execution_id}")
 
     async def _persist_all_dirty(self):
         """Persist all dirty cache entries."""

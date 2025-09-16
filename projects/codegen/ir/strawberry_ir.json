@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-16T16:39:19.775037",
+  "generated_at": "2025-09-16T16:57:05.755662",
   "interfaces": [
     {
       "name": "CliSession",
@@ -6769,22 +6769,22 @@
     ],
     "graphql": [],
     "domain": [
-      "DiagramFilterInput",
-      "UnregisterCliSessionInput",
-      "InteractiveResponseInput",
-      "ExecuteDiagramInput",
-      "DiagramFormatGraphQL",
-      "UpdateNodeInput",
-      "Upload",
-      "ExecutionFilterInput",
-      "CreateNodeInput",
-      "UpdateNodeStateInput",
       "CreatePersonInput",
-      "RegisterCliSessionInput",
-      "CreateDiagramInput",
-      "ExecutionControlInput",
+      "CreateNodeInput",
+      "ExecutionFilterInput",
       "CreateApiKeyInput",
-      "UpdatePersonInput"
+      "ExecuteDiagramInput",
+      "InteractiveResponseInput",
+      "UpdateNodeStateInput",
+      "CreateDiagramInput",
+      "Upload",
+      "UpdateNodeInput",
+      "DiagramFormatGraphQL",
+      "ExecutionControlInput",
+      "UnregisterCliSessionInput",
+      "UpdatePersonInput",
+      "RegisterCliSessionInput",
+      "DiagramFilterInput"
     ]
   },
   "raw_queries": [
