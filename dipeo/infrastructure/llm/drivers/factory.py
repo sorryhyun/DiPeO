@@ -75,4 +75,11 @@ def create_adapter(
         config.provider_type = ProviderType.OLLAMA
         return UnifiedOllamaClient(config)
 
+    # Check for providers that are in the enum but not yet implemented
+    if provider in [LLMServiceName.DEEPSEEK.value, LLMServiceName.BEDROCK.value, LLMServiceName.VERTEX.value]:
+        raise NotImplementedError(
+            f"Provider '{provider}' is defined but not yet implemented. "
+            f"Please use one of the supported providers: OPENAI, ANTHROPIC, GOOGLE, OLLAMA, CLAUDE_CODE"
+        )
+
     raise ValueError(f"Unsupported provider: {provider}")

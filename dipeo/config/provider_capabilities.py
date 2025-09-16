@@ -14,6 +14,9 @@ class ProviderType(str, Enum):
     GOOGLE = "google"
     OLLAMA = "ollama"
     CLAUDE_CODE = "claude_code"
+    DEEPSEEK = "deepseek"
+    BEDROCK = "bedrock"
+    VERTEX = "vertex"
 
 
 # Provider capability definitions
@@ -134,6 +137,43 @@ PROVIDER_CAPABILITIES: dict[str, dict[str, Any]] = {
             "claude-code-sdk",
         },
         "streaming_modes": {StreamingMode.SSE},
+    },
+    # Stub implementations for providers not yet fully implemented
+    ProviderType.DEEPSEEK: {
+        "supports_async": False,
+        "supports_streaming": False,
+        "supports_tools": False,
+        "supports_structured_output": False,
+        "supports_vision": False,
+        "supports_web_search": False,
+        "supports_image_generation": False,
+        "supports_computer_use": False,
+        "supported_models": set(),  # No models implemented yet
+        "streaming_modes": {StreamingMode.NONE},
+    },
+    ProviderType.BEDROCK: {
+        "supports_async": False,
+        "supports_streaming": False,
+        "supports_tools": False,
+        "supports_structured_output": False,
+        "supports_vision": False,
+        "supports_web_search": False,
+        "supports_image_generation": False,
+        "supports_computer_use": False,
+        "supported_models": set(),  # No models implemented yet
+        "streaming_modes": {StreamingMode.NONE},
+    },
+    ProviderType.VERTEX: {
+        "supports_async": False,
+        "supports_streaming": False,
+        "supports_tools": False,
+        "supports_structured_output": False,
+        "supports_vision": False,
+        "supports_web_search": False,
+        "supports_image_generation": False,
+        "supports_computer_use": False,
+        "supported_models": set(),  # No models implemented yet
+        "streaming_modes": {StreamingMode.NONE},
     },
 }
 

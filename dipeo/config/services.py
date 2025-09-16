@@ -17,6 +17,8 @@ LLM_SERVICE_TYPES: set[APIServiceType] = {
     APIServiceType.BEDROCK,
     APIServiceType.VERTEX,
     APIServiceType.DEEPSEEK,
+    APIServiceType.OLLAMA,
+    APIServiceType.CLAUDE_CODE,
 }
 
 
