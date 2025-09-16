@@ -134,6 +134,12 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     @classmethod
     def _is_duplicate_write(cls, file_path: str, content: str, node_id: str) -> bool:
         """Check if this is a duplicate write within the deduplication window."""
+        # Skip deduplication for codegen output directories
+        # These files should always be regenerated with fresh content
+        if "diagram_generated_staged" in str(file_path) or "diagram_generated" in str(file_path):
+            logger.debug(f"[CODEGEN] Skipping deduplication for codegen output: {file_path}")
+            return False
+
         # Special handling for generated_nodes.py - normalize content to ignore timestamps
         normalized_content = content
         if "generated_nodes.py" in str(file_path):

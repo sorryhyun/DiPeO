@@ -171,6 +171,9 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         try:
             ir_data = await self._current_builder.build_ir(inputs)
 
+            # Store the IR data for metadata access in serialize_output
+            self._current_ir_data = ir_data
+
             # Validate if requested
             if node.validate_output:
                 if not self._current_builder.validate_ir(ir_data):
@@ -184,12 +187,58 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
 
             # Return based on output format
             if node.output_format == "json":
-                return ir_data.dict() if hasattr(ir_data, "dict") else ir_data
+                # For JSON format, merge data fields with metadata at top level
+                # Templates expect IR fields at top level but may also need metadata
+                if hasattr(ir_data, "data") and hasattr(ir_data, "metadata"):
+                    # Merge data fields and metadata at top level
+                    result = ir_data.data.copy() if isinstance(ir_data.data, dict) else ir_data.data
+                    if isinstance(result, dict) and hasattr(ir_data.metadata, "dict"):
+                        # Add metadata as a top-level key
+                        result["metadata"] = ir_data.metadata.dict()
+                    elif isinstance(result, dict):
+                        result["metadata"] = ir_data.metadata
+                    return result
+                elif hasattr(ir_data, "dict"):
+                    # Fallback to dict if it's a Pydantic model
+                    ir_dict = ir_data.dict()
+                    if "data" in ir_dict and "metadata" in ir_dict:
+                        # Merge data fields with metadata
+                        result = (
+                            ir_dict["data"].copy()
+                            if isinstance(ir_dict["data"], dict)
+                            else ir_dict["data"]
+                        )
+                        if isinstance(result, dict):
+                            result["metadata"] = ir_dict["metadata"]
+                        return result
+                    return ir_dict.get("data", ir_dict)
+                else:
+                    return ir_data
             elif node.output_format == "yaml":
-                # The template will handle YAML conversion
-                return ir_data.dict() if hasattr(ir_data, "dict") else ir_data
+                # For YAML format, also merge data and metadata
+                if hasattr(ir_data, "data") and hasattr(ir_data, "metadata"):
+                    result = ir_data.data.copy() if isinstance(ir_data.data, dict) else ir_data.data
+                    if isinstance(result, dict) and hasattr(ir_data.metadata, "dict"):
+                        result["metadata"] = ir_data.metadata.dict()
+                    elif isinstance(result, dict):
+                        result["metadata"] = ir_data.metadata
+                    return result
+                elif hasattr(ir_data, "dict"):
+                    ir_dict = ir_data.dict()
+                    if "data" in ir_dict and "metadata" in ir_dict:
+                        result = (
+                            ir_dict["data"].copy()
+                            if isinstance(ir_dict["data"], dict)
+                            else ir_dict["data"]
+                        )
+                        if isinstance(result, dict):
+                            result["metadata"] = ir_dict["metadata"]
+                        return result
+                    return ir_dict.get("data", ir_dict)
+                else:
+                    return ir_data
             else:
-                # Raw format - return as is
+                # Raw format - return as is (keeps full IRData structure)
                 return ir_data
 
         except Exception as e:
@@ -213,15 +262,19 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
             body=result, produced_by=str(node.id), trace_id=request.execution_id or ""
         )
 
-        # Add metadata if available
-        if hasattr(result, "metadata"):
-            envelope = envelope.with_meta(
-                {
-                    "builder_type": node.builder_type,
-                    "cache_key": self._current_cache_key,
-                    "cached": node.cache_enabled,
-                    "validated": node.validate_output,
-                }
-            )
+        # Build metadata - include IR metadata if it was part of the original IRData
+        meta_dict = {
+            "builder_type": node.builder_type,
+            "cache_key": self._current_cache_key,
+            "cached": node.cache_enabled,
+            "validated": node.validate_output,
+        }
+
+        # If we stored the original IRData, extract its metadata
+        if hasattr(self, "_current_ir_data") and hasattr(self._current_ir_data, "metadata"):
+            meta_dict["ir_metadata"] = self._current_ir_data.metadata.dict()
+
+        # Use ** to unpack the dictionary as keyword arguments
+        envelope = envelope.with_meta(**meta_dict)
 
         return envelope
