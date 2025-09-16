@@ -465,7 +465,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
                         )
                     break
 
-            # Legacy support (minimal)
+            # Alternative update type support
             elif update_type == "execution_complete":
                 break
             elif update_type == "execution_error":

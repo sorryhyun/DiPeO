@@ -138,21 +138,21 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         envelope_inputs = self.get_effective_inputs(request, inputs)
 
         # Convert envelopes to appropriate format based on content type
-        legacy_inputs = {}
+        prepared_inputs = {}
         for key, envelope in envelope_inputs.items():
             if envelope.content_type == ContentType.CONVERSATION_STATE:
                 # Handle conversation state specifically
-                legacy_inputs[key] = envelope.as_conversation()
+                prepared_inputs[key] = envelope.as_conversation()
             else:
-                # Use parent's default conversion for other types
+                # Use appropriate conversion for other types
                 try:
                     # Try to parse as JSON first
-                    legacy_inputs[key] = envelope.as_json()
+                    prepared_inputs[key] = envelope.as_json()
                 except ValueError:
                     # Fall back to text
-                    legacy_inputs[key] = envelope.as_text()
+                    prepared_inputs[key] = envelope.as_text()
 
-        return legacy_inputs
+        return prepared_inputs
 
     async def run(
         self, inputs: dict[str, Any], request: ExecutionRequest[ConditionNode]
@@ -160,7 +160,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         """Execute condition evaluation."""
         node = request.node
         context = request.context
-        legacy_inputs = inputs
+        prepared_inputs = inputs
 
         # Use evaluator from instance variable (set in pre_execute)
         evaluator = self._current_evaluator
@@ -186,7 +186,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             )
 
         # Execute evaluation with pre-selected evaluator
-        eval_result = await evaluator.evaluate(node, context, legacy_inputs)
+        eval_result = await evaluator.evaluate(node, context, prepared_inputs)
         result = eval_result["result"]
         output_value = eval_result["output_data"] or {}
 

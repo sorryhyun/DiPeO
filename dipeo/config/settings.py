@@ -5,13 +5,8 @@ consolidating infrastructure and domain configuration with sensible defaults
 and environment variable overrides.
 """
 
-try:
-    # Try Pydantic v2 with pydantic-settings
-    from pydantic import Field
-    from pydantic_settings import BaseSettings
-except ImportError:
-    # Fall back to Pydantic v1
-    from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class LLMSettings(BaseSettings):

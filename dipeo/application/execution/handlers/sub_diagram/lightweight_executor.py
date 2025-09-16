@@ -338,7 +338,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
     ) -> None:
         """Process execution updates and collect completed outputs and errors.
 
-        Handles both envelope-based and legacy outputs from nodes.
+        Processes envelope-based outputs from nodes.
         """
         if update.get("type") == "step_complete":
             # After each step, check for completed nodes and collect outputs
@@ -369,7 +369,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
     ) -> None:
         """Collect any remaining outputs and errors after execution completes.
 
-        Handles both envelope-based and legacy outputs from nodes.
+        Processes envelope-based outputs from nodes.
         """
         for node_id_str, node_state in execution_state.node_states.items():
             if node_state.status == Status.COMPLETED and node_state.output:

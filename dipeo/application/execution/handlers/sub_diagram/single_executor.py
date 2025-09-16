@@ -248,7 +248,7 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
     ) -> tuple[dict | None, str | None, bool]:
         """Process a single execution update.
 
-        Handles both envelope-based and legacy outputs from sub-diagram nodes.
+        Processes envelope-based outputs from sub-diagram nodes.
 
         Returns: (result, error, should_break)
         """
@@ -278,7 +278,7 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
                 )
                 return None, error, True
 
-        # Legacy support for old update types
+        # Support for alternative update types
         elif update_type == "node_complete":
             node_id = update.get("node_id")
             node_output = update.get("output")

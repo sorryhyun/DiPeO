@@ -57,11 +57,9 @@ class ExecutionRequest[T: ExecutableNode]:
         else:
             from dipeo.application.registry import ServiceKey
 
+            # Only use typed ServiceKey resolution
             key = ServiceKey(name)
-            try:
-                return self.services.resolve(key)
-            except KeyError:
-                return self.services.get(key)
+            return self.services.resolve(key)
 
     def get_input(self, name: str, default: Any = None) -> Any:
         return self.inputs.get(name, default)
@@ -75,6 +73,7 @@ class ExecutionRequest[T: ExecutableNode]:
         else:
             from dipeo.application.registry import ServiceKey
 
+            # Only use typed ServiceKey checking
             return self.services.has(ServiceKey(name))
 
     def has_input(self, name: str) -> bool:
