@@ -17,6 +17,7 @@ from dipeo.diagram_generated.unified_nodes.db_node import DbNode
 from dipeo.diagram_generated.unified_nodes.endpoint_node import EndpointNode
 from dipeo.diagram_generated.unified_nodes.hook_node import HookNode
 from dipeo.diagram_generated.unified_nodes.integrated_api_node import IntegratedApiNode
+from dipeo.diagram_generated.unified_nodes.ir_builder_node import IrBuilderNode
 from dipeo.diagram_generated.unified_nodes.json_schema_validator_node import JsonSchemaValidatorNode
 from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode
 from dipeo.diagram_generated.unified_nodes.start_node import StartNode
@@ -34,6 +35,7 @@ ExecutableNode = Union[
     EndpointNode, 
     HookNode, 
     IntegratedApiNode, 
+    IrBuilderNode, 
     JsonSchemaValidatorNode, 
     PersonJobNode, 
     StartNode, 
@@ -169,6 +171,21 @@ def create_executable_node(
             config=data.get('config', None),
             timeout=data.get('timeout', None),
             max_retries=data.get('max_retries', None),
+        )
+
+    elif node_type == NodeType.IR_BUILDER:
+        return IrBuilderNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            builder_type=data.get('builder_type', None),
+            source_type=data.get('source_type', None),
+            config_path=data.get('config_path', None),
+            output_format=data.get('output_format', None),
+            cache_enabled=data.get('cache_enabled', None),
+            validate_output=data.get('validate_output', None),
         )
 
     elif node_type == NodeType.JSON_SCHEMA_VALIDATOR:
@@ -307,6 +324,7 @@ __all__ = [
     'EndpointNode',
     'HookNode',
     'IntegratedApiNode',
+    'IrBuilderNode',
     'JsonSchemaValidatorNode',
     'PersonJobNode',
     'StartNode',

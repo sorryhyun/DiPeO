@@ -51,7 +51,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
 
     @property
     def requires_services(self) -> list[str]:
-        return ["ast_parser"]  # Uses the AST_PARSER service key
+        return ["processing.ast_parser"]  # Uses the AST_PARSER service key
 
     @property
     def description(self) -> str:
@@ -88,7 +88,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         self._current_debug = False  # Will be set based on context if needed
 
         # Check parser service availability - try different approaches
-        parser_service = request.get_service("ast_parser")
+        parser_service = request.get_service("processing.ast_parser")
         if not parser_service and hasattr(request.services, "resolve"):
             # Try resolving with the ServiceKey directly
             from dipeo.application.registry.keys import AST_PARSER
@@ -126,7 +126,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             return {"results": {}, "batch_mode": True, "total_sources": 0, "skipped": True}
 
         # Get the parser service
-        parser_service = request.get_service("ast_parser")
+        parser_service = request.get_service("processing.ast_parser")
 
         # Check if batch mode is enabled
         batch_mode = getattr(node, "batch", False)

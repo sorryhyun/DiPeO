@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-15T11:20:50.509569
+Generated at: 2025-09-16T12:35:32.192439
 """
 
 import strawberry
@@ -15,24 +15,7 @@ from .domain_types import Vec2Type
 # Import Pydantic models
 
 from ..domain_models import *
-from ..unified_nodes.api_job_node import ApiJobNode
-from ..unified_nodes.code_job_node import CodeJobNode
-from ..unified_nodes.condition_node import ConditionNode
-from ..unified_nodes.db_node import DbNode
-from ..unified_nodes.endpoint_node import EndpointNode
-from ..unified_nodes.hook_node import HookNode
-from ..unified_nodes.integrated_api_node import IntegratedApiNode
-from ..unified_nodes.json_schema_validator_node import JsonSchemaValidatorNode
-from ..unified_nodes.person_job_node import PersonJobNode
-from ..unified_nodes.start_node import StartNode
-from ..unified_nodes.sub_diagram_node import SubDiagramNode
-from ..unified_nodes.template_job_node import TemplateJobNode
-from ..unified_nodes.typescript_ast_node import TypescriptAstNode
-from ..unified_nodes.user_response_node import UserResponseNode
-
-# Import Pydantic models
-
-from ..domain_models import *
+from ..unified_nodes import *
 
 
 # Import generated scalars
@@ -700,6 +683,101 @@ class IntegratedApiDataType:
         
         
         field_values["max_retries"] = getattr(node, "max_retries", None)
+        
+        
+
+        return cls(
+            id=node.id,
+            position=Vec2Type(x=node.position.x, y=node.position.y),
+            type=node.type,
+            label=node.label,
+            flipped=node.flipped,
+            metadata=metadata,
+            **field_values
+        )
+
+
+@strawberry.type
+class IrBuilderDataType:
+    """Build Intermediate Representation for code generation - Data fields only"""
+    # Base fields (all nodes have these)
+    id: NodeIDScalar
+    position: Vec2Type
+    type: strawberry.Private[NodeType]  # Not exposed in GraphQL
+    label: Optional[str] = None
+    flipped: Optional[bool] = False
+    metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
+
+    # Node-specific fields from specification
+    
+    
+    
+    builder_type: str  # Type of IR builder to use
+    
+    
+    
+    
+    
+    source_type: Optional[str] = None  # Type of source data
+    
+    
+    
+    
+    
+    config_path: Optional[str] = None  # Path to configuration directory
+    
+    
+    
+    
+    
+    output_format: Optional[str] = None  # Output format for IR
+    
+    
+    
+    
+    
+    cache_enabled: Optional[str] = None  # Enable IR caching
+    
+    
+    
+    
+    
+    validate_output: Optional[str] = None  # Validate IR structure before output
+    
+    
+    
+
+    @classmethod
+    def from_pydantic(cls, node: IrBuilderNode) -> "IrBuilderDataType":
+        """Convert from Pydantic model to Strawberry type."""
+        # Convert Dict fields to JSONScalar
+        metadata = node.metadata if node.metadata else None
+
+        # Get node-specific fields with Dict conversion
+        field_values = {}
+        
+        
+        field_values["builder_type"] = getattr(node, "builder_type", None)
+        
+        
+        
+        field_values["source_type"] = getattr(node, "source_type", None)
+        
+        
+        
+        field_values["config_path"] = getattr(node, "config_path", None)
+        
+        
+        
+        field_values["output_format"] = getattr(node, "output_format", None)
+        
+        
+        
+        field_values["cache_enabled"] = getattr(node, "cache_enabled", None)
+        
+        
+        
+        field_values["validate_output"] = getattr(node, "validate_output", None)
         
         
 
@@ -1535,6 +1613,8 @@ NodeDataUnion = strawberry.union(
         HookDataType,
 
         IntegratedApiDataType,
+
+        IrBuilderDataType,
 
         JsonSchemaValidatorDataType,
 

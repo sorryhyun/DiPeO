@@ -32,12 +32,14 @@ nodes:
 
   # Build unified frontend IR
   - label: Build Frontend IR
-    type: code_job
+    type: ir_builder
     position: {x: 400, y: 400}
     props:
-      language: python
-      filePath: projects/codegen/code/frontend_ir_builder.py
-      functionName: build_frontend_ir
+      builder_type: frontend
+      config_path: projects/codegen/config/frontend
+      output_format: json
+      cache_enabled: false
+      validate_output: true
 
   # Save IR for debugging
   - label: Save Frontend IR

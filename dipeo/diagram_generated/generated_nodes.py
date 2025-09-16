@@ -12,6 +12,7 @@ from .unified_nodes.db_node import DbNode as DBNode  # Alias for compatibility
 from .unified_nodes.endpoint_node import EndpointNode
 from .unified_nodes.hook_node import HookNode
 from .unified_nodes.integrated_api_node import IntegratedApiNode
+from .unified_nodes.ir_builder_node import IrBuilderNode
 from .unified_nodes.json_schema_validator_node import JsonSchemaValidatorNode
 from .unified_nodes.person_job_node import PersonJobNode
 from .unified_nodes.start_node import StartNode
@@ -270,6 +271,21 @@ def create_executable_node(
             output_format=data.get('outputFormat', data.get('output_format')),
         )
 
+    elif node_type == NodeType.IR_BUILDER:
+        return IrBuilderNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            builder_type=data.get('builder_type', data.get('builderType')),
+            source_type=data.get('source_type', data.get('sourceType')),
+            config_path=data.get('config_path', data.get('configPath')),
+            output_format=data.get('output_format', data.get('outputFormat')),
+            cache_enabled=data.get('cache_enabled', data.get('cacheEnabled')),
+            validate_output=data.get('validate_output', data.get('validateOutput')),
+        )
+
     elif node_type == NodeType.USER_RESPONSE:
         return UserResponseNode(
             id=node_id,
@@ -296,6 +312,7 @@ ExecutableNode = Union[
     HookNode,
     IntegratedApiNode,
     JsonSchemaValidatorNode,
+    IrBuilderNode,
     PersonJobNode,
     StartNode,
     SubDiagramNode,
@@ -315,6 +332,7 @@ __all__ = [
     'HookNode',
     'IntegratedApiNode',
     'JsonSchemaValidatorNode',
+    'IrBuilderNode',
     'PersonJobNode',
     'StartNode',
     'SubDiagramNode',

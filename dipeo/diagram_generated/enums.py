@@ -402,6 +402,8 @@ class NodeType(str, Enum):
     
     INTEGRATED_API = "integrated_api"
     
+    IR_BUILDER = "ir_builder"
+    
 
 
 class Severity(str, Enum):

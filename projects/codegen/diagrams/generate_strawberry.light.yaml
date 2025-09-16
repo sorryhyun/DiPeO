@@ -27,12 +27,14 @@ nodes:
 
   # Build unified IR from TypeScript AST
   - label: Build Unified IR
-    type: code_job
+    type: ir_builder
     position: {x: 400, y: 400}
     props:
-      language: python
-      filePath: projects/codegen/code/strawberry_ir_builder.py
-      functionName: build_unified_ir
+      builder_type: strawberry
+      config_path: projects/codegen/config/strawberry
+      output_format: json
+      cache_enabled: false
+      validate_output: true
 
   # Render all templates using template_job nodes
   # Note: Templates will receive the IR data from the Build Unified IR node

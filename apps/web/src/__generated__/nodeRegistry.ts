@@ -9,6 +9,7 @@ import { dbConfig } from '@/__generated__/nodes/DbConfig';
 import { endpointConfig } from '@/__generated__/nodes/EndpointConfig';
 import { hookConfig } from '@/__generated__/nodes/HookConfig';
 import { integratedApiConfig } from '@/__generated__/nodes/IntegratedApiConfig';
+import { irBuilderConfig } from '@/__generated__/nodes/IrBuilderConfig';
 import { jsonSchemaValidatorConfig } from '@/__generated__/nodes/JsonSchemaValidatorConfig';
 import { personJobConfig } from '@/__generated__/nodes/PersonJobConfig';
 import { startConfig } from '@/__generated__/nodes/StartConfig';
@@ -25,6 +26,7 @@ export function registerAllNodes() {
   registerNodeConfig(endpointConfig);
   registerNodeConfig(hookConfig);
   registerNodeConfig(integratedApiConfig);
+  registerNodeConfig(irBuilderConfig);
   registerNodeConfig(jsonSchemaValidatorConfig);
   registerNodeConfig(personJobConfig);
   registerNodeConfig(startConfig);
