@@ -14,6 +14,10 @@ class ProviderType(str, Enum):
     GOOGLE = "google"
     OLLAMA = "ollama"
     CLAUDE_CODE = "claude_code"
+    DEEPSEEK = "deepseek"
+    BEDROCK = "bedrock"
+    VERTEX = "vertex"
+    GEMINI = "gemini"
 
 
 # Provider capability definitions
@@ -134,6 +138,78 @@ PROVIDER_CAPABILITIES: dict[str, dict[str, Any]] = {
             "claude-code-sdk",
         },
         "streaming_modes": {StreamingMode.SSE},
+    },
+    ProviderType.DEEPSEEK: {
+        "supports_async": True,
+        "supports_streaming": True,
+        "supports_tools": True,
+        "supports_structured_output": True,
+        "supports_vision": False,
+        "supports_web_search": False,
+        "supports_image_generation": False,
+        "supports_computer_use": False,
+        "supported_models": {
+            "deepseek-coder",
+            "deepseek-chat",
+            "deepseek-v3",
+        },
+        "streaming_modes": {StreamingMode.NONE, StreamingMode.SSE},
+    },
+    ProviderType.BEDROCK: {
+        "supports_async": True,
+        "supports_streaming": True,
+        "supports_tools": True,
+        "supports_structured_output": True,
+        "supports_vision": True,
+        "supports_web_search": False,
+        "supports_image_generation": True,
+        "supports_computer_use": False,
+        "supported_models": {
+            "anthropic.claude-3-5-sonnet",
+            "anthropic.claude-3-haiku",
+            "anthropic.claude-3-opus",
+            "amazon.titan-text-express",
+            "amazon.titan-text-lite",
+            "meta.llama3-8b",
+            "meta.llama3-70b",
+        },
+        "streaming_modes": {StreamingMode.NONE, StreamingMode.SSE},
+    },
+    ProviderType.VERTEX: {
+        "supports_async": True,
+        "supports_streaming": True,
+        "supports_tools": True,
+        "supports_structured_output": True,
+        "supports_vision": True,
+        "supports_web_search": True,
+        "supports_image_generation": True,
+        "supports_computer_use": False,
+        "supported_models": {
+            "text-bison",
+            "chat-bison",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "palm2",
+        },
+        "streaming_modes": {StreamingMode.NONE, StreamingMode.SSE},
+    },
+    ProviderType.GEMINI: {
+        "supports_async": True,
+        "supports_streaming": True,
+        "supports_tools": True,
+        "supports_structured_output": True,
+        "supports_vision": True,
+        "supports_web_search": True,
+        "supports_image_generation": True,
+        "supports_computer_use": False,
+        "supported_models": {
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash-exp",
+            "gemini-pro",
+            "gemini-pro-vision",
+        },
+        "streaming_modes": {StreamingMode.NONE, StreamingMode.SSE},
     },
 }
 
