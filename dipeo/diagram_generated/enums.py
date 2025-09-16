@@ -195,12 +195,6 @@ class LLMService(str, Enum):
     
     GEMINI = "gemini"
     
-    BEDROCK = "bedrock"
-    
-    VERTEX = "vertex"
-    
-    DEEPSEEK = "deepseek"
-    
     OLLAMA = "ollama"
     
 
@@ -215,12 +209,6 @@ class APIServiceType(str, Enum):
     GOOGLE = "google"
     
     GEMINI = "gemini"
-    
-    BEDROCK = "bedrock"
-    
-    VERTEX = "vertex"
-    
-    DEEPSEEK = "deepseek"
     
     OLLAMA = "ollama"
     

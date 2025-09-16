@@ -346,18 +346,6 @@ class LLMServiceGraphQL(Enum):
     
     
     
-    BEDROCK = "bedrock"
-    
-    
-    
-    VERTEX = "vertex"
-    
-    
-    
-    DEEPSEEK = "deepseek"
-    
-    
-    
     OLLAMA = "ollama"
     
     
@@ -381,18 +369,6 @@ class APIServiceTypeGraphQL(Enum):
     
     
     GEMINI = "gemini"
-    
-    
-    
-    BEDROCK = "bedrock"
-    
-    
-    
-    VERTEX = "vertex"
-    
-    
-    
-    DEEPSEEK = "deepseek"
     
     
     
@@ -1509,18 +1485,6 @@ def convert_llmservice_to_graphql(python_enum):
         
         
         
-        LLMService.BEDROCK: LLMServiceGraphQL.BEDROCK,
-        
-        
-        
-        LLMService.VERTEX: LLMServiceGraphQL.VERTEX,
-        
-        
-        
-        LLMService.DEEPSEEK: LLMServiceGraphQL.DEEPSEEK,
-        
-        
-        
         LLMService.OLLAMA: LLMServiceGraphQL.OLLAMA,
         
         
@@ -1553,18 +1517,6 @@ def convert_llmservice_from_graphql(graphql_enum):
         
         
         
-        LLMServiceGraphQL.BEDROCK: LLMService.BEDROCK,
-        
-        
-        
-        LLMServiceGraphQL.VERTEX: LLMService.VERTEX,
-        
-        
-        
-        LLMServiceGraphQL.DEEPSEEK: LLMService.DEEPSEEK,
-        
-        
-        
         LLMServiceGraphQL.OLLAMA: LLMService.OLLAMA,
         
         
@@ -1591,18 +1543,6 @@ def convert_apiservicetype_to_graphql(python_enum):
         
         
         APIServiceType.GEMINI: APIServiceTypeGraphQL.GEMINI,
-        
-        
-        
-        APIServiceType.BEDROCK: APIServiceTypeGraphQL.BEDROCK,
-        
-        
-        
-        APIServiceType.VERTEX: APIServiceTypeGraphQL.VERTEX,
-        
-        
-        
-        APIServiceType.DEEPSEEK: APIServiceTypeGraphQL.DEEPSEEK,
         
         
         
@@ -1635,18 +1575,6 @@ def convert_apiservicetype_from_graphql(graphql_enum):
         
         
         APIServiceTypeGraphQL.GEMINI: APIServiceType.GEMINI,
-        
-        
-        
-        APIServiceTypeGraphQL.BEDROCK: APIServiceType.BEDROCK,
-        
-        
-        
-        APIServiceTypeGraphQL.VERTEX: APIServiceType.VERTEX,
-        
-        
-        
-        APIServiceTypeGraphQL.DEEPSEEK: APIServiceType.DEEPSEEK,
         
         
         

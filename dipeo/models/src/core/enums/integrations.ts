@@ -8,9 +8,6 @@ export enum LLMService {
   CLAUDE_CODE = 'claude-code',
   GOOGLE = 'google',
   GEMINI = 'gemini',
-  BEDROCK = 'bedrock',
-  VERTEX = 'vertex',
-  DEEPSEEK = 'deepseek',
   OLLAMA = 'ollama'
 }
 
@@ -24,9 +21,6 @@ export enum APIServiceType {
   ANTHROPIC = 'anthropic',
   GOOGLE = 'google',
   GEMINI = 'gemini',
-  BEDROCK = 'bedrock',
-  VERTEX = 'vertex',
-  DEEPSEEK = 'deepseek',
   OLLAMA = 'ollama',
   CLAUDE_CODE = "claude-code"
 }
