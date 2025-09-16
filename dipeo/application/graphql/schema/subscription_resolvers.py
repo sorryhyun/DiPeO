@@ -187,7 +187,7 @@ def _transform_execution_log(event: dict[str, Any]) -> dict[str, Any] | None:
 
 
 async def execution_updates(
-    registry: ServiceRegistry, execution_id: str
+    registry: ServiceRegistry, execution_id: str, last_seq: int | None = None
 ) -> AsyncGenerator[ExecutionUpdate]:
     """Subscribe to real-time updates for an execution."""
     resolver = BaseSubscriptionResolver(registry)
@@ -200,9 +200,9 @@ async def execution_updates(
         if not await resolver._verify_execution_exists(exec_id):
             return
 
-        # Create subscription context
+        # Create subscription context (with replay support)
         event_queue, connection_id = await resolver._create_subscription_context(
-            exec_id, "execution"
+            exec_id, "execution", last_seq
         )
 
         try:
@@ -237,7 +237,10 @@ async def execution_updates(
 
 
 async def node_updates(
-    registry: ServiceRegistry, execution_id: str, node_id: str | None = None
+    registry: ServiceRegistry,
+    execution_id: str,
+    node_id: str | None = None,
+    last_seq: int | None = None,
 ) -> AsyncGenerator[JSON]:
     """Subscribe to node-specific updates within an execution."""
     resolver = BaseSubscriptionResolver(registry)
@@ -247,11 +250,14 @@ async def node_updates(
         subscription_type="node",
         event_filter=lambda e: _filter_node_updates(e, node_id),
         event_transformer=_transform_node_update,
+        last_seq=last_seq,
     ):
         yield event
 
 
-async def interactive_prompts(registry: ServiceRegistry, execution_id: str) -> AsyncGenerator[JSON]:
+async def interactive_prompts(
+    registry: ServiceRegistry, execution_id: str, last_seq: int | None = None
+) -> AsyncGenerator[JSON]:
     """Subscribe to interactive prompt requests."""
     resolver = BaseSubscriptionResolver(registry)
 
@@ -260,11 +266,14 @@ async def interactive_prompts(registry: ServiceRegistry, execution_id: str) -> A
         subscription_type="prompt",
         event_filter=_filter_interactive_prompts,
         event_transformer=_transform_interactive_prompt,
+        last_seq=last_seq,
     ):
         yield event
 
 
-async def execution_logs(registry: ServiceRegistry, execution_id: str) -> AsyncGenerator[JSON]:
+async def execution_logs(
+    registry: ServiceRegistry, execution_id: str, last_seq: int | None = None
+) -> AsyncGenerator[JSON]:
     """Subscribe to execution log events."""
     resolver = BaseSubscriptionResolver(registry)
 
@@ -273,5 +282,6 @@ async def execution_logs(registry: ServiceRegistry, execution_id: str) -> AsyncG
         subscription_type="log",
         event_filter=_filter_execution_logs,
         event_transformer=_transform_execution_log,
+        last_seq=last_seq,
     ):
         yield event

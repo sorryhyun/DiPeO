@@ -52,6 +52,7 @@ class BaseSubscriptionResolver:
         self,
         execution_id: ExecutionID,
         subscription_type: str = "generic",
+        last_seq: int | None = None,
     ) -> tuple[asyncio.Queue, str]:
         """Create a subscription context with queue and connection ID."""
         if not self.message_router:
@@ -65,11 +66,18 @@ class BaseSubscriptionResolver:
         async def event_handler(message: dict[str, Any]) -> None:
             await event_queue.put(message)
 
-        # Register and subscribe
+        # Register and subscribe (with replay support if last_seq provided)
         await self.message_router.register_connection(connection_id, event_handler)
-        await self.message_router.subscribe_connection_to_execution(
-            connection_id, str(execution_id)
-        )
+        if last_seq is not None:
+            # Use replay-capable subscription
+            await self.message_router.subscribe_with_replay(
+                connection_id, str(execution_id), last_seq
+            )
+        else:
+            # Use standard subscription
+            await self.message_router.subscribe_connection_to_execution(
+                connection_id, str(execution_id)
+            )
 
         return event_queue, connection_id
 
@@ -174,6 +182,7 @@ class BaseSubscriptionResolver:
         subscription_type: str = "generic",
         event_filter: Callable[[dict[str, Any]], bool] | None = None,
         event_transformer: Callable[[dict[str, Any]], Any] | None = None,
+        last_seq: int | None = None,
     ) -> AsyncGenerator[Any]:
         """Generic subscription method for all subscription types."""
         exec_id = ExecutionID(str(execution_id))
@@ -185,7 +194,7 @@ class BaseSubscriptionResolver:
 
             # Create subscription context
             event_queue, connection_id = await self._create_subscription_context(
-                exec_id, subscription_type
+                exec_id, subscription_type, last_seq
             )
 
             try:

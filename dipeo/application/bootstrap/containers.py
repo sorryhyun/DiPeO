@@ -31,36 +31,50 @@ class Container:
         return self.registry.resolve(service_key)
 
     async def initialize(self):
-        from .lifecycle import initialize_service
+        """Initialize all services implementing Lifecycle protocol."""
+        import logging
 
-        api_key_service = self.registry.resolve(API_KEY_SERVICE)
-        if api_key_service:
-            await initialize_service(api_key_service)
+        from .lifecycle import InitializeOnly, Lifecycle
 
-        from dipeo.application.registry.keys import DIAGRAM_COMPILER
+        logger = logging.getLogger(__name__)
 
-        compiler = self.registry.resolve(DIAGRAM_COMPILER)
-        if compiler:
-            await initialize_service(compiler)
+        for service_name in self.registry.list_services():
+            try:
+                service = self.registry.resolve(ServiceKey[Any](service_name))
+                if isinstance(service, Lifecycle | InitializeOnly):
+                    await service.initialize()
+                    logger.info(f"Initialized service: {service_name}")
+            except Exception as e:
+                logger.error(f"Failed to initialize service {service_name}: {e}")
+                # Continue initializing other services even if one fails
 
-        from dipeo.application.registry.keys import DIAGRAM_SERIALIZER
-
-        diagram_serializer = self.registry.resolve(DIAGRAM_SERIALIZER)
-        if diagram_serializer:
-            await initialize_service(diagram_serializer)
-
-        from dipeo.application.registry.keys import DIAGRAM_PORT
-
-        diagram_service = self.registry.resolve(DIAGRAM_PORT)
-        if diagram_service:
-            await initialize_service(diagram_service)
-
-        # Freeze registry in production to prevent accidental modifications
-        if self.config.env == "production":
+        # Freeze registry after bootstrap to prevent accidental modifications
+        if self.config.dependency_injection.freeze_after_boot or (
+            self.config.dependency_injection.auto_freeze_in_production
+            and self.config.env == "production"
+        ):
             self.registry.freeze()
 
     async def shutdown(self):
-        """Shutdown resources including warm pools."""
+        """Shutdown all services in reverse order."""
+        import logging
+
+        from .lifecycle import Lifecycle, ShutdownOnly
+
+        logger = logging.getLogger(__name__)
+
+        # Shutdown all services that implement lifecycle protocols in reverse order
+        services = list(self.registry.list_services())
+        for service_name in reversed(services):
+            try:
+                service = self.registry.resolve(ServiceKey[Any](service_name))
+                if isinstance(service, Lifecycle | ShutdownOnly):
+                    await service.shutdown()
+                    logger.info(f"Shutdown service: {service_name}")
+            except Exception as e:
+                logger.error(f"Error shutting down {service_name}: {e}")
+
+        # Shutdown warm pools (specific legacy cleanup)
         try:
             from dipeo.infrastructure.llm.providers.claude_code.transport.session_pool import (
                 shutdown_global_session_manager,
@@ -70,9 +84,6 @@ class Container:
         except ImportError:
             pass
         except Exception as e:
-            import logging
-
-            logger = logging.getLogger(__name__)
             logger.error(f"Error shutting down warm pool manager: {e}")
 
     def create_sub_container(self, execution_id: str) -> "Container":

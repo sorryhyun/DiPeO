@@ -1,4 +1,4 @@
-from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry.enhanced_service_registry import EnhancedServiceRegistry
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
     CLI_SESSION_SERVICE,
@@ -22,7 +22,7 @@ class ApplicationContainer:
     and execution services. Depends on both Core and Infrastructure.
     """
 
-    def __init__(self, registry: ServiceRegistry):
+    def __init__(self, registry: EnhancedServiceRegistry):
         self.registry = registry
         self._setup_application_services()
 

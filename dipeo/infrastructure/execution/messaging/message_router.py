@@ -8,6 +8,7 @@ import asyncio
 import logging
 import threading
 import time
+from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -55,6 +56,8 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         self._event_buffer: dict[str, list[dict]] = {}
         self._buffer_max_size = settings.messaging.buffer_max_per_exec
         self._buffer_ttl_seconds = settings.messaging.buffer_ttl_s
+        self._sequence_counters: dict[str, int] = {}
+        self._replay_buffers: dict[str, deque] = {}  # Ring buffers for replay
         self._batch_queue: dict[str, list[dict]] = {}
         self._batch_tasks: dict[str, asyncio.Task | None] = {}
         self._batch_broadcast_warning_threshold = settings.messaging.broadcast_warning_threshold_s
@@ -81,6 +84,8 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
         self._message_queue_size.clear()
         self._batch_queue.clear()
         self._batch_tasks.clear()
+        self._sequence_counters.clear()
+        self._replay_buffers.clear()
         self._initialized = False
         logger.info("MessageRouter cleaned up")
 
@@ -178,6 +183,14 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
             execution_id: Execution identifier
             message: Message to broadcast
         """
+        # Add sequence ID
+        seq = self._get_next_sequence(execution_id)
+        message["seq"] = seq
+
+        # Store in replay buffer
+        if self._should_buffer_events(execution_id):
+            self._add_to_replay_buffer(execution_id, message)
+
         connection_ids = self.execution_subscriptions.get(execution_id, set())
         if not connection_ids and not self._should_buffer_events(execution_id):
             return
@@ -306,6 +319,41 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
         await self._replay_buffered_events(connection_id, execution_id)
 
+    async def subscribe_with_replay(
+        self, connection_id: str, execution_id: str, last_seq: int | None = None
+    ) -> None:
+        """Subscribe a connection to an execution with replay capability.
+
+        Args:
+            connection_id: Connection identifier
+            execution_id: Execution to subscribe to
+            last_seq: Last sequence number client received. If provided, replays missed messages.
+        """
+        # Subscribe to live updates
+        if execution_id not in self.execution_subscriptions:
+            self.execution_subscriptions[execution_id] = set()
+
+        self.execution_subscriptions[execution_id].add(connection_id)
+
+        # Replay missed messages if requested
+        if last_seq is not None:
+            missed_messages = self._get_messages_since(execution_id, last_seq)
+            for msg in missed_messages:
+                success = await self.route_to_connection(connection_id, msg)
+                if not success:
+                    logger.warning(
+                        f"Failed to replay message seq={msg.get('seq')} to connection {connection_id}"
+                    )
+                    break
+
+            logger.info(
+                f"Replayed {len(missed_messages)} messages to connection {connection_id} "
+                f"for execution {execution_id} since seq={last_seq}"
+            )
+        else:
+            # Fallback to legacy buffer replay if no sequence specified
+            await self._replay_buffered_events(connection_id, execution_id)
+
     async def unsubscribe_connection_from_execution(
         self, connection_id: str, execution_id: str
     ) -> None:
@@ -320,6 +368,56 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
             if not self.execution_subscriptions[execution_id]:
                 del self.execution_subscriptions[execution_id]
+
+    def _get_next_sequence(self, execution_id: str) -> int:
+        """Get the next sequence number for an execution.
+
+        Args:
+            execution_id: Execution identifier
+
+        Returns:
+            Next sequence number for this execution
+        """
+        if execution_id not in self._sequence_counters:
+            self._sequence_counters[execution_id] = 0
+        self._sequence_counters[execution_id] += 1
+        return self._sequence_counters[execution_id]
+
+    def _add_to_replay_buffer(self, execution_id: str, message: dict) -> None:
+        """Add a message to the replay buffer with sequence ID.
+
+        Args:
+            execution_id: Execution identifier
+            message: Message to buffer (should already have seq field)
+        """
+        if execution_id not in self._replay_buffers:
+            # Create ring buffer with max size
+            self._replay_buffers[execution_id] = deque(maxlen=self._buffer_max_size)
+
+        self._replay_buffers[execution_id].append(message.copy())
+
+    def _get_messages_since(self, execution_id: str, last_seq: int) -> list[dict]:
+        """Get all messages since a given sequence number.
+
+        Args:
+            execution_id: Execution identifier
+            last_seq: Last sequence number client received
+
+        Returns:
+            List of messages with seq > last_seq
+        """
+        if execution_id not in self._replay_buffers:
+            return []
+
+        replay_buffer = self._replay_buffers[execution_id]
+        missed_messages = []
+
+        for message in replay_buffer:
+            message_seq = message.get("seq", 0)
+            if message_seq > last_seq:
+                missed_messages.append(message)
+
+        return missed_messages
 
     def _should_buffer_events(self, execution_id: str) -> bool:
         """Check if events should be buffered for an execution.
@@ -376,10 +474,12 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                 break
 
     def _cleanup_old_buffers(self) -> None:
-        """Clean up old event buffers based on TTL."""
+        """Clean up old event buffers and replay buffers based on TTL."""
         cutoff_time = datetime.utcnow() - timedelta(seconds=self._buffer_ttl_seconds)
 
         executions_to_remove = []
+
+        # Clean up legacy event buffers
         for execution_id, events in self._event_buffer.items():
             events[:] = [
                 e
@@ -390,8 +490,36 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
             if not events:
                 executions_to_remove.append(execution_id)
 
+        # Clean up replay buffers (sequence-based)
+        for execution_id, replay_buffer in list(self._replay_buffers.items()):
+            # Filter messages in replay buffer by timestamp
+            filtered_messages = []
+            for message in replay_buffer:
+                if "timestamp" in message:
+                    try:
+                        msg_time = datetime.fromisoformat(message["timestamp"])
+                        if msg_time > cutoff_time:
+                            filtered_messages.append(message)
+                    except (ValueError, TypeError):
+                        # Keep message if timestamp is invalid (safer than dropping)
+                        filtered_messages.append(message)
+                else:
+                    # Keep message if no timestamp (safer than dropping)
+                    filtered_messages.append(message)
+
+            # Replace the deque contents
+            if filtered_messages:
+                self._replay_buffers[execution_id] = deque(
+                    filtered_messages, maxlen=self._buffer_max_size
+                )
+            else:
+                executions_to_remove.append(execution_id)
+
+        # Remove empty executions from all buffers and counters
         for execution_id in executions_to_remove:
-            del self._event_buffer[execution_id]
+            self._event_buffer.pop(execution_id, None)
+            self._replay_buffers.pop(execution_id, None)
+            self._sequence_counters.pop(execution_id, None)
 
     def get_stats(self) -> dict:
         """Get router statistics and health metrics.
@@ -412,6 +540,20 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
             else 0
         )
 
+        # Calculate replay buffer statistics
+        replay_buffer_sizes = {
+            exec_id: len(buffer) for exec_id, buffer in self._replay_buffers.items()
+        }
+        avg_replay_buffer_size = (
+            sum(replay_buffer_sizes.values()) / len(replay_buffer_sizes)
+            if replay_buffer_sizes
+            else 0
+        )
+
+        # Calculate sequence statistics
+        max_sequence = max(self._sequence_counters.values()) if self._sequence_counters else 0
+        total_messages_with_seq = sum(self._sequence_counters.values())
+
         return {
             "worker_id": self.worker_id,
             "active_connections": len(self.local_handlers),
@@ -421,6 +563,25 @@ class MessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
             ),
             "unhealthy_connections": len(unhealthy_connections),
             "avg_queue_size": round(avg_queue_size, 2),
+            # New replay and sequence metrics
+            "replay_buffers": {
+                "total_executions": len(self._replay_buffers),
+                "buffer_sizes": replay_buffer_sizes,
+                "avg_buffer_size": round(avg_replay_buffer_size, 2),
+                "max_buffer_size": max(replay_buffer_sizes.values()) if replay_buffer_sizes else 0,
+            },
+            "sequence_tracking": {
+                "total_executions": len(self._sequence_counters),
+                "max_sequence": max_sequence,
+                "total_messages_sent": total_messages_with_seq,
+            },
+            # Legacy event buffer metrics for comparison
+            "legacy_buffers": {
+                "total_executions": len(self._event_buffer),
+                "buffer_sizes": {
+                    exec_id: len(events) for exec_id, events in self._event_buffer.items()
+                },
+            },
             "connection_health": {
                 conn_id: {
                     "last_send": datetime.fromtimestamp(health.last_successful_send).isoformat(),

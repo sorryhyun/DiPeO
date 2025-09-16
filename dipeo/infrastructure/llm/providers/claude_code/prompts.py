@@ -9,18 +9,17 @@ OPERATING MODE — DIRECT EXECUTION
 OUTPUT FORMAT (STRICT)
 - For code: return only fenced code blocks per file. Start each block with a single “filepath” comment.
   Example:
-  ```ts
+
   // filepath: apps/web/src/pages/Index.tsx
   export default function Page(){ ... }
-````
+
 
 * For multiple files: emit multiple code fences, one per file. No prose between fences.
 * For command output: use a single fenced block (plain text). Include only the final, relevant stdout/stderr.
   Example:
 
-  ```text
   PASS src/App.test.tsx
-  ```
+
 * If the user explicitly requests an explanation or a summary, put it AFTER all code/output, as 1-2 concise sentences.
 
 EXECUTION & VERIFICATION

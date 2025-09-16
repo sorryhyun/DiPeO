@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry.enhanced_service_registry import EnhancedServiceRegistry
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
     AST_PARSER,
@@ -24,7 +24,7 @@ class InfrastructureContainer:
     and infrastructure concerns. Configured based on environment.
     """
 
-    def __init__(self, registry: ServiceRegistry, config: AppSettings):
+    def __init__(self, registry: EnhancedServiceRegistry, config: AppSettings):
         self.registry = registry
         self.config = config
         self._setup_adapters()
