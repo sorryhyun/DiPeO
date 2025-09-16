@@ -3,20 +3,20 @@
 import logging
 from typing import TYPE_CHECKING
 
-from dipeo.application.registry.enhanced_service_registry import EnhancedServiceKey as ServiceKey
 from dipeo.application.registry.enhanced_service_registry import (
     EnhancedServiceRegistry as ServiceRegistry,
 )
-from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, PREPARE_DIAGRAM_USE_CASE
+from dipeo.application.registry.keys import (
+    CLI_SESSION_SERVICE,
+    EXECUTE_DIAGRAM_USE_CASE,
+    EXECUTION_ORCHESTRATOR,
+    PREPARE_DIAGRAM_USE_CASE,
+)
 
 if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
-
-# Define service keys for execution context
-EXECUTE_DIAGRAM_USE_CASE = ServiceKey["ExecuteDiagramUseCase"]("execution.use_case.execute_diagram")
-CLI_SESSION_USE_CASE = ServiceKey["CliSessionService"]("execution.use_case.cli_session")
 
 
 def wire_execution(registry: ServiceRegistry) -> None:
@@ -70,7 +70,11 @@ def wire_execution(registry: ServiceRegistry) -> None:
 
         return orchestrator
 
-    registry.register(EXECUTION_ORCHESTRATOR, lambda: create_execution_orchestrator())
+    # Guard against duplicate registration
+    if not registry.has(EXECUTION_ORCHESTRATOR):
+        registry.register(EXECUTION_ORCHESTRATOR, lambda: create_execution_orchestrator())
+    else:
+        logger.debug("EXECUTION_ORCHESTRATOR already registered, skipping")
 
     # Wire execute diagram use case
     from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
@@ -80,7 +84,11 @@ def wire_execution(registry: ServiceRegistry) -> None:
         # ExecuteDiagramUseCase has a different constructor signature
         return ExecuteDiagramUseCase(service_registry=registry)
 
-    registry.register(EXECUTE_DIAGRAM_USE_CASE, create_execute_diagram)
+    # Guard against duplicate registration
+    if not registry.has(EXECUTE_DIAGRAM_USE_CASE):
+        registry.register(EXECUTE_DIAGRAM_USE_CASE, create_execute_diagram)
+    else:
+        logger.debug("EXECUTE_DIAGRAM_USE_CASE already registered, skipping")
 
     # Wire prepare diagram use case
     from dipeo.application.execution.use_cases.prepare_diagram import (
@@ -95,7 +103,11 @@ def wire_execution(registry: ServiceRegistry) -> None:
             api_key_service=api_key_service, service_registry=registry
         )
 
-    registry.register(PREPARE_DIAGRAM_USE_CASE, create_prepare_diagram)
+    # Guard against duplicate registration
+    if not registry.has(PREPARE_DIAGRAM_USE_CASE):
+        registry.register(PREPARE_DIAGRAM_USE_CASE, create_prepare_diagram)
+    else:
+        logger.debug("PREPARE_DIAGRAM_USE_CASE already registered, skipping")
 
     # Wire CLI session service
     from dipeo.application.execution.use_cases.cli_session import CliSessionService
@@ -104,4 +116,8 @@ def wire_execution(registry: ServiceRegistry) -> None:
         """Factory for CLI session service."""
         return CliSessionService()
 
-    registry.register(CLI_SESSION_USE_CASE, create_cli_session_service)
+    # Guard against duplicate registration
+    if not registry.has(CLI_SESSION_SERVICE):
+        registry.register(CLI_SESSION_SERVICE, create_cli_session_service)
+    else:
+        logger.debug("CLI_SESSION_SERVICE already registered, skipping")

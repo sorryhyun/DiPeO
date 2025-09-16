@@ -27,12 +27,14 @@ EVENT_BUS = ServiceKey["EventBus"](
     "event_bus",
     service_type=ServiceType.CORE,
     description="Central event distribution system for async communication",
+    final=True,  # Cannot be overridden
 )
 
 STATE_STORE = ServiceKey["StateStorePort"](
     "state_store",
     service_type=ServiceType.CORE,
     description="Persistent state storage with caching",
+    immutable=True,  # Cannot be modified after first registration
 )
 
 # Core infrastructure services
@@ -48,10 +50,14 @@ MESSAGE_ROUTER = ServiceKey["MessageRouterPort"](
     "message_router",
     service_type=ServiceType.CORE,
     description="Message routing for inter-process communication",
+    final=True,  # Core messaging infrastructure
 )
 
 NODE_REGISTRY = ServiceKey["HandlerRegistry"](
-    "node_registry", service_type=ServiceType.CORE, description="Registry for node handlers"
+    "node_registry",
+    service_type=ServiceType.CORE,
+    description="Registry for node handlers",
+    final=True,  # Core handler registry cannot be overridden
 )
 
 PROVIDER_REGISTRY = ServiceKey["Any"](
@@ -219,6 +225,7 @@ API_KEY_SERVICE = ServiceKey["APIKeyPort"](
     "integration.api_key_service",
     service_type=ServiceType.ADAPTER,
     description="Service for managing API keys",
+    immutable=True,  # Cannot be changed after first registration
 )
 
 INTEGRATED_API_SERVICE = ServiceKey["IntegratedApiServicePort"](
@@ -334,6 +341,25 @@ CLI_SESSION_SERVICE = ServiceKey["CliSessionService"](
     description="Service for CLI session management",
 )
 
+MANAGE_CONVERSATION_USE_CASE = ServiceKey["ManageConversationUseCase"](
+    "conversation.use_case.manage",
+    service_type=ServiceType.APPLICATION,
+    description="Use case for managing conversations",
+    dependencies=("repository.conversation",),
+)
+
+EXECUTE_DIAGRAM_USE_CASE = ServiceKey["ExecuteDiagramUseCase"](
+    "execution.use_case.execute_diagram",
+    service_type=ServiceType.APPLICATION,
+    description="Use case for executing diagrams",
+)
+
+DIAGRAM_RESOLVER = ServiceKey["DiagramResolver"](
+    "diagram.resolver",
+    service_type=ServiceType.APPLICATION,
+    description="GraphQL resolver for diagram operations",
+)
+
 
 # =============================================================================
 # EXPORTS
@@ -361,10 +387,12 @@ __all__ = [
     # Diagram Operations
     "DIAGRAM_PORT",
     "DIAGRAM_REPOSITORY",
+    "DIAGRAM_RESOLVER",
     "DIAGRAM_SERIALIZER",
     "DIAGRAM_VALIDATOR",
     # Core Infrastructure
     "EVENT_BUS",
+    "EXECUTE_DIAGRAM_USE_CASE",
     "EXECUTION_CONTEXT",
     # Execution & Orchestration
     "EXECUTION_ORCHESTRATOR",
@@ -375,6 +403,7 @@ __all__ = [
     "INTEGRATED_API_SERVICE",
     "LLM_SERVICE",
     "LOAD_DIAGRAM_USE_CASE",
+    "MANAGE_CONVERSATION_USE_CASE",
     "MEMORY_SELECTOR",
     "MEMORY_SERVICE",
     "MESSAGE_ROUTER",

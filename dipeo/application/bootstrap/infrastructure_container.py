@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from dipeo.application.registry.enhanced_service_registry import EnhancedServiceRegistry
@@ -15,6 +16,8 @@ from dipeo.application.registry.keys import (
     TEMPLATE_PROCESSOR,
 )
 from dipeo.config import AppSettings
+
+logger = logging.getLogger(__name__)
 
 
 class InfrastructureContainer:
@@ -48,7 +51,11 @@ class InfrastructureContainer:
         api_key_path = (
             Path(self.config.storage.base_dir) / self.config.storage.data_dir / "apikeys.json"
         )
-        self.registry.register(API_KEY_SERVICE, APIKeyService(file_path=api_key_path))
+        # Guard against duplicate registration
+        if not self.registry.has(API_KEY_SERVICE):
+            self.registry.register(API_KEY_SERVICE, APIKeyService(file_path=api_key_path))
+        else:
+            logger.debug("API_KEY_SERVICE already registered, skipping")
 
     def _setup_llm_adapter(self):
         from dipeo.infrastructure.llm.drivers.service import LLMInfraService
@@ -61,9 +68,11 @@ class InfrastructureContainer:
 
         self.registry.register(TEMPLATE_PROCESSOR, SimpleTemplateProcessor())
 
-        self.registry.register(STATE_STORE, None)
+        # STATE_STORE will be registered in app_context.py
+        # Don't register with None as it's marked as immutable
 
-        self.registry.register(MESSAGE_ROUTER, None)
+        # MESSAGE_ROUTER will be registered in wire_messaging_services
+        # Don't register with None as it's marked as final
 
         from dipeo.infrastructure.shared.adapters import LocalBlobAdapter
 
@@ -97,7 +106,11 @@ class InfrastructureContainer:
         api_key_path = (
             Path(self.config.storage.base_dir) / self.config.storage.data_dir / "apikeys.json"
         )
-        self.registry.register(API_KEY_SERVICE, APIKeyService(file_path=api_key_path))
+        # Guard against duplicate registration
+        if not self.registry.has(API_KEY_SERVICE):
+            self.registry.register(API_KEY_SERVICE, APIKeyService(file_path=api_key_path))
+        else:
+            logger.debug("API_KEY_SERVICE already registered, skipping")
 
         wire_storage_services(self.registry)
 

@@ -121,8 +121,17 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
                 "Set DIPEO_REDIS_URL to enable Redis-backed message routing."
             )
 
-    registry.register(MESSAGE_ROUTER, router)
-    registry.register(EVENT_BUS, domain_event_bus)
+    # Guard against duplicate registration (MESSAGE_ROUTER is marked as final)
+    if not registry.has(MESSAGE_ROUTER):
+        registry.register(MESSAGE_ROUTER, router)
+    else:
+        logger.debug("MESSAGE_ROUTER already registered, skipping")
+
+    # Guard against duplicate registration (EVENT_BUS is marked as final)
+    if not registry.has(EVENT_BUS):
+        registry.register(EVENT_BUS, domain_event_bus)
+    else:
+        logger.debug("EVENT_BUS already registered, skipping")
 
 
 def wire_llm_services(registry: ServiceRegistry, api_key_service: Any = None) -> None:

@@ -24,25 +24,9 @@ class ApplicationContainer:
 
     def __init__(self, registry: EnhancedServiceRegistry):
         self.registry = registry
-        self._setup_application_services()
-
-    def _setup_application_services(self):
-        self._wire_bounded_contexts()
+        # Only setup application-specific services
+        # Bounded context wiring is handled by wire_minimal in server/CLI context
         self._setup_app_services()
-
-    def _wire_bounded_contexts(self):
-        """Wire all bounded contexts using their respective wiring modules."""
-        from dipeo.application.execution.wiring import wire_execution
-
-        wire_execution(self.registry)
-
-        from dipeo.application.conversation.wiring import wire_conversation
-
-        wire_conversation(self.registry)
-
-        from dipeo.application.diagram.wiring import wire_diagram
-
-        wire_diagram(self.registry)
 
     def _setup_app_services(self):
         from dipeo.domain.diagram.validation.diagram_validator import DiagramValidator
@@ -66,15 +50,21 @@ class ApplicationContainer:
         from dipeo.domain.integrations.validators import DataValidator
         from dipeo.infrastructure.shared.database.service import DBOperationsDomainService
 
-        file_system = self.registry.resolve(FILESYSTEM_ADAPTER)
-        if not file_system:
-            from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
+        def create_db_operations_service():
+            if self.registry.has(FILESYSTEM_ADAPTER):
+                file_system = self.registry.resolve(FILESYSTEM_ADAPTER)
+            else:
+                from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
 
-            file_system = LocalFileSystemAdapter()
+                file_system = LocalFileSystemAdapter()
+
+            return DBOperationsDomainService(
+                file_system=file_system, validation_service=DataValidator()
+            )
 
         self.registry.register(
             DB_OPERATIONS_SERVICE,
-            DBOperationsDomainService(file_system=file_system, validation_service=DataValidator()),
+            create_db_operations_service,
         )
 
         from dipeo.application.execution.use_cases import CliSessionService
@@ -84,9 +74,11 @@ class ApplicationContainer:
             lambda: CliSessionService(state_store=self.registry.resolve(STATE_STORE)),
         )
 
-        diagram_service = self.registry.resolve(DIAGRAM_PORT)
-        if diagram_service:
-            self.registry.register(DIAGRAM_PORT, diagram_service)
+        # DIAGRAM_PORT is registered by wire_diagram_port, no need to re-register it
+        # Just verify it exists if we're in a context where it should be wired
+        if self.registry.has(DIAGRAM_PORT):
+            # Already registered by wiring, nothing to do
+            pass
         from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
 
         self.registry.register(

@@ -171,7 +171,7 @@ class ExecutionOrchestrator:
             api_key_id=llm_config.api_key_id.value
             if hasattr(llm_config.api_key_id, "value")
             else str(llm_config.api_key_id),
-            service=llm_config.service.value
+            service_name=llm_config.service.value
             if hasattr(llm_config.service, "value")
             else str(llm_config.service),
         )

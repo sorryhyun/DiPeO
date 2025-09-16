@@ -22,6 +22,8 @@ async def create_server_container() -> Container:
     # Create container with unified settings
     container = Container(settings)
     # Use minimal wiring for thin startup
+    import logging
+
     from dipeo.application.bootstrap.wiring import (
         wire_feature_flags,
         wire_messaging_services,
@@ -35,6 +37,7 @@ async def create_server_container() -> Container:
         STATE_STORE,
     )
 
+    logger = logging.getLogger(__name__)
     # Wire only essential services
     wire_minimal(container.registry, redis_client=None)
 
@@ -43,8 +46,8 @@ async def create_server_container() -> Container:
     if features:
         wire_feature_flags(container.registry, [f.strip() for f in features if f.strip()])
 
-    # Wire messaging services for server operation
-    wire_messaging_services(container.registry)
+    # Messaging services are already wired by wire_minimal, no need to wire again
+    # wire_messaging_services(container.registry)
 
     # Get the message router from registry
     from dipeo.infrastructure.execution.messaging import MessageRouter
@@ -72,7 +75,11 @@ async def create_server_container() -> Container:
     await initialize_service(state_store)
 
     # Register for backward compatibility
-    container.registry.register(STATE_STORE, state_store)
+    # Guard against duplicate registration (STATE_STORE is marked as immutable)
+    if not container.registry.has(STATE_STORE):
+        container.registry.register(STATE_STORE, state_store)
+    else:
+        logger.debug("STATE_STORE already registered, skipping")
 
     # CacheFirstStateStore is now wired and subscribed in wiring.py
     # Execute event subscriptions to activate state store event handling

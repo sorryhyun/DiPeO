@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from dipeo.application.registry.enhanced_service_registry import EnhancedServiceKey as ServiceKey
 from dipeo.application.registry.enhanced_service_registry import (
     EnhancedServiceRegistry as ServiceRegistry,
 )
@@ -13,6 +12,7 @@ from dipeo.application.registry.keys import (
     COMPILE_DIAGRAM_USE_CASE,
     DIAGRAM_COMPILER,
     DIAGRAM_PORT,
+    DIAGRAM_RESOLVER,
     DIAGRAM_SERIALIZER,
     LOAD_DIAGRAM_USE_CASE,
     SERIALIZE_DIAGRAM_USE_CASE,
@@ -24,8 +24,6 @@ if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
-
-DIAGRAM_RESOLVER_KEY = ServiceKey["DiagramResolver"]("diagram.resolver")
 
 
 def wire_diagram(registry: ServiceRegistry) -> None:
@@ -60,24 +58,40 @@ def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
         compiler = registry.resolve(DIAGRAM_COMPILER)
         return CompileDiagramUseCase(diagram_compiler=compiler)
 
-    registry.register(COMPILE_DIAGRAM_USE_CASE, create_compile_diagram)
+    # Guard against duplicate registration
+    if not registry.has(COMPILE_DIAGRAM_USE_CASE):
+        registry.register(COMPILE_DIAGRAM_USE_CASE, create_compile_diagram)
+    else:
+        logger.debug("COMPILE_DIAGRAM_USE_CASE already registered, skipping")
 
     def create_validate_diagram() -> ValidateDiagramUseCase:
         return ValidateDiagramUseCase()
 
-    registry.register(VALIDATE_DIAGRAM_USE_CASE, create_validate_diagram)
+    # Guard against duplicate registration
+    if not registry.has(VALIDATE_DIAGRAM_USE_CASE):
+        registry.register(VALIDATE_DIAGRAM_USE_CASE, create_validate_diagram)
+    else:
+        logger.debug("VALIDATE_DIAGRAM_USE_CASE already registered, skipping")
 
     def create_serialize_diagram() -> SerializeDiagramUseCase:
         serializer = registry.resolve(DIAGRAM_SERIALIZER)
         return SerializeDiagramUseCase(diagram_serializer=serializer)
 
-    registry.register(SERIALIZE_DIAGRAM_USE_CASE, create_serialize_diagram)
+    # Guard against duplicate registration
+    if not registry.has(SERIALIZE_DIAGRAM_USE_CASE):
+        registry.register(SERIALIZE_DIAGRAM_USE_CASE, create_serialize_diagram)
+    else:
+        logger.debug("SERIALIZE_DIAGRAM_USE_CASE already registered, skipping")
 
     def create_load_diagram() -> LoadDiagramUseCase:
         diagram_service = registry.resolve(DIAGRAM_PORT)
         return LoadDiagramUseCase(diagram_service=diagram_service)
 
-    registry.register(LOAD_DIAGRAM_USE_CASE, create_load_diagram)
+    # Guard against duplicate registration
+    if not registry.has(LOAD_DIAGRAM_USE_CASE):
+        registry.register(LOAD_DIAGRAM_USE_CASE, create_load_diagram)
+    else:
+        logger.debug("LOAD_DIAGRAM_USE_CASE already registered, skipping")
 
 
 def wire_diagram_resolvers(registry: ServiceRegistry) -> None:
@@ -87,7 +101,11 @@ def wire_diagram_resolvers(registry: ServiceRegistry) -> None:
     def create_diagram_resolver() -> DiagramResolver:
         return DiagramResolver(registry)
 
-    registry.register(DIAGRAM_RESOLVER_KEY, create_diagram_resolver)
+    # Guard against duplicate registration
+    if not registry.has(DIAGRAM_RESOLVER):
+        registry.register(DIAGRAM_RESOLVER, create_diagram_resolver)
+    else:
+        logger.debug("DIAGRAM_RESOLVER already registered, skipping")
 
 
 def wire_diagram_compiler(registry: ServiceRegistry) -> None:
@@ -113,7 +131,11 @@ def wire_diagram_compiler(registry: ServiceRegistry) -> None:
         cache_size = int(os.getenv("DIAGRAM_COMPILER_CACHE_SIZE", "100"))
         compiler = CachingCompilerAdapter(compiler, cache_size=cache_size)
 
-    registry.register(DIAGRAM_COMPILER, compiler)
+    # Guard against duplicate registration
+    if not registry.has(DIAGRAM_COMPILER):
+        registry.register(DIAGRAM_COMPILER, compiler)
+    else:
+        logger.debug("DIAGRAM_COMPILER already registered, skipping")
 
 
 def wire_diagram_serializer(registry: ServiceRegistry) -> None:
@@ -133,7 +155,11 @@ def wire_diagram_serializer(registry: ServiceRegistry) -> None:
         cache_size = int(os.getenv("DIAGRAM_SERIALIZER_CACHE_SIZE", "50"))
         serializer = CachingSerializerAdapter(serializer, cache_size=cache_size)
 
-    registry.register(DIAGRAM_SERIALIZER, serializer)
+    # Guard against duplicate registration
+    if not registry.has(DIAGRAM_SERIALIZER):
+        registry.register(DIAGRAM_SERIALIZER, serializer)
+    else:
+        logger.debug("DIAGRAM_SERIALIZER already registered, skipping")
 
 
 def wire_resolution_services(registry: ServiceRegistry) -> None:
@@ -145,7 +171,11 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
     from dipeo.domain.execution.resolution import StandardTransformationEngine
 
     transform_engine = StandardTransformationEngine()
-    registry.register(TRANSFORMATION_ENGINE, transform_engine)
+    # Guard against duplicate registration
+    if not registry.has(TRANSFORMATION_ENGINE):
+        registry.register(TRANSFORMATION_ENGINE, transform_engine)
+    else:
+        logger.debug("TRANSFORMATION_ENGINE already registered, skipping")
 
 
 def wire_diagram_port(registry: ServiceRegistry) -> None:
@@ -158,12 +188,20 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
     from dipeo.config import get_settings
     from dipeo.infrastructure.diagram.drivers.diagram_service import DiagramService
 
+    # Ensure dependencies are wired first
+    if not registry.has(DIAGRAM_COMPILER):
+        wire_diagram_compiler(registry)
+
+    if not registry.has(DIAGRAM_SERIALIZER):
+        wire_diagram_serializer(registry)
+
     # Determine base path using unified config - ensure it's absolute
     settings = get_settings()
     base_path = (Path(settings.storage.base_dir) / settings.storage.data_dir).resolve()
 
-    filesystem = registry.resolve(FILESYSTEM_ADAPTER)
-    if not filesystem:
+    if registry.has(FILESYSTEM_ADAPTER):
+        filesystem = registry.resolve(FILESYSTEM_ADAPTER)
+    else:
         from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
 
         filesystem = LocalFileSystemAdapter(base_path=Path(settings.storage.base_dir).resolve())
@@ -177,7 +215,11 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
         compiler=compiler,
     )
 
-    registry.register(DIAGRAM_PORT, diagram_service)
+    # Guard against duplicate registration
+    if not registry.has(DIAGRAM_PORT):
+        registry.register(DIAGRAM_PORT, diagram_service)
+    else:
+        logger.debug("DIAGRAM_PORT already registered, skipping")
 
 
 def wire_diagram_services(registry: ServiceRegistry) -> None:
