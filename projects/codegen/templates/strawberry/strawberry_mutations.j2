@@ -24,8 +24,8 @@ from dipeo.application.registry.keys import *
 # Generate input types for each node
 {% for type_info in node_specs %}
 @strawberry.input
-class Create{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input:
-    """Input for creating a {{ type_info.display_name }} node"""
+class Create{{ type_info['name'] | pascal_case }}Input:
+    """Input for creating a {{ type_info.get('spec', {}).get('displayName', type_info['name']) }} node"""
     diagram_id: str
     position: Vec2Input
     # TODO: Add node-specific fields from spec
@@ -33,8 +33,8 @@ class Create{{ type_info.class_name | default(type_info.display_name | pascal_ca
     data: strawberry.scalars.JSON
 
 @strawberry.input
-class Update{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input:
-    """Input for updating a {{ type_info.display_name }} node"""
+class Update{{ type_info['name'] | pascal_case }}Input:
+    """Input for updating a {{ type_info.get('spec', {}).get('displayName', type_info['name']) }} node"""
     # TODO: Add node-specific fields from spec
     # For now, we accept a generic data dict that will be validated
     data: Optional[strawberry.scalars.JSON] = None
@@ -47,17 +47,17 @@ class Update{{ type_info.class_name | default(type_info.display_name | pascal_ca
 class NodeMutations:
     """Type-safe mutations for node operations"""
 
-{% for mutation in operations.mutations %}
+{% for mutation in mutations %}
     @strawberry.mutation
-    async def {{ mutation.name }}(
+    async def {{ mutation['name'] }}(
         self,
         info: Info,
-        {% if mutation.operation == 'create' %}input: {{ mutation.input_type }}{% else %}id: str, input: {{ mutation.input_type }}{% endif %}
-    ) -> {{ mutation.return_type }}:
-        """{{ mutation.operation.capitalize() }} a {{ mutation.node_type.replace('_', ' ').title() }} node"""
+        {% if mutation.get('operation') == 'create' %}input: {{ mutation['input_type'] }}{% else %}id: str, input: {{ mutation['input_type'] }}{% endif %}
+    ) -> {{ mutation['return_type'] }}:
+        """{{ mutation.get('operation', '').capitalize() }} a {{ mutation.get('node_type', '').replace('_', ' ').title() }} node"""
         registry: ServiceRegistry = info.context["registry"]
 
-        {% if mutation.operation == 'create' %}
+        {% if mutation.get('operation') == 'create' %}
         # Prepare node data
         node_data = {
             "type": "{{ mutation.node_type }}",
@@ -101,7 +101,7 @@ class NodeMutations:
 __all__ = [
     'NodeMutations',
 {% for type_info in node_specs %}
-    'Create{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input',
-    'Update{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input',
+    'Create{{ type_info.name | pascal_case }}Input',
+    'Update{{ type_info.name | pascal_case }}Input',
 {% endfor %}
 ]

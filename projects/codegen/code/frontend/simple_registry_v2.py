@@ -3,7 +3,7 @@ Handles glob results directly without intermediate extraction.
 """
 from typing import Any
 
-from dipeo.infrastructure.codegen.templates.filters.base_filters import BaseFilters
+from dipeo.infrastructure.codegen.templates.filters.case_filters import CaseFilters
 from projects.codegen.code.core.utils import parse_dipeo_output
 
 
@@ -54,8 +54,8 @@ def generate_simple_registry(node_types: list[str]) -> str:
             config_name = "typescriptAstConfig"
             file_name = "TypescriptAstConfig"
         else:
-            config_name = f"{BaseFilters.camel_case(node_type)}Config"
-            file_name = f"{BaseFilters.pascal_case(node_type)}Config"
+            config_name = f"{CaseFilters.camel_case(node_type)}Config"
+            file_name = f"{CaseFilters.pascal_case(node_type)}Config"
         lines.append(f"import {{ {config_name} }} from '@/__generated__/nodes/{file_name}';")
 
     lines.append("")
@@ -67,7 +67,7 @@ def generate_simple_registry(node_types: list[str]) -> str:
         elif node_type == 'typescript_ast_parser':
             config_name = "typescriptAstConfig"
         else:
-            config_name = f"{BaseFilters.camel_case(node_type)}Config"
+            config_name = f"{CaseFilters.camel_case(node_type)}Config"
         lines.append(f"  registerNodeConfig({config_name});")
 
     lines.append("}")

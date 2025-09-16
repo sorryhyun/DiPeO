@@ -3,11 +3,11 @@ import { z } from 'zod';
 
 export interface UserResponseNodeData {
   prompt: string;
-  timeout?: number;
+  timeout?: number | undefined;
 }
 
 // Zod schema for validation
 export const UserResponseNodeDataSchema = z.object({
-  prompt: z.string(),
-  timeout: z.number().optional(),
+  prompt: z.string().describe("Question to ask the user"),
+  timeout: z.number().optional().describe("Response timeout in seconds"),
 });

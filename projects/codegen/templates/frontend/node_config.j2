@@ -40,23 +40,23 @@ export const {{ nodeType | camel_case }}Config: UnifiedNodeConfig = {
 {%- endif %}
   },
   defaults: {
-{%- for field in fields if field.default is defined %}
-{%- if field.name == 'tools' %}
-    {{ field.name }}: ToolSelection.{{ field.default | upper }},
-{%- elif field.name == 'hook_type' %}
-    {{ field.name }}: HookType.{{ field.default | upper }},
-{%- elif field.name == 'http_method' %}
-    {{ field.name }}: HttpMethod.{{ field.default | upper }},
-{%- elif field.name == 'language' %}
-    {{ field.name }}: SupportedLanguage.{{ field.default | upper }},
-{%- elif field.name == 'trigger_mode' %}
-    {{ field.name }}: HookTriggerMode.{{ field.default | upper }},
-{%- elif field.default is string %}
-    {{ field.name }}: '{{ field.default }}',
-{%- elif field.default is boolean %}
-    {{ field.name }}: {{ field.default | lower }},
+{%- for field in fields if field.get('default') is defined %}
+{%- if field['name'] == 'tools' %}
+    {{ field['name'] }}: ToolSelection.{{ field['default'] | upper }},
+{%- elif field['name'] == 'hook_type' %}
+    {{ field['name'] }}: HookType.{{ field['default'] | upper }},
+{%- elif field['name'] == 'http_method' %}
+    {{ field['name'] }}: HttpMethod.{{ field['default'] | upper }},
+{%- elif field['name'] == 'language' %}
+    {{ field['name'] }}: SupportedLanguage.{{ field['default'] | upper }},
+{%- elif field['name'] == 'trigger_mode' %}
+    {{ field['name'] }}: HookTriggerMode.{{ field['default'] | upper }},
+{%- elif field['default'] is string %}
+    {{ field['name'] }}: '{{ field['default'] }}',
+{%- elif field['default'] is boolean %}
+    {{ field['name'] }}: {{ field['default'] | lower }},
 {%- else %}
-    {{ field.name }}: {{ field.default | tojson }},
+    {{ field['name'] }}: {{ field['default'] | tojson }},
 {%- endif %}
 {%- endfor %}
   },

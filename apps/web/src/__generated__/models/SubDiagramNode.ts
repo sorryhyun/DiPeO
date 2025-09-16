@@ -2,32 +2,32 @@
 import { z } from 'zod';
 
 export interface SubDiagramNodeData {
-  diagram_name?: string;
-  diagram_data?: Record<string, any>;
-  input_mapping?: Record<string, any>;
-  output_mapping?: Record<string, any>;
-  timeout?: number;
-  wait_for_completion?: boolean;
-  isolate_conversation?: boolean;
-  ignoreIfSub?: boolean;
-  diagram_format?: 'yaml' | 'json' | 'light';
-  batch?: boolean;
-  batch_input_key?: string;
-  batch_parallel?: boolean;
+  diagram_name?: string | undefined;
+  diagram_data?: Record<string, any> | undefined;
+  input_mapping?: Record<string, any> | undefined;
+  output_mapping?: Record<string, any> | undefined;
+  timeout?: number | undefined;
+  wait_for_completion?: boolean | undefined;
+  isolate_conversation?: boolean | undefined;
+  ignoreIfSub?: boolean | undefined;
+  diagram_format?: enum | undefined;
+  batch?: boolean | undefined;
+  batch_input_key?: string | undefined;
+  batch_parallel?: boolean | undefined;
 }
 
 // Zod schema for validation
 export const SubDiagramNodeDataSchema = z.object({
-  diagram_name: z.string().optional(),
-  diagram_data: z.record(z.any()).optional(),
-  input_mapping: z.record(z.any()).optional(),
-  output_mapping: z.record(z.any()).optional(),
-  timeout: z.number().min(1).max(3600).optional(),
-  wait_for_completion: z.boolean().optional(),
-  isolate_conversation: z.boolean().optional(),
-  ignoreIfSub: z.boolean().optional(),
-  diagram_format: z.enum(["yaml", "json", "light"]).optional(),
-  batch: z.boolean().optional(),
-  batch_input_key: z.string().optional(),
-  batch_parallel: z.boolean().optional(),
+  diagram_name: z.string().optional().describe("Name of the diagram to execute (e.g., 'workflow/process')"),
+  diagram_data: z.record(z.any()).optional().describe("Inline diagram data (alternative to diagram_name)"),
+  input_mapping: z.record(z.any()).optional().describe("Map node inputs to sub-diagram variables"),
+  output_mapping: z.record(z.any()).optional().describe("Map sub-diagram outputs to node outputs"),
+  timeout: z.number().min(1).max(3600).optional().describe("Execution timeout in seconds"),
+  wait_for_completion: z.boolean().optional().describe("Whether to wait for sub-diagram completion"),
+  isolate_conversation: z.boolean().optional().describe("Create isolated conversation context for sub-diagram"),
+  ignoreIfSub: z.boolean().optional().describe("Skip execution if this diagram is being run as a sub-diagram"),
+  diagram_format: z.any().optional().describe("Format of the diagram file (yaml, json, or light)"),
+  batch: z.boolean().optional().describe("Execute sub-diagram in batch mode for multiple inputs"),
+  batch_input_key: z.string().optional().describe("Key in inputs containing the array of items for batch processing"),
+  batch_parallel: z.boolean().optional().describe("Execute batch items in parallel"),
 });

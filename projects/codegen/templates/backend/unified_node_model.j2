@@ -17,7 +17,7 @@ from dipeo.diagram_generated.integrations import *
 
 
 class {{ nodeType | pascal_case }}Node(BaseModel):
-    """{{ description }}
+    """{{ description | default('Node model') }}
 
     Unified model handling both validation and execution.
     """
@@ -27,10 +27,10 @@ class {{ nodeType | pascal_case }}Node(BaseModel):
 
     # Required node-specific fields
 {%- for field in fields %}
-{%- if field.required %}
-    {% set python_field_name = field.name | snake_case -%}
-    {% set needs_alias = python_field_name != field.name -%}
-    {{ python_field_name }}: {{ field | python_type_with_context(nodeType) }}{% if field.description or needs_alias %} = Field({% if needs_alias %}alias="{{ field.name }}"{% if field.description %}, {% endif %}{% endif %}{% if field.description %}description="{{ field.description }}"{% endif %}){% endif %}
+{%- if field.get('required') %}
+    {% set python_field_name = field['name'] | snake_case -%}
+    {% set needs_alias = python_field_name != field['name'] -%}
+    {{ python_field_name }}: {{ field | python_type_with_context(nodeType) }}{% if field.get('description') or needs_alias %} = Field({% if needs_alias %}alias="{{ field['name'] }}"{% if field.get('description') %}, {% endif %}{% endif %}{% if field.get('description') %}description="{{ field['description'] }}"{% endif %}){% endif %}
 {%- endif %}
 {%- endfor %}
 
@@ -44,12 +44,12 @@ class {{ nodeType | pascal_case }}Node(BaseModel):
 
     # Optional node-specific fields
 {%- for field in fields %}
-{%- if not field.required %}
-    {% set python_field_name = field.name | snake_case -%}
-    {% set needs_alias = python_field_name != field.name -%}
-{%- if field.type in ['object', 'dict', 'json'] %}
+{%- if not field.get('required') %}
+    {% set python_field_name = field['name'] | snake_case -%}
+    {% set needs_alias = python_field_name != field['name'] -%}
+{%- if field.get('type') in ['object', 'dict', 'json'] %}
     {{ python_field_name }}: {{ field | python_type_with_context(nodeType) }} = Field(default_factory=dict{% if field.description or needs_alias %}, {% if needs_alias %}alias="{{ field.name }}"{% if field.description %}, {% endif %}{% endif %}{% if field.description %}description="{{ field.description }}"{% endif %}{% endif %})
-{%- elif field.type in ['array', 'list'] %}
+{%- elif field.get('type') in ['array', 'list'] %}
     {{ python_field_name }}: {{ field | python_type_with_context(nodeType) }} = Field(default_factory=list{% if field.description or needs_alias %}, {% if needs_alias %}alias="{{ field.name }}"{% if field.description %}, {% endif %}{% endif %}{% if field.description %}description="{{ field.description }}"{% endif %}{% endif %})
 {%- else %}
     {{ python_field_name }}: {{ field | python_type_with_context(nodeType) }} = Field(default={{ field | python_default }}{% if field.description or needs_alias %}, {% if needs_alias %}alias="{{ field.name }}"{% if field.description %}, {% endif %}{% endif %}{% if field.description %}description="{{ field.description }}"{% endif %}{% endif %})

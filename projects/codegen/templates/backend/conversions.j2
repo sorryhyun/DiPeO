@@ -11,11 +11,11 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Union
 from datetime import datetime
 from .enums import NodeType
-{%- if conversions and conversions.type_conversions %}
+{%- if conversions and conversions.get('type_conversions') %}
 
 # Node type mappings (snake_case to CONSTANT_CASE)
 NODE_TYPE_MAP = {
-{%- for snake_case, constant_case in conversions.node_type_map.items() %}
+{%- for snake_case, constant_case in conversions.get('node_type_map', {}).items() %}
     '{{ snake_case }}': '{{ constant_case }}',
 {%- endfor %}
 }
@@ -23,14 +23,14 @@ NODE_TYPE_REVERSE_MAP: Dict[NodeType, str] = {v: k for k, v in NODE_TYPE_MAP.ite
 
 # TypeScript to Python type conversions
 TYPE_CONVERSIONS = {
-{%- for ts_type, py_type in conversions.type_conversions.items() %}
+{%- for ts_type, py_type in conversions.get('type_conversions', {}).items() %}
     '{{ ts_type }}': '{{ py_type }}',
 {%- endfor %}
 }
 
 # Field type mappings (for UI components)
 FIELD_MAPPINGS = {
-{%- for field_type, ui_type in conversions.field_mappings.items() %}
+{%- for field_type, ui_type in conversions.get('field_mappings', {}).items() %}
     '{{ field_type }}': '{{ ui_type }}',
 {%- endfor %}
 }

@@ -27,19 +27,19 @@ import {
 
 // Node validation schemas
 {%- for config in node_configs %}
-export const {{ config.node_name }}Schema = z.object({
-{%- for field in config.fields %}
-  {{ field.name }}: {{ field | zod_schema }}{% if not loop.last %},{% endif %}
+export const {{ config['node_name'] }}Schema = z.object({
+{%- for field in config['fields'] %}
+  {{ field['name'] }}: {{ field | zod_schema }}{% if not loop.last %},{% endif %}
 {%- endfor %}
 });
 
-export type {{ config.node_name }} = z.infer<typeof {{ config.node_name }}Schema>;
+export type {{ config['node_name'] }} = z.infer<typeof {{ config['node_name'] }}Schema>;
 {%- endfor %}
 
 // Export all schemas
 export const nodeSchemas = {
 {%- for config in node_configs %}
-  {{ config.node_name | lower }}: {{ config.node_name }}Schema{% if not loop.last %},{% endif %}
+  {{ config['node_name'] | lower }}: {{ config['node_name'] }}Schema{% if not loop.last %},{% endif %}
 {%- endfor %}
 } as const;
 

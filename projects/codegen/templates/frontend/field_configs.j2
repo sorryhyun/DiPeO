@@ -15,30 +15,30 @@ export interface GeneratedFieldConfigs {
 
 export const GENERATED_FIELD_CONFIGS: GeneratedFieldConfigs = {
 {%- for node_config in node_configs %}
-  '{{ node_config.node_type }}': [
-{%- for field in node_config.fields %}
+  '{{ node_config['node_type'] }}': [
+{%- for field in node_config['fields'] %}
     {
-      name: '{{ field.name }}',
+      name: '{{ field['name'] }}',
       type: '{{ field | ui_field_type }}',
-      label: '{{ field.label }}',
-      required: {{ field.required | lower }},
+      label: '{{ field.get('label', field['name']) }}',
+      required: {{ field.get('required', false) | lower }},
 {%- if field.get('placeholder') %}
-      placeholder: '{{ field.placeholder }}',
+      placeholder: '{{ field['placeholder'] }}',
 {%- endif %}
 {%- if field.get('defaultValue') is not none %}
-      defaultValue: {{ field.defaultValue | tojson }},
+      defaultValue: {{ field['defaultValue'] | tojson }},
 {%- endif %}
 {%- if field.get('min') is not none %}
-      min: {{ field.min }},
+      min: {{ field['min'] }},
 {%- endif %}
 {%- if field.get('max') is not none %}
-      max: {{ field.max }},
+      max: {{ field['max'] }},
 {%- endif %}
 {%- if field.get('rows') is not none %}
-      rows: {{ field.rows }},
+      rows: {{ field['rows'] }},
 {%- endif %}
 {%- if field.get('options') %}
-      options: {{ field.options | tojson(indent=8) | replace('\n', '\n      ') }},
+      options: {{ field['options'] | tojson(indent=8) | replace('\n', '\n      ') }},
 {%- endif %}
     },
 {%- endfor %}

@@ -6,26 +6,18 @@ This package organizes template filters by category, making it easy to:
 - Maintain and test filters independently
 """
 
-from .backend_filters import BackendFilters
-from .base_filters import BaseFilters
-from .graphql_filters import TypeScriptToGraphQLFilters
-from .registry import (
-    FilterInfo,
-    FilterRegistry,
-    create_filter_registry,
-    create_filter_registry_profile,
-    filter_registry,
-)
-from .typescript_filters import TypeScriptToPythonFilters
+from .case_filters import CaseFilters
+from .frontend_filters import FrontendFilters
+from .graphql_filters import GraphQLFilters
+from .python_filters import PythonFilters
+from .string_utility_filters import StringUtilityFilters
+from .type_conversion_filters import TypeConversionFilters
 
 __all__ = [
-    "BackendFilters",
-    "BaseFilters",
-    "FilterInfo",
-    "FilterRegistry",
-    "TypeScriptToGraphQLFilters",
-    "TypeScriptToPythonFilters",
-    "create_filter_registry",
-    "create_filter_registry_profile",
-    "filter_registry",
+    "CaseFilters",
+    "FrontendFilters",
+    "GraphQLFilters",
+    "PythonFilters",
+    "StringUtilityFilters",
+    "TypeConversionFilters",
 ]

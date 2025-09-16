@@ -10,11 +10,11 @@ import strawberry
 
 {% for enum in enums %}
 @strawberry.enum
-class {{ enum.name }}GraphQL(Enum):
-    """GraphQL enum for {{ enum.name }}"""
+class {{ enum['name'] }}GraphQL(Enum):
+    """GraphQL enum for {{ enum['name'] }}"""
     {% for value in enum['values'] %}
     {% if value is mapping %}
-    {{ value.name }} = "{{ value.value }}"
+    {{ value['name'] }} = "{{ value['value'] }}"
     {% else %}
     {{ value }} = "{{ value.lower() }}"
     {% endif %}
@@ -25,35 +25,35 @@ class {{ enum.name }}GraphQL(Enum):
 # Export all GraphQL enums
 __all__ = [
     {% for enum in enums %}
-    "{{ enum.name }}GraphQL",
+    "{{ enum['name'] }}GraphQL",
     {% endfor %}
 ]
 
 # Mapping functions for conversion between Python and GraphQL enums
 {% for enum in enums %}
-def convert_{{ enum.name.lower() }}_to_graphql(python_enum):
-    """Convert Python {{ enum.name }} enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import {{ enum.name }}
+def convert_{{ enum['name'].lower() }}_to_graphql(python_enum):
+    """Convert Python {{ enum['name'] }} enum to GraphQL enum."""
+    from dipeo.diagram_generated.enums import {{ enum['name'] }}
     mapping = {
         {% for value in enum['values'] %}
         {% if value is mapping %}
-        {{ enum.name }}.{{ value.name }}: {{ enum.name }}GraphQL.{{ value.name }},
+        {{ enum['name'] }}.{{ value['name'] }}: {{ enum['name'] }}GraphQL.{{ value['name'] }},
         {% else %}
-        {{ enum.name }}.{{ value }}: {{ enum.name }}GraphQL.{{ value }},
+        {{ enum['name'] }}.{{ value }}: {{ enum['name'] }}GraphQL.{{ value }},
         {% endif %}
         {% endfor %}
     }
     return mapping.get(python_enum)
 
-def convert_{{ enum.name.lower() }}_from_graphql(graphql_enum):
-    """Convert GraphQL {{ enum.name }} enum to Python enum."""
-    from dipeo.diagram_generated.enums import {{ enum.name }}
+def convert_{{ enum['name'].lower() }}_from_graphql(graphql_enum):
+    """Convert GraphQL {{ enum['name'] }} enum to Python enum."""
+    from dipeo.diagram_generated.enums import {{ enum['name'] }}
     mapping = {
         {% for value in enum['values'] %}
         {% if value is mapping %}
-        {{ enum.name }}GraphQL.{{ value.name }}: {{ enum.name }}.{{ value.name }},
+        {{ enum['name'] }}GraphQL.{{ value['name'] }}: {{ enum['name'] }}.{{ value['name'] }},
         {% else %}
-        {{ enum.name }}GraphQL.{{ value }}: {{ enum.name }}.{{ value }},
+        {{ enum['name'] }}GraphQL.{{ value }}: {{ enum['name'] }}.{{ value }},
         {% endif %}
         {% endfor %}
     }

@@ -3,23 +3,23 @@ import { z } from 'zod';
 
 export interface ApiJobNodeData {
   url: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  headers?: Record<string, any>;
-  params?: Record<string, any>;
-  body?: Record<string, any>;
-  timeout?: number;
-  auth_type?: 'none' | 'bearer' | 'basic' | 'api_key';
-  auth_config?: Record<string, any>;
+  method: enum;
+  headers?: Record<string, any> | undefined;
+  params?: Record<string, any> | undefined;
+  body?: Record<string, any> | undefined;
+  timeout?: number | undefined;
+  auth_type?: enum | undefined;
+  auth_config?: Record<string, any> | undefined;
 }
 
 // Zod schema for validation
 export const ApiJobNodeDataSchema = z.object({
-  url: z.string(),
-  method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]),
-  headers: z.record(z.any()).optional(),
-  params: z.record(z.any()).optional(),
-  body: z.record(z.any()).optional(),
-  timeout: z.number().optional(),
-  auth_type: z.enum(["none", "bearer", "basic", "api_key"]).optional(),
-  auth_config: z.record(z.any()).optional(),
+  url: z.string().describe("API endpoint URL"),
+  method: z.any().describe("HTTP method"),
+  headers: z.record(z.any()).optional().describe("HTTP headers"),
+  params: z.record(z.any()).optional().describe("Query parameters"),
+  body: z.record(z.any()).optional().describe("Request body"),
+  timeout: z.number().optional().describe("Request timeout in seconds"),
+  auth_type: z.any().optional().describe("Authentication type"),
+  auth_config: z.record(z.any()).optional().describe("Authentication configuration"),
 });

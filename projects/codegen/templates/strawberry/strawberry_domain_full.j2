@@ -12,7 +12,7 @@ from strawberry.scalars import JSON as JSONScalar
 # Import the Pydantic domain models
 from dipeo.diagram_generated.domain_models import (
 {%- for type in types %}
-    {{ type.name }},
+    {{ type['name'] }},
 {%- endfor %}
 )
 
@@ -40,19 +40,19 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 # Create Strawberry types from Pydantic models
 # Order matters - define types that are referenced by others first
 {% for type in types %}
-{% set has_custom_fields = type.custom_fields and type.custom_fields|length > 0 -%}
-{% set has_field_methods = type.field_methods and type.field_methods|length > 0 -%}
-{% set use_all_fields = type.has_all_fields or (not has_custom_fields and not has_field_methods) -%}
+{% set has_custom_fields = type.get('custom_fields') and type['custom_fields']|length > 0 -%}
+{% set has_field_methods = type.get('field_methods') and type['field_methods']|length > 0 -%}
+{% set use_all_fields = type.get('has_all_fields') or (not has_custom_fields and not has_field_methods) -%}
 
 {% if use_all_fields -%}
-@strawberry.experimental.pydantic.type({{ type.name }}, all_fields=True)
-class {{ type.name }}Type:
+@strawberry.experimental.pydantic.type({{ type['name'] }}, all_fields=True)
+class {{ type['name'] }}Type:
 {%- if has_field_methods %}
-{%- for method in type.field_methods %}
+{%- for method in type.get('field_methods', []) %}
     @strawberry.field
-    def {{ method.name }}(self) -> {{ method.return_type }}:
-        """{{ method.description }}"""
-{%- if method.name == "type" and type.name == "DomainNode" %}
+    def {{ method['name'] }}(self) -> {{ method['return_type'] }}:
+        """{{ method.get('description', '') }}"""
+{%- if method['name'] == "type" and type['name'] == "DomainNode" %}
         # Return the enum value (lowercase) instead of the enum name
         node_type = self.type
         return node_type.value if node_type else ''
@@ -105,25 +105,25 @@ class {{ type.name }}Type:
     pass
 {%- endif %}
 {%- else %}
-@strawberry.experimental.pydantic.type({{ type.name }})
-class {{ type.name }}Type:
-{%- for field in type.custom_fields %}
-{%- if field.is_auto %}
-    {{ field.name }}: strawberry.auto
-{%- elif field.is_enum %}
-    {{ field.name }}: {{ field.type }}  # Explicitly specify the enum type
-{%- elif field.is_optional %}
-    {{ field.name }}: {{ field.type | ensure_optional }} = {{ field.default }}
+@strawberry.experimental.pydantic.type({{ type['name'] }})
+class {{ type['name'] }}Type:
+{%- for field in type.get('custom_fields', []) %}
+{%- if field.get('is_auto') %}
+    {{ field['name'] }}: strawberry.auto
+{%- elif field.get('is_enum') %}
+    {{ field['name'] }}: {{ field['type'] }}  # Explicitly specify the enum type
+{%- elif field.get('is_optional') %}
+    {{ field['name'] }}: {{ field['type'] | ensure_optional }} = {{ field.get('default', 'None') }}
 {%- else %}
-    {{ field.name }}: {{ field.type }}
+    {{ field['name'] }}: {{ field['type'] }}
 {%- endif %}
 {%- endfor %}
 
-{%- for method in type.field_methods %}
+{%- for method in type.get('field_methods', []) %}
     @strawberry.field
-    def {{ method.name }}(self) -> {{ method.return_type }}:
-        """{{ method.description }}"""
-{%- if method.name == "type" and type.name == "DomainNode" %}
+    def {{ method['name'] }}(self) -> {{ method['return_type'] }}:
+        """{{ method.get('description', '') }}"""
+{%- if method['name'] == "type" and type['name'] == "DomainNode" %}
         # Return the enum value (lowercase) instead of the enum name
         node_type = self.type
         return node_type.value if node_type else ''

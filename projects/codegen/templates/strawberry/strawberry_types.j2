@@ -24,8 +24,8 @@ from dipeo.diagram_generated.graphql.scalars import *
 # Generate Strawberry types for node data
 {% for type_info in node_specs %}
 @strawberry.type
-class {{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType:
-    """{{ type_info.description }} - Data fields only"""
+class {{ type_info['name'] | pascal_case }}DataType:
+    """{{ type_info.get('spec', {}).get('description', '') }} - Data fields only"""
     # Base fields (all nodes have these)
     id: NodeIDScalar
     position: Vec2Type
@@ -35,31 +35,31 @@ class {{ type_info.class_name | default(type_info.display_name | pascal_case) }}
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
 
     # Node-specific fields from specification
-    {% for field in type_info.fields %}
-    {% if field.is_dict_type %}
-    {{ field.name }}: Optional[JSONScalar] = None  # {{ field.description }}
+    {% for field in type_info.get('spec', {}).get('fields', []) %}
+    {% if field.get('is_dict_type') %}
+    {{ field['name'] }}: Optional[JSONScalar] = None  # {{ field.get('description', '') }}
     {% else %}
-    {% if field.required %}
-    {{ field.name }}: str  # {{ field.description }}
+    {% if field.get('required') %}
+    {{ field['name'] }}: str  # {{ field.get('description', '') }}
     {% else %}
-    {{ field.name }}: Optional[str] = None  # {{ field.description }}
+    {{ field['name'] }}: Optional[str] = None  # {{ field.get('description', '') }}
     {% endif %}
     {% endif %}
     {% endfor %}
 
     @classmethod
-    def from_pydantic(cls, node: {{ type_info.pydantic_model }}Node) -> "{{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType":
+    def from_pydantic(cls, node: {{ type_info['name'] | pascal_case }}Node) -> "{{ type_info['name'] | pascal_case }}DataType":
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
         # Get node-specific fields with Dict conversion
         field_values = {}
-        {% for field in type_info.fields %}
-        {% if field.is_dict_type %}
-        field_values["{{ field.name }}"] = getattr(node, "{{ field.name }}", None)
+        {% for field in type_info.get('spec', {}).get('fields', []) %}
+        {% if field.get('is_dict_type') %}
+        field_values["{{ field['name'] }}"] = getattr(node, "{{ field['name'] }}", None)
         {% else %}
-        field_values["{{ field.name }}"] = getattr(node, "{{ field.name }}", None)
+        field_values["{{ field['name'] }}"] = getattr(node, "{{ field['name'] }}", None)
         {% endif %}
         {% endfor %}
 
@@ -81,7 +81,7 @@ NodeDataUnion = strawberry.union(
     "NodeDataUnion",
     (
 {% for type_info in node_specs %}
-        {{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType,
+        {{ type_info.name | pascal_case }}DataType,
 {% endfor %}
     )
 )
@@ -100,7 +100,7 @@ NodeDataUnion = PlaceholderNodeData
 # Export all types
 __all__ = [
     'NodeDataUnion',
-{% for type_info in types %}
-    '{{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType',
+{% for type_info in node_specs %}
+    '{{ type_info.name | pascal_case }}DataType',
 {% endfor %}
 ]

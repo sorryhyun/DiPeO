@@ -10,10 +10,9 @@ from pydantic import BaseModel
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
+from dipeo.application.registry.keys import CODEGEN_TEMPLATE_SERVICE, FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.unified_nodes.template_job_node import NodeType, TemplateJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.infrastructure.codegen.templates.drivers.factory import get_enhanced_template_service
 
 if TYPE_CHECKING:
     pass
@@ -34,7 +33,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
     def __init__(self):
         super().__init__()
-        self._template_service = None  # Lazy initialization
         # Instance variables for passing data between methods
         self._current_filesystem_adapter = None
         self._current_engine = None
@@ -103,13 +101,25 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             )
         self._current_engine = engine
 
-        # Initialize template service
+        # Get template service from registry
         try:
-            template_service = self._get_template_service()
+            template_service = services.resolve(CODEGEN_TEMPLATE_SERVICE)
+            if not template_service:
+                return EnvelopeFactory.create(
+                    body={
+                        "error": "Codegen template service is required for template job execution",
+                        "type": "RuntimeError",
+                    },
+                    produced_by=str(node.id),
+                )
             self._current_template_service = template_service
         except Exception as e:
             return EnvelopeFactory.create(
-                body={"error": str(e), "type": e.__class__.__name__}, produced_by=str(node.id)
+                body={
+                    "error": f"Failed to get template service: {e}",
+                    "type": e.__class__.__name__,
+                },
+                produced_by=str(node.id),
             )
 
         # Template processor no longer needed - using Jinja2 for everything
@@ -117,19 +127,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
         # No early return - proceed to execute_request
         return None
-
-    def _get_template_service(self):
-        """Get or create the template service."""
-        if self._template_service is None:
-            try:
-                self._template_service = get_enhanced_template_service()
-            except Exception as e:
-                print(f"[ERROR] Failed to create template service: {e}")
-                import traceback
-
-                traceback.print_exc()
-                raise
-        return self._template_service
 
     @classmethod
     def _is_duplicate_write(cls, file_path: str, content: str, node_id: str) -> bool:
@@ -297,64 +294,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             with filesystem_adapter.open(template_path, "rb") as f:
                 template_content = f.read().decode("utf-8")
 
-        # Helper function to render and write a single file
-        async def render_to_path(output_path_template: str, local_context: dict) -> str:
-            """Render template and write to file specified by path template."""
-            # Render the template content
-            if engine == "internal":
-                rendered = await template_service.render_string(template_content, local_context)
-            elif engine == "jinja2":
-                try:
-                    rendered = await template_service.render_string(template_content, local_context)
-                except Exception as e:
-                    # Fall back to standard Jinja2
-                    rendered = self._render_jinja2(template_content, local_context)
-                    # logger.debug(f"Enhancement fallback: {e}")
-            else:
-                rendered = template_content  # Fallback
-
-            # Render output path via Jinja2 as well
-            output_path_str = (
-                await template_service.render_string(output_path_template, local_context)
-            ).strip()
-            output_path = Path(output_path_str)
-
-            # Add detailed trace logging for foreach mode
-            if "generated_nodes.py" in str(output_path):
-                logger.warning(
-                    f"[GENERATED_NODES WRITE FOREACH] Node {node.id} writing to {output_path} in foreach mode"
-                )
-                # logger.debug(
-                #     f"[GENERATED_NODES FOREACH CONTEXT] Item index: {local_context.get('index')}, Item var: {var_name}"
-                # )
-
-            # Check for duplicate write
-            if self._is_duplicate_write(str(output_path), rendered, str(node.id)):
-                # logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
-                return str(output_path)  # Return path without writing
-
-            # Create parent directories if needed
-            parent_dir = output_path.parent
-            if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
-                filesystem_adapter.mkdir(parent_dir, parents=True)
-
-            # Write the file
-            with filesystem_adapter.open(output_path, "wb") as f:
-                f.write(rendered.encode("utf-8"))
-
-            return str(output_path)
-
-        # Single file mode (foreach not currently implemented)
+        # Render template (foreach mode not currently implemented)
         # Render template
-        if engine == "internal":
+        if engine in ("internal", "jinja2"):
             rendered = await template_service.render_string(template_content, template_vars)
-        elif engine == "jinja2":
-            try:
-                rendered = await template_service.render_string(template_content, template_vars)
-            except Exception as e:
-                # Fall back to standard Jinja2
-                rendered = await self._render_jinja2(template_content, template_vars)
-                # logger.debug(f"Enhancement fallback: {e}")
         else:
             rendered = template_content
 
@@ -436,29 +379,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         envelope = envelope.with_meta(**meta)
 
         return envelope
-
-    async def _render_jinja2(self, template: str, variables: dict[str, Any]) -> str:
-        """Render template using Jinja2 with custom filters."""
-        try:
-            from jinja2 import Environment
-
-            # Create Jinja2 environment with custom filters
-            env = Environment()
-
-            # Add custom filters from the registry
-            from dipeo.infrastructure.codegen.templates.filters import create_filter_registry
-
-            registry = create_filter_registry()
-            for name, func in registry.get_all_filters().items():
-                env.filters[name] = func
-                # Also add as globals for direct function calls in templates
-                env.globals[name] = func
-
-            # Create and render template
-            jinja_template = env.from_string(template)
-            return jinja_template.render(**variables)
-        except ImportError as e:
-            raise ImportError("Jinja2 is not installed. Install it with: pip install jinja2") from e
 
     def post_execute(
         self, request: ExecutionRequest[TemplateJobNode], output: Envelope

@@ -15,13 +15,13 @@ from .enums import ToolType
 if TYPE_CHECKING:
     from .domain_models import LLMUsage
 
-{%- if integrations and integrations.models %}
-{%- for model in integrations.models %}
+{%- if integrations and integrations.get('models') %}
+{%- for model in integrations['models'] %}
 
-class {{ model.name }}(BaseModel):
-    """{{ model.description or 'Integration model' }}"""
-{%- for field in model.fields %}
-    {{ field.name }}: {{ field.type }}{% if field.optional %} = None{% endif %}
+class {{ model['name'] }}(BaseModel):
+    """{{ model.get('description', 'Integration model') }}"""
+{%- for field in model['fields'] %}
+    {{ field['name'] }}: {{ field['type'] }}{% if field.get('optional') %} = None{% endif %}
 {%- endfor %}
 {%- endfor %}
 {%- else %}
@@ -34,9 +34,9 @@ class BaseIntegration(BaseModel):
 
 # Export all integrations
 __all__ = [
-{%- if integrations and integrations.models %}
-{%- for model in integrations.models %}
-    '{{ model.name }}',
+{%- if integrations and integrations.get('models') %}
+{%- for model in integrations['models'] %}
+    '{{ model['name'] }}',
 {%- endfor %}
 {%- else %}
     'BaseIntegration',

@@ -6,13 +6,13 @@ import { createOptionsSchema } from '@/core/utils/schema';
 
 export interface {{ nodeType | pascal_case }}NodeData {
 {%- for field in fields %}
-  {{ field.name }}{% if not field.required %}?{% endif %}: {{ field | typescript_type }};
+  {{ field['name'] }}{% if not field.get('required') %}?{% endif %}: {{ field | typescript_type }};
 {%- endfor %}
 }
 
 // Zod schema for validation
 export const {{ nodeType | pascal_case }}NodeDataSchema = z.object({
 {%- for field in fields %}
-  {{ field.name }}: {{ field | zod_schema }},
+  {{ field['name'] }}: {{ field | zod_schema }},
 {%- endfor %}
 });

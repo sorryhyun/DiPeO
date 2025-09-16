@@ -10,6 +10,7 @@ from dipeo.application.registry.keys import (
     API_INVOKER,
     API_KEY_SERVICE,
     BLOB_STORE,
+    CODEGEN_TEMPLATE_SERVICE,
     EVENT_BUS,
     FILESYSTEM_ADAPTER,
     LLM_SERVICE,
@@ -295,6 +296,22 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
     registry.register(FILESYSTEM_ADAPTER, filesystem)
 
 
+def wire_template_services(registry: ServiceRegistry) -> None:
+    """Wire template services for code generation.
+
+    Creates a single instance of the CodegenTemplateService with all filters
+    and macros loaded, avoiding recreation on every sub_diagram run.
+    """
+    from dipeo.infrastructure.codegen.templates.drivers.factory import get_template_service
+
+    # Create the template service once with empty dirs (we just need filters)
+    template_service = get_template_service(template_dirs=[])
+
+    # Register as immutable (marked in the key definition)
+    registry.register(CODEGEN_TEMPLATE_SERVICE, template_service)
+    logger.info("Registered CodegenTemplateService with all filters and macros")
+
+
 def wire_minimal(registry: ServiceRegistry, redis_client: object | None = None) -> None:
     """Wire only the minimal set of services actually used at runtime.
 
@@ -315,6 +332,7 @@ def wire_minimal(registry: ServiceRegistry, redis_client: object | None = None) 
     wire_state_services(registry, redis_client)
     wire_event_services(registry)
     wire_storage_services(registry)
+    wire_template_services(registry)
 
     if not registry.has(API_KEY_SERVICE):
         from dipeo.infrastructure.shared.keys.drivers.api_key_service import APIKeyService

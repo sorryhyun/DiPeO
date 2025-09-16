@@ -256,6 +256,13 @@ TEMPLATE_PROCESSOR = ServiceKey["TemplateProcessorPort"](
     description="Service for processing templates",
 )
 
+CODEGEN_TEMPLATE_SERVICE = ServiceKey["CodegenTemplateService"](
+    "processing.codegen_template",
+    service_type=ServiceType.APPLICATION,
+    description="Service for code generation templates with filters and macros",
+    immutable=True,  # Single instance with all filters loaded
+)
+
 PROMPT_BUILDER = ServiceKey["PromptBuilder"](
     "processing.prompt_builder",
     service_type=ServiceType.APPLICATION,
@@ -382,6 +389,7 @@ __all__ = [
     "BLOB_STORE",
     # Application
     "CLI_SESSION_SERVICE",
+    "CODEGEN_TEMPLATE_SERVICE",
     "COMPILE_DIAGRAM_USE_CASE",
     "CONVERSATION_REPOSITORY",
     "CURRENT_NODE_INFO",

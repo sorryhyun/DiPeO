@@ -14,16 +14,12 @@ The architecture follows the drivers/adapters pattern:
 from .adapters import Jinja2Adapter, TemplateEngineAdapter
 from .drivers import (
     CodegenTemplateService,
+    FilterRegistry,
     MacroDefinition,
     MacroLibrary,
-    create_custom_template_service,
-    get_basic_template_service,
-    get_enhanced_template_service,
-    get_template_service_for_context,
+    create_filter_registry,
+    get_template_service,
 )
-from .drivers import FilterRegistry as DriverFilterRegistry
-from .drivers import create_filter_registry as driver_create_filter_registry
-from .filters import FilterRegistry, create_filter_registry
 
 __all__ = [
     "CodegenTemplateService",
@@ -32,9 +28,6 @@ __all__ = [
     "MacroDefinition",
     "MacroLibrary",
     "TemplateEngineAdapter",
-    "create_custom_template_service",
     "create_filter_registry",
-    "get_basic_template_service",
-    "get_enhanced_template_service",
-    "get_template_service_for_context",
+    "get_template_service",
 ]
