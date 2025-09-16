@@ -281,6 +281,12 @@ PROMPT_LOADING_SERVICE = ServiceKey["PromptLoadingUseCase"](
     description="Service for loading and processing prompts",
 )
 
+IR_BUILDER_SERVICE = ServiceKey["IRBuilderPort"](
+    "processing.ir_builder",
+    service_type=ServiceType.APPLICATION,
+    description="Service for building intermediate representation from source data",
+)
+
 # =============================================================================
 # DOMAIN SERVICES
 # =============================================================================

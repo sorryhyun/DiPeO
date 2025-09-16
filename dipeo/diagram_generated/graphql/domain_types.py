@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces.
 
-Generated at: 2025-09-15T11:20:50.509569
+Generated at: 2025-09-16T12:35:32.192439
 """
 
 import strawberry

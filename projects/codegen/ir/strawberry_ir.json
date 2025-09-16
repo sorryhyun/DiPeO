@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-15T11:20:50.509569",
+  "generated_at": "2025-09-16T15:02:50.270333",
   "interfaces": [
     {
       "name": "CliSession",
@@ -2819,6 +2819,10 @@
         {
           "name": "INTEGRATED_API",
           "value": "integrated_api"
+        },
+        {
+          "name": "IR_BUILDER",
+          "value": "ir_builder"
         }
       ]
     },
@@ -3718,6 +3722,59 @@
           "required": false,
           "is_dict_type": false,
           "description": "Maximum retry attempts"
+        }
+      ]
+    },
+    {
+      "class_name": "IrBuilder",
+      "display_name": "IR Builder",
+      "pydantic_model": "IrBuilder",
+      "description": "Build Intermediate Representation for code generation",
+      "category": "codegen",
+      "icon": "\ud83c\udfd7\ufe0f",
+      "color": "#FF5722",
+      "fields": [
+        {
+          "name": "builder_type",
+          "type": "enum",
+          "required": true,
+          "is_dict_type": false,
+          "description": "Type of IR builder to use"
+        },
+        {
+          "name": "source_type",
+          "type": "enum",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Type of source data"
+        },
+        {
+          "name": "config_path",
+          "type": "str",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Path to configuration directory"
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Output format for IR"
+        },
+        {
+          "name": "cache_enabled",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Enable IR caching"
+        },
+        {
+          "name": "validate_output",
+          "type": "bool",
+          "required": false,
+          "is_dict_type": false,
+          "description": "Validate IR structure before output"
         }
       ]
     },
@@ -12845,12 +12902,12 @@
     "schema": {}
   },
   "metadata": {
-    "ast_file_count": 60,
+    "ast_file_count": 61,
     "interface_count": 39,
     "enum_count": 26,
     "scalar_count": 11,
     "input_count": 16,
-    "node_spec_count": 14,
+    "node_spec_count": 15,
     "total_operations": 45,
     "total_queries": 23,
     "total_mutations": 21,

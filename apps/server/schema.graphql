@@ -359,6 +359,7 @@ enum NodeType {
   TYPESCRIPT_AST
   SUB_DIAGRAM
   INTEGRATED_API
+  IR_BUILDER
 }
 
 """Scalar type for PersonID"""

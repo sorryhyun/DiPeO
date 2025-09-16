@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-15T11:20:50.477607",
+  "generated_at": "2025-09-16T15:04:51.442153",
   "node_specs": [
     {
       "node_type": "api_job",
@@ -489,6 +489,85 @@
       ],
       "icon": "\ud83d\udd0c",
       "color": "#8b5cf6"
+    },
+    {
+      "node_type": "ir_builder",
+      "node_name": "IrBuilder",
+      "display_name": "IR Builder",
+      "category": "codegen",
+      "description": "Build Intermediate Representation for code generation",
+      "fields": [
+        {
+          "name": "builder_type",
+          "type": "enum",
+          "required": true,
+          "default": null,
+          "description": "Type of IR builder to use",
+          "validation": {
+            "allowedValues": [
+              "backend",
+              "frontend",
+              "strawberry",
+              "custom"
+            ]
+          }
+        },
+        {
+          "name": "source_type",
+          "type": "enum",
+          "required": false,
+          "default": null,
+          "description": "Type of source data",
+          "validation": {
+            "allowedValues": [
+              "ast",
+              "schema",
+              "config",
+              "auto"
+            ]
+          }
+        },
+        {
+          "name": "config_path",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to configuration directory",
+          "validation": {}
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "required": false,
+          "default": null,
+          "description": "Output format for IR",
+          "validation": {
+            "allowedValues": [
+              "json",
+              "yaml",
+              "python"
+            ]
+          }
+        },
+        {
+          "name": "cache_enabled",
+          "type": "bool",
+          "required": false,
+          "default": null,
+          "description": "Enable IR caching",
+          "validation": {}
+        },
+        {
+          "name": "validate_output",
+          "type": "bool",
+          "required": false,
+          "default": null,
+          "description": "Validate IR structure before output",
+          "validation": {}
+        }
+      ],
+      "icon": "\ud83c\udfd7\ufe0f",
+      "color": "#FF5722"
     },
     {
       "node_type": "json_schema_validator",
@@ -1773,6 +1852,10 @@
         {
           "name": "INTEGRATED_API",
           "value": "integrated_api"
+        },
+        {
+          "name": "IR_BUILDER",
+          "value": "ir_builder"
         }
       ],
       "description": ""
@@ -2517,6 +2600,84 @@
       "color": "#8b5cf6"
     },
     {
+      "class_name": "IrBuilder",
+      "display_name": "IR Builder",
+      "description": "Build Intermediate Representation for code generation",
+      "fields": [
+        {
+          "name": "builder_type",
+          "type": "enum",
+          "required": true,
+          "default": null,
+          "description": "Type of IR builder to use",
+          "validation": {
+            "allowedValues": [
+              "backend",
+              "frontend",
+              "strawberry",
+              "custom"
+            ]
+          }
+        },
+        {
+          "name": "source_type",
+          "type": "enum",
+          "required": false,
+          "default": null,
+          "description": "Type of source data",
+          "validation": {
+            "allowedValues": [
+              "ast",
+              "schema",
+              "config",
+              "auto"
+            ]
+          }
+        },
+        {
+          "name": "config_path",
+          "type": "str",
+          "required": false,
+          "default": null,
+          "description": "Path to configuration directory",
+          "validation": {}
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "required": false,
+          "default": null,
+          "description": "Output format for IR",
+          "validation": {
+            "allowedValues": [
+              "json",
+              "yaml",
+              "python"
+            ]
+          }
+        },
+        {
+          "name": "cache_enabled",
+          "type": "bool",
+          "required": false,
+          "default": null,
+          "description": "Enable IR caching",
+          "validation": {}
+        },
+        {
+          "name": "validate_output",
+          "type": "bool",
+          "required": false,
+          "default": null,
+          "description": "Validate IR structure before output",
+          "validation": {}
+        }
+      ],
+      "category": "codegen",
+      "icon": "\ud83c\udfd7\ufe0f",
+      "color": "#FF5722"
+    },
+    {
       "class_name": "JsonSchemaValidator",
       "display_name": "JSON Schema Validator",
       "description": "Validate data against JSON schema",
@@ -3198,6 +3359,20 @@
         ]
       },
       {
+        "type": "ir_builder",
+        "name": "IrBuilder",
+        "display_name": "IR Builder",
+        "category": "codegen",
+        "fields": [
+          "builder_type",
+          "source_type",
+          "config_path",
+          "output_format",
+          "cache_enabled",
+          "validate_output"
+        ]
+      },
+      {
         "type": "json_schema_validator",
         "name": "JsonSchemaValidator",
         "display_name": "JSON Schema Validator",
@@ -3319,6 +3494,7 @@
       "endpoint": "Endpoint",
       "hook": "Hook",
       "integrated_api": "IntegratedApi",
+      "ir_builder": "IrBuilder",
       "json_schema_validator": "JsonSchemaValidator",
       "person_job": "PersonJob",
       "start": "Start",
@@ -3341,7 +3517,7 @@
     "utils": []
   },
   "metadata": {
-    "node_count": 14,
+    "node_count": 15,
     "enum_count": 26,
     "integration_model_count": 6,
     "categories": [

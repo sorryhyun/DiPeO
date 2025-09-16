@@ -12,6 +12,7 @@ from .db_node import DbNode
 from .endpoint_node import EndpointNode
 from .hook_node import HookNode
 from .integrated_api_node import IntegratedApiNode
+from .ir_builder_node import IrBuilderNode
 from .json_schema_validator_node import JsonSchemaValidatorNode
 from .person_job_node import PersonJobNode
 from .start_node import StartNode
@@ -28,6 +29,7 @@ __all__ = [
     "EndpointNode",
     "HookNode",
     "IntegratedApiNode",
+    "IrBuilderNode",
     "JsonSchemaValidatorNode",
     "PersonJobNode",
     "StartNode",

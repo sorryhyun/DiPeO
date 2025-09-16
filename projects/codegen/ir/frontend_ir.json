@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-15T11:20:50.523694",
+  "generated_at": "2025-09-16T15:04:21.608827",
   "node_configs": [
     {
       "name": "ApiJobConfig",
@@ -631,6 +631,105 @@
             "min": 0,
             "max": 10
           },
+          "options": []
+        }
+      ],
+      "validation_schema": null
+    },
+    {
+      "name": "IrBuilderConfig",
+      "node_type": "ir_builder",
+      "node_name": "IrBuilder",
+      "display_name": "IR Builder",
+      "category": "codegen",
+      "description": "Build Intermediate Representation for code generation",
+      "icon": "\ud83c\udfd7\ufe0f",
+      "color": "#FF5722",
+      "fields": [
+        {
+          "name": "builder_type",
+          "type": "enum",
+          "label": "builder_type",
+          "placeholder": "",
+          "help_text": "Type of IR builder to use",
+          "required": true,
+          "default_value": null,
+          "validation": {
+            "allowedValues": [
+              "backend",
+              "frontend",
+              "strawberry",
+              "custom"
+            ]
+          },
+          "options": []
+        },
+        {
+          "name": "source_type",
+          "type": "enum",
+          "label": "source_type",
+          "placeholder": "",
+          "help_text": "Type of source data",
+          "required": false,
+          "default_value": null,
+          "validation": {
+            "allowedValues": [
+              "ast",
+              "schema",
+              "config",
+              "auto"
+            ]
+          },
+          "options": []
+        },
+        {
+          "name": "config_path",
+          "type": "string",
+          "label": "config_path",
+          "placeholder": "",
+          "help_text": "Path to configuration directory",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "options": []
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "label": "output_format",
+          "placeholder": "",
+          "help_text": "Output format for IR",
+          "required": false,
+          "default_value": null,
+          "validation": {
+            "allowedValues": [
+              "json",
+              "yaml",
+              "python"
+            ]
+          },
+          "options": []
+        },
+        {
+          "name": "cache_enabled",
+          "type": "boolean",
+          "label": "cache_enabled",
+          "placeholder": "",
+          "help_text": "Enable IR caching",
+          "required": false,
+          "default_value": null,
+          "validation": {},
+          "options": []
+        },
+        {
+          "name": "validate_output",
+          "type": "boolean",
+          "label": "validate_output",
+          "placeholder": "",
+          "help_text": "Validate IR structure before output",
+          "required": false,
+          "default_value": null,
+          "validation": {},
           "options": []
         }
       ],
@@ -3717,6 +3816,11 @@
         "config": "IntegratedApiConfig",
         "category": "integration"
       },
+      "ir_builder": {
+        "component": "IrBuilderNode",
+        "config": "IrBuilderConfig",
+        "category": "codegen"
+      },
       "json_schema_validator": {
         "component": "JsonSchemaValidatorNode",
         "config": "JsonSchemaValidatorConfig",
@@ -3771,6 +3875,7 @@
         "start"
       ],
       "codegen": [
+        "ir_builder",
         "json_schema_validator",
         "template_job",
         "typescript_ast"
@@ -3787,6 +3892,7 @@
       "endpoint": "\ud83c\udfc1",
       "hook": "\ud83e\ude9d",
       "integrated_api": "\ud83d\udd0c",
+      "ir_builder": "\ud83c\udfd7\ufe0f",
       "json_schema_validator": "\u2713",
       "person_job": "\ud83e\udd16",
       "start": "\ud83d\ude80",
@@ -4100,6 +4206,48 @@
           "type": "number",
           "optional": true,
           "description": "Maximum retry attempts"
+        }
+      ]
+    },
+    {
+      "name": "IrBuilderModel",
+      "interface_name": "IIrBuilder",
+      "fields": [
+        {
+          "name": "builder_type",
+          "type": "enum",
+          "optional": false,
+          "description": "Type of IR builder to use"
+        },
+        {
+          "name": "source_type",
+          "type": "enum",
+          "optional": true,
+          "description": "Type of source data"
+        },
+        {
+          "name": "config_path",
+          "type": "string",
+          "optional": true,
+          "description": "Path to configuration directory"
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "optional": true,
+          "description": "Output format for IR"
+        },
+        {
+          "name": "cache_enabled",
+          "type": "boolean",
+          "optional": true,
+          "description": "Enable IR caching"
+        },
+        {
+          "name": "validate_output",
+          "type": "boolean",
+          "optional": true,
+          "description": "Validate IR structure before output"
         }
       ]
     },
@@ -6765,7 +6913,7 @@
     }
   ],
   "metadata": {
-    "node_count": 14,
+    "node_count": 15,
     "field_type_count": 0,
     "query_count": 23,
     "mutation_count": 21,

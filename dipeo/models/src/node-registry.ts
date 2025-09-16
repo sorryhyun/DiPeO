@@ -20,6 +20,7 @@ import { jsonSchemaValidatorSpec } from './nodes/json-schema-validator.spec.js';
 import { typescriptAstSpec } from './nodes/typescript-ast.spec.js';
 import { subDiagramSpec } from './nodes/sub-diagram.spec.js';
 import { integratedApiSpec } from './nodes/integrated-api.spec.js';
+import { irBuilderSpec } from './nodes/ir-builder.spec.js';
 
 // Build the registry
 export const nodeSpecificationRegistry: NodeSpecificationRegistry = {
@@ -37,6 +38,7 @@ export const nodeSpecificationRegistry: NodeSpecificationRegistry = {
   typescript_ast: typescriptAstSpec,
   sub_diagram: subDiagramSpec,
   integrated_api: integratedApiSpec,
+  ir_builder: irBuilderSpec,
 };
 
 // Export convenience function to get a specification by node type

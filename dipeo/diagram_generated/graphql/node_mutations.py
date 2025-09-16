@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-15T11:20:50.509569
+Generated at: 2025-09-16T12:35:32.192439
 """
 
 import strawberry
@@ -143,6 +143,24 @@ class CreateIntegratedApiInput:
 @strawberry.input
 class UpdateIntegratedApiInput:
     """Input for updating a Integrated API node"""
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: Optional[strawberry.scalars.JSON] = None
+    position: Optional[Vec2Input] = None
+
+
+@strawberry.input
+class CreateIrBuilderInput:
+    """Input for creating a IR Builder node"""
+    diagram_id: str
+    position: Vec2Input
+    # TODO: Add node-specific fields from spec
+    # For now, we accept a generic data dict that will be validated
+    data: strawberry.scalars.JSON
+
+@strawberry.input
+class UpdateIrBuilderInput:
+    """Input for updating a IR Builder node"""
     # TODO: Add node-specific fields from spec
     # For now, we accept a generic data dict that will be validated
     data: Optional[strawberry.scalars.JSON] = None
@@ -308,6 +326,9 @@ __all__ = [
 
     'CreateIntegratedApiInput',
     'UpdateIntegratedApiInput',
+
+    'CreateIrBuilderInput',
+    'UpdateIrBuilderInput',
 
     'CreateJsonSchemaValidatorInput',
     'UpdateJsonSchemaValidatorInput',

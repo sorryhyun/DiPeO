@@ -32,12 +32,14 @@ nodes:
 
   # Build unified backend IR
   - label: Build Backend IR
-    type: code_job
+    type: ir_builder
     position: {x: 400, y: 400}
     props:
-      language: python
-      filePath: projects/codegen/code/backend_ir_builder.py
-      functionName: build_backend_ir
+      builder_type: backend
+      config_path: projects/codegen/config/backend
+      output_format: json
+      cache_enabled: false
+      validate_output: true
 
   # Save IR for debugging
   - label: Save Backend IR

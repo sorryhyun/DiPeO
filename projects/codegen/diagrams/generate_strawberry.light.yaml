@@ -27,12 +27,14 @@ nodes:
 
   # Build unified IR from TypeScript AST
   - label: Build Unified IR
-    type: code_job
+    type: ir_builder
     position: {x: 400, y: 400}
     props:
-      language: python
-      filePath: projects/codegen/code/strawberry_ir_builder.py
-      functionName: build_unified_ir
+      builder_type: strawberry
+      config_path: projects/codegen/config/strawberry
+      output_format: json
+      cache_enabled: false
+      validate_output: true
 
   # Render all templates using template_job nodes
   # Note: Templates will receive the IR data from the Build Unified IR node
@@ -151,15 +153,15 @@ connections:
   - {from: Load TypeScript AST, to: Build Unified IR, content_type: object}
 
   # Parallel template rendering from unified IR
-  - {from: Build Unified IR, to: Render Strawberry Types}
-  - {from: Build Unified IR, to: Render Scalars}
-  - {from: Build Unified IR, to: Render Domain Types}
-  - {from: Build Unified IR, to: Render Input Types}
-  - {from: Build Unified IR, to: Render GraphQL Enums}
-  - {from: Build Unified IR, to: Render Mutations}
-  - {from: Build Unified IR, to: Render Operations}
-  - {from: Build Unified IR, to: Render Results}
-  - {from: Build Unified IR, to: Render Generated Schema}
+  - {from: Build Unified IR, to: Render Strawberry Types, content_type: object}
+  - {from: Build Unified IR, to: Render Scalars, content_type: object}
+  - {from: Build Unified IR, to: Render Domain Types, content_type: object}
+  - {from: Build Unified IR, to: Render Input Types, content_type: object}
+  - {from: Build Unified IR, to: Render GraphQL Enums, content_type: object}
+  - {from: Build Unified IR, to: Render Mutations, content_type: object}
+  - {from: Build Unified IR, to: Render Operations, content_type: object}
+  - {from: Build Unified IR, to: Render Results, content_type: object}
+  - {from: Build Unified IR, to: Render Generated Schema, content_type: object}
 
   # Complete
   - {from: Render Strawberry Types, to: End}
