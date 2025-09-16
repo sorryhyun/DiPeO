@@ -1,7 +1,6 @@
 from dipeo.application.registry.enhanced_service_registry import EnhancedServiceRegistry
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
-    CLI_SESSION_SERVICE,
     DB_OPERATIONS_SERVICE,
     DIAGRAM_PORT,
     DIAGRAM_VALIDATOR,
@@ -67,12 +66,7 @@ class ApplicationContainer:
             create_db_operations_service,
         )
 
-        from dipeo.application.execution.use_cases import CliSessionService
-
-        self.registry.register(
-            CLI_SESSION_SERVICE,
-            lambda: CliSessionService(state_store=self.registry.resolve(STATE_STORE)),
-        )
+        # CLI_SESSION_SERVICE is registered by wire_execution in wiring.py
 
         # DIAGRAM_PORT is registered by wire_diagram_port, no need to re-register it
         # Just verify it exists if we're in a context where it should be wired
