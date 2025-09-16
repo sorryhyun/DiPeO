@@ -172,11 +172,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
             if time_diff < cls._DEDUP_WINDOW_SECONDS:
                 # This is a duplicate write
-                logger.warning(
-                    f"[DEDUPLICATION] Skipping duplicate write to {file_path} "
-                    f"from node {node_id} (already written by {last_node_id} "
-                    f"{time_diff:.2f}s ago)"
-                )
                 return True
 
         # Not a duplicate - update cache
@@ -335,7 +330,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
             # Check for duplicate write
             if self._is_duplicate_write(str(output_path), rendered, str(node.id)):
-                logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
+                # logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
                 return str(output_path)  # Return path without writing
 
             # Create parent directories if needed

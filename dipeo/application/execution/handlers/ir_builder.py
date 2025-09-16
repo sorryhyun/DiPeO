@@ -192,11 +192,13 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
                 if hasattr(ir_data, "data") and hasattr(ir_data, "metadata"):
                     # Merge data fields and metadata at top level
                     result = ir_data.data.copy() if isinstance(ir_data.data, dict) else ir_data.data
-                    if isinstance(result, dict) and hasattr(ir_data.metadata, "dict"):
-                        # Add metadata as a top-level key
-                        result["metadata"] = ir_data.metadata.dict()
-                    elif isinstance(result, dict):
-                        result["metadata"] = ir_data.metadata
+                    # Only add IRMetadata if there's no existing metadata field (preserve template metadata)
+                    if isinstance(result, dict) and "metadata" not in result:
+                        if hasattr(ir_data.metadata, "dict"):
+                            # Add metadata as a top-level key
+                            result["metadata"] = ir_data.metadata.dict()
+                        else:
+                            result["metadata"] = ir_data.metadata
                     return result
                 elif hasattr(ir_data, "dict"):
                     # Fallback to dict if it's a Pydantic model
@@ -218,10 +220,12 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
                 # For YAML format, also merge data and metadata
                 if hasattr(ir_data, "data") and hasattr(ir_data, "metadata"):
                     result = ir_data.data.copy() if isinstance(ir_data.data, dict) else ir_data.data
-                    if isinstance(result, dict) and hasattr(ir_data.metadata, "dict"):
-                        result["metadata"] = ir_data.metadata.dict()
-                    elif isinstance(result, dict):
-                        result["metadata"] = ir_data.metadata
+                    # Only add IRMetadata if there's no existing metadata field (preserve template metadata)
+                    if isinstance(result, dict) and "metadata" not in result:
+                        if hasattr(ir_data.metadata, "dict"):
+                            result["metadata"] = ir_data.metadata.dict()
+                        else:
+                            result["metadata"] = ir_data.metadata
                     return result
                 elif hasattr(ir_data, "dict"):
                     ir_dict = ir_data.dict()

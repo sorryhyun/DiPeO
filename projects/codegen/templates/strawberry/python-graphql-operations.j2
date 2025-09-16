@@ -10,7 +10,7 @@ import strawberry
 {% if imports is defined %}
 {% for source, types in imports.items() -%}
 {% if types -%}
-from {{ source }} import {{ types | sort | join(', ') }}
+from .inputs import {{ types | sort | join(', ') }}
 {% endif -%}
 {% endfor %}
 {% endif %}

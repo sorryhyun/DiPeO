@@ -52,6 +52,11 @@ class CacheManager:
         """Get cache metrics."""
         return self._metrics
 
+    async def has_execution(self, execution_id: str) -> bool:
+        """Check if execution exists in cache."""
+        async with self._cache_lock:
+            return execution_id in self._cache
+
     async def get_entry(self, execution_id: str) -> CacheEntry | None:
         """Get cache entry if exists."""
         async with self._cache_lock:

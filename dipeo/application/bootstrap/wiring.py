@@ -204,12 +204,12 @@ def wire_event_services(registry: ServiceRegistry) -> None:
 
         if event_bus_backend == "in_memory":
             domain_event_bus = InMemoryEventBus(
-                max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
+                max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "10000")),
                 enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true",
             )
         else:
             domain_event_bus = InMemoryEventBus(
-                max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
+                max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "10000")),
                 enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true",
             )
 
@@ -240,7 +240,7 @@ def wire_event_services(registry: ServiceRegistry) -> None:
                 # Subscribe with LOW priority so state updates happen after other handlers
                 await domain_event_bus.subscribe(
                     event_types=state_events,
-                    handler=state_store.handle_event,
+                    handler=state_store,
                     priority=EventPriority.LOW,
                 )
 
@@ -354,6 +354,18 @@ async def execute_event_subscriptions(registry: ServiceRegistry) -> None:
     handlers to the event bus.
     """
     import inspect
+
+    # Execute state store subscription if registered
+    state_store_sub_key = ServiceKey("state_store_subscription")
+    if registry.has(state_store_sub_key):
+        subscribe_fn = registry.resolve(state_store_sub_key)
+        # Check if it's a coroutine function or already a coroutine
+        if inspect.iscoroutinefunction(subscribe_fn):
+            await subscribe_fn()
+        elif inspect.iscoroutine(subscribe_fn):
+            await subscribe_fn
+        else:
+            logger.warning(f"Unexpected type for state_store_subscription: {type(subscribe_fn)}")
 
     # Execute state manager subscription if registered
     state_manager_sub_key = ServiceKey("state_manager_subscription")

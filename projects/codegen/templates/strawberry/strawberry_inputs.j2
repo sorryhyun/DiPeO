@@ -7,11 +7,17 @@ Generated at: {{ generated_at }}
 
 from datetime import datetime
 from typing import Optional, List, Any
-from strawberry.scalars import JSON
+from strawberry.scalars import JSON, ID
 
 import strawberry
 from .enums import DiagramFormatGraphQL
 
+# Import basic scalar type aliases for Strawberry
+String = str
+Int = int
+Float = float
+Boolean = bool
+DateTime = datetime
 
 # Import enums from generated modules
 from dipeo.diagram_generated.enums import APIServiceType, LLMService, NodeType, Status, DiagramFormat
