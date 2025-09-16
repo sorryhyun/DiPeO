@@ -70,15 +70,28 @@ class FrontendIRBuilder(BaseIRBuilder):
             return False
 
         # Check for required frontend fields
+        # Updated to match actual IR structure from frontend_ir_builder.py
         data = ir_data.data
-        required_keys = ["components", "schemas", "metadata"]
+        required_keys = ["node_configs", "field_configs", "metadata"]
+        # Also accept alternative keys for backward compatibility
+        alternative_keys = {"node_configs": "components", "field_configs": "schemas"}
 
         for key in required_keys:
             if key not in data:
-                return False
+                # Check if alternative key exists
+                alt_key = alternative_keys.get(key)
+                if (alt_key and alt_key not in data) or not alt_key:
+                    return False
 
-        # Validate metadata
-        if "component_count" not in data.get("metadata", {}):
+        # Validate metadata - check for actual metadata fields
+        metadata = data.get("metadata", {})
+        if not metadata:
+            return False
+
+        # Check for at least one of these metadata fields
+        metadata_fields = ["node_count", "component_count", "ast_file_count", "field_config_count"]
+        has_metadata = any(field in metadata for field in metadata_fields)
+        if not has_metadata:
             return False
 
         return True

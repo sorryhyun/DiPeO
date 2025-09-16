@@ -70,12 +70,21 @@ class StrawberryIRBuilder(BaseIRBuilder):
             return False
 
         # Check for required strawberry fields
+        # Note: Updated to match actual IR structure from strawberry_ir_builder.py
         data = ir_data.data
-        required_keys = ["operations", "scalars", "domain_types", "inputs", "results", "enums"]
+        required_keys = ["operations", "scalars", "types", "inputs", "enums"]
+        # Also accept alternative keys for backward compatibility
+        alternative_keys = {
+            "types": "domain_types",  # types or domain_types
+            "result_wrappers": "results",  # result_wrappers or results
+        }
 
         for key in required_keys:
             if key not in data:
-                return False
+                # Check if alternative key exists
+                alt_key = alternative_keys.get(key)
+                if (alt_key and alt_key not in data) or not alt_key:
+                    return False
 
         # Validate operations have required fields
         operations = data.get("operations", [])
