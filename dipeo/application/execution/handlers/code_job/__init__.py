@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
+@requires_services()  # No services actually used
 class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     """Handler for code execution nodes with envelope support.
 
@@ -66,10 +68,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     @property
     def schema(self) -> type[BaseModel]:
         return CodeJobNode
-
-    @property
-    def requires_services(self) -> list[str]:
-        return ["template", "filesystem_adapter"]
 
     @property
     def description(self) -> str:

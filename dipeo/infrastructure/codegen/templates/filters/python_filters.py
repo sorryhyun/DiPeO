@@ -1,18 +1,52 @@
-"""Backend-specific template filters for code generation.
+"""Python code generation filters.
 
-This module provides filters for generating Python backend code, including
-Pydantic models and static node implementations.
+This module provides filters specifically for Python code generation,
+extracted from various backend and type conversion filters.
 """
 
 import re
 from typing import Any
 
 
-class BackendFilters:
-    """Collection of filters for backend code generation."""
+class PythonFilters:
+    """Python code generation filters."""
+
+    @staticmethod
+    def python_default(field: dict[str, Any]) -> str:
+        """Get Python default value for a field."""
+        field_type = field.get("type", "string")
+        is_required = field.get("required", False)
+
+        if "default" in field:
+            default_val = field["default"]
+            if isinstance(default_val, str):
+                return f'"{default_val}"'
+            elif isinstance(default_val, bool):
+                return "True" if default_val else "False"
+            elif default_val is None:
+                return "None"
+            else:
+                return str(default_val)
+
+        if not is_required:
+            return "None"
+
+        if field_type in ["object", "dict"]:
+            return "field(default_factory=dict)"
+        elif field_type in ["array", "list"]:
+            return "field(default_factory=list)"
+        elif field_type == "string":
+            return '""'
+        elif field_type == "number":
+            return "0"
+        elif field_type == "boolean":
+            return "False"
+        else:
+            return "None"
 
     @staticmethod
     def pythonize_name(name: str) -> str:
+        """Convert camelCase/PascalCase to snake_case."""
         if not name:
             return ""
         s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
@@ -20,6 +54,7 @@ class BackendFilters:
 
     @classmethod
     def python_class_name(cls, node_type: str) -> str:
+        """Generate Python class name from node type."""
         if not node_type:
             return "UnknownNode"
         parts = node_type.split("_")
@@ -27,6 +62,7 @@ class BackendFilters:
 
     @classmethod
     def handler_class_name(cls, node_type: str) -> str:
+        """Generate handler class name from node type."""
         if not node_type:
             return "UnknownNodeHandler"
         parts = node_type.split("_")
@@ -52,7 +88,7 @@ class BackendFilters:
             parts.append(f'description="{desc}"')
 
         original_name = field.get("name", "")
-        python_name = BackendFilters.pythonize_name(original_name)
+        python_name = PythonFilters.pythonize_name(original_name)
         if python_name != original_name:
             parts.append(f'alias="{original_name}"')
 
@@ -75,8 +111,9 @@ class BackendFilters:
 
     @staticmethod
     def needs_field_alias(field: dict[str, Any]) -> bool:
+        """Check if field needs an alias (camelCase vs snake_case)."""
         original = str(field.get("name", ""))
-        pythonized = BackendFilters.pythonize_name(original)
+        pythonized = PythonFilters.pythonize_name(original)
         return original != pythonized
 
     @staticmethod
@@ -115,7 +152,7 @@ class BackendFilters:
 
         for field in spec_data.get("fields", []):
             if validation := field.get("validation"):
-                field_name = BackendFilters.pythonize_name(field["name"])
+                field_name = PythonFilters.pythonize_name(field["name"])
 
                 if "custom" in validation:
                     validators.append(
@@ -150,7 +187,7 @@ class BackendFilters:
             "extra": "forbid",
         }
 
-        if any(BackendFilters.needs_field_alias(f) for f in spec_data.get("fields", [])):
+        if any(PythonFilters.needs_field_alias(f) for f in spec_data.get("fields", [])):
             config["allow_population_by_field_name"] = True
 
         if custom_config := spec_data.get("modelConfig"):
@@ -171,6 +208,118 @@ class BackendFilters:
                 )
 
         return enums
+
+    @staticmethod
+    def spec_to_camel_name(node_type: str) -> str:
+        """Convert node type to camelCase spec name."""
+        if not node_type:
+            return "unknownSpec"
+        parts = node_type.split("_")
+        if not parts:
+            return "unknownSpec"
+        camel = parts[0].lower() + "".join(p.title() for p in parts[1:])
+        return f"{camel}Spec"
+
+    @staticmethod
+    def python_type_with_context(
+        field: dict[str, Any], node_type: str, mappings: dict[str, Any] | None = None
+    ) -> str:
+        """Convert field type to Python type with context awareness."""
+        field_name = field.get("name", "")
+        field_type = field.get("type", "string")
+        is_required = field.get("required", False)
+        default_value = field.get("default")
+
+        base_type = None
+
+        context_mappings = {
+            "method": "HttpMethod",
+            "sub_type": "DBBlockSubType",
+            "language": "SupportedLanguage",
+            "code_type": "SupportedLanguage",
+            "hook_type": "HookType",
+            "trigger_mode": "HookTriggerMode",
+            "service": "LLMService",
+            "diagram_format": "DiagramFormat",
+        }
+
+        if field_name in context_mappings:
+            base_type = context_mappings[field_name]
+        elif mappings and "ts_to_py_type" in mappings and field_type in mappings["ts_to_py_type"]:
+            base_type = str(mappings["ts_to_py_type"][field_type])
+        elif node_type == "person_job":
+            if field_name == "person_id":
+                base_type = "PersonID"
+            elif field_name == "llm_config":
+                base_type = "PersonLLMConfig"
+            elif field_name == "memory_settings":
+                base_type = "MemorySettings"
+            elif field_name == "memory_profile":
+                base_type = "str"
+            elif field_name == "tools":
+                base_type = "List[ToolConfig]"
+
+        if base_type is None:
+            if field_name == "maxIteration" or field_name == "max_iteration":
+                base_type = "int"
+            elif field_type == "object" or field_type == "dict":
+                base_type = "Dict[str, Any]"
+            elif field_type == "array" or field_type == "list":
+                base_type = "List[Any]"
+            elif field_type == "string":
+                base_type = "str"
+            elif field_type == "number":
+                if field_name in {
+                    "maxIteration",
+                    "max_iteration",
+                    "sequence",
+                    "messageCount",
+                    "timeout",
+                    "timeoutSeconds",
+                    "durationSeconds",
+                    "maxTokens",
+                    "statusCode",
+                    "port",
+                    "x",
+                    "y",
+                    "width",
+                    "height",
+                }:
+                    base_type = "int"
+                else:
+                    base_type = "float"
+            elif field_type == "boolean":
+                base_type = "bool"
+            elif field_type == "enum":
+                values = field.get("values", [])
+                if not values and field.get("validation"):
+                    values = field.get("validation", {}).get("allowedValues", [])
+
+                if values:
+                    quoted_values = ", ".join(f'"{v}"' for v in values)
+                    base_type = f"Literal[{quoted_values}]"
+                else:
+                    base_type = "str"
+            elif field_type == "any":
+                base_type = "Any"
+            else:
+                base_type = field_type
+
+        if not is_required:
+            if field_type in ["object", "dict", "array", "list"]:
+                return f"Optional[{base_type}]"
+            if "default" in field and field["default"] is not None:
+                return base_type
+            return f"Optional[{base_type}]"
+
+        return base_type
+
+    @staticmethod
+    def get_field_python_type(field: dict[str, Any], context: dict[str, Any]) -> str:
+        """Get Python type for a field with context."""
+        node_type = context.get("nodeType", "")
+        mappings = context.get("mappings", {})
+        return PythonFilters.python_type_with_context(field, node_type, mappings)
 
     @staticmethod
     def get_static_node_imports(spec_data: dict[str, Any]) -> list[str]:
@@ -287,153 +436,11 @@ class BackendFilters:
 
         return checks
 
-    @staticmethod
-    def spec_to_camel_name(node_type: str) -> str:
-        if not node_type:
-            return "unknownSpec"
-        parts = node_type.split("_")
-        if not parts:
-            return "unknownSpec"
-        camel = parts[0].lower() + "".join(p.title() for p in parts[1:])
-        return f"{camel}Spec"
-
-    @staticmethod
-    def python_type_with_context(
-        field: dict[str, Any], node_type: str, mappings: dict[str, Any] | None = None
-    ) -> str:
-        """Convert field type to Python type with context awareness."""
-        field_name = field.get("name", "")
-        field_type = field.get("type", "string")
-        is_required = field.get("required", False)
-        default_value = field.get("default")
-
-        base_type = None
-
-        context_mappings = {
-            "method": "HttpMethod",
-            "sub_type": "DBBlockSubType",
-            "language": "SupportedLanguage",
-            "code_type": "SupportedLanguage",
-            "hook_type": "HookType",
-            "trigger_mode": "HookTriggerMode",
-            "service": "LLMService",
-            "diagram_format": "DiagramFormat",
-        }
-
-        if field_name in context_mappings:
-            base_type = context_mappings[field_name]
-        elif mappings and "ts_to_py_type" in mappings and field_type in mappings["ts_to_py_type"]:
-            base_type = str(mappings["ts_to_py_type"][field_type])
-        elif node_type == "person_job":
-            if field_name == "person_id":
-                base_type = "PersonID"
-            elif field_name == "llm_config":
-                base_type = "PersonLLMConfig"
-            elif field_name == "memory_settings":
-                base_type = "MemorySettings"
-            elif field_name == "memory_profile":
-                base_type = "str"
-            elif field_name == "tools":
-                base_type = "List[ToolConfig]"
-
-        if base_type is None:
-            if field_name == "maxIteration" or field_name == "max_iteration":
-                base_type = "int"
-            elif field_type == "object" or field_type == "dict":
-                base_type = "Dict[str, Any]"
-            elif field_type == "array" or field_type == "list":
-                base_type = "List[Any]"
-            elif field_type == "string":
-                base_type = "str"
-            elif field_type == "number":
-                if field_name in {
-                    "maxIteration",
-                    "max_iteration",
-                    "sequence",
-                    "messageCount",
-                    "timeout",
-                    "timeoutSeconds",
-                    "durationSeconds",
-                    "maxTokens",
-                    "statusCode",
-                    "port",
-                    "x",
-                    "y",
-                    "width",
-                    "height",
-                }:
-                    base_type = "int"
-                else:
-                    base_type = "float"
-            elif field_type == "boolean":
-                base_type = "bool"
-            elif field_type == "enum":
-                values = field.get("values", [])
-                if not values and field.get("validation"):
-                    values = field.get("validation", {}).get("allowedValues", [])
-
-                if values:
-                    quoted_values = ", ".join(f'"{v}"' for v in values)
-                    base_type = f"Literal[{quoted_values}]"
-                else:
-                    base_type = "str"
-            elif field_type == "any":
-                base_type = "Any"
-            else:
-                base_type = field_type
-
-        if not is_required:
-            if field_type in ["object", "dict", "array", "list"]:
-                return f"Optional[{base_type}]"
-            if "default" in field and field["default"] is not None:
-                return base_type
-            return f"Optional[{base_type}]"
-
-        return base_type
-
-    @staticmethod
-    def python_default(field: dict[str, Any]) -> str:
-        """Get Python default value for a field."""
-        field_type = field.get("type", "string")
-        is_required = field.get("required", False)
-
-        if "default" in field:
-            default_val = field["default"]
-            if isinstance(default_val, str):
-                return f'"{default_val}"'
-            elif isinstance(default_val, bool):
-                return "True" if default_val else "False"
-            elif default_val is None:
-                return "None"
-            else:
-                return str(default_val)
-
-        if not is_required:
-            return "None"
-
-        if field_type in ["object", "dict"]:
-            return "field(default_factory=dict)"
-        elif field_type in ["array", "list"]:
-            return "field(default_factory=list)"
-        elif field_type == "string":
-            return '""'
-        elif field_type == "number":
-            return "0"
-        elif field_type == "boolean":
-            return "False"
-        else:
-            return "None"
-
-    @staticmethod
-    def get_field_python_type(field: dict[str, Any], context: dict[str, Any]) -> str:
-        node_type = context.get("nodeType", "")
-        mappings = context.get("mappings", {})
-        return BackendFilters.python_type_with_context(field, node_type, mappings)
-
     @classmethod
     def get_all_filters(cls) -> dict:
         """Get all filter methods as a dictionary."""
         return {
+            "python_default": cls.python_default,
             "pythonize_name": cls.pythonize_name,
             "python_class_name": cls.python_class_name,
             "handler_class_name": cls.handler_class_name,
@@ -443,11 +450,10 @@ class BackendFilters:
             "build_validators": cls.build_validators,
             "build_model_config": cls.build_model_config,
             "generate_enum_classes": cls.generate_enum_classes,
+            "spec_to_camel_name": cls.spec_to_camel_name,
+            "python_type_with_context": cls.python_type_with_context,
+            "get_field_python_type": cls.get_field_python_type,
             "get_static_node_imports": cls.get_static_node_imports,
             "get_execution_logic": cls.get_execution_logic,
             "get_validation_checks": cls.get_validation_checks,
-            "spec_to_camel_name": cls.spec_to_camel_name,
-            "python_type_with_context": cls.python_type_with_context,
-            "python_default": cls.python_default,
-            "get_field_python_type": cls.get_field_python_type,
         }

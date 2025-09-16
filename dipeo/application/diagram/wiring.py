@@ -58,40 +58,24 @@ def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
         compiler = registry.resolve(DIAGRAM_COMPILER)
         return CompileDiagramUseCase(diagram_compiler=compiler)
 
-    # Guard against duplicate registration
-    if not registry.has(COMPILE_DIAGRAM_USE_CASE):
-        registry.register(COMPILE_DIAGRAM_USE_CASE, create_compile_diagram)
-    else:
-        logger.debug("COMPILE_DIAGRAM_USE_CASE already registered, skipping")
+    registry.register(COMPILE_DIAGRAM_USE_CASE, create_compile_diagram)
 
     def create_validate_diagram() -> ValidateDiagramUseCase:
         return ValidateDiagramUseCase()
 
-    # Guard against duplicate registration
-    if not registry.has(VALIDATE_DIAGRAM_USE_CASE):
-        registry.register(VALIDATE_DIAGRAM_USE_CASE, create_validate_diagram)
-    else:
-        logger.debug("VALIDATE_DIAGRAM_USE_CASE already registered, skipping")
+    registry.register(VALIDATE_DIAGRAM_USE_CASE, create_validate_diagram)
 
     def create_serialize_diagram() -> SerializeDiagramUseCase:
         serializer = registry.resolve(DIAGRAM_SERIALIZER)
         return SerializeDiagramUseCase(diagram_serializer=serializer)
 
-    # Guard against duplicate registration
-    if not registry.has(SERIALIZE_DIAGRAM_USE_CASE):
-        registry.register(SERIALIZE_DIAGRAM_USE_CASE, create_serialize_diagram)
-    else:
-        logger.debug("SERIALIZE_DIAGRAM_USE_CASE already registered, skipping")
+    registry.register(SERIALIZE_DIAGRAM_USE_CASE, create_serialize_diagram)
 
     def create_load_diagram() -> LoadDiagramUseCase:
         diagram_service = registry.resolve(DIAGRAM_PORT)
         return LoadDiagramUseCase(diagram_service=diagram_service)
 
-    # Guard against duplicate registration
-    if not registry.has(LOAD_DIAGRAM_USE_CASE):
-        registry.register(LOAD_DIAGRAM_USE_CASE, create_load_diagram)
-    else:
-        logger.debug("LOAD_DIAGRAM_USE_CASE already registered, skipping")
+    registry.register(LOAD_DIAGRAM_USE_CASE, create_load_diagram)
 
 
 def wire_diagram_resolvers(registry: ServiceRegistry) -> None:
@@ -101,11 +85,7 @@ def wire_diagram_resolvers(registry: ServiceRegistry) -> None:
     def create_diagram_resolver() -> DiagramResolver:
         return DiagramResolver(registry)
 
-    # Guard against duplicate registration
-    if not registry.has(DIAGRAM_RESOLVER):
-        registry.register(DIAGRAM_RESOLVER, create_diagram_resolver)
-    else:
-        logger.debug("DIAGRAM_RESOLVER already registered, skipping")
+    registry.register(DIAGRAM_RESOLVER, create_diagram_resolver)
 
 
 def wire_diagram_compiler(registry: ServiceRegistry) -> None:
@@ -131,11 +111,7 @@ def wire_diagram_compiler(registry: ServiceRegistry) -> None:
         cache_size = int(os.getenv("DIAGRAM_COMPILER_CACHE_SIZE", "100"))
         compiler = CachingCompilerAdapter(compiler, cache_size=cache_size)
 
-    # Guard against duplicate registration
-    if not registry.has(DIAGRAM_COMPILER):
-        registry.register(DIAGRAM_COMPILER, compiler)
-    else:
-        logger.debug("DIAGRAM_COMPILER already registered, skipping")
+    registry.register(DIAGRAM_COMPILER, compiler)
 
 
 def wire_diagram_serializer(registry: ServiceRegistry) -> None:
@@ -155,11 +131,7 @@ def wire_diagram_serializer(registry: ServiceRegistry) -> None:
         cache_size = int(os.getenv("DIAGRAM_SERIALIZER_CACHE_SIZE", "50"))
         serializer = CachingSerializerAdapter(serializer, cache_size=cache_size)
 
-    # Guard against duplicate registration
-    if not registry.has(DIAGRAM_SERIALIZER):
-        registry.register(DIAGRAM_SERIALIZER, serializer)
-    else:
-        logger.debug("DIAGRAM_SERIALIZER already registered, skipping")
+    registry.register(DIAGRAM_SERIALIZER, serializer)
 
 
 def wire_resolution_services(registry: ServiceRegistry) -> None:
@@ -171,11 +143,7 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
     from dipeo.domain.execution.resolution import StandardTransformationEngine
 
     transform_engine = StandardTransformationEngine()
-    # Guard against duplicate registration
-    if not registry.has(TRANSFORMATION_ENGINE):
-        registry.register(TRANSFORMATION_ENGINE, transform_engine)
-    else:
-        logger.debug("TRANSFORMATION_ENGINE already registered, skipping")
+    registry.register(TRANSFORMATION_ENGINE, transform_engine)
 
 
 def wire_diagram_port(registry: ServiceRegistry) -> None:
@@ -215,11 +183,7 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
         compiler=compiler,
     )
 
-    # Guard against duplicate registration
-    if not registry.has(DIAGRAM_PORT):
-        registry.register(DIAGRAM_PORT, diagram_service)
-    else:
-        logger.debug("DIAGRAM_PORT already registered, skipping")
+    registry.register(DIAGRAM_PORT, diagram_service)
 
 
 def wire_diagram_services(registry: ServiceRegistry) -> None:

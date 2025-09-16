@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
+@requires_services(integrated_api_service=INTEGRATED_API_SERVICE, api_key_service=API_KEY_SERVICE)
 class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     """Handler for executing integrated API operations across multiple providers."""
 
@@ -23,8 +25,6 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
 
     def __init__(self):
         super().__init__()
-        self._current_integrated_api_service = None
-        self._current_api_key_service = None
         self._current_api_key = None
         self._current_provider = None
         self._current_operation = None
@@ -42,18 +42,15 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         return IntegratedApiNode
 
     @property
-    def requires_services(self) -> list[str]:
-        return ["integrated_api_service", "api_key_service"]
-
-    @property
     def description(self) -> str:
         return "Executes operations on various API providers (Notion, Slack, GitHub, etc.)"
 
     async def pre_execute(self, request: ExecutionRequest[IntegratedApiNode]) -> Envelope | None:
         node = request.node
 
-        integrated_api_service = request.services.resolve(INTEGRATED_API_SERVICE)
-        api_key_service = request.services.resolve(API_KEY_SERVICE)
+        # Get services from request
+        integrated_api_service = request.get_optional_service(INTEGRATED_API_SERVICE)
+        api_key_service = request.get_optional_service(API_KEY_SERVICE)
 
         if not integrated_api_service:
             return EnvelopeFactory.create(
@@ -111,8 +108,6 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
                 produced_by=str(node.id),
             )
 
-        self._current_integrated_api_service = integrated_api_service
-        self._current_api_key_service = api_key_service
         self._current_api_key = api_key
         self._current_provider = provider
         self._current_operation = operation
@@ -142,7 +137,7 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         node = request.node
         trace_id = request.execution_id or ""
 
-        integrated_api_service = self._current_integrated_api_service
+        integrated_api_service = self._integrated_api_service
         api_key = self._current_api_key
         provider = self._current_provider
         operation = self._current_operation

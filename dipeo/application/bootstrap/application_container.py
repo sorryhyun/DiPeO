@@ -25,7 +25,7 @@ class ApplicationContainer:
     def __init__(self, registry: EnhancedServiceRegistry):
         self.registry = registry
         # Only setup application-specific services
-        # Bounded context wiring is handled by wire_minimal in server/CLI context
+        # Bounded context wiring is handled by bootstrap_services in server/CLI context
         self._setup_app_services()
 
     def _setup_app_services(self):

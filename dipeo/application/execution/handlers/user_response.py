@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
+@requires_services(execution_context=EXECUTION_CONTEXT)
 class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
     """Handler for interactive user input.
 
@@ -82,7 +84,7 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
         input_context = inputs.get("input_context")
 
         # Get execution context from ServiceRegistry
-        exec_context = request.services.resolve(EXECUTION_CONTEXT)
+        exec_context = self._execution_context
         if (
             exec_context
             and hasattr(exec_context, "interactive_handler")

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
+@requires_services(filesystem_adapter=FILESYSTEM_ADAPTER)
 class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     """Handler for JSON Schema validation.
 
@@ -51,10 +53,6 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         return JsonSchemaValidatorNode
 
     @property
-    def requires_services(self) -> list[str]:
-        return ["filesystem_adapter"]
-
-    @property
     def description(self) -> str:
         return "Validates JSON data against a JSON Schema specification"
 
@@ -80,7 +78,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         self._current_debug = False  # Will be set based on context if needed
 
         # Check filesystem adapter availability
-        filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
+        filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
         if not filesystem_adapter:
             return EnvelopeFactory.create(
                 body={
@@ -104,7 +102,8 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
 
         node = request.node
         services = request.services
-        filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
+        # Get filesystem adapter from request for early checks
+        filesystem_adapter = request.get_required_service(FILESYSTEM_ADAPTER)
 
         # Store inputs as envelope dict for data extraction
         self._envelope_inputs = envelope_inputs
@@ -168,7 +167,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         """Execute JSON schema validation."""
         node = request.node
         services = request.services
-        filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
+        filesystem_adapter = self._filesystem_adapter
 
         if node.json_schema:
             schema = node.json_schema

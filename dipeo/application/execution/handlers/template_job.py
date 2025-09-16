@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
@@ -21,6 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
+@requires_services(
+    filesystem_adapter=FILESYSTEM_ADAPTER,
+    codegen_template_service=CODEGEN_TEMPLATE_SERVICE,
+)
 class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     """Renders templates using Jinja2 syntax and outputs the result."""
 
@@ -33,11 +38,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
     def __init__(self):
         super().__init__()
-        # Instance variables for passing data between methods
-        self._current_filesystem_adapter = None
+        # Instance variables for execution state
         self._current_engine = None
-        self._current_template_service = None
-        self._current_template_processor = None
+        self._current_output_path = None
+        self._template_vars = None
 
     @property
     def node_class(self) -> type[TemplateJobNode]:
@@ -50,10 +54,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     @property
     def schema(self) -> type[BaseModel]:
         return TemplateJobNode
-
-    @property
-    def requires_services(self) -> list[str]:
-        return ["filesystem_adapter"]
 
     @property
     def description(self) -> str:
@@ -70,27 +70,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         return None
 
     async def pre_execute(self, request: ExecutionRequest[TemplateJobNode]) -> Envelope | None:
-        """Pre-execution setup: validate template file and processor availability.
-
-        Moves template file existence check, processor setup, and service validation
-        out of execute_request for cleaner separation of concerns.
-        """
+        """Pre-execution setup: validate template engine configuration."""
         node = request.node
-        services = request.services
-
-        # Get filesystem adapter from services or use injected one
-        filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
-        if not filesystem_adapter:
-            return EnvelopeFactory.create(
-                body={
-                    "error": "Filesystem adapter is required for template job execution",
-                    "type": "RuntimeError",
-                },
-                produced_by=str(node.id),
-            )
-
-        # Store filesystem adapter in instance variable for execute_request
-        self._current_filesystem_adapter = filesystem_adapter
 
         # Validate template engine
         engine = node.engine or "internal"
@@ -100,30 +81,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 produced_by=str(node.id),
             )
         self._current_engine = engine
-
-        # Get template service from registry
-        try:
-            template_service = services.resolve(CODEGEN_TEMPLATE_SERVICE)
-            if not template_service:
-                return EnvelopeFactory.create(
-                    body={
-                        "error": "Codegen template service is required for template job execution",
-                        "type": "RuntimeError",
-                    },
-                    produced_by=str(node.id),
-                )
-            self._current_template_service = template_service
-        except Exception as e:
-            return EnvelopeFactory.create(
-                body={
-                    "error": f"Failed to get template service: {e}",
-                    "type": e.__class__.__name__,
-                },
-                produced_by=str(node.id),
-            )
-
-        # Template processor no longer needed - using Jinja2 for everything
-        self._current_template_processor = None
 
         # No early return - proceed to execute_request
         return None
@@ -246,11 +203,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Store template variables for building representations
         self._template_vars = template_vars.copy()
 
-        # Use services from instance variables (set in pre_execute)
-        filesystem_adapter = self._current_filesystem_adapter
+        # Services are now injected by the decorator
+        filesystem_adapter = self._filesystem_adapter
+        template_service = self._codegen_template_service
         engine = self._current_engine
-        template_service = self._current_template_service
-        template_processor = self._current_template_processor
 
         # Apply preprocessor if configured
         preprocessor = getattr(node, "preprocessor", None)

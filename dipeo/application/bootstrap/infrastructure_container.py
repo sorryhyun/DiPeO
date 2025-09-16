@@ -51,11 +51,7 @@ class InfrastructureContainer:
         api_key_path = (
             Path(self.config.storage.base_dir) / self.config.storage.data_dir / "apikeys.json"
         )
-        # Guard against duplicate registration
-        if not self.registry.has(API_KEY_SERVICE):
-            self.registry.register(API_KEY_SERVICE, APIKeyService(file_path=api_key_path))
-        else:
-            logger.debug("API_KEY_SERVICE already registered, skipping")
+        self.registry.register(API_KEY_SERVICE, APIKeyService(file_path=api_key_path))
 
     def _setup_llm_adapter(self):
         from dipeo.infrastructure.llm.drivers.service import LLMInfraService
@@ -67,12 +63,6 @@ class InfrastructureContainer:
         from dipeo.infrastructure.template import SimpleTemplateProcessor
 
         self.registry.register(TEMPLATE_PROCESSOR, SimpleTemplateProcessor())
-
-        # STATE_STORE will be registered in app_context.py
-        # Don't register with None as it's marked as immutable
-
-        # MESSAGE_ROUTER will be registered in wire_messaging_services
-        # Don't register with None as it's marked as final
 
         from dipeo.infrastructure.shared.adapters import LocalBlobAdapter
 
@@ -101,16 +91,6 @@ class InfrastructureContainer:
     def _setup_storage_v2(self):
         """Setup storage services using domain ports."""
         from dipeo.application.bootstrap.wiring import wire_storage_services
-        from dipeo.infrastructure.shared.keys.drivers import APIKeyService
-
-        api_key_path = (
-            Path(self.config.storage.base_dir) / self.config.storage.data_dir / "apikeys.json"
-        )
-        # Guard against duplicate registration
-        if not self.registry.has(API_KEY_SERVICE):
-            self.registry.register(API_KEY_SERVICE, APIKeyService(file_path=api_key_path))
-        else:
-            logger.debug("API_KEY_SERVICE already registered, skipping")
 
         wire_storage_services(self.registry)
 
@@ -123,14 +103,6 @@ class InfrastructureContainer:
     def _setup_llm_v2(self):
         """Setup LLM services using domain ports."""
         from dipeo.application.bootstrap.wiring import wire_llm_services
-
-        if not self.registry.has(API_KEY_SERVICE):
-            from dipeo.infrastructure.shared.keys.drivers import APIKeyService
-
-            api_key_path = (
-                Path(self.config.storage.base_dir) / self.config.storage.data_dir / "apikeys.json"
-            )
-            self.registry.register(API_KEY_SERVICE, APIKeyService(file_path=api_key_path))
 
         api_key_service = self.registry.resolve(API_KEY_SERVICE)
 

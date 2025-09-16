@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
+@requires_services()  # No services required
 class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
     """Handler for IR builder nodes.
 
@@ -47,11 +49,6 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
     def schema(self) -> type[BaseModel]:
         """Get the node schema."""
         return IrBuilderNode
-
-    @property
-    def requires_services(self) -> list[str]:
-        """List of required services."""
-        return []  # No specific services required
 
     @property
     def description(self) -> str:

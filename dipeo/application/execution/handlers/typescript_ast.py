@@ -4,9 +4,11 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.registry.keys import AST_PARSER
 from dipeo.diagram_generated.unified_nodes.typescript_ast_node import NodeType, TypescriptAstNode
 from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
 
@@ -15,6 +17,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
+@requires_services(ast_parser=AST_PARSER)
 class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     """Handler for TypeScript AST parsing node.
 
@@ -50,10 +53,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         return TypescriptAstNode
 
     @property
-    def requires_services(self) -> list[str]:
-        return ["processing.ast_parser"]  # Uses the AST_PARSER service key
-
-    @property
     def description(self) -> str:
         return "Parses TypeScript source code and extracts AST, interfaces, types, and enums"
 
@@ -87,15 +86,9 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         # Set debug flag for later use
         self._current_debug = False  # Will be set based on context if needed
 
-        # Check parser service availability - try different approaches
-        parser_service = request.get_service("processing.ast_parser")
-        if not parser_service and hasattr(request.services, "resolve"):
-            # Try resolving with the ServiceKey directly
-            from dipeo.application.registry.keys import AST_PARSER
-
-            with contextlib.suppress(Exception):
-                parser_service = request.services.resolve(AST_PARSER)
-        if not parser_service:
+        # Check parser service availability
+        ast_parser = request.get_optional_service(AST_PARSER)
+        if not ast_parser:
             factory = get_envelope_factory()
             return factory.error(
                 "TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
@@ -126,7 +119,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             return {"results": {}, "batch_mode": True, "total_sources": 0, "skipped": True}
 
         # Get the parser service
-        parser_service = request.get_service("processing.ast_parser")
+        parser_service = self._ast_parser
 
         # Check if batch mode is enabled
         batch_mode = getattr(node, "batch", False)
@@ -188,7 +181,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
 
             # Parse all sources in batch
             try:
-                results = await parser_service.parse_batch(
+                results = await self._ast_parser.parse_batch(
                     sources=sources,
                     extract_patterns=node.extract_patterns or ["interface", "type", "enum"],
                     options={
@@ -220,7 +213,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
 
             # Parse the TypeScript code using the parser service
             try:
-                result = await parser_service.parse(
+                result = await self._ast_parser.parse(
                     source=source,
                     extract_patterns=node.extract_patterns or ["interface", "type", "enum"],
                     options={

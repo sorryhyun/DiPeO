@@ -70,11 +70,8 @@ def wire_execution(registry: ServiceRegistry) -> None:
 
         return orchestrator
 
-    # Guard against duplicate registration
-    if not registry.has(EXECUTION_ORCHESTRATOR):
-        registry.register(EXECUTION_ORCHESTRATOR, lambda: create_execution_orchestrator())
-    else:
-        logger.debug("EXECUTION_ORCHESTRATOR already registered, skipping")
+    # Register execution orchestrator
+    registry.register(EXECUTION_ORCHESTRATOR, lambda: create_execution_orchestrator())
 
     # Wire execute diagram use case
     from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
@@ -84,11 +81,8 @@ def wire_execution(registry: ServiceRegistry) -> None:
         # ExecuteDiagramUseCase has a different constructor signature
         return ExecuteDiagramUseCase(service_registry=registry)
 
-    # Guard against duplicate registration
-    if not registry.has(EXECUTE_DIAGRAM_USE_CASE):
-        registry.register(EXECUTE_DIAGRAM_USE_CASE, create_execute_diagram)
-    else:
-        logger.debug("EXECUTE_DIAGRAM_USE_CASE already registered, skipping")
+    # Register execute diagram use case
+    registry.register(EXECUTE_DIAGRAM_USE_CASE, create_execute_diagram)
 
     # Wire prepare diagram use case
     from dipeo.application.execution.use_cases.prepare_diagram import (
@@ -103,11 +97,8 @@ def wire_execution(registry: ServiceRegistry) -> None:
             api_key_service=api_key_service, service_registry=registry
         )
 
-    # Guard against duplicate registration
-    if not registry.has(PREPARE_DIAGRAM_USE_CASE):
-        registry.register(PREPARE_DIAGRAM_USE_CASE, create_prepare_diagram)
-    else:
-        logger.debug("PREPARE_DIAGRAM_USE_CASE already registered, skipping")
+    # Register prepare diagram use case
+    registry.register(PREPARE_DIAGRAM_USE_CASE, create_prepare_diagram)
 
     # Wire CLI session service
     from dipeo.application.execution.use_cases.cli_session import CliSessionService
@@ -116,8 +107,5 @@ def wire_execution(registry: ServiceRegistry) -> None:
         """Factory for CLI session service."""
         return CliSessionService()
 
-    # Guard against duplicate registration
-    if not registry.has(CLI_SESSION_SERVICE):
-        registry.register(CLI_SESSION_SERVICE, create_cli_session_service)
-    else:
-        logger.debug("CLI_SESSION_SERVICE already registered, skipping")
+    # Register CLI session service
+    registry.register(CLI_SESSION_SERVICE, create_cli_session_service)

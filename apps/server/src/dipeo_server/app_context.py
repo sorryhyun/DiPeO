@@ -25,9 +25,9 @@ async def create_server_container() -> Container:
     import logging
 
     from dipeo.application.bootstrap.wiring import (
+        bootstrap_services,
         wire_feature_flags,
         wire_messaging_services,
-        wire_minimal,
     )
     from dipeo.application.registry.keys import (
         CLI_SESSION_SERVICE,
@@ -38,16 +38,16 @@ async def create_server_container() -> Container:
     )
 
     logger = logging.getLogger(__name__)
-    # Wire only essential services
-    wire_minimal(container.registry, redis_client=None)
+    # Bootstrap all services
+    bootstrap_services(container.registry, redis_client=None)
 
     # Wire optional features if specified
     features = os.getenv("DIPEO_FEATURES", "").split(",") if os.getenv("DIPEO_FEATURES") else []
     if features:
         wire_feature_flags(container.registry, [f.strip() for f in features if f.strip()])
 
-    # Messaging services are already wired by wire_minimal, no need to wire again
-    # wire_messaging_services(container.registry)
+    # Messaging services are already wired by bootstrap_services
+    # No need to wire separately
 
     # Get the message router from registry
     from dipeo.infrastructure.execution.messaging import MessageRouter
