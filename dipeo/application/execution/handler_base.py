@@ -98,13 +98,14 @@ class TypedNodeHandler[T](TokenHandlerMixin, ABC):
     async def prepare_inputs(
         self, request: ExecutionRequest[T], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        legacy_inputs = {}
+        """Extract data from envelopes for handler processing."""
+        prepared_data = {}
         for key, envelope in inputs.items():
             try:
-                legacy_inputs[key] = envelope.as_json()
+                prepared_data[key] = envelope.as_json()
             except ValueError:
-                legacy_inputs[key] = envelope.as_text()
-        return legacy_inputs
+                prepared_data[key] = envelope.as_text()
+        return prepared_data
 
     @abstractmethod
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[T]) -> Any: ...

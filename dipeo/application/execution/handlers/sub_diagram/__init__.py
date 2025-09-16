@@ -155,28 +155,27 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[SubDiagramNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelopes to legacy inputs for executors.
+        """Extract data from envelopes for sub-diagram execution.
 
         Phase 5: Now consumes tokens from incoming edges when available.
         """
         # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
         envelope_inputs = self.get_effective_inputs(request, inputs)
 
-        # Convert envelopes to legacy inputs for executors (temporary during migration)
-        # This allows existing executors to work without modification
-        legacy_inputs = {}
+        # Convert envelopes to data for executors
+        prepared_data = {}
         for key, envelope in envelope_inputs.items():
             if envelope.content_type == "raw_text":
-                legacy_inputs[key] = envelope.as_text()
+                prepared_data[key] = envelope.as_text()
             elif envelope.content_type == "object":
-                legacy_inputs[key] = envelope.as_json()
+                prepared_data[key] = envelope.as_json()
             elif envelope.content_type == "binary":
-                legacy_inputs[key] = envelope.as_bytes()
+                prepared_data[key] = envelope.as_bytes()
             elif envelope.content_type == "conversation_state":
-                legacy_inputs[key] = envelope.as_conversation()
+                prepared_data[key] = envelope.as_conversation()
             else:
-                legacy_inputs[key] = envelope.body
-        return legacy_inputs
+                prepared_data[key] = envelope.body
+        return prepared_data
 
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[SubDiagramNode]) -> Any:
         """Route execution to appropriate executor based on configuration."""
