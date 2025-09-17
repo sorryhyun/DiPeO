@@ -5,13 +5,10 @@ consolidating infrastructure and domain configuration with sensible defaults
 and environment variable overrides.
 """
 
-try:
-    # Try Pydantic v2 with pydantic-settings
-    from pydantic import Field
-    from pydantic_settings import BaseSettings
-except ImportError:
-    # Fall back to Pydantic v1
-    from pydantic import BaseSettings, Field
+from pathlib import Path
+
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class LLMSettings(BaseSettings):
@@ -99,7 +96,9 @@ class MessagingSettings(BaseSettings):
         default=None, env="DIPEO_REDIS_URL", description="Redis URL for distributed messaging"
     )
     max_queue_size: int = Field(
-        default=100, env="DIPEO_MSG_MAX_QUEUE_SIZE", description="Maximum queue size per connection"
+        default=10000,
+        env="DIPEO_MSG_MAX_QUEUE_SIZE",
+        description="Maximum queue size per connection",
     )
     broadcast_warning_threshold_s: float = Field(
         default=0.5,
@@ -141,7 +140,9 @@ class StorageSettings(BaseSettings):
     """Storage configuration settings."""
 
     base_dir: str = Field(
-        default="/home/soryhyun/DiPeO", env="DIPEO_BASE_DIR", description="Base directory for DiPeO"
+        default_factory=lambda: str(Path(__file__).resolve().parents[2]),
+        env="DIPEO_BASE_DIR",
+        description="Base directory for DiPeO",
     )
     data_dir: str = Field(
         default="files",
@@ -275,7 +276,6 @@ class AppSettings(BaseSettings):
         extra = "ignore"
         env_file = ".env"
         env_file_encoding = "utf-8"
-        extra = "ignore"  # Ignore extra environment variables
 
 
 # Singleton instance

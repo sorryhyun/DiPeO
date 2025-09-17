@@ -83,7 +83,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
                 inputs=sub_diagram_inputs,  # Use prepared inputs
             )
 
-            # Run the engine without observers or state persistence
+            # Run the engine without state persistence
             execution_results, execution_errors = await self._run_lightweight_execution(
                 diagram=executable_diagram, execution_state=execution_state, request=request
             )
@@ -279,7 +279,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         execution_state: ExecutionState,
         request: ExecutionRequest,
     ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-        """Run the execution engine without observers or state persistence.
+        """Run the execution engine without state persistence.
 
         Returns:
             Tuple of (execution_results, execution_errors)
