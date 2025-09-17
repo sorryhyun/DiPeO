@@ -92,6 +92,12 @@ class {{ type['name'] }}Type:
     {{ field['name'] }}: {{ 'Optional[' + field['type'] + ']' if field['optional'] else field['type'] }}{{ ' = None' if field['optional'] else '' }}
 {%- elif field['type'].startswith('list[Bottleneck]') %}
     {{ field['name'] }}: Optional[List[BottleneckType]] = None
+{%- elif field['type'].startswith('List[Message]') or field['type'] == 'list[Message]' %}
+    {{ field['name'] }}: List[MessageType]
+{%- elif field['type'].startswith('List[ConversationMetadata]') or field['type'] == 'list[ConversationMetadata]' %}
+    {{ field['name'] }}: List[ConversationMetadataType]
+{%- elif field['type'] == 'ConversationMetadata' %}
+    {{ field['name'] }}: {{ 'Optional[ConversationMetadataType]' if field['optional'] else 'ConversationMetadataType' }}{{ ' = None' if field['optional'] else '' }}
 {%- elif field['type'].endswith('ID') %}
     {{ field['name'] }}: {{ 'Optional[' + field['type'] + 'Scalar]' if field['optional'] else field['type'] + 'Scalar' }}{{ ' = None' if field['optional'] else '' }}
 {%- elif field['type'].startswith('Optional[') and field['type'][9:-1].endswith('ID') %}
@@ -109,7 +115,11 @@ class {{ type['name'] }}Type:
 {%- elif field['type'].startswith('list[') and field['type'].endswith('Type]') %}
     {{ field['name'] }}: {{ 'Optional[' + field['type'] + ']' if field['optional'] else field['type'] }}{{ ' = None' if field['optional'] else '' }}
 {%- elif field['type'].startswith('Dict[str,') or field['type'].startswith('dict[str,') %}
-    {{ field['name'] }}: Dict[str, Any]{{ ' = None' if field['optional'] else '' }}  # {{ field['type'] }}
+    {%- if 'JSONScalar' in field['type'] or 'JsonDict' in field['type'] %}
+    {{ field['name'] }}: {{ 'Optional[JSONScalar]' if field['optional'] else 'JSONScalar' }}{{ ' = None' if field['optional'] else '' }}  # {{ field['type'] }}
+    {%- else %}
+    {{ field['name'] }}: JSONScalar{{ ' = None' if field['optional'] else '' }}  # {{ field['type'] }} as JSON
+    {%- endif %}
 {%- else %}
     {%- if field['optional'] and not field['type'].startswith('Optional[') %}
     {{ field['name'] }}: Optional[{{ field['type'] }}]{{ ' = None' }}
@@ -138,21 +148,39 @@ class {{ type['name'] }}Type:
         if obj.metrics:
             metrics = ExecutionMetricsType.from_pydantic(obj.metrics) if hasattr(ExecutionMetricsType, 'from_pydantic') else obj.metrics
 
+        # Convert node_states dict to JSON-serializable format
+        node_states_dict = {}
+        if obj.node_states:
+            for node_id, node_state in obj.node_states.items():
+                if hasattr(node_state, 'model_dump'):
+                    node_states_dict[node_id] = node_state.model_dump()
+                else:
+                    node_states_dict[node_id] = node_state
+
+        # Convert node_outputs dict to JSON-serializable format
+        node_outputs_dict = {}
+        if obj.node_outputs:
+            for node_id, node_output in obj.node_outputs.items():
+                if hasattr(node_output, 'model_dump'):
+                    node_outputs_dict[node_id] = node_output.model_dump()
+                else:
+                    node_outputs_dict[node_id] = node_output
+
         return ExecutionStateType(
             id=obj.id,
             status=str(obj.status.value) if hasattr(obj.status, 'value') else str(obj.status),
             diagram_id=obj.diagram_id,
             started_at=obj.started_at,
             ended_at=obj.ended_at,
-            node_states=obj.node_states,  # Will be serialized as JSON
-            node_outputs=obj.node_outputs,  # Will be serialized as JSON
+            node_states=node_states_dict,  # Now JSON-serializable
+            node_outputs=node_outputs_dict,  # Now JSON-serializable
             llm_usage=llm_usage,
             error=obj.error,
             variables=obj.variables,
             metadata=obj.metadata,
             duration_seconds=obj.duration_seconds,
             is_active=getattr(obj, 'is_active', None),
-            exec_counts=obj.exec_counts,  # Will be serialized as JSON
+            exec_counts=obj.exec_counts if obj.exec_counts else {},  # Will be serialized as JSON
             executed_nodes=obj.executed_nodes,
             metrics=metrics
         )
@@ -170,8 +198,8 @@ class {{ type['name'] }}Type:
             critical_path=obj.critical_path,
             parallelizable_groups=obj.parallelizable_groups,
             bottlenecks=bottlenecks,
-            total_llm_tokens=obj.total_llm_tokens,
-            total_llm_calls=obj.total_llm_calls
+            total_llm_tokens=getattr(obj, 'total_llm_tokens', None),
+            total_llm_calls=getattr(obj, 'total_llm_calls', None)
         )
 {%- elif type['name'] == 'DomainArrow' %}
         return DomainArrowType(
@@ -181,7 +209,8 @@ class {{ type['name'] }}Type:
             content_type=str(obj.content_type.value) if obj.content_type and hasattr(obj.content_type, 'value') else str(obj.content_type) if obj.content_type else None,
             label=obj.label,
             packing=obj.packing,
-            execution_priority=obj.execution_priority
+            execution_priority=obj.execution_priority,
+            data=obj.data if hasattr(obj, 'data') else None
         )
 {%- elif type['name'] == 'DomainPerson' %}
         return DomainPersonType(
@@ -190,13 +219,18 @@ class {{ type['name'] }}Type:
             llm_config=PersonLLMConfigType.from_pydantic(obj.llm_config),
             type=obj.type
         )
+{%- elif type['name'] == 'Conversation' %}
+        return ConversationType(
+            messages=[MessageType.from_pydantic(m) for m in obj.messages] if obj.messages else [],
+            metadata=ConversationMetadataType.from_pydantic(obj.metadata) if obj.metadata and hasattr(ConversationMetadataType, 'from_pydantic') else obj.metadata
+        )
 {%- elif type['name'] == 'DomainDiagram' %}
         return DomainDiagramType(
             nodes=[DomainNodeType.from_pydantic(n) for n in obj.nodes],
-            handles=obj.handles,  # Pydantic types auto-convert
+            handles=[DomainHandleType.from_pydantic(h) if hasattr(DomainHandleType, 'from_pydantic') else h for h in obj.handles] if obj.handles else [],
             arrows=[DomainArrowType.from_pydantic(a) for a in obj.arrows],
             persons=[DomainPersonType.from_pydantic(p) for p in obj.persons],
-            metadata=obj.metadata  # Pydantic types auto-convert
+            metadata=DiagramMetadataType.from_pydantic(obj.metadata) if obj.metadata and hasattr(DiagramMetadataType, 'from_pydantic') else obj.metadata
         )
 {%- else %}
         # Generic conversion for other types

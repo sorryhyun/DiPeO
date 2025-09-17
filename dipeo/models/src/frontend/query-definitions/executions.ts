@@ -39,9 +39,7 @@ const EXECUTION_FIELDS_DETAILED = [
           { name: 'duration_ms' },
           { name: 'percentage' }
         ]
-      },
-      { name: 'total_llm_tokens' },
-      { name: 'total_llm_calls' }
+      }
     ]
   },
   {

@@ -23,6 +23,7 @@ from dipeo.infrastructure.codegen.ir_builders.utils import (
     pascal_case,
     snake_to_pascal,
 )
+from dipeo.infrastructure.codegen.type_resolver import StrawberryTypeResolver
 
 logger = logging.getLogger(__name__)
 
@@ -465,6 +466,10 @@ class UnifiedIRBuilder:
             if interface_name == "PersonLLMConfig":
                 should_skip = False
 
+            # Special case: Don't skip WebSearchResult and ImageGenerationResult (they're domain types)
+            if interface_name in ["WebSearchResult", "ImageGenerationResult"]:
+                should_skip = False
+
             if should_skip:
                 continue
 
@@ -658,74 +663,71 @@ class UnifiedIRBuilder:
     def process_types_for_strawberry(
         self, interfaces: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
-        """Process domain types for Strawberry GraphQL generation."""
+        """Process domain types for Strawberry GraphQL generation using type resolver."""
+        # Initialize type resolver with config
+        config_path = self.config.root / "type_annotations.yaml"
+        resolver = StrawberryTypeResolver(config_path)
         types = []
 
-        # Types that need manual conversion due to special field types
-        types_needing_manual_conversion = {
-            "CliSession",  # Has dict fields and literals
-            "Message",  # Has role and type fields that need conversion
-            "Conversation",  # References Message which needs manual conversion
-            "DomainNode",  # Has JsonDict field
-            "DomainArrow",  # Has Literal field
-            "DomainPerson",  # Has Literal field
-            "DomainDiagram",  # Has lists of custom types
-            "ExecutionState",  # Has dict fields (node_states, node_outputs, exec_counts) and metrics
-            "ExecutionMetrics",  # Has dict field (node_metrics)
-            "ExecutionUpdate",  # References ExecutionState and other manually-converted types
-            "ExecutionLogEntry",  # Has complex fields requiring manual conversion
-            "KeepalivePayload",  # Has literals and needs manual conversion
-        }
+        # Process each interface with type resolver
 
         for interface in interfaces:
             interface_name = interface["name"]
 
-            # Check if this type needs manual conversion
-            needs_manual = interface_name in types_needing_manual_conversion
-            has_json_dict = False
-            has_literal = False
-            has_custom_lists = False
-
-            strawberry_type = {
-                "name": interface_name,
-                "fields": [],
-                "description": interface.get("description", ""),
-                "needs_manual_conversion": needs_manual,
-            }
-
-            # Convert properties to Strawberry fields and detect special types
+            # Resolve all fields using the type resolver
+            resolved_fields = []
             for prop in interface.get("properties", []):
-                prop_name = prop["name"]
-                prop_type = prop["type"]
-
-                # Detect special field types
-                if "JsonDict" in prop_type or "JsonValue" in prop_type:
-                    has_json_dict = True
-                    needs_manual = True
-                if prop_type.startswith("'") or "Union['" in prop_type:
-                    # Literal or Union of literals
-                    has_literal = True
-                    needs_manual = True
-                if prop_type.startswith("List[") and "Domain" in prop_type:
-                    has_custom_lists = True
-                    needs_manual = True
-
-                field = {
-                    "name": prop_name,
-                    "type": prop_type,
+                field_data = {
+                    "name": prop["name"],
+                    "type": prop["type"],
                     "optional": prop.get("optional", prop.get("isOptional", False)),
                     "description": prop.get("description", ""),
-                    "is_json_dict": "JsonDict" in prop_type or "JsonValue" in prop_type,
-                    "is_literal": prop_type.startswith("'") or "Union['" in prop_type,
-                    "is_custom_list": prop_type.startswith("List[") and "Domain" in prop_type,
+                }
+                resolved_field = resolver.resolve_field(field_data, interface_name)
+                resolved_fields.append(resolved_field)
+
+            # Generate conversion method if needed
+            conversion_method = resolver.generate_conversion_method(interface_name, resolved_fields)
+
+            # Build the type structure for templates
+            strawberry_type = {
+                "name": interface_name,
+                "fields": [],  # Keep original fields for backward compatibility
+                "resolved_fields": [  # Add resolved fields for new template
+                    {
+                        "name": f.name,
+                        "strawberry_type": f.strawberry_type,
+                        "default": f.default,
+                        "python_type": f.python_type,
+                        "is_optional": f.is_optional,
+                        "is_json": f.is_json,
+                        "is_literal": f.is_literal,
+                        "is_custom_list": f.is_custom_list,
+                        "needs_conversion": f.needs_conversion,
+                        "conversion_expr": f.conversion_expr,
+                    }
+                    for f in resolved_fields
+                ],
+                "description": interface.get("description", ""),
+                "needs_manual_conversion": conversion_method.needs_method,
+                "conversion_method": conversion_method.method_code,
+                "has_json_dict": any(f.is_json for f in resolved_fields),
+                "has_literal": any(f.is_literal for f in resolved_fields),
+                "has_custom_lists": any(f.is_custom_list for f in resolved_fields),
+            }
+
+            # Also populate original fields for backward compatibility
+            for prop in interface.get("properties", []):
+                field = {
+                    "name": prop["name"],
+                    "type": prop["type"],
+                    "optional": prop.get("optional", prop.get("isOptional", False)),
+                    "description": prop.get("description", ""),
+                    "is_json_dict": "JsonDict" in prop["type"] or "JsonValue" in prop["type"],
+                    "is_literal": prop["type"].startswith("'") or "Union['" in prop["type"],
+                    "is_custom_list": prop["type"].startswith("List[") and "Domain" in prop["type"],
                 }
                 strawberry_type["fields"].append(field)
-
-            # Update manual conversion flag based on detected field types
-            strawberry_type["needs_manual_conversion"] = needs_manual
-            strawberry_type["has_json_dict"] = has_json_dict
-            strawberry_type["has_literal"] = has_literal
-            strawberry_type["has_custom_lists"] = has_custom_lists
 
             types.append(strawberry_type)
 

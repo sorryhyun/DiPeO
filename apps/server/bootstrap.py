@@ -133,7 +133,7 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
 
         settings = get_settings()
         base_dir = Path(settings.storage.base_dir).resolve()
-        storage_path = base_dir / "storage"
+        storage_path = base_dir / "files"
         blob_store = LocalBlobAdapter(base_path=storage_path)
 
     from dipeo.config import get_settings

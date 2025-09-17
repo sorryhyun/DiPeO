@@ -39,8 +39,9 @@ dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
 2. **Generate**: `make codegen` (includes parse-typescript automatically)
 3. **Verify**: `make diff-staged` to review changes
 4. **Apply**: Choose one:
-   - `make apply-syntax-only` - Applies staged → active with syntax validation only (fast)
-   - `make apply` - Applies staged → active with full type checking (safer)
+   - `make apply-syntax-only` - Applies staged → active with syntax validation only (fastest, minimal safety)
+   - `make apply` - Applies staged → active with full type checking (safer but slower)
+   - `make apply-test` - Applies staged → active after full server validation (strongest safety, ensures server can actually run)
 5. **Update GraphQL**: `make graphql-schema`
 
 Quick command: `make codegen-auto` (runs all steps - USE WITH CAUTION)
@@ -48,7 +49,10 @@ Quick command: `make codegen-auto` (runs all steps - USE WITH CAUTION)
 ### Staging System
 - **Generated to**: `dipeo/diagram_generated_staged/` (for review - temporary staging area)
 - **Active code**: `dipeo/diagram_generated/` (in use - DO NOT EDIT DIRECTLY)
-- **Apply changes**: Both `make apply-syntax-only` and `make apply` move staged → active after validation
+- **Apply changes**: Three validation levels available:
+  - `make apply-syntax-only` - Syntax validation only (fastest)
+  - `make apply` - Full type checking (comprehensive validation)
+  - `make apply-test` - Complete server startup test with staged code (includes critical imports, server health, GraphQL endpoint testing)
 - **Why staging**: Safety, validation, easy rollback
 - **Full docs**: [Code Generation Guide](docs/projects/code-generation-guide.md)
 
@@ -346,7 +350,7 @@ history = registry.get_audit_trail()
 ## Common Issues & Solutions
 
 | Issue | Solution |
-|-------|----------|
+|---|---|
 | Import errors | Run `make install` (uv manages activation automatically) |
 | uv not found | `make install` (auto-installs uv) |
 | Generated code out of sync | Run codegen workflow (see above) |

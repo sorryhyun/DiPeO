@@ -1,0 +1,104 @@
+"""
+Strawberry GraphQL domain types for DiPeO.
+Auto-generated from TypeScript interfaces using simplified type resolver.
+
+Generated at: {{ generated_at }}
+"""
+
+import strawberry
+from typing import Optional, Dict, Any, List, Union
+from strawberry.scalars import JSON as JSONScalar
+
+# Import the Pydantic domain models
+from dipeo.diagram_generated.domain_models import (
+{%- for type in types %}
+    {{ type.name }},
+{%- endfor %}
+)
+
+# Import required enums for GraphQL type resolution
+from dipeo.diagram_generated.enums import (
+    Status,
+    NodeType,
+    EventType,
+    HandleLabel,
+    HandleDirection,
+    DataType,
+    ContentType,
+    LLMService,
+    APIServiceType,
+    ToolType,
+)
+
+# Import scalar types
+from .scalars import (
+{%- for scalar in scalars %}
+    {{ scalar.name }}Scalar,
+{%- endfor %}
+)
+
+# Note: HookIDScalar and TaskIDScalar are not branded types yet
+# TODO: Add these as branded types in TypeScript models
+from strawberry.scalars import ID
+HookIDScalar = ID  # Temporary fallback
+TaskIDScalar = ID  # Temporary fallback
+
+# Define undefined types
+SerializedNodeOutput = JSONScalar  # Temporary - this type is not defined in TypeScript
+
+# Import generated types that already exist
+from dipeo.diagram_generated.graphql.strawberry_domain import (
+    ToolConfigType,
+)
+
+# Create Strawberry types from Pydantic models
+# Order matters - define types that are referenced by others first
+{% for type in types %}
+@strawberry.type
+class {{ type.name }}Type:
+{%- if type.description %}
+    """{{ type.description }}"""
+{%- endif %}
+{%- if type.resolved_fields %}
+    {%- for field in type.resolved_fields %}
+    {{ field.name }}: {{ field.strawberry_type }}{{ field.default }}
+    {%- endfor %}
+{%- else %}
+    # Using original fields as fallback (should not happen with resolver)
+    {%- for field in type.fields %}
+    {%- if field.is_json_dict %}
+    {{ field.name }}: {{ 'Optional[JSONScalar]' if field.optional else 'JSONScalar' }}{{ ' = None' if field.optional else '' }}
+    {%- elif field.is_literal %}
+    {{ field.name }}: {{ 'Optional[str]' if field.optional else 'str' }}{{ ' = None' if field.optional else '' }}
+    {%- elif field.type.startswith('List[Domain') %}
+    {{ field.name }}: list[{{ field.type.replace('List[', '').replace(']', '') }}Type]
+    {%- elif field.type.startswith('Domain') %}
+    {{ field.name }}: {{ field.type }}Type
+    {%- elif field.type.endswith('ID') %}
+    {{ field.name }}: {{ 'Optional[' + field.type + 'Scalar]' if field.optional else field.type + 'Scalar' }}{{ ' = None' if field.optional else '' }}
+    {%- else %}
+    {{ field.name }}: {{ 'Optional[' + field.type + ']' if field.optional and not field.type.startswith('Optional[') else field.type }}{{ ' = None' if field.optional else '' }}
+    {%- endif %}
+    {%- endfor %}
+{%- endif %}
+
+{%- if type.needs_manual_conversion and type.conversion_method %}
+
+    {{ type.conversion_method | indent(4) }}
+{%- elif type.needs_manual_conversion %}
+
+    @staticmethod
+    def from_pydantic(obj: {{ type.name }}) -> "{{ type.name }}Type":
+        """Convert from Pydantic model"""
+        return {{ type.name }}Type(
+        {%- for field in type.resolved_fields %}
+            {%- if field.conversion_expr %}
+            {{ field.name }}={{ field.conversion_expr }},
+            {%- else %}
+            {{ field.name }}=obj.{{ field.name }},
+            {%- endif %}
+        {%- endfor %}
+        )
+{%- endif %}
+
+{% endfor %}

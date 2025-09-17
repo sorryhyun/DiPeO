@@ -105,7 +105,7 @@ class GraphQLFilters:
         # For subscriptions, return proper typed objects
         if operation_type == "subscription":
             if operation_name == "ExecutionUpdates":
-                return "ExecutionUpdate"
+                return "ExecutionUpdateType"
             # Other subscriptions can return JSON for now
             return "JSON"
 
