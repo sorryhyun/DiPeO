@@ -181,3 +181,4 @@ yarn.lock
 /projects/frontend_enhance/generated/
 /.playwright-mcp/*
 /projects/frontend_auto/base_configs/ui/
+/projects/codegen/ir/
