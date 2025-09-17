@@ -84,7 +84,7 @@ export class ExecutionConverter {
    */
   static updateToDomain(update: GraphQLExecutionUpdate): ExecutionUpdate {
     return {
-      type: (update as any).type as EventType || EventType.EXECUTION_UPDATE,
+      type: (update as any).type as EventType || EventType.EXECUTION_LOG,
       execution_id: executionId(update.execution_id),
       data: update.data,
       timestamp: update.timestamp ?? undefined
@@ -186,40 +186,38 @@ export class ExecutionConverter {
     const newState = { ...currentState };
 
     // Handle different update types
-    if (update.type === EventType.NODE_STATUS_CHANGED && update.data?.node_id) {
+    if (update.type === EventType.NODE_STARTED && update.data?.node_id) {
       const id = nodeId(update.data.node_id);
-      const status = update.data.status as Status;
-
-      if (status === Status.RUNNING) {
-        newState.runningNodes.add(id);
-        newState.nodeStates.set(id, {
-          status: Status.RUNNING,
-          timestamp: Date.now()
-        });
-      } else if (status === Status.COMPLETED) {
-        newState.runningNodes.delete(id);
-        const nodeState = newState.nodeStates.get(id);
-        if (nodeState) {
-          nodeState.status = Status.COMPLETED;
-          nodeState.timestamp = Date.now();
-        }
-        if (update.data.output) {
-          newState.context[id] = update.data.output;
-        }
-      } else if (status === Status.FAILED) {
-        newState.runningNodes.delete(id);
-        newState.nodeStates.set(id, {
-          status: Status.FAILED,
-          error: update.data.error || 'Unknown error',
-          timestamp: Date.now()
-        });
+      newState.runningNodes.add(id);
+      newState.nodeStates.set(id, {
+        status: Status.RUNNING,
+        timestamp: Date.now()
+      });
+    } else if (update.type === EventType.NODE_COMPLETED && update.data?.node_id) {
+      const id = nodeId(update.data.node_id);
+      newState.runningNodes.delete(id);
+      const nodeState = newState.nodeStates.get(id);
+      if (nodeState) {
+        nodeState.status = Status.COMPLETED;
+        nodeState.timestamp = Date.now();
       }
-    } else if (update.type === EventType.EXECUTION_STATUS_CHANGED) {
-      const status = update.data?.status as Status;
-      if (status === Status.COMPLETED || status === Status.FAILED) {
-        newState.isRunning = false;
-        newState.runningNodes.clear();
+      if (update.data.output) {
+        newState.context[id] = update.data.output;
       }
+    } else if (update.type === EventType.NODE_ERROR && update.data?.node_id) {
+      const id = nodeId(update.data.node_id);
+      newState.runningNodes.delete(id);
+      newState.nodeStates.set(id, {
+        status: Status.FAILED,
+        error: update.data.error || 'Unknown error',
+        timestamp: Date.now()
+      });
+    } else if (update.type === EventType.EXECUTION_COMPLETED) {
+      newState.isRunning = false;
+      newState.runningNodes.clear();
+    } else if (update.type === EventType.EXECUTION_ERROR) {
+      newState.isRunning = false;
+      newState.runningNodes.clear();
     }
 
     return newState;

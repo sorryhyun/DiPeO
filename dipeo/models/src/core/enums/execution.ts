@@ -53,31 +53,17 @@ export enum EventType {
   EXECUTION_STARTED = 'execution_started',
   EXECUTION_COMPLETED = 'execution_completed',
   EXECUTION_ERROR = 'execution_error',
-  EXECUTION_STATUS_CHANGED = 'execution_status_changed',
 
   // Node lifecycle
   NODE_STARTED = 'node_started',
   NODE_COMPLETED = 'node_completed',
   NODE_ERROR = 'node_error',
+
+  // Node output and logging
   NODE_OUTPUT = 'node_output',
-  NODE_STATUS_CHANGED = 'node_status_changed',
-  NODE_PROGRESS = 'node_progress',
-
-  // Metrics and monitoring
-  METRICS_COLLECTED = 'metrics_collected',
-  OPTIMIZATION_SUGGESTED = 'optimization_suggested',
-
-  // External integrations
-  WEBHOOK_RECEIVED = 'webhook_received',
+  EXECUTION_LOG = 'execution_log',
 
   // Interactive
   INTERACTIVE_PROMPT = 'interactive_prompt',
-  INTERACTIVE_RESPONSE = 'interactive_response',
-
-  // Logging and updates
-  EXECUTION_UPDATE = 'execution_update',
-  EXECUTION_LOG = 'execution_log',
-
-  // WebSocket maintenance
-  KEEPALIVE = 'keepalive'
+  INTERACTIVE_RESPONSE = 'interactive_response'
 }

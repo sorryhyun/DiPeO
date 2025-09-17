@@ -224,7 +224,6 @@ def wire_event_services(registry: ServiceRegistry) -> None:
                 EventType.NODE_COMPLETED,
                 EventType.NODE_ERROR,
                 EventType.EXECUTION_COMPLETED,
-                EventType.METRICS_COLLECTED,
             ]
 
             async def subscribe_state_store():

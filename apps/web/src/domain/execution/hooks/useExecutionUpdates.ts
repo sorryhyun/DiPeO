@@ -85,7 +85,7 @@ export function useExecutionUpdates({
     });
 
     onUpdate?.({
-      type: EventType.NODE_STATUS_CHANGED,
+      type: EventType.NODE_STARTED,
       execution_id: executionId(executionIdRef.current!),
       node_id: nodeId(nodeIdStr),
       node_type: nodeType,
@@ -125,7 +125,7 @@ export function useExecutionUpdates({
     addToRunContext(output);
 
     onUpdate?.({
-      type: EventType.NODE_STATUS_CHANGED,
+      type: EventType.NODE_STARTED,
       execution_id: executionId(executionIdRef.current!),
       node_id: nodeId(nodeIdStr),
       tokens: tokenCount,
@@ -147,7 +147,8 @@ export function useExecutionUpdates({
     // });
 
     // Check if this is a node event
-    const eventType = executionUpdates.event_type;
+    // The GraphQL subscription returns 'type' field, not 'event_type'
+    const eventType = executionUpdates.type || executionUpdates.event_type;
     // Parse the data field if it's a string (JSON)
     let eventData = executionUpdates.data || {};
     if (typeof eventData === 'string') {
@@ -160,6 +161,13 @@ export function useExecutionUpdates({
     }
     // console.log('[useExecutionUpdates] Parsed eventData:', eventData);
 
+    // Handle keepalive events - just acknowledge and skip
+    // These events are sent to maintain the WebSocket connection
+    if (eventType === 'KEEPALIVE' || eventType === 'keepalive') {
+      // Silently ignore keepalive events - they're just for maintaining the connection
+      return;
+    }
+
     // Handle batch updates
     if (eventType === 'BATCH_UPDATE' && eventData.events && Array.isArray(eventData.events)) {
       console.log('[useExecutionUpdates] Processing batch update with', eventData.events.length, 'events');
@@ -169,8 +177,21 @@ export function useExecutionUpdates({
         const batchEventType = event.type;
         const batchEventData = event.data || {};
 
-        // Handle node status changes from batch
-        if (batchEventType === 'NODE_STATUS_CHANGED') {
+        // Handle node events from batch
+        if (batchEventType === 'NODE_STARTED') {
+          const nodeIdStr = batchEventData.node_id || '';
+          const nodeType = batchEventData.node_type || '';
+          if (nodeIdStr) {
+            handleNodeStart(nodeIdStr, nodeType);
+          }
+        } else if (batchEventType === 'NODE_COMPLETED') {
+          const nodeIdStr = batchEventData.node_id || '';
+          const tokenCount = batchEventData.tokens_used || batchEventData.metrics?.tokens || undefined;
+          const output = batchEventData.output || batchEventData.result || undefined;
+          if (nodeIdStr) {
+            handleNodeComplete(nodeIdStr, tokenCount, output);
+          }
+        } else if (batchEventType === 'NODE_ERROR') {
           const nodeIdStr = batchEventData.node_id || '';
           const nodeType = batchEventData.node_type || '';
           const nodeStatus = batchEventData.status || '';
@@ -214,7 +235,7 @@ export function useExecutionUpdates({
             }
           }
         }
-        // Handle legacy node events from batch
+        // Handle node events from batch
         else if (batchEventType === 'node_started' || batchEventType === 'node_completed') {
           const nodeIdStr = event.data?.nodeId || '';
           const nodeType = event.data?.nodeType || '';
@@ -239,7 +260,7 @@ export function useExecutionUpdates({
     const tokenUsage = eventData.tokenUsage || executionUpdates.tokenUsage;
 
     // Handle EXECUTION completion events immediately (bypass throttling)
-    if (eventType === 'EXECUTION_STATUS_CHANGED' || eventType === 'EXECUTION_COMPLETED') {
+    if (eventType === 'EXECUTION_COMPLETED') {
       // Only log important status changes
       if (status === 'COMPLETED' || status === 'FAILED' || status === 'ABORTED') {
         console.log('[useExecutionUpdates] Execution status:', status);
@@ -257,7 +278,7 @@ export function useExecutionUpdates({
         showThrottledToast('execution-complete', 'success', `Execution ${statusMsg}${tokensMsg}`);
 
         onUpdate?.({
-          type: EventType.EXECUTION_STATUS_CHANGED,
+          type: EventType.EXECUTION_COMPLETED,
           execution_id: executionId(executionIdRef.current!),
           total_tokens: totalTokens,
           timestamp: new Date().toISOString()
@@ -283,7 +304,7 @@ export function useExecutionUpdates({
         showThrottledToast('execution-aborted', 'error', 'Execution aborted');
 
         onUpdate?.({
-          type: EventType.EXECUTION_STATUS_CHANGED,
+          type: EventType.EXECUTION_COMPLETED,
           execution_id: executionId(executionIdRef.current!),
           timestamp: new Date().toISOString()
         });
@@ -295,7 +316,7 @@ export function useExecutionUpdates({
         showThrottledToast('execution-timeout', 'error', 'Execution timed out');
 
         onUpdate?.({
-          type: EventType.EXECUTION_STATUS_CHANGED,
+          type: EventType.EXECUTION_COMPLETED,
           execution_id: executionId(executionIdRef.current!),
           timestamp: new Date().toISOString()
         });
@@ -304,81 +325,47 @@ export function useExecutionUpdates({
     }
 
     // Handle node events (with throttling)
-    if (eventType === 'NODE_STATUS_CHANGED') {
-      const nodeIdStr = eventData.node_id || eventData.nodeId || '';
-      const nodeType = eventData.node_type || eventData.nodeType || '';
-      const nodeStatus = eventData.status || '';
-
-      // console.log('[useExecutionUpdates] NODE_STATUS_CHANGED - Extracting fields:', {
-      //   nodeIdStr,
-      //   nodeType,
-      //   nodeStatus,
-      //   eventDataKeys: Object.keys(eventData),
-      //   eventDataType: typeof eventData,
-      // });
-
-      if (nodeIdStr && nodeStatus) {
-        // console.log('[useExecutionUpdates] ✅ Node status changed:', { nodeIdStr, nodeType, nodeStatus });
-
-        if (nodeStatus === 'RUNNING') {
-          handleNodeStart(nodeIdStr, nodeType);
-        } else if (nodeStatus === 'COMPLETED' || nodeStatus === 'MAXITER_REACHED') {
-          const tokenCount = eventData.tokens_used || eventData.metrics?.tokens || undefined;
-          const output = eventData.output || eventData.result || undefined;
-          handleNodeComplete(nodeIdStr, tokenCount, output);
-        } else if (nodeStatus === 'FAILED') {
-          updateNodeState(nodeIdStr, {
-            status: 'error',
-            endTime: new Date(),
-            error: eventData.error || 'Unknown error'
-          });
-
-          executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-            status: Status.FAILED,
-            timestamp: Date.now(),
-            error: eventData.error ?? undefined
-          });
-
-          showThrottledToast(`node-error-${nodeIdStr}`, 'error', `Node ${nodeIdStr.slice(0, 8)}... failed: ${eventData.error}`);
-        } else if (nodeStatus === 'SKIPPED') {
-          incrementCompletedNodes();
-
-          updateNodeState(nodeIdStr, {
-            status: 'skipped',
-            endTime: new Date(),
-          });
-
-          addSkippedNode(nodeIdStr, 'Skipped');
-          executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-            status: Status.SKIPPED,
-            timestamp: Date.now()
-          });
-        }
-      } else {
-        console.warn('[useExecutionUpdates] NODE_STATUS_CHANGED event missing node_id or status:', eventData);
-      }
-      return;
-    } else if (eventType === 'NODE_STARTED') {
-      const nodeIdStr = eventData.node_id || eventData.nodeId || '';
-      const nodeType = eventData.node_type || eventData.nodeType || '';
+    if (eventType === 'NODE_STARTED') {
+      const nodeIdStr = executionUpdates.node_id || '';
+      const nodeType = executionUpdates.node_type || '';
 
       if (nodeIdStr) {
         // console.log('[useExecutionUpdates] ✅ Node started event:', { nodeIdStr, nodeType });
         handleNodeStart(nodeIdStr, nodeType);
       } else {
-        console.warn('[useExecutionUpdates] NODE_STARTED event missing node_id:', eventData);
+        console.warn('[useExecutionUpdates] NODE_STARTED event missing node_id:', executionUpdates);
       }
       return;
     } else if (eventType === 'NODE_COMPLETED') {
-      const nodeIdStr = eventData.node_id || eventData.nodeId || '';
-      const tokenCount = eventData.tokens_used || eventData.metrics?.tokens || undefined;
-      const output = eventData.output || eventData.result || undefined;
+      const nodeIdStr = executionUpdates.node_id || '';
+      const tokenCount = executionUpdates.tokens_used || executionUpdates.metrics?.tokens || undefined;
+      const output = executionUpdates.output || executionUpdates.result || undefined;
 
       if (nodeIdStr) {
         // console.log('[useExecutionUpdates] ✅ Node completed event:', { nodeIdStr, tokenCount, output });
         handleNodeComplete(nodeIdStr, tokenCount, output);
       } else {
-        console.warn('[useExecutionUpdates] NODE_COMPLETED event missing node_id:', eventData);
+        console.warn('[useExecutionUpdates] NODE_COMPLETED event missing node_id:', executionUpdates);
+      }
+      return;
+    } else if (eventType === 'NODE_ERROR') {
+      const nodeIdStr = executionUpdates.node_id || '';
+      const error = executionUpdates.error || 'Unknown error';
+
+      if (nodeIdStr) {
+        updateNodeState(nodeIdStr, {
+          status: 'error',
+          endTime: new Date(),
+          error
+        });
+
+        executionActions.updateNodeExecution(nodeId(nodeIdStr), {
+          status: Status.FAILED,
+          timestamp: Date.now(),
+          error
+        });
+
+        showThrottledToast(`node-error-${nodeIdStr}`, 'error', `Node ${nodeIdStr.slice(0, 8)}... failed: ${error}`);
       }
       return;
     }
@@ -418,7 +405,7 @@ export function useExecutionUpdates({
           showThrottledToast('execution-maxiter', 'success', 'Execution completed (max iterations reached)');
 
           onUpdate?.({
-            type: EventType.EXECUTION_STATUS_CHANGED,
+            type: EventType.EXECUTION_COMPLETED,
             execution_id: executionId(executionIdRef.current!),
             timestamp: new Date().toISOString()
           });
@@ -462,7 +449,7 @@ export function useExecutionUpdates({
       });
 
       onUpdate?.({
-        type: EventType.EXECUTION_UPDATE,
+        type: EventType.EXECUTION_LOG,
         execution_id: executionId(executionIdRef.current!),
         node_id: nodeId(nodeIdStr),
         status: Status.SKIPPED,
@@ -474,7 +461,7 @@ export function useExecutionUpdates({
       });
 
       onUpdate?.({
-        type: EventType.NODE_STATUS_CHANGED,
+        type: EventType.NODE_STARTED,
         execution_id: executionId(executionIdRef.current!),
         node_id: nodeId(nodeIdStr),
         status: Status.PAUSED,
@@ -489,7 +476,7 @@ export function useExecutionUpdates({
       });
 
       onUpdate?.({
-        type: EventType.NODE_PROGRESS,
+        type: EventType.NODE_OUTPUT,
         execution_id: executionId(executionIdRef.current!),
         node_id: nodeId(nodeIdStr),
         status: Status.RUNNING,

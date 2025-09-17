@@ -25,7 +25,6 @@ from dipeo.infrastructure.llm.drivers.types import (
     ProviderCapabilities,
 )
 
-from ...drivers.types import ProviderType
 from .prompts import DIRECT_EXECUTION_PROMPT, LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
 from .transport.session_wrapper import SessionQueryWrapper
 
@@ -294,6 +293,7 @@ class UnifiedClaudeCodeClient:
         tools: list[ToolConfig] | None = None,
         response_format: type[BaseModel] | dict[str, Any] | None = None,
         execution_phase: ExecutionPhase | None = None,
+        hooks_config: dict[str, list[dict]] | None = None,
         **kwargs,
     ) -> LLMResponse:
         """Execute async chat completion with retry logic."""
@@ -365,6 +365,22 @@ class UnifiedClaudeCodeClient:
             ]
             logger.debug(f"[ClaudeCode] MCP tools enabled: {options_dict['allowed_tools']}")
 
+        # Add hook configuration if provided
+        if hooks_config:
+            from claude_code_sdk.types import HookMatcher
+
+            hooks_dict = {}
+            for event_type, matchers_list in hooks_config.items():
+                event_matchers = []
+                for matcher_config in matchers_list:
+                    hook_matcher = HookMatcher(
+                        matcher=matcher_config.get("matcher"), hooks=matcher_config.get("hooks", [])
+                    )
+                    event_matchers.append(hook_matcher)
+                hooks_dict[event_type] = event_matchers
+            options_dict["hooks"] = hooks_dict
+            logger.debug(f"[ClaudeCode] Hooks configured for events: {list(hooks_config.keys())}")
+
         # Add other kwargs (but remove text_format and person_name if present)
         kwargs.pop("text_format", None)  # Remove text_format as we don't use it
         kwargs.pop("person_name", None)  # Remove person_name as it's already used in system prompt
@@ -418,6 +434,7 @@ class UnifiedClaudeCodeClient:
         tools: list[ToolConfig] | None = None,
         response_format: type[BaseModel] | dict[str, Any] | None = None,
         execution_phase: ExecutionPhase | None = None,
+        hooks_config: dict[str, list[dict]] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         """Stream chat completion response."""
@@ -489,6 +506,22 @@ class UnifiedClaudeCodeClient:
                 "mcp__dipeo_structured_output__make_decision",
             ]
             logger.debug(f"[ClaudeCode] MCP tools enabled: {options_dict['allowed_tools']}")
+
+        # Add hook configuration if provided
+        if hooks_config:
+            from claude_code_sdk.types import HookMatcher
+
+            hooks_dict = {}
+            for event_type, matchers_list in hooks_config.items():
+                event_matchers = []
+                for matcher_config in matchers_list:
+                    hook_matcher = HookMatcher(
+                        matcher=matcher_config.get("matcher"), hooks=matcher_config.get("hooks", [])
+                    )
+                    event_matchers.append(hook_matcher)
+                hooks_dict[event_type] = event_matchers
+            options_dict["hooks"] = hooks_dict
+            logger.debug(f"[ClaudeCode] Hooks configured for events: {list(hooks_config.keys())}")
 
         # Add other kwargs (but remove text_format and person_name if present)
         kwargs.pop("text_format", None)  # Remove text_format as we don't use it

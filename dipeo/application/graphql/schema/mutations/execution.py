@@ -151,7 +151,11 @@ async def update_node_state(
         await message_router.broadcast_to_execution(
             execution_id=input.execution_id,
             message={
-                "type": EventType.NODE_STATUS_CHANGED,
+                "type": EventType.NODE_COMPLETED
+                if input.status == "completed"
+                else EventType.NODE_ERROR
+                if input.error
+                else EventType.NODE_STARTED,
                 "node_id": input.node_id,
                 "status": input.status,
                 "output": input.output,
@@ -197,7 +201,11 @@ async def control_execution(
         await message_router.broadcast_to_execution(
             execution_id=input.execution_id,
             message={
-                "type": EventType.EXECUTION_STATUS_CHANGED,
+                "type": EventType.EXECUTION_COMPLETED
+                if new_status == "completed"
+                else EventType.EXECUTION_ERROR
+                if new_status == "failed"
+                else EventType.EXECUTION_LOG,
                 "action": input.action,
                 "reason": input.reason,
                 "status": new_status,

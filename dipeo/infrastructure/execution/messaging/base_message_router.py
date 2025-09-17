@@ -404,20 +404,6 @@ class BaseMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                 }
                 await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
 
-            elif event.type == EventType.NODE_STATUS_CHANGED:
-                ui_payload = {
-                    "type": "NODE_STATUS_CHANGED",
-                    "event_type": "NODE_STATUS_CHANGED",
-                    "execution_id": str(event.scope.execution_id),
-                    "data": {
-                        "node_id": event.scope.node_id,
-                        "status": event.meta.get("status") if event.meta else "UNKNOWN",
-                        "timestamp": event.occurred_at.isoformat(),
-                    },
-                    "timestamp": event.occurred_at.isoformat(),
-                }
-                await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
-
             elif event.type in [
                 EventType.NODE_STARTED,
                 EventType.NODE_COMPLETED,
@@ -431,8 +417,8 @@ class BaseMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                     else "FAILED"
                 )
                 ui_payload = {
-                    "type": "NODE_STATUS_CHANGED",
-                    "event_type": "NODE_STATUS_CHANGED",
+                    "type": event.type.value,
+                    "event_type": event.type.value,
                     "execution_id": str(event.scope.execution_id),
                     "data": {
                         "node_id": event.scope.node_id,
@@ -443,15 +429,6 @@ class BaseMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                 }
                 await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
 
-            elif event.type == EventType.METRICS_COLLECTED:
-                ui_payload = {
-                    "type": "METRICS_COLLECTED",
-                    "event_type": "METRICS_COLLECTED",
-                    "execution_id": str(event.scope.execution_id),
-                    "data": payload.get("data", payload),
-                    "timestamp": event.occurred_at.isoformat(),
-                }
-                await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
         else:
             logger.debug(f"Received global event: {event.type.value}")
 

@@ -7,3 +7,4 @@ export * from './subscription-queries';
 export * from './relationship-queries';
 export * from './query-manifest';
 export * from './graphql-inputs';
+export * from './todo-sync-types';

@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for integrated_api.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T20:38:42.577233
+Generated at: 2025-09-17T23:39:56.937185
 """
 
 from typing import *

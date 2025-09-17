@@ -108,7 +108,7 @@ dependencies = [
     "yarl==1.20.1",
     "datamodel-code-generator>=0.21.0",
     "ollama>=0.5.0",
-    "claude-code-sdk>=0.0.21",
+    "claude-code-sdk>=0.0.22",
     "rich>=13.0.0",
     # Workspace packages (automatically installed as editable by uv)
     "dipeo-cli",

@@ -2,11 +2,20 @@
 Generated Strawberry GraphQL enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
 
-Generated at: 2025-09-17T20:38:41.210630
+Generated at: 2025-09-17T23:39:55.144671
 """
 
 from enum import Enum
 import strawberry
+
+
+@strawberry.enum
+class TodoSyncModeGraphQL(Enum):
+    """GraphQL enum for TodoSyncMode"""
+    OFF = "off"
+    MANUAL = "manual"
+    AUTO = "auto"
+    WATCH = "watch"
 
 
 @strawberry.enum
@@ -105,21 +114,13 @@ class EventTypeGraphQL(Enum):
     EXECUTION_STARTED = "execution_started"
     EXECUTION_COMPLETED = "execution_completed"
     EXECUTION_ERROR = "execution_error"
-    EXECUTION_STATUS_CHANGED = "execution_status_changed"
     NODE_STARTED = "node_started"
     NODE_COMPLETED = "node_completed"
     NODE_ERROR = "node_error"
     NODE_OUTPUT = "node_output"
-    NODE_STATUS_CHANGED = "node_status_changed"
-    NODE_PROGRESS = "node_progress"
-    METRICS_COLLECTED = "metrics_collected"
-    OPTIMIZATION_SUGGESTED = "optimization_suggested"
-    WEBHOOK_RECEIVED = "webhook_received"
+    EXECUTION_LOG = "execution_log"
     INTERACTIVE_PROMPT = "interactive_prompt"
     INTERACTIVE_RESPONSE = "interactive_response"
-    EXECUTION_UPDATE = "execution_update"
-    EXECUTION_LOG = "execution_log"
-    KEEPALIVE = "keepalive"
 
 
 @strawberry.enum
@@ -128,6 +129,7 @@ class LLMServiceGraphQL(Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     CLAUDE_CODE = "claude-code"
+    CLAUDE_CODE_CUSTOM = "claude-code-custom"
     GOOGLE = "google"
     GEMINI = "gemini"
     OLLAMA = "ollama"
@@ -142,6 +144,7 @@ class APIServiceTypeGraphQL(Enum):
     GEMINI = "gemini"
     OLLAMA = "ollama"
     CLAUDE_CODE = "claude-code"
+    CLAUDE_CODE_CUSTOM = "claude-code-custom"
 
 
 @strawberry.enum
@@ -283,6 +286,7 @@ class EventPriorityGraphQL(Enum):
 
 # Export all GraphQL enums
 __all__ = [
+    "TodoSyncModeGraphQL",
     "DataTypeGraphQL",
     "ContentTypeGraphQL",
     "HandleDirectionGraphQL",
@@ -312,6 +316,29 @@ __all__ = [
 ]
 
 # Mapping functions for conversion between Python and GraphQL enums
+
+def convert_todosyncmode_to_graphql(python_enum):
+    """Convert Python TodoSyncMode enum to GraphQL enum."""
+    from dipeo.diagram_generated.enums import TodoSyncMode
+    mapping = {
+        TodoSyncMode.OFF: TodoSyncModeGraphQL.OFF,
+        TodoSyncMode.MANUAL: TodoSyncModeGraphQL.MANUAL,
+        TodoSyncMode.AUTO: TodoSyncModeGraphQL.AUTO,
+        TodoSyncMode.WATCH: TodoSyncModeGraphQL.WATCH,
+    }
+    return mapping.get(python_enum)
+
+def convert_todosyncmode_from_graphql(graphql_enum):
+    """Convert GraphQL TodoSyncMode enum to Python enum."""
+    from dipeo.diagram_generated.enums import TodoSyncMode
+    mapping = {
+        TodoSyncModeGraphQL.OFF: TodoSyncMode.OFF,
+        TodoSyncModeGraphQL.MANUAL: TodoSyncMode.MANUAL,
+        TodoSyncModeGraphQL.AUTO: TodoSyncMode.AUTO,
+        TodoSyncModeGraphQL.WATCH: TodoSyncMode.WATCH,
+    }
+    return mapping.get(graphql_enum)
+
 
 def convert_datatype_to_graphql(python_enum):
     """Convert Python DataType enum to GraphQL enum."""
@@ -545,21 +572,13 @@ def convert_eventtype_to_graphql(python_enum):
         EventType.EXECUTION_STARTED: EventTypeGraphQL.EXECUTION_STARTED,
         EventType.EXECUTION_COMPLETED: EventTypeGraphQL.EXECUTION_COMPLETED,
         EventType.EXECUTION_ERROR: EventTypeGraphQL.EXECUTION_ERROR,
-        EventType.EXECUTION_STATUS_CHANGED: EventTypeGraphQL.EXECUTION_STATUS_CHANGED,
         EventType.NODE_STARTED: EventTypeGraphQL.NODE_STARTED,
         EventType.NODE_COMPLETED: EventTypeGraphQL.NODE_COMPLETED,
         EventType.NODE_ERROR: EventTypeGraphQL.NODE_ERROR,
         EventType.NODE_OUTPUT: EventTypeGraphQL.NODE_OUTPUT,
-        EventType.NODE_STATUS_CHANGED: EventTypeGraphQL.NODE_STATUS_CHANGED,
-        EventType.NODE_PROGRESS: EventTypeGraphQL.NODE_PROGRESS,
-        EventType.METRICS_COLLECTED: EventTypeGraphQL.METRICS_COLLECTED,
-        EventType.OPTIMIZATION_SUGGESTED: EventTypeGraphQL.OPTIMIZATION_SUGGESTED,
-        EventType.WEBHOOK_RECEIVED: EventTypeGraphQL.WEBHOOK_RECEIVED,
+        EventType.EXECUTION_LOG: EventTypeGraphQL.EXECUTION_LOG,
         EventType.INTERACTIVE_PROMPT: EventTypeGraphQL.INTERACTIVE_PROMPT,
         EventType.INTERACTIVE_RESPONSE: EventTypeGraphQL.INTERACTIVE_RESPONSE,
-        EventType.EXECUTION_UPDATE: EventTypeGraphQL.EXECUTION_UPDATE,
-        EventType.EXECUTION_LOG: EventTypeGraphQL.EXECUTION_LOG,
-        EventType.KEEPALIVE: EventTypeGraphQL.KEEPALIVE,
     }
     return mapping.get(python_enum)
 
@@ -570,21 +589,13 @@ def convert_eventtype_from_graphql(graphql_enum):
         EventTypeGraphQL.EXECUTION_STARTED: EventType.EXECUTION_STARTED,
         EventTypeGraphQL.EXECUTION_COMPLETED: EventType.EXECUTION_COMPLETED,
         EventTypeGraphQL.EXECUTION_ERROR: EventType.EXECUTION_ERROR,
-        EventTypeGraphQL.EXECUTION_STATUS_CHANGED: EventType.EXECUTION_STATUS_CHANGED,
         EventTypeGraphQL.NODE_STARTED: EventType.NODE_STARTED,
         EventTypeGraphQL.NODE_COMPLETED: EventType.NODE_COMPLETED,
         EventTypeGraphQL.NODE_ERROR: EventType.NODE_ERROR,
         EventTypeGraphQL.NODE_OUTPUT: EventType.NODE_OUTPUT,
-        EventTypeGraphQL.NODE_STATUS_CHANGED: EventType.NODE_STATUS_CHANGED,
-        EventTypeGraphQL.NODE_PROGRESS: EventType.NODE_PROGRESS,
-        EventTypeGraphQL.METRICS_COLLECTED: EventType.METRICS_COLLECTED,
-        EventTypeGraphQL.OPTIMIZATION_SUGGESTED: EventType.OPTIMIZATION_SUGGESTED,
-        EventTypeGraphQL.WEBHOOK_RECEIVED: EventType.WEBHOOK_RECEIVED,
+        EventTypeGraphQL.EXECUTION_LOG: EventType.EXECUTION_LOG,
         EventTypeGraphQL.INTERACTIVE_PROMPT: EventType.INTERACTIVE_PROMPT,
         EventTypeGraphQL.INTERACTIVE_RESPONSE: EventType.INTERACTIVE_RESPONSE,
-        EventTypeGraphQL.EXECUTION_UPDATE: EventType.EXECUTION_UPDATE,
-        EventTypeGraphQL.EXECUTION_LOG: EventType.EXECUTION_LOG,
-        EventTypeGraphQL.KEEPALIVE: EventType.KEEPALIVE,
     }
     return mapping.get(graphql_enum)
 
@@ -596,6 +607,7 @@ def convert_llmservice_to_graphql(python_enum):
         LLMService.OPENAI: LLMServiceGraphQL.OPENAI,
         LLMService.ANTHROPIC: LLMServiceGraphQL.ANTHROPIC,
         LLMService.CLAUDE_CODE: LLMServiceGraphQL.CLAUDE_CODE,
+        LLMService.CLAUDE_CODE_CUSTOM: LLMServiceGraphQL.CLAUDE_CODE_CUSTOM,
         LLMService.GOOGLE: LLMServiceGraphQL.GOOGLE,
         LLMService.GEMINI: LLMServiceGraphQL.GEMINI,
         LLMService.OLLAMA: LLMServiceGraphQL.OLLAMA,
@@ -609,6 +621,7 @@ def convert_llmservice_from_graphql(graphql_enum):
         LLMServiceGraphQL.OPENAI: LLMService.OPENAI,
         LLMServiceGraphQL.ANTHROPIC: LLMService.ANTHROPIC,
         LLMServiceGraphQL.CLAUDE_CODE: LLMService.CLAUDE_CODE,
+        LLMServiceGraphQL.CLAUDE_CODE_CUSTOM: LLMService.CLAUDE_CODE_CUSTOM,
         LLMServiceGraphQL.GOOGLE: LLMService.GOOGLE,
         LLMServiceGraphQL.GEMINI: LLMService.GEMINI,
         LLMServiceGraphQL.OLLAMA: LLMService.OLLAMA,
@@ -626,6 +639,7 @@ def convert_apiservicetype_to_graphql(python_enum):
         APIServiceType.GEMINI: APIServiceTypeGraphQL.GEMINI,
         APIServiceType.OLLAMA: APIServiceTypeGraphQL.OLLAMA,
         APIServiceType.CLAUDE_CODE: APIServiceTypeGraphQL.CLAUDE_CODE,
+        APIServiceType.CLAUDE_CODE_CUSTOM: APIServiceTypeGraphQL.CLAUDE_CODE_CUSTOM,
     }
     return mapping.get(python_enum)
 
@@ -639,6 +653,7 @@ def convert_apiservicetype_from_graphql(graphql_enum):
         APIServiceTypeGraphQL.GEMINI: APIServiceType.GEMINI,
         APIServiceTypeGraphQL.OLLAMA: APIServiceType.OLLAMA,
         APIServiceTypeGraphQL.CLAUDE_CODE: APIServiceType.CLAUDE_CODE,
+        APIServiceTypeGraphQL.CLAUDE_CODE_CUSTOM: APIServiceType.CLAUDE_CODE_CUSTOM,
     }
     return mapping.get(graphql_enum)
 

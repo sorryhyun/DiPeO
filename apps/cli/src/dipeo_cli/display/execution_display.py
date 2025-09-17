@@ -26,7 +26,7 @@ class ExecutionDisplay:
         self.console = Console(theme=CLI_THEME)
 
         # Create layout
-        self.layout = ExecutionLayout(diagram_name, execution_id)
+        self.layout = ExecutionLayout(diagram_name, execution_id, debug=debug)
 
         # Display-only state (minimal tracking for UI rendering)
         # We only track what's needed for the current display, not the full execution state
@@ -147,13 +147,55 @@ class ExecutionDisplay:
                 "status": "COMPLETED",
             }
 
+            # Add person info if this was a person_job node
+            person_id = data.get("person_id")
+            if person_id:
+                completed_node["person"] = person_id
+
             # Add duration if we were tracking this node
+            duration = None
             if (
                 self.current_node_display
                 and self.current_node_display.get("node_id") == node_id
                 and "start_time" in self.current_node_display
             ):
-                completed_node["duration"] = time.time() - self.current_node_display["start_time"]
+                duration = time.time() - self.current_node_display["start_time"]
+                completed_node["duration"] = duration
+
+            # Extract memory selection info
+            memory_selection = data.get("memory_selection")
+
+            # Accumulate token usage if present
+            token_usage = data.get("token_usage")
+            if token_usage and isinstance(token_usage, dict):
+                input_tokens = token_usage.get("input", 0)
+                output_tokens = token_usage.get("output", 0)
+
+                self.display_stats["token_usage"]["input"] += input_tokens
+                self.display_stats["token_usage"]["output"] += output_tokens
+                # Calculate total from input + output if not provided
+                total = token_usage.get("total", 0)
+                if total == 0 and (input_tokens or output_tokens):
+                    total = input_tokens + output_tokens
+                self.display_stats["token_usage"]["total"] = (
+                    self.display_stats["token_usage"]["input"]
+                    + self.display_stats["token_usage"]["output"]
+                )
+                # Update statistics display with new token counts
+                self.layout.update_statistics(self.display_stats)
+                # Add token info to completed node for display
+                completed_node["tokens"] = f"in:{input_tokens} out:{output_tokens}"
+
+            # Update LLM interactions panel if this was an LLM node
+            if person_id or token_usage:
+                self.layout.update_llm_interaction(
+                    node_id=node_id,
+                    person_id=person_id,
+                    token_usage=token_usage,
+                    memory_selection=memory_selection,
+                    duration=duration,
+                    debug=self.debug,
+                )
 
             self.last_completed_node = completed_node
 

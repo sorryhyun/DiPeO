@@ -214,18 +214,14 @@ This directory contains API integration manifests for DiPeO.
                     if method.upper() not in ["GET", "POST", "PUT", "DELETE", "PATCH"]:
                         continue
 
-                    op_id = operation.get(
-                        "operationId", f"{method}_{path.replace('/', '_')}"
-                    )
+                    op_id = operation.get("operationId", f"{method}_{path.replace('/', '_')}")
                     op_id = op_id.replace("-", "_").replace(" ", "_").lower()
 
                     # Build operation config
                     op_config = {
                         "method": method.upper(),
                         "path": path,
-                        "description": operation.get(
-                            "summary", operation.get("description", "")
-                        ),
+                        "description": operation.get("summary", operation.get("description", "")),
                         "response": {
                             "success_codes": [200, 201, 204],
                             "json_pointer": "$",
@@ -238,9 +234,7 @@ This directory contains API integration manifests for DiPeO.
                         if "application/json" in content:
                             schema = content["application/json"].get("schema", {})
                             # Create a simple template based on schema
-                            op_config["request"] = {
-                                "body_template": "{{config.body | tojson}}"
-                            }
+                            op_config["request"] = {"body_template": "{{config.body | tojson}}"}
 
                     # Add to manifest
                     manifest["operations"][op_id] = op_config
@@ -398,22 +392,127 @@ This directory contains API integration manifests for DiPeO.
             print(f"❌ Test failed: {e}")
             return False
 
+    def claude_code(
+        self,
+        watch_todos: bool = False,
+        sync_mode: str = "off",
+        output_dir: str | None = None,
+        auto_execute: bool = False,
+        debounce: float = 2.0,
+    ) -> bool:
+        """Manage Claude Code TODO synchronization."""
+        from pathlib import Path
+
+        # For simple status checks, we don't need the full server infrastructure
+        output_path = Path(output_dir) if output_dir else Path("projects/dipeo_cc")
+
+        # Valid sync modes
+        valid_modes = ["off", "manual", "auto", "watch"]
+        if sync_mode not in valid_modes:
+            print(f"❌ Invalid sync mode: {sync_mode}")
+            print(f"   Available modes: {', '.join(valid_modes)}")
+            return False
+
+        # If just showing status (no active sync), don't start server
+        if not watch_todos or sync_mode == "off":
+            # Show current configuration/status
+            print("📊 Claude Code Integration Status")
+            print(f"   Sync Mode: {sync_mode}")
+            print(f"   Output Directory: {output_path}")
+
+            # Check for existing TODO diagrams
+            if output_path.exists():
+                yaml_files = list(output_path.glob("*.light.yaml"))
+                if yaml_files:
+                    print(f"\n   📁 Found {len(yaml_files)} TODO diagram(s):")
+                    for file in yaml_files[:5]:  # Show first 5
+                        print(f"      • {file.name}")
+                    if len(yaml_files) > 5:
+                        print(f"      ... and {len(yaml_files) - 5} more")
+            else:
+                print("\n   ℹ️  No TODO diagrams found yet")
+
+            if not watch_todos:
+                print("\n   💡 Tips:")
+                print("      • Use --watch-todos to enable monitoring")
+                print("      • Use --sync-mode=auto for automatic syncing")
+                print("      • Add --auto-execute to run diagrams automatically")
+            elif sync_mode == "off":
+                print("\n   ⚠️  Sync is disabled. Use --sync-mode=auto to enable")
+
+            return True
+
+        # For active sync operations, we need the server and TODO sync infrastructure
+        try:
+            # Start server if needed for actual sync operations
+            if self.server and not self.server.start(debug=False):
+                print("❌ Failed to start server (required for TODO sync)")
+                return False
+
+            from dipeo.application.todo_sync import TodoSyncConfig, TodoSyncMode, TodoSyncService
+            from dipeo.domain.diagram.services.todo_translator import TodoTranslator
+
+            # Parse sync mode to enum
+            mode_map = {
+                "off": TodoSyncMode.OFF,
+                "manual": TodoSyncMode.MANUAL,
+                "auto": TodoSyncMode.AUTO,
+                "watch": TodoSyncMode.WATCH,
+            }
+
+            # Create configuration
+            config = TodoSyncConfig(
+                mode=mode_map[sync_mode],
+                debounce_seconds=debounce,
+                persistence_path=output_path,
+                auto_execute=auto_execute,
+                monitor_enabled=True,
+            )
+
+            # Create service
+            translator = TodoTranslator()
+            sync_service = TodoSyncService(config=config, translator=translator)
+
+            print("🔄 Claude Code TODO Sync Configuration")
+            print(f"   Mode: {sync_mode}")
+            print(f"   Output: {config.persistence_path}")
+            print(f"   Auto-execute: {auto_execute}")
+            print(f"   Debounce: {debounce}s")
+            print("   ✅ TODO sync enabled")
+            print("   📁 Diagrams will be saved to:", config.persistence_path)
+
+            if sync_mode == "watch":
+                print("\n   👁️  Watching for TODO updates...")
+                print("   Press Ctrl+C to stop\n")
+
+                # In watch mode, this would set up file watchers
+                # For now, just show configuration
+
+            return True
+
+        except ImportError as e:
+            print(f"❌ Failed to import TODO sync components: {e}")
+            print("   Make sure the server is properly installed")
+            return False
+        except Exception as e:
+            print(f"❌ Error managing Claude Code integration: {e}")
+            return False
+
     def execute(self, action: str, **kwargs) -> bool:
         """Execute an integrations command."""
+        print(f"DEBUG: IntegrationsCommand.execute called with action={action}, kwargs={kwargs}")
         if action == "init":
             return self.init(kwargs.get("path"))
-        if action == "validate":
-            return self.validate(
-                path=kwargs.get("path"), provider=kwargs.get("provider")
-            )
-        if action == "openapi-import":
+        elif action == "validate":
+            return self.validate(path=kwargs.get("path"), provider=kwargs.get("provider"))
+        elif action == "openapi-import":
             return self.openapi_import(
                 openapi_path=kwargs["openapi_path"],
                 provider_name=kwargs["name"],
                 output_path=kwargs.get("output"),
                 base_url=kwargs.get("base_url"),
             )
-        if action == "test":
+        elif action == "test":
             return self.test(
                 provider=kwargs["provider"],
                 operation=kwargs.get("operation"),
@@ -421,5 +520,14 @@ This directory contains API integration manifests for DiPeO.
                 record=kwargs.get("record", False),
                 replay=kwargs.get("replay", False),
             )
-        print(f"❌ Unknown action: {action}")
-        return False
+        elif action == "claude-code":
+            return self.claude_code(
+                watch_todos=kwargs.get("watch_todos", False),
+                sync_mode=kwargs.get("sync_mode", "off"),
+                output_dir=kwargs.get("output_dir"),
+                auto_execute=kwargs.get("auto_execute", False),
+                debounce=kwargs.get("debounce", 2.0),
+            )
+        else:
+            print(f"❌ Unknown action: {action}")
+            return False

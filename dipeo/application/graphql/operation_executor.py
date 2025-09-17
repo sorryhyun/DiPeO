@@ -44,6 +44,7 @@ RESOLVER_MODULES = [
     "dipeo.application.graphql.schema.mutations.upload",
     "dipeo.application.graphql.schema.mutations.cli_session",
     "dipeo.application.graphql.schema.subscription_resolvers",
+    "dipeo.application.graphql.schema.todo_sync_resolvers",
 ]
 
 

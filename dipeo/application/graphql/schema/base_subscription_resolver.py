@@ -100,8 +100,10 @@ class BaseSubscriptionResolver:
     def _create_keepalive_payload(self) -> dict[str, Any]:
         """Create a keepalive payload."""
         return {
-            "type": EventType.KEEPALIVE,
+            "type": EventType.EXECUTION_LOG,
             "timestamp": datetime.now().isoformat(),
+            "level": "DEBUG",
+            "message": "keepalive",
         }
 
     async def _check_execution_completion(self, execution_id: ExecutionID) -> tuple[bool, Any]:
@@ -139,8 +141,9 @@ class BaseSubscriptionResolver:
 
         while True:
             try:
-                # Wait for events with timeout
-                event = await asyncio.wait_for(event_queue.get(), timeout=30.0)
+                # Wait for events with shorter timeout to ensure keepalives are sent frequently
+                # Using 5 seconds ensures keepalives are checked often (default keepalive interval is 25s)
+                event = await asyncio.wait_for(event_queue.get(), timeout=5.0)
 
                 # Apply filter if provided
                 if event_filter and not event_filter(event):

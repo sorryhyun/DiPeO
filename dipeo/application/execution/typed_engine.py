@@ -300,7 +300,6 @@ class TypedExecutionEngine:
 
         from dipeo.diagram_generated import Status
 
-        await event_pipeline.emit("node_status_changed", node_id=node_id, status=Status.COMPLETED)
         await event_pipeline.emit(
             "node_completed", node=node, envelope=None, exec_count=current_count
         )
@@ -314,8 +313,6 @@ class TypedExecutionEngine:
             context.state.transition_to_running(node.id, context.current_epoch())
 
             from dipeo.diagram_generated import Status
-
-            await event_pipeline.emit("node_status_changed", node_id=node.id, status=Status.RUNNING)
 
             handler = self._get_handler(node.type)
             inputs = await handler.resolve_envelope_inputs(
@@ -384,7 +381,6 @@ class TypedExecutionEngine:
 
         from dipeo.diagram_generated import Status
 
-        await event_pipeline.emit("node_status_changed", node_id=node.id, status=Status.FAILED)
         await event_pipeline.emit("node_error", node=node, exc=error)
 
     def _format_node_result(self, envelope: Any) -> dict[str, Any]:
@@ -431,5 +427,3 @@ class TypedExecutionEngine:
         context.state.transition_to_completed(node.id, envelope)
 
         from dipeo.diagram_generated import Status
-
-        await event_pipeline.emit("node_status_changed", node_id=node.id, status=Status.COMPLETED)

@@ -132,8 +132,12 @@ export class ExecutionService {
     }
 
     // Update overall execution state
-    if (update.type === EventType.EXECUTION_STATUS_CHANGED && update.data?.status) {
-      execution.status = update.data.status as Status;
+    if (update.type === EventType.EXECUTION_STARTED) {
+      execution.status = Status.RUNNING;
+    } else if (update.type === EventType.EXECUTION_COMPLETED) {
+      execution.status = Status.COMPLETED;
+    } else if (update.type === EventType.EXECUTION_ERROR) {
+      execution.status = Status.FAILED;
     }
 
     // Check if execution completed

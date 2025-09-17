@@ -24,9 +24,9 @@ from dipeo.infrastructure.llm.drivers.types import (
     ExecutionPhase,
     LLMResponse,
     ProviderCapabilities,
+    ProviderType,
 )
 
-from ...drivers.types import ProviderType
 from .prompts import LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,11 @@ class UnifiedOpenAIClient:
         self.model = config.model
         self.api_key = config.api_key
         self.provider_type = "openai"
+
+        # Initialize logger
+        import logging
+
+        self.logger = logging.getLogger(__name__)
 
         if not self.api_key:
             raise ValueError("OpenAI API key not provided")
@@ -135,17 +140,21 @@ class UnifiedOpenAIClient:
         return api_tools
 
     def _parse_response(self, response: Any) -> LLMResponse:
-        """Parse OpenAI response."""
+        """Parse OpenAI response with new API structure."""
         content = ""
         structured_output = None
 
-        # Handle structured output from parse() method
+        # Handle structured output from parse() method (output_parsed)
         if hasattr(response, "output_parsed") and response.output_parsed is not None:
             structured_output = response.output_parsed  # This is already a Pydantic model instance
 
-        # Handle regular response from create() method
+        # Handle regular text output from create() method (output_text)
+        elif hasattr(response, "output_text") and response.output_text is not None:
+            content = response.output_text
+
+        # Fallback to old output structure if neither output_parsed nor output_text exist
         elif hasattr(response, "output"):
-            # New responses API structure
+            # New responses API structure (fallback for older response formats)
             if response.output and len(response.output) > 0:
                 output_item = response.output[0]
                 if hasattr(output_item, "content"):
@@ -155,7 +164,21 @@ class UnifiedOpenAIClient:
                         for block in output_item.content:
                             if hasattr(block, "text"):
                                 text_parts.append(block.text)
+                            elif hasattr(block, "message"):
+                                # Some blocks might have message instead of text
+                                text_parts.append(str(block.message))
+                            else:
+                                # Log what we're seeing for debugging
+                                block_str = str(block)
+                                if block_str:
+                                    text_parts.append(block_str)
                         content = "\n".join(text_parts) if text_parts else ""
+                    elif isinstance(output_item.content, str):
+                        # Content might be a direct string
+                        content = output_item.content
+                    else:
+                        # Try converting content to string
+                        content = str(output_item.content) if output_item.content else ""
         else:
             content = str(response)
 

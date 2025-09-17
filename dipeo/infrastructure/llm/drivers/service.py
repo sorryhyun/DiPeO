@@ -60,6 +60,7 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             LLMServiceName.OLLAMA.value: ProviderType.OLLAMA,
             # Claude Code uses Anthropic provider type but special handling
             LLMServiceName.CLAUDE_CODE.value: ProviderType.ANTHROPIC,
+            LLMServiceName.CLAUDE_CODE_CUSTOM.value: ProviderType.ANTHROPIC,
         }
 
         provider_type = provider_type_map.get(provider, ProviderType.OPENAI)
@@ -90,7 +91,9 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
 
             return create_adapter(provider, model, api_key, base_url=base_url, async_mode=True)
         elif (
-            provider == LLMServiceName.GOOGLE.value or provider == LLMServiceName.CLAUDE_CODE.value
+            provider == LLMServiceName.GOOGLE.value
+            or provider == LLMServiceName.CLAUDE_CODE.value
+            or provider == LLMServiceName.CLAUDE_CODE_CUSTOM.value
         ):
             from dipeo.infrastructure.llm.drivers.factory import create_adapter
 
@@ -494,13 +497,37 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
 
             response = await client.async_chat(messages=messages, **client_kwargs)
             if hasattr(self, "logger") and response:
-                if isinstance(response, LLMResponse) or hasattr(response, "content"):
-                    response_text = str(response.content)[:50]
+                # Enhanced logging to properly display LLM responses
+                if isinstance(response, LLMResponse):
+                    if response.content:
+                        response_text = str(response.content)[:500]  # Increased from 50 to 500
+                    else:
+                        response_text = f"<empty content> (structured_output: {response.structured_output is not None})"
+                elif hasattr(response, "content"):
+                    content = getattr(response, "content", None)
+                    if content:
+                        response_text = str(content)[:500]
+                    else:
+                        response_text = "<empty content attribute>"
                 elif hasattr(response, "text"):
-                    response_text = str(response.text)[:50]
+                    text = getattr(response, "text", None)
+                    if text:
+                        response_text = str(text)[:500]
+                    else:
+                        response_text = "<empty text attribute>"
                 else:
-                    response_text = str(response)
+                    response_text = (
+                        f"<unexpected type: {type(response).__name__}> {str(response)[:500]}"
+                    )
+
                 self.log_debug(f"LLM response: {response_text}")
+
+                # Additional debug info for troubleshooting
+                if isinstance(response, LLMResponse):
+                    self.log_debug(
+                        f"Response type: LLMResponse, has content: {response.content is not None}, "
+                        f"has structured_output: {response.structured_output is not None}"
+                    )
             if isinstance(response, LLMResponse):
                 return self._convert_response_to_chat_result(response)
             elif isinstance(response, ChatResult):

@@ -36,6 +36,14 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
     # Extract the event type, preferring UI event_type over raw type
     event_type = event.get("event_type") or event.get("type", "unknown")
 
+    # Skip BATCH_UPDATE events - they're internal batch messages
+    if event_type == "BATCH_UPDATE":
+        return None
+
+    # Normalize event type from SCREAMING_SNAKE_CASE to lowercase_snake_case
+    # to match EventType enum values
+    event_type = event_type.lower()
+
     # Normalize execution_id key (handle both executionId and execution_id)
     exec_id_str = event.get("execution_id") or event.get("executionId", "")
 
@@ -54,10 +62,14 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
             except Exception:
                 event_data = {}
 
+        # Extract metadata (person_id, node_type) from the event's meta field
+        event_meta = event.get("meta", {})
+
         # Extract node_id from top level, other fields from data payload
         data = {
             "node_id": event.get("node_id"),  # From top level
-            "node_type": event_data.get("node_type"),  # From data payload
+            "node_type": event_meta.get("node_type")
+            or event_data.get("node_type"),  # Check meta first, then data
             "status": (
                 "RUNNING"
                 if event_type == "NODE_STARTED"
@@ -68,6 +80,8 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
             "output": event_data.get("output"),
             "metrics": event_data.get("metrics"),
             "error": event_data.get("error"),
+            "token_usage": event_data.get("token_usage"),  # From data payload
+            "person_id": event_meta.get("person_id"),  # From metadata
         }
         # Remove None values
         data = {k: v for k, v in data.items() if v is not None}
@@ -113,16 +127,13 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
         # Ensure metrics data is properly structured
         if isinstance(data, dict) and "metrics" in data:
             data = data["metrics"]
-    elif event_type == EventType.KEEPALIVE:
-        # Handle keepalive events
-        data = {"type": "keepalive"}
     else:
         # For other events, pass through the data as-is
         data = {k: v for k, v in event.items() if k not in ["type", "timestamp", "executionId"]}
 
     return ExecutionUpdate(
         execution_id=exec_id_str,
-        event_type=event_type,
+        type=event_type,  # Use 'type' not 'event_type' to match the model
         data=data,  # Strawberry will handle JSON serialization
         timestamp=str(timestamp),
     )
@@ -130,10 +141,9 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
 
 def _filter_node_updates(event: dict[str, Any], node_id: str | None = None) -> bool:
     """Filter for node update events."""
-    if event.get("type") not in [
-        EventType.NODE_STATUS_CHANGED,
-        EventType.NODE_PROGRESS,
-    ]:
+    # Since NODE_STATUS_CHANGED and NODE_PROGRESS are removed,
+    # this filter always returns False
+    if True:
         return False
 
     if node_id:
@@ -220,9 +230,21 @@ async def execution_updates(
                     and event.get("event_type") == "EXECUTION_STATUS_CHANGED"
                 ):
                     # Handle final status update from base class
+                    # Map EXECUTION_STATUS_CHANGED to appropriate EventType based on status
+                    from dipeo.diagram_generated.enums import EventType
+
+                    # Determine the appropriate EventType based on the execution status
+                    status = event.get("data", {}).get("status", "").lower()
+                    if status == "completed":
+                        event_type = EventType.EXECUTION_COMPLETED
+                    elif status in ["failed", "error"]:
+                        event_type = EventType.EXECUTION_ERROR
+                    else:
+                        event_type = EventType.EXECUTION_STARTED
+
                     yield ExecutionUpdate(
                         execution_id=event["execution_id"],
-                        event_type=event["event_type"],
+                        type=event_type,
                         data=event["data"],
                         timestamp=event["timestamp"],
                     )

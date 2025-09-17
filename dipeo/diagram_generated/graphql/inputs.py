@@ -2,7 +2,7 @@
 GraphQL input types for DiPeO mutations.
 Auto-generated from TypeScript definitions.
 
-Generated at: 2025-09-17T20:38:41.210630
+Generated at: 2025-09-17T23:39:55.144671
 """
 
 from datetime import datetime
@@ -20,7 +20,7 @@ Boolean = bool
 DateTime = datetime
 
 # Import enums from generated modules
-from dipeo.diagram_generated.enums import APIServiceType, LLMService, NodeType, Status, DiagramFormat
+from dipeo.diagram_generated.enums import APIServiceType, LLMService, NodeType, Status, DiagramFormat, TodoSyncMode
 
 # Import scalars to ensure they're registered
 from dipeo.diagram_generated.graphql.scalars import *
@@ -147,6 +147,22 @@ class UnregisterCliSessionInput:
     execution_id: ID
 
 
+@strawberry.input
+class ToggleTodoSyncInput:
+    session_id: String
+    enabled: Boolean
+    trace_id: Optional[String] = None
+
+
+@strawberry.input
+class ConfigureTodoSyncInput:
+    mode: TodoSyncMode
+    output_dir: Optional[String] = None
+    auto_execute: Optional[Boolean] = None
+    monitor_enabled: Optional[Boolean] = None
+    debounce_seconds: Optional[Float] = None
+
+
 # Export all input types
 __all__ = [
     'Vec2Input',
@@ -165,4 +181,6 @@ __all__ = [
     'InteractiveResponseInput',
     'RegisterCliSessionInput',
     'UnregisterCliSessionInput',
+    'ToggleTodoSyncInput',
+    'ConfigureTodoSyncInput',
 ]

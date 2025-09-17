@@ -313,6 +313,30 @@ def main():
     test_parser.add_argument("--record", action="store_true", help="Record test for replay")
     test_parser.add_argument("--replay", action="store_true", help="Replay recorded test")
 
+    # Claude Code subcommand
+    claude_code_parser = integrations_subparsers.add_parser(
+        "claude-code", help="Manage Claude Code TODO synchronization"
+    )
+    claude_code_parser.add_argument(
+        "--watch-todos", action="store_true", help="Enable TODO monitoring"
+    )
+    claude_code_parser.add_argument(
+        "--sync-mode",
+        type=str,
+        default="off",
+        choices=["off", "manual", "auto", "watch"],
+        help="Synchronization mode (default: off)",
+    )
+    claude_code_parser.add_argument(
+        "--output-dir", type=str, help="Output directory for diagrams (default: projects/dipeo_cc)"
+    )
+    claude_code_parser.add_argument(
+        "--auto-execute", action="store_true", help="Automatically execute generated diagrams"
+    )
+    claude_code_parser.add_argument(
+        "--debounce", type=float, default=2.0, help="Debounce time in seconds (default: 2.0)"
+    )
+
     args = parser.parse_args()
 
     if not args.command:
@@ -407,6 +431,7 @@ def main():
 
             # Build kwargs based on action
             kwargs = {}
+            print(f"DEBUG: integrations action = {args.integrations_action}")
             if args.integrations_action == "init":
                 kwargs["path"] = getattr(args, "path", None)
             elif args.integrations_action == "validate":
@@ -423,7 +448,16 @@ def main():
                 kwargs["config"] = getattr(args, "config", None)
                 kwargs["record"] = getattr(args, "record", False)
                 kwargs["replay"] = getattr(args, "replay", False)
+            elif args.integrations_action == "claude-code":
+                kwargs["watch_todos"] = getattr(args, "watch_todos", False)
+                kwargs["sync_mode"] = getattr(args, "sync_mode", "off")
+                kwargs["output_dir"] = getattr(args, "output_dir", None)
+                kwargs["auto_execute"] = getattr(args, "auto_execute", False)
+                kwargs["debounce"] = getattr(args, "debounce", 2.0)
 
+            print(
+                f"DEBUG: calling cli.integrations with action={args.integrations_action}, kwargs={kwargs}"
+            )
             success = cli.integrations(args.integrations_action, **kwargs)
             os._exit(0 if success else 1)
 

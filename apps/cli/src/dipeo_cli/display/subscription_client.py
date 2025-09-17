@@ -95,9 +95,10 @@ class SubscriptionClient:
                 update = result.get("execution_updates")
                 if update:
                     # Convert the update to event format expected by display
+                    # Note: GraphQL returns 'type' but display expects 'event_type'
                     event = {
                         "execution_id": update.get("execution_id"),
-                        "event_type": update.get("event_type"),
+                        "event_type": update.get("type"),  # Map 'type' to 'event_type'
                         "data": update.get("data", {}),
                         "timestamp": update.get("timestamp"),
                     }

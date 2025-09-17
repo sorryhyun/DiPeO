@@ -133,7 +133,8 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
           // Connect to execution immediately (no delay)
           (async () => {
             // console.log('[Monitor] Connecting to execution:', activeSession.execution_id, 'nodeCount:', nodeCount);
-            execution.connectToExecution(activeSession.execution_id, nodeCount);
+            // Preserve node states if they were already applied from CLI session
+            execution.connectToExecution(activeSession.execution_id, nodeCount, !!activeSession.node_states);
             hasStartedRef.current = true;
           })(),
 
