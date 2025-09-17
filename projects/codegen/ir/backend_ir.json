@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-16T18:47:35.771924",
+  "generated_at": "2025-09-17T13:20:18.631071",
   "node_specs": [
     {
       "node_type": "api_job",
@@ -1492,18 +1492,6 @@
           "value": "gemini"
         },
         {
-          "name": "BEDROCK",
-          "value": "bedrock"
-        },
-        {
-          "name": "VERTEX",
-          "value": "vertex"
-        },
-        {
-          "name": "DEEPSEEK",
-          "value": "deepseek"
-        },
-        {
           "name": "OLLAMA",
           "value": "ollama"
         }
@@ -1528,18 +1516,6 @@
         {
           "name": "GEMINI",
           "value": "gemini"
-        },
-        {
-          "name": "BEDROCK",
-          "value": "bedrock"
-        },
-        {
-          "name": "VERTEX",
-          "value": "vertex"
-        },
-        {
-          "name": "DEEPSEEK",
-          "value": "deepseek"
         },
         {
           "name": "OLLAMA",

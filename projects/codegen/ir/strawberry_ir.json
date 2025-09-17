@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-16T18:47:34.896703",
+  "generated_at": "2025-09-17T13:20:18.668807",
   "interfaces": [
     {
       "name": "CliSession",
@@ -1687,18 +1687,6 @@
           "value": "gemini"
         },
         {
-          "name": "BEDROCK",
-          "value": "bedrock"
-        },
-        {
-          "name": "VERTEX",
-          "value": "vertex"
-        },
-        {
-          "name": "DEEPSEEK",
-          "value": "deepseek"
-        },
-        {
           "name": "OLLAMA",
           "value": "ollama"
         }
@@ -1723,18 +1711,6 @@
         {
           "name": "GEMINI",
           "value": "gemini"
-        },
-        {
-          "name": "BEDROCK",
-          "value": "bedrock"
-        },
-        {
-          "name": "VERTEX",
-          "value": "vertex"
-        },
-        {
-          "name": "DEEPSEEK",
-          "value": "deepseek"
         },
         {
           "name": "OLLAMA",
@@ -6769,22 +6745,22 @@
     ],
     "graphql": [],
     "domain": [
-      "UnregisterCliSessionInput",
-      "ExecutionFilterInput",
-      "DiagramFilterInput",
-      "ExecuteDiagramInput",
-      "CreateApiKeyInput",
-      "UpdateNodeInput",
-      "UpdatePersonInput",
-      "UpdateNodeStateInput",
-      "Upload",
-      "CreatePersonInput",
-      "ExecutionControlInput",
-      "CreateDiagramInput",
-      "CreateNodeInput",
       "InteractiveResponseInput",
+      "CreatePersonInput",
+      "UpdateNodeStateInput",
+      "ExecutionControlInput",
+      "CreateNodeInput",
+      "ExecuteDiagramInput",
+      "CreateDiagramInput",
+      "Upload",
+      "DiagramFormatGraphQL",
+      "UnregisterCliSessionInput",
       "RegisterCliSessionInput",
-      "DiagramFormatGraphQL"
+      "CreateApiKeyInput",
+      "ExecutionFilterInput",
+      "UpdatePersonInput",
+      "UpdateNodeInput",
+      "DiagramFilterInput"
     ]
   },
   "raw_queries": [

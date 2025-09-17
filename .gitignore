@@ -75,9 +75,6 @@ out/
 *.log
 execution_runner.cjs
 notion.md
-CLAUDE.md
-web/CLAUDE.md
-server/CLAUDE.md
 server.log
 dipeo_events.db
 dipeo/models/dist/

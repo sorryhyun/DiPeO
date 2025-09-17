@@ -9,6 +9,7 @@ from dipeo.application.registry import ServiceKey, ServiceRegistry
 from dipeo.application.registry.keys import (
     API_INVOKER,
     API_KEY_SERVICE,
+    AST_PARSER,
     BLOB_STORE,
     CODEGEN_TEMPLATE_SERVICE,
     EVENT_BUS,
@@ -18,6 +19,7 @@ from dipeo.application.registry.keys import (
     STATE_CACHE,
     STATE_REPOSITORY,
     STATE_SERVICE,
+    TEMPLATE_PROCESSOR,
 )
 
 logger = logging.getLogger(__name__)
@@ -224,19 +226,40 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
 
 
 def wire_template_services(registry: ServiceRegistry) -> None:
-    """Wire template services for code generation.
+    """Wire template and processing services for code generation and prompt processing.
 
-    Creates a single instance of the CodegenTemplateService with all filters
-    and macros loaded, avoiding recreation on every sub_diagram run.
+    Creates template and processing services:
+    - CodegenTemplateService: For code generation templates with filters/macros
+    - SimpleTemplateProcessor: For prompt processing with variable substitution
+    - ParserService: For TypeScript AST parsing
     """
+    from dipeo.infrastructure.codegen.parsers.parser_service import ParserService
     from dipeo.infrastructure.codegen.templates.drivers.factory import get_template_service
+    from dipeo.infrastructure.template.simple_processor import SimpleTemplateProcessor
 
-    # Create the template service once with empty dirs (we just need filters)
+    # Create the codegen template service once with empty dirs (we just need filters)
     template_service = get_template_service(template_dirs=[])
 
     # Register as immutable (marked in the key definition)
     registry.register(CODEGEN_TEMPLATE_SERVICE, template_service)
     logger.info("Registered CodegenTemplateService with all filters and macros")
+
+    # Register the simple template processor for prompt building
+    registry.register(TEMPLATE_PROCESSOR, SimpleTemplateProcessor())
+    logger.info("Registered SimpleTemplateProcessor for prompt building")
+
+    # Register the TypeScript AST parser service
+    from dipeo.config import get_settings
+
+    settings = get_settings()
+    ast_parser = ParserService(
+        config={
+            "project_root": settings.storage.base_dir,
+            "cache_enabled": True,
+        }
+    )
+    registry.register(AST_PARSER, ast_parser)
+    logger.info("Registered ParserService for TypeScript AST parsing")
 
 
 def bootstrap_services(registry: ServiceRegistry, redis_client: object | None = None) -> None:
@@ -304,9 +327,8 @@ def wire_feature_flags(registry: ServiceRegistry, features: list[str]) -> None:
         features: List of feature names to enable
     """
     if "ast_parser" in features:
-        from dipeo.application.bootstrap.infrastructure_container import wire_ast_parser
-
-        wire_ast_parser(registry)
+        # AST parser is now wired as part of wire_template_services
+        logger.debug("AST parser already wired in wire_template_services")
 
     if "blob_storage" in features:
         wire_storage_services(registry)
