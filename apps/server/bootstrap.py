@@ -66,7 +66,7 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
 
     # Create event bus
     event_bus = InMemoryEventBus(
-        max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "1000")),
+        max_queue_size=int(os.getenv("DIPEO_EVENT_QUEUE_SIZE", "10000")),
         enable_event_store=os.getenv("DIPEO_ENABLE_EVENT_STORE", "false").lower() == "true",
     )
 
@@ -102,26 +102,13 @@ def wire_llm_services(registry: ServiceRegistry, api_key_service: Any) -> None:
 def wire_api_services(registry: ServiceRegistry) -> None:
     """Wire integrated API services."""
     from dipeo.infrastructure.integrations.adapters.api_adapter import ApiInvokerAdapter
+    from dipeo.infrastructure.integrations.drivers.integrated_api.service import (
+        IntegratedApiService,
+    )
 
-    use_v2 = os.getenv("INTEGRATIONS_PORT_V2", "0") == "1"
-
-    if use_v2:
-        from dipeo.infrastructure.integrations.adapters.api_invoker import HttpApiInvoker
-        from dipeo.infrastructure.integrations.drivers.http_client import HttpClient
-        from dipeo.infrastructure.integrations.drivers.manifest_registry import ManifestRegistry
-        from dipeo.infrastructure.integrations.drivers.rate_limiter import RateLimiter
-
-        api_invoker = HttpApiInvoker(
-            http=HttpClient(), limiter=RateLimiter(), manifests=ManifestRegistry()
-        )
-    else:
-        from dipeo.infrastructure.integrations.drivers.integrated_api.service import (
-            IntegratedApiService,
-        )
-
-        api_key_port = registry.resolve(API_KEY_SERVICE)
-        api_service = IntegratedApiService(api_key_port=api_key_port)
-        api_invoker = ApiInvokerAdapter(api_service)
+    api_key_port = registry.resolve(API_KEY_SERVICE)
+    api_service = IntegratedApiService(api_key_port=api_key_port)
+    api_invoker = ApiInvokerAdapter(api_service)
 
     registry.register(API_INVOKER, api_invoker)
 
@@ -337,13 +324,29 @@ async def execute_event_subscriptions(registry: ServiceRegistry) -> None:
     # Execute state store subscription if registered
     if registry.has(ServiceKey("state_store_subscription")):
         subscribe_fn = registry.resolve(ServiceKey("state_store_subscription"))
-        await subscribe_fn()
+        # Check if it's already a coroutine or needs to be called
+        import inspect
+
+        if inspect.iscoroutinefunction(subscribe_fn):
+            await subscribe_fn()
+        elif inspect.iscoroutine(subscribe_fn):
+            await subscribe_fn
+        else:
+            await subscribe_fn()
         logger.info("State store event subscription activated")
 
     # Execute router subscription if registered
     if registry.has(ServiceKey("router_subscription")):
         subscribe_fn = registry.resolve(ServiceKey("router_subscription"))
-        await subscribe_fn()
+        # Check if it's already a coroutine or needs to be called
+        import inspect
+
+        if inspect.iscoroutinefunction(subscribe_fn):
+            await subscribe_fn()
+        elif inspect.iscoroutine(subscribe_fn):
+            await subscribe_fn
+        else:
+            await subscribe_fn()
         logger.info("Message router event subscription activated")
 
 

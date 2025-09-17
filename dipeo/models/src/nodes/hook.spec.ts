@@ -46,7 +46,7 @@ export const hookSpec: NodeSpecification = {
       required: false,
       description: "Webhook URL (for HTTP hooks)",
       validation: {
-        pattern: "^https?://"
+        pattern: "^https?://.+"
       },
       uiConfig: {
         inputType: "text",

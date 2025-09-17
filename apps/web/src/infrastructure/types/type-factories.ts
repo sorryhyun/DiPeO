@@ -15,6 +15,7 @@ import {
   TypescriptAstNodeData,
   SubDiagramNodeData,
   IntegratedApiNodeData,
+  IrBuilderNodeData,
   WithUI
 } from './domain';
 
@@ -37,6 +38,7 @@ export interface NodeTypeRegistry {
   typescript_ast: TypescriptAstNodeData;
   sub_diagram: SubDiagramNodeData;
   integrated_api: IntegratedApiNodeData;
+  ir_builder: IrBuilderNodeData;
 }
 
 /**
@@ -84,7 +86,8 @@ export function isNodeTypeKey(key: string): key is NodeTypeKey {
   const validKeys: NodeTypeKey[] = [
     'start', 'condition', 'person_job', 'endpoint', 'db',
     'code_job', 'api_job', 'user_response', 'person_batch_job', 'hook',
-    'template_job', 'json_schema_validator', 'typescript_ast', 'sub_diagram', 'integrated_api'
+    'template_job', 'json_schema_validator', 'typescript_ast', 'sub_diagram', 'integrated_api',
+    'ir_builder'
   ];
   return validKeys.includes(key as NodeTypeKey);
 }
@@ -94,7 +97,8 @@ export function isNodeTypeKey(key: string): key is NodeTypeKey {
 export type { StartNodeData, ConditionNodeData, PersonJobNodeData, EndpointNodeData,
   DBNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,
   PersonBatchJobNodeData, HookNodeData, TemplateJobNodeData,
-  JsonSchemaValidatorNodeData, TypescriptAstNodeData, SubDiagramNodeData, IntegratedApiNodeData } from './domain';
+  JsonSchemaValidatorNodeData, TypescriptAstNodeData, SubDiagramNodeData, IntegratedApiNodeData,
+  IrBuilderNodeData } from './domain';
 
 /**
  * Form data type aliases for backward compatibility

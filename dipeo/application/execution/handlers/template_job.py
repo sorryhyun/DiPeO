@@ -92,7 +92,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Skip deduplication for codegen output directories
         # These files should always be regenerated with fresh content
         if "diagram_generated_staged" in str(file_path) or "diagram_generated" in str(file_path):
-            logger.debug(f"[CODEGEN] Skipping deduplication for codegen output: {file_path}")
+            # logger.debug(f"[CODEGEN] Skipping deduplication for codegen output: {file_path}")
             return False
 
         # Special handling for generated_nodes.py - normalize content to ignore timestamps
@@ -239,9 +239,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         else:
             # Use Jinja2 for both paths and contents
             processed_template_path = (
-                await template_service.render(
-                    node.template_path, template_vars, template_string=node.template_path
-                )
+                await template_service.render_string(node.template_path, template_vars)
             ).strip()
 
             # Load from file - just use the path as-is since filesystem adapter handles base path
@@ -256,9 +254,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Render template (foreach mode not currently implemented)
         # Render template
         if engine in ("internal", "jinja2"):
-            rendered = await template_service.render(
-                "inline", template_vars, template_string=template_content
-            )
+            rendered = await template_service.render_string(template_content, template_vars)
         else:
             rendered = template_content
 
@@ -266,9 +262,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         if node.output_path:
             # Use Jinja2 for output path
             processed_output_path = (
-                await template_service.render(
-                    "output_path", template_vars, template_string=node.output_path
-                )
+                await template_service.render_string(node.output_path, template_vars)
             ).strip()
 
             output_path = Path(processed_output_path)
@@ -281,7 +275,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
             # Check for duplicate write
             if self._is_duplicate_write(str(output_path), rendered, str(node.id)):
-                logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
+                # logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
                 # Store output path for metadata but don't write
                 self._current_output_path = output_path
                 return rendered  # Return content without writing

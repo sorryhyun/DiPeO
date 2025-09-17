@@ -71,7 +71,13 @@ async def get_execution(
     """Get a single execution by ID."""
     execution_resolver = ExecutionResolver(registry)
     execution_id_typed = ExecutionID(str(execution_id))
-    return await execution_resolver.get_execution(execution_id_typed)
+    execution_state = await execution_resolver.get_execution(execution_id_typed)
+
+    if execution_state is None:
+        return None
+
+    # Convert Pydantic model to Strawberry type
+    return ExecutionStateType.from_pydantic(execution_state)
 
 
 async def list_executions(
@@ -82,7 +88,10 @@ async def list_executions(
 ) -> list[ExecutionStateType]:
     """List executions with optional filtering."""
     execution_resolver = ExecutionResolver(registry)
-    return await execution_resolver.list_executions(filter, limit, offset)
+    execution_states = await execution_resolver.list_executions(filter, limit, offset)
+
+    # Convert Pydantic models to Strawberry types
+    return [ExecutionStateType.from_pydantic(state) for state in execution_states]
 
 
 async def get_execution_order(registry: ServiceRegistry, execution_id: strawberry.ID) -> JSON:
@@ -231,7 +240,8 @@ async def get_execution_history(
             if hasattr(execution, "metrics"):
                 execution.metrics = None
 
-    return executions
+    # Convert Pydantic models to Strawberry types
+    return [ExecutionStateType.from_pydantic(execution) for execution in executions]
 
 
 # Query resolvers - Persons

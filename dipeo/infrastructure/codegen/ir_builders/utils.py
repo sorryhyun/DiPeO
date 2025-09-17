@@ -124,6 +124,22 @@ class TypeConverter:
             inner_type = ts_type[:-2]
             return f"List[{self.ts_to_python(inner_type)}]"
 
+        # Handle Record types generically
+        if ts_type.startswith("Record<") and ts_type.endswith(">"):
+            # Extract key and value types from Record<K, V>
+            inner = ts_type[7:-1]  # Remove "Record<" and ">"
+            parts = inner.split(",", 1)
+            if len(parts) == 2:
+                key_type = parts[0].strip()
+                value_type = parts[1].strip()
+                # Convert both types recursively
+                py_key = self.ts_to_python(key_type)
+                py_value = self.ts_to_python(value_type)
+                # Map number to int for dictionary keys
+                if py_key == "float":
+                    py_key = "int"
+                return f"Dict[{py_key}, {py_value}]"
+
         # Handle branded scalars
         if "&" in ts_type and "__brand" in ts_type:
             match = re.search(r"'__brand':\s*'([^']+)'", ts_type)

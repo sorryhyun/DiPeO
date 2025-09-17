@@ -9,9 +9,8 @@ from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.registry.keys import ServiceKey
+from dipeo.application.registry.keys import IR_BUILDER_REGISTRY, IR_CACHE, ServiceKey
 from dipeo.diagram_generated.unified_nodes.ir_builder_node import IrBuilderNode, NodeType
-from dipeo.domain.codegen.ports import IRBuilderRegistryPort, IRCachePort
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 logger = logging.getLogger(__name__)
@@ -19,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 @register_handler
 @requires_services(
-    "IR_CACHE",
-    "IR_BUILDER_REGISTRY",
+    ir_cache=IR_CACHE,
+    ir_builder_registry=IR_BUILDER_REGISTRY,
 )
 class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
     """Handler for IR builder nodes.
@@ -31,16 +30,9 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
 
     NODE_TYPE = NodeType.IR_BUILDER
 
-    def __init__(self, ir_cache: IRCachePort, ir_builder_registry: IRBuilderRegistryPort):
-        """Initialize the IR builder node handler.
-
-        Args:
-            ir_cache: IR cache service
-            ir_builder_registry: IR builder registry service
-        """
+    def __init__(self):
+        """Initialize the IR builder node handler."""
         super().__init__()
-        self._cache = ir_cache
-        self._registry = ir_builder_registry
         self._current_builder = None
         self._current_cache_key = None
 
@@ -79,14 +71,6 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         if not node.builder_type:
             return "builder_type is required"
 
-        # Validate builder type is known
-        try:
-            available_builders = self._registry.list_builders()
-            if node.builder_type not in available_builders:
-                return f"Unknown builder type: {node.builder_type}. Available: {', '.join(available_builders)}"
-        except Exception as e:
-            return f"Error checking builder types: {e}"
-
         # Validate output format if provided
         if node.output_format and node.output_format not in ["json", "yaml", "raw"]:
             return f"Invalid output_format: {node.output_format}. Must be 'json', 'yaml', or 'raw'"
@@ -105,9 +89,21 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         node = request.node
 
         try:
-            # Get builder from registry
-            self._current_builder = self._registry.get_builder(node.builder_type)
-            logger.info(f"Initialized {node.builder_type} IR builder")
+            # Get builder from registry and validate it exists
+            ir_builder_registry = request.get_required_service(IR_BUILDER_REGISTRY)
+            available_builders = ir_builder_registry.list_builders()
+
+            if node.builder_type not in available_builders:
+                error_msg = f"Unknown builder type: {node.builder_type}. Available: {', '.join(available_builders)}"
+                logger.error(error_msg)
+                return EnvelopeFactory.create(
+                    body={"error": error_msg, "type": "ValidationError"},
+                    produced_by=str(node.id),
+                    trace_id=request.execution_id or "",
+                )
+
+            self._current_builder = ir_builder_registry.get_builder(node.builder_type)
+            # logger.info(f"Initialized {node.builder_type} IR builder")
         except Exception as e:
             logger.error(f"Failed to initialize IR builder: {e}")
             return EnvelopeFactory.create(
@@ -165,13 +161,13 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
 
         # Check cache if enabled
         if node.cache_enabled:
-            cached = await self._cache.get(self._current_cache_key)
+            cached = await self._ir_cache.get(self._current_cache_key)
             if cached:
                 logger.info(f"Using cached IR for {node.builder_type}")
                 return cached
 
         # Build IR
-        logger.info(f"Building {node.builder_type} IR from {len(inputs)} source files")
+        # logger.info(f"Building {node.builder_type} IR from {len(inputs)} source files")
         try:
             ir_data = await self._current_builder.build_ir(inputs)
 
@@ -186,7 +182,7 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
 
             # Cache result if enabled
             if node.cache_enabled:
-                await self._cache.set(self._current_cache_key, ir_data)
+                await self._ir_cache.set(self._current_cache_key, ir_data)
                 logger.info(f"Cached IR for {node.builder_type}")
 
             # Return based on output format

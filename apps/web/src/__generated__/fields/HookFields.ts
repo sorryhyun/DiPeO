@@ -4,16 +4,16 @@ import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConf
 export const hookFields: UnifiedFieldDefinition[] = [
   {
     name: 'hook_type',
-    type: 'select',
-    label: 'Hook type',
+    type: 'text',
+    label: '"Hook type"',
     required: true,
     defaultValue: "shell",
-    description: 'Type of hook to execute',
+    description: '"Type of hook to execute"',
     options: [
-      { value: 'shell', label: 'Shell' },
-      { value: 'http', label: 'HTTP' },
-      { value: 'python', label: 'Python' },
-      { value: 'file', label: 'File' },
+      { value: '"shell"', label: '"Shell"' },
+      { value: '"http"', label: '"HTTP"' },
+      { value: '"python"', label: '"Python"' },
+      { value: '"file"', label: '"File"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -22,20 +22,20 @@ export const hookFields: UnifiedFieldDefinition[] = [
   {
     name: 'command',
     type: 'text',
-    label: 'Command',
+    label: '"Command"',
     required: false,
-    placeholder: 'Command to execute',
-    description: 'Shell command to run (for shell hooks)',
+    placeholder: '"Command to execute"',
+    description: '"Shell command to run (for shell hooks)"',
   },
   {
     name: 'url',
-    type: 'text',
-    label: 'Url',
+    type: 'url',
+    label: '"Url"',
     required: false,
-    placeholder: 'https://api.example.com/webhook',
-    description: 'Webhook URL (for HTTP hooks)',
+    placeholder: '"https://api.example.com/webhook"',
+    description: '"Webhook URL (for HTTP hooks)"',
     validate: (value: unknown) => {
-      if (typeof value === 'string' && !new RegExp('^https?://').test(value)) {
+      if (typeof value === 'string' && !new RegExp('^https?://.+').test(value)) {
         return { isValid: false, error: 'Invalid format' };
       }
       return { isValid: true };
@@ -43,11 +43,11 @@ export const hookFields: UnifiedFieldDefinition[] = [
   },
   {
     name: 'timeout',
-    type: 'number',
-    label: 'Timeout',
+    type: 'text',
+    label: '"Timeout"',
     required: false,
     defaultValue: 60,
-    description: 'Execution timeout in seconds',
+    description: '"Execution timeout in seconds"',
     min: 1,
     max: 300,
     validate: (value: unknown) => {
@@ -63,10 +63,10 @@ export const hookFields: UnifiedFieldDefinition[] = [
   {
     name: 'retry_count',
     type: 'number',
-    label: 'Retry count',
+    label: '"Retry count"',
     required: false,
     defaultValue: 0,
-    description: 'Number of retries on failure',
+    description: '"Number of retries on failure"',
     min: 0,
     max: 5,
     validate: (value: unknown) => {

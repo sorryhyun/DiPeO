@@ -4,19 +4,19 @@ import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConf
 export const typescriptAstFields: UnifiedFieldDefinition[] = [
   {
     name: 'source',
-    type: 'code',
-    label: 'Source',
+    type: 'text',
+    label: '"Source"',
     required: true,
-    description: 'TypeScript source code to parse',
+    description: '"TypeScript source code to parse"',
     language: 'SupportedLanguage.TYPESCRIPT',
   },
   {
     name: 'extractPatterns',
-    type: 'code',
-    label: 'Extractpatterns',
+    type: 'textarea',
+    label: '"Extractpatterns"',
     required: false,
     defaultValue: ["interface", "type", "enum"],
-    description: 'Patterns to extract from the AST',
+    description: '"Patterns to extract from the AST"',
     validate: (value: unknown) => {
       return { isValid: true };
     },
@@ -24,21 +24,21 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
   {
     name: 'includeJSDoc',
     type: 'checkbox',
-    label: 'Includejsdoc',
+    label: '"Includejsdoc"',
     required: false,
     defaultValue: false,
-    description: 'Include JSDoc comments in the extracted data',
+    description: '"Include JSDoc comments in the extracted data"',
   },
   {
     name: 'parseMode',
-    type: 'select',
-    label: 'Parsemode',
+    type: 'text',
+    label: '"Parsemode"',
     required: false,
     defaultValue: "module",
-    description: 'TypeScript parsing mode',
+    description: '"TypeScript parsing mode"',
     options: [
-      { value: 'module', label: 'Module' },
-      { value: 'script', label: 'Script' },
+      { value: '"module"', label: '"Module"' },
+      { value: '"script"', label: '"Script"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -47,30 +47,30 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
   {
     name: 'transformEnums',
     type: 'checkbox',
-    label: 'Transformenums',
+    label: '"Transformenums"',
     required: false,
     defaultValue: false,
-    description: 'Transform enum definitions to a simpler format',
+    description: '"Transform enum definitions to a simpler format"',
   },
   {
     name: 'flattenOutput',
     type: 'checkbox',
-    label: 'Flattenoutput',
+    label: '"Flattenoutput"',
     required: false,
     defaultValue: false,
-    description: 'Flatten the output structure for easier consumption',
+    description: '"Flatten the output structure for easier consumption"',
   },
   {
     name: 'outputFormat',
-    type: 'select',
-    label: 'Outputformat',
+    type: 'text',
+    label: '"Outputformat"',
     required: false,
     defaultValue: "standard",
-    description: 'Output format for the parsed data',
+    description: '"Output format for the parsed data"',
     options: [
-      { value: 'standard', label: 'Standard' },
-      { value: 'for_codegen', label: 'For Code Generation' },
-      { value: 'for_analysis', label: 'For Analysis' },
+      { value: '"standard"', label: '"Standard"' },
+      { value: '"for_codegen"', label: '"For Code Generation"' },
+      { value: '"for_analysis"', label: '"For Analysis"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -79,17 +79,17 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
   {
     name: 'batch',
     type: 'checkbox',
-    label: 'Batch',
+    label: '"Batch"',
     required: false,
     defaultValue: false,
-    description: 'Enable batch processing mode',
+    description: '"Enable batch processing mode"',
   },
   {
     name: 'batchInputKey',
-    type: 'text',
-    label: 'Batchinputkey',
+    type: 'password',
+    label: '"Batchinputkey"',
     required: false,
     defaultValue: "sources",
-    description: 'Key to extract batch items from input',
+    description: '"Key to extract batch items from input"',
   },
 ];

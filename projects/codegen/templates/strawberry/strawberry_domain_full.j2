@@ -6,7 +6,7 @@ Generated at: {{ generated_at }}
 """
 
 import strawberry
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 from strawberry.scalars import JSON as JSONScalar
 
 # Import the Pydantic domain models
@@ -42,9 +42,171 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 {% for type in types %}
 {% set has_custom_fields = type.get('custom_fields') and type['custom_fields']|length > 0 -%}
 {% set has_field_methods = type.get('field_methods') and type['field_methods']|length > 0 -%}
-{% set use_all_fields = type.get('has_all_fields') or (not has_custom_fields and not has_field_methods) -%}
+{% set needs_manual = type.get('needs_manual_conversion', False) -%}
+{% set use_all_fields = type.get('has_all_fields') or (not has_custom_fields and not has_field_methods and not needs_manual) -%}
 
-{% if use_all_fields -%}
+{% if needs_manual -%}
+# {{ type['name'] }} has fields that need manual conversion
+@strawberry.type
+class {{ type['name'] }}Type:
+{%- for field in type.get('fields', []) %}
+{%- if field.get('is_json_dict') %}
+    {{ field['name'] }}: {{ 'Optional[JSONScalar]' if field['optional'] else 'JSONScalar' }}  # JsonDict converted to JSON
+{%- elif field.get('is_literal') %}
+    {{ field['name'] }}: {{ 'Optional[str]' if field['optional'] else 'str' }}  # Literal type
+{%- elif field['name'] == 'id' %}
+{%- if field['type'] == 'str' %}
+    id: {{ 'Optional[str]' if field['optional'] else 'str' }}{{ ' = None' if field['optional'] else '' }}
+{%- elif field['type'].endswith('ID') %}
+    {%- if field['optional'] and not field['type'].startswith('Optional[') %}
+    id: Optional[{{ field['type'] }}Scalar] = None
+    {%- else %}
+    id: {{ field['type'] }}Scalar{{ ' = None' if field['type'].startswith('Optional[') else '' }}
+    {%- endif %}
+{%- else %}
+    {%- if field['optional'] and not field['type'].startswith('Optional[') %}
+    id: Optional[{{ field['type'] }}] = None
+    {%- else %}
+    id: {{ field['type'] }}{{ ' = None' if field['type'].startswith('Optional[') else '' }}
+    {%- endif %}
+{%- endif %}
+{%- elif field['type'].startswith('List[Domain') %}
+    {{ field['name'] }}: list[{{ field['type'].replace('List[', '').replace(']', '') }}Type]
+{%- elif field['type'].startswith('Domain') %}
+    {{ field['name'] }}: {{ field['type'] }}Type
+{%- elif field['type'] == 'Vec2' %}
+    {{ field['name'] }}: Vec2Type
+{%- elif field['type'] == 'PersonLLMConfig' %}
+    {{ field['name'] }}: PersonLLMConfigType
+{%- elif field['type'] == 'DiagramMetadata' %}
+    {{ field['name'] }}: {{ 'Optional[DiagramMetadataType]' if field['optional'] else 'DiagramMetadataType' }}
+{%- elif field['type'] == 'ExecutionMetrics' %}
+    {{ field['name'] }}: {{ 'Optional[ExecutionMetricsType]' if field['optional'] else 'ExecutionMetricsType' }}
+{%- elif field['type'] == 'LLMUsage' %}
+    {{ field['name'] }}: LLMUsageType
+{%- elif field['type'].startswith('dict[str,') %}
+    {{ field['name'] }}: JSONScalar  # {{ field['type'] }} as JSON
+{%- elif field['type'].startswith('list[str]') %}
+    {{ field['name'] }}: list[str]
+{%- elif field['type'].startswith('list[list[str]]') %}
+    {{ field['name'] }}: {{ 'Optional[' + field['type'] + ']' if field['optional'] else field['type'] }}{{ ' = None' if field['optional'] else '' }}
+{%- elif field['type'].startswith('list[Bottleneck]') %}
+    {{ field['name'] }}: Optional[List[BottleneckType]] = None
+{%- elif field['type'].endswith('ID') %}
+    {{ field['name'] }}: {{ 'Optional[' + field['type'] + 'Scalar]' if field['optional'] else field['type'] + 'Scalar' }}{{ ' = None' if field['optional'] else '' }}
+{%- elif field['type'].startswith('Optional[') and field['type'][9:-1].endswith('ID') %}
+    {{ field['name'] }}: Optional[{{ field['type'][9:-1] }}Scalar] = None
+{%- elif field['type'].startswith('Union[PersonID') %}
+    {{ field['name'] }}: Union[PersonIDScalar, str]{{ ' = None' if field['optional'] else '' }}
+{%- elif field['type'] == 'NodeType' %}
+    {{ field['name'] }}: str  # NodeType enum value
+{%- elif field['type'] == 'ContentType' or field['type'] == 'Optional[ContentType]' %}
+    {{ field['name'] }}: {{ 'Optional[str]' if field['optional'] or 'Optional[' in field['type'] else 'str' }}{{ ' = None' if field['optional'] or 'Optional[' in field['type'] else '' }}  # ContentType enum value
+{%- elif field['type'] == 'EventType' %}
+    {{ field['name'] }}: str  # EventType enum value
+{%- elif field['type'] == 'Status' %}
+    {{ field['name'] }}: str  # Status enum value
+{%- elif field['type'].startswith('list[') and field['type'].endswith('Type]') %}
+    {{ field['name'] }}: {{ 'Optional[' + field['type'] + ']' if field['optional'] else field['type'] }}{{ ' = None' if field['optional'] else '' }}
+{%- elif field['type'].startswith('Dict[str,') or field['type'].startswith('dict[str,') %}
+    {{ field['name'] }}: Dict[str, Any]{{ ' = None' if field['optional'] else '' }}  # {{ field['type'] }}
+{%- else %}
+    {%- if field['optional'] and not field['type'].startswith('Optional[') %}
+    {{ field['name'] }}: Optional[{{ field['type'] }}]{{ ' = None' }}
+    {%- else %}
+    {{ field['name'] }}: {{ field['type'] }}{{ ' = None' if field['optional'] or field['type'].startswith('Optional[') else '' }}
+{%- endif %}
+{%- endif %}
+{%- endfor %}
+
+    @staticmethod
+    def from_pydantic(obj: {{ type['name'] }}) -> "{{ type['name'] }}Type":
+        """Convert from Pydantic model"""
+{%- if type['name'] == 'DomainNode' %}
+        # Vec2Type is a pydantic type, use its from_pydantic method
+        position = Vec2Type.from_pydantic(obj.position) if hasattr(Vec2Type, 'from_pydantic') else Vec2Type(x=obj.position.x, y=obj.position.y)
+        return DomainNodeType(
+            id=obj.id,
+            type=str(obj.type.value) if hasattr(obj.type, 'value') else str(obj.type),
+            position=position,
+            data=obj.data  # Will be serialized as JSON
+        )
+{%- elif type['name'] == 'ExecutionState' %}
+        # LLMUsageType and ExecutionMetricsType use pydantic decorator, so pass the object directly
+        llm_usage = LLMUsageType.from_pydantic(obj.llm_usage) if hasattr(LLMUsageType, 'from_pydantic') else obj.llm_usage
+        metrics = None
+        if obj.metrics:
+            metrics = ExecutionMetricsType.from_pydantic(obj.metrics) if hasattr(ExecutionMetricsType, 'from_pydantic') else obj.metrics
+
+        return ExecutionStateType(
+            id=obj.id,
+            status=str(obj.status.value) if hasattr(obj.status, 'value') else str(obj.status),
+            diagram_id=obj.diagram_id,
+            started_at=obj.started_at,
+            ended_at=obj.ended_at,
+            node_states=obj.node_states,  # Will be serialized as JSON
+            node_outputs=obj.node_outputs,  # Will be serialized as JSON
+            llm_usage=llm_usage,
+            error=obj.error,
+            variables=obj.variables,
+            metadata=obj.metadata,
+            duration_seconds=obj.duration_seconds,
+            is_active=getattr(obj, 'is_active', None),
+            exec_counts=obj.exec_counts,  # Will be serialized as JSON
+            executed_nodes=obj.executed_nodes,
+            metrics=metrics
+        )
+{%- elif type['name'] == 'ExecutionMetrics' %}
+        bottlenecks = None
+        if obj.bottlenecks:
+            bottlenecks = [BottleneckType.from_pydantic(b) if hasattr(BottleneckType, 'from_pydantic') else b for b in obj.bottlenecks]
+
+        return ExecutionMetricsType(
+            execution_id=obj.execution_id,
+            start_time=obj.start_time,
+            end_time=obj.end_time,
+            total_duration_ms=obj.total_duration_ms,
+            node_metrics=obj.node_metrics,  # Will be serialized as JSON
+            critical_path=obj.critical_path,
+            parallelizable_groups=obj.parallelizable_groups,
+            bottlenecks=bottlenecks,
+            total_llm_tokens=obj.total_llm_tokens,
+            total_llm_calls=obj.total_llm_calls
+        )
+{%- elif type['name'] == 'DomainArrow' %}
+        return DomainArrowType(
+            id=obj.id,
+            source=obj.source,
+            target=obj.target,
+            content_type=str(obj.content_type.value) if obj.content_type and hasattr(obj.content_type, 'value') else str(obj.content_type) if obj.content_type else None,
+            label=obj.label,
+            packing=obj.packing,
+            execution_priority=obj.execution_priority
+        )
+{%- elif type['name'] == 'DomainPerson' %}
+        return DomainPersonType(
+            id=obj.id,
+            label=obj.label,
+            llm_config=PersonLLMConfigType.from_pydantic(obj.llm_config),
+            type=obj.type
+        )
+{%- elif type['name'] == 'DomainDiagram' %}
+        return DomainDiagramType(
+            nodes=[DomainNodeType.from_pydantic(n) for n in obj.nodes],
+            handles=obj.handles,  # Pydantic types auto-convert
+            arrows=[DomainArrowType.from_pydantic(a) for a in obj.arrows],
+            persons=[DomainPersonType.from_pydantic(p) for p in obj.persons],
+            metadata=obj.metadata  # Pydantic types auto-convert
+        )
+{%- else %}
+        # Generic conversion for other types
+        return {{ type['name'] }}Type(
+{%- for field in type.get('fields', []) %}
+            {{ field['name'] }}=obj.{{ field['name'] }}{{ ',' if not loop.last else '' }}
+{%- endfor %}
+        )
+{%- endif %}
+{%- elif use_all_fields -%}
 @strawberry.experimental.pydantic.type({{ type['name'] }}, all_fields=True)
 class {{ type['name'] }}Type:
 {%- if has_field_methods %}

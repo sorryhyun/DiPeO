@@ -66,10 +66,15 @@ def extract_node_configs(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
 
                 # Process fields - pass raw data, let templates handle type mapping
                 for field in spec_value.get("fields", []):
-                    # Pass through all field data as-is
+                    # Handle enum fields properly - if a field has an enum property,
+                    # its type should be 'string' not 'enum'
+                    field_type = field.get("type", "string")
+                    if field_type == "enum" or field.get("enum"):
+                        field_type = "string"  # Enum fields are string unions in TypeScript
+
                     field_config = {
                         "name": field.get("name", ""),
-                        "type": field.get("type", "string"),  # Keep original AST type
+                        "type": field_type,  # Use corrected type
                         "label": field.get("label", field.get("name", "")),
                         "placeholder": field.get("placeholder", ""),
                         "help_text": field.get("description", ""),
@@ -77,6 +82,7 @@ def extract_node_configs(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
                         "default_value": field.get("defaultValue"),
                         "validation": field.get("validation", {}),
                         "options": field.get("options", []),
+                        "enum": field.get("enum", []),  # Preserve enum values for template use
                     }
                     ui_config["fields"].append(field_config)
 

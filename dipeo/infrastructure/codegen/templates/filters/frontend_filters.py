@@ -48,7 +48,7 @@ class FrontendFilters:
         if ts_type in type_map:
             ts_type = type_map[ts_type]
 
-        # Handle literal types
+        # Handle literal types (enum fields)
         if field.get("enum"):
             enum_values = field["enum"]
             if isinstance(enum_values, list):
@@ -88,17 +88,17 @@ class FrontendFilters:
         if any(x in name_lower for x in ["password", "secret", "token", "key"]):
             return "password"
         elif any(x in name_lower for x in ["email", "mail"]):
-            return "email"
+            return "text"  # Map email to text (no 'email' in FIELD_TYPES)
         elif any(x in name_lower for x in ["url", "link", "href"]):
             return "url"
         elif any(x in name_lower for x in ["phone", "tel", "mobile"]):
-            return "tel"
+            return "text"  # Map tel to text (no 'tel' in FIELD_TYPES)
         elif any(x in name_lower for x in ["date", "birthday", "dob"]):
-            return "date"
+            return "text"  # Map date to text (no 'date' in FIELD_TYPES)
         elif any(x in name_lower for x in ["time", "hour", "minute"]):
-            return "time"
+            return "text"  # Map time to text (no 'time' in FIELD_TYPES)
         elif any(x in name_lower for x in ["color", "colour"]):
-            return "color"
+            return "text"  # Map color to text (no 'color' in FIELD_TYPES)
         elif any(x in name_lower for x in ["description", "content", "body", "message", "notes"]):
             return "textarea"
         elif field.get("enum"):
@@ -108,9 +108,9 @@ class FrontendFilters:
         elif field_type == "number" or field_type == "integer":
             return "number"
         elif field_type == "array" or field_type == "list":
-            return "array"
+            return "textarea"  # Map array to textarea (no 'array' in FIELD_TYPES)
         elif field_type == "object" or field_type == "dict":
-            return "json"
+            return "textarea"  # Map json/object to textarea (no 'json' in FIELD_TYPES)
         else:
             return "text"
 
@@ -126,10 +126,18 @@ class FrontendFilters:
         Returns:
             Zod schema string
         """
+        # Ensure field is a dictionary
+        if not isinstance(field, dict):
+            return "z.any()"
+
         field_type = field.get("type", "string")
         is_required = field.get("required", False)
         is_array = field.get("isArray", False)
         validation = field.get("validation", {})
+
+        # Ensure validation is a dictionary
+        if not isinstance(validation, dict):
+            validation = {}
 
         # Base type mapping
         type_map = {
@@ -161,7 +169,9 @@ class FrontendFilters:
             if "maxLength" in validation:
                 constraints.append(f".max({validation['maxLength']})")
             if "pattern" in validation:
-                constraints.append(f'.regex(/{validation["pattern"]}/)')
+                # Escape forward slashes in the pattern for JavaScript regex literal
+                pattern = validation["pattern"].replace("/", "\\/")
+                constraints.append(f".regex(/{pattern}/)")
             if validation.get("email"):
                 constraints.append(".email()")
             if validation.get("url"):

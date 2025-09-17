@@ -8,7 +8,7 @@ export const {{ nodeType | camel_case }}Fields: UnifiedFieldDefinition[] = [
     type: '{{ field | ui_field_type }}',
     label: '{{ field['name'] | humanize | escape_js }}',
     required: {{ field.get('required', false) | lower }},
-{%- if field.get('defaultValue') is defined %}
+{%- if 'defaultValue' in field and field['defaultValue'] is not none %}
     defaultValue: {{ field['defaultValue'] | tojson }},
 {%- endif %}
 {%- if field.get('uiConfig') and field['uiConfig'].get('placeholder') %}
@@ -33,11 +33,11 @@ export const {{ nodeType | camel_case }}Fields: UnifiedFieldDefinition[] = [
 {%- if field['uiConfig'].get('column') %}
     column: {{ field['uiConfig']['column'] }},
 {%- endif %}
-{%- if field['uiConfig'].get('min') is defined %}
-    min: {{ field['uiConfig']['min'] }},
+{%- if field.get('uiConfig') and field['uiConfig'].get('min') is not none %}
+    min: {{ field['uiConfig'].get('min') }},
 {%- endif %}
-{%- if field['uiConfig'].get('max') is defined %}
-    max: {{ field['uiConfig']['max'] }},
+{%- if field.get('uiConfig') and field['uiConfig'].get('max') is not none %}
+    max: {{ field['uiConfig'].get('max') }},
 {%- endif %}
 {%- if field['uiConfig'].get('language') %}
     language: '{{ field['uiConfig']['language'] }}',
@@ -70,7 +70,7 @@ export const {{ nodeType | camel_case }}Fields: UnifiedFieldDefinition[] = [
 {%- if nestedField.get('description') %}
         description: '{{ nestedField['description'] | escape_js }}',
 {%- endif %}
-{%- if nestedField.get('defaultValue') is defined %}
+{%- if 'defaultValue' in nestedField and nestedField['defaultValue'] is not none %}
         defaultValue: {{ nestedField['defaultValue'] | tojson }},
 {%- endif %}
 {%- if nestedField.get('uiConfig') %}
@@ -85,11 +85,11 @@ export const {{ nodeType | camel_case }}Fields: UnifiedFieldDefinition[] = [
 {%- endfor %}
           ],
 {%- endif %}
-{%- if nestedField['uiConfig'].get('min') is defined %}
-          min: {{ nestedField['uiConfig']['min'] }},
+{%- if nestedField['uiConfig'].get('min') is not none %}
+          min: {{ nestedField['uiConfig'].get('min') }},
 {%- endif %}
-{%- if nestedField['uiConfig'].get('max') is defined %}
-          max: {{ nestedField['uiConfig']['max'] }},
+{%- if nestedField['uiConfig'].get('max') is not none %}
+          max: {{ nestedField['uiConfig'].get('max') }},
 {%- endif %}
 {%- if nestedField['uiConfig'].get('placeholder') %}
           placeholder: '{{ nestedField['uiConfig']['placeholder'] | escape_js }}',
@@ -100,19 +100,19 @@ export const {{ nodeType | camel_case }}Fields: UnifiedFieldDefinition[] = [
 {%- endfor %}
     ],
 {%- endif %}
-{%- if field.get('validation') %}
+{%- if field.get('validation') and field['validation'] %}
     validate: (value: unknown) => {
 {%- if field['validation'].get('pattern') %}
       if (typeof value === 'string' && !new RegExp('{{ field['validation']['pattern'] }}').test(value)) {
         return { isValid: false, error: 'Invalid format' };
       }
 {%- endif %}
-{%- if field['validation'].get('min') is defined %}
+{%- if 'min' in field['validation'] %}
       if (typeof value === 'number' && value < {{ field['validation']['min'] }}) {
         return { isValid: false, error: 'Value must be at least {{ field['validation']['min'] }}' };
       }
 {%- endif %}
-{%- if field['validation'].get('max') is defined %}
+{%- if 'max' in field['validation'] %}
       if (typeof value === 'number' && value > {{ field['validation']['max'] }}) {
         return { isValid: false, error: 'Value must be at most {{ field['validation']['max'] }}' };
       }

@@ -38,7 +38,9 @@ dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
 1. **Modify TypeScript specs** in `/dipeo/models/src/`, then: `cd dipeo/models && pnpm build`
 2. **Generate**: `make codegen` (includes parse-typescript automatically)
 3. **Verify**: `make diff-staged` to review changes
-4. **Apply**: `make apply-syntax-only` (fast) or `make apply` (with type checking)
+4. **Apply**: Choose one:
+   - `make apply-syntax-only` - Applies staged → active with syntax validation only (fast)
+   - `make apply` - Applies staged → active with full type checking (safer)
 5. **Update GraphQL**: `make graphql-schema`
 
 Quick command: `make codegen-auto` (runs all steps - USE WITH CAUTION)
@@ -46,7 +48,7 @@ Quick command: `make codegen-auto` (runs all steps - USE WITH CAUTION)
 ### Staging System
 - **Generated to**: `dipeo/diagram_generated_staged/` (for review - temporary staging area)
 - **Active code**: `dipeo/diagram_generated/` (in use - DO NOT EDIT DIRECTLY)
-- **Apply changes**: `make apply` moves staged → active after validation
+- **Apply changes**: Both `make apply-syntax-only` and `make apply` move staged → active after validation
 - **Why staging**: Safety, validation, easy rollback
 - **Full docs**: [Code Generation Guide](docs/projects/code-generation-guide.md)
 

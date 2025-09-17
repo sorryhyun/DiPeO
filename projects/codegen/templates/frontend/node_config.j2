@@ -40,7 +40,7 @@ export const {{ nodeType | camel_case }}Config: UnifiedNodeConfig = {
 {%- endif %}
   },
   defaults: {
-{%- for field in fields if field.get('default') is defined %}
+{%- for field in fields if 'default' in field and field['default'] is not none %}
 {%- if field['name'] == 'tools' %}
     {{ field['name'] }}: ToolSelection.{{ field['default'] | upper }},
 {%- elif field['name'] == 'hook_type' %}

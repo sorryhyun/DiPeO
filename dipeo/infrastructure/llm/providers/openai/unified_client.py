@@ -256,7 +256,6 @@ class UnifiedOpenAIClient:
                     and issubclass(text_format, BaseModel)
                 ):
                     params["text_format"] = text_format
-                    logger.debug(f"Using structured output with model: {text_format.__name__}")
                     response = await self.async_client.responses.parse(**params)
                 else:
                     response = await self.async_client.responses.create(**params)

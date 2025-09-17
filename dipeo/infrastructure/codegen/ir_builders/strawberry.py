@@ -334,7 +334,7 @@ def collect_required_imports(operations: list[dict[str, Any]]) -> dict[str, list
     """
     imports = {
         "typing": ["Any", "Dict", "List", "Optional"],
-        "graphql": [],
+        "strawberry": [],  # For Upload and other Strawberry-specific types
         "domain": [],
     }
 
@@ -346,12 +346,26 @@ def collect_required_imports(operations: list[dict[str, Any]]) -> dict[str, list
 
     # Collect unique types from operations
     types_used = set()
+    strawberry_types = set()
+
+    # Standard GraphQL scalar types
+    standard_scalars = {"String", "Int", "Float", "Boolean", "ID"}
+    # Strawberry-specific types that should come from strawberry imports
+    strawberry_scalars = {"Upload", "JSON", "DateTime", "Date", "Time", "Decimal"}
+
     for op in operations:
         # Check variables for types
         for var in op.get("variables", []):
             var_type = var.get("type", "")
-            if var_type and var_type not in ["String", "Int", "Float", "Boolean", "ID"]:
-                types_used.add(var_type)
+            if var_type:
+                if var_type in strawberry_scalars:
+                    strawberry_types.add(var_type)
+                elif var_type not in standard_scalars:
+                    types_used.add(var_type)
+
+    # Add strawberry imports for special types
+    if strawberry_types:
+        imports["strawberry"] = list(strawberry_types)
 
     # Add domain imports for custom types
     if types_used:
@@ -435,12 +449,23 @@ class UnifiedIRBuilder:
                 "Arguments",
                 "Params",
                 "Options",
-                "Config",
                 "FieldDefinition",
                 "FieldArgument",
                 "VariableDefinition",
             ]
-            if any(pattern in interface_name for pattern in skip_patterns):
+            # More specific skip patterns that need exact match or specific context
+            exact_skip_patterns = ["Config"]  # Only skip if it's exactly "Config"
+
+            # Check skip patterns
+            should_skip = any(pattern in interface_name for pattern in skip_patterns)
+            # Check exact patterns - skip only if the name exactly matches
+            should_skip = should_skip or interface_name in exact_skip_patterns
+
+            # Special case: Don't skip PersonLLMConfig (it's a domain type)
+            if interface_name == "PersonLLMConfig":
+                should_skip = False
+
+            if should_skip:
                 continue
 
             # Build properties with Python types
@@ -636,25 +661,71 @@ class UnifiedIRBuilder:
         """Process domain types for Strawberry GraphQL generation."""
         types = []
 
+        # Types that need manual conversion due to special field types
+        types_needing_manual_conversion = {
+            "CliSession",  # Has dict fields and literals
+            "Message",  # Has role and type fields that need conversion
+            "Conversation",  # References Message which needs manual conversion
+            "DomainNode",  # Has JsonDict field
+            "DomainArrow",  # Has Literal field
+            "DomainPerson",  # Has Literal field
+            "DomainDiagram",  # Has lists of custom types
+            "ExecutionState",  # Has dict fields (node_states, node_outputs, exec_counts) and metrics
+            "ExecutionMetrics",  # Has dict field (node_metrics)
+            "ExecutionUpdate",  # References ExecutionState and other manually-converted types
+            "ExecutionLogEntry",  # Has complex fields requiring manual conversion
+            "KeepalivePayload",  # Has literals and needs manual conversion
+        }
+
         for interface in interfaces:
-            # Check if this should be a Strawberry type
-            # (You might want to add filtering logic here)
+            interface_name = interface["name"]
+
+            # Check if this type needs manual conversion
+            needs_manual = interface_name in types_needing_manual_conversion
+            has_json_dict = False
+            has_literal = False
+            has_custom_lists = False
 
             strawberry_type = {
-                "name": interface["name"],
+                "name": interface_name,
                 "fields": [],
                 "description": interface.get("description", ""),
+                "needs_manual_conversion": needs_manual,
             }
 
-            # Convert properties to Strawberry fields
+            # Convert properties to Strawberry fields and detect special types
             for prop in interface.get("properties", []):
+                prop_name = prop["name"]
+                prop_type = prop["type"]
+
+                # Detect special field types
+                if "JsonDict" in prop_type or "JsonValue" in prop_type:
+                    has_json_dict = True
+                    needs_manual = True
+                if prop_type.startswith("'") or "Union['" in prop_type:
+                    # Literal or Union of literals
+                    has_literal = True
+                    needs_manual = True
+                if prop_type.startswith("List[") and "Domain" in prop_type:
+                    has_custom_lists = True
+                    needs_manual = True
+
                 field = {
-                    "name": prop["name"],
-                    "type": prop["type"],
+                    "name": prop_name,
+                    "type": prop_type,
                     "optional": prop.get("optional", prop.get("isOptional", False)),
                     "description": prop.get("description", ""),
+                    "is_json_dict": "JsonDict" in prop_type or "JsonValue" in prop_type,
+                    "is_literal": prop_type.startswith("'") or "Union['" in prop_type,
+                    "is_custom_list": prop_type.startswith("List[") and "Domain" in prop_type,
                 }
                 strawberry_type["fields"].append(field)
+
+            # Update manual conversion flag based on detected field types
+            strawberry_type["needs_manual_conversion"] = needs_manual
+            strawberry_type["has_json_dict"] = has_json_dict
+            strawberry_type["has_literal"] = has_literal
+            strawberry_type["has_custom_lists"] = has_custom_lists
 
             types.append(strawberry_type)
 
@@ -811,7 +882,6 @@ class StrawberryIRBuilder(BaseIRBuilder):
         for file_path, ast_content in file_dict.items():
             # Skip files that should be excluded from domain types
             if any(pattern in file_path for pattern in exclude_patterns):
-                logger.info(f"Skipping excluded file: {file_path}")
                 continue
 
             if isinstance(ast_content, dict):
@@ -837,9 +907,9 @@ class StrawberryIRBuilder(BaseIRBuilder):
                         # ... (same for other fields)
 
         # 4. Extract operations from AST
-        logger.info(f"Processing {len(file_dict)} AST files")
+        # logger.info(f"Processing {len(file_dict)} AST files")
         operations = extract_operations_from_ast(file_dict)
-        logger.info(f"Extracted {len(operations)} operations")
+        # logger.info(f"Extracted {len(operations)} operations")
 
         # Group operations by type
         queries = [op for op in operations if op["type"] == "query"]
@@ -851,10 +921,6 @@ class StrawberryIRBuilder(BaseIRBuilder):
 
         # Collect required imports
         imports = collect_required_imports(operations)
-
-        # 5. Build domain IR
-        logger.info(f"Merged AST has {len(merged_ast['enums'])} enums")
-        logger.info(f"Merged AST has {len(merged_ast['constants'])} constants")
 
         domain_ir = builder.build_domain_ir(merged_ast)
         logger.info(f"Domain IR has {len(domain_ir['enums'])} enums after build")

@@ -20,24 +20,24 @@ export const GENERATED_FIELD_CONFIGS: GeneratedFieldConfigs = {
     {
       name: '{{ field['name'] }}',
       type: '{{ field | ui_field_type }}',
-      label: '{{ field.get('label', field['name']) }}',
-      required: {{ field.get('required', false) | lower }},
-{%- if field.get('placeholder') %}
+      label: '{{ field['label'] if 'label' in field else field['name'] }}',
+      required: {{ field['required'] | lower if 'required' in field else 'false' }},
+{%- if 'placeholder' in field and field['placeholder'] %}
       placeholder: '{{ field['placeholder'] }}',
 {%- endif %}
-{%- if field.get('defaultValue') is not none %}
+{%- if 'defaultValue' in field and field['defaultValue'] is not none %}
       defaultValue: {{ field['defaultValue'] | tojson }},
 {%- endif %}
-{%- if field.get('min') is not none %}
-      min: {{ field['min'] }},
+{%- if 'validation' in field and 'min' in field['validation'] and field['validation']['min'] is not none %}
+      min: {{ field['validation']['min'] }},
 {%- endif %}
-{%- if field.get('max') is not none %}
-      max: {{ field['max'] }},
+{%- if 'validation' in field and 'max' in field['validation'] and field['validation']['max'] is not none %}
+      max: {{ field['validation']['max'] }},
 {%- endif %}
-{%- if field.get('rows') is not none %}
+{%- if 'rows' in field and field['rows'] is not none %}
       rows: {{ field['rows'] }},
 {%- endif %}
-{%- if field.get('options') %}
+{%- if 'options' in field and field['options'] %}
       options: {{ field['options'] | tojson(indent=8) | replace('\n', '\n      ') }},
 {%- endif %}
     },

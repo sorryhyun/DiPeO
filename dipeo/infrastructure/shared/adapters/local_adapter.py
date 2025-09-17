@@ -32,7 +32,7 @@ class LocalBlobAdapter(LoggingMixin, InitializationMixin, BlobStorePort):
 
         try:
             self.base_path.mkdir(parents=True, exist_ok=True)
-            self._versions_dir = self.base_path / ".versions"
+            self._versions_dir = self.base_path / "files"
             self._versions_dir.mkdir(exist_ok=True)
             self._initialized = True
             logger.info(f"LocalBlobAdapter initialized at: {self.base_path}")

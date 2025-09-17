@@ -2,16 +2,22 @@
 GraphQL input types for DiPeO mutations.
 Auto-generated from TypeScript definitions.
 
-Generated at: 2025-09-16T12:35:32.192439
+Generated at: 2025-09-17T16:05:06.250858
 """
 
 from datetime import datetime
 from typing import Optional, List, Any
-from strawberry.scalars import JSON
+from strawberry.scalars import JSON, ID
 
 import strawberry
 from .enums import DiagramFormatGraphQL
 
+# Import basic scalar type aliases for Strawberry
+String = str
+Int = int
+Float = float
+Boolean = bool
+DateTime = datetime
 
 # Import enums from generated modules
 from dipeo.diagram_generated.enums import APIServiceType, LLMService, NodeType, Status, DiagramFormat
@@ -23,16 +29,16 @@ from dipeo.diagram_generated.graphql.scalars import *
 
 @strawberry.input
 class Vec2Input:
-    x: float
-    y: float
+    x: Float
+    y: Float
 
 
 @strawberry.input
 class PersonLLMConfigInput:
-    api_key_id: str
-    model: str
+    api_key_id: ID
+    model: String
     service: LLMService
-    system_prompt: Optional[str] = None
+    system_prompt: Optional[String] = None
 
 
 @strawberry.input
@@ -50,95 +56,95 @@ class UpdateNodeInput:
 
 @strawberry.input
 class CreateDiagramInput:
-    author: Optional[str] = None
-    description: Optional[str] = None
-    name: str
-    tags: Optional[List[str]] = None
+    author: Optional[String] = None
+    description: Optional[String] = None
+    name: String
+    tags: Optional[List[String]] = None
 
 
 @strawberry.input
 class DiagramFilterInput:
-    author: Optional[str] = None
-    created_after: Optional[datetime] = None
-    created_before: Optional[datetime] = None
-    name: Optional[str] = None
-    tags: Optional[List[str]] = None
+    author: Optional[String] = None
+    created_after: Optional[DateTime] = None
+    created_before: Optional[DateTime] = None
+    name: Optional[String] = None
+    tags: Optional[List[String]] = None
 
 
 @strawberry.input
 class CreatePersonInput:
-    label: str
+    label: String
     llm_config: PersonLLMConfigInput
-    type: Optional[str] = None
+    type: Optional[String] = None
 
 
 @strawberry.input
 class UpdatePersonInput:
-    label: Optional[str] = None
+    label: Optional[String] = None
     llm_config: Optional[PersonLLMConfigInput] = None
 
 
 @strawberry.input
 class CreateApiKeyInput:
-    key: str
-    label: str
+    key: String
+    label: String
     service: APIServiceType
 
 
 @strawberry.input
 class ExecuteDiagramInput:
-    debug_mode: Optional[bool] = None
+    debug_mode: Optional[Boolean] = None
     diagram_data: Optional[JSON] = None
-    diagram_id: Optional[str] = None
-    max_iterations: Optional[int] = None
-    timeout_seconds: Optional[int] = None
-    use_unified_monitoring: Optional[bool] = None
+    diagram_id: Optional[ID] = None
+    max_iterations: Optional[Int] = None
+    timeout_seconds: Optional[Int] = None
+    use_unified_monitoring: Optional[Boolean] = None
     variables: Optional[JSON] = None
 
 
 @strawberry.input
 class ExecutionControlInput:
-    action: str
-    execution_id: str
-    reason: Optional[str] = None
+    action: String
+    execution_id: ID
+    reason: Optional[String] = None
 
 
 @strawberry.input
 class ExecutionFilterInput:
-    diagram_id: Optional[str] = None
-    started_after: Optional[datetime] = None
-    started_before: Optional[datetime] = None
+    diagram_id: Optional[ID] = None
+    started_after: Optional[DateTime] = None
+    started_before: Optional[DateTime] = None
     status: Optional[Status] = None
 
 
 @strawberry.input
 class UpdateNodeStateInput:
-    error: Optional[str] = None
-    execution_id: str
-    node_id: str
+    error: Optional[String] = None
+    execution_id: ID
+    node_id: ID
     output: Optional[JSON] = None
     status: Status
 
 
 @strawberry.input
 class InteractiveResponseInput:
-    execution_id: str
+    execution_id: ID
     metadata: Optional[JSON] = None
-    node_id: str
-    response: str
+    node_id: ID
+    response: String
 
 
 @strawberry.input
 class RegisterCliSessionInput:
-    execution_id: str
-    diagram_name: str
+    execution_id: ID
+    diagram_name: String
     diagram_format: DiagramFormatGraphQL
     diagram_data: Optional[JSON] = None
 
 
 @strawberry.input
 class UnregisterCliSessionInput:
-    execution_id: str
+    execution_id: ID
 
 
 # Export all input types

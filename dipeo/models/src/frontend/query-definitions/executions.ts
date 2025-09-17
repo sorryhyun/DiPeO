@@ -21,7 +21,29 @@ const EXECUTION_FIELDS_DETAILED = [
   { name: 'node_states' },
   { name: 'node_outputs' },
   { name: 'variables' },
-  { name: 'metrics' },
+  {
+    name: 'metrics',
+    fields: [
+      { name: 'execution_id' },
+      { name: 'start_time' },
+      { name: 'end_time' },
+      { name: 'total_duration_ms' },
+      { name: 'node_metrics' },
+      { name: 'critical_path' },
+      { name: 'parallelizable_groups' },
+      {
+        name: 'bottlenecks',
+        fields: [
+          { name: 'node_id' },
+          { name: 'node_type' },
+          { name: 'duration_ms' },
+          { name: 'percentage' }
+        ]
+      },
+      { name: 'total_llm_tokens' },
+      { name: 'total_llm_calls' }
+    ]
+  },
   {
     name: 'llm_usage',
     fields: [

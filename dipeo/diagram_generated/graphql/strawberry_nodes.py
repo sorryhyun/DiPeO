@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-16T12:35:32.192439
+Generated at: 2025-09-17T16:05:06.250858
 """
 
 import strawberry
@@ -16,7 +16,6 @@ from .domain_types import Vec2Type
 
 from ..domain_models import *
 from ..unified_nodes import *
-
 
 # Import generated scalars
 from dipeo.diagram_generated.graphql.scalars import *
@@ -50,15 +49,21 @@ class ApiJobDataType:
     
     
     
-    headers: Optional[JSONScalar] = None  # HTTP headers
+    
+    headers: Optional[str] = None  # HTTP headers
     
     
     
-    params: Optional[JSONScalar] = None  # Query parameters
+    
+    
+    params: Optional[str] = None  # Query parameters
     
     
     
-    body: Optional[JSONScalar] = None  # Request body
+    
+    
+    body: Optional[str] = None  # Request body
+    
     
     
     
@@ -74,7 +79,9 @@ class ApiJobDataType:
     
     
     
-    auth_config: Optional[JSONScalar] = None  # Authentication configuration
+    
+    auth_config: Optional[str] = None  # Authentication configuration
+    
     
     
 
@@ -395,7 +402,9 @@ class DbDataType:
     
     
     
-    data: Optional[JSONScalar] = None  # Data configuration
+    
+    data: Optional[str] = None  # Data configuration
+    
     
     
     
@@ -636,7 +645,9 @@ class IntegratedApiDataType:
     
     
     
-    config: Optional[JSONScalar] = None  # Provider-specific configuration
+    
+    config: Optional[str] = None  # Provider-specific configuration
+    
     
     
     
@@ -812,7 +823,9 @@ class JsonSchemaValidatorDataType:
     
     
     
-    schema: Optional[JSONScalar] = None  # Inline JSON schema
+    
+    schema: Optional[str] = None  # Inline JSON schema
+    
     
     
     
@@ -1116,7 +1129,9 @@ class StartDataType:
     
     
     
-    output_data_structure: Optional[JSONScalar] = None  # Expected output data structure
+    
+    output_data_structure: Optional[str] = None  # Expected output data structure
+    
     
     
     
@@ -1126,7 +1141,9 @@ class StartDataType:
     
     
     
-    hook_filters: Optional[JSONScalar] = None  # Filters to apply to incoming events
+    
+    hook_filters: Optional[str] = None  # Filters to apply to incoming events
+    
     
     
 
@@ -1191,15 +1208,21 @@ class SubDiagramDataType:
     
     
     
-    diagram_data: Optional[JSONScalar] = None  # Inline diagram data (alternative to diagram_name)
+    
+    diagram_data: Optional[str] = None  # Inline diagram data (alternative to diagram_name)
     
     
     
-    input_mapping: Optional[JSONScalar] = None  # Map node inputs to sub-diagram variables
+    
+    
+    input_mapping: Optional[str] = None  # Map node inputs to sub-diagram variables
     
     
     
-    output_mapping: Optional[JSONScalar] = None  # Map sub-diagram outputs to node outputs
+    
+    
+    output_mapping: Optional[str] = None  # Map sub-diagram outputs to node outputs
+    
     
     
     
@@ -1352,7 +1375,9 @@ class TemplateJobDataType:
     
     
     
-    variables: Optional[JSONScalar] = None  # Variables configuration
+    
+    variables: Optional[str] = None  # Variables configuration
+    
     
     
     
@@ -1639,82 +1664,34 @@ NodeDataUnion = strawberry.union(
 __all__ = [
     'NodeDataUnion',
 
-    'DataType',
+    'ApiJobDataType',
 
-    'DataType',
+    'CodeJobDataType',
 
-    'DataType',
+    'ConditionDataType',
 
-    'DataType',
+    'DbDataType',
 
-    'DataType',
+    'EndpointDataType',
 
-    'DataType',
+    'HookDataType',
 
-    'DataType',
+    'IntegratedApiDataType',
 
-    'DataType',
+    'IrBuilderDataType',
 
-    'DataType',
+    'JsonSchemaValidatorDataType',
 
-    'DataType',
+    'PersonJobDataType',
 
-    'DataType',
+    'StartDataType',
 
-    'DataType',
+    'SubDiagramDataType',
 
-    'DataType',
+    'TemplateJobDataType',
 
-    'DataType',
+    'TypescriptAstDataType',
 
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
+    'UserResponseDataType',
 
 ]
