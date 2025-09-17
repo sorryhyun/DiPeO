@@ -11,8 +11,9 @@ from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
-from dipeo.application.registry.keys import CODEGEN_TEMPLATE_SERVICE, FILESYSTEM_ADAPTER
+from dipeo.application.registry.keys import FILESYSTEM_ADAPTER, TEMPLATE_RENDERER
 from dipeo.diagram_generated.unified_nodes.template_job_node import NodeType, TemplateJobNode
+from dipeo.domain.codegen.ports import TemplateRendererPort
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 @register_handler
 @requires_services(
     filesystem_adapter=FILESYSTEM_ADAPTER,
-    codegen_template_service=CODEGEN_TEMPLATE_SERVICE,
+    template_renderer=TEMPLATE_RENDERER,
 )
 class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     """Renders templates using Jinja2 syntax and outputs the result."""
@@ -205,7 +206,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
         # Services are now injected by the decorator
         filesystem_adapter = self._filesystem_adapter
-        template_service = self._codegen_template_service
+        template_service = self._template_renderer
         engine = self._current_engine
 
         # Apply preprocessor if configured
@@ -238,7 +239,9 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         else:
             # Use Jinja2 for both paths and contents
             processed_template_path = (
-                await template_service.render_string(node.template_path, template_vars)
+                await template_service.render(
+                    node.template_path, template_vars, template_string=node.template_path
+                )
             ).strip()
 
             # Load from file - just use the path as-is since filesystem adapter handles base path
@@ -253,7 +256,9 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Render template (foreach mode not currently implemented)
         # Render template
         if engine in ("internal", "jinja2"):
-            rendered = await template_service.render_string(template_content, template_vars)
+            rendered = await template_service.render(
+                "inline", template_vars, template_string=template_content
+            )
         else:
             rendered = template_content
 
@@ -261,7 +266,9 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         if node.output_path:
             # Use Jinja2 for output path
             processed_output_path = (
-                await template_service.render_string(node.output_path, template_vars)
+                await template_service.render(
+                    "output_path", template_vars, template_string=node.output_path
+                )
             ).strip()
 
             output_path = Path(processed_output_path)

@@ -9,16 +9,19 @@ from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.registry.keys import ServiceKey
 from dipeo.diagram_generated.unified_nodes.ir_builder_node import IrBuilderNode, NodeType
+from dipeo.domain.codegen.ports import IRBuilderRegistryPort, IRCachePort
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.infrastructure.codegen.ir_cache import IRCache
-from dipeo.infrastructure.codegen.ir_registry import IRBuilderRegistry
 
 logger = logging.getLogger(__name__)
 
 
 @register_handler
-@requires_services()  # No services required
+@requires_services(
+    "IR_CACHE",
+    "IR_BUILDER_REGISTRY",
+)
 class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
     """Handler for IR builder nodes.
 
@@ -28,10 +31,16 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
 
     NODE_TYPE = NodeType.IR_BUILDER
 
-    def __init__(self):
-        """Initialize the IR builder node handler."""
+    def __init__(self, ir_cache: IRCachePort, ir_builder_registry: IRBuilderRegistryPort):
+        """Initialize the IR builder node handler.
+
+        Args:
+            ir_cache: IR cache service
+            ir_builder_registry: IR builder registry service
+        """
         super().__init__()
-        self._cache = IRCache()
+        self._cache = ir_cache
+        self._registry = ir_builder_registry
         self._current_builder = None
         self._current_cache_key = None
 
@@ -72,7 +81,7 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
 
         # Validate builder type is known
         try:
-            available_builders = IRBuilderRegistry.list_builders()
+            available_builders = self._registry.list_builders()
             if node.builder_type not in available_builders:
                 return f"Unknown builder type: {node.builder_type}. Available: {', '.join(available_builders)}"
         except Exception as e:
@@ -97,9 +106,7 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
 
         try:
             # Get builder from registry
-            self._current_builder = IRBuilderRegistry.get_builder(
-                builder_type=node.builder_type, config_path=node.config_path
-            )
+            self._current_builder = self._registry.get_builder(node.builder_type)
             logger.info(f"Initialized {node.builder_type} IR builder")
         except Exception as e:
             logger.error(f"Failed to initialize IR builder: {e}")

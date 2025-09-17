@@ -35,8 +35,8 @@ class ExecutionOrchestrator:
 
         self._person_cache: dict[PersonID, Person] = {}
 
-        if hasattr(self._person_repo, "set_orchestrator"):
-            self._person_repo.set_orchestrator(self)
+        if hasattr(self._person_repo, "set_llm_service"):
+            self._person_repo.set_llm_service(self._llm_service)
         self._current_execution_id: str | None = None
 
     def get_or_create_person(

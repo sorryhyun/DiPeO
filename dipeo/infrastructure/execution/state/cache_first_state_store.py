@@ -19,7 +19,13 @@ from dipeo.diagram_generated import (
 )
 from dipeo.domain.events import DomainEvent, EventType
 from dipeo.domain.execution.envelope import serialize_protocol
-from dipeo.domain.execution.state.ports import ExecutionStateRepository as StateStorePort
+from dipeo.domain.execution.state.ports import (
+    ExecutionCachePort,
+    ExecutionStateService,
+)
+from dipeo.domain.execution.state.ports import (
+    ExecutionStateRepository as StateStorePort,
+)
 
 from .cache_manager import CacheManager
 from .models import CacheEntry, PersistenceCheckpoint
@@ -28,7 +34,7 @@ from .persistence_manager import PersistenceManager
 logger = logging.getLogger(__name__)
 
 
-class CacheFirstStateStore(StateStorePort):
+class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCachePort):
     """Cache-first state store with Phase 4 optimizations.
 
     This implementation prioritizes cache operations over database writes:
@@ -654,3 +660,66 @@ class CacheFirstStateStore(StateStorePort):
         combined["checkpoints"] = persist_metrics["checkpoints"]
 
         return combined
+
+    # ExecutionStateService protocol implementation
+    async def start_execution(
+        self,
+        execution_id: ExecutionID,
+        diagram_id: DiagramID | None = None,
+        variables: dict[str, Any] | None = None,
+    ) -> ExecutionState:
+        """Start a new execution."""
+        await self.create_execution(execution_id, diagram_id, variables)
+        await self.update_status(str(execution_id), Status.RUNNING)
+        state = await self.get_state(str(execution_id))
+        return state
+
+    async def finish_execution(
+        self,
+        execution_id: str,
+        status: Status,
+        error: str | None = None,
+    ) -> None:
+        """Finish an execution with final status."""
+        await self.update_status(execution_id, status, error)
+
+    async def update_node_execution(
+        self,
+        execution_id: str,
+        node_id: str,
+        output: Any,
+        status: Status,
+        is_exception: bool = False,
+        llm_usage: LLMUsage | None = None,
+        error: str | None = None,
+    ) -> None:
+        """Atomically update node execution state."""
+        await self.update_node_output(execution_id, node_id, output, is_exception, llm_usage)
+        await self.update_node_status(execution_id, node_id, status, error)
+
+    async def append_llm_usage(self, execution_id: str, usage: LLMUsage) -> None:
+        """Append to cumulative LLM usage."""
+        await self.add_llm_usage(execution_id, usage)
+
+    async def append_token_usage(self, execution_id: str, tokens: LLMUsage) -> None:
+        """Append to cumulative token usage (alias for append_llm_usage)."""
+        await self.add_llm_usage(execution_id, tokens)
+
+    async def get_execution_state(self, execution_id: str) -> ExecutionState | None:
+        """Get current execution state."""
+        return await self.get_state(execution_id)
+
+    # ExecutionCachePort protocol implementation
+    async def get_state_from_cache(self, execution_id: str) -> ExecutionState | None:
+        """Get state from cache only (no DB lookup)."""
+        entry = await self._cache_manager.get_entry(execution_id)
+        return entry.state if entry else None
+
+    async def create_execution_in_cache(
+        self,
+        execution_id: ExecutionID,
+        diagram_id: DiagramID | None = None,
+        variables: dict[str, Any] | None = None,
+    ) -> ExecutionState:
+        """Create execution in cache only."""
+        return await self.create_execution(execution_id, diagram_id, variables)

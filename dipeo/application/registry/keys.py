@@ -256,11 +256,10 @@ TEMPLATE_PROCESSOR = ServiceKey["TemplateProcessorPort"](
     description="Service for processing templates",
 )
 
-CODEGEN_TEMPLATE_SERVICE = ServiceKey["CodegenTemplateService"](
-    "processing.codegen_template",
+TEMPLATE_RENDERER = ServiceKey["TemplateRendererPort"](
+    "processing.template_renderer",
     service_type=ServiceType.APPLICATION,
-    description="Service for code generation templates with filters and macros",
-    immutable=True,  # Single instance with all filters loaded
+    description="Template rendering service for Jinja2-style template processing",
 )
 
 PROMPT_BUILDER = ServiceKey["PromptBuilder"](
@@ -292,6 +291,18 @@ IR_BUILDER_SERVICE = ServiceKey["IRBuilderPort"](
     "processing.ir_builder",
     service_type=ServiceType.APPLICATION,
     description="Service for building intermediate representation from source data",
+)
+
+IR_CACHE = ServiceKey["IRCachePort"](
+    "processing.ir_cache",
+    service_type=ServiceType.CORE,
+    description="IR data caching service for build results",
+)
+
+IR_BUILDER_REGISTRY = ServiceKey["IRBuilderRegistryPort"](
+    "processing.ir_builder_registry",
+    service_type=ServiceType.CORE,
+    description="Registry for managing IR builder implementations",
 )
 
 # =============================================================================
@@ -389,7 +400,6 @@ __all__ = [
     "BLOB_STORE",
     # Application
     "CLI_SESSION_SERVICE",
-    "CODEGEN_TEMPLATE_SERVICE",
     "COMPILE_DIAGRAM_USE_CASE",
     "CONVERSATION_REPOSITORY",
     "CURRENT_NODE_INFO",
@@ -415,6 +425,9 @@ __all__ = [
     "FILESYSTEM_ADAPTER",
     "FILE_SERVICE",
     "INTEGRATED_API_SERVICE",
+    "IR_BUILDER_REGISTRY",
+    # IR Management
+    "IR_CACHE",
     "LLM_SERVICE",
     "LOAD_DIAGRAM_USE_CASE",
     "MANAGE_CONVERSATION_USE_CASE",
@@ -437,6 +450,7 @@ __all__ = [
     "STATE_STORE",
     # Processing
     "TEMPLATE_PROCESSOR",
+    "TEMPLATE_RENDERER",
     "TRANSFORMATION_ENGINE",
     "VALIDATE_DIAGRAM_USE_CASE",
 ]

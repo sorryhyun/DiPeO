@@ -24,10 +24,10 @@ async def create_server_container() -> Container:
     # Use minimal wiring for thin startup
     import logging
 
-    from dipeo.application.bootstrap.wiring import (
+    from apps.server.bootstrap import (
         bootstrap_services,
+        execute_event_subscriptions,
         wire_feature_flags,
-        wire_messaging_services,
     )
     from dipeo.application.registry.keys import (
         CLI_SESSION_SERVICE,
@@ -81,10 +81,8 @@ async def create_server_container() -> Container:
     else:
         logger.debug("STATE_STORE already registered, skipping")
 
-    # CacheFirstStateStore is now wired and subscribed in wiring.py
+    # CacheFirstStateStore is now wired and subscribed in bootstrap.py
     # Execute event subscriptions to activate state store event handling
-    from dipeo.application.bootstrap.wiring import execute_event_subscriptions
-
     await execute_event_subscriptions(container.registry)
 
     # Initialize and wire MessageRouter
