@@ -1,0 +1,36 @@
+version: light
+nodes:
+- label: start
+  type: start
+  position: {x: 330, y: 200}
+  props:
+    trigger_mode: manual
+- label: endpoint
+  type: endpoint
+  position: {x: 0, y: 437}
+  props:
+    file_format: txt
+    save_to_file: true
+    flipped: [true, false]
+    file_path: files/results/total.txt
+- label: ask
+  type: person_job
+  position: {x: 311, y: 443}
+  props:
+    default_prompt: How many times did you respond?
+    flipped: [true, false]
+    max_iteration: 1
+    memorize_to: ALL_MESSAGES
+    person: person 1
+connections:
+- from: start
+  to: ask
+  content_type: raw_text
+- from: ask
+  to: endpoint
+  content_type: raw_text
+persons:
+  person 1:
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_52609F

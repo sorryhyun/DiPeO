@@ -15,7 +15,7 @@ from dipeo.infrastructure.integrations.drivers.integrated_api.generic_provider i
 )
 from dipeo.infrastructure.integrations.drivers.integrated_api.registry import ProviderRegistry
 
-from ..types.provider_types import (
+from ..graphql_types.provider_types import (
     AuthConfigType,
     ExecuteIntegrationInput,
     IntegrationTestResultType,

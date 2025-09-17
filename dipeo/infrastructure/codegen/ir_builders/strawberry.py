@@ -449,13 +449,15 @@ class UnifiedIRBuilder:
                 "Response",
                 "Arguments",
                 "Params",
-                "Options",
                 "FieldDefinition",
                 "FieldArgument",
                 "VariableDefinition",
             ]
             # More specific skip patterns that need exact match or specific context
-            exact_skip_patterns = ["Config"]  # Only skip if it's exactly "Config"
+            exact_skip_patterns = [
+                "Config",
+                "Options",
+            ]  # Only skip if it's exactly "Config" or "Options"
 
             # Check skip patterns
             should_skip = any(pattern in interface_name for pattern in skip_patterns)
@@ -468,6 +470,10 @@ class UnifiedIRBuilder:
 
             # Special case: Don't skip WebSearchResult and ImageGenerationResult (they're domain types)
             if interface_name in ["WebSearchResult", "ImageGenerationResult"]:
+                should_skip = False
+
+            # Special case: Don't skip ExecutionOptions (it's a domain type needed for execution)
+            if interface_name == "ExecutionOptions":
                 should_skip = False
 
             if should_skip:

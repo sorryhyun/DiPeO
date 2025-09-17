@@ -11,15 +11,15 @@ from pathlib import Path
 import strawberry
 from strawberry.scalars import JSON
 
-from dipeo.application.graphql.resolvers import DiagramResolver, ExecutionResolver, PersonResolver
-from dipeo.application.graphql.resolvers.provider_resolver import ProviderResolver
-from dipeo.application.graphql.types.cli_session import CliSession
-from dipeo.application.graphql.types.provider_types import (
+from dipeo.application.graphql.graphql_types.cli_session import CliSession
+from dipeo.application.graphql.graphql_types.provider_types import (
     OperationSchemaType,
     OperationType,
     ProviderStatisticsType,
     ProviderType,
 )
+from dipeo.application.graphql.resolvers import DiagramResolver, ExecutionResolver, PersonResolver
+from dipeo.application.graphql.resolvers.provider_resolver import ProviderResolver
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     CLI_SESSION_SERVICE,

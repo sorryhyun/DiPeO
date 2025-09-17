@@ -93,18 +93,17 @@ def test_imports():
 
 def start_server():
     """Start the server with staged imports."""
-    server_script = project_root / "apps" / "server" / "main.py"
-
-    if not server_script.exists():
-        print(f"❌ Server script not found: {server_script}")
-        return None
+    # Command to run the DiPeO server
+    cmd = "dipeo run examples/simple_diagrams/test_cc --light --debug --simple --timeout=25"
 
     print("Starting server with staged code...")
+    print(f"Command: {cmd}")
 
     # Start server as subprocess
     env = os.environ.copy()
     process = subprocess.Popen(
-        [sys.executable, str(server_script)],
+        cmd,
+        shell=True,
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -245,6 +244,20 @@ def main():
                 print("\n❌ FAILED: GraphQL not working with staged code")
                 return 1
 
+            # Step 6: Wait for diagram execution to complete (timeout=25s)
+            print("\nWaiting for diagram execution to complete...")
+            exit_code = process.wait()  # Wait for process to terminate naturally
+
+            if exit_code == 0:
+                print("✅ Diagram execution completed successfully")
+            else:
+                stdout, stderr = process.communicate()
+                print(f"⚠️  Diagram execution ended with code {exit_code}")
+                if stdout:
+                    print(f"STDOUT:\n{stdout}")
+                if stderr:
+                    print(f"STDERR:\n{stderr}")
+
             print("\n" + "=" * 60)
             print("✅ SUCCESS: Server runs correctly with staged code!")
             print("   Safe to apply staged changes to active directory")
@@ -252,7 +265,7 @@ def main():
             return 0
 
         finally:
-            # Always stop the server
+            # Stop the server if it's still running (shouldn't be after wait())
             stop_server(process)
 
     finally:

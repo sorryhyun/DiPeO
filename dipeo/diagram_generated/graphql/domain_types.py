@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-17T18:48:38.625198
+Generated at: 2025-09-17T19:31:22.449458
 """
 
 import strawberry
@@ -31,8 +31,8 @@ from dipeo.diagram_generated.domain_models import (
     ExecutionMetrics,
     EnvelopeMeta,
     SerializedEnvelope,
-    ExecutionOptions,
     ExecutionState,
+    ExecutionOptions,
     InteractivePromptData,
     ExecutionUpdate,
     NodeDefinition,
@@ -41,6 +41,7 @@ from dipeo.diagram_generated.domain_models import (
     WebSearchResult,
     ImageGenerationResult,
     ToolOutput,
+    LLMRequestOptions,
     NodeUpdate,
     InteractivePrompt,
     ExecutionLogEntry,
@@ -84,7 +85,6 @@ TaskIDScalar = ID  # Temporary fallback
 
 # Define undefined types
 SerializedNodeOutput = JSONScalar  # Temporary - this type is not defined in TypeScript
-SerializedNodeOutputType = JSONScalar  # Alias for compatibility
 
 # Import generated types that already exist
 from dipeo.diagram_generated.graphql.strawberry_domain import (
@@ -393,14 +393,6 @@ class SerializedEnvelopeType:
 
 
 @strawberry.type
-class ExecutionOptionsType:
-    mode: Optional[str] = None  # 'normal' | 'debug' | 'monitor'
-    timeout: Optional[int] = None
-    variables: Optional[JSONScalar] = None
-    debug: Optional[bool] = None
-
-
-@strawberry.type
 class ExecutionStateType:
     id: str
     status: Status
@@ -445,6 +437,24 @@ class ExecutionStateType:
                         for k, v in obj.exec_counts.items()} if obj.exec_counts else {},
             executed_nodes=obj.executed_nodes,
             metrics=obj.metrics,
+        )
+
+
+@strawberry.type
+class ExecutionOptionsType:
+    mode: Optional[str] = None
+    timeout: Optional[float] = None
+    variables: Optional[JSONScalar] = None
+    debug: Optional[bool] = None
+
+    @staticmethod
+    def from_pydantic(obj: ExecutionOptions) -> "ExecutionOptionsType":
+        """Convert from Pydantic model"""
+        return ExecutionOptionsType(
+            mode=obj.mode,
+            timeout=obj.timeout,
+            variables=obj.variables,
+            debug=obj.debug,
         )
 
 
@@ -541,6 +551,16 @@ class ToolOutputType:
 
 
 @strawberry.type
+class LLMRequestOptionsType:
+    temperature: Optional[float] = None
+    max_tokens: Optional[float] = None
+    top_p: Optional[float] = None
+    n: Optional[float] = None
+    tools: Optional[list[ToolConfig]] = None
+    response_format: Optional[JSONScalar] = None
+
+
+@strawberry.type
 class NodeUpdateType:
     execution_id: ExecutionIDScalar
     node_id: NodeIDScalar
@@ -598,4 +618,5 @@ class KeepalivePayloadType:
             type=str(obj.type.value) if hasattr(obj.type, 'value') else str(obj.type),
             timestamp=obj.timestamp,
         )
+
 

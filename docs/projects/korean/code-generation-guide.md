@@ -2,9 +2,9 @@
 
 ## 개요
 
-DiPeO는 다이어그램 기반의 다단계 코드 생성 파이프라인을 사용하며, 자체 실행 엔진을 “도그푸딩(dog-food)”합니다. 모든 코드 생성은 DiPeO 다이어그램을 통해 오케스트레이션되며, TypeScript 노드 명세에서 GraphQL 쿼리와 Python 핸들러까지 타입 안정성을 유지합니다.
+DiPeO는 다이어그램 기반의 다단계 코드 생성 파이프라인을 통해 자체 실행 엔진을 도그푸딩(dogfooding)합니다. 모든 생성 작업을 DiPeO 다이어그램으로 오케스트레이션하여 TypeScript 노드 명세부터 GraphQL 쿼리, Python 핸들러까지 일관된 타입 안전성을 유지합니다.
 
-**핵심 철학**: DiPeO는 DiPeO로 DiPeO를 빌드합니다. 모든 코드 생성이 DiPeO 다이어그램을 통해 실행되며, 이는 플랫폼의 성숙도와 역량을 증명합니다.
+**핵심 철학**: DiPeO는 DiPeO로 DiPeO를 빌드합니다. 전 과정이 다이어그램으로 실행되기 때문에 플랫폼의 성숙도와 역량을 직접 증명합니다.
 
 ## 생성 흐름
 
@@ -148,19 +148,23 @@ dipeo run codegen/diagrams/generate_all --light --debug
 # 특정 노드만 생성(디버깅용)
 dipeo run codegen/diagrams/models/generate_backend_models_single --light \
   --input-data '{"node_name": "person_job"}'
+
+# IR만 재생성(디버깅용)
+dipeo run codegen/diagrams/generate_backend_simplified --light --debug
 ```
 
 ## 도그푸딩 아키텍처
 
-DiPeO의 코드 생성은 “도그푸딩”의 전형입니다. 즉, DiPeO 다이어그램을 사용해 DiPeO의 코드를 생성합니다.
+DiPeO의 코드 생성은 전형적인 도그푸딩 사례입니다. 곧, DiPeO 다이어그램을 이용해 DiPeO의 코드를 만들어 갑니다.
 
-1. **비주얼 프로그래밍**: 각 생성 단계가 다이어그램 노드로 표현
-2. **조합성**: 서브 다이어그램이 특정 생성 작업을 담당
-3. **병렬화**: 여러 파일을 배치 처리
-4. **에러 처리**: 배치 처리에서 점진적 강건성(부분 실패 시에도 유연)
-5. **캐싱**: AST 파싱 결과를 캐시해 중복 작업 방지
+1. **비주얼 프로그래밍**: 각 생성 단계가 다이어그램 노드로 표현됩니다.
+2. **IR 기반 설계**: 일관성을 위해 중앙 집중형 중간 표현(Intermediate Representation)을 사용합니다.
+3. **조합성**: 서브 다이어그램이 특정 생성 작업을 담당합니다.
+4. **병렬화**: 여러 파일을 배치 처리합니다.
+5. **에러 처리**: 배치 작업에서도 우아하게 실패를 처리합니다.
+6. **캐싱**: AST 파싱과 IR 파일을 캐시해 디버깅과 재사용을 돕습니다.
 
-이 접근은 플랫폼의 성숙도를 증명합니다. 스스로를 빌드할 만큼 충분히 견고합니다.
+이 접근은 세련된 IR 기반 메타 프로그래밍으로 플랫폼이 스스로를 구축할 만큼 성숙하다는 사실을 입증합니다.
 
 ## 스테이징 접근의 의의
 
@@ -284,23 +288,25 @@ DiPeO의 코드 생성은 “도그푸딩”의 전형입니다. 즉, DiPeO 다�
    cd apps/web && pnpm codegen  # 업데이트된 스키마로 TypeScript 생성
    ```
 
-## V2 생성 개선점
+## IR 기반 생성 시스템
 
-현재 생성 시스템은 “v2” 다이어그램을 사용하며 다음과 같은 개선이 있습니다.
+현재 코드 생성 시스템은 IR 기반 패턴을 사용하며 다음과 같은 특징을 갖습니다.
 
-1. **Template Job 노드**: 중간 단계를 생략하고 템플릿을 직접 렌더링
-2. **동적 탐색**: 글롭 패턴으로 모든 파일 자동 검색
-3. **외부 코드화**: 재사용을 위해 로직을 `projects/codegen/code/`에 배치
-4. **배치 처리**: 여러 노드를 병렬로 생성
-5. **향상된 에러 처리**: 배치 작업의 우아한 강건성
+1. **중간 표현(Intermediate Representation)**: JSON 파일을 단일 진실의 원천으로 사용합니다.
+2. **IR 빌더**: 추출 로직을 전용 모듈에 모아 관리합니다.
+3. **템플릿 잡 노드**: IR 데이터를 바로 렌더링합니다.
+4. **동적 탐색**: 글롭 패턴으로 모든 파일을 자동 검색합니다.
+5. **외부 코드화**: `projects/codegen/code/` 아래에서 IR 빌더를 재사용합니다.
+6. **배치 처리**: 여러 노드를 병렬로 생성합니다.
+7. **향상된 에러 처리**: 배치 작업에서 우아한 강건성을 제공합니다.
 
-v2 패턴 예시:
+예시 패턴:
 
 ```yaml
 - label: Generate Field Configs
   type: template_job
   props:
-    template_path: projects/codegen/templates/frontend/field_config_v2.jinja2
+    template_path: projects/codegen/templates/frontend/field_config.jinja2
     output_path: "{{ output_dir }}/fields/{{ node_type_pascal }}Fields.ts"
     context:
       node_type: "{{ node_type }}"
@@ -326,58 +332,72 @@ DiPeO는 커스텀 필터가 포함된 Jinja2 템플릿을 사용합니다.
 
 **핵심 제너레이터**:
 
-* `/projects/codegen/code/models/` - Python 모델 생성
-* `/projects/codegen/code/frontend/` - React/TypeScript 생성
-* 모두 외부 파일을 사용하여 테스트 가능성과 재사용성 확보
+- `/projects/codegen/code/models/` - Python 모델 생성
+- `/projects/codegen/code/frontend/` - React/TypeScript 생성
+- 모든 로직을 외부 파일로 분리해 테스트 가능성과 재사용성을 높입니다.
 
 ## 주요 파일 및 디렉터리
 
 ### 소스 파일
 
-* `/dipeo/models/src/` - TypeScript 명세(단일 진실의 원천)
-
-  * `/node-specs/` - 노드 타입 정의
-  * `/core/` - 핵심 도메인 타입
-  * `/codegen/` - 코드 생성 매핑
+- `/dipeo/models/src/` – TypeScript 명세(단일 진실의 원천)
+  - `/node-specs/` – 노드 타입 정의
+  - `/core/` – 핵심 도메인 타입
+  - `/codegen/` – 코드 생성 매핑
 
 ### 코드 생성 시스템
 
-* `/projects/codegen/diagrams/` - 생성 오케스트레이션 다이어그램
-
-  * `/models/` - 도메인 모델 생성 다이어그램
-  * `/frontend/` - 프론트엔드 생성 다이어그램
-  * `/shared/` - 공통 파싱 및 유틸리티
-* `/projects/codegen/code/` - 다이어그램용 외부 Python 코드
-
-  * 다이어그램 구조와 매칭되도록 구성
-  * 모든 생성 로직 외부화로 테스트 가능
-* `/projects/codegen/templates/` - Jinja2 템플릿
-
-  * `/models/` - Python 모델 템플릿
-  * `/frontend/` - TypeScript/React 템플릿
+- `/projects/codegen/diagrams/` – DiPeO 다이어그램으로 생성 작업을 오케스트레이션
+  - `generate_all.light.yaml` – 전체 파이프라인
+  - `generate_backend_simplified.light.yaml` – IR에서 백엔드 생성
+  - `generate_frontend_simplified.light.yaml` – IR에서 프론트엔드 생성
+  - `generate_strawberry.light.yaml` – IR에서 GraphQL 생성
+- `/projects/codegen/code/` – IR 빌더와 추출기
+  - `backend_ir_builder.py` – 백엔드 모델/타입 수집
+  - `frontend_ir_builder.py` – 프런트엔드 컴포넌트/스키마 추출
+  - `strawberry_ir_builder.py` – GraphQL 오퍼레이션과 도메인 타입
+- `/projects/codegen/ir/` – 중간 표현(JSON)
+  - `backend_ir.json` – 노드 스펙, 모델, enum
+  - `frontend_ir.json` – 컴포넌트, 스키마, 필드
+  - `strawberry_ir.json` – GraphQL 오퍼레이션, 타입, 입력값
+- `/projects/codegen/templates/` – IR을 소비하는 Jinja2 템플릿
+  - `/backend/` – Python 모델 템플릿
+  - `/frontend/` – TypeScript/React 템플릿
+  - `/strawberry/` – GraphQL/Strawberry 템플릿
 
 ### 생성 파일(수정 금지)
 
-* `/dipeo/diagram_generated_staged/` - 적용 전 미리보기용 스테이징
-* `/dipeo/diagram_generated/` - 활성화된 생성 Python 코드
-* `/apps/web/src/__generated__/` - 생성된 프론트엔드 코드
-* `/temp/` - AST 캐시(깃 무시)
+- `/dipeo/diagram_generated_staged/` – 적용 전 스테이징 코드
+- `/dipeo/diagram_generated/` – 활성 Python 생성 코드
+- `/apps/web/src/__generated__/` – 생성된 프런트엔드 코드
+- `/temp/` – AST 캐시(버전 관리 대상 아님)
 
-### 구성
+### 설정
 
-* `/apps/web/codegen.yml` - GraphQL 코드 제너레이터 설정
-* `Makefile` - 생성 파이프라인 오케스트레이션
+- `/apps/web/codegen.yml` – GraphQL 코드 생성기 설정
+- `Makefile` – 전체 파이프라인을 오케스트레이션
 
 ## 아키텍처 노트
+
+### v1.0 리팩터링 완료
+
+주요 아키텍처 개선이 완료되었습니다.
+- **믹스인 기반 서비스**: 단일 상속 대신 선택적 믹스인을 사용합니다.
+- **통합 EventBus**: 이벤트 프로토콜을 단일 인터페이스로 통합했습니다.
+- **직접 프로토콜 구현**: 불필요한 어댑터 레이어를 제거했습니다.
+- **강화된 타입 안전성**: 결과 타입과 JSON 정의를 개선했습니다.
+- **스네이크 케이스**: Python은 스네이크 케이스를 사용하고, 호환성을 위해 Pydantic alias를 제공합니다.
+- **생성된 enum**: 모든 enum을 TypeScript 명세에서 자동 생성합니다.
 
 ### 왜 마스터 다이어그램 대신 Make 명령을 쓰는가
 
 코드베이스는 단일 마스터 다이어그램 대신 Make 명령을 사용합니다. 그 이유는:
 
-* **우수한 에러 처리**: Make는 첫 오류에서 중단
-* **명확한 실행 흐름**: 각 단계가 명시적
-* **디버깅 용이**: 개별 단계만 실행 가능
-* **표준 도구 사용**: 개발자에게 친숙
+- **우수한 에러 처리**: Make는 첫 오류에서 중단합니다.
+- **명확한 실행 흐름**: 각 단계가 명시적입니다.
+- **디버깅 용이**: 개별 단계만 실행하거나 IR을 점검할 수 있습니다.
+- **표준 도구 사용**: 개발자에게 친숙한 Make를 활용합니다.
+- **IR 점검**: 생성 중간 결과(JSON)를 살펴볼 수 있습니다.
 
 ### 2단계 GraphQL 생성
 
@@ -393,14 +413,12 @@ DiPeO는 커스텀 필터가 포함된 Jinja2 템플릿을 사용합니다.
 * **유연성**: 스키마 변경 없이 쿼리 커스터마이즈
 * **일관성**: 모든 쿼리가 동일한 패턴을 따름
 
-### 외부 코드 구성
+### IR 기반 코드 구성
 
-모든 생성 로직은 외부 Python 파일에 위치합니다.
-
-* 다이어그램 구조와 매칭되어 탐색성 향상
-* 생성 로직 단위 테스트 가능
-* 다이어그램 간 코드 재사용 지원
-* 예: `parse_typescript_single.light.yaml`은 `projects/codegen/code/shared/typescript_spec_parser.py`의 함수를 사용
+모든 생성 로직은 IR 빌더를 거쳐 템플릿으로 전달됩니다.
+- **IR 빌더**: `*_ir_builder.py` 파일이 추출 로직을 중앙에서 관리합니다.
+- **템플릿**: IR 데이터를 소비해 일관된 출력을 생성합니다.
+- **패턴**: `AST 파싱 → IR 빌드 → 템플릿 렌더링 → 출력` 흐름을 따릅니다.
 
 ## 모범 사례
 

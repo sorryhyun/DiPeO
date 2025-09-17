@@ -106,13 +106,15 @@ def transform_query_from_ast(query_data: dict[str, Any], entity: str | None = No
         return None
 
     # Extract query specification
+    variables = transform_variables(query_data.get('variables', []))
     query_spec = {
         'name': query_data.get('name', 'unknown'),
         'operationType': extract_operation_type(query_data),
         'entity': entity or extract_entity(query_data),
         'operation': extract_operation(query_data),
         'fieldPreset': query_data.get('fieldPreset', 'STANDARD'),
-        'variables': transform_variables(query_data.get('variables', [])),
+        'variables': variables,
+        'has_variables': len(variables) > 0,  # Explicit flag for template
         'fields': transform_fields(query_data.get('fields', [])),
         'responseType': query_data.get('responseType'),
         'description': query_data.get('description', '')

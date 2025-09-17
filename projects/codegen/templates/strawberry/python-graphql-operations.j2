@@ -39,8 +39,8 @@ class {{ operation['name'] | pascal_case }}Operation:
     operation_type = "{{ operation['type'] }}"
     operation_name = "{{ operation['name'] }}"
 
-    {% if operation.get('has_variables') %}
-    class Variables(TypedDict{% if operation.get('variables', []) | selectattr('required', 'equalto', false) | list %}, total=False{% endif %}):
+    {% if operation.get('variables', []) %}
+    class Variables(TypedDict{% if not operation.get('variables', []) | selectattr('required', 'equalto', true) | list %}, total=False{% endif %}):
         """Variable types for {{ operation['name'] }} {{ operation['type'] }}."""
         {% for var in operation.get('variables', []) %}
         {{ var['name'] }}: {{ var['python_type'] | graphql_to_python(var.get('required', false)) }}
@@ -48,7 +48,7 @@ class {{ operation['name'] | pascal_case }}Operation:
     {% else %}
     class Variables(TypedDict):
         """No variables for this operation."""
-        pass
+        pass  # Empty TypedDict for operations without variables
     {% endif %}
 
     @classmethod

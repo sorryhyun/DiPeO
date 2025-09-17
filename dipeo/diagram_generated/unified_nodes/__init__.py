@@ -2,7 +2,7 @@
 Unified node models - combining validation and execution.
 Phase 2 of refactoring: One model per node type.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T16:05:07.177160
+Generated at: 2025-09-17T19:31:23.402896
 """
 
 

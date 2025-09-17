@@ -86,7 +86,7 @@ The GraphQL refactoring is **substantially complete** with a solid, production-r
 1. **Add definition** to `/dipeo/models/src/frontend/query-definitions/[entity].ts`
 2. **Build models**: `cd dipeo/models && pnpm build`
 3. **Generate queries**: `make codegen`
-4. **Apply changes**: `make apply-syntax-only`
+4. **Apply changes**: `make apply-test`
 5. **Update GraphQL schema**: `make graphql-schema`
 
 ### Query Definition Structure
@@ -331,7 +331,7 @@ history = registry.get_audit_trail()
 1. Create specification in `/dipeo/models/src/node-specs/`
 2. Build models: `cd dipeo/models && pnpm build`
 3. Generate: `make codegen`
-4. Apply: `make apply-syntax-only`
+4. Apply: `make apply-test`
 5. Update GraphQL: `make graphql-schema`
 
 ### Other Changes
